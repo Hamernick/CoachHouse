@@ -1,0 +1,64 @@
+# Sprint Recovery Map - 2026-09-22
+
+Purpose: preserve and classify local sprint work without discarding anything. These checkpoints are recovery anchors, not release candidates.
+
+## Current Production Base
+
+- Fresh `origin/main`: `dc36b113` (`[STEP S99] Restore Workspace tab content widths (#244)`)
+- Recent merged releases on `main`: PR #242 admin/coach tools, PR #243 Documents/Drive-backed Core Documents, PR #244 Workspace tab width hotfix.
+- Closed/rejected broad release: PR #241. Do not revive it as-is.
+
+## Preservation Checkpoints
+
+| Workstream | Worktree branch | Recovery commit | Recovery branch | State |
+|---|---|---:|---|---|
+| Root sprint pile | `chore/local-development-20260907` | `00692e48` | `chore/root-sprint-recovery-20260922` | clean |
+| Workspace particles/objective | `chore/parallel-development-20260914` | `fd5e5f77` | `chore/particles-objective-recovery-20260922` | clean |
+| Google Calendar sync | `feat/google-calendar-sync-20260908` | `1713e8c3` | `chore/google-calendar-recovery-20260922` | clean |
+| Documents/Calendar consent | `chore/documents-calendar-integration-20260909` | `911b1d5a` | `chore/documents-calendar-consent-recovery-20260922` | clean |
+| Google Drive UI evidence | `feat/google-drive-ui-iteration-20260904` | `961efc07` | `chore/google-drive-ui-evidence-recovery-20260922` | clean |
+| AI auth runlog | `fix/management-developer-authorization-20260914` | `6c2e492b` | `chore/ai-auth-runlog-recovery-20260922` | clean |
+| Calendar review evidence | `feat/google-calendar-review-20260914` | `a8582c2f` | `chore/calendar-review-evidence-recovery-20260922` | clean |
+| Antigravity particles test | `chore/antigravity-test-20260918` | `48199ba7` | `chore/antigravity-particles-recovery-20260922` | clean |
+| Launch-clean legacy work | `launch/canvas-map-implementation` | `f15ce510` | `chore/launch-clean-recovery-20260922` | one untracked tokenized media file remains |
+
+## Important Hold
+
+`/Users/calebhamernick/Development/coach-house-platform-launch-clean/src/components/public/legacy-home-sections-data.tsx` is still uncommitted and unchanged because gitleaks found six JWT-like URL tokens in it. Do not print, commit, push, or publish those token values. Preserve the file in place until the user chooses whether to scrub or replace the tokenized media URLs.
+
+## What Was Preserved
+
+| Checkpoint commit | Files | Primary buckets |
+|---:|---:|---|
+| `0a1895fc` | 621 | member/admin/coach, nonprofit docs, tests, visuals, app shell/dashboard, particles/objective, docs |
+| `fd5e5f77` | 46 | Workspace particles/objective planner, visual tests, docs, acceptance tests |
+| `1713e8c3` | 95 | Google Calendar feature, API routes, tests, legal consent, migrations |
+| `911b1d5a` | 9 | Drive privacy consent migration/tests/docs |
+| `961efc07` | 17 | Drive UI screenshot evidence only |
+| `6c2e492b` | 1 | AI auth runlog only |
+| `a8582c2f` | 2 | Calendar QA/runlog evidence only |
+| `48199ba7` | 2 | particles context/panel experiment |
+| `f15ce510` | 294 | old workspace/dashboard shell, Documents UI, account settings, public home/find, roadmap |
+
+## Release Boundaries
+
+- Keep public surfaces separate from internal/admin work: `src/app/(public)`, `src/components/public`, `src/features/nonprofit-documentation`, public Find/map, public profiles, visual baselines.
+- Treat visual snapshot changes as evidence only until the related product scope is selected and reviewed.
+- Treat root `0a1895fc` as a salvage source, not a branch to merge.
+- Treat `launch-clean` as legacy reference material; it is broad and token-blocked.
+- Calendar and provider work needs provider/config/live-verification boundaries before release claims.
+- Workspace particles/objective work should resume independently from Calendar and public Marketplace work.
+
+## Recommended Resume Order
+
+1. Workspace particles/objective planner: start from `chore/particles-objective-recovery-20260922`, rebase or cherry-pick narrowly onto fresh `origin/main`, then validate only Workspace/particles surfaces first.
+2. Google Calendar sync: start from `chore/google-calendar-recovery-20260922`; separate code readiness from OAuth/provider setup and live calendar verification.
+3. Documents/Drive consent follow-up: compare `911b1d5a` against current `main` because PR #243 already shipped newer Documents work.
+4. Nonprofit docs/Brand/Marketplace: extract only selected public changes from root; require screenshot review before accepting visual baselines.
+5. Member/admin/coach leftovers: compare against merged PR #242 first to avoid replaying shipped internal tooling.
+6. Public Find/mobile map: isolate from Marketplace and nonprofit docs; do not blend raw candidate/resource-map work into public Find.
+7. Launch-clean legacy: inspect only for ideas or components; do not merge wholesale.
+
+## Next Action
+
+Create a clean isolated worktree from current `origin/main` for the first selected workstream, then cherry-pick or restore specific files from the matching recovery checkpoint. Keep one PR per workstream and require a public-boundary diff for any public surface.
