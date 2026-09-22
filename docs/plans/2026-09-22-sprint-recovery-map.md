@@ -17,7 +17,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 | Root sprint pile | `chore/local-development-20260907` | `00692e48` | `chore/root-sprint-recovery-20260922` | clean |
 | Workspace particles/objective | `chore/parallel-development-20260914` | `fd5e5f77` | `chore/particles-objective-recovery-20260922` | clean |
 | Google Calendar sync | `feat/google-calendar-sync-20260908` | `1713e8c3` | `chore/google-calendar-recovery-20260922` | clean |
-| Documents/Calendar consent | `chore/documents-calendar-integration-20260909` | `911b1d5a` | `chore/documents-calendar-consent-recovery-20260922` | clean |
+| Documents/Calendar consent | `chore/documents-calendar-integration-20260909` | `911b1d5a` | `chore/documents-calendar-consent-recovery-20260922` | clean; already absorbed into current `main` except stale runlog text |
 | Google Drive UI evidence | `feat/google-drive-ui-iteration-20260904` | `961efc07` | `chore/google-drive-ui-evidence-recovery-20260922` | clean |
 | AI auth runlog | `fix/management-developer-authorization-20260914` | `6c2e492b` | `chore/ai-auth-runlog-recovery-20260922` | clean |
 | Calendar review evidence | `feat/google-calendar-review-20260914` | `a8582c2f` | `chore/calendar-review-evidence-recovery-20260922` | clean |
@@ -37,7 +37,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 | `508b8df0` | 47 | fresh-main replay of Google Calendar sync plus validation runlog |
 | `fd5e5f77` | 46 | Workspace particles/objective planner, visual tests, docs, acceptance tests |
 | `1713e8c3` | 95 | Google Calendar feature, API routes, tests, legal consent, migrations |
-| `911b1d5a` | 9 | Drive privacy consent migration/tests/docs |
+| `911b1d5a` | 9 | Drive privacy consent migration/tests/docs; current `main` already matches all non-runlog files |
 | `961efc07` | 17 | Drive UI screenshot evidence only |
 | `6c2e492b` | 1 | AI auth runlog only |
 | `a8582c2f` | 2 | Calendar QA/runlog evidence only |
@@ -57,11 +57,14 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 
 1. Workspace particles/objective planner: resume from `feat/workspace-particles-objective-resume-20260922` at `c855aea6`; static, acceptance, build, RLS, focused tests, and Workspace particles/objective visuals passed. Resolve or separately baseline the unrelated Documents banner visual drift before declaring full visual green.
 2. Google Calendar sync: resume from `feat/google-calendar-resume-20260922` at `508b8df0`; local code gates passed. Separate code readiness from OAuth/provider setup and live calendar verification before release.
-3. Documents/Drive consent follow-up: compare `911b1d5a` against current `main` because PR #243 already shipped newer Documents work.
-4. Nonprofit docs/Brand/Marketplace: extract only selected public changes from root; require screenshot review before accepting visual baselines.
-5. Member/admin/coach leftovers: compare against merged PR #242 first to avoid replaying shipped internal tooling.
-6. Public Find/mobile map: isolate from Marketplace and nonprofit docs; do not blend raw candidate/resource-map work into public Find.
-7. Launch-clean legacy: inspect only for ideas or components; do not merge wholesale.
+3. Nonprofit docs/Brand/Marketplace: extract only selected public changes from root; require screenshot review before accepting visual baselines.
+4. Member/admin/coach leftovers: compare against merged PR #242 first to avoid replaying shipped internal tooling.
+5. Public Find/mobile map: isolate from Marketplace and nonprofit docs; do not blend raw candidate/resource-map work into public Find.
+6. Launch-clean legacy: inspect only for ideas or components; do not merge wholesale.
+
+## Closed / Absorbed Lanes
+
+- Documents/Drive consent follow-up: compared `911b1d5a` against current `main`; every non-runlog file from the checkpoint is identical in the root checkout, including legal-consent copy/version files, migration `20260910120000_accept_drive_privacy_consent.sql`, RLS test harness updates, Drive consent SQL assertions, and acceptance tests. No replay worktree needed.
 
 ## Next Action
 
