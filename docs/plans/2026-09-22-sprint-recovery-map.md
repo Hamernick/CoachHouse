@@ -12,6 +12,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 
 | Workstream | Worktree branch | Recovery commit | Recovery branch | State |
 |---|---|---:|---|---|
+| Workspace particles/objective resume | `feat/workspace-particles-objective-resume-20260922` | `c855aea6` | local only | clean; quality mostly passed, visual blocked by unrelated Documents banner drift |
 | Root sprint pile | `chore/local-development-20260907` | `00692e48` | `chore/root-sprint-recovery-20260922` | clean |
 | Workspace particles/objective | `chore/parallel-development-20260914` | `fd5e5f77` | `chore/particles-objective-recovery-20260922` | clean |
 | Google Calendar sync | `feat/google-calendar-sync-20260908` | `1713e8c3` | `chore/google-calendar-recovery-20260922` | clean |
@@ -31,6 +32,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 | Checkpoint commit | Files | Primary buckets |
 |---:|---:|---|
 | `0a1895fc` | 621 | member/admin/coach, nonprofit docs, tests, visuals, app shell/dashboard, particles/objective, docs |
+| `c855aea6` | 89 | fresh-main replay of Workspace particles/objective planner plus validation runlog |
 | `fd5e5f77` | 46 | Workspace particles/objective planner, visual tests, docs, acceptance tests |
 | `1713e8c3` | 95 | Google Calendar feature, API routes, tests, legal consent, migrations |
 | `911b1d5a` | 9 | Drive privacy consent migration/tests/docs |
@@ -51,7 +53,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 
 ## Recommended Resume Order
 
-1. Workspace particles/objective planner: start from `chore/particles-objective-recovery-20260922`, rebase or cherry-pick narrowly onto fresh `origin/main`, then validate only Workspace/particles surfaces first.
+1. Workspace particles/objective planner: resume from `feat/workspace-particles-objective-resume-20260922` at `c855aea6`; static, acceptance, build, RLS, focused tests, and Workspace particles/objective visuals passed. Resolve or separately baseline the unrelated Documents banner visual drift before declaring full visual green.
 2. Google Calendar sync: start from `chore/google-calendar-recovery-20260922`; separate code readiness from OAuth/provider setup and live calendar verification.
 3. Documents/Drive consent follow-up: compare `911b1d5a` against current `main` because PR #243 already shipped newer Documents work.
 4. Nonprofit docs/Brand/Marketplace: extract only selected public changes from root; require screenshot review before accepting visual baselines.
