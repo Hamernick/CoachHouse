@@ -133,6 +133,10 @@ try {
   runSql("supabase/migrations/20260901013000_add_tracked_resource_links.sql")
   runSql("supabase/migrations/20260901014000_add_public_saved_collections.sql")
   runSql("supabase/tests/public-profiles-rls.assertions.sql")
+  runSql("supabase/tests/profile-settings.bootstrap.sql")
+  runSql("supabase/migrations/20260914180000_complete_profile_settings.sql")
+  runSql("supabase/migrations/20260914180000_complete_profile_settings.sql")
+  runSql("supabase/tests/profile-settings.assertions.sql")
 
   console.log(
     "[public-profiles] Global collisions, privacy, verified affiliations, allowlisted activity, tracked-link privacy, public saved collections, deduplicated opens, membership revocation, organization sync, and direct-write denial passed."

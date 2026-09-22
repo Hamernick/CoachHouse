@@ -12,6 +12,8 @@ import type {
   ProjectActivityItem,
   ProjectDetails,
 } from "@/features/platform-admin-dashboard"
+import { Button } from "@/components/ui/button"
+import { useProjectActivity } from "./use-project-activity"
 import type { MemberWorkspaceAdminOrganizationSummary } from "../../types"
 
 function toTitleCase(value: string | null) {
@@ -48,7 +50,10 @@ export function MemberWorkspaceProjectActivityTimeline({
   organizationSummary: MemberWorkspaceAdminOrganizationSummary
   project: ProjectDetails
 }) {
-  const activity = project.activity ?? []
+  const { activity, state, refreshing, refresh } = useProjectActivity(
+    organizationSummary.orgId,
+    project
+  )
   const programs = organizationSummary.programs ?? []
 
   return (
@@ -114,13 +119,34 @@ export function MemberWorkspaceProjectActivityTimeline({
         <div>
           <h2 className="text-foreground text-base font-semibold">Activity</h2>
           <p className="text-muted-foreground text-sm leading-6">
-            Project, task, and program transitions recorded by the system.
+            Recorded organization activity, including document and file changes.
           </p>
         </div>
 
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={refreshing}
+          onClick={() => void refresh()}
+        >
+          {refreshing ? "Refreshing…" : "Refresh activity"}
+        </Button>
+        {state !== "ready" ? (
+          <p
+            role="status"
+            className="text-muted-foreground rounded-lg border p-4 text-sm"
+          >
+            {state === "forbidden"
+              ? "You no longer have access to this activity."
+              : state === "unavailable"
+                ? "Activity history is not available yet."
+                : "Activity could not refresh. Try again."}
+            {activity.length > 0 ? " Showing the last loaded activity." : ""}
+          </p>
+        ) : null}
         {activity.length > 0 ? (
           <ol className="relative space-y-0 pl-6">
-            {activity.map((item, index) => (
+            {activity.map((item) => (
               <li
                 key={item.id}
                 className="border-border relative border-l pb-6 pl-6 last:border-transparent last:pb-0"
@@ -143,7 +169,7 @@ export function MemberWorkspaceProjectActivityTimeline({
                   </div>
                   <div className="text-muted-foreground shrink-0 text-xs sm:text-right">
                     <p>{format(item.occurredAt, "MMM d, yyyy, h:mm a")}</p>
-                    {item.durationLabel && index < activity.length ? (
+                    {item.durationLabel ? (
                       <p>{item.durationLabel} in the prior step</p>
                     ) : null}
                   </div>
@@ -151,12 +177,11 @@ export function MemberWorkspaceProjectActivityTimeline({
               </li>
             ))}
           </ol>
-        ) : (
+        ) : state === "ready" ? (
           <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-            Activity will appear after the operations migration is applied and a
-            project, task, or program changes.
+            No activity recorded yet.
           </p>
-        )}
+        ) : null}
       </section>
     </div>
   )

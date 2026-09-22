@@ -87,7 +87,7 @@ export function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          className="bg-sidebar text-sidebar-foreground w-[min(21rem,calc(100vw-2rem))] p-0 [&>[data-slot=sheet-close]]:flex"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -220,8 +220,8 @@ const sidebarMenuButtonVariants = cva(
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-foreground/70 hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
+        default: "h-11 text-sm md:h-8",
+        sm: "h-11 text-sm md:h-7 md:text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
       },
     },

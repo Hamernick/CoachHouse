@@ -1,3 +1,4 @@
+import { HIDDEN_TEST_STAFF_IDS } from "@/lib/admin/staff-picker-exclusions"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { Database } from "@/lib/supabase"
@@ -16,6 +17,7 @@ export {
   loadOrganizationCoachActorScope,
   loadOrganizationCoachScopeStatus,
 } from "@/lib/admin/organization-coach-scope"
+
 
 type AdminClient = SupabaseClient<Database>
 type AssignmentRow =
@@ -44,11 +46,12 @@ function toCoachOption(profile: ProfileRow): OrganizationCoachOption {
 async function loadCoachProfiles(supabase: AdminClient) {
   const { data: staff, error: staffError } = await supabase
     .from("platform_staff_members")
-    .select("user_id")
-    .eq("access_level", "coach")
+    .select("user_id, access_level")
+    .in("access_level", ["coach", "developer"])
 
   if (staffError) throw new Error("Unable to load coaches.")
-  const coachIds = (staff ?? []).map((row) => row.user_id)
+  const staffById = new Map((staff ?? []).map((row) => [row.user_id, row.access_level]))
+  const coachIds = (staff ?? []).map((row) => row.user_id).filter((id) => !HIDDEN_TEST_STAFF_IDS.has(id))
   if (coachIds.length === 0) return []
 
   const { data, error } = await supabase
@@ -59,7 +62,7 @@ async function loadCoachProfiles(supabase: AdminClient) {
 
   if (error) throw new Error("Unable to load coach profiles.")
   return (data ?? [])
-    .map(toCoachOption)
+    .map((profile) => ({ ...toCoachOption(profile), assignable: staffById.get(profile.id) === "coach" }))
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 

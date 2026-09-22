@@ -1,3 +1,4 @@
+import { DEFAULT_WORKSTREAM_CATEGORIES as DEFAULT_CATEGORIES, simplifyWorkstreamCategories } from "./workstream-categories"
 import { revalidatePath } from "next/cache"
 
 import type { Database } from "@/lib/supabase"
@@ -15,44 +16,6 @@ type PlatformAdminActor = Awaited<
   ReturnType<typeof resolveMemberWorkspaceActorContext>
 >
 
-const DEFAULT_CATEGORIES = [
-  {
-    default_key: "backlog",
-    name: "New Intake",
-    color: "slate",
-    position: 0,
-  },
-  {
-    default_key: "planned",
-    name: "Coach Action",
-    color: "amber",
-    position: 1,
-  },
-  {
-    default_key: "waiting_on_organization",
-    name: "Waiting on Organization",
-    color: "rose",
-    position: 2,
-  },
-  {
-    default_key: "review_approval",
-    name: "Review & Approval",
-    color: "blue",
-    position: 3,
-  },
-  {
-    default_key: "active",
-    name: "Ongoing Support",
-    color: "violet",
-    position: 4,
-  },
-  {
-    default_key: "completed",
-    name: "Complete",
-    color: "emerald",
-    position: 5,
-  },
-] as const
 
 function isMissingTableError(error: unknown) {
   const code = (error as { code?: string } | null)?.code
@@ -164,7 +127,7 @@ export async function loadPlatformAdminWorkstreamConfiguration({
   })
   if (!categoryRows) return null
 
-  const categories = categoryRows.map(mapCategory)
+  const { categories, aliases } = simplifyWorkstreamCategories(categoryRows.map(mapCategory))
   const uniqueProjectIds = Array.from(
     new Set(projectIds.map((projectId) => projectId.trim()).filter(Boolean))
   )
@@ -190,7 +153,7 @@ export async function loadPlatformAdminWorkstreamConfiguration({
   return {
     categories,
     categoryIdByProjectId: new Map(
-      (data ?? []).map((row) => [row.project_id, row.category_id] as const)
+      (data ?? []).map((row) => [row.project_id, aliases.get(row.category_id) ?? row.category_id] as const)
     ),
   }
 }
@@ -251,6 +214,7 @@ export async function createPlatformAdminWorkstreamCategoryAction(
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true as const, id: data.id }
 }
 
@@ -284,6 +248,7 @@ export async function updatePlatformAdminWorkstreamCategoryAction(
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true as const, id: data.id }
 }
 
@@ -332,6 +297,7 @@ export async function deletePlatformAdminWorkstreamCategoryAction(
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true as const, id: deletedCategory.id }
 }
 
@@ -402,6 +368,7 @@ export async function restorePlatformAdminWorkstreamDefaultsAction(): Promise<Wo
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true as const }
 }
 
@@ -457,5 +424,6 @@ export async function updatePlatformAdminProjectWorkstreamAction(
   if (error) return { error: "Unable to move organization." } as const
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true as const, id: normalizedProjectId }
 }

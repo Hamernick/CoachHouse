@@ -1,3 +1,4 @@
+import { WorkspaceParticleNode } from "@/features/workspace-particles/client"
 import dynamic from "next/dynamic"
 import type { ComponentProps } from "react"
 import {
@@ -32,6 +33,7 @@ const WorkspaceCanvasTutorialNode = dynamic<
 
 export const WORKSPACE_CANVAS_V2_NODE_TYPES = Object.freeze({
   workspace: WorkspaceBoardNode,
+  "workspace-particle": WorkspaceParticleNode,
   "accelerator-step": WorkspaceBoardAcceleratorStepNode,
   "onboarding-guide": WorkspaceBoardOnboardingGuideNode,
   "workspace-person": WorkspaceCanvasPersonNode,

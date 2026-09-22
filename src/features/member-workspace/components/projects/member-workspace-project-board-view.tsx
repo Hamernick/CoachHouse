@@ -1,5 +1,7 @@
 "use client"
 
+import { ScrollFadeEffect } from "@/components/scroll-fade-effect"
+
 import {
   useEffect,
   useMemo,
@@ -365,7 +367,7 @@ export function MemberWorkspaceProjectBoardView({
   }
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="min-w-0 space-y-3 p-3 sm:p-4">
       {usesCustomWorkstreams ? (
         <MemberWorkspaceProjectBoardCategoryToolbar
           createCategoryAction={createWorkstreamCategoryAction}
@@ -376,16 +378,16 @@ export function MemberWorkspaceProjectBoardView({
         />
       ) : null}
 
-      <div className="grid auto-cols-[minmax(17rem,1fr)] grid-flow-col gap-4 overflow-x-auto pb-2 lg:auto-cols-[minmax(18rem,1fr)]">
+      <div className="grid w-full min-w-0 snap-x snap-proximity auto-cols-[calc(100%_-_1rem)] grid-flow-col items-start gap-3 overflow-x-auto pb-2 sm:auto-cols-[18rem] sm:gap-4 lg:auto-cols-[minmax(18rem,1fr)]">
         {columns.map((column) => (
           <div
             key={column.id}
-            className="bg-muted min-w-0 rounded-xl"
+            className="bg-muted flex max-h-[max(16rem,calc(100dvh-18rem))] min-h-0 min-w-0 snap-start flex-col overflow-hidden rounded-xl lg:max-h-[calc(100dvh-16rem)]"
             onDragOver={canManageBoard ? handleDragOver : undefined}
             onDrop={canManageBoard ? handleDropTo(column.id) : undefined}
           >
-            <div className="flex items-center justify-between px-3 py-3">
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center justify-between px-3 py-3">
+              <div className="flex min-w-0 items-center gap-2">
                 {column.defaultKey ? (
                   getColumnStatusIcon(
                     column.defaultKey as PlatformAdminDashboardLabProject["status"]
@@ -393,7 +395,7 @@ export function MemberWorkspaceProjectBoardView({
                 ) : (
                   <StackSimple className="text-muted-foreground h-4 w-4" />
                 )}
-                <span className="inline-flex items-center gap-1 text-sm font-medium">
+                <span className="min-w-0 break-words text-sm font-medium">
                   {column.label}
                 </span>
                 <span className="text-muted-foreground text-xs">
@@ -405,7 +407,7 @@ export function MemberWorkspaceProjectBoardView({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 rounded-lg"
+                    className="size-11 rounded-lg sm:size-7"
                     type="button"
                     onClick={onAddProject}
                   >
@@ -432,7 +434,7 @@ export function MemberWorkspaceProjectBoardView({
                 ) : null}
               </div>
             </div>
-            <div className="min-h-[120px] space-y-3 px-3 pb-3">
+            <ScrollFadeEffect aria-label={`${column.label} projects`} tabIndex={0} className="min-h-0 space-y-3 overflow-y-auto overscroll-y-contain px-3 pb-3">
               {(groups.get(column.id) ?? []).map((project) => {
                 const canManageProjectCard =
                   canManageBoard &&
@@ -502,7 +504,7 @@ export function MemberWorkspaceProjectBoardView({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 rounded-lg"
+                                className="size-11 rounded-lg sm:size-7"
                                 disabled={pendingProjectIds.includes(
                                   project.id
                                 )}
@@ -517,7 +519,7 @@ export function MemberWorkspaceProjectBoardView({
                                   <button
                                     key={nextColumn.id}
                                     type="button"
-                                    className="hover:bg-accent w-full rounded-md px-2 py-1 text-left text-sm"
+                                    className="hover:bg-accent min-h-11 w-full rounded-md px-2 py-2 text-left text-sm sm:min-h-0 sm:py-1"
                                     onClick={() =>
                                       moveProject(project.id, nextColumn.id)
                                     }
@@ -545,7 +547,7 @@ export function MemberWorkspaceProjectBoardView({
                   Add project
                 </Button>
               ) : null}
-            </div>
+            </ScrollFadeEffect>
           </div>
         ))}
       </div>

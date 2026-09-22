@@ -1,3 +1,4 @@
+import type { WorkspaceParticleState } from "@/features/workspace-particles"
 import type { WorkspaceCanvasTutorialStepId } from "@/features/workspace-canvas-tutorial"
 import type { WorkspaceOntologyState } from "@/features/workspace-ontology"
 
@@ -74,6 +75,7 @@ export type WorkspaceBoardState = {
   onboardingFlow: WorkspaceBoardOnboardingFlowState
   hiddenCardIds: WorkspaceCardId[]
   visibility?: WorkspaceBoardVisibilityState
+  particles?: WorkspaceParticleState
   ontology?: WorkspaceOntologyState
   forwardCompatibility?: WorkspaceBoardForwardCompatibilityState
   updatedAt: string

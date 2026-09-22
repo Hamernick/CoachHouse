@@ -1,7 +1,7 @@
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 
 import type { PublicMapResourceAvailability } from "./resource-availability"
-import { publicMapTextContainsCategoryAlias } from "./resource-category-alias-matching"
+import { createPublicMapCategoryAliasMatcher } from "./resource-category-alias-matching"
 import type { PublicMapGroupKey } from "./groups"
 import {
   PUBLIC_MAP_RESOURCE_CATEGORY_DEFINITIONS,
@@ -138,6 +138,7 @@ export type ExternalResourceMapItem = PublicMapBaseItem & {
   itemType: "external_resource"
   organization?: never
   orgCategory: null
+  seasonalPresentation?: "normal"
   resourceOrganizationId?: string | null
   verificationStatus: PublicMapVerificationStatus
 }
@@ -196,13 +197,10 @@ export function inferPublicMapResourceCategoriesForOrganization(
 ): PublicMapResourceCategoryKey[] {
   const detected = new Set<PublicMapResourceCategoryKey>()
   const corpus = buildOrganizationResourceCorpus(organization)
+  const matchesAlias = createPublicMapCategoryAliasMatcher(corpus)
 
   for (const category of PUBLIC_MAP_RESOURCE_CATEGORY_DEFINITIONS) {
-    if (
-      category.aliases.some((alias) =>
-        publicMapTextContainsCategoryAlias({ alias, text: corpus })
-      )
-    ) {
+    if (category.aliases.some(matchesAlias)) {
       detected.add(category.key)
       detected.add(resolvePublicMapResourceTopLevelCategory(category.key))
     }

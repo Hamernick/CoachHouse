@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 
+import { ProfileFieldTabsProvider } from "../profile-field-tabs-state"
 import type { OrgProfile, OrgProfileErrors } from "../types"
 import { buildAddressLines } from "../utils"
 import { EditModeSections } from "./company-tab/edit-sections"
@@ -12,6 +13,8 @@ export type CompanyTabProps = {
   company: OrgProfile
   errors: OrgProfileErrors
   editMode: boolean
+  focusKey?: string | null
+  validationAttempt?: number
   onInputChange: CompanyEditProps["onInputChange"]
   onUpdate: CompanyEditProps["onUpdate"]
   onDirty: CompanyEditProps["onDirty"]
@@ -24,6 +27,8 @@ export function CompanyTab({
   company,
   errors,
   editMode,
+  focusKey,
+  validationAttempt,
   onInputChange,
   onUpdate,
   onDirty,
@@ -48,7 +53,7 @@ export function CompanyTab({
       company.addressPostal,
       company.addressCountry,
       company.address,
-    ],
+    ]
   )
 
   const hasAnyBrandLink = useMemo(
@@ -74,7 +79,7 @@ export function CompanyTab({
       company.youtube,
       company.tiktok,
       company.github,
-    ],
+    ]
   )
 
   if (editMode) {
@@ -89,7 +94,15 @@ export function CompanyTab({
       setSlugStatus,
     }
 
-    return <EditModeSections {...editProps} />
+    return (
+      <ProfileFieldTabsProvider
+        focusKey={focusKey}
+        errors={errors}
+        validationAttempt={validationAttempt}
+      >
+        <EditModeSections {...editProps} />
+      </ProfileFieldTabsProvider>
+    )
   }
 
   const viewProps: CompanyViewProps = {
@@ -98,5 +111,13 @@ export function CompanyTab({
     hasAnyBrandLink,
   }
 
-  return <ViewModeSections {...viewProps} />
+  return (
+    <ProfileFieldTabsProvider
+      focusKey={focusKey}
+      errors={errors}
+      validationAttempt={validationAttempt}
+    >
+      <ViewModeSections {...viewProps} />
+    </ProfileFieldTabsProvider>
+  )
 }

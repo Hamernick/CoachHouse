@@ -98,6 +98,9 @@ export function MobileSubpage({
   email,
   hasActiveSubscription,
   errors,
+  preferencesError,
+  preferencesLoading,
+  retryPreferences,
   marketingOptIn,
   newsletterOptIn,
   newPassword,
@@ -130,6 +133,9 @@ export function MobileSubpage({
   email: string
   hasActiveSubscription: boolean
   errors: Partial<Record<AccountSettingsErrorKey, string>>
+  preferencesError: string | null
+  preferencesLoading: boolean
+  retryPreferences: () => void
   marketingOptIn: boolean
   newsletterOptIn: boolean
   newPassword: string
@@ -154,7 +160,7 @@ export function MobileSubpage({
       className="min-h-0 grow overflow-y-auto p-4 md:hidden"
       hidden={mobilePage === "menu"}
     >
-      {tab === "profile" && (
+      <div hidden={tab !== "profile"}>
         <ProfileSection
           avatarUrl={avatarUrl}
           firstName={firstName}
@@ -177,7 +183,7 @@ export function MobileSubpage({
           onAboutChange={onAboutChange}
           onPhoneChange={onPhoneChange}
         />
-      )}
+      </div>
 
       {tab === "communications" && (
         <div className="space-y-6">
@@ -188,6 +194,9 @@ export function MobileSubpage({
           </header>
           <CommunicationsPreferencesFields
             idPrefix="mobile-communications"
+            preferencesError={preferencesError}
+            preferencesLoading={preferencesLoading}
+            retryPreferences={retryPreferences}
             marketingOptIn={marketingOptIn}
             newsletterOptIn={newsletterOptIn}
             onMarketingOptInChange={onMarketingOptInChange}

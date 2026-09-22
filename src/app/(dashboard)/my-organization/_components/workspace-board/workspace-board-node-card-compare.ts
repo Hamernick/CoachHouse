@@ -2,6 +2,8 @@ import type { WorkspaceBoardNodeData } from "./workspace-board-node"
 
 type WorkspaceBoardCardProps = {
   data: WorkspaceBoardNodeData
+  selected?: boolean
+  yPos?: number
 }
 
 export function workspaceBoardCardPropsEqual(
@@ -11,6 +13,8 @@ export function workspaceBoardCardPropsEqual(
   const prevData = previous.data
   const nextData = next.data
 
+  if (previous.selected !== next.selected) return false
+  if (previous.yPos !== next.yPos) return false
   if (prevData === nextData) return true
   if (prevData.cardId !== nextData.cardId) return false
   if (prevData.size !== nextData.size) return false
@@ -25,6 +29,7 @@ export function workspaceBoardCardPropsEqual(
   if (prevData.onTrackerChange !== nextData.onTrackerChange) return false
   if (prevData.onFocusCard !== nextData.onFocusCard) return false
   if (prevData.onOpenCard !== nextData.onOpenCard) return false
+  if (prevData.onHideCard !== nextData.onHideCard) return false
   if (prevData.ontologyRootControl !== nextData.ontologyRootControl)
     return false
   if (prevData.onMeasuredHeightChange !== nextData.onMeasuredHeightChange) {

@@ -638,28 +638,26 @@ describe("coaching booking feature", () => {
       'pathname === "/coaching" || Boolean(pathname?.startsWith("/coaching/"))'
     )
     expect(appShell).toContain(
-      "const useMobileSingleGutterContent = isMobile && isCoachingRoute"
+      "const useMobileSingleGutterContent = isCoachingRoute"
     )
-    expect(appShell).toContain("const useFlushContentBody =")
-    expect(appShell).toContain(
-      "useFullBleedContent || useMobileSingleGutterContent"
-    )
+    expect(appShell).toContain("useFlushContentBody={useFullBleedContent}")
+    expect(shellMainContent).toContain("useMobileSingleGutterContent &&")
     expect(shellMainContent).toContain(
       'import { ScrollFadeEffect } from "@/components/scroll-fade-effect"'
     )
     expect(shellMainContent).toContain("<ScrollFadeEffect")
-    expect(shellMainContent).toContain("enabled={useMobileSingleGutterContent}")
+    expect(shellMainContent).toContain("enabled={isMobile && useMobileSingleGutterContent}")
     expect(shellMainContent).toContain(
       "[--mask-height:2rem] [--scroll-buffer:1.5rem]"
     )
     expect(appShell).toContain("useMobileSingleGutterContent")
-    expect(appShell).toContain('? "px-[var(--shell-content-pad)]"')
+    expect(shellMainContent).toContain("px-[var(--shell-content-pad)]")
     expect(appShell).toContain("useFullBleedContent")
     expect(shellMainContent).toContain('? "overflow-hidden"')
     expect(shellMainContent).toContain(': "overflow-y-auto"')
     expect(scrollFade).toContain("enabled?: boolean")
     expect(scrollFade).toContain(
-      "data-[orientation=vertical]:scroll-fade-effect-y"
+      "scroll-fade-effect-y overflow-y-auto"
     )
     expect(scrollFade).toContain("useScrollFadeEffect")
     expect(scrollFadeLogic).toContain("dataset.scrollFadeStart")

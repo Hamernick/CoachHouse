@@ -34,7 +34,7 @@ export function MarketplaceShortlist({
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          className="min-h-11 rounded-full"
+          className="min-h-11 rounded-full shadow-none"
           disabled={!ready}
         >
           <BookmarkIcon aria-hidden />

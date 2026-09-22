@@ -13,6 +13,7 @@ describe("project timeline calendar", () => {
         tasks: [
           {
             id: "task-1",
+            assignee: { id: "coach-1", name: "Assigned Coach", avatarUrl: "https://example.com/avatar.png" },
             name: "Review application",
             startDate: new Date("2026-07-14T12:00:00.000Z"),
             endDate: new Date("2026-07-16T12:00:00.000Z"),
@@ -48,8 +49,10 @@ describe("project timeline calendar", () => {
     expect(markup).toContain("Review application")
     expect(markup).toContain("Neighborhood grants")
     expect(markup).toContain("Neighborhood grants published")
-    expect(markup).toContain(">1 event<")
-    expect(markup).toContain("text-sm leading-none tabular-nums")
+    expect(markup).toContain("1 activity events on")
+    expect(markup).toContain('aria-label="Task assignee"')
+    expect(markup).toContain('alt="Assigned Coach"')
+    expect(markup).not.toContain(">1 event<")
     expect(markup).toContain("Recorded events")
     expect(markup).toContain("data-timeline-activity-row")
     expect(markup).toContain("data-timeline-activity-bar")

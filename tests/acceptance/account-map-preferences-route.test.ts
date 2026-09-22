@@ -117,6 +117,50 @@ describe("account map preferences route", () => {
     })
   })
 
+  it.each([
+    "essentials",
+    "transportation-access",
+    "documents-and-id",
+    "digital-access",
+  ])("preserves the saved %s guide when updating favorites", async (guideId) => {
+    const { supabase, updateUser } = buildSupabaseStub({
+      savedGuideIds: [guideId, "chicago-food-access"],
+    })
+    createSupabaseRouteHandlerClientMock.mockReturnValue(supabase)
+
+    const { PATCH } = await import("@/app/api/account/map-preferences/route")
+    const response = await PATCH(
+      buildPatchRequest({ favorites: ["organization-1"] })
+    )
+
+    expect(response.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith({
+      data: {
+        map_preferences: expect.objectContaining({
+          favorites: ["organization-1"],
+          savedGuideIds: [guideId, "chicago-food-access"],
+        }),
+      },
+    })
+  })
+
+  it("returns known newer guide IDs while excluding unknown IDs", async () => {
+    const { supabase } = buildSupabaseStub({
+      savedGuideIds: ["essentials", "digital-access", "made-up-guide"],
+    })
+    createSupabaseRouteHandlerClientMock.mockReturnValue(supabase)
+
+    const { GET } = await import("@/app/api/account/map-preferences/route")
+    const response = await GET(
+      new NextRequest("http://localhost/api/account/map-preferences")
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      preferences: { savedGuideIds: ["essentials", "digital-access"] },
+    })
+  })
+
   it("replays the same desired collection state idempotently", async () => {
     const { supabase, updateUser } = buildSupabaseStub()
     createSupabaseRouteHandlerClientMock.mockReturnValue(supabase)

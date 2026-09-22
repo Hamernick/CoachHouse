@@ -6,6 +6,7 @@ import {
   FormRow,
   ProfileField,
 } from "@/components/organization/org-profile-card/shared"
+import { ProfileFieldTabs } from "../../../profile-field-tabs"
 import type { CompanyEditProps } from "../types"
 
 const STORY_FIELDS = [
@@ -17,7 +18,7 @@ const STORY_FIELDS = [
   },
   {
     name: "need",
-    label: "Our need",
+    label: "Need",
     placeholder:
       "Students in our district lack access to labs, internships, and career exposure.",
   },
@@ -50,73 +51,7 @@ const NARRATIVE_FIELDS = [
   },
 ] as const
 
-function StoryCoreDocumentField({
-  company,
-  errors,
-  field,
-  onUpdate,
-  onDirty,
-}: Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty"> & {
-  field: (typeof STORY_FIELDS)[number] | typeof THEORY_FIELD
-}) {
-  const value = company[field.name] ?? ""
-  const error = errors[field.name] ?? ""
-
-  return (
-    <ProfileField label={field.label} focusKey={field.name}>
-      <RichTextEditor
-        value={value}
-        onChange={(nextValue) => {
-          onUpdate({ [field.name]: nextValue })
-          onDirty()
-        }}
-        ariaLabel={field.label}
-        placeholder={field.placeholder}
-        mode="compact"
-        minHeight={160}
-        maxHeight={360}
-        stableScrollbars
-        preserveImages
-        editorClassName="min-h-[160px]"
-      />
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
-    </ProfileField>
-  )
-}
-
-function StoryNarrativeField({
-  company,
-  errors,
-  field,
-  onUpdate,
-  onDirty,
-}: Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty"> & {
-  field: (typeof NARRATIVE_FIELDS)[number]
-}) {
-  const value = company[field.name] ?? ""
-  const error = errors[field.name] ?? ""
-
-  return (
-    <ProfileField label={field.label} focusKey={field.name}>
-      <RichTextEditor
-        value={value}
-        onChange={(nextValue) => {
-          onUpdate({ [field.name]: nextValue })
-          onDirty()
-        }}
-        ariaLabel={field.label}
-        placeholder={field.placeholder}
-        mode="compact"
-        minHeight={160}
-        maxHeight={360}
-        stableScrollbars
-        preserveImages
-        editorClassName="min-h-[160px]"
-      />
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
-    </ProfileField>
-  )
-}
+const ALL_STORY_FIELDS = [...STORY_FIELDS, ...NARRATIVE_FIELDS, THEORY_FIELD]
 
 export function StorySection({
   company,
@@ -129,35 +64,34 @@ export function StorySection({
       title="About us"
       description="What you do, why it matters, and how change happens."
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        {STORY_FIELDS.map((field) => (
-          <StoryCoreDocumentField
+      <ProfileFieldTabs group="story" label="About us fields">
+        {ALL_STORY_FIELDS.map((field) => (
+          <ProfileField
             key={field.name}
-            company={company}
-            errors={errors}
-            field={field}
-            onUpdate={onUpdate}
-            onDirty={onDirty}
-          />
+            label={field.label}
+            focusKey={field.name}
+          >
+            <RichTextEditor
+              value={company[field.name] ?? ""}
+              onChange={(nextValue) => {
+                onUpdate({ [field.name]: nextValue })
+                onDirty()
+              }}
+              ariaLabel={field.label}
+              placeholder={field.placeholder}
+              mode="compact"
+              minHeight={160}
+              maxHeight={360}
+              stableScrollbars
+              preserveImages
+              editorClassName="min-h-[160px]"
+            />
+            {errors[field.name] ? (
+              <p className="text-destructive text-xs">{errors[field.name]}</p>
+            ) : null}
+          </ProfileField>
         ))}
-        {NARRATIVE_FIELDS.map((field) => (
-          <StoryNarrativeField
-            key={field.name}
-            company={company}
-            errors={errors}
-            field={field}
-            onUpdate={onUpdate}
-            onDirty={onDirty}
-          />
-        ))}
-        <StoryCoreDocumentField
-          company={company}
-          errors={errors}
-          field={THEORY_FIELD}
-          onUpdate={onUpdate}
-          onDirty={onDirty}
-        />
-      </div>
+      </ProfileFieldTabs>
     </FormRow>
   )
 }

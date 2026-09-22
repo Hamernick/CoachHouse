@@ -30,7 +30,7 @@ describe("workspace roadmap card title", () => {
   it("keeps the workspace card title concise while the roadmap navigator uses the Core Documents label", () => {
     const toc = readSource(
       "src/components/roadmap/roadmap-editor/components/roadmap-editor-toc.tsx"
-    )
+    ) + readSource("src/components/roadmap/roadmap-status-indicators.tsx")
     const navigator = readSource(
       "src/components/roadmap/roadmap-navigator-section.tsx"
     )

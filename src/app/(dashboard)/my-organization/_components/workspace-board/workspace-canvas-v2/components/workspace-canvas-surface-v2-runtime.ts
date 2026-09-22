@@ -16,6 +16,7 @@ export {
 } from "./workspace-canvas-surface-v2-hooks"
 export {
   useVisibleWorkspaceCanvasCardIdSet,
+  useWorkspaceCanvasOrgNodePosition,
   useWorkspaceCanvasSurfaceNodeLookups,
 } from "./workspace-canvas-surface-v2-node-lookups"
 export { useWorkspaceCanvasOntology } from "./workspace-canvas-surface-v2-ontology"

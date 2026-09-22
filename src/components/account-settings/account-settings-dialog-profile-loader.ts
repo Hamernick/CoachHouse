@@ -1,5 +1,6 @@
 import { useEffect, type MutableRefObject } from "react"
 
+import { loadAccountEmailPreferencesAction } from "@/actions/account-email-preferences"
 import { loadActiveOrganizationNameAction } from "@/actions/account-settings"
 import type { useSupabaseClient } from "@/hooks/use-supabase-client"
 
@@ -13,6 +14,9 @@ type ProfileIdentityRow = {
 }
 
 type UseAccountSettingsProfileLoaderArgs = {
+  preferencesRetry: number
+  setPreferencesError: (value: string | null) => void
+  setPreferencesLoading: (value: boolean) => void
   open: boolean
   supabase: ReturnType<typeof useSupabaseClient>
   defaultName: string | null
@@ -54,6 +58,9 @@ function splitName(value: string) {
 }
 
 export function useAccountSettingsProfileLoader({
+  preferencesRetry,
+  setPreferencesError,
+  setPreferencesLoading,
   open,
   supabase,
   defaultName,
@@ -81,31 +88,56 @@ export function useAccountSettingsProfileLoader({
   initialNewsletterRef,
 }: UseAccountSettingsProfileLoaderArgs) {
   useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setPreferencesLoading(true)
+    setPreferencesError(null)
+    void loadAccountEmailPreferencesAction()
+      .then((preferences) => {
+        if (cancelled) return
+        setMarketingOptIn(preferences.marketingOptIn)
+        setNewsletterOptIn(preferences.newsletterOptIn)
+        initialMarketingRef.current = preferences.marketingOptIn
+        initialNewsletterRef.current = preferences.newsletterOptIn
+        if (preferences.blocked)
+          setPreferencesError(
+            "Email delivery is blocked for this address. Contact support before subscribing again."
+          )
+      })
+      .catch(() => {
+        if (!cancelled)
+          setPreferencesError(
+            "Unable to load email preferences. Try again before changing them."
+          )
+      })
+      .finally(() => {
+        if (!cancelled) setPreferencesLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    open,
+    preferencesRetry,
+    setPreferencesError,
+    setPreferencesLoading,
+    setMarketingOptIn,
+    setNewsletterOptIn,
+    initialMarketingRef,
+    initialNewsletterRef,
+  ])
+
+  useEffect(() => {
     async function loadMeta() {
       if (!open) return
       const { data } = await supabase.auth.getUser()
       const meta = (data?.user?.user_metadata ?? {}) as Record<string, unknown>
-      if (typeof meta.marketing_opt_in === "boolean") {
-        setMarketingOptIn(meta.marketing_opt_in)
-      }
-      if (typeof meta.newsletter_opt_in === "boolean") {
-        setNewsletterOptIn(meta.newsletter_opt_in)
-      }
       if (typeof meta.phone === "string") {
         setPhone(String(meta.phone))
       }
 
       initialPhoneRef.current =
         typeof meta.phone === "string" ? String(meta.phone) : ""
-      initialMarketingRef.current =
-        typeof meta.marketing_opt_in === "boolean"
-          ? (meta.marketing_opt_in as boolean)
-          : defaultMarketingOptIn
-      initialNewsletterRef.current =
-        typeof meta.newsletter_opt_in === "boolean"
-          ? (meta.newsletter_opt_in as boolean)
-          : defaultNewsletterOptIn
-
       if (data?.user?.id) {
         const { data: profileRow } = await supabase
           .from("profiles")

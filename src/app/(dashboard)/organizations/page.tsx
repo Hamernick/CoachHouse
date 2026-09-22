@@ -1,3 +1,4 @@
+import { defaultOrganizationCoachFilter, loadOrganizationCoachAssignmentData } from "@/features/organization-coach-assignments"
 import {
   clearMemberWorkspaceStarterDataAction,
   createPlatformAdminWorkstreamCategoryAction,
@@ -15,7 +16,7 @@ import {
 import { requirePlatformCapability } from "@/lib/admin/auth"
 
 export default async function OrganizationsPage() {
-  await requirePlatformCapability("organizations", {
+  const staff = await requirePlatformCapability("organizations", {
     loginRedirect: "/organizations",
   })
 
@@ -31,9 +32,31 @@ export default async function OrganizationsPage() {
     workstreamCategories,
   } = await loadMemberWorkspaceProjectsPage()
 
+  const assignments = await loadOrganizationCoachAssignmentData({
+    organizationIds: organizationOptions.map((organization) => organization.orgId),
+  })
+  const { data: profile } = await staff.supabase.from("profiles")
+    .select("full_name, email, avatar_url").eq("id", staff.userId).maybeSingle()
+  const currentCoach = assignments.coachOptions.find((coach) => coach.id === staff.userId) ?? {
+    id: staff.userId, name: profile?.full_name ?? "You",
+    email: profile?.email ?? null, avatarUrl: profile?.avatar_url ?? null,
+  }
+  const defaultCoachFilter = defaultOrganizationCoachFilter(currentCoach)
+  const coachOptions = assignments.coachOptions.some((coach) => coach.id === staff.userId)
+    ? assignments.coachOptions : [...assignments.coachOptions, currentCoach]
+  const assignedProjects = projects.map((project) => ({
+    ...project,
+    organizationCoachAssignments: project.organizationId
+      ? assignments.assignmentsByOrganizationId.get(project.organizationId) ?? []
+      : [],
+  }))
+
   return (
     <MemberWorkspaceProjectsPage
-      projects={projects}
+      projects={assignedProjects}
+      showPlatformRevenue
+      defaultCoachFilter={defaultCoachFilter}
+      coachOptions={coachOptions}
       storageMode={storageMode}
       canResetStarterData={canResetStarterData}
       starterProjectCount={starterProjectCount}

@@ -697,17 +697,17 @@ describe("public map sidebar layout", () => {
     expect(markup).not.toContain('role="button"')
     expect(markup).toContain(organization.tagline)
     expect(markup).not.toContain(organization.description ?? "")
-    expect(markup).toContain("flex-wrap items-center gap-x-1.5 gap-y-0.5")
+    expect(markup).toContain("flex-wrap items-center gap-x-1.5 gap-y-0")
     expect(markup).toContain("min-w-0 text-pretty break-words")
     expect(markup).not.toContain("max-w-[55%]")
     expect(markup).not.toContain("max-w-[45%]")
     expect(markup).toContain("•")
     expect(markup).not.toContain(">View<")
-    expect(markup).toContain("flex min-w-0 items-stretch")
+    expect(markup).toContain("flex min-w-0 items-center")
     expect(markup).toContain(
-      "line-clamp-2 text-base leading-snug font-semibold"
+      "line-clamp-2 text-sm leading-4 font-semibold"
     )
-    expect(markup).toContain("text-sm leading-snug")
+    expect(markup).toContain("text-xs leading-4")
     expect(markup).toContain(">Community<")
     expect(markup).not.toContain("Weekly mutual-aid meals")
     expect(markup).toContain("rounded-xl text-left whitespace-normal")
@@ -782,10 +782,10 @@ describe("public map sidebar layout", () => {
     expect(resourceNameIndex).toBeGreaterThan(resourceTitleSlotIndex)
     expect(primaryCategoryIndex).toBeGreaterThan(resourceNameIndex)
     expect(markup).toContain("Chicago, IL")
-    expect(organizationMetadataClassName.split(" ")).toContain("mt-1.5")
-    expect(resourceMetadataClassName.split(" ")).toContain("mt-1.5")
-    expect(markup.match(/min-h-20/g)).toHaveLength(2)
-    expect(markup).toContain("min-h-28")
+    expect(organizationMetadataClassName.split(" ")).toContain("mt-0")
+    expect(resourceMetadataClassName.split(" ")).toContain("mt-0")
+    expect(markup.match(/min-h-16/g)).toHaveLength(4)
+    expect(markup).toContain("min-h-16")
     expect(markup).not.toContain(">Pending review<")
     expect(markup).not.toContain(">Seed preview<")
     expect(markup).not.toContain(">External data<")
@@ -802,7 +802,7 @@ describe("public map sidebar layout", () => {
     expect(markup).not.toContain("PublicMapResourcePreviewPopover")
   })
 
-  it("renders asset-forward resource cards with a resilient category fallback", () => {
+  it("keeps compact resource cards with provider images and category fallback", () => {
     const resource = buildResourceItem({
       markerImageUrl: "https://example.org/provider-photo.jpg",
     })
@@ -820,8 +820,8 @@ describe("public map sidebar layout", () => {
       })
     )
 
-    expect(markup).toContain("min-h-28")
-    expect(markup).toContain("size-24")
+    expect(markup).toContain("min-h-16")
+    expect(markup).toContain("size-11")
     expect(markup).toContain('data-react-grab-surface-slot="media"')
     expect(markup).toContain('src="https://example.org/provider-photo.jpg"')
     expect(markup).toContain('alt="Seed Food Access image"')

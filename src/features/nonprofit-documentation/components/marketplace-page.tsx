@@ -62,13 +62,14 @@ export function MarketplacePage({
       />
       <main
         id="documentation-content"
-        className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8"
+        className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
       >
-        <header className={cn(density.heading, "mb-2")}>
-          <h1 className="text-2xl font-semibold tracking-tight">Marketplace</h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
-            Useful tools, nonprofit offers, and people to help you put your
-            plans to work.
+        <header className={cn(density.heading, "mb-8")}>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            Marketplace
+          </h1>
+          <p className="text-muted-foreground max-w-2xl text-base sm:text-lg">
+            Tools, offers, and people for your nonprofit.
           </p>
         </header>
         <MarketplaceViews

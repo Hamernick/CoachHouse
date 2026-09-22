@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import type { CalendarSummary } from "../../src/features/google-calendar/types"
+import { reviewedPlatformScreenshotName } from "./reviewed-platform-screenshot"
 
 test.use({ timezoneId: "America/New_York", locale: "en-US" })
 
@@ -144,7 +145,9 @@ for (const width of [390, 1440])
           )
         ).toBe(true)
         await expect(dialog).toHaveScreenshot(
-          "google-calendar-setup-" + width + "-" + scheme + ".png",
+          reviewedPlatformScreenshotName(
+            "google-calendar-setup-" + width + "-" + scheme + ".png"
+          ),
           { animations: "disabled", maxDiffPixelRatio: 0.02 }
         )
         await dialog
@@ -307,7 +310,18 @@ for (const width of [390, 1440]) {
         exact: true,
       })
     ).toBeVisible()
-    await page.keyboard.press("Escape")
+    if (width === 390) {
+      const closeCalendar = page.getByRole("button", {
+        name: "Close calendar",
+        exact: true,
+      })
+      const target = await closeCalendar.boundingBox()
+      expect(target?.width).toBeGreaterThanOrEqual(44)
+      expect(target?.height).toBeGreaterThanOrEqual(44)
+      await closeCalendar.click()
+    } else {
+      await page.keyboard.press("Escape")
+    }
     await expect(calendar).toHaveCount(0)
 
     // Mount a workspace drawer after the first calendar visit. A retained,

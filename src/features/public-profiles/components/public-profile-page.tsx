@@ -359,12 +359,12 @@ export function PublicProfilePage({ profile }: { profile: PublicProfileView }) {
               {profileInitials(profile.displayName)}
             </AvatarFallback>
           </Avatar>
-          <Badge variant="outline" className="mt-5">
-            {profile.kind === "organization" ? (
+          {profile.kind === "organization" ? (
+            <Badge variant="outline" className="mt-5">
               <Building2Icon aria-hidden="true" />
-            ) : null}
-            {profile.kind === "organization" ? "Organization" : "Person"}
-          </Badge>
+              Organization
+            </Badge>
+          ) : null}
           <h1 className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl">
             {profile.displayName}
           </h1>

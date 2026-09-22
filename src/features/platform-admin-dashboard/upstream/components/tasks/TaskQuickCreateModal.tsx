@@ -87,6 +87,7 @@ export type TaskQuickCreateSubmitValue = {
   startDate?: Date
   targetDate?: Date
   priorityId?: PriorityOption['id']
+  tagLabel?: string
   tagId?: string
 }
 
@@ -189,7 +190,7 @@ export function TaskQuickCreateModal({
       setPriority(priorityOption ?? PRIORITY_OPTIONS[0])
 
       const tagOption = editingTask.tag
-        ? TAG_OPTIONS.find((option) => option.label === editingTask.tag)
+        ? TAG_OPTIONS.find((option) => option.label.toLowerCase() === editingTask.tag?.toLowerCase()) ?? { id: editingTask.tag, label: editingTask.tag }
         : undefined
       setSelectedTag(tagOption)
 
@@ -266,6 +267,7 @@ export function TaskQuickCreateModal({
       targetDate,
       priorityId: priority?.id,
       tagId: selectedTag?.id,
+      tagLabel: selectedTag?.label,
     }
 
     if (onSubmitTask) {
@@ -554,10 +556,13 @@ export function TaskQuickCreateModal({
         />
 
         <GenericPicker
-          items={TAG_OPTIONS}
+          items={selectedTag && !TAG_OPTIONS.some((tag) => tag.id === selectedTag.id)
+            ? [...TAG_OPTIONS, selectedTag]
+            : TAG_OPTIONS}
           onSelect={setSelectedTag}
           selectedId={selectedTag?.id}
-          placeholder="Add tag..."
+          placeholder="Search or create tag..."
+          onCreate={(label) => setSelectedTag({ id: label, label })}
           renderItem={(item) => (
             <div className="flex items-center gap-2 w-full">
               <span className="flex-1">{item.label}</span>

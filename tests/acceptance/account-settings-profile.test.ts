@@ -1,3 +1,9 @@
+vi.mock("@/actions/public-profile-settings", () => ({
+  refreshPublicProfileAction: vi.fn(),
+}))
+vi.mock("@/actions/account-email-preferences", () => ({
+  saveAccountEmailPreferencesAction: vi.fn().mockResolvedValue({ ok: true }),
+}))
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { saveProfileSettings } from "@/components/account-settings/account-settings-dialog-state-helpers"
@@ -64,7 +70,7 @@ describe("account settings profile helpers", () => {
         contact: "jordan@example.com",
         about: "Volunteer operator and advisor.",
       },
-      { onConflict: "id" },
+      { onConflict: "id" }
     )
     expect(calls.updateUser).not.toHaveBeenCalled()
     expect(result).toMatchObject({
@@ -110,7 +116,7 @@ describe("account settings profile helpers", () => {
         contact: null,
         about: null,
       },
-      { onConflict: "id" },
+      { onConflict: "id" }
     )
     expect(calls.updateUser).toHaveBeenCalledTimes(2)
     expect(calls.updateUser).toHaveBeenNthCalledWith(1, {

@@ -1,6 +1,7 @@
+import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { NextResponse, type NextRequest } from "next/server"
 
-import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
+import { canEditOrganization } from "@/lib/organization/active-org"
 import { mutateOrganizationProfile } from "@/lib/organization/profile-mutation"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 
@@ -27,7 +28,11 @@ type OrgPolicy = {
   updatedAt: string
 }
 
-const ALLOWED_STATUSES = new Set<OrgPolicyStatus>(["not_started", "in_progress", "complete"])
+const ALLOWED_STATUSES = new Set<OrgPolicyStatus>([
+  "not_started",
+  "in_progress",
+  "complete",
+])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
@@ -51,13 +56,17 @@ function normalizeCategories(input: unknown): string[] {
 
 function normalizeDocument(value: unknown): OrgPolicyDocument | null {
   if (!isRecord(value)) return null
-  if (typeof value["path"] !== "string" || value["path"].trim().length === 0) return null
+  if (typeof value["path"] !== "string" || value["path"].trim().length === 0)
+    return null
   return {
     name: typeof value["name"] === "string" ? value["name"] : "",
     path: value["path"],
     size: typeof value["size"] === "number" ? value["size"] : 0,
     mime: typeof value["mime"] === "string" ? value["mime"] : "application/pdf",
-    updatedAt: typeof value["updatedAt"] === "string" ? value["updatedAt"] : new Date().toISOString(),
+    updatedAt:
+      typeof value["updatedAt"] === "string"
+        ? value["updatedAt"]
+        : new Date().toISOString(),
   }
 }
 
@@ -66,22 +75,41 @@ function normalizePolicy(entry: unknown): OrgPolicy | null {
   const id = typeof entry["id"] === "string" ? entry["id"].trim() : ""
   const title = typeof entry["title"] === "string" ? entry["title"].trim() : ""
   if (!id || !title) return null
-  const statusRaw = typeof entry["status"] === "string" ? entry["status"] : "not_started"
-  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus) ? (statusRaw as OrgPolicyStatus) : "not_started"
-  const personIdsRaw = Array.isArray(entry["personIds"]) ? (entry["personIds"] as unknown[]) : []
-  const updatedAtRaw = typeof entry["updatedAt"] === "string" ? entry["updatedAt"] : new Date().toISOString()
+  const statusRaw =
+    typeof entry["status"] === "string" ? entry["status"] : "not_started"
+  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus)
+    ? (statusRaw as OrgPolicyStatus)
+    : "not_started"
+  const personIdsRaw = Array.isArray(entry["personIds"])
+    ? (entry["personIds"] as unknown[])
+    : []
+  const updatedAtRaw =
+    typeof entry["updatedAt"] === "string"
+      ? entry["updatedAt"]
+      : new Date().toISOString()
   const categories = normalizeCategories(entry["categories"])
   const legacyBoard = Boolean(entry["board"])
   return {
     id,
     title,
-    summary: typeof entry["summary"] === "string" ? entry["summary"].trim() : "",
+    summary:
+      typeof entry["summary"] === "string" ? entry["summary"].trim() : "",
     status,
-    categories: categories.length > 0 ? categories : legacyBoard ? ["Board"] : [],
-    programId: typeof entry["programId"] === "string" && entry["programId"].trim().length > 0 ? entry["programId"].trim() : null,
+    categories:
+      categories.length > 0 ? categories : legacyBoard ? ["Board"] : [],
+    programId:
+      typeof entry["programId"] === "string" &&
+      entry["programId"].trim().length > 0
+        ? entry["programId"].trim()
+        : null,
     personIds: Array.from(
       new Set(
-        personIdsRaw.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map((value) => value.trim())
+        personIdsRaw
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.trim().length > 0
+          )
+          .map((value) => value.trim())
       )
     ),
     document: normalizeDocument(entry["document"]),
@@ -89,7 +117,10 @@ function normalizePolicy(entry: unknown): OrgPolicy | null {
   }
 }
 
-async function loadProfile(supabase: ReturnType<typeof createSupabaseRouteHandlerClient>, orgId: string) {
+async function loadProfile(
+  supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
+  orgId: string
+) {
   const { data: orgRow, error } = await supabase
     .from("organizations")
     .select("profile")
@@ -101,8 +132,12 @@ async function loadProfile(supabase: ReturnType<typeof createSupabaseRouteHandle
 }
 
 function readPolicies(profile: Record<string, unknown>): OrgPolicy[] {
-  const raw = Array.isArray(profile["policies"]) ? (profile["policies"] as unknown[]) : []
-  return raw.map((entry) => normalizePolicy(entry)).filter((entry): entry is OrgPolicy => Boolean(entry))
+  const raw = Array.isArray(profile["policies"])
+    ? (profile["policies"] as unknown[])
+    : []
+  return raw
+    .map((entry) => normalizePolicy(entry))
+    .filter((entry): entry is OrgPolicy => Boolean(entry))
 }
 
 function isPolicyDocumentPath(path: string, orgId: string, policyId: string) {
@@ -111,17 +146,30 @@ function isPolicyDocumentPath(path: string, orgId: string, policyId: string) {
 
 async function requireOrgEditor(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser()
   if (error || !user) {
     return {
-      error: NextResponse.json({ error: error?.message ?? "Unauthorized" }, { status: 401 }),
+      error: NextResponse.json(
+        { error: error?.message ?? "Unauthorized" },
+        { status: 401 }
+      ),
     }
   }
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+  const access = await resolveOrganizationDocumentAccess(
+    supabase,
+    user.id,
+    request.nextUrl.searchParams.get("organizationId")
+  )
+  if ("error" in access)
+    return {
+      error: NextResponse.json({ error: access.error }, { status: 403 }),
+    }
+  supabase = access.supabase
+  const { orgId, role } = access
   if (!canEditOrganization(role)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   }
@@ -130,21 +178,38 @@ async function requireOrgEditor(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser()
   if (error || !user) {
-    return NextResponse.json({ error: error?.message ?? "Unauthorized" }, { status: 401 })
+    return NextResponse.json(
+      { error: error?.message ?? "Unauthorized" },
+      { status: 401 }
+    )
   }
 
   try {
-    const { orgId } = await resolveActiveOrganization(supabase, user.id)
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      request.nextUrl.searchParams.get("organizationId")
+    )
+    if ("error" in access)
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    supabase = access.supabase
+    const { orgId } = access
     const profile = await loadProfile(supabase, orgId)
-    return NextResponse.json({ policies: readPolicies(profile) }, { status: 200 })
+    return NextResponse.json(
+      { policies: readPolicies(profile) },
+      { status: 200 }
+    )
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to load policies" }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unable to load policies" },
+      { status: 500 }
+    )
   }
 }
 
@@ -155,11 +220,17 @@ export async function POST(request: NextRequest) {
   const payload = await request.json().catch(() => null)
   const title = typeof payload?.title === "string" ? payload.title.trim() : ""
   if (!title) {
-    return NextResponse.json({ error: "Policy title is required." }, { status: 400 })
+    return NextResponse.json(
+      { error: "Policy title is required." },
+      { status: 400 }
+    )
   }
 
-  const statusRaw = typeof payload?.status === "string" ? payload.status : "not_started"
-  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus) ? (statusRaw as OrgPolicyStatus) : "not_started"
+  const statusRaw =
+    typeof payload?.status === "string" ? payload.status : "not_started"
+  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus)
+    ? (statusRaw as OrgPolicyStatus)
+    : "not_started"
   const categories = normalizeCategories(payload?.categories)
   if (categories.length === 0 && Boolean(payload?.board)) {
     categories.push("Board")
@@ -171,12 +242,19 @@ export async function POST(request: NextRequest) {
     summary: typeof payload?.summary === "string" ? payload.summary.trim() : "",
     status,
     categories,
-    programId: typeof payload?.programId === "string" && payload.programId.trim().length > 0 ? payload.programId.trim() : null,
+    programId:
+      typeof payload?.programId === "string" &&
+      payload.programId.trim().length > 0
+        ? payload.programId.trim()
+        : null,
     personIds: Array.isArray(payload?.personIds)
       ? Array.from(
           new Set(
             (payload.personIds as unknown[])
-              .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+              .filter(
+                (value): value is string =>
+                  typeof value === "string" && value.trim().length > 0
+              )
               .map((value) => value.trim())
           )
         )
@@ -199,11 +277,20 @@ export async function POST(request: NextRequest) {
       },
     })
     if ("error" in mutation) {
-      return NextResponse.json({ error: mutation.error }, { status: mutation.status })
+      return NextResponse.json(
+        { error: mutation.error },
+        { status: mutation.status }
+      )
     }
-    return NextResponse.json({ policy: nextPolicy, policies: mutation.value }, { status: 200 })
+    return NextResponse.json(
+      { policy: nextPolicy, policies: mutation.value },
+      { status: 200 }
+    )
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to create policy" }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unable to create policy" },
+      { status: 500 }
+    )
   }
 }
 
@@ -213,13 +300,24 @@ export async function PATCH(request: NextRequest) {
 
   const payload = await request.json().catch(() => null)
   const id = typeof payload?.id === "string" ? payload.id.trim() : ""
-  if (!id) return NextResponse.json({ error: "Policy id is required." }, { status: 400 })
+  if (!id)
+    return NextResponse.json(
+      { error: "Policy id is required." },
+      { status: 400 }
+    )
 
   const title = typeof payload?.title === "string" ? payload.title.trim() : ""
-  if (!title) return NextResponse.json({ error: "Policy title is required." }, { status: 400 })
+  if (!title)
+    return NextResponse.json(
+      { error: "Policy title is required." },
+      { status: 400 }
+    )
 
-  const statusRaw = typeof payload?.status === "string" ? payload.status : "not_started"
-  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus) ? (statusRaw as OrgPolicyStatus) : "not_started"
+  const statusRaw =
+    typeof payload?.status === "string" ? payload.status : "not_started"
+  const status = ALLOWED_STATUSES.has(statusRaw as OrgPolicyStatus)
+    ? (statusRaw as OrgPolicyStatus)
+    : "not_started"
   const categories = normalizeCategories(payload?.categories)
   if (categories.length === 0 && Boolean(payload?.board)) {
     categories.push("Board")
@@ -237,22 +335,32 @@ export async function PATCH(request: NextRequest) {
         const nextPolicy: OrgPolicy = {
           ...existing,
           title,
-          summary: typeof payload?.summary === "string" ? payload.summary.trim() : "",
+          summary:
+            typeof payload?.summary === "string" ? payload.summary.trim() : "",
           status,
           categories,
-          programId: typeof payload?.programId === "string" && payload.programId.trim().length > 0 ? payload.programId.trim() : null,
+          programId:
+            typeof payload?.programId === "string" &&
+            payload.programId.trim().length > 0
+              ? payload.programId.trim()
+              : null,
           personIds: Array.isArray(payload?.personIds)
             ? Array.from(
                 new Set(
                   (payload.personIds as unknown[])
-                    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+                    .filter(
+                      (value): value is string =>
+                        typeof value === "string" && value.trim().length > 0
+                    )
                     .map((value) => value.trim())
                 )
               )
             : [],
           updatedAt: new Date().toISOString(),
         }
-        const nextPolicies = policies.map((entry) => (entry.id === id ? nextPolicy : entry))
+        const nextPolicies = policies.map((entry) =>
+          entry.id === id ? nextPolicy : entry
+        )
         return {
           changed: true,
           nextProfile: { ...profile, policies: nextPolicies },
@@ -261,7 +369,10 @@ export async function PATCH(request: NextRequest) {
       },
     })
     if ("error" in mutation) {
-      return NextResponse.json({ error: mutation.error }, { status: mutation.status })
+      return NextResponse.json(
+        { error: mutation.error },
+        { status: mutation.status }
+      )
     }
     return NextResponse.json(
       {
@@ -271,7 +382,10 @@ export async function PATCH(request: NextRequest) {
       { status: 200 }
     )
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to update policy" }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unable to update policy" },
+      { status: 500 }
+    )
   }
 }
 
@@ -281,7 +395,11 @@ export async function DELETE(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")?.trim() ?? ""
-  if (!id) return NextResponse.json({ error: "Policy id is required." }, { status: 400 })
+  if (!id)
+    return NextResponse.json(
+      { error: "Policy id is required." },
+      { status: 400 }
+    )
 
   try {
     const mutation = await mutateOrganizationProfile({
@@ -299,16 +417,27 @@ export async function DELETE(request: NextRequest) {
       },
     })
     if ("error" in mutation) {
-      return NextResponse.json({ error: mutation.error }, { status: mutation.status })
+      return NextResponse.json(
+        { error: mutation.error },
+        { status: mutation.status }
+      )
     }
 
     const { path, nextPolicies } = mutation.value
     if (path && isPolicyDocumentPath(path, auth.orgId, id)) {
-      const { error: cleanupError } = await auth.supabase.storage.from(BUCKET).remove([path])
+      const { error: cleanupError } = await auth.supabase.storage
+        .from(BUCKET)
+        .remove([path])
       if (cleanupError) console.warn("Failed to remove deleted policy document")
     }
-    return NextResponse.json({ ok: true, policies: nextPolicies }, { status: 200 })
+    return NextResponse.json(
+      { ok: true, policies: nextPolicies },
+      { status: 200 }
+    )
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to delete policy" }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unable to delete policy" },
+      { status: 500 }
+    )
   }
 }

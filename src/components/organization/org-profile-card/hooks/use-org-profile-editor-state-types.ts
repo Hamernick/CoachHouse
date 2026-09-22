@@ -27,6 +27,7 @@ export type UseOrgProfileEditorStateResult = {
   dirty: boolean
   company: OrgProfile
   errors: OrgProfileErrors
+  validationAttempt: number
   slugStatus: SlugStatus
   setSlugStatus: (next: SlugStatus) => void
   editProgram: OrgProgram | null

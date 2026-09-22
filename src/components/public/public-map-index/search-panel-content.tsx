@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -39,14 +40,21 @@ export function PublicMapSearchContextCard({
 }) {
   return (
     <div
+      {...getReactGrabOwnerProps({
+        ownerId: "public-map-search-context-card",
+        component: "PublicMapSearchContextCard",
+        source: "src/components/public/public-map-index/search-panel-content.tsx",
+        tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
+        slot: "card",
+      })}
       data-public-map-sidebar-section="search-context-card"
       className={cn(
-        "w-full max-w-full px-3 py-3",
+        "mx-auto w-full max-w-3xl px-3 py-3",
         PUBLIC_MAP_SIDEBAR_CARD_CLASSNAME
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <p className="text-foreground text-sm font-semibold">
             {context.title}
           </p>
@@ -56,26 +64,17 @@ export function PublicMapSearchContextCard({
             </p>
           ) : null}
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 rounded-full px-3 text-xs"
-          onClick={context.onClear}
-        >
-          Show all
-        </Button>
+        {context.guideId ? (
+          <div className="shrink-0 self-center">
+            <PublicMapResourceGuideActions
+              guideId={context.guideId}
+              guideTitle={context.title}
+              onToggleSavedGuide={onToggleSavedGuide}
+              saved={savedGuideIds.includes(context.guideId)}
+            />
+          </div>
+        ) : null}
       </div>
-      {context.guideId ? (
-        <div className="mt-3 flex justify-end">
-          <PublicMapResourceGuideActions
-            guideId={context.guideId}
-            guideTitle={context.title}
-            onToggleSavedGuide={onToggleSavedGuide}
-            saved={savedGuideIds.includes(context.guideId)}
-          />
-        </div>
-      ) : null}
     </div>
   )
 }

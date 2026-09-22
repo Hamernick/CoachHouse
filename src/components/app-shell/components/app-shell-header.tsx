@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 
+import MenuIcon from "lucide-react/dist/esm/icons/menu"
 import PanelRightCloseIcon from "lucide-react/dist/esm/icons/panel-right-close"
 import PanelRightOpenIcon from "lucide-react/dist/esm/icons/panel-right-open"
 
@@ -18,6 +19,8 @@ import { useRightRailPresence } from "../right-rail"
 type AppShellHeaderProps = {
   breadcrumbs?: ReactNode
   headerSearch?: ReactNode
+  compactMobileSpacing?: boolean
+  hideOnMobile?: boolean
   hasUser: boolean
   isAdmin: boolean
   onboardingLocked: boolean
@@ -28,6 +31,8 @@ type AppShellHeaderProps = {
 export function AppShellHeader({
   breadcrumbs,
   headerSearch,
+  compactMobileSpacing = false,
+  hideOnMobile = false,
   hasUser,
   isAdmin,
   onboardingLocked,
@@ -35,7 +40,7 @@ export function AppShellHeader({
   onRightOpenChange,
 }: AppShellHeaderProps) {
   const hasRightRail = useRightRailPresence()
-  const { isMobile } = useSidebar()
+  const { isMobile, openMobile, toggleSidebar } = useSidebar()
   const hasBreadcrumbs = Boolean(breadcrumbs)
   const isCompactMobileHeader = isMobile && onboardingLocked
   const showHeaderToggles = !isMobile
@@ -43,11 +48,12 @@ export function AppShellHeader({
     "size-8 rounded-md border border-[color:var(--shell-border)] bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-foreground/5 hover:text-foreground"
 
   return (
-    <header className="text-muted-foreground flex shrink-0 flex-col bg-[var(--shell-bg)] text-sm">
+    <header className={cn("text-muted-foreground flex shrink-0 flex-col bg-[var(--shell-bg)] text-sm", hideOnMobile && "max-md:hidden")}>
       <div
         className={cn(
-          "flex min-h-14 min-w-0 items-center py-2 pr-[var(--shell-content-pad)] pl-[var(--shell-content-pad)] md:py-0",
-          isCompactMobileHeader && "min-h-12 py-1.5"
+          "flex min-h-16 min-w-0 items-center py-2 pr-1 pl-[var(--shell-content-pad)] md:min-h-14 md:py-0 md:pr-[var(--shell-content-pad)]",
+          isCompactMobileHeader && "min-h-12 py-1.5",
+          compactMobileSpacing && "max-md:min-h-0 max-md:pb-0"
         )}
       >
         <div
@@ -57,12 +63,20 @@ export function AppShellHeader({
           )}
         >
           <div className="flex min-w-0 items-center gap-2">
-            {showHeaderToggles ? (
-              <SidebarTrigger
-                className={toggleButtonClass}
-                aria-label="Toggle sidebar"
-              />
-            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-11 shrink-0 md:hidden"
+              aria-label="Menu"
+              aria-expanded={openMobile}
+              onClick={toggleSidebar}
+            >
+              <MenuIcon />
+            </Button>
+            <SidebarTrigger
+              className={cn(toggleButtonClass, "hidden md:inline-flex")}
+              aria-label="Toggle sidebar"
+            />
             {showHeaderToggles && hasBreadcrumbs ? (
               <Separator orientation="vertical" className="bg-border h-4" />
             ) : null}
@@ -83,7 +97,7 @@ export function AppShellHeader({
           ) : null}
           <div
             className={cn(
-              "flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 md:flex-nowrap",
+              "flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1 md:flex-nowrap md:gap-2 [&>button]:max-md:min-h-11 [&>button]:max-md:min-w-11",
               headerSearch && "flex-nowrap"
             )}
           >
@@ -92,11 +106,13 @@ export function AppShellHeader({
               id="site-header-actions-right"
               className="flex flex-wrap items-center gap-2 md:flex-nowrap"
             />
-            {hasUser && !isCompactMobileHeader ? (
+            {hasUser && !isMobile ? (
               <AppShellCalendarAction />
             ) : null}
-            {hasUser && !isCompactMobileHeader ? <NotificationsMenu /> : null}
-            <ThemeToggle />
+            {hasUser && !isCompactMobileHeader && !(hideOnMobile && isMobile) ? <NotificationsMenu /> : null}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             {!hasUser ? headerSearch : null}
             {!hasUser ? (
               <Button

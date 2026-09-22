@@ -54,9 +54,9 @@ export const ScrollFadeEffect = forwardRef<
       data-orientation={orientation}
       className={cn(
         enabled &&
-          "data-[orientation=horizontal]:overflow-x-auto data-[orientation=vertical]:overflow-y-auto",
-        enabled &&
-          "data-[orientation=horizontal]:scroll-fade-effect-x data-[orientation=vertical]:scroll-fade-effect-y",
+          (orientation === "horizontal"
+            ? "scroll-fade-effect-x overflow-x-auto"
+            : "scroll-fade-effect-y overflow-y-auto"),
         className
       )}
       {...props}

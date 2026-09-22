@@ -9,6 +9,8 @@ type ShellMainContentProps = {
   children: ReactNode
   isAcceleratorContext: boolean
   isMobile: boolean
+  showMobileNavigation?: boolean
+  hasNestedScrollContent?: boolean
   onboardingRedirectTarget: string | null
   routeTransitionRef: RefObject<HTMLDivElement | null>
   useFlushContentBody: boolean
@@ -20,6 +22,8 @@ export function ShellMainContent({
   children,
   isAcceleratorContext,
   isMobile,
+  showMobileNavigation = true,
+  hasNestedScrollContent = false,
   onboardingRedirectTarget,
   routeTransitionRef,
   useFlushContentBody,
@@ -27,34 +31,42 @@ export function ShellMainContent({
   useMobileSingleGutterContent,
 }: ShellMainContentProps) {
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
+    <div
+      className={cn(
+        "flex min-h-0 w-full min-w-0 flex-1 flex-col",
+        showMobileNavigation
+          ? "[--shell-mobile-nav-clearance:calc(5.5rem+env(safe-area-inset-bottom))] md:[--shell-mobile-nav-clearance:0px]"
+          : "[--shell-mobile-nav-clearance:env(safe-area-inset-bottom)] md:[--shell-mobile-nav-clearance:0px]"
+      )}
+    >
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--shell-bg)] shadow-none",
-          isMobile
-            ? "rounded-none border-0"
-            : "rounded-[28px] border border-[color:var(--shell-border)]"
+          "border-[color:var(--shell-border)] md:rounded-[28px] md:border",
+          "rounded-none border-0"
         )}
       >
         <ScrollFadeEffect
           data-shell-scroll
           data-tour-scroll
           data-accelerator-scroll={isAcceleratorContext ? "" : undefined}
-          enabled={useMobileSingleGutterContent}
+          enabled={isMobile && useMobileSingleGutterContent}
           orientation="vertical"
           role="main"
           className={cn(
-            "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden",
+            "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overscroll-y-contain [scrollbar-gutter:auto] md:[scrollbar-gutter:stable]",
             useFullBleedContent ? "overflow-hidden" : "overflow-y-auto",
             useMobileSingleGutterContent &&
               "[--mask-height:2rem] [--scroll-buffer:1.5rem]"
           )}
-          style={{ scrollbarGutter: "stable" }}
         >
           <div
             className={cn(
               "@container/shell flex w-full min-w-0 flex-col",
-              useFullBleedContent ? "h-full min-h-0" : "min-h-full"
+              useFullBleedContent ? "h-full min-h-0" : "min-h-full",
+              !useFullBleedContent &&
+                !hasNestedScrollContent &&
+                "pb-[var(--shell-mobile-nav-clearance)]"
             )}
           >
             <div
@@ -69,7 +81,9 @@ export function ShellMainContent({
                 "flex min-h-0 min-w-0 flex-1 flex-col",
                 useFlushContentBody
                   ? "gap-0 px-0 py-0"
-                  : "gap-6 px-[var(--shell-content-pad)] py-[var(--shell-content-pad)]"
+                  : "gap-6 px-[var(--shell-content-pad)] py-[var(--shell-content-pad)]",
+                useMobileSingleGutterContent &&
+                  "max-md:gap-0 max-md:px-0 max-md:py-0"
               )}
             >
               {onboardingRedirectTarget ? (

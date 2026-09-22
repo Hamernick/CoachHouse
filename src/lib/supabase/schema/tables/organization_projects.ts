@@ -1,3 +1,5 @@
+import type { Json } from "../json"
+
 export type OrganizationProjectsTable = {
   Row: {
     id: string
@@ -10,8 +12,12 @@ export type OrganizationProjectsTable = {
     priority: string
     progress: number
     start_date: string
+    guided_setup?: Json | null
+    creation_request_id?: string | null
+    schedule_confirmed?: boolean
     end_date: string
     client_name: string | null
+    option_settings?: Json | null
     type_label: string | null
     duration_label: string | null
     tags: string[]
@@ -36,8 +42,12 @@ export type OrganizationProjectsTable = {
     priority?: string
     progress?: number
     start_date: string
+    guided_setup?: Json | null
+    creation_request_id?: string | null
+    schedule_confirmed?: boolean
     end_date: string
     client_name?: string | null
+    option_settings?: Json | null
     type_label?: string | null
     duration_label?: string | null
     tags?: string[]
@@ -62,8 +72,12 @@ export type OrganizationProjectsTable = {
     priority?: string
     progress?: number
     start_date?: string
+    guided_setup?: Json | null
+    creation_request_id?: string | null
+    schedule_confirmed?: boolean
     end_date?: string
     client_name?: string | null
+    option_settings?: Json | null
     type_label?: string | null
     duration_label?: string | null
     tags?: string[]

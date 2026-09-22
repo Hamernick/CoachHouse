@@ -98,7 +98,7 @@ describe("public-profiles feature contract", () => {
     expect(identitySettings).toContain(
       "Choose your Coach House address and decide when people can view it."
     )
-    expect(identitySettings).toContain("savePublicPersonProfileAction")
+    expect(identitySettings).toContain("setPublicProfileVisibilityAction")
     expect(identitySettings).toContain("Visibility")
     expect(identitySettings).toContain("Profile unpublished")
   })
@@ -147,8 +147,11 @@ describe("public-profiles feature contract", () => {
     expect(identitySettings.indexOf("{profileDetails}")).toBeLessThan(
       identitySettings.indexOf("Public page")
     )
-    expect(identitySettings).toContain("View profile")
-    expect(identitySettings).toContain("<Link href={`/${currentHandle}`}>")
+    const preview = readSource(
+      "src/features/public-profiles/components/public-profile-identity-preview.tsx"
+    )
+    expect(preview).toContain("View profile")
+    expect(preview).toContain("Save your changes before viewing your profile.")
     expect(identitySettings).not.toContain("<Card")
     expect(identitySettings).toContain(
       "onCheckedChange={(checked) => void saveVisibility(checked)}"

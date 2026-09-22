@@ -9,3 +9,6 @@ export type {
   WorkspaceToolId,
   WorkspaceToolsInput,
 } from "./types"
+
+export { GoogleDriveConnection } from "./components/google-drive-connection"
+export { WorkspaceToolBrandIcon } from "./components/workspace-tool-brand-icon"

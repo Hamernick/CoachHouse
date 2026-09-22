@@ -1,0 +1,80 @@
+@media (width < 768px) {
+  .surface {
+    isolation: isolate;
+  }
+
+  .surface [data-public-map-location-controls] {
+    --public-map-control-size: clamp(32px, 9.25vw, 36px);
+    --public-map-control-font-size: clamp(12px, 3.5vw, 14px);
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+    column-gap: 4px;
+  }
+
+  .surface [data-public-map-location-group] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .surface [data-public-map-location-trigger],
+  .surface [data-public-map-location-controls] [data-weather-temperature-length] {
+    width: var(--public-map-control-size);
+    height: var(--public-map-control-size);
+  }
+
+  .surface [data-public-map-location-controls] [data-public-map-directory-status],
+  .surface [data-public-map-welcome-control] > button {
+    height: var(--public-map-control-size);
+  }
+
+  .surface [data-public-map-welcome-control] {
+    justify-self: center;
+    max-width: 100%;
+  }
+
+  .surface [data-public-map-welcome-control] > button {
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: clamp(4px, calc((100vw - 300px) / 10), 10px);
+  }
+
+  .surface [data-public-map-location-controls] [data-weather-temperature-length] {
+    justify-self: end;
+  }
+
+  .surface [data-public-map-location-trigger]::after {
+    inset: calc((var(--public-map-control-size) - 44px) / 2);
+  }
+
+  .surface [data-public-map-location-trigger] svg {
+    width: clamp(14px, 4vw, 16px);
+    height: clamp(14px, 4vw, 16px);
+  }
+
+  .surface [data-public-map-directory-status],
+  .surface [data-public-map-welcome-control] > button,
+  .surface [data-public-map-location-controls] [data-weather-temperature-length] span {
+    font-size: var(--public-map-control-font-size);
+    font-weight: 500;
+    font-variant-numeric: normal;
+    letter-spacing: normal;
+    line-height: 1.25;
+  }
+
+  .surface [data-public-map-directory-status] {
+    gap: 6px;
+  }
+
+  .surface [data-public-map-directory-count] {
+    font-variant-numeric: normal;
+  }
+
+  .surface [data-public-map-location-controls] [data-weather-temperature-length="5"] {
+    width: calc(var(--public-map-control-size) * 1.25);
+  }
+
+  .surface:has([data-public-map-drawer-mode="fullscreen"])
+    [data-public-map-location-controls] {
+    visibility: hidden;
+  }
+}

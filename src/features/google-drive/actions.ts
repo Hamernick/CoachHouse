@@ -7,6 +7,7 @@ export {
   detachGoogleDriveDocument,
   disconnectGoogleDrive,
   getGoogleDriveConnection,
+  getGoogleDriveDocumentThumbnail,
   listGoogleDriveDocuments,
   startGoogleDriveConnection,
 } from "./server/service"

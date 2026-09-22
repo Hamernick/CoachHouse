@@ -1,6 +1,7 @@
 "use client"
 
 import StatusIndicator from "@/components/8starlabs-ui/status-indicator"
+import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { cn } from "@/lib/utils"
 import { PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME } from "./sidebar-theme"
 
@@ -38,10 +39,12 @@ export function PublicMapDirectoryStatusHeader({
 export function PublicMapDirectoryStatusPill({
   className,
   count,
+  compactOnMobile = false,
   label = "Resources",
 }: {
   className?: string
   count: number | null
+  compactOnMobile?: boolean
   label?: string
 }) {
   const countLabel =
@@ -49,9 +52,17 @@ export function PublicMapDirectoryStatusPill({
 
   return (
     <span
+      {...getReactGrabOwnerProps({
+        ownerId: "public-map-directory-status:active-count",
+        component: "PublicMapDirectoryStatusPill",
+        source: "src/components/public/public-map-index/directory-status-pill.tsx",
+        tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
+        slot: "status",
+      })}
+      data-public-map-directory-status
       className={cn(
         PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME,
-        "inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-2.5 text-xs font-medium",
+        "pointer-events-auto inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-2.5 text-xs font-medium",
         className
       )}
       aria-label={
@@ -63,7 +74,7 @@ export function PublicMapDirectoryStatusPill({
       <span aria-hidden="true" className="inline-flex shrink-0">
         <StatusIndicator state="active" size="sm" className="shrink-0 gap-0" />
       </span>
-      <span>Active</span>
+      <span data-public-map-active-label>Active</span>
       {countLabel === null ? (
         <span
           data-public-map-directory-count-loading="true"
@@ -71,7 +82,21 @@ export function PublicMapDirectoryStatusPill({
           aria-hidden="true"
         />
       ) : (
-        <span className="tabular-nums">{countLabel}</span>
+        <span data-public-map-directory-count className="tabular-nums">
+          {compactOnMobile ? (
+            <>
+              <span className="md:hidden">
+                {new Intl.NumberFormat(undefined, {
+                  notation: "compact",
+                  maximumFractionDigits: 0,
+                }).format(count ?? 0)}
+              </span>
+              <span className="hidden md:inline">{countLabel}</span>
+            </>
+          ) : (
+            countLabel
+          )}
+        </span>
       )}
     </span>
   )

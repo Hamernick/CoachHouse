@@ -2,6 +2,7 @@ import "./test-utils"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { simplifyWorkstreamCategories } from "@/features/member-workspace/server/workstream-categories"
 import { revalidatePathMock, resetTestMocks } from "./test-utils"
 
 const { resolveMemberWorkspaceActorContextMock } = vi.hoisted(() => ({
@@ -167,7 +168,7 @@ describe("platform admin workstream category actions", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/organizations")
   })
 
-  it("restores all six defaults with one multi-row upsert", async () => {
+  it("restores four defaults with one multi-row upsert", async () => {
     const rowsQuery = createCategoryRowsQuery()
     const upsertQuery = {
       upsert: vi.fn().mockResolvedValue({ error: null }),
@@ -191,19 +192,19 @@ describe("platform admin workstream category actions", () => {
         expect.objectContaining({
           id: "category-backlog",
           default_key: "backlog",
-          name: "New Intake",
+          name: "Intake",
           position: 0,
         }),
         expect.objectContaining({
           id: "category-completed",
           default_key: "completed",
           name: "Complete",
-          position: 5,
+          position: 3,
         }),
       ]),
       { onConflict: "id" }
     )
-    expect(upsertQuery.upsert.mock.calls[0]?.[0]).toHaveLength(6)
+    expect(upsertQuery.upsert.mock.calls[0]?.[0]).toHaveLength(4)
     expect(revalidatePathMock).toHaveBeenCalledWith("/organizations")
   })
 
@@ -273,5 +274,26 @@ describe("platform admin workstream category actions", () => {
         "A custom category now uses a default name. Rename it before restoring defaults.",
     })
     expect(revalidatePathMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("simplified organization workstreams", () => {
+  const categories = defaultRows.map((row) => ({ id: row.id, name: row.name, color: row.color, position: row.position, defaultKey: row.default_key }))
+  it("groups six defaults into four without changing saved rows", () => {
+    const result = simplifyWorkstreamCategories(categories)
+    expect(result.categories.map((category) => category.name)).toEqual(["Intake", "In progress", "Waiting", "Complete"])
+    const progress = categories.find((category) => category.defaultKey === "planned")!
+    for (const key of ["active", "review_approval"]) {
+      expect(result.aliases.get(categories.find((category) => category.defaultKey === key)!.id)).toBe(progress.id)
+    }
+    expect(categories.map((category) => category.name)).toContain("Ongoing Support")
+  })
+  it("preserves custom categories and renamed defaults", () => {
+    const input = categories.map((category) => category.defaultKey === "active" ? { ...category, name: "Fundraising" } : category)
+    input.push({ id: "custom", name: "Special projects", color: "rose", position: 8, defaultKey: null })
+    const result = simplifyWorkstreamCategories(input)
+    expect(result.categories.map((category) => category.name)).toContain("Fundraising")
+    expect(result.categories.map((category) => category.name)).toContain("Special projects")
+    expect(result.aliases.has(input.find((category) => category.defaultKey === "active")!.id)).toBe(false)
   })
 })

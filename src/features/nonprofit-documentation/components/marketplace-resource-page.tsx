@@ -20,6 +20,7 @@ import {
   DocumentationSurface,
 } from "./documentation-surface"
 import { MarketplaceResourceActions } from "./marketplace/marketplace-resource-actions"
+import { MarketplaceReferralOffer } from "./marketplace/marketplace-referral-offer"
 import { DocumentationPageHeader } from "./documentation-page-header"
 
 export function MarketplaceResourcePage({
@@ -53,7 +54,8 @@ export function MarketplaceResourcePage({
         </Button>
         <DocumentationPageHeader
           artwork={`marketplace/${resource.id}`}
-          eyebrow={`${resource.provider} · ${marketplaceTypeLabel(resource.type)}`}
+          artworkKind={resource.artworkKind}
+          eyebrow={marketplaceTypeLabel(resource.type)}
           title={resource.name}
           description={resource.headerDescription}
         />
@@ -233,6 +235,7 @@ export function MarketplaceResourcePage({
               </a>
             </Button>
             <MarketplaceResourceActions id={resource.id} name={resource.name} />
+            <MarketplaceReferralOffer offer={resource.referralOffer} />
             {resource.relatedGuide ? (
               <Button
                 asChild

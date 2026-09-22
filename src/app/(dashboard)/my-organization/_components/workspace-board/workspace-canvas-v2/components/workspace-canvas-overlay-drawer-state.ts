@@ -9,6 +9,29 @@ export const WORKSPACE_DATA_DRAWER_FULL_SNAP_POINT =
 const WORKSPACE_DATA_DRAWER_LEGACY_COLLAPSED_MAX = 0.11
 const WORKSPACE_DATA_DRAWER_FULLSCREEN_SNAP_TOLERANCE = 0.01
 const WORKSPACE_DATA_DRAWER_SNAP_POINT_TOLERANCE = 0.01
+const WORKSPACE_PARTICLES_MOBILE_DEFAULT_SNAP_POINT = 0.68
+
+export function resolveWorkspaceDataDrawerDisplaySnapPoint(
+  snapPoint: number | string | null,
+  mobileParticles = false
+) {
+  return mobileParticles &&
+    snapPoint === WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
+    ? WORKSPACE_PARTICLES_MOBILE_DEFAULT_SNAP_POINT
+    : snapPoint
+}
+
+export function resolveWorkspaceDataDrawerStoredSnapPoint(
+  snapPoint: unknown,
+  mobileParticles = false
+) {
+  return resolveWorkspaceDataDrawerSnapPoint(
+    mobileParticles &&
+      snapPoint === WORKSPACE_PARTICLES_MOBILE_DEFAULT_SNAP_POINT
+      ? WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
+      : snapPoint
+  )
+}
 
 export function resolveWorkspaceDataDrawerSnapPoint(snapPoint: unknown) {
   if (snapPoint === WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT) {
@@ -26,14 +49,21 @@ export function resolveWorkspaceDataDrawerSnapPoint(snapPoint: unknown) {
   )
 }
 
-export function resolveWorkspaceDataDrawerViewportHeight(snapPoint: unknown) {
+export function resolveWorkspaceDataDrawerViewportHeight(
+  snapPoint: unknown,
+  mobileParticles = false
+) {
   const resolvedSnapPoint =
     resolveWorkspaceDataDrawerSnapPoint(snapPoint) ??
     WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
+  const displaySnapPoint = resolveWorkspaceDataDrawerDisplaySnapPoint(
+    resolvedSnapPoint,
+    mobileParticles
+  )
   const visibleHeight =
-    typeof resolvedSnapPoint === "number"
-      ? `${resolvedSnapPoint * 100}%`
-      : resolvedSnapPoint
+    typeof displaySnapPoint === "number"
+      ? `${displaySnapPoint * 100}%`
+      : displaySnapPoint
 
   return `calc(${visibleHeight} - 2rem)`
 }

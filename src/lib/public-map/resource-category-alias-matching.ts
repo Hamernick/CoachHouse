@@ -9,6 +9,18 @@ function normalizeCategorySearchText(value: string) {
     .trim()
 }
 
+export function createPublicMapCategoryAliasMatcher(text: string) {
+  const normalizedText = normalizeCategorySearchText(text)
+  const searchableText = ` ${normalizedText} `
+
+  return (alias: string) => {
+    const normalizedAlias = normalizeCategorySearchText(alias)
+    if (!normalizedAlias || !normalizedText) return false
+
+    return searchableText.includes(` ${normalizedAlias} `)
+  }
+}
+
 export function publicMapTextContainsCategoryAlias({
   alias,
   text,
@@ -16,9 +28,5 @@ export function publicMapTextContainsCategoryAlias({
   alias: string
   text: string
 }) {
-  const normalizedAlias = normalizeCategorySearchText(alias)
-  const normalizedText = normalizeCategorySearchText(text)
-  if (!normalizedAlias || !normalizedText) return false
-
-  return ` ${normalizedText} `.includes(` ${normalizedAlias} `)
+  return createPublicMapCategoryAliasMatcher(text)(alias)
 }

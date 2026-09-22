@@ -261,7 +261,7 @@ describe("roadmap calendar month agenda", () => {
 
   it("stretches the month grid evenly across the calendar panel", () => {
     const agendaPanel = readSource(
-      "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx"
+      "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-grid.tsx"
     )
     const dayButton = readSource(
       "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-day-with-event-dots.tsx"
@@ -276,7 +276,7 @@ describe("roadmap calendar month agenda", () => {
     expect(agendaPanel).toContain('"w-[14.285714%] pb-2')
     expect(agendaPanel).toContain('weeks: "w-full"')
     expect(agendaPanel).toContain('week: "w-full"')
-    expect(agendaPanel).toContain('day: "w-[14.285714%] min-w-0')
+    expect(agendaPanel).toContain('"w-[14.285714%] min-w-0')
     expect(dayButton).toContain("mx-auto size-(--cell-size) min-h-10 min-w-0")
     expect(dayButton).toContain("getReactGrabOwnerProps")
     expect(dayButton).toContain('ownerId: "roadmap-calendar-month-agenda:day"')
@@ -308,7 +308,7 @@ describe("roadmap calendar month agenda", () => {
     )
     const menuUsages = agendaPanel.match(/<RoadmapCalendarAddEventMenu/g) ?? []
     const addMenuIndex = agendaPanel.indexOf("<RoadmapCalendarAddEventMenu")
-    const calendarGridIndex = agendaPanel.indexOf("<Calendar")
+    const calendarGridIndex = agendaPanel.indexOf("<RoadmapCalendarMonthGrid")
 
     expect(menuUsages).toHaveLength(1)
     expect(addMenuIndex).toBeGreaterThan(-1)

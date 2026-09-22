@@ -15,6 +15,53 @@ import {
 import { cleanupOrgProfileHtml } from "@/lib/organization/profile-cleanup"
 
 describe("organization profile story contract", () => {
+  it.each([
+    "originStory",
+    "need",
+    "mission",
+    "vision",
+    "values",
+    "theoryOfChange",
+  ])("preserves safe rich formatting in the %s About us panel", (field) => {
+    const markup = renderToStaticMarkup(
+      createElement(StoryPreview, {
+        company: {
+          [field]:
+            '<h2>Our work</h2><p style="text-align: center"><strong>Local</strong> <em>support</em></p><ul><li>First priority</li></ul><script>unsafe()</script>',
+        },
+        addressLines: [],
+        hasAnyBrandLink: false,
+      })
+    )
+    expect(markup).toContain("<h2>Our work</h2>")
+    expect(markup).toContain(
+      '<p style="text-align:center"><strong>Local</strong> <em>support</em></p>'
+    )
+    expect(markup).toContain("<ul><li>First priority</li></ul>")
+    expect(markup).not.toContain("unsafe()")
+    expect(markup).not.toContain("Read more")
+  })
+
+  it("exposes one About us panel and keeps other sections out of keyboard navigation", () => {
+    const markup = renderToStaticMarkup(
+      createElement(StoryPreview, {
+        company: {
+          originStory: "Our origin",
+          mission: "Our mission",
+          vision: "Our vision",
+        },
+        addressLines: [],
+        hasAnyBrandLink: false,
+      })
+    )
+    const panels = markup.match(/<div[^>]*role="tabpanel"[^>]*>/g) ?? []
+    expect(panels).toHaveLength(3)
+    expect(panels.filter((panel) => !panel.includes('hidden=""'))).toHaveLength(
+      1
+    )
+    expect(panels.filter((panel) => panel.includes('inert=""'))).toHaveLength(2)
+  })
+
   it("hydrates the added story fields from both camelCase and snake_case profile keys", () => {
     const legacyProfile = buildInitialOrganizationProfile({
       profile: {

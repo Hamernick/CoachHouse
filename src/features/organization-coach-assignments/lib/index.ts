@@ -126,3 +126,10 @@ export function computeOrganizationCoachAssignmentCoverage(
     countByCoachId,
   }
 }
+
+export function defaultOrganizationCoachFilter(coach: OrganizationCoachOption) {
+  const names = new Set(["joel", "paula", "caleb", "fs"])
+  const firstName = coach.name.trim().split(/\s+/)[0].toLowerCase()
+  const mailbox = coach.email?.split("@")[0].toLowerCase()
+  return names.has(firstName) || (mailbox && names.has(mailbox)) ? coach.id : "all"
+}

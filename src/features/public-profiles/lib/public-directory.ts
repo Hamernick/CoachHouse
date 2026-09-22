@@ -9,6 +9,11 @@ export type PublicPersonDirectoryEntry = {
   href: string
 }
 
+export type PublicPersonDirectoryProfile = PublicPersonDirectoryEntry & {
+  bio: string | null
+  websiteUrl: string | null
+}
+
 type PublishedPersonRow = {
   profile_id: string
   display_name: string
@@ -64,4 +69,26 @@ export function projectPublicPeople(
       },
     ]
   })
+}
+
+export function projectPublicPerson(
+  person: PublishedPersonRow & {
+    bio: string | null
+    website_url: string | null
+  },
+  handle: PersonHandleRow
+): PublicPersonDirectoryProfile | null {
+  const entry = projectPublicPeople([person], [handle])[0]
+  if (!entry) return null
+
+  let websiteUrl: string | null = null
+  try {
+    const url = new URL(person.website_url ?? "")
+    if (url.protocol === "https:" || url.protocol === "http:") {
+      websiteUrl = url.href
+    }
+  } catch {
+    // An invalid optional website must not become a clickable link.
+  }
+  return { ...entry, bio: person.bio, websiteUrl }
 }

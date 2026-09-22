@@ -93,65 +93,8 @@ export const BRAND_FONT_GROUPS = [
     ],
   },
   {
-    label: "Serif",
-    options: [
-      {
-        value: "System Serif",
-        label: "System Serif",
-        stack: "ui-serif, Georgia, serif",
-      },
-      {
-        value: "Baskerville",
-        label: "Baskerville",
-        stack: "Baskerville, Georgia, serif",
-      },
-      {
-        value: "Book Antiqua",
-        label: "Book Antiqua",
-        stack: '"Book Antiqua", Palatino, serif',
-      },
-      {
-        value: "Charter",
-        label: "Charter",
-        stack: 'Charter, "Bitstream Charter", serif',
-      },
-      { value: "Didot", label: "Didot", stack: "Didot, Bodoni, serif" },
-      {
-        value: "Garamond",
-        label: "Garamond",
-        stack: 'Garamond, "Times New Roman", serif',
-      },
-      { value: "Georgia", label: "Georgia", stack: "Georgia, serif" },
-      {
-        value: "Hoefler Text",
-        label: "Hoefler Text",
-        stack: '"Hoefler Text", Georgia, serif',
-      },
-      {
-        value: "Palatino",
-        label: "Palatino",
-        stack: 'Palatino, "Palatino Linotype", serif',
-      },
-      {
-        value: "Rockwell",
-        label: "Rockwell",
-        stack: 'Rockwell, "Courier New", serif',
-      },
-      {
-        value: "Times New Roman",
-        label: "Times New Roman",
-        stack: '"Times New Roman", Times, serif',
-      },
-    ],
-  },
-  {
     label: "Display",
     options: [
-      {
-        value: "Copperplate",
-        label: "Copperplate",
-        stack: 'Copperplate, "Copperplate Gothic Light", fantasy',
-      },
       {
         value: "Futura",
         label: "Futura",
@@ -167,28 +110,6 @@ export const BRAND_FONT_GROUPS = [
         label: "Optima",
         stack: 'Optima, "Segoe UI", sans-serif',
       },
-    ],
-  },
-  {
-    label: "Monospace",
-    options: [
-      {
-        value: "System Mono",
-        label: "System Mono",
-        stack: 'ui-monospace, "SFMono-Regular", monospace',
-      },
-      {
-        value: "Consolas",
-        label: "Consolas",
-        stack: 'Consolas, "Liberation Mono", monospace',
-      },
-      {
-        value: "Courier New",
-        label: "Courier New",
-        stack: '"Courier New", Courier, monospace',
-      },
-      { value: "Menlo", label: "Menlo", stack: "Menlo, Monaco, monospace" },
-      { value: "Monaco", label: "Monaco", stack: "Monaco, Menlo, monospace" },
     ],
   },
 ] as const satisfies readonly BrandFontGroup[]

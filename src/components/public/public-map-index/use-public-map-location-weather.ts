@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type RefObject } from "react"
+import type { RefObject } from "react"
 import type mapboxgl from "mapbox-gl"
 
 import type { FindMapWeatherResponse } from "@/features/find-map/client"
@@ -27,6 +27,7 @@ export function usePublicMapLocationWeather({
   selectedOrganizationId,
   suppressAutomaticEntrance,
   welcomeOpen,
+  weather,
 }: {
   activeSameLocationGroupKey: string | null
   favorites: string[]
@@ -42,8 +43,8 @@ export function usePublicMapLocationWeather({
   selectedOrganizationId: string | null
   suppressAutomaticEntrance: boolean
   welcomeOpen: boolean
+  weather: FindMapWeatherResponse | null
 }) {
-  const [weather, setWeather] = useState<FindMapWeatherResponse | null>(null)
   const locationControl = usePublicMapUserLocation({
     mapRef,
     mapLoadedRef,
@@ -71,5 +72,5 @@ export function usePublicMapLocationWeather({
     userCoordinates: locationControl.coordinates,
   })
 
-  return { locationControl, setWeather, weather }
+  return { locationControl }
 }

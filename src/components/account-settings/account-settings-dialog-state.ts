@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { useSupabaseClient } from "@/hooks/use-supabase-client"
 import { toast } from "@/lib/toast"
+import {
+  useAccountSettingsDraft,
+  useAccountSettingsDrafts,
+} from "./account-settings-drafts"
 import { useAccountSettingsProfileLoader } from "./account-settings-dialog-profile-loader"
 import {
   isMobileSettingsViewport,
@@ -41,6 +45,10 @@ export function useAccountSettingsDialogState({
   const [contact, setContact] = useState("")
   const [about, setAbout] = useState("")
   const [phone, setPhone] = useState("")
+  const [preferencesError, setPreferencesError] = useState<string | null>(null)
+  const [preferencesLoading, setPreferencesLoading] = useState(true)
+  const [preferencesRetry, setPreferencesRetry] = useState(0)
+  const retryPreferences = () => setPreferencesRetry((value) => value + 1)
   const [marketingOptIn, setMarketingOptIn] = useState(defaultMarketingOptIn)
   const [newsletterOptIn, setNewsletterOptIn] = useState(defaultNewsletterOptIn)
   const [newPassword, setNewPassword] = useState("")
@@ -51,8 +59,11 @@ export function useAccountSettingsDialogState({
   const [confirmClose, setConfirmClose] = useState(false)
   const dirtyRef = useRef(false)
   const [dirty, setDirty] = useState(false)
-  const [errors, setErrors] = useState<Partial<Record<AccountSettingsErrorKey, string>>>({})
-  const [mobilePage, setMobilePage] = useState<AccountSettingsMobilePage>("menu")
+  const [errors, setErrors] = useState<
+    Partial<Record<AccountSettingsErrorKey, string>>
+  >({})
+  const [mobilePage, setMobilePage] =
+    useState<AccountSettingsMobilePage>("menu")
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   const [orgName, setOrgName] = useState("")
@@ -123,12 +134,8 @@ export function useAccountSettingsDialogState({
     setNewsletterOptIn(value)
     markDirty()
   }
-  const handleNewPasswordChange = (value: string) => {
-    setNewPassword(value)
-  }
-  const handleConfirmPasswordChange = (value: string) => {
-    setConfirmPassword(value)
-  }
+  const handleNewPasswordChange = setNewPassword
+  const handleConfirmPasswordChange = setConfirmPassword
   const handleMobilePageChange = (page: AccountSettingsMobilePage) => {
     if (page === "menu") {
       setMobilePage("menu")
@@ -139,7 +146,10 @@ export function useAccountSettingsDialogState({
 
   function setTab(tabKey: AccountSettingsTabKey) {
     _setTab(tabKey)
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches
+    ) {
       setMobilePage(tabKey)
     }
   }
@@ -157,6 +167,9 @@ export function useAccountSettingsDialogState({
   }, [initialTab, open])
 
   useAccountSettingsProfileLoader({
+    preferencesRetry,
+    setPreferencesError,
+    setPreferencesLoading,
     open,
     supabase,
     defaultName,
@@ -184,15 +197,11 @@ export function useAccountSettingsDialogState({
     initialNewsletterRef,
   })
 
-  const isDirty = useMemo(() => dirty || dirtyRef.current, [dirty])
-
-  const validate = () => {
-    setErrors({})
-    return true
-  }
+  const drafts = useAccountSettingsDrafts()
+  useAccountSettingsDraft(dirty)
+  const isDirty = dirty || dirtyRef.current || Boolean(drafts?.isDirty)
 
   const handleSave = async () => {
-    if (!validate()) return
     setIsSaving(true)
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser()
@@ -204,7 +213,7 @@ export function useAccountSettingsDialogState({
         throw new Error("Unable to save settings. Please sign in again.")
       }
 
-      if (tab === "profile") {
+      {
         const result = await saveProfileSettings({
           supabase,
           userId,
@@ -250,7 +259,8 @@ export function useAccountSettingsDialogState({
         if (result.about !== about) {
           setAbout(result.about)
         }
-      } else if (tab === "communications") {
+      }
+      {
         const result = await saveCommunicationPreferences({
           supabase,
           marketingOptIn,
@@ -262,6 +272,7 @@ export function useAccountSettingsDialogState({
         initialNewsletterRef.current = result.initialNewsletterOptIn
       }
 
+      await drafts?.saveDrafts()
       dirtyRef.current = false
       setDirty(false)
 
@@ -286,7 +297,9 @@ export function useAccountSettingsDialogState({
     if (!newPassword || newPassword !== confirmPassword) return
     setIsUpdatingPassword(true)
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
       if (error) {
         toast.error(error.message || "Unable to update password.")
         return
@@ -346,6 +359,9 @@ export function useAccountSettingsDialogState({
     contact,
     about,
     phone,
+    preferencesError,
+    preferencesLoading,
+    retryPreferences,
     marketingOptIn,
     newsletterOptIn,
     newPassword,

@@ -184,18 +184,11 @@ describe("member workspace admin operations", () => {
       ),
       "utf8"
     )
-    for (const category of [
-      "New Intake",
-      "Coach Action",
-      "Waiting on Organization",
-      "Review & Approval",
-      "Ongoing Support",
-      "Complete",
-    ]) {
-      expect(workstreamSource).toContain(`name: "${category}"`)
+    const categorySource = readFileSync(join(process.cwd(), "src/features/member-workspace/server/workstream-categories.ts"), "utf8")
+    for (const category of ["Intake", "In progress", "Waiting", "Complete"]) {
+      expect(categorySource).toContain(`name: "${category}"`)
     }
-    expect(workstreamSource).toContain('default_key: "waiting_on_organization"')
-    expect(workstreamSource).toContain('default_key: "review_approval"')
+    expect(workstreamSource).toContain("DEFAULT_WORKSTREAM_CATEGORIES as DEFAULT_CATEGORIES")
     expect(workstreamSource).toContain("...category")
     expect(workstreamSource).toContain(".upsert(defaultPayload")
     expect(workstreamSource).toContain(
@@ -275,6 +268,25 @@ describe("member workspace admin operations", () => {
     )
     expect(markup).toContain("Missing headline, profile photo")
   })
+
+  it.each(["unavailable", "error", "forbidden"] as const)(
+    "does not present %s activity as an empty history",
+    (activityState) => {
+      const markup = renderToStaticMarkup(
+        React.createElement(MemberWorkspaceProjectActivityTimeline, {
+          organizationSummary,
+          project: {
+            ...getProjectDetailsById("project-1"),
+            activity: [],
+            activityState,
+          },
+        })
+      )
+      expect(markup).not.toContain("No activity recorded yet.")
+      expect(markup).toContain('role="status"')
+      expect(markup).toContain("Refresh activity")
+    }
+  )
 
   it("renders program duration and recorded step transitions", () => {
     const project = {

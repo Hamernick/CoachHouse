@@ -1,3 +1,5 @@
+import { purgeExpiredFiles } from "./file-cleanup"
+import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { randomUUID } from "node:crypto"
 
 import { NextResponse, type NextRequest } from "next/server"
@@ -9,24 +11,20 @@ import {
   MAX_UPLOAD_MB,
   ORGANIZATION_DOCUMENT_QUOTA_BYTES as QUOTA_BYTES,
 } from "@/lib/organization/document-storage"
-import {
-  canEditOrganization,
-  resolveActiveOrganization,
-} from "@/lib/organization/active-org"
+import { canEditOrganization } from "@/lib/organization/active-org"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 
 import { fileResponse, sanitizeFilename, type FileRow } from "./file-record"
 
 const BUCKET = "org-documents"
 const SIGNED_URL_TTL_SECONDS = 60 * 15
-const RETENTION_DAYS = 30
 
 async function loadFile(
   supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
   orgId: string,
   fileId: string
 ) {
-  return supabase
+  const result = await supabase
     .from("organization_document_files")
     .select(
       "id, name, mime_type, size_bytes, storage_path, deleted_at, created_at, updated_at"
@@ -35,42 +33,19 @@ async function loadFile(
     .eq("org_id", orgId)
     .is("document_kind", null)
     .maybeSingle<FileRow>()
-}
-
-async function purgeExpiredFiles(
-  supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
-  orgId: string
-) {
-  const cutoff = new Date(
-    Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
-  ).toISOString()
-  const { data: expired, error } = await supabase
-    .from("organization_document_files")
-    .select("id, storage_path")
-    .eq("org_id", orgId)
-    .is("document_kind", null)
-    .lt("deleted_at", cutoff)
-    .limit(100)
-    .returns<Array<{ id: string; storage_path: string }>>()
-
-  if (error || !expired?.length) return
-  const { error: storageError } = await supabase.storage
-    .from(BUCKET)
-    .remove(expired.map((file) => file.storage_path))
-  if (storageError) return
-
-  await supabase
-    .from("organization_document_files")
-    .delete()
-    .in(
-      "id",
-      expired.map((file) => file.id)
-    )
+  if (
+    result.data &&
+    (!result.data.storage_path.startsWith(`${orgId}/library/`) ||
+      result.data.storage_path.split("/").includes(".."))
+  ) {
+    return { ...result, data: null }
+  }
+  return result
 }
 
 export async function GET(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
@@ -84,7 +59,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      request.nextUrl.searchParams.get("organizationId")
+    )
+    if ("error" in access)
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    supabase = access.supabase
+    const { orgId, role } = access
     const fileId = request.nextUrl.searchParams.get("id")?.trim()
 
     if (fileId) {
@@ -187,7 +170,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
@@ -233,7 +216,15 @@ export async function POST(request: NextRequest) {
 
   let uploadedPath: string | null = null
   try {
-    const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      request.nextUrl.searchParams.get("organizationId")
+    )
+    if ("error" in access)
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    supabase = access.supabase
+    const { orgId, role } = access
     if (!canEditOrganization(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
@@ -323,7 +314,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
@@ -347,7 +338,15 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      request.nextUrl.searchParams.get("organizationId")
+    )
+    if ("error" in access)
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    supabase = access.supabase
+    const { orgId, role } = access
     if (!canEditOrganization(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
@@ -402,7 +401,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
@@ -422,7 +421,15 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      request.nextUrl.searchParams.get("organizationId")
+    )
+    if ("error" in access)
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    supabase = access.supabase
+    const { orgId, role } = access
     if (!canEditOrganization(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }

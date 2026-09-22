@@ -241,7 +241,10 @@ function createTasksMissingTableSupabase() {
       if (table === "organization_projects") {
         return projectOptionsQuery
       }
-      if (table === "organization_tasks") {
+      if (table === "organizations") {
+            return { select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), returns: vi.fn().mockResolvedValue({ data: [{ user_id: "org-1", profile: { name: "Test Organization" } }], error: null }) }
+          }
+          if (table === "organization_tasks") {
         return taskCountQuery
       }
       if (table === "organization_task_assignees") {
@@ -423,7 +426,7 @@ describe("member workspace loaders", () => {
       select: vi.fn().mockReturnThis(),
       returns: vi.fn(() =>
         Promise.resolve({
-          data: [{ org_id: "org-1" }],
+          data: [{ id: "project-standard", org_id: "org-1" }],
           error: null,
         })
       ),
@@ -449,6 +452,7 @@ describe("member workspace loaders", () => {
       ),
     }
     const adminTaskRowsQuery = {
+      or: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       returns: vi.fn(() =>
@@ -456,6 +460,7 @@ describe("member workspace loaders", () => {
           data: [
             {
               id: "task-standard",
+              created_by: "platform-admin-1",
               org_id: "org-1",
               project_id: "project-standard",
               title: "Prepare launch",
@@ -506,6 +511,7 @@ describe("member workspace loaders", () => {
       ),
     }
     const taskAssigneesQuery = {
+      eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       returns: vi.fn(() => Promise.resolve({ data: [], error: null })),
@@ -519,6 +525,9 @@ describe("member workspace loaders", () => {
             return organizationProjectsCalls === 1
               ? orgRowsQuery
               : adminProjectOptionsQuery
+          }
+          if (table === "organizations") {
+            return { select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), returns: vi.fn().mockResolvedValue({ data: [{ user_id: "org-1", profile: { name: "Test Organization" } }], error: null }) }
           }
           if (table === "organization_tasks") {
             return adminTaskRowsQuery
@@ -613,6 +622,7 @@ describe("member workspace loaders", () => {
     }
 
     const assigneesQuery = {
+      in: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       returns: vi.fn(() =>
@@ -628,6 +638,9 @@ describe("member workspace loaders", () => {
         from: vi.fn((table: string) => {
           if (table === "organization_projects") {
             return projectOptionsQuery
+          }
+          if (table === "organizations") {
+            return { select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), returns: vi.fn().mockResolvedValue({ data: [{ user_id: "org-1", profile: { name: "Test Organization" } }], error: null }) }
           }
           if (table === "organization_tasks") {
             return organizationTasksQuery
@@ -713,6 +726,7 @@ describe("member workspace loaders", () => {
     }
 
     const assigneesQuery = {
+      in: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       returns: vi.fn(() =>
@@ -807,6 +821,9 @@ describe("member workspace loaders", () => {
         from: vi.fn((table: string) => {
           if (table === "organization_projects") {
             return projectOptionsQuery
+          }
+          if (table === "organizations") {
+            return { select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), returns: vi.fn().mockResolvedValue({ data: [{ user_id: "org-1", profile: { name: "Test Organization" } }], error: null }) }
           }
           if (table === "organization_tasks") {
             return organizationTasksQuery

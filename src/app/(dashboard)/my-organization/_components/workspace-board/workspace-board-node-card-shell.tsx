@@ -2,7 +2,11 @@
 
 import type { ReactNode } from "react"
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { CardContent, CardFooter } from "@/components/ui/card"
+import {
+  WorkspaceCardShell,
+  WORKSPACE_CARD_CONTENT_SURFACE_CLASS_NAME,
+} from "@/components/workspace/workspace-card-shell"
 import { cn } from "@/lib/utils"
 
 import { WORKSPACE_CARD_LAYOUT_SYSTEM } from "./workspace-board-card-layout-system"
@@ -71,11 +75,10 @@ export function WorkspaceBoardNodeCardShell({
   })
 
   return (
-    <Card
+    <WorkspaceCardShell
       data-workspace-card={cardId}
       style={canvasShellStyle}
       className={cn(
-        "border-border/60 bg-muted relative w-full max-w-[42rem] rounded-[2rem] shadow-sm",
         shellInsetClassName,
         resolveWorkspaceCardCanvasShellClassName({
           size,
@@ -111,7 +114,7 @@ export function WorkspaceBoardNodeCardShell({
           className={cn(
             contentSurface === "plain"
               ? "mx-0 p-0"
-              : "bg-background border-border/60 mx-3 rounded-[1.45rem] border p-3",
+              : WORKSPACE_CARD_CONTENT_SURFACE_CLASS_NAME,
             isCanvasFullscreen && "overflow-y-auto"
           )}
         >
@@ -137,6 +140,6 @@ export function WorkspaceBoardNodeCardShell({
           {footer}
         </CardFooter>
       ) : null}
-    </Card>
+    </WorkspaceCardShell>
   )
 }

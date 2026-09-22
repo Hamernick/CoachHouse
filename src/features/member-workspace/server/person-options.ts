@@ -1,3 +1,6 @@
+import { HIDDEN_TEST_STAFF_IDS } from "@/lib/admin/staff-picker-exclusions"
+import type { User } from "@/features/platform-admin-dashboard"
+import { toMemberWorkspaceDataError } from "./table-errors"
 import type { Database } from "@/lib/supabase"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -119,8 +122,8 @@ function upsertPersonOption({
   groupKey?: MemberWorkspacePersonOption["groupKey"]
   groupLabel?: string | null
 }) {
-  const normalizedName = toTrimmedString(name)
-  if (!normalizedName) return
+  const normalizedName = toTrimmedString(name) || toTrimmedString(email)
+  if (!normalizedName || (id && HIDDEN_TEST_STAFF_IDS.has(id))) return
 
   const normalizedId = toTrimmedString(id) || null
   const normalizedEmail = toTrimmedString(email) || null
@@ -367,4 +370,34 @@ export async function loadMemberWorkspacePersonOptionsForOrganizations({
     if (groupDiff !== 0) return groupDiff
     return left.name.localeCompare(right.name)
   })
+}
+
+export async function loadMemberWorkspaceCurrentUser({
+  supabase,
+  userId,
+}: {
+  supabase: ServerSupabase
+  userId: string
+}): Promise<User> {
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, email")
+    .eq("id", userId)
+    .maybeSingle<Pick<ProfilePeopleRow, "id" | "full_name" | "avatar_url" | "email">>()
+
+  if (profileError) {
+    throw toMemberWorkspaceDataError(
+      profileError,
+      "Unable to load your profile."
+    )
+  }
+
+  return {
+    id: userId,
+    name:
+      profile?.full_name?.trim() ||
+      profile?.email?.trim() ||
+      "You",
+    avatarUrl: profile?.avatar_url?.trim() || undefined,
+  }
 }

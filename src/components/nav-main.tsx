@@ -7,16 +7,9 @@ import { usePathname, useSearchParams } from "next/navigation"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import ChevronRightIcon from "lucide-react/dist/esm/icons/chevron-right"
-import FolderIcon from "lucide-react/dist/esm/icons/folder"
-import {
-  buildAppSidebarMenuButtonOwnerProps,
-  buildAppSidebarOwnerId,
-  buildAppSidebarTooltipProps,
-} from "@/components/app-sidebar/react-grab"
 import {
   resolvePrototypeLabSidebarActiveEntryId,
   resolvePrototypeLabSidebarOpenFolderIds,
-  type PrototypeLabSidebarTreeFolderNode,
   type PrototypeLabSidebarTreeNode,
 } from "@/lib/prototype-lab-sidebar-tree"
 import {
@@ -24,7 +17,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Button } from "@/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -34,125 +26,43 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { useInternalRoutePrefetch } from "@/hooks/use-internal-route-prefetch"
 import { cn } from "@/lib/utils"
+import { NavMainGroupItem } from "./nav-main/admin-group"
+import {
+  buildMainNavItemReactGrabProps,
+  type NavMainItem,
+} from "./nav-main/item"
 import { PrototypeTreeEntry } from "./nav-main/prototype-tree-entry"
+import { PrototypeTreeFolder } from "./nav-main/prototype-tree-folder"
 
-const NAV_MAIN_SOURCE = "src/components/nav-main.tsx"
-
-type NavMainItem = {
-  title: string
-  href?: string
-  icon?: React.ComponentType<{ className?: string }>
-  tree?: PrototypeLabSidebarTreeNode[]
-  locked?: boolean
-  badge?: string
-  upgradeHref?: string
-  upgradeLabel?: string
-}
-
-function buildMainNavItemReactGrabProps(item: NavMainItem) {
-  const ownerId = buildAppSidebarOwnerId("main", item.href ?? item.title)
-  const notes = `Main sidebar nav item: ${item.title}`
-
-  return {
-    ownerProps: buildAppSidebarMenuButtonOwnerProps({
-      ownerId,
-      component: "AppSidebarMainNavItem",
-      source: NAV_MAIN_SOURCE,
-      variant: item.tree?.length ? "tree" : item.locked ? "locked" : "link",
-      notes,
-    }),
-    tooltipProps: buildAppSidebarTooltipProps({
-      ownerId,
-      component: "AppSidebarMainNavItem",
-      source: NAV_MAIN_SOURCE,
-      children: item.title,
-      notes,
-    }),
-  }
-}
-
-function collectPrototypeTreePrefetchHrefs(nodes: PrototypeLabSidebarTreeNode[]) {
+function collectPrototypeTreePrefetchHrefs(
+  nodes: PrototypeLabSidebarTreeNode[]
+) {
   return nodes.flatMap((node): string[] =>
     node.kind === "folder"
       ? collectPrototypeTreePrefetchHrefs(node.children)
-      : [node.href],
+      : [node.href]
   )
 }
 
-function collectNavMainPrefetchHrefs(items: NavMainItem[]) {
+function collectNavMainPrefetchHrefs(
+  items: NavMainItem[]
+): Array<string | undefined> {
   return items.flatMap((item) => [
     item.href,
     item.upgradeHref,
+    ...(item.children ? collectNavMainPrefetchHrefs(item.children) : []),
     ...(item.tree ? collectPrototypeTreePrefetchHrefs(item.tree) : []),
   ])
 }
 
-function PrototypeTreeFolder({
-  activeEntryId,
-  defaultOpenFolderIds,
-  node,
-  onPrefetch,
-}: {
-  activeEntryId: string
-  defaultOpenFolderIds: string[]
-  node: PrototypeLabSidebarTreeFolderNode
-  onPrefetch?: (href: string | null | undefined) => void
-}) {
-  const [open, setOpen] = useState(defaultOpenFolderIds.includes(node.id))
-
-  useEffect(() => {
-    if (defaultOpenFolderIds.includes(node.id)) {
-      setOpen(true)
-    }
-  }, [defaultOpenFolderIds, node.id])
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <SidebarMenuSubItem>
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-7 w-full min-w-0 items-center justify-start gap-2 rounded-md px-2 text-sm outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-inset"
-          >
-            <ChevronRightIcon
-              className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")}
-              aria-hidden
-            />
-            <FolderIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
-            <span className="truncate">{node.label}</span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-[accordion-down_160ms_ease-out] data-[state=closed]:animate-[accordion-up_140ms_ease-out] motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none">
-          <SidebarMenuSub>
-            {node.children.map((childNode) =>
-              childNode.kind === "folder" ? (
-                <PrototypeTreeFolder
-                  key={childNode.id}
-                  activeEntryId={activeEntryId}
-                  defaultOpenFolderIds={defaultOpenFolderIds}
-                  node={childNode}
-                  onPrefetch={onPrefetch}
-                />
-              ) : (
-                <PrototypeTreeEntry
-                  key={childNode.id}
-                  href={childNode.href}
-                  isActive={childNode.id === activeEntryId}
-                  label={childNode.label}
-                  onPrefetch={onPrefetch}
-                />
-              ),
-            )}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuSubItem>
-    </Collapsible>
-  )
+function flattenNavMainItems(items: NavMainItem[]): NavMainItem[] {
+  return items.flatMap((item) => [
+    item,
+    ...(item.children ? flattenNavMainItems(item.children) : []),
+  ])
 }
 
 function NavMainTreeItem({
@@ -168,7 +78,8 @@ function NavMainTreeItem({
   onPrefetch?: (href: string | null | undefined) => void
   tourId?: string
 }) {
-  const defaultOpenFolderIds = resolvePrototypeLabSidebarOpenFolderIds(activeEntryId)
+  const defaultOpenFolderIds =
+    resolvePrototypeLabSidebarOpenFolderIds(activeEntryId)
   const [treeOpen, setTreeOpen] = useState(isActive)
   const previousIsActiveRef = useRef(isActive)
   const isTreeExpanded = isActive && treeOpen
@@ -201,12 +112,12 @@ function NavMainTreeItem({
             onPointerEnter={() => onPrefetch?.(item.href ?? null)}
           >
             {item.icon ? <item.icon className="size-4 shrink-0" /> : null}
-            <span className="flex-1 min-w-0 truncate whitespace-nowrap leading-snug group-data-[collapsible=icon]:hidden">
+            <span className="min-w-0 flex-1 truncate leading-snug whitespace-nowrap group-data-[collapsible=icon]:hidden">
               {item.title}
             </span>
             {item.href === "/roadmap" ? (
               <ArrowUpRightIcon
-                className="ml-auto size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+                className="text-muted-foreground ml-auto size-3.5 shrink-0 group-data-[collapsible=icon]:hidden"
                 aria-hidden
               />
             ) : null}
@@ -214,17 +125,25 @@ function NavMainTreeItem({
         </SidebarMenuButton>
         <SidebarMenuAction asChild>
           <CollapsibleTrigger
-            aria-label={isTreeExpanded ? `Collapse ${item.title}` : `Expand ${item.title}`}
+            aria-label={
+              isTreeExpanded ? `Collapse ${item.title}` : `Expand ${item.title}`
+            }
             className="group-data-[collapsible=icon]:hidden"
           >
             {isTreeExpanded ? (
-              <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
+              <ChevronDownIcon
+                className="text-muted-foreground size-3.5"
+                aria-hidden
+              />
             ) : (
-              <ChevronRightIcon className="size-3.5 text-muted-foreground" aria-hidden />
+              <ChevronRightIcon
+                className="text-muted-foreground size-3.5"
+                aria-hidden
+              />
             )}
           </CollapsibleTrigger>
         </SidebarMenuAction>
-        <CollapsibleContent className="overflow-hidden group-data-[collapsible=icon]:hidden data-[state=open]:animate-[accordion-down_160ms_ease-out] data-[state=closed]:animate-[accordion-up_140ms_ease-out] motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none">
+        <CollapsibleContent className="overflow-hidden group-data-[collapsible=icon]:hidden data-[state=closed]:animate-[accordion-up_140ms_ease-out] data-[state=open]:animate-[accordion-down_160ms_ease-out] motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none">
           <SidebarMenuSub className="mt-1">
             {item.tree?.map((node) =>
               node.kind === "folder" ? (
@@ -243,7 +162,7 @@ function NavMainTreeItem({
                   label={node.label}
                   onPrefetch={onPrefetch}
                 />
-              ),
+              )
             )}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -263,17 +182,26 @@ export function NavMain({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const prefetchHrefs = useMemo(() => collectNavMainPrefetchHrefs(items), [items])
+  const prefetchHrefs = useMemo(
+    () => collectNavMainPrefetchHrefs(items),
+    [items]
+  )
   const prefetchHref = useInternalRoutePrefetch(prefetchHrefs)
   const isWorkspaceHref = (href: string) =>
-    href === "/workspace" || href === "/organization" || href === "/organization/workspace"
+    href === "/workspace" ||
+    href === "/organization" ||
+    href === "/organization/workspace"
   const matchesAliasWorkspacePath = (href: string, currentPath: string) => {
     if (!isWorkspaceHref(href)) return false
-    return currentPath === "/organization" || currentPath.startsWith("/organization/workspace")
+    return (
+      currentPath === "/organization" ||
+      currentPath.startsWith("/organization/workspace")
+    )
   }
 
+  const flattenedItems = useMemo(() => flattenNavMainItems(items), [items])
   const activeHref = pathname
-    ? items.reduce<string | null>((current, item) => {
+    ? flattenedItems.reduce<string | null>((current, item) => {
         if (!item.href) return current
         const matches =
           pathname === item.href ||
@@ -285,7 +213,7 @@ export function NavMain({
       }, null)
     : null
   const prototypeActiveEntryId = resolvePrototypeLabSidebarActiveEntryId(
-    searchParams.get("entry"),
+    searchParams.get("entry")
   )
 
   return (
@@ -295,29 +223,47 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => {
             const isActive = Boolean(item.href && item.href === activeHref)
-            const isOrganizationItem = Boolean(item.href && isWorkspaceHref(item.href))
+            const isOrganizationItem = Boolean(
+              item.href && isWorkspaceHref(item.href)
+            )
             const reactGrabProps = buildMainNavItemReactGrabProps(item)
-            const tourId =
-              isOrganizationItem
-                ? "nav-organization"
-                : item.href === "/organization/documents"
-                  ? "nav-documents"
-                  : item.href === "/roadmap"
+            const tourId = isOrganizationItem
+              ? "nav-organization"
+              : item.href === "/organization/documents"
+                ? "nav-documents"
+                : item.href === "/roadmap"
                   ? "nav-roadmap"
                   : undefined
+
+            if (item.children?.length) {
+              return (
+                <NavMainGroupItem
+                  key={item.title}
+                  activeHref={activeHref}
+                  activeEntryId={prototypeActiveEntryId}
+                  item={item}
+                  onPrefetch={prefetchHref}
+                />
+              )
+            }
 
             if (!item.href || item.locked) {
               return (
                 <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={reactGrabProps.tooltipProps}
-                  className="justify-start gap-2 opacity-90 cursor-default hover:bg-transparent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-                  {...reactGrabProps.ownerProps}
-                >
-                    <div aria-disabled className="flex w-full items-center gap-2">
-                      {item.icon ? <item.icon className="size-4 shrink-0" /> : null}
-                      <span className="flex-1 min-w-0 truncate whitespace-nowrap leading-snug group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={reactGrabProps.tooltipProps}
+                    className="cursor-default justify-start gap-2 opacity-90 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:bg-transparent"
+                    {...reactGrabProps.ownerProps}
+                  >
+                    <div
+                      aria-disabled
+                      className="flex w-full items-center gap-2"
+                    >
+                      {item.icon ? (
+                        <item.icon className="size-4 shrink-0" />
+                      ) : null}
+                      <span className="min-w-0 flex-1 truncate leading-snug whitespace-nowrap group-data-[collapsible=icon]:hidden">
                         {item.title}
                       </span>
                       <span className="ml-auto flex shrink-0 items-center gap-1.5 group-data-[collapsible=icon]:hidden">
@@ -327,13 +273,15 @@ export function NavMain({
                             prefetch={true}
                             onClick={(event) => event.stopPropagation()}
                             onFocus={() => prefetchHref(item.upgradeHref)}
-                            onPointerEnter={() => prefetchHref(item.upgradeHref)}
-                            className="inline-flex items-center rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium text-foreground transition hover:bg-muted"
+                            onPointerEnter={() =>
+                              prefetchHref(item.upgradeHref)
+                            }
+                            className="border-border/60 bg-background text-foreground hover:bg-muted inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition"
                           >
                             {item.upgradeLabel ?? item.badge ?? "Upgrade"}
                           </Link>
                         ) : item.badge ? (
-                          <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          <span className="border-border/60 bg-muted/50 text-muted-foreground inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium">
                             {item.badge}
                           </span>
                         ) : null}
@@ -375,16 +323,21 @@ export function NavMain({
                     onFocus={() => prefetchHref(item.href)}
                     onPointerEnter={() => prefetchHref(item.href)}
                   >
-                      {item.icon ? <item.icon className="size-4 shrink-0" /> : null}
-                      <span className="flex-1 min-w-0 truncate whitespace-nowrap leading-snug group-data-[collapsible=icon]:hidden">
-                        {item.title}
-                      </span>
-                      <span className="ml-auto flex shrink-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
-                        {item.href === "/roadmap" ? (
-                          <ArrowUpRightIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                        ) : null}
-                      </span>
-                    </Link>
+                    {item.icon ? (
+                      <item.icon className="size-4 shrink-0" />
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate leading-snug whitespace-nowrap group-data-[collapsible=icon]:hidden">
+                      {item.title}
+                    </span>
+                    <span className="ml-auto flex shrink-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
+                      {item.href === "/roadmap" ? (
+                        <ArrowUpRightIcon
+                          className="text-muted-foreground size-3.5"
+                          aria-hidden
+                        />
+                      ) : null}
+                    </span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )

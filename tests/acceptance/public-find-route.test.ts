@@ -147,7 +147,7 @@ describe("public find routes", () => {
     )
     expect(mapSurfaceSource.match(/{mapOverlay}/g)).toHaveLength(1)
     expect(previewControlsSource).toContain("PublicMapMemberOnboardingOverlay")
-    expect(previewControlsSource).toContain("left-1/2 z-30 -translate-x-1/2")
+    expect(previewControlsSource).toContain("md:left-1/2 md:z-30 md:-translate-x-1/2")
     expect(overlaySource).toContain("absolute inset-0 z-50")
     expect(overlaySource).not.toContain("OnboardingWorkspaceCard")
     expect(overlaySource).toContain("Welcome to Find")
@@ -189,7 +189,7 @@ describe("public find routes", () => {
     )
     expect(previewControlsSource).toContain("Welcome")
     expect(previewControlsSource).toContain("[html.light_&]:!text-zinc-950")
-    expect(previewControlsSource).toContain("Hide welcome")
+    expect(previewControlsSource).not.toContain("Hide welcome")
     expect(previewControlsSource).toContain(
       "onDismiss={() => handleToggleAdminOnboardingPreview(false)}"
     )
@@ -282,7 +282,7 @@ describe("public find routes", () => {
     expect(shellSource).toContain('contentPresentation="full-bleed"')
   })
 
-  it("lets authenticated find use the full app-shell canvas instead of a bordered map frame", () => {
+  it("keeps authenticated find full bleed inside a responsive shell frame", () => {
     const routeFiles = [PUBLIC_FIND_ROUTE]
     const shellSource = readRoute(
       "src/features/find-map/components/authenticated-find-shell.tsx"
@@ -350,9 +350,9 @@ describe("public find routes", () => {
     expect(shellSource).toContain("MemberWorkspaceOrgSwitcher")
     expect(shellSource).toContain("state.memberWorkspaceHeader")
     expect(appShellSource).toContain("isMobile")
-    expect(shellMainContentSource).toContain('? "rounded-none border-0"')
+    expect(shellMainContentSource).toContain('"rounded-none border-0"')
     expect(shellMainContentSource).toContain(
-      ': "rounded-[28px] border border-[color:var(--shell-border)]"'
+      '"border-[color:var(--shell-border)] md:rounded-[28px] md:border"'
     )
     expect(appShellSource).not.toContain("useFullBleedContent || isMobile")
   })

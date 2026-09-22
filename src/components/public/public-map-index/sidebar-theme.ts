@@ -19,7 +19,8 @@ export const PUBLIC_MAP_DETAIL_PROFILE_CLASSNAME =
 export const PUBLIC_MAP_DETAIL_SECTION_CLASSNAME =
   "rounded-2xl border border-border/75 bg-background/90 p-4 shadow-sm backdrop-blur-md"
 
-export const PUBLIC_MAP_DETAIL_ICON_BUTTON_CLASSNAME = "size-11 rounded-full"
+export const PUBLIC_MAP_DETAIL_ICON_BUTTON_CLASSNAME =
+  "relative size-9 rounded-full max-md:mx-px max-md:after:absolute max-md:after:-inset-[5px]"
 
 export const PUBLIC_MAP_DETAIL_CHROME_BUTTON_SURFACE_CLASSNAME =
   "border border-input !bg-input/35 text-foreground backdrop-blur-xl hover:!bg-input/50 hover:text-foreground/75"

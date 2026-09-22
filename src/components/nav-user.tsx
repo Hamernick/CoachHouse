@@ -27,7 +27,7 @@ const AccountSettingsDialog = dynamic(
   { loading: () => null, ssr: false }
 )
 
-type NavUserProps = {
+export type NavUserProps = {
   user: {
     name: string | null
     title?: string | null
@@ -40,6 +40,7 @@ type NavUserProps = {
   canAccessOrgAdmin?: boolean
   showDivider?: boolean
   hasActiveSubscription?: boolean
+  mobileTrigger?: { className: string; labelClassName: string }
 }
 
 export function NavUser({
@@ -49,6 +50,7 @@ export function NavUser({
   canAccessOrgAdmin = true,
   showDivider = true,
   hasActiveSubscription = false,
+  mobileTrigger,
 }: NavUserProps) {
   const router = useRouter()
   const [signOutPending, startSignOutTransition] = useTransition()
@@ -90,9 +92,26 @@ export function NavUser({
   })
 
   return (
-    <div className={showDivider ? "border-border/60 border-t pt-2" : ""}>
-      <div ref={containerRef} className="relative">
-        <SidebarMenu>
+    <div className={mobileTrigger ? "contents" : showDivider ? "border-border/60 border-t pt-2" : ""}>
+      <div ref={containerRef} className={mobileTrigger ? "contents" : "relative"}>
+        {mobileTrigger ? (
+          <Button
+            ref={triggerRef}
+            type="button"
+            variant="ghost"
+            className={mobileTrigger.className}
+            aria-label="Profile"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            <Avatar className="size-6 rounded-full">
+              {displayAvatar ? <AvatarImage src={displayAvatar} alt={displayName} /> : null}
+              <AvatarFallback className="rounded-full text-xs">{avatarFallback}</AvatarFallback>
+            </Avatar>
+            <span className={mobileTrigger.labelClassName}>Profile</span>
+          </Button>
+        ) : <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -131,7 +150,7 @@ export function NavUser({
               </Button>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        </SidebarMenu>
+        </SidebarMenu>}
 
         <NavUserMenuContent
           open={menuOpen}

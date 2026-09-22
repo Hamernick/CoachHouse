@@ -46,6 +46,7 @@ import { ROADMAP_CALENDAR_EVENT_TYPE_ORDER } from "@/components/roadmap/roadmap-
 const calendarType: RoadmapCalendarType = "internal"
 
 type RoadmapCalendarProps = {
+  monthGridOnly?: boolean
   compactHeaderControls?: boolean
   hideHeaderCopy?: boolean
   initialView?: RoadmapCalendarView
@@ -67,6 +68,7 @@ function RoadmapCalendarHeader({ hidden }: { hidden: boolean }) {
 
 export function RoadmapCalendar(props: RoadmapCalendarProps) {
   const {
+    monthGridOnly = false,
     compactHeaderControls = false,
     hideHeaderCopy = false,
     initialView,
@@ -361,6 +363,7 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
       <RoadmapCalendarHeader hidden={hideHeaderCopy} />
 
       <RoadmapCalendarMonthAgendaPanel
+        monthGridOnly={monthGridOnly}
         compactHeaderControls={compactHeaderControls}
         personalEvents={personalEvents}
         googleCalendarControls={<GoogleCalendarPanel compact />}

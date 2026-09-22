@@ -21,13 +21,17 @@ export function DocumentThumbnail({
   const rootRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const supported = item.fileType === "image" || item.fileType === "pdf"
+  const drivePreview = Boolean(item.driveDocument)
+  const supported =
+    drivePreview || item.fileType === "image" || item.fileType === "pdf"
   const preview = useDocumentPreviewUrl(
     item.previewPath,
     item.previewVersion,
-    visible && supported
+    visible && supported && !drivePreview
   )
-  const onError = useCallback(() => setFailedUrl(preview.url), [preview.url])
+  const previewUrl =
+    drivePreview && visible ? (item.previewPath ?? null) : preview.url
+  const onError = useCallback(() => setFailedUrl(previewUrl), [previewUrl])
 
   useEffect(() => {
     const root = rootRef.current
@@ -50,33 +54,34 @@ export function DocumentThumbnail({
       ref={rootRef}
       className={cn(
         "flex size-full min-h-0 items-center justify-center overflow-hidden p-2",
+        item.contentPreview && "items-start justify-start px-3 py-2",
         compact && "size-9 p-0"
       )}
     >
       {item.contentPreview ? (
         <div
-          className="text-muted-foreground line-clamp-6 w-full text-left text-xs leading-relaxed whitespace-pre-line"
+          className="text-muted-foreground line-clamp-7 w-full text-left text-xs leading-relaxed break-words whitespace-pre-line"
           aria-label={`${item.name} text preview`}
         >
           {item.contentPreview}
         </div>
-      ) : preview.url && preview.url !== failedUrl ? (
-        item.fileType === "image" ? (
-          // Private signed files bypass the public image optimizer.
+      ) : previewUrl && previewUrl !== failedUrl ? (
+        drivePreview || item.fileType === "image" ? (
+          // Authenticated document previews bypass the public image optimizer.
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={preview.url}
+            src={previewUrl}
             alt={`${item.name} preview`}
             width={320}
             height={320}
             loading="lazy"
-            className="size-full object-contain"
+            className="size-full rounded-md object-contain"
             onError={onError}
           />
         ) : (
           <DocumentPdfThumbnail
-            key={preview.url}
-            url={preview.url}
+            key={previewUrl}
+            url={previewUrl}
             name={item.name}
             onError={onError}
           />

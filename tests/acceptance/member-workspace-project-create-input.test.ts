@@ -50,4 +50,17 @@ describe("normalizeMemberWorkspaceCreateProjectInput", () => {
       error: "End date must be on or after the start date.",
     })
   })
+  it("preserves edited labels, colors, and deleted option lists", () => {
+    const optionSettings = { tags: [], sprintTypes: [{ id: "design", label: "Planning", color: "#2563eb" }] }
+    const result = normalizeMemberWorkspaceCreateProjectInput({ name: "Project", status: "planned", priority: "medium", startDate: "2026-09-20", endDate: "2026-09-21", typeLabel: "Planning", optionSettings })
+    expect(result).toMatchObject({ ok: true, value: { optionSettings, typeLabel: "Planning", tags: [] } })
+  })
+  it.each([
+    { tags: [{ id: "one", label: "Tag", color: "url(evil)" }], sprintTypes: [] },
+    { tags: [{ id: "one", label: "Tag" }, { id: "two", label: "tag" }], sprintTypes: [] },
+    { tags: [{ id: "one", label: "two,tags" }], sprintTypes: [] },
+  ])("rejects invalid option colors and ambiguous names", (optionSettings) => {
+    expect(normalizeMemberWorkspaceCreateProjectInput({ name: "Project", status: "planned", priority: "medium", startDate: "2026-09-20", endDate: "2026-09-21", optionSettings })).toMatchObject({ ok: false })
+  })
+
 })

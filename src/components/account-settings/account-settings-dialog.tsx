@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/lib/toast"
 import type { AccountDeletionPreflight } from "@/lib/account-deletion/types"
 
+import { AccountSettingsDraftsProvider } from "./account-settings-drafts"
 import { AccountSettingsAvatarCropDialog } from "./account-settings-avatar-crop-dialog"
 import { AccountSettingsDeleteAccountDialog } from "./account-settings-delete-account-dialog"
 import { AccountSettingsDiscardChangesDialog } from "./account-settings-discard-changes-dialog"
@@ -29,7 +30,7 @@ type AccountSettingsDialogProps = {
   hasActiveSubscription?: boolean
 }
 
-export function AccountSettingsDialog({
+function AccountSettingsDialogContent({
   open,
   onOpenChange,
   initialTab = "profile",
@@ -41,7 +42,11 @@ export function AccountSettingsDialog({
 }: AccountSettingsDialogProps) {
   const router = useRouter()
   const MAX_AVATAR_BYTES = 5 * 1024 * 1024
-  const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
+  const ALLOWED_AVATAR_TYPES = new Set([
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+  ])
 
   const [cropOpen, setCropOpen] = useState(false)
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null)
@@ -54,8 +59,11 @@ export function AccountSettingsDialog({
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [deletePreflight, setDeletePreflight] =
     useState<AccountDeletionPreflight | null>(null)
-  const [isDeletePreflightLoading, setIsDeletePreflightLoading] = useState(false)
-  const [deletePreflightError, setDeletePreflightError] = useState<string | null>(null)
+  const [isDeletePreflightLoading, setIsDeletePreflightLoading] =
+    useState(false)
+  const [deletePreflightError, setDeletePreflightError] = useState<
+    string | null
+  >(null)
   const [billingCancellationAcknowledged, setBillingCancellationAcknowledged] =
     useState(false)
 
@@ -71,6 +79,9 @@ export function AccountSettingsDialog({
     contact,
     about,
     phone,
+    preferencesError,
+    preferencesLoading,
+    retryPreferences,
     marketingOptIn,
     newsletterOptIn,
     newPassword,
@@ -214,6 +225,9 @@ export function AccountSettingsDialog({
         isDirty={isDirty}
         isSaving={isSaving}
         justSaved={justSaved}
+        preferencesError={preferencesError}
+        preferencesLoading={preferencesLoading}
+        retryPreferences={retryPreferences}
         marketingOptIn={marketingOptIn}
         newsletterOptIn={newsletterOptIn}
         newPassword={newPassword}
@@ -275,18 +289,36 @@ export function AccountSettingsDialog({
               return
             }
             const formData = new FormData()
-            formData.append("file", new File([blob], "avatar.png", { type: blob.type || "image/png" }))
-            const res = await fetch("/api/account/avatar", { method: "POST", body: formData })
+            formData.append(
+              "file",
+              new File([blob], "avatar.png", { type: blob.type || "image/png" })
+            )
+            const res = await fetch("/api/account/avatar", {
+              method: "POST",
+              body: formData,
+            })
             if (!res.ok) {
               const err = await res.json().catch(() => ({}))
               const debugToken =
-                typeof err?.debugToken === "string" && err.debugToken.trim().length > 0 ? err.debugToken : null
-              const errorMessage = typeof err?.error === "string" && err.error.trim().length > 0 ? err.error : "Upload failed"
-              throw new Error(debugToken ? `${errorMessage} (ref: ${debugToken})` : errorMessage)
+                typeof err?.debugToken === "string" &&
+                err.debugToken.trim().length > 0
+                  ? err.debugToken
+                  : null
+              const errorMessage =
+                typeof err?.error === "string" && err.error.trim().length > 0
+                  ? err.error
+                  : "Upload failed"
+              throw new Error(
+                debugToken
+                  ? `${errorMessage} (ref: ${debugToken})`
+                  : errorMessage
+              )
             }
             const { avatarUrl: url } = await res.json()
             if (typeof url !== "string" || url.trim().length === 0) {
-              throw new Error("Upload succeeded but no avatar URL was returned.")
+              throw new Error(
+                "Upload succeeded but no avatar URL was returned."
+              )
             }
             applyAvatarUrl(url)
             setCropOpen(false)
@@ -296,7 +328,8 @@ export function AccountSettingsDialog({
               router.refresh()
             })
           } catch (error) {
-            const message = error instanceof Error ? error.message : "Upload failed"
+            const message =
+              error instanceof Error ? error.message : "Upload failed"
             toast.error(message, { id: toastId })
           } finally {
             setIsUploadingAvatar(false)
@@ -316,7 +349,9 @@ export function AccountSettingsDialog({
         isDeletePreflightLoading={isDeletePreflightLoading}
         deletePreflightError={deletePreflightError}
         billingCancellationAcknowledged={billingCancellationAcknowledged}
-        onBillingCancellationAcknowledgedChange={setBillingCancellationAcknowledged}
+        onBillingCancellationAcknowledgedChange={
+          setBillingCancellationAcknowledged
+        }
         canDeleteAccount={canDeleteAccount}
         onConfirmDelete={confirmAccountDeletion}
       />
@@ -330,5 +365,13 @@ export function AccountSettingsDialog({
         }}
       />
     </>
+  )
+}
+
+export function AccountSettingsDialog(props: AccountSettingsDialogProps) {
+  return (
+    <AccountSettingsDraftsProvider key={props.open ? "open" : "closed"}>
+      <AccountSettingsDialogContent {...props} />
+    </AccountSettingsDraftsProvider>
   )
 }

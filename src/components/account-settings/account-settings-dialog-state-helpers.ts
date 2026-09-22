@@ -1,3 +1,5 @@
+import { refreshPublicProfileAction } from "@/actions/public-profile-settings"
+import { saveAccountEmailPreferencesAction } from "@/actions/account-email-preferences"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { AccountDeletionPreflight } from "@/lib/account-deletion/types"
@@ -70,14 +72,18 @@ type DeleteAccountPreflightResult =
     }
 
 const DEFAULT_DELETE_ACCOUNT_ERROR = "Unable to delete account."
-const SESSION_EXPIRED_DELETE_ACCOUNT_ERROR = "Session expired. Sign in again, then retry account deletion."
+const SESSION_EXPIRED_DELETE_ACCOUNT_ERROR =
+  "Session expired. Sign in again, then retry account deletion."
 const SESSION_ERROR_FRAGMENTS = [
   "invalid refresh token",
   "refresh token not found",
   "auth session",
 ]
 
-export function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
+export function resolveErrorMessage(
+  error: unknown,
+  fallbackMessage: string
+): string {
   if (
     typeof error === "object" &&
     error !== null &&
@@ -91,7 +97,10 @@ export function resolveErrorMessage(error: unknown, fallbackMessage: string): st
 }
 
 export function isMobileSettingsViewport() {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 767px)").matches
+  )
 }
 
 export async function saveProfileSettings({
@@ -118,8 +127,12 @@ export async function saveProfileSettings({
   const trimmedCompany = company.trim()
   const trimmedContact = contact.trim()
   const trimmedAbout = about.trim()
-  const initialFullName = [initialFirstName, initialLastName].filter(Boolean).join(" ")
-  const nextFullName = [trimmedFirstName, trimmedLastName].filter(Boolean).join(" ")
+  const initialFullName = [initialFirstName, initialLastName]
+    .filter(Boolean)
+    .join(" ")
+  const nextFullName = [trimmedFirstName, trimmedLastName]
+    .filter(Boolean)
+    .join(" ")
 
   let nextFirstName = firstName
   let nextLastName = lastName
@@ -142,23 +155,31 @@ export async function saveProfileSettings({
     initialContact !== trimmedContact ||
     initialAbout !== trimmedAbout
   ) {
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: userId,
-          full_name: nextFullName || null,
-          headline: trimmedTitle || null,
-          company: trimmedCompany || null,
-          contact: trimmedContact || null,
-          about: trimmedAbout || null,
-        },
-        { onConflict: "id" },
+    if (
+      !nextFullName ||
+      nextFullName.length > 80 ||
+      trimmedTitle.length > 120
+    ) {
+      throw new Error(
+        "Enter a name of 1–80 characters and a role of at most 120 characters."
       )
+    }
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      {
+        id: userId,
+        full_name: nextFullName || null,
+        headline: trimmedTitle || null,
+        company: trimmedCompany || null,
+        contact: trimmedContact || null,
+        about: trimmedAbout || null,
+      },
+      { onConflict: "id" }
+    )
     if (profileError) {
       throw profileError
     }
 
+    await refreshPublicProfileAction()
     nextTitle = trimmedTitle
     nextCompany = trimmedCompany
     nextContact = trimmedContact
@@ -188,7 +209,9 @@ export async function saveProfileSettings({
   }
 
   if (phone !== initialPhone) {
-    const { error: phoneError } = await supabase.auth.updateUser({ data: { phone } })
+    const { error: phoneError } = await supabase.auth.updateUser({
+      data: { phone },
+    })
     if (phoneError) {
       throw phoneError
     }
@@ -213,7 +236,6 @@ export async function saveProfileSettings({
 }
 
 export async function saveCommunicationPreferences({
-  supabase,
   marketingOptIn,
   newsletterOptIn,
   initialMarketingOptIn,
@@ -234,10 +256,13 @@ export async function saveCommunicationPreferences({
     }
   }
 
-  const { error } = await supabase.auth.updateUser({ data: metadata })
-  if (error) {
-    throw error
-  }
+  const result = await saveAccountEmailPreferencesAction({
+    marketingOptIn:
+      marketingOptIn !== initialMarketingOptIn ? marketingOptIn : null,
+    newsletterOptIn:
+      newsletterOptIn !== initialNewsletterOptIn ? newsletterOptIn : null,
+  })
+  if (!result.ok) throw new Error(result.error)
 
   return {
     initialMarketingOptIn: marketingOptIn,
@@ -260,7 +285,9 @@ export async function requestDeleteAccount(): Promise<DeleteAccountResult> {
     const normalizedMessage = message.toLowerCase()
     const sessionExpired =
       response.status === 401 ||
-      SESSION_ERROR_FRAGMENTS.some((fragment) => normalizedMessage.includes(fragment))
+      SESSION_ERROR_FRAGMENTS.some((fragment) =>
+        normalizedMessage.includes(fragment)
+      )
 
     if (sessionExpired) {
       return {
@@ -292,7 +319,10 @@ export async function requestDeleteAccountPreflight(): Promise<DeleteAccountPref
     })
     const payload = await response.json().catch(() => ({}))
     if (response.ok && payload?.preflight) {
-      return { ok: true, preflight: payload.preflight as AccountDeletionPreflight }
+      return {
+        ok: true,
+        preflight: payload.preflight as AccountDeletionPreflight,
+      }
     }
 
     const message =
@@ -302,7 +332,9 @@ export async function requestDeleteAccountPreflight(): Promise<DeleteAccountPref
     const normalizedMessage = message.toLowerCase()
     const sessionExpired =
       response.status === 401 ||
-      SESSION_ERROR_FRAGMENTS.some((fragment) => normalizedMessage.includes(fragment))
+      SESSION_ERROR_FRAGMENTS.some((fragment) =>
+        normalizedMessage.includes(fragment)
+      )
 
     if (sessionExpired) {
       return {

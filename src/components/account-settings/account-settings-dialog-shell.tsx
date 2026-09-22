@@ -38,6 +38,9 @@ type AccountSettingsDialogShellProps = {
   isDirty: boolean
   isSaving: boolean
   justSaved: boolean
+  preferencesError: string | null
+  preferencesLoading: boolean
+  retryPreferences: () => void
   marketingOptIn: boolean
   newsletterOptIn: boolean
   newPassword: string
@@ -83,6 +86,9 @@ export function AccountSettingsDialogShell({
   isDirty,
   isSaving,
   justSaved,
+  preferencesError,
+  preferencesLoading,
+  retryPreferences,
   marketingOptIn,
   newsletterOptIn,
   newPassword,
@@ -206,7 +212,7 @@ export function AccountSettingsDialogShell({
             </aside>
             <div className="flex min-h-0 grow">
               <section className="min-h-0 w-full overflow-y-auto p-4 md:p-6">
-                {tab === "profile" && (
+                <div hidden={tab !== "profile"}>
                   <ProfileSection
                     avatarUrl={avatarUrl}
                     firstName={firstName}
@@ -229,10 +235,13 @@ export function AccountSettingsDialogShell({
                     onAboutChange={onAboutChange}
                     onPhoneChange={onPhoneChange}
                   />
-                )}
+                </div>
 
                 {tab === "communications" && (
                   <CommunicationsSection
+                    preferencesError={preferencesError}
+                    preferencesLoading={preferencesLoading}
+                    retryPreferences={retryPreferences}
                     marketingOptIn={marketingOptIn}
                     newsletterOptIn={newsletterOptIn}
                     onMarketingOptInChange={onMarketingOptInChange}
@@ -291,6 +300,9 @@ export function AccountSettingsDialogShell({
             email={email}
             hasActiveSubscription={hasActiveSubscription}
             errors={errors}
+            preferencesError={preferencesError}
+            preferencesLoading={preferencesLoading}
+            retryPreferences={retryPreferences}
             marketingOptIn={marketingOptIn}
             newsletterOptIn={newsletterOptIn}
             newPassword={newPassword}

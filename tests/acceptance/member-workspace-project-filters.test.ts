@@ -8,6 +8,8 @@ import {
 import { getMemberWorkspaceProjectBoardColumnOrder } from "@/features/member-workspace/components/projects/member-workspace-project-board-view"
 import {
   applyViewOptionsToParams,
+  chipsToParams,
+  paramsToChips,
   DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS,
   paramsToViewOptions,
 } from "@/features/member-workspace/components/projects/member-workspace-project-view-options"
@@ -35,6 +37,53 @@ function createProject(
 }
 
 describe("member workspace project filters", () => {
+  it("searches organization names with existing filters and matching facet counts", () => {
+    const projects = [
+      createProject({ id: "match", name: "North House", priority: "high" }),
+      createProject({
+        id: "other-priority",
+        name: "North Center",
+        priority: "low",
+      }),
+      createProject({
+        id: "other-name",
+        name: "South House",
+        priority: "high",
+      }),
+    ]
+    const options = {
+      projects,
+      filters: [
+        { key: "Search", value: "  NORTH  " },
+        { key: "Priority", value: "High" },
+      ],
+      viewOptions: DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS,
+    }
+    expect(
+      filterMemberWorkspaceProjects(options).map((project) => project.id)
+    ).toEqual(["match"])
+    expect(computeMemberWorkspaceProjectFilterCounts(options).priority).toEqual(
+      { high: 1, low: 1 }
+    )
+    expect(
+      filterMemberWorkspaceProjects({
+        ...options,
+        filters: [{ key: "Search", value: "missing" }],
+      })
+    ).toEqual([])
+    expect(
+      filterMemberWorkspaceProjects({
+        ...options,
+        filters: [{ key: "Search", value: "   " }],
+      })
+    ).toHaveLength(3)
+  })
+
+  it("preserves organization search punctuation in URL round trips", () => {
+    const chips = [{ key: "Search", value: "House, Inc." }]
+    expect(paramsToChips(chipsToParams(chips))).toEqual(chips)
+  })
+
   it("matches members exactly instead of by substring", () => {
     const projects = [
       createProject({

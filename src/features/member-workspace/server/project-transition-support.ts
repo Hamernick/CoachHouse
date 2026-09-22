@@ -114,7 +114,8 @@ export async function transitionOrganizationProjectCreation({
 }) {
   const admin = createSupabaseAdminClient()
   const { data, error } = await admin.rpc(
-    "create_organization_project_transition",
+    project && typeof project === "object" && !Array.isArray(project) && "option_settings" in project
+      ? "create_organization_project_with_options" : "create_organization_project_transition",
     {
       p_actor_id: actorId,
       p_has_overview_document: hasOverviewDocument,
@@ -160,7 +161,8 @@ export async function transitionOrganizationProjectUpdate({
 }) {
   const admin = createSupabaseAdminClient()
   const { data, error } = await admin.rpc(
-    "update_organization_project_transition",
+    project && typeof project === "object" && !Array.isArray(project) && "option_settings" in project
+      ? "update_organization_project_with_options" : "update_organization_project_transition",
     {
       p_actor_id: actorId,
       p_expected_org_id: expectedOrgId,

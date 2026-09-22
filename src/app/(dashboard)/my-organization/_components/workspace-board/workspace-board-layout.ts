@@ -1,3 +1,4 @@
+import { resolveWorkspaceBoardParticleState } from "./workspace-board-particle-compatibility"
 import {
   buildDefaultWorkspaceOntologyState,
   normalizeWorkspaceOntologyState,
@@ -342,6 +343,10 @@ export function normalizeWorkspaceBoardState(
     hiddenCardIds: record.hiddenCardIds,
     nodes: record.nodes,
   })
+  const particleState = resolveWorkspaceBoardParticleState(
+    record.particles,
+    forwardCompatibleInput.forwardCompatibility
+  )
   const normalizedAccelerator = normalizeWorkspaceAcceleratorState(
     record.accelerator
   )
@@ -379,11 +384,12 @@ export function normalizeWorkspaceBoardState(
     ),
     hiddenCardIds: normalizedHiddenCardIds,
     visibility: normalizeWorkspaceVisibilityState(record.visibility),
+    ...(particleState.particles ? { particles: particleState.particles } : {}),
     ontology: record.ontology
       ? normalizeWorkspaceOntologyState(record.ontology)
       : undefined,
-    ...(forwardCompatibleInput.forwardCompatibility
-      ? { forwardCompatibility: forwardCompatibleInput.forwardCompatibility }
+    ...(particleState.forwardCompatibility
+      ? { forwardCompatibility: particleState.forwardCompatibility }
       : {}),
     updatedAt:
       typeof record.updatedAt === "string" && record.updatedAt.trim().length > 0

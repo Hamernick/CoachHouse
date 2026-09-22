@@ -88,10 +88,10 @@ export function PublicMapSearchCard({
             }}
             className={cn(
               cn(
-                "placeholder:text-muted-foreground touch-manipulation rounded-full pl-8 text-base [&::-webkit-search-cancel-button]:appearance-none",
+                "placeholder:text-muted-foreground touch-manipulation rounded-full pl-8 text-base max-md:placeholder:text-sm [&::-webkit-search-cancel-button]:appearance-none",
                 PUBLIC_MAP_SIDEBAR_ACTION_SURFACE_CLASSNAME
               ),
-              compact ? "h-10" : "h-11",
+              compact ? "h-11 md:h-10" : "h-11",
               query && "pr-10"
             )}
             placeholder="Search resources and organizations…"

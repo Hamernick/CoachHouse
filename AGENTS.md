@@ -35,6 +35,7 @@ Canonical agent contract for this repo. Keep this file short; details live in `/
 - Workflow, QA, CI/CD, git/PR, file layout, tooling: `docs/agent/workflow-quality.md`
 - Code structure, naming, ownership, decomposition limits: `docs/agent/code-structure.md`
 - UI quality rubric (MUST/SHOULD/NEVER): `docs/agent/ui-rubric.md`
+- Interface craft principles and source notes: `docs/agent/design-craft/README.md`
 - Prompt templates for deterministic execution: `docs/agent/codex-execution-playbook.md`
 - External engineering references for guardrails: `docs/agent/engineering-sources.md`
 - Workspace presentation operations checklist: `docs/agent/workspace-presentation-runbook.md`
@@ -57,6 +58,7 @@ This project uses a local knowledge graph at `graphify-out/`. Follow `docs/agent
 When the user types `$graphify`, use the installed Graphify skill and repository runbook before doing anything else.
 
 Rules:
+
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - This repository approves full-root extraction after `.graphifyignore`; do not narrow the corpus to one source subdirectory because of Graphify's generic size warning.
 - Local graphify-out/ changes are expected after incremental updates; graph output is ignored by Git and is not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.

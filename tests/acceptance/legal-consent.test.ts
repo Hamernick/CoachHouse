@@ -78,6 +78,8 @@ describe("legal consent", () => {
       "financial",
       "location",
       "retention",
+      "Google Drive",
+      "Google Calendar",
     ]) {
       expect(privacyText).toContain(disclosure)
     }
@@ -129,7 +131,7 @@ describe("legal consent", () => {
       "utf8"
     )
     const currentConsentMigration = readFileSync(
-      "supabase/migrations/20260909150000_accept_calendar_privacy_consent.sql",
+      "supabase/migrations/20260910120000_accept_drive_privacy_consent.sql",
       "utf8"
     )
     expect(migration).toContain("references auth.users(id) on delete cascade")
@@ -154,6 +156,9 @@ describe("legal consent", () => {
     expect(currentConsentMigration).toContain(
       "consent ->> 'version' = '2026-08-12.1'"
     )
+    expect(currentConsentMigration).toContain(
+      "consent ->> 'version' = '2026-09-09.1'"
+    )
 
     const rlsSuite = readFileSync("supabase/tests/rls.test.mjs", "utf8")
     expect(rlsSuite).toContain(
@@ -175,7 +180,7 @@ describe("legal consent", () => {
 
   it("rejects public signup without current server-validated consent", () => {
     const migration = readFileSync(
-      "supabase/migrations/20260909150000_accept_calendar_privacy_consent.sql",
+      "supabase/migrations/20260910120000_accept_drive_privacy_consent.sql",
       "utf8"
     )
     expect(migration).toContain(

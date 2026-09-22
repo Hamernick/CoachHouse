@@ -1,3 +1,5 @@
+import { loadOrganizationCoachAssignmentData } from "@/features/organization-coach-assignments"
+
 import { notFound } from "next/navigation"
 
 import { Empty } from "@/components/ui/empty"
@@ -27,6 +29,7 @@ import {
   loadPlatformAdminOrganizationProjectDetailPage,
   MemberWorkspaceProjectDetailPage,
   updateMemberWorkspaceProjectAction,
+  updateMemberWorkspaceProjectScheduleAction,
   updateMemberWorkspaceProjectNoteAction,
   updateMemberWorkspaceProjectQuickLinkAction,
   updateMemberWorkspaceTaskAction,
@@ -95,6 +98,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
     canManageFiscalSponsorship,
     fiscalSponsorshipWorkflowSummary,
     adminBilling,
+    coachAssignmentData,
   ] = await Promise.all([
     result.scope === "platform-admin"
       ? canManageFiscalSponsorshipForOrganization({
@@ -108,6 +112,9 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
     staff.accessLevel === "developer"
       ? loadAdminOrganizationBilling(result.organizationSummary.orgId)
       : Promise.resolve(null),
+    loadOrganizationCoachAssignmentData({
+      organizationIds: [result.organizationSummary.orgId],
+    }).catch(() => null),
   ])
   const fiscalSponsorshipWorkflowData =
     "error" in fiscalSponsorshipWorkflowSummary
@@ -116,6 +123,15 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
 
   return (
     <MemberWorkspaceProjectDetailPage
+      assignedCoaches={
+        coachAssignmentData?.available
+          ? (
+              coachAssignmentData.assignmentsByOrganizationId.get(
+                result.organizationSummary.orgId
+              ) ?? []
+            ).map(({ coach }) => ({ id: coach.id, name: coach.name, imageUrl: coach.avatarUrl }))
+          : null
+      }
       adminBilling={
         adminBilling ? (
           <AdminOrganizationBillingPanel
@@ -149,6 +165,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       deleteTaskAction={
         canManageProjectTasks ? deleteMemberWorkspaceTaskAction : undefined
       }
+      updateScheduleAction={canEditProjectDetails ? updateMemberWorkspaceProjectScheduleAction : undefined}
       updateProjectAction={
         canEditProjectDetails ? updateMemberWorkspaceProjectAction : undefined
       }

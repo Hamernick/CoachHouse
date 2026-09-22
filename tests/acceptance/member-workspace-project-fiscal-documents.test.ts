@@ -74,7 +74,7 @@ describe("MemberWorkspaceProjectFiscalDocuments", () => {
       "getMemberWorkspaceProjectFiscalDocumentAssetIds("
     )
     expect(detailTabsSource).toContain("!fiscalDocumentAssetIds.has(file.id)")
-    expect(detailTabsSource).toContain("files={generalProjectFiles}")
+    expect(detailTabsSource).toContain("generalProjectFiles.map")
     expect(detailTabsSource).toContain("<MemberWorkspaceProjectFiscalDocuments")
   })
 

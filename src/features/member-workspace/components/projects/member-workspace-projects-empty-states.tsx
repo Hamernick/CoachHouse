@@ -11,6 +11,7 @@ import {
 import { MemberWorkspaceProjectsFilteredEmpty } from "./member-workspace-projects-filtered-empty"
 
 export function MemberWorkspaceProjectsEmptyStates({
+  directory = "organizations",
   onClearFilters,
   onVisibilityModeChange,
   showAssignedOrganizationsEmpty,
@@ -18,6 +19,7 @@ export function MemberWorkspaceProjectsEmptyStates({
   showFilteredEmpty,
   showHiddenOrganizationsEmpty,
 }: {
+  directory?: "organizations" | "projects"
   onClearFilters: () => void
   onVisibilityModeChange: (mode: OrganizationKanbanVisibilityMode) => void
   showAssignedOrganizationsEmpty: boolean
@@ -55,7 +57,7 @@ export function MemberWorkspaceProjectsEmptyStates({
     )
   }
   if (showFilteredEmpty) {
-    return <MemberWorkspaceProjectsFilteredEmpty onClear={onClearFilters} />
+    return <MemberWorkspaceProjectsFilteredEmpty directory={directory} onClear={onClearFilters} />
   }
   return null
 }

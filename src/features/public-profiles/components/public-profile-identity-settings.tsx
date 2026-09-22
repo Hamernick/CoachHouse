@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import type { ReactNode } from "react"
-import Link from "next/link"
 import Loader2Icon from "lucide-react/dist/esm/icons/loader-2"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  useAccountSettingsDraft,
+  useSharedAccountDraft,
+} from "@/components/account-settings/account-settings-drafts"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -25,7 +27,9 @@ import {
 } from "@/components/ui/input-group"
 import { useSupabaseClient } from "@/hooks/use-supabase-client"
 import { toast } from "@/lib/toast"
-import { savePublicPersonProfileAction } from "@/actions/public-profile-actions"
+import { setPublicProfileVisibilityAction } from "@/actions/public-profile-settings"
+import { ProfileIdentityPreview } from "./public-profile-identity-preview"
+import { PublicProfileDetailsFields } from "./public-profile-details-fields"
 import { normalizePublicHandle } from "../lib"
 import type { PublicHandleResult } from "../types"
 import { usePublicHandleAvailability } from "../hooks/use-public-handle-availability"
@@ -57,107 +61,6 @@ type PersonPublicProfileRow = {
   show_saved_locations: boolean
 }
 
-function initialsFor(displayName: string) {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return "CH"
-  return `${parts[0]?.charAt(0) ?? ""}${parts.at(-1)?.charAt(0) ?? ""}`.toUpperCase()
-}
-
-function ProfileIdentityPreview({
-  avatarUrl,
-  currentHandle,
-  displayName,
-  headline,
-  idPrefix,
-  isLoading,
-  isPublic,
-  isUploadingAvatar,
-  normalizedHandle,
-  onAvatarFileSelected,
-}: {
-  avatarUrl: string | null
-  currentHandle: string
-  displayName: string
-  headline: string
-  idPrefix: string
-  isLoading: boolean
-  isPublic: boolean
-  isUploadingAvatar: boolean
-  normalizedHandle: string
-  onAvatarFileSelected: (file?: File | null) => void
-}) {
-  const avatarInputRef = React.useRef<HTMLInputElement>(null)
-  const profileStatus = isLoading
-    ? "Loading"
-    : isPublic
-      ? "Published"
-      : "Private"
-
-  return (
-    <header className="flex flex-col items-center text-center">
-      <div className="relative" aria-busy={isUploadingAvatar}>
-        <Avatar className="bg-muted size-24 border sm:size-28">
-          <AvatarImage src={avatarUrl ?? undefined} alt="" />
-          <AvatarFallback className="text-xl">
-            {initialsFor(displayName)}
-          </AvatarFallback>
-        </Avatar>
-        {isUploadingAvatar ? (
-          <span className="bg-background/70 absolute inset-0 flex items-center justify-center rounded-full">
-            <Loader2Icon className="size-6 animate-spin" aria-hidden="true" />
-          </span>
-        ) : null}
-      </div>
-      <Badge variant="outline" className="mt-5">
-        {profileStatus}
-      </Badge>
-      <h3 className="mt-4 max-w-full text-2xl font-medium tracking-tight text-balance break-words sm:text-3xl">
-        {displayName}
-      </h3>
-      <p className="text-muted-foreground mt-1 max-w-full text-sm break-all">
-        {normalizedHandle ? `@${normalizedHandle}` : "@your-name"}
-      </p>
-      {headline.trim() ? (
-        <p className="text-foreground/80 mt-3 max-w-xl text-sm leading-6 text-pretty sm:text-base">
-          {headline.trim()}
-        </p>
-      ) : null}
-      <input
-        ref={avatarInputRef}
-        id={`${idPrefix}-avatar-upload`}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        disabled={isUploadingAvatar}
-        onChange={(event) => {
-          onAvatarFileSelected(event.currentTarget.files?.[0] ?? null)
-          event.currentTarget.value = ""
-        }}
-      />
-      <div className="mt-5 flex flex-wrap justify-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-11 sm:h-8"
-          disabled={isUploadingAvatar}
-          onClick={() => avatarInputRef.current?.click()}
-        >
-          {isUploadingAvatar ? (
-            <Loader2Icon className="animate-spin" aria-hidden="true" />
-          ) : null}
-          Change photo
-        </Button>
-        {isPublic && currentHandle ? (
-          <Button asChild size="sm" variant="outline" className="h-11 sm:h-8">
-            <Link href={`/${currentHandle}`}>View profile</Link>
-          </Button>
-        ) : null}
-      </div>
-    </header>
-  )
-}
-
 export function PublicProfileIdentitySettings({
   avatarUrl,
   displayName,
@@ -168,13 +71,27 @@ export function PublicProfileIdentitySettings({
   profileDetails,
 }: PublicProfileIdentitySettingsProps) {
   const supabase = useSupabaseClient()
-  const [currentHandle, setCurrentHandle] = React.useState("")
-  const [handleValue, setHandleValue] = React.useState("")
+  const [currentHandle, setCurrentHandle] = useSharedAccountDraft(
+    "public-current-handle",
+    ""
+  )
+  const [handleValue, setHandleValue] = useSharedAccountDraft(
+    "public-handle-draft",
+    ""
+  )
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
   const [savingVisibility, setSavingVisibility] = React.useState(false)
-  const [isPublic, setIsPublic] = React.useState(false)
-  const [savedIsPublic, setSavedIsPublic] = React.useState(false)
+  const [isPublic, setIsPublic] = useSharedAccountDraft(
+    "public-visibility",
+    false
+  )
+  const [savedIsPublic, setSavedIsPublic] = useSharedAccountDraft(
+    "public-saved-visibility",
+    false
+  )
+  const [loadError, setLoadError] = React.useState<string | null>(null)
+  const [retry, setRetry] = React.useState(0)
   const [publicProfile, setPublicProfile] =
     React.useState<PersonPublicProfileRow | null>(null)
   const { status, hint } = usePublicHandleAvailability({
@@ -188,48 +105,77 @@ export function PublicProfileIdentitySettings({
 
     async function loadPublicIdentity() {
       setLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        if (mounted) setLoading(false)
-        return
-      }
+      setLoadError(null)
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) throw new Error("Sign in to load your public profile.")
 
-      const [{ data: handleData }, { data: profileData }] = await Promise.all([
-        supabase
-          .from("public_handles")
-          .select("handle")
-          .eq("owner_type", "person")
-          .eq("profile_id", user.id)
-          .maybeSingle<PersonHandleRow>(),
-        supabase
-          .from("public_person_profiles")
-          .select(
-            "display_name, headline, bio, location_label, website_url, avatar_url, is_public, show_organizations, show_program_activity, show_saved_locations"
+        const [
+          { data: handleData, error: handleError },
+          { data: profileData, error: profileError },
+        ] = await Promise.all([
+          supabase
+            .from("public_handles")
+            .select("handle")
+            .eq("owner_type", "person")
+            .eq("profile_id", user.id)
+            .maybeSingle<PersonHandleRow>(),
+          supabase
+            .from("public_person_profiles")
+            .select(
+              "display_name, headline, bio, location_label, website_url, avatar_url, is_public, show_organizations, show_program_activity, show_saved_locations"
+            )
+            .eq("profile_id", user.id)
+            .maybeSingle<PersonPublicProfileRow>(),
+        ])
+
+        if (handleError || profileError)
+          throw new Error("Unable to load your public profile. Try again.")
+        if (!mounted) return
+        const handle = handleData?.handle ?? ""
+        setCurrentHandle(handle)
+        setHandleValue(handle)
+        setPublicProfile(profileData ?? null)
+        setIsPublic(profileData?.is_public ?? false)
+        setSavedIsPublic(profileData?.is_public ?? false)
+      } catch (error) {
+        if (mounted)
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load your public profile."
           )
-          .eq("profile_id", user.id)
-          .maybeSingle<PersonPublicProfileRow>(),
-      ])
-
-      if (!mounted) return
-      const handle = handleData?.handle ?? ""
-      setCurrentHandle(handle)
-      setHandleValue(handle)
-      setPublicProfile(profileData ?? null)
-      setIsPublic(profileData?.is_public ?? false)
-      setSavedIsPublic(profileData?.is_public ?? false)
-      setLoading(false)
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
 
     void loadPublicIdentity()
     return () => {
       mounted = false
     }
-  }, [supabase])
+  }, [
+    supabase,
+    retry,
+    setCurrentHandle,
+    setHandleValue,
+    setIsPublic,
+    setSavedIsPublic,
+  ])
 
   const normalizedHandle = normalizePublicHandle(handleValue)
   const unchanged = normalizedHandle === currentHandle
+  useAccountSettingsDraft(
+    !loading && !loadError && !unchanged,
+    async () => {
+      throw new Error(
+        "Save your username using the button beside it, then save your other changes."
+      )
+    },
+    "public-username"
+  )
   const statusText =
     status === "checking"
       ? "Checking…"
@@ -275,19 +221,7 @@ export function PublicProfileIdentitySettings({
     setIsPublic(nextIsPublic)
     setSavingVisibility(true)
     try {
-      const result = await savePublicPersonProfileAction({
-        displayName:
-          displayName.trim() || publicProfile?.display_name || currentHandle,
-        headline: headline.trim() || publicProfile?.headline || null,
-        bio: publicProfile?.bio ?? null,
-        locationLabel: publicProfile?.location_label ?? null,
-        websiteUrl: publicProfile?.website_url ?? null,
-        avatarUrl: avatarUrl ?? publicProfile?.avatar_url ?? null,
-        isPublic: nextIsPublic,
-        showOrganizations: publicProfile?.show_organizations ?? true,
-        showProgramActivity: publicProfile?.show_program_activity ?? true,
-        showSavedLocations: publicProfile?.show_saved_locations ?? false,
-      })
+      const result = await setPublicProfileVisibilityAction(nextIsPublic)
       if (!result.ok) {
         toast.error(result.error)
         setIsPublic(savedIsPublic)
@@ -295,22 +229,6 @@ export function PublicProfileIdentitySettings({
       }
 
       setSavedIsPublic(nextIsPublic)
-      setPublicProfile((current) =>
-        current
-          ? { ...current, is_public: nextIsPublic }
-          : {
-              display_name: resolvedDisplayName,
-              headline: headline.trim() || null,
-              bio: null,
-              location_label: null,
-              website_url: null,
-              avatar_url: avatarUrl,
-              is_public: nextIsPublic,
-              show_organizations: true,
-              show_program_activity: true,
-              show_saved_locations: false,
-            }
-      )
       toast.success(
         nextIsPublic ? "Profile published." : "Profile unpublished."
       )
@@ -323,6 +241,19 @@ export function PublicProfileIdentitySettings({
   }
 
   const resolvedDisplayName = displayName.trim() || "Your profile"
+  if (loadError)
+    return (
+      <section role="alert" className="space-y-4 rounded-xl border p-4">
+        <p>{loadError}</p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setRetry((value) => value + 1)}
+        >
+          Try again
+        </Button>
+      </section>
+    )
   return (
     <section
       aria-label="Profile identity and publication"
@@ -434,6 +365,11 @@ export function PublicProfileIdentitySettings({
             </FieldDescription>
           )}
         </Field>
+        <PublicProfileDetailsFields
+          profile={publicProfile}
+          disabled={loading || !currentHandle}
+          idPrefix={idPrefix}
+        />
         <div className="flex min-h-16 items-center justify-between gap-4 border-t pt-5">
           <Label
             htmlFor={`${idPrefix}-visibility`}

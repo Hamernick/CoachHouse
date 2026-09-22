@@ -10,6 +10,7 @@ import {
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
+import { Position } from "reactflow"
 
 import {
   areWorkspaceAcceleratorRuntimeSnapshotsEqual,
@@ -20,6 +21,7 @@ import {
   type WorkspaceAcceleratorCardStep,
 } from "@/features/workspace-accelerator-card"
 import { Badge } from "@/components/ui/badge"
+import { ExistingCanvasParticleToolbar } from "@/features/workspace-particles/client"
 import {
   getWorkspaceAcceleratorPaywallPath,
   getWorkspaceEditorPath,
@@ -56,8 +58,12 @@ import { useWorkspaceCanvasOverlayDrawerRequest } from "./workspace-canvas-v2/co
 // eslint-disable-next-line max-lines-per-function
 export const WorkspaceBoardCard = memo(function WorkspaceBoardCard({
   data,
+  selected,
+  yPos = 0,
 }: {
   data: WorkspaceBoardNodeData
+  selected?: boolean
+  yPos?: number
 }) {
   const router = useRouter()
   const openWorkspaceDataDrawer = useWorkspaceCanvasOverlayDrawerRequest()
@@ -84,6 +90,7 @@ export const WorkspaceBoardCard = memo(function WorkspaceBoardCard({
     onToggleCanvasFullscreen,
   } = data
   const cardMeta = WORKSPACE_CARD_META[cardId]
+  const particleToolbarPosition = yPos < 60 ? Position.Bottom : Position.Top
   const shouldTrackEmbeddedAcceleratorRuntime =
     shouldWorkspaceBoardCardTrackEmbeddedAcceleratorRuntime({
       cardId,
@@ -347,6 +354,18 @@ export const WorkspaceBoardCard = memo(function WorkspaceBoardCard({
           : "h-full"
       )}
     >
+      {selected !== undefined &&
+      (cardId === "organization-overview" || cardId === "programs") ? (
+        <ExistingCanvasParticleToolbar
+          title={cardMeta.title}
+          size={effectiveCardSize}
+          selected={selected && !presentationMode}
+          position={particleToolbarPosition}
+          canEdit={canEdit}
+          onSizeChange={(nextSize) => onSizeChange(cardId, nextSize)}
+          onRemove={() => data.onHideCard?.(cardId)}
+        />
+      ) : null}
       <WorkspaceCardErrorBoundary cardId={cardId}>
         {cardId === "organization-overview"
           ? renderOrganizationOverviewCard({

@@ -3,6 +3,55 @@ import { getGoogleDriveFile } from "./google-api"
 import { GoogleDriveError } from "../types"
 
 const LIMIT = 15 * 1024 * 1024
+const THUMBNAIL_LIMIT = 5 * 1024 * 1024
+
+async function readBoundedResponse(response: Response, limit: number) {
+  if (Number(response.headers.get("content-length")) > limit)
+    throw new GoogleDriveError("invalid", 413)
+  const reader = response.body?.getReader()
+  if (!reader) throw new GoogleDriveError("provider_unavailable", 503)
+  const chunks: Uint8Array[] = []
+  let length = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      length += value.byteLength
+      if (length > limit) {
+        await reader.cancel()
+        throw new GoogleDriveError("invalid", 413)
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+  return Buffer.concat(chunks)
+}
+
+export async function downloadGoogleDriveThumbnail(
+  accessToken: string,
+  fileId: string
+) {
+  const file = await getGoogleDriveFile(accessToken, fileId)
+  if (file.status === "trashed" || !file.thumbnailLink)
+    throw new GoogleDriveError("file_not_authorized", 403)
+  const response = await fetch(file.thumbnailLink, {
+    headers: { authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+    redirect: "error",
+  })
+  if (!response.ok) throw new GoogleDriveError("file_not_authorized", 403)
+  const contentType = response.headers.get("content-type")?.split(";")[0]
+  if (!contentType?.startsWith("image/"))
+    throw new GoogleDriveError("provider_unavailable", 503)
+  return {
+    bytes: await readBoundedResponse(response, THUMBNAIL_LIMIT),
+    contentType,
+  }
+}
+
 export async function downloadGoogleDriveDocument(
   accessToken: string,
   fileId: string
@@ -32,29 +81,9 @@ export async function downloadGoogleDriveDocument(
     redirect: "error",
   })
   if (!response.ok) throw new GoogleDriveError("file_not_authorized", 403)
-  if (Number(response.headers.get("content-length")) > LIMIT)
-    throw new GoogleDriveError("invalid", 413)
-  const reader = response.body?.getReader()
-  if (!reader) throw new GoogleDriveError("provider_unavailable", 503)
-  const chunks: Uint8Array[] = []
-  let length = 0
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      length += value.byteLength
-      if (length > LIMIT) {
-        await reader.cancel()
-        throw new GoogleDriveError("invalid", 413)
-      }
-      chunks.push(value)
-    }
-  } finally {
-    reader.releaseLock()
-  }
   return {
     name: native ? `${file.name}.docx` : file.name,
-    bytes: Buffer.concat(chunks),
+    bytes: await readBoundedResponse(response, LIMIT),
     sourceUrl: file.webViewLink,
   }
 }

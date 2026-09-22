@@ -2,23 +2,52 @@
 
 ## Current checkpoint
 
-- Documents and Drive tests pass locally; a signed-in provider canary remains open.
+- Documents and Drive tests pass locally. Restored credentials and the real Picker
+  passed on September 10 at 22:11 UTC. Markdown-from-Drive import/edit/save/reload
+  and connected-file access passed September 11 at 00:58 UTC.
 - Serving worktree: `coach-house-platform`, branch
-  `chore/local-development-20260907`, port 3000, at `bb262360`.
-- All eight Drive configuration variables remain absent locally as of September 9.
-  Presence-only inspection checked seven distinct environment files across local
-  worktrees and the current shell. No credential values were printed.
-- The September 1 runlog records production-only Vercel secrets and independent
-  password-manager copies. Their current provider state has not been reverified.
-  The existing Vercel project link resolves to `coachhouse`, but the saved CLI login
-  returned HTTP 403 for both account and project reads on September 9. Restore
-  authorized access before inspecting provider settings or proposing key rotation.
-- Browser runtime setup now succeeds, but discovery returned no attached browsers
-  on September 9. Reattach through the supported app/browser flow; do not patch
-  plugin files or extract browser sessions.
-- The combined Documents/Calendar review lives in the isolated
-  `chore/documents-calendar-integration-20260909` worktree without provider
-  credentials. See [the integration review](2026-09-09-documents-calendar-integration.md).
+  `chore/local-development-20260907`, port 3000, at `b476ada1`. The tested combined
+  Documents/Calendar integration is merged locally; no deployment occurred.
+- September 11, 01:08 UTC: the prepared eight-file Drive privacy/consent patch is
+  integrated locally as uncommitted changes. Chrome confirms `/privacy` version
+  `2026-09-10.1` with Drive and Calendar; the matching database migration was already
+  applied and its function hash is verified. All 16 focused acceptance tests,
+  isolated PostgreSQL consent assertions and 16 static-quality stages pass.
+  Public privacy still shows `2026-08-27.1`. Next is isolated full release validation
+  and a reviewed public deployment; local integration alone does not complete release.
+- On September 10, Vercel CLI authorization succeeded in Bandto Chrome as
+  `caleb-7249` / `caleb@bandto.com`. Account and coachhouse environment metadata
+  requests both return 200. The former personal-account mismatch is resolved.
+- All eight Drive settings exist in Production with type `sensitive` and visibility
+  `secret`. Vercel's [Secret contract](https://vercel.com/docs/environment-variables/sensitive-environment-variables)
+  makes their saved values unreadable; another login cannot export them. No secret
+  values were retrieved from Vercel and no provider setting changed. The September 1 runlog
+  records independent password-manager backups as the recovery source.
+- Root Drive configuration is restored in ignored mode-0600 `.env.drive.local`
+  and `.env.development.local`, enabled for localhost:3000. The original version-1
+  key successfully decrypted Caleb's stored connection; the restored client secret
+  passed a Google token refresh with drive.file. Replaced the incorrectly supplied
+  Picker OAuth secret with the existing restricted Coach House Drive Picker API key
+  from Joel's Console, without printing it or modifying Google settings.
+- Next loaded the eight Drive settings while preserving Calendar and all unrelated
+  values. Real UI check: New > Add from Google Drive opened Select a file; Cancel
+  returned to Documents without attaching or changing a file. No reauthorization
+  or account disconnect was necessary. The subsequent file rehearsal passed.
+- The native Google Doc `test for coach house codex connection` is empty; the UI
+  rejected it without changing Vision. Google text export independently confirmed
+  zero editable characters. Left that source unchanged and uploaded the prepared
+  fictional `coach-house-drive-demo.md` privately in Caleb's My Drive instead.
+- Real UI imported that Markdown file into previously empty Vision, saved the
+  source link, and preserved it after reload. A separate final demo-edit paragraph
+  saved and survived a second reload; original agenda/format/link remain. Vision
+  is now Draft with the demo content, not empty. Do not reset it or duplicate the
+  sample upload. Google checksum/modifiedTime and private sharing are unchanged.
+- The same file is connected in Documents, persists after reload/grid/list switch,
+  and opens the expected Google source with account access. The original native
+  Google Doc remains unchanged; nonempty native-Docs import was not tested.
+- See [the integration review](2026-09-09-documents-calendar-integration.md) for
+  the historical full quality pass and integration scope; the monthly runlog is
+  authoritative for current local, Calendar, provider and release state.
 
 ## Before enabling localhost
 
@@ -72,3 +101,8 @@ version, or remove older versions. Never print tokens or key values in logs.
 
 This step does not authorize deployment, a new Cloud project, paid database
 branches, public file sharing, or a scheduled trash-purge job.
+
+
+## September15 assessment update
+
+The initial canary-open status above is superseded: original credentials/Picker were verified September10 and the real Markdown import/edit/save/reload plus linked-file canary passed September11. Evidence was recovered and inspected September15. See [current Documents assessment](2026-09-15-documents-inventory-assessment.md) for exact coverage and remaining native-Google-Doc/deployment limits. Do not repeat credential restoration or consent without a newly observed failure.

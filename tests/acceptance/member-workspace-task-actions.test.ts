@@ -466,6 +466,7 @@ describe("member workspace task actions", () => {
         startDate: "2026-04-09",
         endDate: "2026-04-10",
         assigneeUserId: "platform-admin-2",
+        tagLabel: "  Grant review  ",
       })
     ).resolves.toEqual({ ok: true, taskId: "task-admin-created" })
 
@@ -476,6 +477,7 @@ describe("member workspace task actions", () => {
         p_assignee_id: "platform-admin-2",
         p_project_id: "project-organization",
         p_title: "Review grant timeline",
+        p_tag_label: "Grant review",
       })
     )
   })
@@ -715,6 +717,7 @@ describe("member workspace task actions", () => {
       updateMemberWorkspaceTaskAction("task-1", {
         projectId: "project-2",
         title: "Updated by Coach House",
+        tagLabel: "  Community outreach  ",
         status: "in-progress",
         startDate: "2026-04-09",
         endDate: "2026-04-12",
@@ -728,6 +731,7 @@ describe("member workspace task actions", () => {
         p_project_id: "project-2",
         p_task_id: "task-1",
         p_title: "Updated by Coach House",
+        p_tag_label: "Community outreach",
       })
     )
   })

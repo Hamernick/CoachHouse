@@ -30,7 +30,7 @@ import { normalizeResourceImageSrc } from "./resource-detail-helpers"
 
 const PUBLIC_MAP_RESOURCE_LIST_CARD_PERF_STYLE = {
   ...PUBLIC_MAP_LIST_CARD_PERF_STYLE,
-  containIntrinsicSize: "112px",
+  containIntrinsicSize: "64px",
 } as const
 
 function PublicMapResourceListMedia({
@@ -54,8 +54,8 @@ function PublicMapResourceListMedia({
   return (
     <span
       className={cn(
-        "border-border/60 bg-muted/35 relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border shadow-sm",
-        constrainedLayout ? "size-24" : "size-28"
+        "border-border/60 bg-muted/35 relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border",
+        constrainedLayout ? "size-11" : "size-12"
       )}
       {...buildPublicMapOrganizationListCardSurfaceProps({
         ownerId,
@@ -157,12 +157,12 @@ export function PublicMapResourceListCard({
         aria-label={`Open details for ${item.title}`}
         onClick={openResourceDetails}
         className={cn(
-          "group relative z-10 flex min-h-28 w-full min-w-0 justify-start rounded-xl text-left whitespace-normal transition-[background-color,color] motion-reduce:transition-none",
+          "group relative z-10 flex h-auto min-h-16 w-full min-w-0 justify-start rounded-xl text-left whitespace-normal transition-[background-color,color] motion-reduce:transition-none",
           "focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-ring/45 focus-visible:ring-2 focus-visible:ring-inset",
           selected
             ? "bg-accent text-accent-foreground dark:bg-accent/50"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          constrainedLayout ? "p-2.5" : "p-3"
+          "p-2"
         )}
         {...buildPublicMapOrganizationListCardSurfaceProps({
           ownerId,
@@ -173,8 +173,8 @@ export function PublicMapResourceListCard({
       >
         <div
           className={cn(
-            "flex min-w-0 items-stretch",
-            constrainedLayout ? "gap-3" : "gap-4"
+            "flex min-w-0 items-center",
+            constrainedLayout ? "gap-2.5" : "gap-3"
           )}
           {...buildPublicMapOrganizationListCardSurfaceProps({
             ownerId,
@@ -191,12 +191,12 @@ export function PublicMapResourceListCard({
           />
           <div
             className={cn(
-              "flex min-w-0 flex-1 flex-col justify-center py-1",
+              "flex min-w-0 flex-1 flex-col justify-center",
               onToggleCollected && "pr-12"
             )}
           >
             <p
-              className="text-foreground line-clamp-2 text-base leading-snug font-semibold text-pretty"
+              className="text-foreground line-clamp-2 text-sm leading-4 font-semibold text-pretty"
               {...buildPublicMapOrganizationListCardSurfaceProps({
                 ownerId,
                 slot: "title",
@@ -206,12 +206,11 @@ export function PublicMapResourceListCard({
               <PublicMapHighlightedText query={query} text={item.title} />
             </p>
             {serviceOutcome ? (
-              <p className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-snug text-pretty">
+              <p className="text-muted-foreground line-clamp-1 text-xs leading-4 text-pretty">
                 <PublicMapHighlightedText query={query} text={serviceOutcome} />
               </p>
             ) : null}
             <PublicMapListMetadataStrip
-              className="mt-1.5"
               itemKeyPrefix="resource"
               items={metadataItems}
               notes="Inline metadata strip for the resource list card."

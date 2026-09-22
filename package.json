@@ -28,7 +28,7 @@
     "test:acceptance:integration": "pnpm check:acceptance-projects && vitest run --config vitest.projects.config.ts --project integration",
     "test:acceptance:manifest:update": "node scripts/sync-acceptance-projects.mjs --write",
     "test": "pnpm test:snapshots && pnpm test:rls",
-    "test:rls": "pnpm test:rls:signup-consent && pnpm test:rls:fiscal && pnpm test:rls:finance && pnpm test:rls:page-health && pnpm test:rls:claims && pnpm test:rls:public-profiles && pnpm test:rls:google-drive && pnpm test:rls:document-files && node supabase/tests/rls.test.mjs",
+    "test:rls": "pnpm test:rls:signup-consent && pnpm test:rls:fiscal && pnpm test:rls:finance && pnpm test:rls:page-health && pnpm test:rls:claims && pnpm test:rls:public-profiles && pnpm test:rls:google-drive && pnpm test:rls:document-files && pnpm test:rls:document-activity && node supabase/tests/rls.test.mjs",
     "test:rls:signup-consent": "node supabase/tests/signup-legal-consent.test.mjs",
     "test:rls:fiscal": "node supabase/tests/fiscal-final-schema-rls.test.mjs",
     "test:rls:finance": "node supabase/tests/finance-storage-rls.test.mjs",
@@ -36,6 +36,7 @@
     "test:rls:claims": "node supabase/tests/public-map-claims-rls.test.mjs",
     "test:rls:public-profiles": "node supabase/tests/public-profiles-rls.test.mjs",
     "test:rls:google-drive": "node supabase/tests/google-drive-rls.test.mjs",
+    "test:rls:document-activity": "node supabase/tests/organization-document-activity.test.mjs",
     "test:rls:document-files": "node supabase/tests/organization-document-files-rls.test.mjs",
     "check:structure": "node scripts/check-structure-conventions.mjs",
     "check:routes": "node scripts/check-route-entry-contract.mjs",
@@ -284,5 +285,8 @@
       "qs": "^6.14.2",
       "vite@7.3.1": "7.3.2"
     }
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

@@ -2,6 +2,8 @@
 
 import { revalidatePath, revalidateTag } from "next/cache"
 
+import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
+
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Json } from "@/lib/supabase"
@@ -30,6 +32,7 @@ import {
 import { createNotification } from "@/lib/notifications"
 
 type SaveInput = {
+  targetOrganizationId?: string
   expectedOrganizationId?: string
   expectedUserId?: string
   sectionId?: string
@@ -82,6 +85,7 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
 }
 
 export async function saveRoadmapSectionAction({
+  targetOrganizationId,
   expectedOrganizationId,
   expectedUserId,
   sectionId,
@@ -98,7 +102,7 @@ export async function saveRoadmapSectionAction({
   ctaUrl,
 }: SaveInput): Promise<SaveResult> {
   const allowPublicSharing = publicSharingEnabled
-  const supabase = await createSupabaseServerClient()
+  let supabase = await createSupabaseServerClient()
   const {
     data: { user },
     error: userError,
@@ -112,7 +116,16 @@ export async function saveRoadmapSectionAction({
     return { error: "Unauthorized" }
   }
 
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+  const access = targetOrganizationId
+    ? await resolveOrganizationDocumentAccess(
+        supabase,
+        user.id,
+        targetOrganizationId
+      )
+    : { ...(await resolveActiveOrganization(supabase, user.id)), supabase }
+  if ("error" in access) return { error: access.error ?? "Forbidden" }
+  supabase = access.supabase
+  const { orgId, role } = access
   if (!canEditOrganization(role)) return { error: "Forbidden" }
   if (
     (expectedOrganizationId && orgId !== expectedOrganizationId) ||

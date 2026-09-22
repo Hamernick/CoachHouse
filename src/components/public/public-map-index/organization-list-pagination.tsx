@@ -169,7 +169,7 @@ export function PublicMapOrganizationListPaginationFooter({
   return (
     <div
       data-public-map-list-pagination="true"
-      className="flex min-w-0 shrink-0 flex-col items-center gap-1.5 px-2 pt-1 pb-2 text-center"
+      className={hasMoreOrganizations ? "flex min-w-0 shrink-0 flex-col items-center gap-1.5 px-2 pt-1 pb-2 text-center" : "sr-only"}
     >
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         Showing {visibleCount.toLocaleString()} of{" "}

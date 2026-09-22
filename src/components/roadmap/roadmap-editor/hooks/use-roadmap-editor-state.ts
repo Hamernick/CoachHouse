@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 
 import { saveRoadmapSectionAction } from "@/actions/roadmap"
+import { useWorkspaceParticles } from "@/features/workspace-particles/client"
 import {
   uploadOrgMedia,
   validateOrgMediaFile,
@@ -55,6 +56,7 @@ export function useRoadmapEditorState({
   const [sections, setSections] = useState<RoadmapSection[]>(
     () => initialSections
   )
+  const onRoadmapSectionSaved = useWorkspaceParticles()?.updateRoadmapSection
   const [drafts, setDrafts] = useState<Record<string, RoadmapDraft>>(() =>
     createDraftMap(initialSections)
   )
@@ -78,7 +80,8 @@ export function useRoadmapEditorState({
 
   useEffect(() => {
     sectionsRef.current = sections
-  }, [sections])
+    for (const section of sections) onRoadmapSectionSaved?.(section)
+  }, [onRoadmapSectionSaved, sections])
 
   useEffect(() => {
     draftsRef.current = drafts

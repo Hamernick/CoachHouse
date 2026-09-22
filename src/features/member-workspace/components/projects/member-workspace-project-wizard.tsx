@@ -1,15 +1,18 @@
 "use client"
 
+import { loadSharedProjectOptions, manageSharedProjectOption } from "../../project-workflow-actions"
+import type { ProjectOptionSettings } from "../../lib/project-option-settings"
+
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useEffect, useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { GuidedProjectSetup } from "./guided-project-setup"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   ProjectWizard,
   type Client,
   type PlatformAdminDashboardLabProject,
   type PlatformAdminDashboardLabStatus,
-  type ProjectData,
-  type ProjectIntent,
   type StepQuickCreateValue,
 } from "@/features/platform-admin-dashboard"
 import type {
@@ -38,6 +41,14 @@ const ORGANIZATION_STATUS_OPTIONS = [
   { id: "todo", label: "Onboarding", dotClass: "bg-orange-600" },
   { id: "in-progress", label: "Active", dotClass: "bg-teal-600" },
   { id: "canceled", label: "Archived", dotClass: "bg-zinc-500" },
+]
+
+const PROJECT_STATUS_OPTIONS = [
+  { id: "backlog", label: "Backlog", dotClass: "bg-zinc-500" },
+  { id: "planned", label: "Planned", dotClass: "bg-blue-600" },
+  { id: "active", label: "Active", dotClass: "bg-teal-600" },
+  { id: "completed", label: "Completed", dotClass: "bg-emerald-600" },
+  { id: "cancelled", label: "Cancelled", dotClass: "bg-zinc-500" },
 ]
 
 function todayDateValue() {
@@ -72,6 +83,12 @@ function mapQuickStatusToProjectStatus(
   statusId?: string
 ): PlatformAdminDashboardLabStatus {
   switch (statusId) {
+    case "backlog":
+    case "planned":
+    case "active":
+    case "completed":
+    case "cancelled":
+      return statusId
     case "todo":
       return "planned"
     case "in-progress":
@@ -81,29 +98,6 @@ function mapQuickStatusToProjectStatus(
     default:
       return "planned"
   }
-}
-
-function formatIntentLabel(intent?: ProjectIntent) {
-  if (intent === "delivery") return "Delivery"
-  if (intent === "experiment") return "Experiment"
-  if (intent === "internal") return "Internal"
-  return "Guided setup"
-}
-
-function formatPriorityFromIntent(intent?: ProjectIntent) {
-  if (intent === "delivery") return "high" as const
-  if (intent === "experiment") return "medium" as const
-  return "medium" as const
-}
-
-function toTitleCase(value?: string) {
-  if (!value) return undefined
-
-  return value
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
 }
 
 function mapQuickCreateToInput({
@@ -136,14 +130,14 @@ function mapQuickCreateToInput({
     startDate,
     endDate,
     clientName: selectedOrganization?.name,
-    typeLabel:
+    typeLabel: value.sprintTypeLabel ?? (
       value.sprintTypeId === "design"
         ? "Design Sprint"
         : value.sprintTypeId === "dev"
           ? "Dev Sprint"
           : value.sprintTypeId === "planning"
             ? "Planning"
-            : undefined,
+            : value.sprintTypeId?.trim() || undefined),
     durationLabel:
       value.workstreamId === "frontend"
         ? "Frontend"
@@ -154,13 +148,8 @@ function mapQuickCreateToInput({
             : value.workstreamId === "qa"
               ? "QA"
               : undefined,
-    tags:
-      value.tagId === "bug" ||
-      value.tagId === "feature" ||
-      value.tagId === "enhancement" ||
-      value.tagId === "docs"
-        ? value.tagId
-        : undefined,
+    tags: value.tagLabel?.trim() || value.tagId?.trim() || undefined,
+    optionSettings: value.optionSettings,
     memberLabels: value.assigneeId ? undefined : undefined,
   }
 }
@@ -188,51 +177,6 @@ function mapQuickCreateToMemberLabels({
   return typeof selectedAssignee === "string"
     ? selectedAssignee
     : selectedAssignee.name
-}
-
-function buildGuidedCreateInput({
-  data,
-  organizationOptions,
-}: {
-  data: ProjectData
-  organizationOptions: MemberWorkspaceProjectOrganizationOption[]
-}): MemberWorkspaceCreateProjectFormInput {
-  const startDate = todayDateValue()
-  const endDate = data.deadlineDate || defaultEndDateValue(startDate)
-  const selectedOrganization = organizationOptions[0]
-  const tags = Array.from(
-    new Set(
-      [
-        data.intent,
-        data.structure,
-        data.successType !== "undefined" ? data.successType : null,
-        data.addStarterTasks ? "starter tasks" : null,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value))
-    )
-  )
-
-  const generatedName =
-    data.description?.trim() ||
-    `${selectedOrganization?.name ? `${selectedOrganization.name} ` : ""}${formatIntentLabel(
-      data.intent
-    )} Project`
-
-  return {
-    orgId: selectedOrganization?.orgId,
-    name: generatedName,
-    description: data.description,
-    status: "planned",
-    priority: formatPriorityFromIntent(data.intent),
-    startDate,
-    endDate,
-    clientName: selectedOrganization?.name,
-    typeLabel: formatIntentLabel(data.intent),
-    durationLabel: toTitleCase(data.structure),
-    tags: tags.join(", "),
-    memberLabels: "",
-  }
 }
 
 function buildQuickCreateInitialValue({
@@ -268,7 +212,7 @@ function buildQuickCreateInitialValue({
           ? "dev"
           : initialProject.typeLabel === "Planning"
             ? "planning"
-            : undefined,
+            : initialProject.typeLabel || undefined,
     workstreamId:
       initialProject.durationLabel === "Frontend"
         ? "frontend"
@@ -279,7 +223,7 @@ function buildQuickCreateInitialValue({
             : initialProject.durationLabel === "QA"
               ? "qa"
               : undefined,
-    tagId: initialProject.tags[0]?.toLowerCase(),
+    tagId: initialProject.tags[0],
   }
 }
 
@@ -293,6 +237,24 @@ export function MemberWorkspaceProjectWizard({
   updateProjectAction,
 }: MemberWorkspaceProjectWizardProps) {
   const router = useRouter()
+  const directoryHref = (usePathname() ?? "").startsWith("/projects") ? "/projects" : "/organizations"
+  const [optionSettings, setOptionSettings] = useState<ProjectOptionSettings | undefined>();
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [loadedOptionsFor, setLoadedOptionsFor] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState("");
+  useEffect(() => {
+    let active = true;
+    setOptionSettings(undefined); setOptionsError(""); setLoadedOptionsFor(null); setOptionsLoading(false);
+    if (!open) return;
+    setOptionsLoading(true);
+    loadSharedProjectOptions().then((result) => {
+      if (!active) return;
+      if ("error" in result) setOptionsError(result.error ?? "Unable to load project options.");
+      else setOptionSettings(result.settings);
+    }).catch(() => { if (active) setOptionsError("Unable to load project options. Close and reopen to retry."); })
+      .finally(() => { if (active) { setOptionsLoading(false); setLoadedOptionsFor(initialProject?.id ?? "new"); } });
+    return () => { active = false; };
+  }, [open, initialProject?.id]);
   const [renderOpen, setRenderOpen] = useState(open)
   const [isPending, startTransition] = useTransition()
 
@@ -335,6 +297,13 @@ export function MemberWorkspaceProjectWizard({
     onOpenChange(false)
   }
 
+  const resolvedInitialValue = useMemo(() => ({
+    ...quickCreateInitialValue,
+    ...(directoryHref === "/projects" && initialProject ? { statusId: initialProject.status } : {}),
+    optionSettings,
+    ...(initialProject ? { sprintTypeId: initialProject.typeLabel } : {}),
+  }), [quickCreateInitialValue, directoryHref, initialProject, optionSettings]);
+
   const submitProjectInput = (input: MemberWorkspaceCreateProjectFormInput) => {
     startTransition(async () => {
       const result = initialProject
@@ -342,7 +311,7 @@ export function MemberWorkspaceProjectWizard({
         : await createProjectAction?.(input)
 
       if (!result) {
-        toast.error("Organization actions are unavailable.")
+        toast.error("Project actions are unavailable.")
         return
       }
 
@@ -352,13 +321,15 @@ export function MemberWorkspaceProjectWizard({
       }
 
       toast.success(
-        initialProject ? "Organization updated" : "Organization created"
+        directoryHref === "/projects"
+          ? initialProject ? "Project updated" : "Project created"
+          : initialProject ? "Organization updated" : "Organization created"
       )
       closeWizard()
       router.refresh()
 
-      if (!initialProject) {
-        router.push(`/organizations/${result.id}`)
+      if (!initialProject && directoryHref !== "/projects") {
+        router.push(`${directoryHref}/${result.id}`)
       }
     })
   }
@@ -367,18 +338,27 @@ export function MemberWorkspaceProjectWizard({
     return null
   }
 
+  if (loadedOptionsFor !== (initialProject?.id ?? "new")) {
+    return <Dialog open onOpenChange={(next) => { if (!next) closeWizard(); }}>
+      <DialogContent><DialogTitle>{initialProject ? "Edit project" : "Create project"}</DialogTitle><DialogDescription>Loading project options…</DialogDescription></DialogContent>
+    </Dialog>
+  }
+
   return (
     <ProjectWizard
+      renderGuidedSetup={() => <GuidedProjectSetup organizations={organizationOptions} onClose={closeWizard} directoryHref={directoryHref} />}
       onClose={closeWizard}
       mode={initialProject ? "edit" : "create"}
       skipModeStep={Boolean(initialProject)}
-      quickCreateInitialValue={quickCreateInitialValue}
+      quickCreateInitialValue={resolvedInitialValue}
       quickCreateSubmitLabel={
-        initialProject ? "Save Changes" : "Create Organization"
+        initialProject ? "Save Changes" : directoryHref === "/projects" ? "Create project" : "Create Organization"
       }
-      quickCreateSubmitPending={isPending}
+      quickCreateError={optionsError}
+      manageOption={(kind, action, option) => manageSharedProjectOption({ kind, action, option })}
+      quickCreateSubmitPending={isPending || optionsLoading}
       quickCreateUsers={quickCreateUsers}
-      quickCreateStatuses={ORGANIZATION_STATUS_OPTIONS}
+      quickCreateStatuses={directoryHref === "/projects" ? PROJECT_STATUS_OPTIONS : ORGANIZATION_STATUS_OPTIONS}
       quickCreateClients={clientOptions}
       onQuickCreate={(value) =>
         submitProjectInput({
@@ -386,20 +366,13 @@ export function MemberWorkspaceProjectWizard({
             value,
             organizationOptions,
           }),
+          tags: [value.tagLabel ?? value.tagId, ...(initialProject?.tags.slice(1) ?? [])].filter(Boolean).join(","),
           memberLabels: mapQuickCreateToMemberLabels({
             assigneeId: value.assigneeId,
             assigneeOptions,
             initialProject,
           }),
         })
-      }
-      onGuidedCreate={(data) =>
-        submitProjectInput(
-          buildGuidedCreateInput({
-            data,
-            organizationOptions,
-          })
-        )
       }
       guidedCreateLabel="Create project"
       guidedCreatePending={isPending}

@@ -56,6 +56,7 @@ export function useWorkspaceCanvasCardDataLookup({
   journeyGuideState,
   onFocusCard,
   onOpenCard,
+  onHideCard,
   onCardMeasuredHeightChange,
   organizationShortcutItems,
   organizationMapButtonCallout,
@@ -94,6 +95,7 @@ export function useWorkspaceCanvasCardDataLookup({
   journeyGuideState: WorkspaceJourneyGuideState
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOpenCard: (cardId: WorkspaceCardId) => void
+  onHideCard: (cardId: WorkspaceCardId) => void
   onCardMeasuredHeightChange?: (
     cardId: WorkspaceCardId,
     size: WorkspaceCardSize,
@@ -139,6 +141,7 @@ export function useWorkspaceCanvasCardDataLookup({
         journeyGuideState,
         onFocusCard,
         onOpenCard,
+        onHideCard,
         onCardMeasuredHeightChange,
         organizationShortcutItems,
         organizationMapButtonCallout,
@@ -166,6 +169,7 @@ export function useWorkspaceCanvasCardDataLookup({
       onCommunicationsChange,
       onFocusCard,
       onOpenCard,
+      onHideCard,
       onHideAcceleratorStepNode,
       onInitialOnboardingSubmit,
       onOpenAcceleratorStepNode,

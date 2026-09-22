@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 
+import { resolvePublicMapResourceDetailPresentation } from "@/lib/public-map/resource-seasonal-presentation"
+
 const PUBLIC_RESOURCE_DETAIL_ENDPOINT = "/api/public/resource-map/items"
 const PUBLIC_RESOURCE_DETAIL_CACHE_MS = 5 * 60 * 1000
 const resourceDetailLoadById = new Map<
@@ -56,7 +58,9 @@ export function usePublicMapResourceItemDetail(
     let cancelled = false
     void loadPublicMapResourceItemDetail(item.id)
       .then((loadedItem) => {
-        if (!cancelled && loadedItem) setDetailItem(loadedItem)
+        if (!cancelled && loadedItem) {
+          setDetailItem(resolvePublicMapResourceDetailPresentation(item, loadedItem))
+        }
       })
       .catch((error) => {
         if (cancelled) return
@@ -70,5 +74,7 @@ export function usePublicMapResourceItemDetail(
     }
   }, [enabled, item])
 
-  return detailItem?.id === item?.id ? detailItem : item
+  return detailItem && item && detailItem.id === item.id
+    ? resolvePublicMapResourceDetailPresentation(item, detailItem)
+    : item
 }

@@ -20,6 +20,7 @@ const ESSENTIAL_RESOURCE_CATEGORIES = [
   "community_transportation",
   "community_internet_access",
   "community_device_access",
+  "education_digital_literacy",
   "legal_identification_documentation",
   "finance_cash_assistance",
   "finance_benefits_enrollment",

@@ -1,5 +1,7 @@
 "use server"
 
+import { parseScheduleDay } from "../lib/project-schedule"
+
 import { revalidatePath } from "next/cache"
 
 import type { Database } from "@/lib/supabase"
@@ -147,6 +149,7 @@ export async function createMemberWorkspaceProjectAction(
     type_label: normalized.value.typeLabel,
     duration_label: normalized.value.durationLabel,
     tags: normalized.value.tags,
+    ...(normalized.value.optionSettings ? { option_settings: normalized.value.optionSettings } : {}),
     member_labels: normalized.value.memberLabels,
     task_count: 0,
     created_source: "user",
@@ -168,6 +171,7 @@ export async function createMemberWorkspaceProjectAction(
   if ("error" in transition) return transition
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   return { ok: true, id: transition.projectId }
 }
 
@@ -225,6 +229,7 @@ export async function updateMemberWorkspaceProjectAction(
     type_label: normalized.value.typeLabel,
     duration_label: normalized.value.durationLabel,
     tags: normalized.value.tags,
+    ...(normalized.value.optionSettings ? { option_settings: normalized.value.optionSettings } : {}),
     member_labels: normalized.value.memberLabels,
     updated_by: actor.userId,
   }
@@ -245,7 +250,9 @@ export async function updateMemberWorkspaceProjectAction(
   if ("error" in transition) return transition
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath(`/organizations/${projectId}`)
+  revalidatePath(`/projects/${projectId}`)
   return { ok: true, id: projectId }
 }
 
@@ -298,7 +305,9 @@ export async function updateMemberWorkspaceProjectStatusAction(
   if ("error" in transition) return transition
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath(`/organizations/${projectId}`)
+  revalidatePath(`/projects/${projectId}`)
   return { ok: true, id: projectId }
 }
 
@@ -322,17 +331,12 @@ export async function updateMemberWorkspaceProjectScheduleAction(
 
   const normalizedStartDate = startDate.trim()
   const normalizedEndDate = endDate.trim()
-  const parsedStartDate = new Date(`${normalizedStartDate}T00:00:00.000Z`)
-  const parsedEndDate = new Date(`${normalizedEndDate}T00:00:00.000Z`)
-
-  if (
-    Number.isNaN(parsedStartDate.getTime()) ||
-    Number.isNaN(parsedEndDate.getTime())
-  ) {
+  const startDay = parseScheduleDay(normalizedStartDate)
+  const endDay = parseScheduleDay(normalizedEndDate)
+  if (startDay === null || endDay === null) {
     return { error: "Enter valid project dates." }
   }
-
-  if (parsedEndDate.getTime() < parsedStartDate.getTime()) {
+  if (endDay < startDay) {
     return { error: "End date must be on or after the start date." }
   }
 
@@ -353,7 +357,7 @@ export async function updateMemberWorkspaceProjectScheduleAction(
           "Organizations are not available until the latest workspace database migrations are applied.",
       }
     }
-    return { error: "Unable to find that project." }
+    return { error: "Unable to load the schedule. Refresh or check that workspace migrations are applied." }
   }
 
   if (!actorCanAccessOrganization(actor, existingProject.org_id)) {
@@ -373,7 +377,9 @@ export async function updateMemberWorkspaceProjectScheduleAction(
   if ("error" in transition) return transition
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath(`/organizations/${normalizedProjectId}`)
+  revalidatePath(`/projects/${normalizedProjectId}`)
   return { ok: true, id: normalizedProjectId }
 }
 
@@ -446,7 +452,9 @@ export async function deleteMemberWorkspaceProjectAction(
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath(`/organizations/${normalizedProjectId}`)
+  revalidatePath(`/projects/${normalizedProjectId}`)
   return { ok: true, id: normalizedProjectId }
 }
 
@@ -552,6 +560,7 @@ export async function resetMemberWorkspaceStarterProjectsAction(): Promise<Membe
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath("/tasks")
   return { ok: true }
 }
@@ -608,6 +617,7 @@ export async function clearMemberWorkspaceStarterDataAction(): Promise<MemberWor
   }
 
   revalidatePath("/organizations")
+  revalidatePath("/projects")
   revalidatePath("/tasks")
   return { ok: true }
 }

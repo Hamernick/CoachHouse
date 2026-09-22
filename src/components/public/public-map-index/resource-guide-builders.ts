@@ -14,6 +14,8 @@ import {
   type PublicMapResourceGuideDefinition,
 } from "./resource-guide-definitions"
 
+import { resolvePublicMapItemPresentations } from "@/lib/public-map/resource-seasonal-presentation"
+
 function buildGuideItems({
   definition,
   items,
@@ -36,10 +38,14 @@ function buildGuideItems({
 }
 
 export function buildPublicMapResourceGuides(
-  items: PublicMapItem[]
+  items: PublicMapItem[],
+  { showCoolingCenters = true }: { showCoolingCenters?: boolean } = {}
 ): PublicMapResourceGuide[] {
   return PUBLIC_MAP_RESOURCE_GUIDE_DEFINITIONS.flatMap((definition) => {
-    const guideItems = buildGuideItems({ definition, items })
+    const guideItems = resolvePublicMapItemPresentations(
+      buildGuideItems({ definition, items }),
+      showCoolingCenters
+    )
     const minItems = definition.minItems ?? 1
     if (guideItems.length < minItems) return []
 
@@ -79,7 +85,10 @@ export function buildPublicMapSavedResourceGuides({
   savedGuideIds: PublicMapResourceGuideId[]
 }) {
   const guideById = new Map(guides.map((guide) => [guide.id, guide]))
-  const definitionById = new Map(
+  const definitionById = new Map<
+    PublicMapResourceGuideId,
+    PublicMapResourceGuideDefinition
+  >(
     PUBLIC_MAP_RESOURCE_GUIDE_DEFINITIONS.map((definition) => [
       definition.id,
       definition,

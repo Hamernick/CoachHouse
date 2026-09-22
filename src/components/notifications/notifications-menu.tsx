@@ -24,32 +24,42 @@ const NotificationsBellButton = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button> & {
     showBellUnreadCue: boolean
+    labelClassName?: string
   }
 >(function NotificationsBellButton(
-  { showBellUnreadCue, className, ...props },
+  { showBellUnreadCue, className, labelClassName, ...props },
   ref,
 ) {
   return (
     <Button
       ref={ref}
       variant="ghost"
-      size="icon"
+      size={labelClassName ? "default" : "icon"}
       className={cn("relative", className)}
       aria-label="Notifications"
       {...props}
     >
-      <Bell className="h-4 w-4" />
-      {showBellUnreadCue ? (
-        <span
-          className="absolute top-2 right-2 h-2 w-2 rounded-full bg-sky-500 dark:bg-sky-400"
-          aria-hidden
-        />
-      ) : null}
+      <span className="relative inline-flex">
+        <Bell className={labelClassName ? "size-5" : "size-4"} aria-hidden />
+        {showBellUnreadCue ? (
+          <span
+            className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-sky-500 dark:bg-sky-400"
+            aria-hidden
+          />
+        ) : null}
+      </span>
+      {labelClassName ? <span className={labelClassName}>Notifications</span> : null}
     </Button>
   )
 })
 
-export function NotificationsMenu() {
+export function NotificationsMenu({
+  triggerClassName,
+  labelClassName,
+}: {
+  triggerClassName?: string
+  labelClassName?: string
+} = {}) {
   const isMobile = useIsMobile()
   const [mobileSnapPoint, setMobileSnapPoint] = React.useState<
     number | string | null
@@ -120,8 +130,17 @@ export function NotificationsMenu() {
     [handleSelect],
   )
 
+  const trigger = (
+    <NotificationsBellButton
+      showBellUnreadCue={showBellUnreadCue}
+      className={triggerClassName}
+      labelClassName={labelClassName}
+      aria-expanded={open}
+    />
+  )
+
   if (!mounted) {
-    return <NotificationsBellButton showBellUnreadCue={showBellUnreadCue} />
+    return trigger
   }
 
   const notificationsHeader = (
@@ -279,7 +298,7 @@ export function NotificationsMenu() {
         handleOnly
       >
         <DrawerTrigger asChild>
-          <NotificationsBellButton showBellUnreadCue={showBellUnreadCue} />
+          {trigger}
         </DrawerTrigger>
         <DrawerContent
           className={cn(
@@ -299,7 +318,7 @@ export function NotificationsMenu() {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <NotificationsBellButton showBellUnreadCue={showBellUnreadCue} />
+        {trigger}
       </PopoverTrigger>
       <PopoverContent
         align="end"

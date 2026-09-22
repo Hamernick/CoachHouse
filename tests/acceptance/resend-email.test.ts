@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { canSendResendEmail, sendResendEmail } from "@/lib/email/resend"
 import { env } from "@/lib/env"
 
+vi.mock("@/lib/email/delivery-preferences", () => ({
+  checkEmailDeliveryPreferences: vi.fn().mockResolvedValue(null),
+}))
+
 const originalEnv = {
   RESEND_API_KEY: env.RESEND_API_KEY,
   RESEND_AUTH_EMAIL_API_KEY: env.RESEND_AUTH_EMAIL_API_KEY,
@@ -36,7 +40,7 @@ describe("resend email helper", () => {
       new Response(JSON.stringify({ id: "email_canonical" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
+      })
     )
     vi.stubGlobal("fetch", fetchMock)
 
@@ -57,7 +61,7 @@ describe("resend email helper", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer re_canonical",
         }),
-      }),
+      })
     )
   })
 
@@ -69,7 +73,7 @@ describe("resend email helper", () => {
       new Response(JSON.stringify({ id: "email_alias" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
+      })
     )
     vi.stubGlobal("fetch", fetchMock)
 
@@ -89,7 +93,7 @@ describe("resend email helper", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer re_auth_alias",
         }),
-      }),
+      })
     )
   })
 
@@ -128,7 +132,7 @@ describe("resend email helper", () => {
       new Response(JSON.stringify({ id: "email_tags" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
+      })
     )
     vi.stubGlobal("fetch", fetchMock)
 
@@ -162,7 +166,7 @@ describe("resend email helper", () => {
       new Response(JSON.stringify({ id: "email_idempotent" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
+      })
     )
     vi.stubGlobal("fetch", fetchMock)
 
@@ -180,7 +184,7 @@ describe("resend email helper", () => {
         headers: expect.objectContaining({
           "Idempotency-Key": "email-ops-test/recipient",
         }),
-      }),
+      })
     )
   })
 
@@ -196,7 +200,7 @@ describe("resend email helper", () => {
       new Response(JSON.stringify({ id: "email_marketing" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
+      })
     )
     vi.stubGlobal("fetch", fetchMock)
 
@@ -237,7 +241,7 @@ describe("resend email helper", () => {
     const result = await sendResendEmail({
       to: "recipient@example.com",
       subject: "Product update",
-      html: "<p onclick=\"alert(1)\">Hello</p><script>alert(1)</script>",
+      html: '<p onclick="alert(1)">Hello</p><script>alert(1)</script>',
       text: "Hello",
     })
 

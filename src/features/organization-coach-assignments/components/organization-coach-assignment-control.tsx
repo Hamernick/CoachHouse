@@ -112,7 +112,7 @@ export function OrganizationCoachAssignmentControl({
         aria-label={`${organizationName} coaches: ${accessibleSummary}`}
       >
         <CoachAvatarStack assignments={controller.assignments} />
-        <span className="truncate">{summary}</span>
+        {!compact ? <span className="truncate">{summary}</span> : null}
       </div>
     )
   }
@@ -133,7 +133,7 @@ export function OrganizationCoachAssignmentControl({
           aria-label={`Manage coaches for ${organizationName}; ${accessibleSummary}`}
         >
           <CoachAvatarStack assignments={controller.assignments} />
-          <span className="truncate">{summary}</span>
+          {!compact ? <span className="truncate">{summary}</span> : null}
           {controller.pending ? (
             <CircleNotch className="text-muted-foreground ml-auto animate-spin" />
           ) : (
@@ -156,7 +156,7 @@ export function OrganizationCoachAssignmentControl({
           </p>
         ) : null}
         <div className="mt-1 space-y-1">
-          {coachOptions.map((coach) => {
+          {coachOptions.filter((coach) => coach.assignable !== false).map((coach) => {
             const selected = controller.assignedCoachIds.has(coach.id)
             const removingLast =
               selected && preventEmpty && controller.assignments.length === 1

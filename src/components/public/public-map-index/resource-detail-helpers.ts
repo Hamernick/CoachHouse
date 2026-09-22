@@ -89,6 +89,15 @@ export function buildResourceLocation(item: ExternalResourceMapItem) {
 }
 
 export function buildResourceAddressLines(item: ExternalResourceMapItem) {
+  const fallbackAddressLines = item.address
+    ?.split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (!item.addressStreet?.trim() && fallbackAddressLines?.length) {
+    return fallbackAddressLines
+  }
+
   const lines = [
     item.addressStreet,
     [item.city, item.state].filter(Boolean).join(", "),
@@ -97,9 +106,5 @@ export function buildResourceAddressLines(item: ExternalResourceMapItem) {
     .map((line) => line?.trim() ?? "")
     .filter(Boolean)
 
-  if (lines.length > 0) return lines
-  return item.address
-    ?.split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  return lines.length > 0 ? lines : fallbackAddressLines
 }

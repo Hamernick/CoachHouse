@@ -1,12 +1,12 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useState } from "react"
-import ImageIcon from "lucide-react/dist/esm/icons/image"
 
 import { normalizeToList } from "@/components/organization/org-profile-card/utils"
-import { GridBackground } from "@/components/ui/grid-background"
-import { WORKSPACE_TEXT_STYLES } from "@/components/workspace/workspace-typography"
+import {
+  compactWorkspaceUsd,
+  WorkspaceOrganizationOverviewSummary,
+} from "@/components/workspace/workspace-organization-overview-summary"
 import { Progress } from "@/components/ui/progress"
 import {
   FiscalSponsorshipWorkspaceCardSummary,
@@ -23,18 +23,6 @@ import type {
   WorkspaceOrganizationEditorData,
   WorkspaceSeedData,
 } from "./workspace-board-types"
-
-const ORGANIZATION_OVERVIEW_PREVIEW_BANNER_ASPECT_RATIO = 3.7 / 1
-
-function compactUsd(cents: number) {
-  const dollars = Math.max(0, cents) / 100
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(dollars)
-}
 
 function safeText(value: string | null | undefined) {
   return typeof value === "string" ? value : ""
@@ -149,16 +137,6 @@ export function mapWorkspaceProgramsToFiscalSponsorshipPrograms(
   })
 }
 
-function useImageLoaded(src: string) {
-  const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    setLoaded(false)
-  }, [src])
-
-  return { loaded, setLoaded }
-}
-
 export function resolveOrganizationOverviewDisplayPrograms({
   programsCount,
   legacyProgramsValue,
@@ -185,8 +163,6 @@ export function OrganizationOverviewCard({
   const logoUrl = safeText(seed.initialProfile.logoUrl)
   const displayTitle = seed.organizationTitle.trim() || "Title"
   const displaySubtitle = seed.organizationSubtitle.trim() || "Subtitle"
-  const headerImage = useImageLoaded(headerUrl)
-  const logoImage = useImageLoaded(logoUrl)
   const displayProgramsCount = resolveOrganizationOverviewDisplayPrograms({
     programsCount:
       organizationEditorData?.programs.length ?? seed.programsCount,
@@ -194,113 +170,15 @@ export function OrganizationOverviewCard({
   })
 
   return (
-    <div className="flex min-h-0 flex-col gap-3 pb-0.5">
-      <div
-        className="bg-muted/30 ring-border/50 relative min-h-[124px] w-full overflow-hidden rounded-[18px] ring-1"
-        style={{
-          aspectRatio: ORGANIZATION_OVERVIEW_PREVIEW_BANNER_ASPECT_RATIO,
-        }}
-      >
-        {headerUrl ? (
-          <>
-            <Image
-              src={headerUrl}
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 768px) 92vw, (max-width: 1280px) 520px, 760px"
-              className={cn(
-                "object-cover object-center transition-opacity duration-300",
-                headerImage.loaded ? "opacity-100" : "opacity-0"
-              )}
-              onLoad={() => headerImage.setLoaded(true)}
-            />
-            <div
-              aria-hidden
-              className={cn(
-                "from-muted/70 via-muted/40 absolute inset-0 bg-gradient-to-br to-transparent transition-opacity duration-300",
-                headerImage.loaded ? "opacity-0" : "opacity-100"
-              )}
-            />
-          </>
-        ) : (
-          <GridBackground className="rounded-[18px]" />
-        )}
-      </div>
-
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="bg-background ring-border/60 relative size-12 shrink-0 overflow-hidden rounded-[14px] ring-1">
-          {logoUrl ? (
-            <>
-              <Image
-                src={logoUrl}
-                alt=""
-                fill
-                priority
-                sizes="44px"
-                className={cn(
-                  "object-cover transition-opacity duration-300",
-                  logoImage.loaded ? "opacity-100" : "opacity-0"
-                )}
-                onLoad={() => logoImage.setLoaded(true)}
-              />
-              <div
-                aria-hidden
-                className={cn(
-                  "bg-muted/55 absolute inset-0 transition-opacity duration-300",
-                  logoImage.loaded ? "opacity-0" : "opacity-100"
-                )}
-              />
-            </>
-          ) : (
-            <div className="text-muted-foreground grid h-full w-full place-items-center">
-              <ImageIcon className="h-4.5 w-4.5" aria-hidden />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 space-y-0.5">
-          <h3
-            className={cn(
-              "text-foreground line-clamp-2",
-              WORKSPACE_TEXT_STYLES.surfaceTitle
-            )}
-          >
-            {displayTitle}
-          </h3>
-          <p
-            className={cn(
-              "line-clamp-1",
-              WORKSPACE_TEXT_STYLES.surfaceSubtitle
-            )}
-          >
-            {displaySubtitle}
-          </p>
-        </div>
-      </div>
-
-      <dl className="border-border/50 grid grid-cols-3 gap-3 border-t pt-3">
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>Objects</dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {displayProgramsCount}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>
-            {seed.peopleCount === 1 ? "Person" : "People"}
-          </dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {seed.peopleCount}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>Raising</dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {compactUsd(seed.fundingGoalCents)}
-          </dd>
-        </div>
-      </dl>
-    </div>
+    <WorkspaceOrganizationOverviewSummary
+      fundingGoalCents={seed.fundingGoalCents}
+      headerUrl={headerUrl}
+      logoUrl={logoUrl}
+      peopleCount={seed.peopleCount}
+      programsCount={displayProgramsCount}
+      subtitle={displaySubtitle}
+      title={displayTitle}
+    />
   )
 }
 
@@ -375,13 +253,13 @@ export function EconomicEngineCard({
         <div className="min-w-0">
           <p className="text-muted-foreground text-xs">Raised</p>
           <p className="mt-1 truncate text-sm font-semibold tabular-nums">
-            {compactUsd(seed.raisedCents)}
+            {compactWorkspaceUsd(seed.raisedCents)}
           </p>
         </div>
         <div className="min-w-0">
           <p className="text-muted-foreground text-xs">Need</p>
           <p className="mt-1 truncate text-sm font-semibold tabular-nums">
-            {compactUsd(seed.fundingGoalCents)}
+            {compactWorkspaceUsd(seed.fundingGoalCents)}
           </p>
         </div>
       </div>

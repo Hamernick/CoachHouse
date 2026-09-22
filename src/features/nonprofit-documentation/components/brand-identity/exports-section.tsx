@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import CheckIcon from "lucide-react/dist/esm/icons/check"
 import CopyIcon from "lucide-react/dist/esm/icons/copy"
 import DownloadIcon from "lucide-react/dist/esm/icons/download"
 import PrinterIcon from "lucide-react/dist/esm/icons/printer"
@@ -19,14 +18,17 @@ import { BrandIdentitySection } from "./brand-identity-section"
 export function ExportsSection({
   draft,
   assets,
+  ready = false,
 }: {
   draft: BrandIdentityDraft
   assets: StoredBrandAsset[]
+  ready?: boolean
 }) {
   const [status, setStatus] = useState("Ready to export")
   const [working, setWorking] = useState(false)
 
   async function downloadPackage() {
+    if (!ready) return
     setWorking(true)
     setStatus("Building brand package")
     try {
@@ -52,83 +54,58 @@ export function ExportsSection({
   return (
     <BrandIdentitySection
       id="exports"
-      eyebrow="Portable by default"
       title="Export assets"
-      description="Download the entire guide as a portable package. Everything is generated in this browser; Coach House does not receive your files."
-      className="border-b-0 pb-24"
+      description="Download your brand kit, copy its CSS tokens, or print the guide."
+      className="pb-0 sm:pb-0"
     >
-      <div className="bg-border grid gap-px overflow-hidden rounded-xl border sm:grid-cols-2">
-        <div className="bg-background p-6">
-          <DownloadIcon className="size-5" aria-hidden />
-          <h3 className="mt-5 font-semibold">Complete brand package</h3>
-          <p className="text-muted-foreground mt-1 text-sm leading-5">
-            Includes structured brand data, CSS tokens, usage notes, and every
-            uploaded original.
-          </p>
-          <Button
-            type="button"
-            className="mt-6"
-            disabled={working}
-            onClick={() => void downloadPackage()}
-          >
-            <DownloadIcon aria-hidden />
-            {working ? "Building package" : "Download ZIP"}
-          </Button>
-        </div>
-        <div className="bg-background p-6">
-          <CopyIcon className="size-5" aria-hidden />
-          <h3 className="mt-5 font-semibold">Design tokens</h3>
-          <p className="text-muted-foreground mt-1 text-sm leading-5">
-            Copy ready-to-use CSS variables for the palette, fonts, and modular
-            type scale.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-6"
-            onClick={() => void copyTokens()}
-          >
-            <CopyIcon aria-hidden />
-            Copy CSS tokens
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-3 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-medium">Printable guide</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Open the browser print view to save a PDF or create a paper copy.
-          </p>
-        </div>
-        <Button type="button" variant="outline" onClick={() => window.print()}>
-          <PrinterIcon aria-hidden />
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          className="w-full justify-start shadow-none"
+          disabled={working || !ready}
+          onClick={() => void downloadPackage()}
+        >
+          <DownloadIcon data-icon="inline-start" aria-hidden />
+          {working ? "Building package" : "Download ZIP"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start shadow-none"
+          disabled={!ready}
+          onClick={() => void copyTokens()}
+        >
+          <CopyIcon data-icon="inline-start" aria-hidden />
+          Copy CSS tokens
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start shadow-none"
+          disabled={!ready}
+          onClick={() => window.print()}
+        >
+          <PrinterIcon data-icon="inline-start" aria-hidden />
           Print guide
         </Button>
       </div>
-
-      <div className="mt-8 border-y">
-        <div className="grid grid-cols-[1fr_auto] gap-4 py-4 text-sm">
-          <span>Brand data and usage notes</span>
-          <CheckIcon className="size-4" aria-label="Included" />
+      <p className="text-muted-foreground mt-4 text-xs leading-5">
+        ZIP includes brand data, CSS tokens, usage notes, and every uploaded original.
+      </p>
+      <dl className="mt-3 text-xs">
+        <div className="flex items-center justify-between gap-4">
+          <dt>Uploaded originals</dt>
+          <dd className="text-muted-foreground tabular-nums">{assets.length} files</dd>
         </div>
-        <div className="grid grid-cols-[1fr_auto] gap-4 border-t py-4 text-sm">
-          <span>CSS color and typography tokens</span>
-          <CheckIcon className="size-4" aria-label="Included" />
-        </div>
-        <div className="grid grid-cols-[1fr_auto] gap-4 border-t py-4 text-sm">
-          <span>Uploaded originals</span>
-          <span className="text-muted-foreground font-mono text-xs">
-            {assets.length} files
-          </span>
-        </div>
-      </div>
+      </dl>
       <p
-        className="text-muted-foreground mt-5 text-xs"
+        className="text-muted-foreground mt-3 text-xs leading-5"
         role="status"
         aria-live="polite"
       >
-        {status}
+        {ready
+          ? status
+          : "Waiting for saved text and images. Reload to retry if storage is unavailable."}
       </p>
     </BrandIdentitySection>
   )

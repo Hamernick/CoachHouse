@@ -144,17 +144,29 @@ function readSource(relativePath: string) {
 
 describe("nonprofit documentation feature", () => {
   it("gives every article a distinct authored image without a shared fallback", () => {
-    const pages = DOCUMENTATION_SEARCH_DOCUMENTS
-      .filter(({ href }) => ![DOCUMENTATION_PATH, `${DOCUMENTATION_PATH}/marketplace`].includes(href))
-      .map(({ href }) => href.slice(DOCUMENTATION_PATH.length + 1))
+    const pages = DOCUMENTATION_SEARCH_DOCUMENTS.filter(
+      ({ href }) =>
+        ![DOCUMENTATION_PATH, `${DOCUMENTATION_PATH}/marketplace`].includes(
+          href
+        )
+    ).map(({ href }) => href.slice(DOCUMENTATION_PATH.length + 1))
     expect(Object.keys(documentationArtwork).sort()).toEqual([...pages].sort())
     expect(new Set(pages.map(getDocumentationArtwork)).size).toBe(pages.length)
-    expect(() => getDocumentationArtwork("unregistered-page")).toThrow("Missing Documentation artwork")
+    expect(() => getDocumentationArtwork("unregistered-page")).toThrow(
+      "Missing Documentation artwork"
+    )
 
-    const directory = join(ROOT, "src/features/nonprofit-documentation/assets/heroes")
-    const files = readdirSync(directory).filter((file) => file.endsWith(".webp"))
+    const directory = join(
+      ROOT,
+      "src/features/nonprofit-documentation/assets/heroes"
+    )
+    const files = readdirSync(directory).filter((file) =>
+      file.endsWith(".webp")
+    )
     const hashes = files.map((file) =>
-      createHash("sha256").update(readFileSync(join(directory, file))).digest("hex")
+      createHash("sha256")
+        .update(readFileSync(join(directory, file)))
+        .digest("hex")
     )
     expect(files).toHaveLength(pages.length)
     expect(new Set(hashes).size).toBe(pages.length)
@@ -266,9 +278,9 @@ describe("nonprofit documentation feature", () => {
   })
 
   it("publishes a source-backed, non-ranked Marketplace catalog", () => {
-    expect(MARKETPLACE_RESOURCES).toHaveLength(23)
-    expect(new Set(MARKETPLACE_RESOURCES.map(({ id }) => id)).size).toBe(23)
-    expect(new Set(MARKETPLACE_RESOURCES.map(({ url }) => url)).size).toBe(23)
+    expect(MARKETPLACE_RESOURCES).toHaveLength(34)
+    expect(new Set(MARKETPLACE_RESOURCES.map(({ id }) => id)).size).toBe(34)
+    expect(new Set(MARKETPLACE_RESOURCES.map(({ url }) => url)).size).toBe(34)
     expect(MARKETPLACE_RESOURCES.map(({ type }) => type)).toEqual(
       expect.arrayContaining([
         "coaching",
@@ -282,7 +294,9 @@ describe("nonprofit documentation feature", () => {
     )
     for (const resource of MARKETPLACE_RESOURCES) {
       expect(resource.url).toMatch(/^https:\/\//)
-      expect(["2026-09-03", "2026-09-04"]).toContain(resource.reviewedDate)
+      expect(["2026-09-03", "2026-09-04", "2026-09-15"]).toContain(
+        resource.reviewedDate
+      )
       expect(resource.reviewByDate >= resource.reviewedDate).toBe(true)
       expect(resource.description.length).toBeGreaterThan(50)
       expect(resource.eligibility.length).toBeGreaterThan(20)
@@ -303,7 +317,7 @@ describe("nonprofit documentation feature", () => {
       filterMarketplaceResources(MARKETPLACE_RESOURCES, filters).map(
         ({ id }) => id
       )
-    ).toEqual(["little-green-light", "givebutter"])
+    ).toEqual(["monkeypod", "venmo-charity-profiles", "little-green-light", "givebutter"])
     expect(
       sanitizeMarketplaceFilters({
         query: "q".repeat(200),
@@ -451,14 +465,21 @@ describe("nonprofit documentation feature", () => {
         name: "Harbor Blue",
       })
     ).toBe("Background — Harbor Blue")
-    expect(BRAND_FONT_OPTIONS.length).toBeGreaterThanOrEqual(30)
+    expect(BRAND_FONT_OPTIONS.length).toBeGreaterThanOrEqual(19)
     expect(BRAND_FONT_GROUPS.map((group) => group.label)).toEqual([
       "Sans serif",
-      "Serif",
       "Display",
-      "Monospace",
     ])
-    expect(brandFontStack("Georgia")).toBe("Georgia, serif")
+    expect(brandFontStack("Georgia")).toBe(brandFontStack("System Sans"))
+    expect(
+      sanitizeBrandDraft({
+        headingFont: "Georgia",
+        bodyFont: "Times New Roman",
+      })
+    ).toMatchObject({ headingFont: "System Sans", bodyFont: "System Sans" })
+    expect(
+      BRAND_FONT_OPTIONS.every((font) => font.stack.endsWith("sans-serif"))
+    ).toBe(true)
 
     for (const legacyName of ["Community cream", "Warm canvas"]) {
       const migrated = sanitizeBrandDraft({

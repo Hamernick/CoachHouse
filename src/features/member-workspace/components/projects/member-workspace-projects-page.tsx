@@ -55,6 +55,7 @@ import {
 } from "./member-workspace-project-view-options"
 
 type MemberWorkspaceProjectsPageProps = {
+  directory?: "organizations" | "projects"
   projects: PlatformAdminDashboardLabProject[]
   storageMode: MemberWorkspaceStorageMode
   canResetStarterData: boolean
@@ -79,6 +80,8 @@ type MemberWorkspaceProjectsPageProps = {
   canCreateProjects: boolean
   organizationOptions: MemberWorkspaceProjectOrganizationOption[]
   assigneeOptions: MemberWorkspacePersonOption[]
+  showPlatformRevenue?: boolean
+  defaultCoachFilter?: OrganizationCoachFilterValue
   coachOptions?: OrganizationCoachOption[]
   canManageCoachAssignments?: boolean
   updateCoachAssignmentAction?: OrganizationCoachAssignmentAction
@@ -123,6 +126,7 @@ export function MemberWorkspaceProjectsPage(
   props: MemberWorkspaceProjectsPageProps
 ) {
   const {
+    directory = "organizations",
     projects,
     canResetStarterData,
     clearStarterDataAction,
@@ -135,6 +139,8 @@ export function MemberWorkspaceProjectsPage(
     assigneeOptions,
     scope,
     coachOptions = [],
+    defaultCoachFilter = ORGANIZATION_COACH_FILTER_ALL,
+    showPlatformRevenue = false,
     canManageCoachAssignments = false,
     updateCoachAssignmentAction,
     assignAllCoachesAction,
@@ -160,9 +166,9 @@ export function MemberWorkspaceProjectsPage(
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState<FilterChip[]>([])
   const [coachFilter, setCoachFilter] = useState<OrganizationCoachFilterValue>(
-    ORGANIZATION_COACH_FILTER_ALL
+    defaultCoachFilter
   )
-  const [viewOptions, setViewOptions] = useState(DEFAULT_VIEW_OPTIONS)
+  const [viewOptions, setViewOptions] = useState({ ...DEFAULT_VIEW_OPTIONS, ...(directory === "projects" ? { viewType: "board" as const } : {}) })
   const [kanbanVisibilityMode, setKanbanVisibilityMode] =
     useState<OrganizationKanbanVisibilityMode>(
       ORGANIZATION_KANBAN_VISIBILITY_VISIBLE
@@ -190,14 +196,15 @@ export function MemberWorkspaceProjectsPage(
     setCoachFilter(
       normalizeOrganizationCoachFilter({
         coachOptions,
-        value: params.get("coach"),
+        value: params.get("coach") ?? defaultCoachFilter,
       })
     )
+    if (directory === "projects" && !params.has("view")) params.set("view", "board")
     setViewOptions(paramsToViewOptions(params))
     setKanbanVisibilityMode(
       normalizeOrganizationKanbanVisibilityMode(params.get("visibility"))
     )
-  }, [coachOptions, searchParams])
+  }, [coachOptions, defaultCoachFilter, directory, searchParams])
 
   const replaceSearchState = ({
     nextFilters = filters,
@@ -212,8 +219,10 @@ export function MemberWorkspaceProjectsPage(
   }) => {
     const params = chipsToParams(nextFilters)
     applyOrganizationCoachFilterToParams(params, nextCoachFilter)
+    if (defaultCoachFilter !== "all" && nextCoachFilter === "all") params.set("coach", "all")
     applyOrganizationKanbanVisibilityToParams(params, nextKanbanVisibilityMode)
     applyViewOptionsToParams(params, nextViewOptions)
+    if (directory === "projects") params.set("view", nextViewOptions.viewType)
     const nextQuery = params.toString()
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
       scroll: false,
@@ -334,11 +343,14 @@ export function MemberWorkspaceProjectsPage(
         className={`${styles.surface} bg-background -mx-[var(--shell-content-pad)] -mt-[var(--shell-content-pad)] -mb-[var(--shell-content-pad)] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden`}
       >
         <MemberWorkspaceProjectsHeader
+          directory={directory}
+          onCreateProject={directory === "projects" && canCreateProjects ? () => { setEditingProject(null); setIsProjectWizardOpen(true) } : undefined}
           assignAllCoachesAction={assignAllCoachesAction}
           canManageCoachAssignments={canManageCoachAssignments}
           canResetStarterData={canResetStarterData}
           clearStarterDataAction={clearStarterDataAction}
           coachAssignmentCoverage={coachAssignmentCoverage}
+          showPlatformRevenue={showPlatformRevenue}
           coachFilter={coachFilter}
           coachOptions={coachOptions}
           coachScopeStatus={coachScopeStatus}
@@ -362,6 +374,7 @@ export function MemberWorkspaceProjectsPage(
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           <MemberWorkspaceProjectsEmptyStates
+            directory={directory}
             onClearFilters={handleClearAllFilters}
             onVisibilityModeChange={handleKanbanVisibilityModeChange}
             showAssignedOrganizationsEmpty={showAssignedOrganizationsEmpty}
@@ -461,22 +474,29 @@ export function MemberWorkspaceProjectsPage(
         </div>
       </div>
 
-      {createProjectAction ? (
-        <MemberWorkspaceProjectWizard
-          open={isProjectWizardOpen}
-          onOpenChange={(nextOpen) => {
-            setIsProjectWizardOpen(nextOpen)
-            if (!nextOpen) {
-              setEditingProject(null)
-            }
-          }}
-          initialProject={editingProject}
-          organizationOptions={organizationOptions}
-          assigneeOptions={assigneeOptions}
-          createProjectAction={createProjectAction}
-          updateProjectAction={updateProjectAction}
-        />
-      ) : null}
+      <ProjectWizardOverlay
+        open={isProjectWizardOpen}
+        onOpenChange={(open) => { setIsProjectWizardOpen(open); if (!open) setEditingProject(null) }}
+        initialProject={editingProject}
+        organizationOptions={organizationOptions}
+        assigneeOptions={assigneeOptions}
+        createProjectAction={createProjectAction}
+        updateProjectAction={updateProjectAction}
+      />
     </>
   )
+}
+
+
+function ProjectWizardOverlay(props: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialProject: PlatformAdminDashboardLabProject | null
+  organizationOptions: MemberWorkspaceProjectsPageProps["organizationOptions"]
+  assigneeOptions: MemberWorkspaceProjectsPageProps["assigneeOptions"]
+  createProjectAction: MemberWorkspaceProjectsPageProps["createProjectAction"]
+  updateProjectAction: MemberWorkspaceProjectsPageProps["updateProjectAction"]
+}) {
+  if (!props.createProjectAction) return null
+  return <MemberWorkspaceProjectWizard {...props} createProjectAction={props.createProjectAction} />
 }

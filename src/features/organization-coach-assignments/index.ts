@@ -4,6 +4,7 @@ export {
   OrganizationCoachAssignmentOperationsBar,
 } from "./components"
 export {
+  defaultOrganizationCoachFilter,
   applyOrganizationCoachFilterToParams,
   canAccessOrganizationInCoachScope,
   computeOrganizationCoachAssignmentCoverage,

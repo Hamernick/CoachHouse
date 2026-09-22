@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import { PublicMapPlatformOrganizationListCard } from "./organization-list-platform-card"
 import { PublicMapResourceListCard } from "./organization-list-resource-card"
+import { PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME } from "./organization-list-card-shared"
 import {
   PUBLIC_MAP_LIST_INITIAL_PAGE_SIZE,
   PUBLIC_MAP_LIST_PAGE_SIZE,
@@ -52,13 +53,13 @@ function PublicMapOrganizationListSkeleton() {
           <div
             key={index}
             className={cn(
-              "border-border/50 flex flex-col justify-center rounded-2xl border p-4",
-              "min-h-28"
+              "border-border/50 flex flex-col justify-center rounded-2xl border p-2",
+              PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME
             )}
             aria-hidden="true"
           >
             <div className="flex items-center gap-3">
-              <Skeleton className="size-24 shrink-0 animate-none rounded-xl" />
+              <Skeleton className="size-12 shrink-0 animate-none rounded-xl" />
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <Skeleton className="h-4 w-3/5 animate-none" />
                 <Skeleton className="h-3 w-2/5 animate-none" />
@@ -240,7 +241,7 @@ function PublicMapOrganizationListComponent({
         className={cn(
           "divide-border/60 bg-background/85 border-input w-full min-w-0 rounded-2xl border backdrop-blur-xl",
           scrollable
-            ? "min-h-0 flex-1 [scroll-padding-bottom:max(env(safe-area-inset-bottom),0.75rem)] overflow-x-hidden overscroll-contain pr-1 pb-[env(safe-area-inset-bottom)] [-webkit-overflow-scrolling:touch]"
+            ? "min-h-0 flex-initial [scroll-padding-bottom:max(env(safe-area-inset-bottom),0.75rem)] overflow-x-hidden overscroll-contain pr-1 pb-[env(safe-area-inset-bottom)] [-webkit-overflow-scrolling:touch]"
             : "overflow-hidden"
         )}
       >

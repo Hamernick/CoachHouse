@@ -1,15 +1,8 @@
+import type { DocumentDefinition, DocumentsPolicyEntry } from "@/lib/organization/document-types"
+export type { DocumentDefinition, DocumentsPolicyEntry } from "@/lib/organization/document-types"
 import type { ModuleNoteIndexEntry } from "@/lib/modules/notes-index"
 
 import type { OrgDocument, OrgDocuments } from "../../types"
-
-export type DocumentDefinition = {
-  kind: string
-  key: keyof OrgDocuments
-  title: string
-  description: string
-  defaultName: string
-  category: string
-}
 
 export type DocumentStatus =
   | "missing"
@@ -39,18 +32,6 @@ export type DocumentsRoadmapSection = {
   status: "not_started" | "in_progress" | "complete"
   lastUpdated: string | null
   isPublic: boolean
-}
-
-export type DocumentsPolicyEntry = {
-  id: string
-  title: string
-  summary: string
-  status: "not_started" | "in_progress" | "complete"
-  categories: string[]
-  programId: string | null
-  personIds: string[]
-  document: OrgDocument | null
-  updatedAt: string | null
 }
 
 export type DocumentsOption = {

@@ -1,4 +1,5 @@
 import type { UpcomingEvent } from "../../_lib/types"
+import { workspaceCalendarEventAccentClassName } from "@/components/workspace/workspace-calendar-date-strip-preview"
 import { safeDateLabel } from "../../_lib/helpers"
 import type { MyOrganizationCalendarView } from "../../_lib/types"
 
@@ -53,13 +54,6 @@ export function buildCalendarStripEventPreview({
   visibleEvents: MyOrganizationCalendarView["upcomingEvents"]
   selectedDayEvents: MyOrganizationCalendarView["upcomingEvents"]
 }) {
-  const resolveAccentClassName = (assignedRoles: string[]) => {
-    if (assignedRoles.includes("board")) return "before:bg-emerald-500"
-    if (assignedRoles.includes("staff")) return "before:bg-sky-500"
-    if (assignedRoles.includes("admin")) return "before:bg-amber-500"
-    return "before:bg-muted-foreground/70"
-  }
-
   const shouldShowPreviewData =
     visibleEvents.length === 0 && selectedDayEvents.length === 0
 
@@ -73,7 +67,9 @@ export function buildCalendarStripEventPreview({
         invitesLabel: event.assigned_roles.length
           ? `Invites: ${event.assigned_roles.join(", ")}`
           : null,
-        accentClassName: resolveAccentClassName(event.assigned_roles),
+        accentClassName: workspaceCalendarEventAccentClassName(
+          event.assigned_roles
+        ),
         event,
         detailDescription: event.description,
         isPreview: false,

@@ -1,0 +1,6 @@
+/* Google portals the picker outside React. Clip its iframe at the dialog shell;
+   picker-dialog-bg is the full-screen backdrop and must stay rectangular. */
+body .picker-dialog {
+  border-radius: calc(var(--radius, 0.625rem) + 6px);
+  overflow: hidden;
+}

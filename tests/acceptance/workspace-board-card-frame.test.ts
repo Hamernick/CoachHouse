@@ -60,6 +60,24 @@ const ACCELERATOR_STEP = {
 } satisfies WorkspaceAcceleratorCardStep
 
 describe("workspace board card frame", () => {
+  it("adds particle-style hover tools to Organization and Activity cards", () => {
+    const cardSource = readSource(
+      "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-node-card.tsx"
+    )
+    const toolbarSource = readSource(
+      "src/features/workspace-particles/components/existing-canvas-particle-toolbar.tsx"
+    )
+
+    expect(cardSource).toContain("<ExistingCanvasParticleToolbar")
+    expect(cardSource).toContain('cardId === "organization-overview"')
+    expect(cardSource).toContain('cardId === "programs"')
+    expect(toolbarSource).toContain("<NodeToolbar")
+    expect(toolbarSource).toContain("<ToggleGroup")
+    expect(toolbarSource).toContain("Small")
+    expect(toolbarSource).toContain("Medium")
+    expect(toolbarSource).toContain("Large")
+    expect(toolbarSource).toContain("onRemove")
+  })
   it("keeps the Frame primitive slim and defines explicit header, body, and footer slots", () => {
     const markup = renderToStaticMarkup(
       React.createElement(
@@ -226,7 +244,9 @@ describe("workspace board card frame", () => {
   })
 
   it("renders the organization overview shell through the card-style node anatomy", () => {
-    const props: React.ComponentProps<typeof WorkspaceBoardOrganizationCardShell> = {
+    const props: React.ComponentProps<
+      typeof WorkspaceBoardOrganizationCardShell
+    > = {
       title: "Organization",
       subtitle: "Profile",
       size: "md",

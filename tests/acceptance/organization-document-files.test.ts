@@ -74,7 +74,7 @@ describe("organization document files", () => {
       "src/components/organization/org-profile-card/tabs/documents-tab/components/documents-library-grid.tsx"
     )
 
-    expect(route).toContain("const RETENTION_DAYS = 30")
+    expect(readSource("src/app/api/account/organization-document-files/file-cleanup.ts")).toContain("const RETENTION_DAYS = 30")
     expect(route).toContain('payload?.action === "trash"')
     expect(route).toContain('payload?.action === "restore"')
     expect(route).toContain("Move the file to Recently Deleted first.")

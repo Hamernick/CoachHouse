@@ -58,6 +58,7 @@ export type WorkspaceBoardNodeData = {
   isJourneyTarget?: boolean
   onFocusCard?: (cardId: WorkspaceCardId) => void
   onOpenCard?: (cardId: WorkspaceCardId) => void
+  onHideCard?: (cardId: WorkspaceCardId) => void
   fiscalSponsorshipCardVisible?: boolean
   onMeasuredHeightChange?: (size: WorkspaceCardSize, height: number) => void
   isCanvasFullscreen?: boolean

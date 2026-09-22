@@ -30,7 +30,7 @@ export function MarketplaceViews({
   }
   return (
     <Tabs value={view} onValueChange={changeView} className="gap-0">
-      <div className="flex flex-wrap items-center gap-4 border-b pb-4">
+      <div className="flex flex-wrap items-center gap-4 pb-4">
         <TabsList
           className="rounded-full p-1 group-data-[orientation=horizontal]/tabs:h-11"
           aria-label="Marketplace views"

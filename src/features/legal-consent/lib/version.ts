@@ -1,2 +1,2 @@
-export const LEGAL_DOCUMENT_VERSION = "2026-09-09.1"
-export const LEGAL_DOCUMENT_EFFECTIVE_DATE = "September 9, 2026"
+export const LEGAL_DOCUMENT_VERSION = "2026-09-10.1"
+export const LEGAL_DOCUMENT_EFFECTIVE_DATE = "September 10, 2026"

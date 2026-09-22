@@ -158,7 +158,7 @@ describe("public map user location", () => {
     expect(rotationSource).toContain('document.visibilityState !== "hidden"')
     expect(hookSource).toContain("startSpinningMapGlobe")
     expect(locationControlSource).toContain(
-      "absolute inset-0 flex items-center justify-center p-4"
+      "absolute inset-0 z-[60] flex items-center justify-center p-4"
     )
     expect(sidebarThemeSource).toContain(
       "bg-background/88 text-foreground backdrop-blur-xl"
@@ -218,7 +218,7 @@ describe("public map user location", () => {
     )
   })
 
-  it("keeps mobile map controls in separate safe-area overlay zones", () => {
+  it("places mobile map controls in a shared safe-area row", () => {
     const locationControlSource = readSource(
       "src/components/public/public-map-index/location-control.tsx"
     )
@@ -238,7 +238,7 @@ describe("public map user location", () => {
     expect(locationControlSource).toContain("safe-area-inset-top")
     expect(locationControlSource).toContain("safe-area-inset-left")
     expect(locationControlSource).toContain("data-public-map-location-controls")
-    expect(locationControlSource).toContain("absolute inset-0 z-[60]")
+    expect(locationControlSource).not.toContain("absolute inset-0 md:z-[60]")
     expect(locationControlSource).toContain("Location timed out")
     expect(locationControlSource).toContain(
       "public-map-location-card:current-location"
@@ -250,18 +250,22 @@ describe("public map user location", () => {
       "PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME"
     )
     expect(statusPillSource).toContain("PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME")
-    expect(locationControlSource).toContain("size-8 rounded-full")
+    expect(locationControlSource).toContain(
+      "size-8 shrink-0 touch-manipulation rounded-full"
+    )
+    expect(locationControlSource).toContain("data-public-map-location-trigger")
     expect(locationControlSource).toContain("Use your location?")
     expect(locationControlSource.replace(/\s+/g, " ")).toContain(
       "Your location is not saved"
     )
     expect(welcomeControlSource).toContain("left-1/2")
     expect(welcomeControlSource).toContain("-translate-x-1/2")
-    expect(welcomeControlSource).toContain('"Welcome"')
-    expect(welcomeControlSource).toContain('"Hide welcome"')
+    expect(welcomeControlSource).toContain(">Welcome</span>")
+    expect(welcomeControlSource).not.toContain("Hide welcome")
     expect(welcomeControlSource).toContain("PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME")
-    expect(welcomeControlSource).toContain("top-[max(4.25rem")
-    expect(welcomeControlSource).toContain("sm:top-[max(0.75rem")
+    expect(locationControlSource).toContain("{additionalControls}")
+    expect(welcomeControlSource).toContain("md:left-1/2 md:z-30 md:-translate-x-1/2")
+    expect(mapSurfaceSource).toContain("styles.surface")
     expect(welcomeControlSource).toContain("data-public-map-welcome-control")
     expect(mapSurfaceSource).toContain("data-public-map-status-overlays")
     expect(mapSurfaceSource).toContain("safe-area-inset-top")

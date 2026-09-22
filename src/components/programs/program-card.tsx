@@ -34,6 +34,7 @@ export type ProgramCardProps = {
   onCtaClick?: () => void
   patternId?: string
   variant?: "list" | "medium" | "full"
+  listDensity?: "default" | "compact"
   contentFill?: boolean
   className?: string
 }
@@ -57,6 +58,7 @@ export function ProgramCard({
   onCtaClick,
   patternId,
   variant = "medium",
+  listDensity = "default",
   contentFill = true,
   className,
 }: ProgramCardProps) {
@@ -94,7 +96,13 @@ export function ProgramCard({
 
   if (variant === "list") {
     return (
-      <Item className={cn("min-h-[112px] items-start", className)}>
+      <Item
+        className={cn(
+          "items-start",
+          listDensity === "compact" ? "min-h-0 p-2 sm:p-2" : "min-h-[112px]",
+          className
+        )}
+      >
         <ItemMedia className="bg-muted relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
           {thumbImageUrl ? (
             <Image
@@ -115,7 +123,9 @@ export function ProgramCard({
             </>
           )}
         </ItemMedia>
-        <ItemContent className="space-y-1.5">
+        <ItemContent
+          className={listDensity === "compact" ? "space-y-1" : "space-y-1.5"}
+        >
           {showStatusBadge && statusLabel ? (
             <Badge
               variant="secondary"
@@ -124,40 +134,53 @@ export function ProgramCard({
               {statusLabel}
             </Badge>
           ) : null}
-          <ItemTitle className="line-clamp-2">{title}</ItemTitle>
+          <ItemTitle
+            className={
+              listDensity === "compact"
+                ? "line-clamp-1 text-xs"
+                : "line-clamp-2"
+            }
+          >
+            {title}
+          </ItemTitle>
           {org || location ? (
             <ItemDescription className="line-clamp-1 text-xs">
               {[org, location].filter(Boolean).join(" · ")}
             </ItemDescription>
           ) : null}
           {description ? (
-            <ItemDescription className="line-clamp-2 text-[13px] leading-5">
+            <ItemDescription
+              className={
+                listDensity === "compact"
+                  ? "line-clamp-1 text-[11px] leading-4"
+                  : "line-clamp-2 text-[13px] leading-5"
+              }
+            >
               {description}
             </ItemDescription>
           ) : null}
         </ItemContent>
-        <ItemActions className="self-start">
-          {ctaHref ? (
-            <Button size="sm" variant="outline" asChild>
-              <a
-                href={ctaHref}
-                target={ctaTarget}
-                rel={ctaTarget === "_blank" ? "noopener noreferrer" : undefined}
-              >
+        {ctaHref || onCtaClick ? (
+          <ItemActions className="self-start">
+            {ctaHref ? (
+              <Button size="sm" variant="outline" asChild>
+                <a
+                  href={ctaHref}
+                  target={ctaTarget}
+                  rel={
+                    ctaTarget === "_blank" ? "noopener noreferrer" : undefined
+                  }
+                >
+                  {ctaLabel}
+                </a>
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={onCtaClick}>
                 {ctaLabel}
-              </a>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onCtaClick}
-              disabled={!onCtaClick}
-            >
-              {ctaLabel}
-            </Button>
-          )}
-        </ItemActions>
+              </Button>
+            )}
+          </ItemActions>
+        ) : null}
       </Item>
     )
   }

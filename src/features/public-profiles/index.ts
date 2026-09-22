@@ -22,5 +22,11 @@ export type {
   PublicProfileSavedItem,
   PublicProfileView,
 } from "./types"
-export { projectPublicPeople } from "./lib/public-directory"
-export type { PublicPersonDirectoryEntry } from "./lib/public-directory"
+export {
+  projectPublicPeople,
+  projectPublicPerson,
+} from "./lib/public-directory"
+export type {
+  PublicPersonDirectoryEntry,
+  PublicPersonDirectoryProfile,
+} from "./lib/public-directory"

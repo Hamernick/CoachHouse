@@ -1,3 +1,9 @@
+// Explicit demo accounts only; tester-owned and unfinished real organizations remain visible.
+const DIRECTORY_FIXTURE_ORGANIZATION_IDS = new Set([
+  "fe0fd7c3-c0fd-4c20-9e80-b14d68da5d0c", // testing123
+  "886455ec-a664-4f13-83f1-471ddd1f5ffd", // Southside Community Table recording fixture
+])
+
 import {
   loadAdminOrganizationSummaries,
   mapAdminOrganizationSummaryToProject,
@@ -63,15 +69,15 @@ async function loadAdminStandardOrganizationProjects({
   return data ?? []
 }
 
-export async function loadMemberWorkspaceProjectsPage() {
+export async function loadMemberWorkspaceProjectsPage({ directory = "organizations" }: { directory?: "organizations" | "projects" } = {}) {
   const actor = await resolveMemberWorkspaceActorContext()
 
   if (actorCanAccessOrganizations(actor)) {
     const organizations = filterOrganizationsForActor(
       actor,
-      await loadAdminOrganizationSummaries({
+      (await loadAdminOrganizationSummaries({
         supabase: actor.supabase,
-      })
+      })).filter((organization) => !DIRECTORY_FIXTURE_ORGANIZATION_IDS.has(organization.orgId))
     )
     const orgIds = organizations.map((organization) => organization.orgId)
     const organizationOptions = organizations.map((organization) => ({
@@ -81,11 +87,11 @@ export async function loadMemberWorkspaceProjectsPage() {
     const [assigneeOptions, canonicalProjects, standardProjects] =
       await Promise.all([
         loadMemberWorkspacePersonOptionsForOrganizations({
-          orgIds,
+          orgIds: [],
           supabase: actor.supabase,
           includePlatformAdmins: true,
         }),
-        ensureCanonicalAdminProjects({
+        directory === "projects" ? Promise.resolve([] as OrganizationProjectRecord[]) : ensureCanonicalAdminProjects({
           organizations,
           supabase: actor.supabase,
         }),
@@ -97,7 +103,7 @@ export async function loadMemberWorkspaceProjectsPage() {
 
     if (!canonicalProjects || !standardProjects) {
       return {
-        projects: organizations.map(mapAdminOrganizationSummaryToProject),
+        projects: directory === "projects" ? [] : organizations.map(mapAdminOrganizationSummaryToProject),
         storageMode: "custom" as const,
         starterProjectCount: 0,
         hasUserProjects: organizations.length > 0,
@@ -122,6 +128,7 @@ export async function loadMemberWorkspaceProjectsPage() {
       ])
     )
 
+    const organizationNames = new Map(organizationOptions.map((org) => [org.orgId, org.name]))
     const projects = [
       ...canonicalProjects.map((project) => {
         const viewModel = mapOrganizationProjectToViewModel(project)
@@ -136,7 +143,7 @@ export async function loadMemberWorkspaceProjectsPage() {
           taskSummaryLabel: "Tasks",
         }
       }),
-      ...standardProjects.map(mapOrganizationProjectToViewModel),
+      ...standardProjects.map(mapOrganizationProjectToViewModel).map((project) => ({ ...project, client: organizationNames.get(project.organizationId ?? "") ?? undefined })),
     ]
     const workstreamConfiguration =
       await loadPlatformAdminWorkstreamConfiguration({
@@ -150,7 +157,9 @@ export async function loadMemberWorkspaceProjectsPage() {
         workstreamConfiguration?.categoryIdByProjectId.get(project.id)
       const statusCategory = workstreamCategories.find(
         (category) => category.defaultKey === project.status
-      )
+      ) ?? (project.status === "active" ? workstreamCategories.find(
+        (category) => category.defaultKey === "planned"
+      ) : undefined)
 
       return {
         ...project,

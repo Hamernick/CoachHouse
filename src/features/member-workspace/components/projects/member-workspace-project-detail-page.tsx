@@ -1,5 +1,7 @@
 "use client"
 
+import type { CoachingAvatar } from "@/components/coaching/coaching-avatar-group"
+
 import {
   useCallback,
   useEffect,
@@ -8,11 +10,10 @@ import {
   useTransition,
   type ReactNode,
 } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { AnimatePresence, motion } from "motion/react"
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import type {
   FiscalSponsorshipProjectWorkbenchAdminActionProps,
   FiscalSponsorshipProjectWorkbenchDocumentActionProps,
@@ -50,6 +51,8 @@ import { useProjectAssetActions } from "./member-workspace-project-asset-actions
 import { useMemberWorkspaceProjectTaskCreate } from "./member-workspace-project-task-create"
 
 type MemberWorkspaceProjectDetailPageProps = {
+  assignedCoaches?: CoachingAvatar[] | null
+  assignedCoachNames?: string[] | null
   adminBilling?: ReactNode
   project: ProjectDetails
   assigneeOptions: MemberWorkspacePersonOption[]
@@ -71,6 +74,7 @@ type MemberWorkspaceProjectDetailPageProps = {
   ) => Promise<
     { ok: true; taskId: string; projectId: string } | { error: string }
   >
+  updateScheduleAction?: (id: string, startDate: string, endDate: string) => Promise<{ ok: true; id: string } | { error: string }>
   updateProjectAction?: (
     projectId: string,
     input: MemberWorkspaceCreateProjectFormInput
@@ -158,7 +162,7 @@ function useMemberWorkspaceProjectDelete({
 
   const handleDeleteProject = useCallback(() => {
     if (!deleteProjectAction) {
-      toast.error("Organization deletion is unavailable.")
+      toast.error("Project deletion is unavailable.")
       return
     }
 
@@ -170,7 +174,7 @@ function useMemberWorkspaceProjectDelete({
         return
       }
 
-      toast.success("Organization deleted")
+      toast.success("Project deleted")
       setDeleteProjectOpen(false)
       onDeleted()
     })
@@ -186,6 +190,8 @@ function useMemberWorkspaceProjectDelete({
 
 export function MemberWorkspaceProjectDetailPage({
   adminBilling,
+  assignedCoachNames,
+  assignedCoaches,
   project,
   assigneeOptions,
   currentUser,
@@ -198,6 +204,7 @@ export function MemberWorkspaceProjectDetailPage({
   updateTaskAction,
   deleteTaskAction,
   updateProjectAction,
+  updateScheduleAction,
   deleteProjectAction,
   updateTaskStatusAction,
   updateTaskOrderAction,
@@ -225,6 +232,7 @@ export function MemberWorkspaceProjectDetailPage({
     canEditProjectDetailsProp ?? Boolean(updateProjectAction)
   const canManageProjectAssets = canManageProjectAssetsProp ?? canManageProject
   const router = useRouter()
+  const directoryHref = (usePathname() ?? "").startsWith("/projects") ? "/projects" : "/organizations"
   const [showMeta, setShowMeta] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [isEditing, setIsEditing] = useState(false)
@@ -238,10 +246,10 @@ export function MemberWorkspaceProjectDetailPage({
 
   const breadcrumbs = useMemo(
     () => [
-      { label: "Organizations", href: "/organizations" },
+      { label: directoryHref === "/projects" ? "Projects" : "Organizations", href: directoryHref },
       { label: project.name },
     ],
-    [project.name]
+    [directoryHref, project.name]
   )
 
   useEffect(() => {
@@ -327,19 +335,19 @@ export function MemberWorkspaceProjectDetailPage({
         return
       }
 
-      toast.success("Organization updated")
+      toast.success(directoryHref === "/projects" ? "Project updated" : "Organization updated")
       setIsEditing(false)
       router.refresh()
     })
-  }, [hasProjectChanges, project, projectDraft, router, updateProjectAction])
+  }, [directoryHref, hasProjectChanges, project, projectDraft, router, updateProjectAction])
 
   const canDeleteProject =
     Boolean(deleteProjectAction) &&
     getProjectSourceProjectKind(project.source) !== "organization_admin"
   const handleProjectDeleted = useCallback(() => {
-    router.push("/organizations")
+    router.push(directoryHref)
     router.refresh()
-  }, [router])
+  }, [directoryHref, router])
   const {
     deleteProjectOpen,
     handleDeleteProject,
@@ -390,10 +398,6 @@ export function MemberWorkspaceProjectDetailPage({
     >
       <div className="border-border flex flex-wrap items-center justify-between gap-4 border-b px-4 py-4">
         <div className="flex min-w-0 items-center gap-3">
-          <SidebarTrigger
-            aria-label="Toggle sidebar"
-            className="text-muted-foreground hover:text-foreground size-8 rounded-lg"
-          />
           <div className="hidden sm:block">
             <Breadcrumbs items={breadcrumbs} />
           </div>
@@ -431,6 +435,8 @@ export function MemberWorkspaceProjectDetailPage({
               >
                 <div className="space-y-6 pt-4 pb-8">
                   <MemberWorkspaceProjectDetailHeader
+                    assignedCoachNames={assignedCoachNames}
+                    assignedCoaches={assignedCoaches}
                     project={project}
                     assigneeOptions={assigneeOptions}
                     canEditProject={
@@ -517,6 +523,7 @@ export function MemberWorkspaceProjectDetailPage({
                       className="lg:border-border pb-8 lg:border-l lg:pl-6"
                     >
                       <MemberWorkspaceProjectRightMetaPanel
+                        updateScheduleAction={canEditProjectDetails ? updateScheduleAction : undefined}
                         adminBilling={adminBilling}
                         project={project}
                         organizationSummary={organizationSummary}

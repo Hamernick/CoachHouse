@@ -1,6 +1,14 @@
 "use client"
 
-import { useCallback, useMemo, useState, type DragEvent } from "react"
+import { useWorkspaceParticles } from "@/features/workspace-particles/client"
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+} from "react"
 import RotateCcwIcon from "lucide-react/dist/esm/icons/rotate-ccw"
 import {
   Background,
@@ -89,6 +97,7 @@ export function WorkspaceCanvasSurfaceV2View({
   onNodeClick,
   onNodeDoubleClick,
   onKeyDownCapture,
+  onNodeDragStart,
   onNodeDragStop,
   onSelectionDragStop,
   onMoveStart,
@@ -118,6 +127,12 @@ export function WorkspaceCanvasSurfaceV2View({
     useState<HTMLDivElement | null>(null)
   const [flowFrameContainer, setFlowFrameContainer] =
     useState<HTMLDivElement | null>(null)
+  const particles = useWorkspaceParticles()
+  const setParticleCanvas = particles?.setCanvas
+  useEffect(() => {
+    setParticleCanvas?.(flowFrameContainer)
+    return () => setParticleCanvas?.(null)
+  }, [setParticleCanvas, flowFrameContainer])
   const nodeTypes = useMemo(() => WORKSPACE_CANVAS_V2_NODE_TYPES, [])
   const edgeTypes = useMemo(() => WORKSPACE_CANVAS_V2_EDGE_TYPES, [])
   const nodesSelectable = !tutorialActive
@@ -244,7 +259,7 @@ export function WorkspaceCanvasSurfaceV2View({
           <div
             ref={setFlowFrameContainer}
             data-workspace-canvas-flow-frame="true"
-            className="absolute inset-0 max-w-full min-w-0 overflow-hidden"
+            className="absolute inset-0 max-w-full min-w-0 overflow-clip"
           >
             <ReactFlowProvider>
               <WorkspaceReactFlowErrorBootstrap onError={onError}>
@@ -267,6 +282,7 @@ export function WorkspaceCanvasSurfaceV2View({
                     onNodeClick={onNodeClick}
                     onNodeDoubleClick={onNodeDoubleClick}
                     onKeyDownCapture={onKeyDownCapture}
+                    onNodeDragStart={onNodeDragStart}
                     onNodeDragStop={onNodeDragStop}
                     onSelectionDragStop={onSelectionDragStop}
                     onMoveStart={onMoveStart}

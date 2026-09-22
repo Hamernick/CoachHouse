@@ -1,5 +1,6 @@
 import type { KeyboardEventHandler } from "react"
 import type {
+  Node,
   NodeDragHandler,
   NodeMouseHandler,
   OnMoveEnd,
@@ -23,10 +24,9 @@ import type {
   WorkspaceCanvasPeopleAddRequest,
   WorkspaceCanvasPersonDropRequest,
 } from "./workspace-canvas-people-dnd"
-import type { WorkspaceCanvasNode } from "./workspace-canvas-surface-v2-helpers"
 
 export type WorkspaceCanvasSurfaceV2ViewProps = {
-  nodes: WorkspaceCanvasNode[]
+  nodes: Node[]
   edges: ReturnType<typeof useWorkspaceCanvasConnectionsController>["edges"]
   allowEditing: boolean
   peopleCanvasInteractionEnabled: boolean
@@ -58,6 +58,7 @@ export type WorkspaceCanvasSurfaceV2ViewProps = {
   onNodeClick: NodeMouseHandler
   onNodeDoubleClick: NodeMouseHandler
   onKeyDownCapture: KeyboardEventHandler<HTMLDivElement>
+  onNodeDragStart?: NodeDragHandler
   onNodeDragStop: NodeDragHandler
   onSelectionDragStop: SelectionDragHandler
   onMoveStart: () => void

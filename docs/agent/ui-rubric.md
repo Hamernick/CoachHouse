@@ -2,6 +2,9 @@
 
 Use this as the canonical UI implementation/review checklist.
 
+Apply the focused craft references in [`design-craft/README.md`](design-craft/README.md)
+for image edges, optical alignment, nested radii, and frequent interactions.
+
 ## Design Source
 
 - MUST: For UI-visible work, read `docs/design.md` before editing and use it as the product-specific visual source of truth.

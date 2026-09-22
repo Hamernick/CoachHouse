@@ -1,5 +1,5 @@
 import { PUBLIC_MAP_RESOURCE_SUBCATEGORY_DEFINITION_OVERRIDES } from "./resource-category-subcategory-overrides"
-import { publicMapTextContainsCategoryAlias } from "./resource-category-alias-matching"
+import { createPublicMapCategoryAliasMatcher } from "./resource-category-alias-matching"
 
 export const PUBLIC_MAP_RESOURCE_CATEGORY_ORDER = [
   "health",
@@ -597,11 +597,9 @@ export function resolvePublicMapResourceCategoryInputKey(
   )
   if (exactLabelMatch) return exactLabelMatch.key
 
-  const words = raw.toLowerCase()
+  const matchesAlias = createPublicMapCategoryAliasMatcher(raw)
   const aliasMatch = PUBLIC_MAP_RESOURCE_CATEGORY_DEFINITIONS.find((category) =>
-    category.aliases.some((alias) =>
-      publicMapTextContainsCategoryAlias({ alias, text: words })
-    )
+    category.aliases.some(matchesAlias)
   )
   return aliasMatch?.key ?? null
 }

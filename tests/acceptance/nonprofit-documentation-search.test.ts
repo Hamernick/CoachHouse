@@ -31,7 +31,7 @@ describe("nonprofit documentation search", () => {
     expect(
       DOCUMENTATION_SEARCH_DOCUMENTS.map((item) => item.href).sort()
     ).toEqual(expected)
-    expect(new Set(expected).size).toBe(43)
+    expect(new Set(expected).size).toBe(54)
     for (const document of DOCUMENTATION_SEARCH_DOCUMENTS) {
       expect(
         existsSync(

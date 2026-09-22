@@ -1,5 +1,4 @@
 export { AppShellHeader } from "./app-shell-header"
-export { AppShellMobileNav } from "./app-shell-mobile-nav"
 export { ShellMainContent } from "./shell-main-content"
 export { ShellRightRail } from "./shell-right-rail"
 export { SidebarAutoCollapse } from "./sidebar-auto-collapse"

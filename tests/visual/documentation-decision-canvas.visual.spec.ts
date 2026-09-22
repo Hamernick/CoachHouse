@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
+import { prepareVisualPage, reviewedPlatformScreenshotName } from "./reviewed-platform-screenshot"
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
+})
 
 async function closeEditor(page: Page) {
   await page
@@ -119,8 +124,8 @@ for (const width of [1440, 390]) {
         content: "nextjs-portal { visibility: hidden !important; }",
       })
       await page.mouse.move(0, 0)
-      await expect(canvas).toHaveScreenshot(
-        `decision-canvas-${width}-${theme}.png`,
+      await expect.soft(canvas).toHaveScreenshot(
+        reviewedPlatformScreenshotName(`decision-canvas-${width}-${theme}.png`),
         { animations: "disabled" }
       )
       await page
@@ -142,8 +147,8 @@ for (const width of [1440, 390]) {
         await editor.evaluate((el) => el.scrollWidth <= el.clientWidth)
       ).toBe(true)
       await page.mouse.move(0, 0)
-      await expect(canvas).toHaveScreenshot(
-        `decision-editor-${width}-${theme}.png`,
+      await expect.soft(canvas).toHaveScreenshot(
+        reviewedPlatformScreenshotName(`decision-editor-${width}-${theme}.png`),
         { animations: "disabled" }
       )
       await closeEditor(page)

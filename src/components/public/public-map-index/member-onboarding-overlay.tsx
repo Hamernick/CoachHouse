@@ -14,6 +14,8 @@ import SearchIcon from "lucide-react/dist/esm/icons/search"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
 type MemberMapOnboardingIntent = "find" | "fund" | "support"
@@ -214,7 +216,7 @@ function OnboardingSubmitButton({
 
   if (!isLastStep) {
     return (
-      <Button type="button" className="rounded-full px-4" onClick={onContinue}>
+      <Button type="button" className="rounded-full px-4 max-md:min-h-11" onClick={onContinue}>
         Continue
         <ChevronRightIcon data-icon="inline-end" aria-hidden />
       </Button>
@@ -224,7 +226,7 @@ function OnboardingSubmitButton({
   return (
     <Button
       type={onFinish ? "button" : "submit"}
-      className="rounded-full px-4"
+      className="rounded-full px-4 max-md:min-h-11"
       disabled={pending}
       onClick={onFinish}
     >
@@ -255,6 +257,9 @@ export function PublicMapMemberOnboardingOverlay({
   onSubmit,
   onDismiss,
 }: PublicMapMemberOnboardingOverlayProps) {
+  const isMobile = useIsMobile()
+  const Title = isMobile ? DialogTitle : "p"
+  const Description = isMobile ? DialogDescription : "p"
   const steps = useMemo(
     () => buildPublicMapMemberOnboardingSteps({ hasOrganizationSwitcher }),
     [hasOrganizationSwitcher]
@@ -273,7 +278,7 @@ export function PublicMapMemberOnboardingOverlay({
       <Button
         type={onSubmit ? "submit" : "button"}
         variant="ghost"
-        className="text-muted-foreground rounded-full px-3"
+        className="text-muted-foreground rounded-full px-3 max-md:min-h-11"
         onClick={onDismiss}
       >
         Skip
@@ -288,6 +293,85 @@ export function PublicMapMemberOnboardingOverlay({
     </>
   )
 
+  const content = (
+    <>
+      <CardContent className="flex min-h-0 flex-1 items-center justify-center px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
+        <div className="flex w-full items-center justify-center max-md:scale-75">
+          <StepVisual stepId={currentStep.id} />
+        </div>
+      </CardContent>
+      <CardFooter className="border-border/60 bg-background/92 min-h-[14rem] flex-col items-stretch gap-4 border-t px-5 pt-5 pb-5 max-md:min-h-0 max-md:shrink-0 max-md:gap-3 max-md:px-4 max-md:py-4 sm:px-6 sm:pb-6">
+        <div className="flex items-center justify-center gap-1" aria-hidden>
+          {steps.map((step, index) => (
+            <span
+              key={step.id}
+              className={cn(
+                "h-1.5 rounded-full transition-[width,background-color] duration-200 motion-reduce:transition-none",
+                index === boundedStepIndex
+                  ? "bg-foreground w-6"
+                  : "bg-muted-foreground/28 w-1.5"
+              )}
+            />
+          ))}
+        </div>
+        <div className="text-center" aria-live="polite">
+          <Title
+            {...(isMobile ? {} : { id: "member-map-onboarding-title" })}
+            className="text-foreground text-xl font-semibold tracking-tight max-md:text-lg"
+          >
+            {currentStep.title}
+          </Title>
+          <Description
+            {...(isMobile ? {} : { id: "member-map-onboarding-description" })}
+            className="text-muted-foreground mx-auto mt-2 max-w-[26rem] text-sm leading-6 max-md:leading-5"
+          >
+            {currentStep.body}
+          </Description>
+        </div>
+        {onSubmit ? (
+          <form
+            action={onSubmit}
+            className="mt-auto flex items-center justify-between gap-3"
+          >
+            {actionControls}
+          </form>
+        ) : (
+          <div className="mt-auto flex items-center justify-between gap-3">
+            {actionControls}
+          </div>
+        )}
+      </CardFooter>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) onDismiss?.()
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="bg-background/30 backdrop-blur-sm"
+          onCloseAutoFocus={(event) => {
+            const trigger = document.querySelector<HTMLButtonElement>(
+              "[data-public-map-welcome-control] > button"
+            )
+            if (trigger && document.activeElement === document.body) {
+              event.preventDefault()
+              trigger.focus({ preventScroll: true })
+            }
+          }}
+          className="border-border/70 bg-background/88 flex h-[min(28rem,calc(100dvh-3rem))] max-w-[min(20rem,calc(100%-2rem))] flex-col gap-0 overflow-x-hidden rounded-[30px] p-0 shadow-[0_28px_80px_-42px_rgba(15,23,42,0.58)] backdrop-blur-xl sm:max-w-[20rem] sm:rounded-[30px] sm:p-0"
+        >
+          {content}
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   return (
     <div className="pointer-events-none absolute inset-0 z-50 flex items-end justify-center px-4 py-5 sm:items-center sm:p-6">
       <Card
@@ -297,50 +381,7 @@ export function PublicMapMemberOnboardingOverlay({
         aria-describedby="member-map-onboarding-description"
         className="border-border/70 bg-background/88 pointer-events-auto h-[min(42rem,calc(100%-1rem))] w-full max-w-[34rem] overflow-hidden rounded-[30px] shadow-[0_28px_80px_-42px_rgba(15,23,42,0.58)] backdrop-blur-xl"
       >
-        <CardContent className="flex min-h-0 flex-1 items-center justify-center px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
-          <StepVisual stepId={currentStep.id} />
-        </CardContent>
-        <CardFooter className="border-border/60 bg-background/92 min-h-[14rem] flex-col items-stretch gap-4 border-t px-5 pt-5 pb-5 sm:px-6 sm:pb-6">
-          <div className="flex items-center justify-center gap-1" aria-hidden>
-            {steps.map((step, index) => (
-              <span
-                key={step.id}
-                className={cn(
-                  "h-1.5 rounded-full transition-[width,background-color] duration-200 motion-reduce:transition-none",
-                  index === boundedStepIndex
-                    ? "bg-foreground w-6"
-                    : "bg-muted-foreground/28 w-1.5"
-                )}
-              />
-            ))}
-          </div>
-          <div className="text-center" aria-live="polite">
-            <p
-              id="member-map-onboarding-title"
-              className="text-foreground text-xl font-semibold tracking-tight"
-            >
-              {currentStep.title}
-            </p>
-            <p
-              id="member-map-onboarding-description"
-              className="text-muted-foreground mx-auto mt-2 max-w-[26rem] text-sm leading-6"
-            >
-              {currentStep.body}
-            </p>
-          </div>
-          {onSubmit ? (
-            <form
-              action={onSubmit}
-              className="mt-auto flex items-center justify-between gap-3"
-            >
-              {actionControls}
-            </form>
-          ) : (
-            <div className="mt-auto flex items-center justify-between gap-3">
-              {actionControls}
-            </div>
-          )}
-        </CardFooter>
+        {content}
       </Card>
     </div>
   )

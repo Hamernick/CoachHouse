@@ -2,7 +2,10 @@ import "server-only"
 
 import {
   projectPublicPeople,
+  projectPublicPerson,
+  validatePublicHandle,
   type PublicPersonDirectoryEntry,
+  type PublicPersonDirectoryProfile,
 } from "@/features/public-profiles"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -14,6 +17,34 @@ export type PublicPeopleDirectory = {
 }
 
 const DIRECTORY_LIMIT = 24
+
+export async function fetchPublicPersonByHandle(
+  input: string
+): Promise<PublicPersonDirectoryProfile | null> {
+  const validated = validatePublicHandle(input)
+  if (!validated.valid) return null
+
+  const supabase = await createSupabaseServerClient()
+  const { data: handle, error: handleError } = await supabase
+    .from("public_handles")
+    .select("profile_id, owner_type, handle")
+    .eq("handle", validated.handle)
+    .eq("owner_type", "person")
+    .maybeSingle()
+  if (handleError) throw new Error("Unable to load this person.")
+  if (!handle?.profile_id || handle.owner_type !== "person") return null
+
+  const { data: person, error } = await supabase
+    .from("public_person_profiles")
+    .select(
+      "profile_id, display_name, headline, bio, location_label, website_url, avatar_url, is_public"
+    )
+    .eq("profile_id", handle.profile_id)
+    .eq("is_public", true)
+    .maybeSingle()
+  if (error) throw new Error("Unable to load this person.")
+  return person ? projectPublicPerson(person, handle) : null
+}
 
 export async function fetchPublicPeopleDirectory(
   requestedPage = 1

@@ -114,6 +114,12 @@ ${draft.purpose}
 Audience
 ${draft.audience}
 
+Actionables
+${draft.actionables
+  .filter((action) => action.trim())
+  .map((action) => `- ${action}`)
+  .join("\n")}
+
 Logo use
 ${draft.logoGuidance}
 

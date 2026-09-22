@@ -34,7 +34,10 @@ export type LibraryItem = {
   driveDocument?: DriveLibraryDocument
 }
 
-function resolveFileType(mimeType: string, name = ""): LibraryItem["fileType"] {
+export function resolveDocumentsLibraryFileType(
+  mimeType: string,
+  name = ""
+): LibraryItem["fileType"] {
   if (mimeType.startsWith("image/")) return "image"
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
     return "spreadsheet"
@@ -87,14 +90,14 @@ export function buildLibraryItems(
         description: row.description,
         source: row.source === "upload" || coreFile ? "uploaded" : "generated",
         fileType: coreFile
-          ? resolveFileType(coreFile.mimeType, coreFile.name)
+          ? resolveDocumentsLibraryFileType(coreFile.mimeType, coreFile.name)
           : row.source === "upload"
-            ? resolveFileType(
+            ? resolveDocumentsLibraryFileType(
                 row.document?.mime ?? "application/pdf",
                 row.document?.name
               )
             : row.source === "policy" && row.policy.document?.path
-              ? resolveFileType(
+              ? resolveDocumentsLibraryFileType(
                   row.policy.document.mime ?? "application/pdf",
                   row.policy.document.name
                 )
@@ -138,10 +141,12 @@ export function buildLibraryItems(
     name: document.name,
     description: "Google Drive",
     source: "uploaded",
-    fileType: resolveFileType(document.mimeType, document.name),
+    fileType: resolveDocumentsLibraryFileType(document.mimeType, document.name),
     updatedAt: document.modifiedAt,
     deleted: document.status === "trashed",
     href: document.webViewLink,
+    previewPath: `/api/integrations/google-drive/documents/${encodeURIComponent(document.id)}/preview`,
+    previewVersion: document.modifiedAt ?? undefined,
     driveDocument: document,
   }))
   const uploadedItems: LibraryItem[] = uploadedFiles
@@ -155,7 +160,7 @@ export function buildLibraryItems(
       name: file.name,
       description: file.mimeType,
       source: "uploaded",
-      fileType: resolveFileType(file.mimeType, file.name),
+      fileType: resolveDocumentsLibraryFileType(file.mimeType, file.name),
       updatedAt: file.updatedAt,
       deleted: Boolean(file.deletedAt),
       deletedAt: file.deletedAt,

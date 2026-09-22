@@ -26,6 +26,7 @@ export const DEFAULT_BRAND_IDENTITY_DRAFT: BrandIdentityDraft = {
     "Create a consistent identity that helps people recognize, understand, and trust the organization.",
   audience:
     "Community members, volunteers, donors, partners, and public agencies.",
+  actionables: ["Donate", "Volunteer", "Apply"],
   logoGuidance:
     "Keep the logo clear, legible, and unchanged. Leave open space around it and use the strongest available contrast.",
   colors: [
@@ -58,8 +59,8 @@ export const DEFAULT_BRAND_IDENTITY_DRAFT: BrandIdentityDraft = {
       proportion: 10,
     },
   ],
-  headingFont: "Georgia",
-  bodyFont: "Arial",
+  headingFont: "System Sans",
+  bodyFont: "System Sans",
   baseSize: 16,
   typeRatio: 1.25,
   campaignHeadline: "Local action. Lasting change.",
@@ -197,6 +198,14 @@ export function sanitizeBrandDraft(value: unknown): BrandIdentityDraft {
     ...DEFAULT_BRAND_IDENTITY_DRAFT,
     ...candidate,
     version: 1,
+    actionables: DEFAULT_BRAND_IDENTITY_DRAFT.actionables.map(
+      (fallback, index) => {
+        const saved = Array.isArray(candidate.actionables)
+          ? candidate.actionables[index]
+          : undefined
+        return typeof saved === "string" ? saved : fallback
+      }
+    ) as BrandIdentityDraft["actionables"],
     colors,
     headingFont: BRAND_FONT_OPTIONS.some(
       (option) => option.value === candidate.headingFont

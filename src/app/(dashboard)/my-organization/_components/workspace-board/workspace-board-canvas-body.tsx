@@ -1,5 +1,7 @@
 "use client"
 
+import type { WorkspaceParticleState } from "@/features/workspace-particles"
+
 import {
   clampWorkspaceCanvasTutorialStepIndex,
   resolveWorkspaceCanvasTutorialCallout,
@@ -59,6 +61,7 @@ export function WorkspaceBoardCanvasBody({
   onTutorialShortcutOpened,
   onFocusCard,
   onOnboardingFlowChange,
+  onParticlesChange,
   onPersistNodePosition,
   onToggleCardVisibility,
   onConnectCards,
@@ -101,6 +104,7 @@ export function WorkspaceBoardCanvasBody({
   onTutorialShortcutOpened: () => void
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOnboardingFlowChange: (next: WorkspaceBoardOnboardingFlowState) => void
+  onParticlesChange: (state: WorkspaceParticleState) => void
   onPersistNodePosition: (cardId: WorkspaceCardId, x: number, y: number) => void
   onToggleCardVisibility: (
     cardId: WorkspaceCardId,
@@ -186,6 +190,7 @@ export function WorkspaceBoardCanvasBody({
           onTutorialShortcutOpened={onTutorialShortcutOpened}
           onFocusCard={onFocusCard}
           onOnboardingFlowChange={onOnboardingFlowChange}
+          onParticlesChange={onParticlesChange}
           onPersistNodePosition={onPersistNodePosition}
           onToggleCardVisibility={onToggleCardVisibility}
           onConnectCards={onConnectCards}

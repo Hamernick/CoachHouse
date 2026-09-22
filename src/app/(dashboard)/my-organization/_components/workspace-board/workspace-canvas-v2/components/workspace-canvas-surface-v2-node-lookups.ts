@@ -2,6 +2,7 @@
 
 import { useMemo, useRef } from "react"
 
+import { resolveWorkspaceCanvasOrgNodePosition } from "../adapters/workspace-canvas-from-board-state"
 import { resolveAcceleratorWorkspaceNodeId } from "./workspace-canvas-surface-v2-hooks"
 import { type WorkspaceCanvasV2CardId } from "./workspace-canvas-surface-v2-helpers"
 import { resolveWorkspaceCanvasV2InitialPositionLookup } from "./workspace-canvas-surface-v2-positioning"
@@ -11,6 +12,15 @@ import {
   resolveWorkspaceCanvasAcceleratorNode,
 } from "./workspace-canvas-surface-v2-support-helpers"
 import type { WorkspaceBoardState } from "../../workspace-board-types"
+
+export function useWorkspaceCanvasOrgNodePosition(
+  boardNodes: WorkspaceBoardState["nodes"]
+) {
+  return useMemo(
+    () => resolveWorkspaceCanvasOrgNodePosition(boardNodes),
+    [boardNodes]
+  )
+}
 
 export function useWorkspaceCanvasSurfaceNodeLookups({
   boardNodes,

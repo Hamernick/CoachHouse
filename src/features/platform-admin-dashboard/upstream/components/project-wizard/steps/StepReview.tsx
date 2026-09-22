@@ -3,15 +3,16 @@ import { Card } from "../../ui/card";
 import { Separator } from "../../ui/separator";
 import { Button } from "../../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar";
-import { getAvatarUrl } from "@/features/platform-admin-dashboard/upstream/lib/assets/avatars";
+import type { StepQuickCreateUserOption } from "./StepQuickCreate";
 import { Rocket, Flask, Briefcase, User, Users, Layout, Target, CheckCircle, Question, PencilSimpleLine } from "@phosphor-icons/react/dist/ssr";
 
 interface StepReviewProps {
   data: ProjectData;
+  people?: StepQuickCreateUserOption[];
   onEditStep?: (step: number) => void;
 }
 
-export function StepReview({ data, onEditStep }: StepReviewProps) {
+export function StepReview({ data, onEditStep, people = [] }: StepReviewProps) {
     const getIntentIcon = () => {
         switch (data.intent) {
             case 'delivery': return <Rocket className="h-5 w-5" />;
@@ -43,16 +44,6 @@ export function StepReview({ data, onEditStep }: StepReviewProps) {
         }
     };
 
-    const ownerNameMap: Record<string, string> = {
-        "jason-d": "Jason D",
-        "alex-morgan": "Alex Morgan",
-        "sarah-chen": "Sarah Chen",
-        "mike-ross": "Mike Ross",
-        "harrold": "Harrold",
-        "james": "James Boarnd",
-        "mitch": "Mitch Sato",
-    };
-
     const getInitials = (name: string | undefined) => {
         if (!name) return "";
         const parts = name.trim().split(" ");
@@ -63,8 +54,9 @@ export function StepReview({ data, onEditStep }: StepReviewProps) {
     };
 
     const ownerId = data.ownerId;
-    const ownerName = ownerId ? ownerNameMap[ownerId] ?? "Selected owner" : "Not assigned";
-    const ownerAvatarUrl = ownerName ? getAvatarUrl(ownerName) : undefined;
+    const owner = people.find((person) => person.id === ownerId);
+    const ownerName = owner?.name ?? "Not assigned";
+    const ownerAvatarUrl = owner?.avatar;
     const ownerInitials = getInitials(ownerName);
 
     const structureLabel =
@@ -162,10 +154,10 @@ export function StepReview({ data, onEditStep }: StepReviewProps) {
                 </Avatar>
                 <p className="text-sm font-semibold">{ownerName}</p>
               </div>
-              {data.contributorIds.length > 0 && (
+              {data.contributorIds.filter((id) => people.some((person) => person.id === id)).length > 0 && (
                 <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="h-3 w-3" />
-                  <span>Contributors: {data.contributorIds.length}</span>
+                  <span>Contributors: {data.contributorIds.filter((id) => people.some((person) => person.id === id)).length}</span>
                 </div>
               )}
             </div>

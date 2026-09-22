@@ -3,7 +3,6 @@
 import { useCallback, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import BookOpenCheckIcon from "lucide-react/dist/esm/icons/book-open-check"
-import XIcon from "lucide-react/dist/esm/icons/x"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -28,6 +27,7 @@ export type PublicMapAdminOnboardingPreviewConfig = {
 
 export type PublicMapMemberOnboardingMapOverlayState = {
   isOpen: boolean
+  welcomeControl: ReactNode
   overlay: ReactNode
 }
 
@@ -94,17 +94,12 @@ export function usePublicMapMemberOnboardingMapOverlay({
 
   return {
     isOpen: showMemberOnboardingOverlay,
-    overlay:
-      adminPreviewToggle || memberOnboardingOverlay ? (
-        <>
-          {adminPreviewToggle}
-          {memberOnboardingOverlay}
-        </>
-      ) : null,
+    welcomeControl: adminPreviewToggle,
+    overlay: memberOnboardingOverlay,
   }
 }
 
-function PublicMapMemberOnboardingPreviewToggle({
+export function PublicMapMemberOnboardingPreviewToggle({
   active,
   onToggle,
 }: {
@@ -114,7 +109,7 @@ function PublicMapMemberOnboardingPreviewToggle({
   return (
     <div
       data-public-map-welcome-control="true"
-      className="pointer-events-none absolute top-[max(4.25rem,calc(env(safe-area-inset-top)_+_3.25rem))] left-1/2 z-30 -translate-x-1/2 sm:top-[max(0.75rem,env(safe-area-inset-top))]"
+      className="pointer-events-none min-w-0 shrink-0 md:absolute md:-top-1 md:left-1/2 md:z-30 md:-translate-x-1/2"
     >
       <Button
         type="button"
@@ -122,17 +117,13 @@ function PublicMapMemberOnboardingPreviewToggle({
         size="sm"
         aria-pressed={active}
         className={cn(
-          "pointer-events-auto rounded-xl shadow-sm backdrop-blur [html.light_&]:!text-zinc-950",
+          "pointer-events-auto relative rounded-xl shadow-none backdrop-blur max-md:after:absolute max-md:after:inset-x-0 max-md:after:-inset-y-1.5 [html.light_&]:!text-zinc-950",
           PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME
         )}
         onClick={onToggle}
       >
-        {active ? (
-          <XIcon data-icon="inline-start" aria-hidden />
-        ) : (
-          <BookOpenCheckIcon data-icon="inline-start" aria-hidden />
-        )}
-        {active ? "Hide welcome" : "Welcome"}
+        <BookOpenCheckIcon data-icon="inline-start" aria-hidden />
+        <span className="min-w-0 truncate">Welcome</span>
       </Button>
     </div>
   )

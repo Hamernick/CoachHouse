@@ -1,5 +1,7 @@
 "use client"
 
+import { CoachingAvatarGroup, type CoachingAvatar } from "@/components/coaching/coaching-avatar-group"
+
 import type { ReactNode } from "react"
 
 import {
@@ -80,6 +82,8 @@ function formatBacklogStatusLabel(
 }
 
 type MemberWorkspaceProjectDetailHeaderProps = {
+  assignedCoaches?: CoachingAvatar[] | null
+  assignedCoachNames?: string[] | null
   project: ProjectDetails
   canEditProject?: boolean
   isEditing?: boolean
@@ -143,6 +147,8 @@ function InlineEditableText({
 }
 
 export function MemberWorkspaceProjectDetailHeader({
+  assignedCoachNames,
+  assignedCoaches,
   project,
   assigneeOptions = [],
   canEditProject = false,
@@ -156,7 +162,20 @@ export function MemberWorkspaceProjectDetailHeader({
     isEditing && draft
       ? formatStatusLabel(draft.status)
       : formatBacklogStatusLabel(project.backlog.statusLabel)
+  const coaches = assignedCoaches ?? assignedCoachNames?.map((name) => ({ id: name, name, imageUrl: null }))
   const metaItems = [
+    {
+      label: "Coach",
+      value: coaches == null ? "Unavailable" : coaches.length ? (
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <CoachingAvatarGroup avatars={coaches} size="xs" limit={3} showOverflow label="Assigned coaches" />
+          <span className="max-w-48 truncate" title={coaches.map((coach) => coach.name).join(", ")}>
+            {coaches.map((coach) => coach.name).join(", ")}
+          </span>
+        </span>
+      ) : "Unassigned",
+      icon: null,
+    },
     { label: "ID", value: `#${project.id}`, icon: null },
     {
       label: "",
@@ -190,7 +209,7 @@ export function MemberWorkspaceProjectDetailHeader({
   )
 
   return (
-    <section className="mt-4 flex flex-col gap-5">
+    <section className="mt-4 flex flex-col gap-5 lg:gap-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -354,7 +373,7 @@ export function MemberWorkspaceProjectDetailHeader({
       </div>
 
       {!isEditing ? (
-        <div className="mt-3">
+        <div className="mt-3 lg:mt-0">
           <MetaChipsRow items={metaItems} />
         </div>
       ) : null}

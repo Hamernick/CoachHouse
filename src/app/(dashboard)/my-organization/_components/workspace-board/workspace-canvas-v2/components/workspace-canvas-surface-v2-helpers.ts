@@ -151,6 +151,7 @@ export function buildWorkspaceCanvasV2CardDataLookup({
   journeyGuideState,
   onFocusCard,
   onOpenCard,
+  onHideCard,
   onCardMeasuredHeightChange,
   organizationShortcutItems,
   organizationMapButtonCallout,
@@ -189,6 +190,7 @@ export function buildWorkspaceCanvasV2CardDataLookup({
   journeyGuideState: WorkspaceJourneyGuideState
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOpenCard: (cardId: WorkspaceCardId) => void
+  onHideCard: (cardId: WorkspaceCardId) => void
   onCardMeasuredHeightChange?: (
     cardId: WorkspaceCardId,
     size: WorkspaceCardSize,
@@ -216,6 +218,7 @@ export function buildWorkspaceCanvasV2CardDataLookup({
     onAcceleratorStateChange,
     onFocusCard,
     onOpenCard,
+    onHideCard,
     fiscalSponsorshipCardVisible: !hiddenCardIds.includes("fiscal-sponsorship"),
     isCanvasFullscreen: false,
     tutorialStepId: tutorialStepId ?? null,

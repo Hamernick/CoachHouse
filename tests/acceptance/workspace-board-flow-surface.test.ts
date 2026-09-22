@@ -69,6 +69,7 @@ function createProps(
     onTutorialShortcutOpened: vi.fn(),
     onFocusCard: vi.fn(),
     onOnboardingFlowChange: vi.fn(),
+    onParticlesChange: vi.fn(),
     onPersistNodePosition: vi.fn(),
     onToggleCardVisibility: vi.fn(),
     onConnectCards: vi.fn(),

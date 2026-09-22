@@ -1,5 +1,7 @@
 "use client"
 
+import { OrganizationDocumentsPanel } from "./organization-documents-panel"
+
 import type { ReactNode } from "react"
 
 import type {
@@ -8,7 +10,6 @@ import type {
   FiscalSponsorshipProjectWorkflowSummary,
 } from "@/features/fiscal-sponsorship"
 import {
-  AssetsFilesTab,
   NotesTab,
   ProjectTasksTab,
   Tabs,
@@ -16,7 +17,6 @@ import {
   TabsList,
   TabsTrigger,
   TimelineGantt,
-  WorkstreamTab,
   type CreateTaskContext,
   type UploadedNoteAsset,
   type ProjectDetails,
@@ -32,8 +32,8 @@ import type {
 import type { MemberWorkspaceProjectDetailDraft } from "./member-workspace-project-detail-editing"
 import { MemberWorkspaceProjectFiscalWorkbench } from "./member-workspace-project-fiscal-workbench"
 import {
-  getMemberWorkspaceProjectFiscalDocumentAssetIds,
   MemberWorkspaceProjectFiscalDocuments,
+  getMemberWorkspaceProjectFiscalDocumentAssetIds,
 } from "./member-workspace-project-fiscal-documents"
 import { MemberWorkspaceProjectOverviewDocument } from "./member-workspace-project-overview-document"
 import { MemberWorkspaceProjectOverviewEditor } from "./member-workspace-project-overview-editor"
@@ -45,6 +45,7 @@ function ProjectDetailTabsList() {
     <div className="-mx-1 overflow-x-auto pb-2">
       <TabsList className="inline-flex w-max min-w-full gap-2 px-1 sm:w-full sm:gap-6">
         <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="fiscal-sponsorship">Fiscal Sponsorship</TabsTrigger>
         <TabsTrigger value="activity">Activity</TabsTrigger>
         <TabsTrigger value="workstream">Workstream</TabsTrigger>
         <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -57,11 +58,7 @@ function ProjectDetailTabsList() {
 
 type ProjectDetailOverviewContentProps = {
   draft: MemberWorkspaceProjectDetailDraft
-  fiscalSponsorshipWorkflowSummary?: FiscalSponsorshipProjectWorkflowSummary | null
-  fiscalSponsorshipWorkbench?: ReactNode
   isEditing: boolean
-  onCreateTask?: (context?: CreateTaskContext) => void
-  organizationSummary: MemberWorkspaceAdminOrganizationSummary
   project: ProjectDetails
   onChangeDraftField: (
     field: keyof MemberWorkspaceProjectDetailDraft,
@@ -71,11 +68,7 @@ type ProjectDetailOverviewContentProps = {
 
 function ProjectDetailOverviewContent({
   draft,
-  fiscalSponsorshipWorkflowSummary,
-  fiscalSponsorshipWorkbench,
   isEditing,
-  onCreateTask,
-  organizationSummary,
   project,
   onChangeDraftField,
 }: ProjectDetailOverviewContentProps) {
@@ -86,28 +79,6 @@ function ProjectDetailOverviewContent({
           draft={draft}
           onChangeDraftField={onChangeDraftField}
         />
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-foreground text-base font-semibold">
-              Timeline
-            </h2>
-            <p className="text-muted-foreground text-sm leading-6">
-              Tasks, programs, and recorded organization activity share this
-              calendar.
-            </p>
-          </div>
-          <TimelineGantt
-            activity={project.activity}
-            programs={organizationSummary.programs}
-            tasks={project.timelineTasks}
-            onCreateTask={
-              onCreateTask
-                ? () => onCreateTask({ projectId: project.id })
-                : undefined
-            }
-          />
-        </section>
-        {fiscalSponsorshipWorkbench}
       </div>
     )
   }
@@ -115,17 +86,6 @@ function ProjectDetailOverviewContent({
   return (
     <div className="space-y-10">
       <MemberWorkspaceProjectOverviewDocument project={project} />
-      <TimelineGantt
-        activity={project.activity}
-        programs={organizationSummary.programs}
-        tasks={project.timelineTasks}
-        onCreateTask={
-          onCreateTask
-            ? () => onCreateTask({ projectId: project.id })
-            : undefined
-        }
-      />
-      {fiscalSponsorshipWorkbench}
     </div>
   )
 }
@@ -225,13 +185,10 @@ export function MemberWorkspaceProjectDetailTabs({
   onActiveTabChange,
   onChangeDraftField,
   organizationSummary,
-  onCreateAsset,
   onCreateTask,
   onDeleteNoteAsset,
-  onDeleteAsset,
   onPendingInlineTaskContextHandled,
   onUploadNoteAssets,
-  onUpdateAsset,
   pendingInlineTaskContext,
   project,
   reviewFiscalSponsorshipApplicationAction,
@@ -242,6 +199,13 @@ export function MemberWorkspaceProjectDetailTabs({
   updateTaskOrderAction,
   updateTaskStatusAction,
 }: MemberWorkspaceProjectDetailTabsProps) {
+  const fiscalDocumentAssetIds =
+    getMemberWorkspaceProjectFiscalDocumentAssetIds(
+      fiscalSponsorshipWorkflowSummary
+    )
+  const generalProjectFiles = project.files.filter(
+    (file) => !fiscalDocumentAssetIds.has(file.id)
+  )
   const resolvedFiscalSponsorshipWorkbench = fiscalSponsorshipWorkbench ?? (
     <MemberWorkspaceProjectFiscalWorkbench
       canConnectDocuments={canConnectFiscalDocuments}
@@ -266,28 +230,22 @@ export function MemberWorkspaceProjectDetailTabs({
       }
     />
   )
-  const fiscalDocumentAssetIds =
-    getMemberWorkspaceProjectFiscalDocumentAssetIds(
-      fiscalSponsorshipWorkflowSummary
-    )
-  const generalProjectFiles = project.files.filter(
-    (file) => !fiscalDocumentAssetIds.has(file.id)
-  )
 
   return (
     <Tabs value={activeTab} onValueChange={onActiveTabChange}>
       <ProjectDetailTabsList />
 
-      <TabsContent value="overview">
+      <TabsContent value="overview" className="lg:mt-2">
         <ProjectDetailOverviewContent
           draft={draft}
-          fiscalSponsorshipWorkbench={resolvedFiscalSponsorshipWorkbench}
           isEditing={isEditing}
-          onCreateTask={onCreateTask}
-          organizationSummary={organizationSummary}
           project={project}
           onChangeDraftField={onChangeDraftField}
         />
+      </TabsContent>
+
+      <TabsContent value="fiscal-sponsorship">
+        {resolvedFiscalSponsorshipWorkbench}
       </TabsContent>
 
       <TabsContent value="activity">
@@ -298,12 +256,15 @@ export function MemberWorkspaceProjectDetailTabs({
       </TabsContent>
 
       <TabsContent value="workstream">
-        <WorkstreamTab
-          workstreams={project.workstreams}
-          canReorder={false}
-          canToggleTasks={Boolean(updateTaskStatusAction)}
-          onCreateTask={onCreateTask}
-          onUpdateTaskStatus={updateTaskStatusAction}
+        <TimelineGantt
+          activity={project.activity}
+          programs={organizationSummary.programs}
+          tasks={project.timelineTasks}
+          onCreateTask={
+            onCreateTask
+              ? () => onCreateTask({ projectId: project.id })
+              : undefined
+          }
         />
       </TabsContent>
 
@@ -345,14 +306,31 @@ export function MemberWorkspaceProjectDetailTabs({
 
       <TabsContent value="assets">
         <div className="space-y-8">
+          {generalProjectFiles.length ? (
+            <section aria-label="Project files" className="space-y-2">
+              <h3 className="text-sm font-medium">Project files</h3>
+              <ul className="divide-border divide-y">
+                {generalProjectFiles.map((file) => (
+                  <li key={file.id} className="py-2">
+                    <a
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm underline underline-offset-4"
+                    >
+                      {file.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <OrganizationDocumentsPanel
+            key={organizationSummary.orgId}
+            organizationId={organizationSummary.orgId}
+          />
           <MemberWorkspaceProjectFiscalDocuments
             workflowSummary={fiscalSponsorshipWorkflowSummary}
-          />
-          <AssetsFilesTab
-            files={generalProjectFiles}
-            onCreateAsset={onCreateAsset}
-            onUpdateAsset={onUpdateAsset}
-            onDeleteAsset={onDeleteAsset}
           />
         </div>
       </TabsContent>

@@ -52,7 +52,7 @@ export function FindMapWeatherCard({
       data-weather-temperature-source={weather.temperatureSource}
       data-weather-temperature-length={temperatureLength}
       className={cn(
-        "pointer-events-auto size-10 shrink-0 gap-0 overflow-hidden rounded-xl py-0 shadow-sm sm:size-11",
+        "pointer-events-auto size-10 shrink-0 gap-0 overflow-hidden rounded-xl py-0 shadow-none sm:size-11",
         className
       )}
     >

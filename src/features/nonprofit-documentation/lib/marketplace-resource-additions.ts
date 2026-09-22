@@ -1,4 +1,8 @@
 import type { MarketplaceResource } from "../marketplace-types"
+import { MONKEYPOD_RESOURCE } from "./marketplace-monkeypod"
+import { PUBLISHING_RESOURCES } from "./marketplace-publishing-resources"
+import { SOCIAL_RESOURCES } from "./marketplace-social-resources"
+import { FUNDRAISING_RESOURCES } from "./marketplace-fundraising-resources"
 
 const ONLINE = {
   stages: ["forming", "operating", "growing"],
@@ -10,6 +14,10 @@ const ONLINE = {
 } satisfies Partial<MarketplaceResource>
 
 export const MARKETPLACE_RESOURCE_ADDITIONS: MarketplaceResource[] = [
+  MONKEYPOD_RESOURCE,
+  ...PUBLISHING_RESOURCES,
+  ...SOCIAL_RESOURCES,
+  ...FUNDRAISING_RESOURCES,
   {
     ...ONLINE,
     id: "google-ad-grants",
@@ -62,6 +70,12 @@ export const MARKETPLACE_RESOURCE_ADDITIONS: MarketplaceResource[] = [
       "An organizational domain and an administrator who can verify ownership.",
     url: "https://www.google.com/nonprofits/offerings/workspace/",
     sourceLabel: "Google Workspace nonprofit plan comparison",
+    referralOffer: {
+      label: "Google Workspace referral offer",
+      href: "https://referworkspace.app.goo.gl/n3FS",
+      description:
+        "For paid Workspace plans. Google sets eligibility and offer terms. Coach House may earn a referral reward.",
+    },
     whyIncluded:
       "A practical starting point for a small team's communications and document ownership.",
   },

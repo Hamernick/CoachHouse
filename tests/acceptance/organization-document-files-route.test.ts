@@ -153,6 +153,17 @@ function actionRequest(method: string, action?: string) {
 }
 
 describe("organization document file routes", () => {
+  it("does not sign a file path belonging to another organization", async () => {
+    const { signed } = setup({ storagePath: "other-org/library/private.pdf" })
+    const result = await GET(
+      new NextRequest(
+        "http://localhost/api/account/organization-document-files?id=file-1"
+      )
+    )
+    expect(result.status).toBe(404)
+    expect(signed).not.toHaveBeenCalled()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.organization.mockResolvedValue({ orgId: "org-1", role: "admin" })

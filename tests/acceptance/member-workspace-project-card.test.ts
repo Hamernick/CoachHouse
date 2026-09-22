@@ -9,6 +9,7 @@ const projectCardSource =
   "src/features/member-workspace/components/projects/member-workspace-project-card.tsx"
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/organizations",
   useRouter: () => ({
     push: () => undefined,
   }),
@@ -67,6 +68,23 @@ const organizationProject: PlatformAdminDashboardLabProject = {
 }
 
 describe("MemberWorkspaceProjectCard", () => {
+  it("preserves stored due dates across timezones", () => {
+    const previous = process.env.TZ
+    try {
+      for (const zone of ["America/New_York", "Pacific/Honolulu", "Asia/Tokyo"]) {
+        process.env.TZ = zone
+        const markup = renderToStaticMarkup(React.createElement(MemberWorkspaceProjectCard, {
+          project: { ...organizationProject, endDate: new Date("2026-04-30T00:00:00.000Z") },
+          variant: "board",
+        }))
+        expect(markup).toContain("Apr 30")
+        expect(markup).not.toContain("Apr 29")
+      }
+    } finally {
+      if (previous === undefined) delete process.env.TZ
+      else process.env.TZ = previous
+    }
+  })
   it("renders organization-aware metadata for platform admin cards", () => {
     const markup = renderToStaticMarkup(
       React.createElement(MemberWorkspaceProjectCard, {

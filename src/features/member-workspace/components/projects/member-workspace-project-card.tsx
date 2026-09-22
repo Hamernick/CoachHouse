@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import { useMemo, useRef } from "react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import {
   CalendarBlank,
   Flag,
@@ -11,7 +11,7 @@ import {
   PencilSimpleLine,
   User,
 } from "@phosphor-icons/react/dist/ssr"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import type { PlatformAdminDashboardLabProject } from "@/features/platform-admin-dashboard"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -111,6 +111,7 @@ export function MemberWorkspaceProjectCard({
   visibleProperties = ["title", "status", "assignee", "dueDate"],
 }: MemberWorkspaceProjectCardProps) {
   const router = useRouter()
+  const directoryHref = (usePathname() ?? "").startsWith("/projects") ? "/projects" : "/organizations"
   const status = getStatusConfig(project.status)
   const fiscalSponsorshipStatus = project.fiscalSponsorshipStatus
     ? getFiscalSponsorshipStatusConfig(project.fiscalSponsorshipStatus)
@@ -189,12 +190,12 @@ export function MemberWorkspaceProjectCard({
           draggingRef.current = false
           return
         }
-        router.push(`/organizations/${project.id}`)
+        router.push(`${directoryHref}/${project.id}`)
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault()
-          router.push(`/organizations/${project.id}`)
+          router.push(`${directoryHref}/${project.id}`)
         }
       }}
       onMouseDown={(event) => {
@@ -214,12 +215,15 @@ export function MemberWorkspaceProjectCard({
         if (!isBoard) return
         startPosRef.current = null
       }}
-      className="border-border bg-background focus-visible:ring-ring/50 flex h-full cursor-pointer flex-col rounded-2xl border transition-shadow hover:shadow-lg/5 focus-visible:ring-2 focus-visible:outline-none"
+      className={cn(
+        "border-border bg-background focus-visible:ring-ring/50 flex h-full cursor-pointer flex-col min-w-0 rounded-2xl border transition-shadow hover:shadow-lg/5 focus-visible:ring-2 focus-visible:outline-none",
+        isBoard && "h-auto"
+      )}
     >
-      <div {...reactGrabSurface("body")} className="flex flex-1 flex-col p-4">
+      <div {...reactGrabSurface("body")} className={cn("flex flex-1 flex-col p-4", isBoard && "flex-none pt-2 pb-4")}>
         <div
           {...reactGrabSurface("header-row")}
-          className="flex items-center justify-between"
+          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"
         >
           {isBoard ? (
             showDueDate ? (
@@ -228,7 +232,7 @@ export function MemberWorkspaceProjectCard({
                 className="text-muted-foreground flex items-center gap-1.5 text-xs"
               >
                 <Flag className="h-4 w-4" />
-                <span>{format(project.endDate, "MMM d")}</span>
+                <span>{format(parseISO(project.endDate.toISOString().slice(0, 10)), "MMM d")}</span>
               </div>
             ) : (
               <div className="h-4" />
@@ -278,7 +282,7 @@ export function MemberWorkspaceProjectCard({
                     variant="ghost"
                     size="icon"
                     aria-label={`Edit ${project.name}`}
-                    className="h-8 w-8 rounded-lg"
+                    className="size-11 rounded-lg sm:size-8"
                     onClick={() => onEditProject(project)}
                   >
                     <PencilSimpleLine />
@@ -289,10 +293,10 @@ export function MemberWorkspaceProjectCard({
           </div>
         </div>
 
-        <div {...reactGrabSurface("title-block", "content")} className="mt-3">
+        <div {...reactGrabSurface("title-block", "content")} className={cn("mt-3", isBoard && "mt-1")}>
           <p
             {...reactGrabSurface("title", "content")}
-            className="text-foreground text-[15px] leading-6 font-semibold"
+            className="text-foreground break-words text-[15px] leading-6 font-semibold"
           >
             {project.name}
           </p>
@@ -310,7 +314,7 @@ export function MemberWorkspaceProjectCard({
           {fiscalSponsorshipStatus ? (
             <div
               {...reactGrabSurface("fiscal-sponsorship-status", "indicator")}
-              className="mt-3 flex min-w-0 items-center justify-between gap-3"
+              className={cn("mt-3 flex min-w-0 items-center justify-between gap-3", isBoard && "mt-2")}
             >
               <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
                 <HandHeart className="size-4 shrink-0" aria-hidden />
@@ -335,7 +339,7 @@ export function MemberWorkspaceProjectCard({
           ) : null}
         </div>
 
-        <div {...reactGrabSurface("footer")} className="mt-auto pt-4">
+        <div {...reactGrabSurface("footer")} className={cn("mt-auto pt-4", isBoard && "mt-0 pt-2")}>
           {!isBoard ? (
             <div
               {...reactGrabSurface("date-priority-row", "content")}
@@ -347,7 +351,7 @@ export function MemberWorkspaceProjectCard({
                   className="flex items-center gap-2"
                 >
                   <CalendarBlank className="h-4 w-4" />
-                  <span>{format(project.endDate, "MMM d, yyyy")}</span>
+                  <span>{format(parseISO(project.endDate.toISOString().slice(0, 10)), "MMM d, yyyy")}</span>
                 </div>
               ) : (
                 <div />
@@ -368,7 +372,7 @@ export function MemberWorkspaceProjectCard({
 
           <div
             {...reactGrabSurface("progress-row", "content")}
-            className="mt-3 flex items-center justify-between"
+            className={cn("mt-3 flex items-center justify-between", isBoard && "mt-2")}
           >
             <MemberWorkspaceProjectProgress
               project={project}

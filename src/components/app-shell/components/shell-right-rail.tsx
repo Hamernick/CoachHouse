@@ -47,15 +47,16 @@ export function ShellRightRail({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="w-[var(--shell-right-rail-width)] border-0 p-0"
+          id={RIGHT_RAIL_ID}
+          className="w-full max-w-full gap-0 border-0 p-0 sm:max-w-sm"
         >
-          <SheetHeader className="sr-only">
+          <SheetHeader className="shrink-0 border-b px-4 py-5 pr-16">
             <SheetTitle>Details</SheetTitle>
-            <SheetDescription>
+            <SheetDescription className="sr-only">
               Contextual details for the current workspace view.
             </SheetDescription>
           </SheetHeader>
-          <div className="h-full overflow-y-auto px-[var(--shell-right-rail-pad,var(--shell-rail-padding))] py-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             {content}
           </div>
         </SheetContent>

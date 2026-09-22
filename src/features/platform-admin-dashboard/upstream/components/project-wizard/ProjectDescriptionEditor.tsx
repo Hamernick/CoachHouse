@@ -7,7 +7,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import "@/features/platform-admin-dashboard/upstream/styles/tiptap.css";
-import { Plus, StarFour, ArrowsOutSimple } from "@phosphor-icons/react/dist/ssr";
+import { Plus, ArrowsOutSimple } from "@phosphor-icons/react/dist/ssr";
 
  type TemplateType = "goal" | "scope" | "inScope" | "outScope" | "outcomes" | "feature";
 
@@ -329,7 +329,7 @@ import { Plus, StarFour, ArrowsOutSimple } from "@phosphor-icons/react/dist/ssr"
           )}
         </div>
 
-        {(isFocused || isExpanded) && (
+        {(isFocused || isExpanded) && showTemplates && (
           <div className="w-full overflow-hidden shrink-0 animate-in fade-in zoom-in-95 duration-200">
             <div className="h-px w-full bg-border my-2" />
             <div className="flex flex-wrap gap-2 items-center w-full">
@@ -415,24 +415,7 @@ import { Plus, StarFour, ArrowsOutSimple } from "@phosphor-icons/react/dist/ssr"
                 </>
               )}
 
-              <div className="flex-1" />
 
-              <div className="flex flex-col items-center justify-center ml-2">
-                <button
-                  type="button"
-                  className="bg-muted-foreground/8 flex gap-1.5 h-7 items-center px-3 py-0.5 rounded-full hover:bg-muted-foreground/20 transition-colors cursor-pointer"
-                >
-                  <div className="size-3.5">
-                    <StarFour
-                      weight="fill"
-                      className="size-3.5 text-primary"
-                    />
-                  </div>
-                  <span className="font-medium text-foreground text-xs tracking-wide">
-                    Write with AI
-                  </span>
-                </button>
-              </div>
             </div>
           </div>
         )}

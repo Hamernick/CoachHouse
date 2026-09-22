@@ -12,11 +12,13 @@ import {
   buildMemberWorkspaceProjectDetailDraft,
   buildMemberWorkspaceProjectUpdateInput,
 } from "@/features/member-workspace/components/projects/member-workspace-project-detail-editing"
+import { MemberWorkspaceProjectDetailTabs } from "@/features/member-workspace/components/projects/member-workspace-project-detail-tabs"
 import { MemberWorkspaceProjectDetailHeader } from "@/features/member-workspace/components/projects/member-workspace-project-detail-header"
 import { MemberWorkspaceProjectOverviewDocument } from "@/features/member-workspace/components/projects/member-workspace-project-overview-document"
 import { MemberWorkspaceProjectTasksEditor } from "@/features/member-workspace/components/projects/member-workspace-project-tasks-editor"
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/projects/project-1",
   useRouter: () => ({
     push: () => undefined,
     refresh: () => undefined,
@@ -32,7 +34,10 @@ vi.mock("next/cache", () => ({
 const project = getProjectDetailsById("project-1")
 
 function buildProjectSource(
-  overrides: Pick<PlatformAdminDashboardLabProject, "description" | "projectKind">
+  overrides: Pick<
+    PlatformAdminDashboardLabProject,
+    "description" | "projectKind"
+  >
 ) {
   return { ...project.source!, ...overrides }
 }
@@ -40,13 +45,24 @@ function buildProjectSource(
 function renderProjectDetailPage(
   overrideProps?: Partial<
     React.ComponentProps<typeof MemberWorkspaceProjectDetailPage>
-  >
+  >,
+  activeTab?: string
 ) {
+  const Page = (props: React.ComponentProps<typeof MemberWorkspaceProjectDetailPage>) =>
+    activeTab ? React.createElement(MemberWorkspaceProjectDetailTabs, {
+      ...props,
+      activeTab,
+      draft: buildMemberWorkspaceProjectDetailDraft(props.project),
+      isEditing: false,
+      onActiveTabChange: () => undefined,
+      onChangeDraftField: () => undefined,
+      onPendingInlineTaskContextHandled: () => undefined,
+    }) : React.createElement(MemberWorkspaceProjectDetailPage, props)
   return renderToStaticMarkup(
     React.createElement(
       SidebarProvider,
       { defaultOpen: true },
-      React.createElement(MemberWorkspaceProjectDetailPage, {
+      React.createElement(Page, {
         project,
         assigneeOptions: [],
         currentUser: {
@@ -76,7 +92,10 @@ function renderProjectDetailPage(
           setupItems: [],
           profile: {},
         },
-        updateProjectAction: async () => ({ ok: true as const, id: project.id }),
+        updateProjectAction: async () => ({
+          ok: true as const,
+          id: project.id,
+        }),
         ...overrideProps,
       })
     )
@@ -84,18 +103,12 @@ function renderProjectDetailPage(
 }
 
 describe("MemberWorkspaceProjectDetailPage", () => {
-  it("restores the local sidebar trigger beside the project breadcrumbs", () => {
+  it("keeps breadcrumbs and editing without the local sidebar toggle", () => {
     const markup = renderProjectDetailPage()
-
-    expect(markup).toContain('data-slot="sidebar-trigger"')
-    expect(markup).toContain('aria-label="Toggle sidebar"')
-    expect(markup).toContain(
-      "text-muted-foreground hover:text-foreground size-8 rounded-lg"
-    )
+    expect(markup).not.toContain('data-slot="sidebar-trigger"')
+    expect(markup).not.toContain('aria-label="Toggle sidebar"')
+    expect(markup).toContain('href="/projects"')
     expect(markup).toContain('aria-label="Edit project"')
-    expect(markup.indexOf('data-slot="sidebar-trigger"')).toBeLessThan(
-      markup.indexOf("Organizations")
-    )
   })
 
   it("gives the organization setup rail a wider desktop column", () => {
@@ -496,8 +509,9 @@ describe("MemberWorkspaceProjectDetailPage", () => {
     expect(markup).not.toContain(`Delete ${project.name}?`)
   })
 
-  it("renders the fiscal sponsorship workbench in the main overview content", () => {
-    const markup = renderProjectDetailPage()
+  it("renders the fiscal sponsorship workbench only in its dedicated tab", () => {
+    expect(renderProjectDetailPage()).not.toContain("data-fiscal-sponsorship-project-workbench")
+    const markup = renderProjectDetailPage(undefined, "fiscal-sponsorship")
 
     expect(markup).toContain("data-fiscal-sponsorship-project-workbench")
     expect(markup).toContain("Fiscal Sponsorship")
@@ -523,7 +537,7 @@ describe("MemberWorkspaceProjectDetailPage", () => {
   })
 
   it("renders real fiscal sponsorship workflow status when available", () => {
-    const markup = renderProjectDetailPage({
+    const props: Partial<React.ComponentProps<typeof MemberWorkspaceProjectDetailPage>> = {
       fiscalSponsorshipWorkflowSummary: {
         applicationId: "app-1",
         applicationStatus: "agreement_ready",
@@ -566,7 +580,9 @@ describe("MemberWorkspaceProjectDetailPage", () => {
         latestSignaturePacket: null,
         requiredDocuments: [],
       },
-    })
+    }
+    const markup = renderProjectDetailPage(props, "fiscal-sponsorship")
+    const pageMarkup = renderProjectDetailPage(props)
 
     expect(markup).toContain("Agreement ready")
     expect(markup).toContain("Prepared")
@@ -574,10 +590,10 @@ describe("MemberWorkspaceProjectDetailPage", () => {
     expect(markup).toContain("Not sent")
     expect(markup).toContain("Next: Send prepared agreement for signatures")
     expect(markup).toContain("Model C agreement v1 is prepared")
-    expect(markup).toContain("Recent updates")
-    expect(markup).toContain("Fiscal sponsorship agreement prepared.")
-    expect(markup).toContain("Agreement prepared")
-    expect(markup).toContain(
+    expect(pageMarkup).toContain("Recent updates")
+    expect(pageMarkup).toContain("Fiscal sponsorship agreement prepared.")
+    expect(pageMarkup).toContain("Agreement prepared")
+    expect(pageMarkup).toContain(
       'href="/api/account/project-assets?assetId=asset-1&amp;projectId=project-1"'
     )
   }, 15_000)
@@ -632,7 +648,7 @@ describe("MemberWorkspaceProjectDetailPage", () => {
         packetId: "packet-1",
         providerSubmissionId: "submission-1",
       }),
-    })
+    }, "fiscal-sponsorship")
 
     expect(markup).toContain(
       "data-fiscal-sponsorship-project-workbench-admin-actions"
@@ -741,5 +757,41 @@ describe("MemberWorkspaceProjectDetailPage", () => {
         "canManageFiscalSponsorship ? reviewFiscalSponsorshipDocument"
       )
     )
+  })
+})
+
+describe("organization coach header metadata", () => {
+  it("renders assigned photos, initials and a capped avatar group", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(MemberWorkspaceProjectDetailHeader, {
+        project,
+        assignedCoaches: [
+          { id: "1", name: "Alex Rivera", imageUrl: "https://example.com/alex.png" },
+          { id: "2", name: "Sam Lee", imageUrl: null },
+          { id: "3", name: "Pat Jones", imageUrl: null },
+          { id: "4", name: "Robin Smith", imageUrl: null },
+        ],
+      })
+    )
+    expect(markup).toContain('aria-label="Assigned coaches"')
+    expect(markup).toContain('alt="Alex Rivera"')
+    expect(markup).toContain(">SL<")
+    expect(markup).toContain(">+1<")
+    expect(markup).toContain('title="Robin Smith"')
+    expect(markup).not.toContain("Frank.PNG")
+  })
+  it.each([
+    [["Alex Rivera", "Sam Lee"], "Alex Rivera, Sam Lee"],
+    [[], "Unassigned"],
+    [null, "Unavailable"],
+  ] as const)("shows the actual assignment state", (names, expected) => {
+    const markup = renderToStaticMarkup(
+      React.createElement(MemberWorkspaceProjectDetailHeader, {
+        project,
+        assignedCoachNames: names ? [...names] : null,
+      })
+    )
+    expect(markup).toContain("Coach:")
+    expect(markup).toContain(expected)
   })
 })

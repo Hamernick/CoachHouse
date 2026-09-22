@@ -48,12 +48,12 @@ export function MemberWorkspaceProjectViewOptionsPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-3">
+        <Button variant="outline" size="sm" className="h-11 gap-2 sm:h-8 rounded-lg border-border/60 bg-transparent px-3">
           <Sliders className="h-4 w-4" />
           View
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 rounded-xl p-0" align="end">
+      <PopoverContent className="w-80 max-w-[calc(100vw-2rem)] rounded-xl p-0" align="end">
         <div className="p-4">
           <div className="flex rounded-xl bg-muted p-1">
             {viewTypes.map((type) => (
@@ -78,7 +78,7 @@ export function MemberWorkspaceProjectViewOptionsPopover({
               <span className="text-sm">Ordering</span>
               <Popover open={orderingOpen} onOpenChange={setOrderingOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-3">
+                  <Button variant="outline" size="sm" className="h-11 gap-2 sm:h-8 rounded-lg border-border/60 bg-transparent px-3">
                     <Sliders className="h-4 w-4" />
                     {orderingOptions.find((option) => option.id === options.ordering)?.label}
                   </Button>

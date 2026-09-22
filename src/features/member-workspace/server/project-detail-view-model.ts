@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, format } from "date-fns"
+import { getProjectSchedule } from "../lib/project-schedule"
 
 import type {
   BacklogSummary,
@@ -84,13 +85,6 @@ export type MemberWorkspaceProjectAssetRecord = {
 
 function parseDateOnly(input: string) {
   return new Date(`${input}T00:00:00.000Z`)
-}
-
-function startOfTodayUtc() {
-  const now = new Date()
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  )
 }
 
 function toTitleCase(value: string) {
@@ -239,18 +233,13 @@ function buildProjectTime(project: OrganizationProjectRecord): TimeSummary {
   const startDate = parseDateOnly(project.start_date)
   const endDate = parseDateOnly(project.end_date)
   const dayCount = Math.max(differenceInCalendarDays(endDate, startDate) + 1, 1)
-  const daysRemaining = differenceInCalendarDays(endDate, startOfTodayUtc())
+  const schedule = getProjectSchedule(project.start_date, project.end_date)
 
   return {
     estimateLabel: project.duration_label || `${dayCount} days`,
     dueDate: endDate,
-    daysRemainingLabel:
-      daysRemaining > 0
-        ? `${daysRemaining} Days to go`
-        : daysRemaining === 0
-          ? "Due today"
-          : `${Math.abs(daysRemaining)} days overdue`,
-    progressPercent: project.progress,
+    daysRemainingLabel: schedule?.status ?? "No dates set",
+    progressPercent: schedule?.progress ?? 0,
   }
 }
 
@@ -338,6 +327,10 @@ function buildProjectTimeline(
   }
 
   return tasks.map((task) => ({
+    assignee: task.assignee_id && task.assignee_name ? {
+      id: task.assignee_id, name: task.assignee_name,
+      avatarUrl: task.assignee_avatar_url?.trim() || undefined,
+    } : undefined,
     id: task.id,
     name: task.title,
     startDate: parseDateOnly(task.start_date),
@@ -410,19 +403,27 @@ export function buildMemberWorkspaceProjectDetails({
   quickLinks,
   assets,
   assigneeOptions = [],
+  projectMembers,
   overviewDocument,
   activity,
+  activityState,
+  scheduleAvailable = false,
+  scheduleConfirmed = false,
 }: {
   project: OrganizationProjectRecord
   tasks: MemberWorkspaceProjectTaskRecord[]
   notes?: MemberWorkspaceProjectNoteRecord[]
   quickLinks?: MemberWorkspaceProjectQuickLinkRecord[]
   assets?: MemberWorkspaceProjectAssetRecord[]
+  projectMembers?: User[]
   assigneeOptions?: MemberWorkspacePersonOption[]
   overviewDocument?: MemberWorkspaceProjectOverviewDocumentRecord | null
   activity?: ProjectActivityItem[]
+  activityState?: ProjectDetails["activityState"]
+  scheduleAvailable?: boolean
+  scheduleConfirmed?: boolean
 }): ProjectDetails {
-  const members = buildUsers(project.member_labels ?? [], assigneeOptions)
+  const members = projectMembers ?? buildUsers(project.member_labels ?? [], assigneeOptions)
   const files = buildProjectFiles(assets ?? [])
   const explicitQuickLinks = buildProjectQuickLinks(quickLinks ?? [])
   const overviewDocumentHtml =
@@ -450,12 +451,22 @@ export function buildMemberWorkspaceProjectDetails({
     ),
     timelineTasks: buildProjectTimeline(project, tasks),
     workstreams: buildProjectWorkstreams(project, tasks, members),
-    time: buildProjectTime(project),
-    backlog: buildProjectBacklog(project, members),
+    time: {
+      ...buildProjectTime(project),
+      scheduleAvailable,
+      schedule: scheduleConfirmed || (project.created_source === "user" && !project.starter_seed_key)
+        ? { startDate: project.start_date, endDate: project.end_date }
+        : null,
+    },
+    backlog: {
+      ...buildProjectBacklog(project, members),
+      ...(projectMembers ? { picLabel: "Owner", supportLabel: "Contributors", picUsers: members.slice(0, 1), supportUsers: members.slice(1) } : {}),
+    },
     quickLinks: explicitQuickLinks,
     files,
     notes: buildProjectNotes(notes ?? []),
     activity: activity ?? [],
+    ...(activityState ? { activityState } : {}),
     source: mapOrganizationProjectToViewModel(project),
   }
 }

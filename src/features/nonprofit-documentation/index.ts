@@ -337,3 +337,8 @@ export type {
   MarketplaceResourceType,
 } from "./marketplace-types"
 export { MarketplaceResourcePage } from "./components/marketplace-resource-page"
+export { MarketplacePersonPage } from "./components/marketplace-person-page"
+export {
+  marketplacePersonHref,
+  decodeMarketplacePersonHandle,
+} from "./lib/marketplace-people"

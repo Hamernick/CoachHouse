@@ -64,6 +64,7 @@ export type MemberWorkspaceTaskAssignee = {
 }
 
 export type MemberWorkspaceTaskItem = {
+  organizationName?: string
   id: string
   projectId: string
   projectName: string
@@ -117,6 +118,7 @@ export type MemberWorkspaceCreateProjectFormInput = {
   typeLabel?: string
   durationLabel?: string
   tags?: string
+  optionSettings?: import("./lib/project-option-settings").ProjectOptionSettings
   memberLabels?: string
 }
 

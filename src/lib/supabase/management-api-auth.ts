@@ -59,14 +59,18 @@ export async function requireSupabaseManagementAccess(
     }
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle<{ role: string | null }>()
+  let staff: { access_level: string | null } | null
+  try {
+    const { data, error } = await supabase
+      .from("platform_staff_members")
+      .select("access_level")
+      .eq("user_id", user.id)
+      .maybeSingle<{ access_level: string | null }>()
 
-  if (profileError) {
-    console.error("[management-api-auth] Failed to verify user role.", profileError)
+    if (error) throw error
+    staff = data
+  } catch (error) {
+    console.error("[management-api-auth] Failed to verify developer access.", error)
     return {
       ok: false,
       response: NextResponse.json(
@@ -76,7 +80,7 @@ export async function requireSupabaseManagementAccess(
     }
   }
 
-  if (!profile || profile.role !== "admin") {
+  if (staff?.access_level !== "developer") {
     return {
       ok: false,
       response: NextResponse.json(

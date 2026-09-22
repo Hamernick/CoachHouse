@@ -1,5 +1,7 @@
 "use client"
 
+import type { WorkspaceParticleState } from "@/features/workspace-particles"
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
 
@@ -328,6 +330,14 @@ export function WorkspaceBoardCanvas({
     }))
   }, [allowEditing])
 
+  const handleParticlesChange = useCallback(
+    (particles: WorkspaceParticleState) => {
+      if (!allowEditing) return
+      setBoardState((previous) => ({ ...previous, particles }))
+    },
+    [allowEditing]
+  )
+
   const rightRailCurrentUser = useWorkspaceRightRailCurrentUser(seed)
 
   useWorkspaceJourneyAutoFocus({
@@ -377,6 +387,7 @@ export function WorkspaceBoardCanvas({
         onTutorialShortcutOpened={handleTutorialShortcutOpened}
         onFocusCard={handleFocusCard}
         onOnboardingFlowChange={handleOnboardingFlowChange}
+        onParticlesChange={handleParticlesChange}
         onPersistNodePosition={handlePersistNodePosition}
         onToggleCardVisibility={handleToggleCardVisibility}
         onConnectCards={handleConnectCards}

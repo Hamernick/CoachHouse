@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -18,13 +18,14 @@ import { platformLabEnabled } from "@/lib/feature-flags"
 import { getWorkspaceDrawerPath } from "@/lib/workspace/routes"
 import { GlobalSearchTriggers } from "@/components/global-search/global-search-triggers"
 
-type GlobalSearchProps = {
+export type GlobalSearchProps = {
   isAdmin?: boolean
   showOrgAdmin?: boolean
   context?: "platform" | "accelerator"
   classes?: SidebarClass[]
   showAccelerator?: boolean
   showMemberWorkspace?: boolean
+  renderTrigger?: (onOpen: () => void) => ReactNode
 }
 
 export function GlobalSearch({
@@ -34,6 +35,7 @@ export function GlobalSearch({
   classes = [],
   showAccelerator = false,
   showMemberWorkspace = false,
+  renderTrigger,
 }: GlobalSearchProps) {
   const router = useRouter()
   const isMobile = useIsMobile()
@@ -261,11 +263,11 @@ export function GlobalSearch({
 
   return (
     <>
-      <GlobalSearchTriggers
+      {renderTrigger ? renderTrigger(() => setOpen(true)) : <GlobalSearchTriggers
         showCompact={showCompact}
         showCenterCompact={showCenterCompact}
         onOpen={() => setOpen(true)}
-      />
+      />}
 
       <GlobalSearchCommandDialog
         open={open}

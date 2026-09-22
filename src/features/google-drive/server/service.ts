@@ -1,4 +1,7 @@
-import { downloadGoogleDriveDocument } from "./file-content"
+import {
+  downloadGoogleDriveDocument,
+  downloadGoogleDriveThumbnail,
+} from "./file-content"
 import "server-only"
 
 import { createHash, randomBytes } from "node:crypto"
@@ -345,6 +348,41 @@ export async function listGoogleDriveDocuments(
     modifiedAt: row.modified_at,
     status: row.status as GoogleDriveDocument["status"],
   }))
+}
+
+export async function getGoogleDriveDocumentThumbnail(input: {
+  documentId: string
+  orgId: string
+}) {
+  if (!/^[0-9a-f-]{36}$/i.test(input.documentId))
+    throw new GoogleDriveError("invalid", 400)
+  const admin = createSupabaseAdminClient()
+  const { data: document, error: documentError } = await admin
+    .from("organization_external_documents")
+    .select("provider_file_id,connection_id,status")
+    .eq("id", input.documentId)
+    .eq("org_id", input.orgId)
+    .eq("provider", "google_drive")
+    .maybeSingle()
+  if (documentError) throw new GoogleDriveError("provider_unavailable", 503)
+  if (!document || document.status !== "available" || !document.connection_id) {
+    throw new GoogleDriveError("file_not_authorized", 403)
+  }
+  const { data: ownerConnection, error: connectionError } = await admin
+    .from("google_drive_connections")
+    .select("id,user_id,status")
+    .eq("id", document.connection_id)
+    .maybeSingle()
+  if (connectionError) throw new GoogleDriveError("provider_unavailable", 503)
+  if (!ownerConnection || ownerConnection.status !== "connected")
+    throw new GoogleDriveError("google_revoked", 409)
+  const { accessToken, connection } = await getAccessToken(
+    admin,
+    ownerConnection.user_id
+  )
+  if (connection.id !== document.connection_id)
+    throw new GoogleDriveError("file_not_authorized", 403)
+  return downloadGoogleDriveThumbnail(accessToken, document.provider_file_id)
 }
 
 export async function detachGoogleDriveDocument(

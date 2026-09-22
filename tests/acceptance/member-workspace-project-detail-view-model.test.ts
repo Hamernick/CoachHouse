@@ -119,6 +119,14 @@ describe("buildMemberWorkspaceProjectDetails", () => {
       "Improvements",
     ])
     expect(details.timelineTasks).toHaveLength(2)
+    expect(details.time.schedule).toBeNull()
+    const scheduled = buildMemberWorkspaceProjectDetails({ project, tasks: [], scheduleAvailable: true, scheduleConfirmed: true, projectMembers: [{ id: "actual-owner", name: "Real Owner" }, { id: "actual-contributor", name: "Real Contributor" }] })
+    expect(scheduled.time.schedule).toEqual({ startDate: project.start_date, endDate: project.end_date })
+    expect(scheduled.time.scheduleAvailable).toBe(true)
+    expect(scheduled.backlog.picLabel).toBe("Owner")
+    expect(scheduled.backlog.picUsers.map((person) => person.id)).toEqual(["actual-owner"])
+    expect(scheduled.backlog.supportUsers?.map((person) => person.id)).toEqual(["actual-contributor"])
+
     expect(details.backlog.statusLabel).toBe("Active")
     expect(details.meta.sprintLabel).toBe("Launch 3 weeks")
     expect(details.meta.locationLabel).toBeUndefined()

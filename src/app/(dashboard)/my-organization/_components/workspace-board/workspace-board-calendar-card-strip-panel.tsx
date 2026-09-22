@@ -6,6 +6,12 @@ import ChevronRightIcon from "lucide-react/dist/esm/icons/chevron-right"
 
 import { Button } from "@/components/ui/button"
 import {
+  WORKSPACE_CALENDAR_EVENT_ROW_CLASS_NAME,
+  WorkspaceCalendarDateTileContent,
+  WorkspaceCalendarEventPreviewContent,
+  workspaceCalendarDateTileClassName,
+} from "@/components/workspace/workspace-calendar-date-strip-preview"
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -42,14 +48,6 @@ function useCalendarEventActionRequest({
     handledRequestIdRef.current = request.id
     onSelect(request.eventId)
   }, [eventIds, onSelect, request])
-}
-
-function formatCalendarStripMonth(date: Date) {
-  return new Intl.DateTimeFormat(undefined, { month: "short" }).format(date)
-}
-
-function formatCalendarStripDay(date: Date) {
-  return new Intl.DateTimeFormat(undefined, { day: "numeric" }).format(date)
 }
 
 function formatCalendarStripHeading(date: Date) {
@@ -175,60 +173,20 @@ export function CalendarDateStripEventsPanel({
         variant="ghost"
         size="icon"
         onClick={() => onSelectStripDate(date)}
-        className={cn(
-          "group relative grid aspect-square h-auto w-full min-w-0 place-items-center p-0 text-center transition-colors",
-          compactCanvasCard ? "rounded-md" : "rounded-lg",
-          isActive
-            ? "bg-foreground text-background"
-            : "text-foreground hover:bg-background/70 bg-transparent"
-        )}
+        className={workspaceCalendarDateTileClassName({
+          compact: compactCanvasCard,
+          interactive: true,
+          isActive,
+        })}
         aria-pressed={isActive}
         aria-label={formatCalendarStripHeading(date)}
       >
-        <span className="grid translate-y-[-1px] place-items-center gap-0.5">
-          <span
-            className={cn(
-              compactCanvasCard ? "text-[8px]" : "text-[10px]",
-              "leading-none",
-              isActive ? "text-background/75" : "text-muted-foreground"
-            )}
-          >
-            {formatCalendarStripMonth(date)}
-          </span>
-          <span
-            className={cn(
-              compactCanvasCard ? "text-sm" : "text-lg",
-              "leading-none font-semibold tabular-nums"
-            )}
-          >
-            {formatCalendarStripDay(date)}
-          </span>
-        </span>
-        <span
-          className={cn(
-            compactCanvasCard
-              ? "absolute top-1 right-1 h-1 w-1 rounded-full"
-              : "absolute top-1.5 right-1.5 h-1 w-1 rounded-full",
-            isToday
-              ? isActive
-                ? "bg-background/85"
-                : "bg-foreground/70"
-              : "bg-transparent"
-          )}
-          aria-hidden
-        />
-        <span
-          className={cn(
-            compactCanvasCard
-              ? "absolute bottom-1 h-1 w-1 rounded-full"
-              : "absolute bottom-1.5 h-1 w-1 rounded-full",
-            hasEvent
-              ? isActive
-                ? "bg-background/80"
-                : "bg-foreground/70"
-              : "bg-transparent"
-          )}
-          aria-hidden
+        <WorkspaceCalendarDateTileContent
+          compact={compactCanvasCard}
+          date={date}
+          hasEvent={hasEvent}
+          isActive={isActive}
+          isToday={isToday}
         />
       </Button>
     )
@@ -366,37 +324,17 @@ export function CalendarDateStripEventsPanel({
                       size="sm"
                       onClick={() => handleEventSelect(event.id)}
                       className={cn(
-                        "bg-muted/55 border-border/50 hover:bg-muted/75 focus-visible:ring-primary/40 relative flex h-auto w-full flex-col items-start gap-0.5 rounded-md border px-2 py-1.5 pl-6 text-left whitespace-normal before:absolute before:inset-y-1.5 before:left-2 before:w-1 before:rounded-full focus-visible:ring-2",
+                        WORKSPACE_CALENDAR_EVENT_ROW_CLASS_NAME,
+                        "hover:bg-muted/75 focus-visible:ring-primary/40 focus-visible:ring-2",
                         event.accentClassName
                       )}
                       aria-label={`Open details for ${event.title}`}
                     >
-                      <p
-                        className={cn(
-                          WORKSPACE_CARD_LAYOUT_SYSTEM.textWrap,
-                          "text-foreground line-clamp-1 text-xs leading-tight font-medium"
-                        )}
-                      >
-                        {event.title}
-                      </p>
-                      <p
-                        className={cn(
-                          WORKSPACE_CARD_LAYOUT_SYSTEM.textWrap,
-                          "text-muted-foreground line-clamp-1 text-[10px] leading-tight"
-                        )}
-                      >
-                        {event.timeLabel}
-                      </p>
-                      {event.invitesLabel ? (
-                        <p
-                          className={cn(
-                            WORKSPACE_CARD_LAYOUT_SYSTEM.textWrap,
-                            "text-muted-foreground line-clamp-1 text-[10px] leading-tight"
-                          )}
-                        >
-                          {event.invitesLabel}
-                        </p>
-                      ) : null}
+                      <WorkspaceCalendarEventPreviewContent
+                        title={event.title}
+                        timeLabel={event.timeLabel}
+                        invitesLabel={event.invitesLabel}
+                      />
                     </Button>
                   ))}
                 </div>

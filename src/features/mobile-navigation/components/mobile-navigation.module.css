@@ -1,0 +1,127 @@
+.dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 12px max(12px, env(safe-area-inset-left))
+    max(12px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.dock[hidden] {
+  display: none;
+}
+.embedded {
+  position: relative;
+  height: 68px;
+  pointer-events: auto;
+}
+.embedded .bar {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 4px;
+}
+.bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+  width: min(100%, 400px);
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow:
+    0 8px 32px #00000018,
+    0 2px 6px #0000000c,
+    inset 0 1px 0 #ffffff30;
+  pointer-events: auto;
+  touch-action: pan-y;
+  user-select: none;
+  transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@supports (backdrop-filter: blur(16px)) {
+  .bar {
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  }
+}
+.highlight {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / var(--tab-count));
+  transform: translateX(calc(var(--active-index) * 100%));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+  box-shadow: inset 0 1px 0 #ffffff20;
+  opacity: 0;
+  transition:
+    transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 150ms;
+  pointer-events: none;
+}
+.highlight[data-visible="true"] {
+  opacity: 1;
+}
+.bar[data-scrubbing="true"] .highlight {
+  transition: none;
+}
+.tab {
+  color: var(--muted-foreground);
+  -webkit-tap-highlight-color: transparent;
+}
+.tab[data-highlighted="true"],
+.tab:hover {
+  color: var(--foreground);
+}
+.label {
+  display: none;
+}
+.bar[data-compact="true"] {
+  width: min(100%, 320px);
+}
+.bar[data-compact="true"] .tab {
+  gap: 0;
+}
+@media (min-width: 768px) {
+  .dock {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .highlight {
+    transition: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .bar {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .bar {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+  .tab[data-highlighted="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+}
+
+/* Keep compact phones' navigation inset without reducing hit areas. */
+@media (max-width: 360px) {
+  .dock { padding-inline: max(8px, env(safe-area-inset-left)); }
+  .tab { padding-inline: 0; }
+}

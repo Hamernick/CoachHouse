@@ -1,3 +1,4 @@
+import { projectOptionSettingsSchema, type ProjectOptionSettings } from "../lib/project-option-settings"
 import type { MemberWorkspaceCreateProjectFormInput } from "../types"
 import type {
   PlatformAdminDashboardLabPriority,
@@ -16,6 +17,7 @@ export type MemberWorkspaceNormalizedCreateProjectInput = {
   clientName: string | null
   typeLabel: string | null
   durationLabel: string
+  optionSettings?: ProjectOptionSettings
   tags: string[]
   memberLabels: string[]
 }
@@ -85,9 +87,13 @@ export function normalizeMemberWorkspaceCreateProjectInput(
     }
   }
 
+  const settings = input.optionSettings === undefined ? undefined : projectOptionSettingsSchema.safeParse(input.optionSettings)
+  if (settings && !settings.success) return { ok: false, error: "Check option names and colors." }
+
   return {
     ok: true,
     value: {
+      ...(settings?.success ? { optionSettings: settings.data } : {}),
       name,
       description: input.description?.trim() ? input.description.trim() : null,
       overviewDocumentHtml:

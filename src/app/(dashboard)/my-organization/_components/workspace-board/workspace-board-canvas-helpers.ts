@@ -51,7 +51,8 @@ export function isBoardStateContentEqual(
     left.accelerator === right.accelerator &&
     left.onboardingFlow === right.onboardingFlow &&
     left.hiddenCardIds === right.hiddenCardIds &&
-    left.visibility === right.visibility
+    left.visibility === right.visibility &&
+    left.particles === right.particles
   )
 }
 

@@ -8,9 +8,9 @@ import {
   LinkText,
   ProfileField,
 } from "@/components/organization/org-profile-card/shared"
+import { ProfileFieldTabs } from "../../profile-field-tabs"
 import { OrganizationNarrativeContent } from "@/components/organization/org-profile-card/organization-narrative-content"
 import type { CompanyViewProps } from "./types"
-import { stripHtml } from "@/lib/markdown/convert"
 import { cn } from "@/lib/utils"
 import {
   hasWorkspaceBrandKitProfileContent,
@@ -126,17 +126,13 @@ const socialFields: Array<{
 
 export function StoryPreview({ company }: CompanyViewProps) {
   const originStory =
-    typeof company.originStory === "string"
-      ? stripHtml(company.originStory)
-      : ""
+    typeof company.originStory === "string" ? company.originStory : ""
   const vision = typeof company.vision === "string" ? company.vision : ""
-  const need = typeof company.need === "string" ? stripHtml(company.need) : ""
+  const need = typeof company.need === "string" ? company.need : ""
   const mission = typeof company.mission === "string" ? company.mission : ""
   const values = typeof company.values === "string" ? company.values : ""
   const theoryOfChange =
-    typeof company.theoryOfChange === "string"
-      ? stripHtml(company.theoryOfChange)
-      : ""
+    typeof company.theoryOfChange === "string" ? company.theoryOfChange : ""
 
   if (
     ![originStory, vision, need, mission, values, theoryOfChange].some(
@@ -148,38 +144,38 @@ export function StoryPreview({ company }: CompanyViewProps) {
 
   return (
     <FormRow title="About us">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+      <ProfileFieldTabs group="story" label="About us fields">
         {originStory.trim().length > 0 ? (
-          <ProfileField label="Origin story">
-            <FieldText text={originStory} multiline />
+          <ProfileField label="Origin story" focusKey="originStory">
+            <OrganizationNarrativeContent value={originStory} />
           </ProfileField>
         ) : null}
         {need.trim().length > 0 ? (
-          <ProfileField label="Need">
-            <FieldText text={need} multiline />
+          <ProfileField label="Need" focusKey="need">
+            <OrganizationNarrativeContent value={need} />
           </ProfileField>
         ) : null}
         {mission.trim().length > 0 ? (
-          <ProfileField label="Mission">
+          <ProfileField label="Mission" focusKey="mission">
             <OrganizationNarrativeContent value={mission} />
           </ProfileField>
         ) : null}
         {vision.trim().length > 0 ? (
-          <ProfileField label="Vision">
+          <ProfileField label="Vision" focusKey="vision">
             <OrganizationNarrativeContent value={vision} />
           </ProfileField>
         ) : null}
         {values.trim().length > 0 ? (
-          <ProfileField label="Values">
+          <ProfileField label="Values" focusKey="values">
             <OrganizationNarrativeContent value={values} />
           </ProfileField>
         ) : null}
         {theoryOfChange.trim().length > 0 ? (
-          <ProfileField label="Theory of change">
-            <FieldText text={theoryOfChange} multiline />
+          <ProfileField label="Theory of change" focusKey="theoryOfChange">
+            <OrganizationNarrativeContent value={theoryOfChange} />
           </ProfileField>
         ) : null}
-      </div>
+      </ProfileFieldTabs>
     </FormRow>
   )
 }

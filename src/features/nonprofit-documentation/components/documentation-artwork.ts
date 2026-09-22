@@ -41,6 +41,17 @@ import marketplaceTechsoupDigitalAssessment from "../assets/heroes/marketplace-t
 import marketplaceAdobeExpressNonprofits from "../assets/heroes/marketplace-adobe-express-nonprofits.webp"
 import marketplaceAsanaNonprofits from "../assets/heroes/marketplace-asana-nonprofits.webp"
 import marketplaceTrustlaw from "../assets/heroes/marketplace-trustlaw.webp"
+import marketplaceMonkeypod from "../assets/heroes/marketplace-monkeypod.webp"
+import marketplaceStripe from "../assets/heroes/marketplace-stripe-nonprofits.webp"
+import marketplaceSubstack from "../assets/heroes/marketplace-substack.webp"
+import marketplaceSquarespace from "../assets/heroes/marketplace-squarespace.webp"
+import marketplaceInstagram from "../assets/heroes/marketplace-instagram.webp"
+import marketplaceFacebook from "../assets/heroes/marketplace-facebook.webp"
+import marketplaceTiktok from "../assets/heroes/marketplace-tiktok.webp"
+import marketplaceLinkedin from "../assets/heroes/marketplace-linkedin.webp"
+import marketplaceX from "../assets/heroes/marketplace-x.webp"
+import marketplaceZeffy from "../assets/heroes/marketplace-zeffy.webp"
+import marketplaceVenmo from "../assets/heroes/marketplace-venmo-charity-profiles.webp"
 
 // One authored image per article; no shared palette fallback.
 export const documentationArtwork = {
@@ -85,6 +96,17 @@ export const documentationArtwork = {
   "marketplace/adobe-express-nonprofits": marketplaceAdobeExpressNonprofits,
   "marketplace/asana-nonprofits": marketplaceAsanaNonprofits,
   "marketplace/trustlaw": marketplaceTrustlaw,
+  "marketplace/monkeypod": marketplaceMonkeypod,
+  "marketplace/stripe-nonprofits": marketplaceStripe,
+  "marketplace/substack": marketplaceSubstack,
+  "marketplace/squarespace": marketplaceSquarespace,
+  "marketplace/instagram": marketplaceInstagram,
+  "marketplace/facebook": marketplaceFacebook,
+  "marketplace/tiktok": marketplaceTiktok,
+  "marketplace/linkedin": marketplaceLinkedin,
+  "marketplace/x": marketplaceX,
+  "marketplace/zeffy": marketplaceZeffy,
+  "marketplace/venmo-charity-profiles": marketplaceVenmo,
 } as const satisfies Record<string, StaticImageData>
 
 export function getDocumentationArtwork(page: string): StaticImageData {

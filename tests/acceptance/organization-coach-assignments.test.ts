@@ -3,6 +3,7 @@ import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
 import {
+  defaultOrganizationCoachFilter,
   applyOrganizationCoachFilterToParams,
   canAccessOrganizationInCoachScope,
   computeOrganizationCoachAssignmentCoverage,
@@ -331,5 +332,14 @@ describe("organization-coach-assignments feature contract", () => {
     ).toBeLessThan(assetAuthorization.indexOf("await isPlatformAdmin"))
     expect(projectsPage).toContain("MemberWorkspaceProjectsEmptyStates")
     expect(projectsEmptyStates).toContain('title="No assigned organizations"')
+  })
+})
+
+describe("initial assigned organization view", () => {
+  it.each(["Joel", "Paula", "Caleb", "fs"])("defaults %s to their own assignments", (name) => {
+    expect(defaultOrganizationCoachFilter({ ...paula, name, email: `${name}@coachhousesolutions.org` })).toBe(paula.id)
+  })
+  it("leaves other accounts on all organizations", () => {
+    expect(defaultOrganizationCoachFilter({ ...paula, name: "Other Person", email: "other@example.com" })).toBe("all")
   })
 })

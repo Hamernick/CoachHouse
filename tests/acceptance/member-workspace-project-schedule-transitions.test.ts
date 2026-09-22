@@ -1,4 +1,5 @@
 import "./test-utils"
+import { getProjectSchedule, parseScheduleDay } from "@/features/member-workspace/lib/project-schedule"
 
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -102,5 +103,26 @@ describe("member workspace project schedule transitions", () => {
     expect(scheduleSource).not.toContain(
       '.from("organization_projects")\n    .update('
     )
+  })
+})
+
+
+describe("schedule calendar math", () => {
+  it("uses elapsed days, clamps before/after dates, and labels boundaries", () => {
+    const start = "2026-09-10", end = "2026-09-20"
+    expect(getProjectSchedule(start, end, new Date(2026, 8, 9))).toMatchObject({ progress: 0, status: "Starts in 1 day" })
+    expect(getProjectSchedule(start, end, new Date(2026, 8, 15))).toMatchObject({ progress: 50, status: "5 days left" })
+    expect(getProjectSchedule(start, end, new Date(2026, 8, 20))).toMatchObject({ progress: 100, status: "Due today" })
+    expect(getProjectSchedule(start, end, new Date(2026, 8, 21))).toMatchObject({ progress: 100, status: "1 day overdue" })
+    expect(getProjectSchedule(end, end, new Date(2026, 8, 20))).toMatchObject({ progress: 100, status: "Due today" })
+  })
+  it("rejects impossible, malformed and reversed dates", () => {
+    expect(parseScheduleDay("2026-02-30")).toBeNull()
+    expect(parseScheduleDay("2026-9-10")).toBeNull()
+    expect(getProjectSchedule("2026-09-20", "2026-09-10")).toBeNull()
+    expect(parseScheduleDay("2028-02-29")).not.toBeNull()
+  })
+  it("counts calendar days across DST, regardless of the hour", () => {
+    expect(getProjectSchedule("2026-03-07", "2026-03-09", new Date(2026, 2, 8, 23))).toMatchObject({ progress: 50, status: "1 day left" })
   })
 })

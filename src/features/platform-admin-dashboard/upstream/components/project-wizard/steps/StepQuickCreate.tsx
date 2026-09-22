@@ -1,3 +1,4 @@
+import { EditableOptionPicker, type EditableOption } from "../EditableOptionPicker";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/features/platform-admin-dashboard/upstream/lib/utils";
 import { format } from "date-fns";
@@ -30,7 +31,7 @@ import {
   X,
 } from "@phosphor-icons/react/dist/ssr";
 import { ProjectDescriptionEditor } from "../ProjectDescriptionEditor";
-import { clients, type Client } from "@/features/platform-admin-dashboard/upstream/lib/data/clients";
+import { type Client } from "@/features/platform-admin-dashboard/upstream/lib/data/clients";
 
 export type StepQuickCreateUserOption = {
   id: string;
@@ -66,6 +67,9 @@ export type StepQuickCreateValue = {
   description?: string;
   priorityId?: string;
   sprintTypeId?: string;
+  sprintTypeLabel?: string;
+  tagLabel?: string;
+  optionSettings?: { tags: EditableOption[]; sprintTypes: EditableOption[] };
   startDate?: Date;
   statusId?: string;
   tagId?: string;
@@ -73,6 +77,8 @@ export type StepQuickCreateValue = {
   title: string;
   workstreamId?: string;
 };
+
+const EMPTY_ORGANIZATIONS: Client[] = [];
 
 const USERS: StepQuickCreateUserOption[] = [
   { id: "1", name: "Jason D", avatar: "/platform-lab/avatar-profile.jpg" },
@@ -139,6 +145,8 @@ interface PickerProps<T> {
   items: T[];
   onSelect: (item: T) => void;
   selectedId?: string;
+  onCreate?: (label: string) => void;
+  createLabel?: string;
   placeholder?: string;
   renderItem: (item: T, isSelected: boolean) => React.ReactNode;
 }
@@ -152,17 +160,23 @@ export function GenericPicker<
   selectedId,
   placeholder = "Search...",
   renderItem,
+  onCreate,
+  createLabel = "tag",
 }: PickerProps<T>) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const label = query.trim();
+  const canCreate = Boolean(onCreate && label && !items.some((item) =>
+    (item.label || item.name || item.id).toLowerCase() === label.toLowerCase()));
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); setQuery(""); }}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent className="p-0 w-[240px]" align="start">
         <Command>
-          <CommandInput placeholder={placeholder} />
+          <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            {!canCreate && <CommandEmpty>No results found.</CommandEmpty>}
             <CommandGroup>
               {items.map((item) => (
                 <CommandItem
@@ -177,6 +191,15 @@ export function GenericPicker<
                   {renderItem(item, item.id === selectedId)}
                 </CommandItem>
               ))}
+              {canCreate && (
+                <CommandItem
+                  value={`Create ${label}`}
+                  forceMount
+                  onSelect={() => { onCreate?.(label); setOpen(false); setQuery(""); }}
+                >
+                  Create {createLabel} “{label}”
+                </CommandItem>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -223,6 +246,8 @@ interface StepQuickCreateProps {
   mode?: "create" | "edit";
   submitLabel?: string;
   submitPending?: boolean;
+  error?: string;
+  manageOption?: (kind: "tag" | "sprintType", action: "save" | "delete", option: EditableOption) => Promise<{ error?: string; option?: EditableOption }>;
   initialValue?: Partial<StepQuickCreateValue>;
   users?: StepQuickCreateUserOption[];
   statuses?: StepQuickCreateStatusOption[];
@@ -255,6 +280,8 @@ export function StepQuickCreate({
   mode = "create",
   submitLabel,
   submitPending = false,
+  error,
+  manageOption,
   initialValue,
   users = USERS,
   statuses = STATUSES,
@@ -262,7 +289,7 @@ export function StepQuickCreate({
   sprintTypes = SPRINT_TYPES,
   workstreams = WORKSTREAMS,
   tags = TAGS,
-  clients: clientOptions = clients,
+  clients: clientOptions = EMPTY_ORGANIZATIONS,
 }: StepQuickCreateProps) {
   const [title, setTitle] = useState(initialValue?.title ?? "");
   const [description, setDescription] = useState<string | undefined>(
@@ -277,8 +304,11 @@ export function StepQuickCreate({
   const [status, setStatus] = useState<StepQuickCreateStatusOption | null>(
     () => resolveSelected(statuses, initialValue?.statusId, 1),
   );
+  const [sprintOptions, setSprintOptions] = useState<EditableOption[]>(initialValue?.optionSettings?.sprintTypes ?? sprintTypes);
+  const [tagOptions, setTagOptions] = useState<EditableOption[]>(initialValue?.optionSettings?.tags ?? tags);
+  const [optionsChanged, setOptionsChanged] = useState(false);
   const [sprintType, setSprintType] = useState<StepQuickCreateOption | null>(
-    () => resolveSelected(sprintTypes, initialValue?.sprintTypeId, undefined),
+    () => resolveSelected(initialValue?.optionSettings?.sprintTypes ?? sprintTypes, initialValue?.sprintTypeId, undefined) ?? (initialValue?.optionSettings?.sprintTypes ?? sprintTypes).find((option) => option.label === initialValue?.sprintTypeId) ?? (initialValue?.sprintTypeId ? { id: initialValue.sprintTypeId, label: initialValue.sprintTypeId } : null),
   );
   const [targetDate, setTargetDate] = useState<Date | undefined>(
     initialValue?.targetDate,
@@ -290,7 +320,7 @@ export function StepQuickCreate({
     () => resolveSelected(priorities, initialValue?.priorityId, undefined),
   );
   const [selectedTag, setSelectedTag] = useState<StepQuickCreateTagOption | null>(
-    () => resolveSelected(tags, initialValue?.tagId, undefined),
+    () => resolveSelected(initialValue?.optionSettings?.tags ?? tags, initialValue?.tagId, undefined) ?? (initialValue?.optionSettings?.tags ?? tags).find((option) => option.label === initialValue?.tagId) ?? (initialValue?.tagId ? { id: initialValue.tagId, label: initialValue.tagId } : null),
   );
   const [client, setClient] = useState<Client | null>(
     () => resolveSelected(clientOptions, initialValue?.clientId, undefined),
@@ -305,16 +335,19 @@ export function StepQuickCreate({
   }, []);
 
   useEffect(() => {
+    setSprintOptions(initialValue?.optionSettings?.sprintTypes ?? sprintTypes);
+    setTagOptions(initialValue?.optionSettings?.tags ?? tags);
+    setOptionsChanged(false);
     setTitle(initialValue?.title ?? "");
     setDescription(initialValue?.description);
     setAssignee(resolveSelected(users, initialValue?.assigneeId));
     setStartDate(initialValue?.startDate ?? new Date());
     setStatus(resolveSelected(statuses, initialValue?.statusId, 1));
-    setSprintType(resolveSelected(sprintTypes, initialValue?.sprintTypeId, undefined));
+    setSprintType(resolveSelected(initialValue?.optionSettings?.sprintTypes ?? sprintTypes, initialValue?.sprintTypeId, undefined) ?? (initialValue?.optionSettings?.sprintTypes ?? sprintTypes).find((option) => option.label === initialValue?.sprintTypeId) ?? (initialValue?.sprintTypeId ? { id: initialValue.sprintTypeId, label: initialValue.sprintTypeId } : null));
     setTargetDate(initialValue?.targetDate);
     setWorkstream(resolveSelected(workstreams, initialValue?.workstreamId, undefined));
     setPriority(resolveSelected(priorities, initialValue?.priorityId, undefined));
-    setSelectedTag(resolveSelected(tags, initialValue?.tagId, undefined));
+    setSelectedTag(resolveSelected(initialValue?.optionSettings?.tags ?? tags, initialValue?.tagId, undefined) ?? (initialValue?.optionSettings?.tags ?? tags).find((option) => option.label === initialValue?.tagId) ?? (initialValue?.tagId ? { id: initialValue.tagId, label: initialValue.tagId } : null));
     setClient(resolveSelected(clientOptions, initialValue?.clientId, undefined));
   }, [
     clientOptions,
@@ -328,6 +361,7 @@ export function StepQuickCreate({
   ]);
 
   const handleSubmit = () => {
+    if (submitPending || error) return;
     onCreate({
       title,
       description,
@@ -335,6 +369,9 @@ export function StepQuickCreate({
       startDate,
       statusId: status?.id,
       sprintTypeId: sprintType?.id,
+      sprintTypeLabel: sprintType?.label,
+      tagLabel: selectedTag?.label,
+      ...(!manageOption && (optionsChanged || initialValue?.optionSettings) ? { optionSettings: { tags: tagOptions, sprintTypes: sprintOptions } } : {}),
       targetDate,
       workstreamId: workstream?.id,
       priorityId: priority?.id,
@@ -354,6 +391,7 @@ export function StepQuickCreate({
       className="bg-background relative rounded-3xl size-full font-sans overflow-hidden flex flex-col"
       onKeyDown={handleKeyDown}
     >
+      {error && <p role="alert" className="px-4 text-sm text-destructive">{error}</p>}
       <Button
         type="button"
         variant="ghost"
@@ -449,7 +487,7 @@ export function StepQuickCreate({
             items={clientOptions}
             onSelect={setClient}
             selectedId={client?.id}
-            placeholder="Assign client..."
+            placeholder="Find organization..."
             renderItem={(item, isSelected) => (
               <div className="flex items-center gap-2 w-full">
                 <div className="size-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
@@ -468,7 +506,7 @@ export function StepQuickCreate({
               >
                 <UserCircle className="size-4 text-muted-foreground" />
                 <span className="font-medium text-foreground text-sm leading-5">
-                  {client ? client.name : "Client"}
+                  {client ? client.name : "Organization"}
                 </span>
               </button>
             }
@@ -513,22 +551,37 @@ export function StepQuickCreate({
             }
           />
 
-          <GenericPicker
-            items={sprintTypes}
-            onSelect={setSprintType}
+          <EditableOptionPicker
+            shared={Boolean(manageOption)}
+            noun="sprint type"
+            options={[...sprintOptions, ...(sprintType && !sprintOptions.some((option) => option.id === sprintType.id) ? [sprintType] : [])]}
             selectedId={sprintType?.id}
-            placeholder="Select sprint type..."
-            renderItem={(item, isSelected) => (
-              <div className="flex items-center gap-2 w-full">
-                <span className="flex-1">{item.label}</span>
-                {isSelected && <Check className="size-4" />}
-              </div>
-            )}
+            onSelect={setSprintType}
+            onSave={async (option) => {
+              if (manageOption) {
+                const result = await manageOption("sprintType", "save", option);
+                if (result.error) return result.error;
+                if (!result.option) return "Could not save option.";
+                option = result.option;
+              }
+              setSprintOptions((current) => [...current.filter((item) => item.id !== option.id), option]);
+              setSprintType(option);
+              setOptionsChanged(true);
+            }}
+            onDelete={async (option) => {
+              if (manageOption) {
+                const result = await manageOption("sprintType", "delete", option);
+                if (result.error) return result.error;
+              }
+              setSprintOptions((current) => current.filter((item) => item.id !== option.id));
+              if (sprintType?.id === option.id) setSprintType(null);
+              setOptionsChanged(true);
+            }}
             trigger={
               <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
                 <List className="size-4 text-muted-foreground" />
                 <span className="font-medium text-foreground text-sm leading-5">
-                  {sprintType ? sprintType.label : "Sprint Type"}
+                  {sprintType && <span className="mr-1 inline-block size-2 rounded-full" style={{ backgroundColor: (sprintType as EditableOption).color ?? "#64748b" }} />}{sprintType ? sprintType.label : "Sprint Type"}
                 </span>
               </button>
             }
@@ -589,21 +642,32 @@ export function StepQuickCreate({
             }
           />
 
-          <GenericPicker
-            items={tags}
-            onSelect={setSelectedTag}
+          <EditableOptionPicker
+            shared={Boolean(manageOption)}
+            noun="tag"
+            options={[...tagOptions, ...(selectedTag && !tagOptions.some((option) => option.id === selectedTag.id) ? [selectedTag] : [])]}
             selectedId={selectedTag?.id}
-            placeholder="Add tag..."
-            renderItem={(item, isSelected) => (
-              <div className="flex items-center gap-2 w-full">
-                <div
-                  className="size-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="flex-1">{item.label}</span>
-                {isSelected && <Check className="size-4" />}
-              </div>
-            )}
+            onSelect={setSelectedTag}
+            onSave={async (option) => {
+              if (manageOption) {
+                const result = await manageOption("tag", "save", option);
+                if (result.error) return result.error;
+                if (!result.option) return "Could not save option.";
+                option = result.option;
+              }
+              setTagOptions((current) => [...current.filter((item) => item.id !== option.id), option]);
+              setSelectedTag(option);
+              setOptionsChanged(true);
+            }}
+            onDelete={async (option) => {
+              if (manageOption) {
+                const result = await manageOption("tag", "delete", option);
+                if (result.error) return result.error;
+              }
+              setTagOptions((current) => current.filter((item) => item.id !== option.id));
+              if (selectedTag?.id === option.id) setSelectedTag(null);
+              setOptionsChanged(true);
+            }}
             trigger={
               <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
                 <Wrapper>
@@ -617,7 +681,7 @@ export function StepQuickCreate({
                   </defs>
                 </Wrapper>
                 <span className="font-medium text-foreground text-sm leading-5">
-                  {selectedTag ? selectedTag.label : "Tag"}
+                  {selectedTag && <span className="mr-1 inline-block size-2 rounded-full" style={{ backgroundColor: selectedTag.color ?? "#64748b" }} />}{selectedTag ? selectedTag.label : "Tag"}
                 </span>
               </button>
             }
@@ -636,7 +700,7 @@ export function StepQuickCreate({
 
           <button
             onClick={handleSubmit}
-            disabled={submitPending}
+            disabled={submitPending || Boolean(error)}
             className="bg-primary hover:bg-primary/90 disabled:opacity-60 flex gap-3 h-10 items-center justify-center px-4 py-2 rounded-lg transition-colors cursor-pointer"
           >
             <span className="font-medium text-primary-foreground text-sm leading-5">

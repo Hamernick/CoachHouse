@@ -42,18 +42,48 @@ export function useDocumentationContents(items: DocumentationContents) {
     function schedule() {
       if (!frame) frame = requestAnimationFrame(update)
     }
+    function restoreAnchor() {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        let id = ""
+        try {
+          id = decodeURIComponent(window.location.hash.slice(1))
+        } catch {
+          // A malformed fragment must not interrupt ordinary scroll tracking.
+        }
+        const section = items.some(([sectionId]) => sectionId === id)
+          ? document.getElementById(id)
+          : null
+        if (section && root!.contains(section)) {
+          const margin =
+            parseFloat(getComputedStyle(section).scrollMarginTop) || 24
+          root!.scrollTo({
+            top:
+              root!.scrollTop +
+              section.getBoundingClientRect().top -
+              root!.getBoundingClientRect().top -
+              margin,
+            behavior: "instant",
+          })
+        }
+        update()
+      })
+    }
     const observer = new ResizeObserver(schedule)
     observer.observe(root)
     const content = root.querySelector("#documentation-content")
     if (content) observer.observe(content)
     root.addEventListener("scroll", schedule, { passive: true })
-    window.addEventListener("hashchange", schedule)
-    schedule()
+    window.addEventListener("hashchange", restoreAnchor)
+    window.addEventListener("popstate", restoreAnchor)
+    restoreAnchor()
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
       root.removeEventListener("scroll", schedule)
-      window.removeEventListener("hashchange", schedule)
+      window.removeEventListener("hashchange", restoreAnchor)
+      window.removeEventListener("popstate", restoreAnchor)
     }
   }, [items])
 

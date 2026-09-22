@@ -65,6 +65,29 @@ describe("organization document upload limit", () => {
     expect(empty.previewPath).toBeUndefined()
   })
 
+  it("routes attached Drive files through the private thumbnail proxy", () => {
+    const documentId = "11111111-1111-4111-8111-111111111111"
+    const [item] = buildLibraryItems(
+      [],
+      [
+        {
+          id: documentId,
+          name: "Board strategy",
+          mimeType: "application/vnd.google-apps.document",
+          webViewLink: "https://docs.google.com/document/d/selected-file/edit",
+          modifiedAt: "2026-09-17T12:00:00Z",
+          status: "available",
+        },
+      ],
+      []
+    )
+
+    expect(item.previewPath).toBe(
+      `/api/integrations/google-drive/documents/${documentId}/preview`
+    )
+    expect(item.previewVersion).toBe("2026-09-17T12:00:00Z")
+  })
+
   it("attaches core files only to their own slot, with no duplicate card, and releases trashed attachments", () => {
     const rows = buildRoadmapRows(
       ["budget", "board_strategy"].map((id) => ({

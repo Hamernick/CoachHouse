@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Plus } from "@phosphor-icons/react/dist/ssr"
@@ -21,7 +21,6 @@ import {
   TaskQuickCreateModal,
   type CreateTaskContext,
   type FilterChip,
-  type Project,
   type ProjectTask,
   type ProjectTaskGroup,
   type TaskQuickCreateSubmitValue,
@@ -29,6 +28,7 @@ import {
   computeTaskFilterCounts,
   filterTasksByChips,
 } from "@/features/platform-admin-dashboard"
+import { toProjectGroup } from "../../lib/task-view-model"
 import { toast } from "@/lib/toast"
 import type {
   MemberWorkspaceCreateTaskInput,
@@ -45,68 +45,6 @@ type MemberWorkspaceTaskFilterCounts = {
   priority?: Record<string, number>
   tags?: Record<string, number>
   members?: Record<string, number>
-}
-
-function toProjectTask(task: MemberWorkspaceTaskItem): ProjectTask {
-  return {
-    id: task.id,
-    name: task.title,
-    status: task.status,
-    dueLabel: format(new Date(`${task.endDate}T00:00:00.000Z`), "dd/MM/yyyy"),
-    assignee: task.assignee
-      ? {
-          id: task.assignee.id,
-          name: task.assignee.name,
-          avatarUrl: task.assignee.avatarUrl ?? undefined,
-        }
-      : undefined,
-    startDate: new Date(`${task.startDate}T00:00:00.000Z`),
-    priority: task.priority,
-    tag: task.tagLabel ?? undefined,
-    description: task.description,
-    projectId: task.projectId,
-    projectName: task.projectName,
-    workstreamId: task.workstreamName
-      ? `${task.projectId}:${task.workstreamName.toLowerCase().replace(/\s+/g, "-")}`
-      : `${task.projectId}:general`,
-    workstreamName: task.workstreamName ?? "General",
-  }
-}
-
-function toProjectGroup(group: MemberWorkspaceTaskGroup): ProjectTaskGroup {
-  const tasks = group.tasks.map(toProjectTask)
-  const done = tasks.filter((task) => task.status === "done").length
-  const total = tasks.length
-  const progress = total > 0 ? Math.round((done / total) * 100) : 0
-  const project: Project = {
-    id: group.projectId,
-    name: group.projectName,
-    taskCount: total,
-    progress,
-    startDate: new Date(`${group.projectStartDate}T00:00:00.000Z`),
-    endDate: new Date(`${group.projectEndDate}T00:00:00.000Z`),
-    status: group.projectStatus,
-    priority: group.projectPriority,
-    tags: group.projectTags,
-    members: group.projectMembers,
-    client: group.projectClient ?? undefined,
-    typeLabel: group.projectTypeLabel ?? undefined,
-    durationLabel: group.projectDurationLabel ?? undefined,
-    tasks: tasks.map((task) => ({
-      id: task.id,
-      name: task.name,
-      type: group.tasks.find((item) => item.id === task.id)?.taskType ?? "task",
-      assignee: task.assignee?.name ?? "",
-      status: task.status,
-      startDate: task.startDate ?? new Date(),
-      endDate: new Date(`${group.tasks.find((item) => item.id === task.id)?.endDate ?? group.projectEndDate}T00:00:00.000Z`),
-    })),
-  }
-
-  return {
-    project,
-    tasks,
-  }
 }
 
 function updateTaskGroups(
@@ -164,6 +102,7 @@ export function MemberWorkspaceTasksPage({
 }) {
   const router = useRouter()
   const [groups, setGroups] = useState(initialTaskGroups)
+  useEffect(() => setGroups(initialTaskGroups), [initialTaskGroups])
   const [filters, setFilters] = useState<FilterChip[]>([])
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false)
   const [createContext, setCreateContext] = useState<CreateTaskContext | undefined>(undefined)
@@ -279,10 +218,10 @@ export function MemberWorkspaceTasksPage({
   }
 
   const handleTaskSubmit = async (value: TaskQuickCreateSubmitValue) => {
-    const tagLabel = TAG_OPTIONS.find((option) => option.id === value.tagId)?.label
+    const tagLabel = value.tagLabel?.trim() || TAG_OPTIONS.find((option) => option.id === value.tagId)?.label
     const startDate =
-      value.startDate?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10)
-    const endDate = value.targetDate?.toISOString().slice(0, 10) ?? startDate
+      format(value.startDate ?? new Date(), "yyyy-MM-dd")
+    const endDate = value.targetDate ? format(value.targetDate, "yyyy-MM-dd") : startDate
     const input: MemberWorkspaceCreateTaskInput = {
       projectId: value.projectId,
       title: value.title,
@@ -469,6 +408,7 @@ export function MemberWorkspaceTasksPage({
             onDragEnd={canReorderTasks ? handleDragEnd : undefined}
           >
             <ProjectTaskListView
+              flat
               groups={visibleGroups}
               onToggleTask={handleToggleTask}
               onAddTask={(context) => openCreateTask(context)}

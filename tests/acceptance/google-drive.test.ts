@@ -357,6 +357,42 @@ describe("Google Drive backend contract", () => {
     expect(file).not.toHaveProperty("accessToken")
   })
 
+  it("proxies a bounded Drive thumbnail without exposing its token", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "selected-file",
+          name: "Board strategy",
+          mimeType: "application/vnd.google-apps.document",
+          webViewLink: "https://docs.google.com/document/d/selected-file/edit",
+          thumbnailLink:
+            "https://lh3.googleusercontent.com/drive-thumbnail=s220",
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response("thumbnail bytes", {
+          headers: { "content-type": "image/png" },
+        })
+      )
+    vi.stubGlobal("fetch", fetchMock)
+    const { downloadGoogleDriveThumbnail } =
+      await import("@/features/google-drive/server/file-content")
+    const preview = await downloadGoogleDriveThumbnail(
+      "private-fixture-token",
+      "selected-file"
+    )
+
+    expect(preview.contentType).toBe("image/png")
+    expect(preview.bytes.toString()).toBe("thumbnail bytes")
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      cache: "no-store",
+      redirect: "error",
+      headers: { authorization: "Bearer private-fixture-token" },
+    })
+    expect(preview).not.toHaveProperty("accessToken")
+  })
+
   it("reads selected Word/Markdown blobs and rejects inaccessible or unsupported Google files", async () => {
     const { downloadGoogleDriveDocument } =
       await import("@/features/google-drive/server/file-content")

@@ -60,6 +60,7 @@ export function useOrgProfileEditorState({
   const pendingNavigationRef = useRef<string | null>(null)
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false)
   const [errors, setErrors] = useState<OrgProfileErrors>({})
+  const [validationAttempt, setValidationAttempt] = useState(0)
   const [editProgram, setEditProgram] = useState<OrgProgram | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const hasUnsavedChanges = dirty
@@ -175,6 +176,7 @@ export function useOrgProfileEditorState({
           (value) => value.trim().length > 0
         )
         setErrors(nextErrors)
+        setValidationAttempt((attempt) => attempt + 1)
         toast.error(firstError ?? "Please fix the highlighted fields.")
         return
       }
@@ -342,6 +344,7 @@ export function useOrgProfileEditorState({
     dirty,
     company,
     errors,
+    validationAttempt,
     slugStatus,
     setSlugStatus,
     editProgram,

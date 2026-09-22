@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -9,6 +9,7 @@ import { ProjectData, ProjectMode } from "./types";
 import { StepMode } from "./steps/StepMode";
 import { StepIntent } from "./steps/StepIntent";
 import { StepOutcome } from "./steps/StepOutcome";
+import type { EditableOption } from "./EditableOptionPicker";
 import { StepOwnership } from "./steps/StepOwnership";
 import { StepStructure } from "./steps/StepStructure";
 import { StepReview } from "./steps/StepReview";
@@ -28,6 +29,7 @@ import type { Client } from "@/features/platform-admin-dashboard/upstream/lib/da
 const QUICK_CREATE_STEP = 100;
 
 interface ProjectWizardProps {
+  renderGuidedSetup?: () => ReactNode;
   onClose: () => void;
   onCreate?: () => void | Promise<void>;
   mode?: "create" | "edit";
@@ -35,6 +37,8 @@ interface ProjectWizardProps {
   quickCreateInitialValue?: Partial<StepQuickCreateValue>;
   quickCreateSubmitLabel?: string;
   quickCreateSubmitPending?: boolean;
+  quickCreateError?: string;
+  manageOption?: (kind: "tag" | "sprintType", action: "save" | "delete", option: EditableOption) => Promise<{ error?: string; option?: EditableOption }>;
   quickCreateUsers?: StepQuickCreateUserOption[];
   quickCreateStatuses?: StepQuickCreateStatusOption[];
   quickCreatePriorities?: StepQuickCreatePriorityOption[];
@@ -49,6 +53,7 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({
+  renderGuidedSetup,
   onClose,
   onCreate,
   mode = "create",
@@ -56,6 +61,8 @@ export function ProjectWizard({
   quickCreateInitialValue,
   quickCreateSubmitLabel,
   quickCreateSubmitPending = false,
+  quickCreateError,
+  manageOption,
   quickCreateUsers,
   quickCreateStatuses,
   quickCreatePriorities,
@@ -126,7 +133,7 @@ export function ProjectWizard({
   };
 
   const isNextDisabled = () => {
-      if (step === 3 && !data.ownerId) return true; // Step 3: Ownership
+      if (step === 3 && !quickCreateUsers?.some((person) => person.id === data.ownerId)) return true; // Step 3: Ownership
       return false;
   }
 
@@ -173,6 +180,8 @@ export function ProjectWizard({
     5: "Review project setup",
   };
 
+  if (data.mode === "guided" && step > 0 && renderGuidedSetup) return renderGuidedSetup();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <motion.div 
@@ -208,6 +217,8 @@ export function ProjectWizard({
                 initialValue={quickCreateInitialValue}
                 submitLabel={quickCreateSubmitLabel}
                 submitPending={quickCreateSubmitPending}
+                      error={quickCreateError}
+                      manageOption={manageOption}
                 users={quickCreateUsers}
                 statuses={quickCreateStatuses}
                 priorities={quickCreatePriorities}
@@ -270,13 +281,13 @@ export function ProjectWizard({
                                     <StepOutcome data={data} updateData={updateData} />
                                 )}
                                 {step === 3 && (
-                                    <StepOwnership data={data} updateData={updateData} />
+                                    <StepOwnership data={data} updateData={updateData} people={quickCreateUsers} organizations={quickCreateClients} />
                                 )}
                                 {step === 4 && (
                                     <StepStructure data={data} updateData={updateData} />
                                 )}
                                 {step === 5 && (
-                                    <StepReview data={data} onEditStep={handleEditStepFromReview} />
+                                    <StepReview data={data} people={quickCreateUsers} onEditStep={handleEditStepFromReview} />
                                 )}
                             </motion.div>
                         </AnimatePresence>

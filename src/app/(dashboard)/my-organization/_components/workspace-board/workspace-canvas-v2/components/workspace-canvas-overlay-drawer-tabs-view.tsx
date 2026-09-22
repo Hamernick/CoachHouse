@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceParticlesPanel } from "@/features/workspace-particles/client"
+
 import type { CSSProperties, RefObject } from "react"
 
 import { DocumentsTab } from "@/components/organization/org-profile-card/tabs/documents-tab"
@@ -40,6 +42,7 @@ function WorkspaceDrawerTabTrigger({
   return (
     <TabsTrigger
       value={value}
+      data-particle-return-target={value === "particles" ? "tab" : undefined}
       onClick={onOpen}
       className="h-7 min-w-0 flex-none gap-2 px-2 py-1 text-left after:hidden"
     >
@@ -133,6 +136,9 @@ export function WorkspaceDrawerTabs({
           <WorkspaceDrawerTabTrigger value="documents" onOpen={handleTabOpen}>
             Documents
           </WorkspaceDrawerTabTrigger>
+          <WorkspaceDrawerTabTrigger value="particles" onOpen={handleTabOpen}>
+            Particles
+          </WorkspaceDrawerTabTrigger>
           <WorkspaceDrawerTabTrigger value="tools" onOpen={handleTabOpen}>
             Tools
           </WorkspaceDrawerTabTrigger>
@@ -167,6 +173,12 @@ export function WorkspaceDrawerTabs({
             : "opacity-100 delay-0"
         )}
       >
+        <TabsContent
+          value="particles"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
+        >
+          {tab === "particles" ? <WorkspaceParticlesPanel /> : null}
+        </TabsContent>
         <TabsContent
           value="organization"
           className="mx-auto flex min-h-0 w-full max-w-7xl min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden md:px-8"

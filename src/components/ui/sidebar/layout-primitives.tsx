@@ -41,7 +41,7 @@ export function SidebarHeader({ className, ...props }: React.ComponentProps<"div
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 px-[var(--shell-rail-padding,0.5rem)] py-2", className)}
+      className={cn("flex flex-col gap-2 px-[var(--shell-rail-padding,0.5rem)] py-2 max-md:pr-14", className)}
       {...props}
     />
   )

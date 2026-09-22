@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: `VISUAL_REGRESSION_ROUTES=1 pnpm dev --port ${port}`,
+        command: `NEXT_PUBLIC_ENABLE_REACT_GRAB=0 VISUAL_REGRESSION_ROUTES=1 pnpm dev --port ${port}`,
         url: baseURL,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,

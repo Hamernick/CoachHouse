@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   attachGoogleDriveDocuments: vi.fn(),
   createGoogleDrivePickerToken: vi.fn(),
   getGoogleDriveConnection: vi.fn(),
+  getGoogleDriveDocumentThumbnail: vi.fn(),
   loggerInfo: vi.fn(),
   loggerWarn: vi.fn(),
   requireGoogleDriveContext: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@/features/google-drive", async (importOriginal) => ({
   attachGoogleDriveDocuments: mocks.attachGoogleDriveDocuments,
   createGoogleDrivePickerToken: mocks.createGoogleDrivePickerToken,
   getGoogleDriveConnection: mocks.getGoogleDriveConnection,
+  getGoogleDriveDocumentThumbnail: mocks.getGoogleDriveDocumentThumbnail,
   requireGoogleDriveContext: mocks.requireGoogleDriveContext,
   startGoogleDriveConnection: mocks.startGoogleDriveConnection,
 }))
@@ -171,6 +173,33 @@ describe("Google Drive route contracts", () => {
       userId: "user-1",
       orgId: "org-1",
       fileIds: ["drive-file-one", "drive-file-two"],
+    })
+  })
+
+  it("proxies a private thumbnail only for an attached document in the active organization", async () => {
+    mocks.getGoogleDriveDocumentThumbnail.mockResolvedValue({
+      bytes: Buffer.from("thumbnail"),
+      contentType: "image/png",
+    })
+    const documentId = "11111111-1111-4111-8111-111111111111"
+    const request = new NextRequest(
+      `https://coachhouse.app/api/integrations/google-drive/documents/${documentId}/preview`
+    )
+    const { GET } =
+      await import("@/app/api/integrations/google-drive/documents/[documentId]/preview/route")
+    const response = await GET(request, {
+      params: Promise.resolve({ documentId }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("image/png")
+    expect(response.headers.get("cache-control")).toBe("private, max-age=300")
+    expect(Buffer.from(await response.arrayBuffer()).toString()).toBe(
+      "thumbnail"
+    )
+    expect(mocks.getGoogleDriveDocumentThumbnail).toHaveBeenCalledWith({
+      documentId,
+      orgId: "org-1",
     })
   })
 

@@ -23,6 +23,8 @@ import type { WorkspaceBoardNodeData } from "./workspace-board-node-types"
 export const WorkspaceBoardNode = memo(function WorkspaceBoardNode({
   id,
   data,
+  selected,
+  yPos,
 }: NodeProps<WorkspaceBoardNodeData>) {
   const nodeRef = useRef<HTMLDivElement>(null)
   const lastReportedHeightRef = useRef<number | null>(null)
@@ -61,7 +63,7 @@ export const WorkspaceBoardNode = memo(function WorkspaceBoardNode({
       )}
     >
       <div className="relative min-h-0 w-full min-w-0">
-        <WorkspaceBoardCard data={data} />
+        <WorkspaceBoardCard data={data} selected={selected} yPos={yPos} />
         <ConnectionHandles
           cardId={data.cardId}
           presentationMode={data.presentationMode}

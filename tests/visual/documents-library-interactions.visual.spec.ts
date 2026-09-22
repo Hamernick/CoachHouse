@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
+import { prepareVisualPage, reviewedPlatformScreenshotName } from "./reviewed-platform-screenshot"
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
+})
 
 type FixtureFile = {
   id: string
@@ -149,7 +154,7 @@ for (const colorScheme of ["light", "dark"] as const) {
         )
       ).toBe(true)
       await expect(banner).toHaveScreenshot(
-        `documents-list-${width}-${colorScheme}.png`,
+        reviewedPlatformScreenshotName(`documents-list-${width}-${colorScheme}.png`),
         { animations: "disabled" }
       )
     })

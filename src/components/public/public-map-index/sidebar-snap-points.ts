@@ -16,16 +16,17 @@ export function resolveNextPublicMapDrawerSnapPointIndex(
 }
 
 export function buildPublicMapDrawerSnapPoints(
-  surfaceHeight: number
+  surfaceHeight: number,
+  withNavigation = false
 ): PublicMapDrawerSnapPoints {
   const safeSurfaceHeight = Math.max(0, Math.round(surfaceHeight))
 
   if (safeSurfaceHeight <= 0) {
-    return ["168px", "336px", 1] as const
+    return [withNavigation ? "86px" : "168px", "336px", 1] as const
   }
 
   // Keep the lowest stop limited to the drawer controls, without list content.
-  const collapsedHeight = PUBLIC_MAP_DRAWER_COLLAPSED_HEIGHT
+  const collapsedHeight = withNavigation ? 86 : PUBLIC_MAP_DRAWER_COLLAPSED_HEIGHT
   const defaultHeight = Math.round(
     clamp(safeSurfaceHeight * 0.56, 336, Math.max(360, safeSurfaceHeight - 88))
   )

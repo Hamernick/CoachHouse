@@ -26,6 +26,9 @@ export type UseAccountSettingsDialogStateResult = {
   contact: string
   about: string
   phone: string
+  preferencesError: string | null
+  preferencesLoading: boolean
+  retryPreferences: () => void
   marketingOptIn: boolean
   newsletterOptIn: boolean
   newPassword: string

@@ -15,6 +15,7 @@ export {
   detachGoogleDriveDocument,
   disconnectGoogleDrive,
   getGoogleDriveConnection,
+  getGoogleDriveDocumentThumbnail,
   listGoogleDriveDocuments,
   requireGoogleDriveContext,
   startGoogleDriveConnection,

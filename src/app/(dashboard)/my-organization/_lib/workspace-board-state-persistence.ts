@@ -1,3 +1,4 @@
+import { preferNewerParticleState } from "@/features/workspace-particles/client"
 import type {
   WorkspaceBoardState,
   WorkspaceCardId,
@@ -135,6 +136,11 @@ export function mergeNewerPersistedWorkspaceNodeState({
     ? persisted.ontology
     : incoming.ontology
   if (ontology !== incoming.ontology) changed = true
+  const particles = preferNewerParticleState(
+    incoming.particles,
+    persisted.particles
+  )
+  if (particles !== incoming.particles) changed = true
 
   const forwardCompatibility = mergeWorkspaceBoardForwardCompatibilityState(
     persistedIsNewer
@@ -151,6 +157,7 @@ export function mergeNewerPersistedWorkspaceNodeState({
         ...incoming,
         nodes,
         ontology,
+        ...(particles ? { particles } : {}),
         ...(forwardCompatibility ? { forwardCompatibility } : {}),
       }
     : incoming
@@ -166,6 +173,7 @@ export function reconcileWorkspaceBoardSaveResult({
   return {
     ...current,
     nodes: persisted.nodes,
+    ...(persisted.particles ? { particles: persisted.particles } : {}),
     forwardCompatibility: persisted.forwardCompatibility,
     updatedAt: persisted.updatedAt,
   }

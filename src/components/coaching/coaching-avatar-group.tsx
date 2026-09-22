@@ -5,12 +5,16 @@ import { cn } from "@/lib/utils"
 
 type AvatarSize = "xs" | "sm" | "md"
 
+export type CoachingAvatar = { id: string; name: string; imageUrl: string | null }
+
 type CoachingAvatarGroupProps = {
+  avatars?: CoachingAvatar[]
   className?: string
   size?: AvatarSize
   label?: string
   limit?: number
   showStatus?: boolean
+  showOverflow?: boolean
 }
 
 const COACHING_TEAM_AVATARS: Array<{
@@ -53,11 +57,13 @@ export function CoachingAvatarGroup({
   label = "Coach House coaching team",
   limit,
   showStatus = false,
+  showOverflow = false,
+  avatars = COACHING_TEAM_AVATARS,
 }: CoachingAvatarGroupProps) {
   const styles = SIZE_STYLES[size]
-  const visibleAvatars = COACHING_TEAM_AVATARS.slice(
+  const visibleAvatars = avatars.slice(
     0,
-    limit ?? COACHING_TEAM_AVATARS.length
+    limit ?? avatars.length
   )
 
   return (
@@ -74,6 +80,7 @@ export function CoachingAvatarGroup({
           <li
             key={avatar.id}
             className={cn("relative shrink-0", styles.avatar)}
+            title={avatar.name}
           >
             <span className="border-background ring-border/70 absolute inset-0 overflow-hidden rounded-full border-2 ring-1">
               {avatar.imageUrl ? (
@@ -89,7 +96,9 @@ export function CoachingAvatarGroup({
                   className="bg-muted text-muted-foreground inline-flex size-full items-center justify-center"
                   aria-label={avatar.name}
                 >
-                  <UserRoundIcon className={styles.icon} aria-hidden />
+                  <span className="text-[10px] font-medium" aria-hidden>
+                    {avatar.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("") || <UserRoundIcon className={styles.icon} />}
+                  </span>
                 </span>
               )}
             </span>
@@ -101,6 +110,13 @@ export function CoachingAvatarGroup({
             ) : null}
           </li>
         ))}
+        {showOverflow && avatars.length > visibleAvatars.length ? (
+          <li className={cn("bg-muted border-background relative flex shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-medium", styles.avatar)}
+            aria-label={avatars.slice(visibleAvatars.length).map((avatar) => avatar.name).join(", ")}
+            title={avatars.slice(visibleAvatars.length).map((avatar) => avatar.name).join(", ")}>
+            +{avatars.length - visibleAvatars.length}
+          </li>
+        ) : null}
       </ul>
     </div>
   )

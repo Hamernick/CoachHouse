@@ -26,7 +26,7 @@ describe("app shell header layout", () => {
       "pr-[calc(var(--shell-content-pad)+var(--shell-right-rail))]"
     )
     expect(rightRailSource).toContain('"w-[var(--shell-right-rail-width)]"')
-    expect(rightRailSource).toContain("<SheetDescription>")
+    expect(rightRailSource).toContain('<SheetDescription className="sr-only">')
     expect(rightRailSource).toContain(
       "Contextual details for the current workspace view."
     )

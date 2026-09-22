@@ -5,8 +5,8 @@ test("Documentation menus stay centered and reachable above the canvas", async (
 }) => {
   for (const width of [1440, 1024, 768]) {
     await page.setViewportSize({ width, height: 900 })
-    await page.goto("/documentation")
-    await page.waitForLoadState("networkidle")
+    await page.goto("/documentation?react-grab=0", { waitUntil: "domcontentloaded" })
+    await expect(page.locator("[data-build-collect-public-header]")).toBeVisible()
     const header = page.locator("[data-build-collect-public-header]")
     const navigation = header.locator('[data-slot="navigation-menu-list"]')
     const headerBounds = (await header.boundingBox())!
@@ -21,11 +21,14 @@ test("Documentation menus stay centered and reachable above the canvas", async (
 
     for (const name of ["Collect", "Build"]) {
       const trigger = header.getByRole("button", { name, exact: true })
-      await trigger.hover()
       const menu = header.locator(
         '[data-slot="navigation-menu-content"][data-state="open"]'
       )
-      await expect(menu).toBeVisible()
+      await expect(async () => {
+        await page.mouse.move(0, 0)
+        await trigger.hover()
+        await expect(menu).toBeVisible({ timeout: 1000 })
+      }).toPass({ timeout: 15000 })
       const links = menu.getByRole("link")
       await links.first().hover()
       await expect(menu).toBeVisible()
@@ -48,8 +51,8 @@ test("Documentation menus stay centered and reachable above the canvas", async (
       await page.mouse.move(20, 400)
     }
   }
-  await page.goto("/documentation")
-  await page.waitForLoadState("networkidle")
+  await page.goto("/documentation?react-grab=0", { waitUntil: "domcontentloaded" })
+  await expect(page.locator("[data-build-collect-public-header]")).toBeVisible()
   const header = page.locator("[data-build-collect-public-header]")
   await header.getByRole("button", { name: "Collect", exact: true }).focus()
   await page.keyboard.press("Space")
@@ -66,7 +69,7 @@ test("Documentation menus stay centered and reachable above the canvas", async (
 test("public Build landing and hover navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto("/build?react-grab=0")
-  await page.waitForLoadState("networkidle")
+  await expect(page.locator("[data-build-collect-public-header]")).toBeVisible()
 
   await expect(
     page.getByRole("heading", {
@@ -75,8 +78,11 @@ test("public Build landing and hover navigation", async ({ page }) => {
   ).toBeVisible()
 
   const buildMenu = page.getByRole("button", { name: "Build", exact: true })
-  await buildMenu.hover()
-  await expect(page.getByRole("link", { name: /Workspace/ })).toBeVisible()
+  await expect(async () => {
+    await page.mouse.move(0, 0)
+    await buildMenu.hover()
+    await expect(page.getByRole("link", { name: /Workspace/ })).toBeVisible({ timeout: 1000 })
+  }).toPass({ timeout: 15000 })
   await expect(page.getByRole("link", { name: /Accelerator/ })).toBeVisible()
   await expect(page.getByRole("link", { name: /Pricing/ })).toBeVisible()
 

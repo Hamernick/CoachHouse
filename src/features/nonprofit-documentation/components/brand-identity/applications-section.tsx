@@ -1,7 +1,5 @@
 "use client"
 
-import Image from "next/image"
-
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,7 +9,7 @@ import type {
   BrandIdentityDraft,
   StoredBrandAsset,
 } from "../../types"
-import { foregroundFor, normalizeHex } from "../../lib/brand-identity"
+import { BrandCampaignPreview } from "./brand-campaign-preview"
 import { BrandAssetField } from "./brand-asset-field"
 import {
   BrandIdentitySection,
@@ -29,6 +27,7 @@ export function ApplicationsSection({
   updateDraft,
   uploadAsset,
   deleteAsset,
+  disabled = false,
 }: {
   draft: BrandIdentityDraft
   assets: StoredBrandAsset[]
@@ -36,18 +35,16 @@ export function ApplicationsSection({
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
   uploadAsset: (id: BrandAssetId, file: File) => Promise<boolean>
   deleteAsset: (id: BrandAssetId) => Promise<void>
+  disabled?: boolean
 }) {
   const application = assets.find((asset) => asset.id === "application-image")
-  const brand = normalizeHex(draft.colors[1]?.value ?? "#214E3B")
-  const canvas = normalizeHex(draft.colors[0]?.value ?? "#F3F0E8")
-  const ink = normalizeHex(draft.colors[3]?.value ?? "#111310")
 
   return (
     <BrandIdentitySection
       id="applications"
       eyebrow="Put the system to work"
       title="Applications"
-      description="Test the identity in a realistic campaign composition. One message, one focal image, and one clear action are usually enough."
+      description="Bring your palette, type, and imagery together."
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -84,6 +81,7 @@ export function ApplicationsSection({
           previewUrl={assetUrls["application-image"]}
           onUpload={uploadAsset}
           onDelete={deleteAsset}
+          disabled={disabled}
         />
       </BrandIdentitySubsection>
 
@@ -91,50 +89,40 @@ export function ApplicationsSection({
         title="Social composition"
         description="Use this as a starting point, then adapt the crop and copy for each channel rather than stretching one file everywhere."
       >
-        <div className="overflow-hidden rounded-xl border">
-          <div className="grid min-h-80 md:grid-cols-2">
-            <div
-              className="flex flex-col justify-between p-7 sm:p-10"
-              style={{ backgroundColor: brand, color: foregroundFor(brand) }}
-            >
-              <p className="text-sm font-semibold">{draft.organizationName}</p>
-              <div>
-                <p
-                  className="text-3xl leading-tight font-semibold tracking-[-0.04em] sm:text-4xl"
-                  style={{ fontFamily: draft.headingFont }}
-                >
-                  {draft.campaignHeadline}
-                </p>
-                <p className="mt-4 max-w-sm text-sm leading-6 opacity-80">
-                  {draft.campaignBody}
-                </p>
-              </div>
-            </div>
-            <div
-              className="relative min-h-72"
-              style={{ backgroundColor: canvas }}
-            >
-              {assetUrls["application-image"] ? (
-                <Image
-                  src={assetUrls["application-image"]}
-                  alt="Campaign composition preview"
-                  fill
-                  sizes="(min-width: 768px) 360px, 100vw"
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <div
-                  className="flex size-full items-end p-8"
-                  style={{ color: ink }}
-                >
-                  <p className="max-w-xs text-sm leading-6">
-                    Upload a campaign image to complete this composition.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+        <BrandCampaignPreview
+          draft={draft}
+          previewUrl={assetUrls["application-image"]}
+        />
+      </BrandIdentitySubsection>
+
+      <BrandIdentitySubsection
+        title="Vertical posts"
+        description="A separate 4:5 image and composition using your campaign copy."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <BrandAssetField
+            id="application-vertical-image"
+            label="Vertical post image"
+            guidance="Upload a portrait image. This image is saved separately from the landscape image."
+            asset={assets.find(
+              (asset) => asset.id === "application-vertical-image"
+            )}
+            previewUrl={assetUrls["application-vertical-image"]}
+            onUpload={uploadAsset}
+            onDelete={deleteAsset}
+            disabled={disabled}
+            aspect="portrait"
+          />
+          <figure className="min-w-0">
+            <BrandCampaignPreview
+              draft={draft}
+              previewUrl={assetUrls["application-vertical-image"]}
+              portrait
+            />
+            <figcaption className="mt-2 text-sm font-medium">
+              Vertical composition
+            </figcaption>
+          </figure>
         </div>
       </BrandIdentitySubsection>
 
@@ -142,7 +130,7 @@ export function ApplicationsSection({
         title="Illustrations"
         description="Keep a small, coherent set. Use one drawing style, consistent line weight, and the same approved foreground/background pairings."
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {ILLUSTRATION_IDS.map((id, index) => (
             <BrandAssetField
               key={id}
@@ -153,6 +141,7 @@ export function ApplicationsSection({
               previewUrl={assetUrls[id]}
               onUpload={uploadAsset}
               onDelete={deleteAsset}
+              disabled={disabled}
               aspect="square"
             />
           ))}

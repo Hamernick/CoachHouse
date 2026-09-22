@@ -220,10 +220,10 @@ describe("public map organization list react grab", () => {
     expect(markup).not.toContain("Add Atlas Collective to favorites")
     expect(markup).toContain('data-react-grab-surface-slot="body"')
     expect(markup).toContain(
-      "group relative z-10 flex min-h-28 w-full min-w-0 justify-start"
+      "group relative z-10 flex h-auto min-h-16 w-full min-w-0 justify-start"
     )
-    expect(markup).toContain("p-2.5")
-    expect(roomyMarkup).toContain("p-3")
+    expect(markup).toContain("p-2")
+    expect(roomyMarkup).toContain("p-2")
     expect(markup).toContain('data-react-grab-surface-slot="identity-row"')
     expect(markup).toContain('data-react-grab-surface-slot="avatar"')
     expect(markup).toContain('data-react-grab-surface-slot="title"')
@@ -237,15 +237,15 @@ describe("public map organization list react grab", () => {
     expect(markup).toContain('data-react-grab-surface-slot="meta-row"')
     expect(markup).not.toContain('data-react-grab-surface-slot="view-button"')
     expect(markup).toContain('data-public-map-result-trigger="true"')
-    expect(markup).toContain("min-h-28")
+    expect(markup).toContain("min-h-16")
     expect(markup).toContain(
-      "text-foreground line-clamp-2 text-base leading-snug font-semibold text-pretty"
+      "text-foreground line-clamp-2 text-sm leading-4 font-semibold text-pretty"
     )
     expect(markup).toContain(
-      "text-muted-foreground flex max-w-full items-center"
+      "text-muted-foreground mt-0 flex max-w-full items-center"
     )
-    expect(markup).toContain("mt-1.5")
-    expect(markup).toContain("flex-wrap items-center gap-x-1.5 gap-y-0.5")
+    expect(markup).toContain("mt-0")
+    expect(markup).toContain("flex-wrap items-center gap-x-1.5 gap-y-0")
     expect(markup).toContain("min-w-0 text-pretty break-words")
     expect(markup).not.toContain("max-w-[55%]")
     expect(markup).not.toContain("max-w-[45%]")

@@ -34,6 +34,7 @@ export type KeyFeatures = {
 }
 
 export type TimelineTask = {
+  assignee?: User
   id: string
   name: string
   startDate: Date
@@ -71,6 +72,7 @@ export type WorkstreamGroup = {
 }
 
 export type ProjectTask = WorkstreamTask & {
+  organizationName?: string
   projectId: string
   projectName: string
   workstreamId: string
@@ -78,6 +80,8 @@ export type ProjectTask = WorkstreamTask & {
 }
 
 export type TimeSummary = {
+  schedule?: { startDate: string; endDate: string } | null
+  scheduleAvailable?: boolean
   estimateLabel: string
   dueDate: Date
   daysRemainingLabel: string
@@ -85,6 +89,8 @@ export type TimeSummary = {
 }
 
 export type BacklogSummary = {
+  picLabel?: string
+  supportLabel?: string
   statusLabel: "Active" | "Backlog" | "Planned" | "Completed" | "Cancelled"
   groupLabel: string
   priorityLabel: string
@@ -111,7 +117,13 @@ export type ProjectFile = QuickLink & {
 
 export type ProjectActivityItem = {
   id: string
-  entityType: "project" | "task" | "program" | "fiscal_application"
+  entityType:
+    | "project"
+    | "task"
+    | "program"
+    | "fiscal_application"
+    | "document"
+    | "file"
   eventType: string
   title: string
   fromStatus: string | null
@@ -167,6 +179,7 @@ export type ProjectDetails = {
   files: ProjectFile[]
   notes: ProjectNote[]
   activity?: ProjectActivityItem[]
+  activityState?: "ready" | "unavailable" | "error" | "forbidden"
   source?: ProjectListItem
 }
 

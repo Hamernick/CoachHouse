@@ -17,6 +17,7 @@ export type MemberWorkspaceProjectFilterCounts = {
 }
 
 type FilterBuckets = {
+  search: Set<string>
   status: Set<string>
   fiscalSponsorship: Set<string>
   priority: Set<string>
@@ -30,6 +31,7 @@ function normalizeFilterBuckets(
   filters: MemberWorkspaceProjectFilterChip[]
 ): FilterBuckets {
   const buckets: FilterBuckets = {
+    search: new Set<string>(),
     status: new Set<string>(),
     fiscalSponsorship: new Set<string>(),
     priority: new Set<string>(),
@@ -40,6 +42,11 @@ function normalizeFilterBuckets(
   for (const { key, value } of filters) {
     const normalizedKey = key.trim().toLowerCase()
     const normalizedValue = value.trim().toLowerCase()
+
+    if (normalizedKey === "search" && normalizedValue) {
+      buckets.search.add(normalizedValue)
+      continue
+    }
 
     if (normalizedKey.startsWith("fiscal sponsorship")) {
       buckets.fiscalSponsorship.add(normalizedValue.replaceAll(" ", "_"))
@@ -118,6 +125,14 @@ function applyCategoryFilters({
   projects: PlatformAdminDashboardLabProject[]
 }) {
   let list = projects.slice()
+
+  if (filters.search.size > 0) {
+    list = list.filter((project) =>
+      Array.from(filters.search).every((query) =>
+        project.name.toLowerCase().includes(query)
+      )
+    )
+  }
 
   if (excludeCategory !== "status" && filters.status.size > 0) {
     list = list.filter((project) =>

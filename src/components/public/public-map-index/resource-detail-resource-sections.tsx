@@ -1,8 +1,9 @@
-import ExternalLinkIcon from "lucide-react/dist/esm/icons/external-link"
 import MailIcon from "lucide-react/dist/esm/icons/mail"
 import PhoneIcon from "lucide-react/dist/esm/icons/phone"
 
+import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
+import { PublicMapResourceLinkButton } from "./resource-link-button"
 import { shouldShowPublicMapResourceLink } from "@/lib/public-map/resource-link-visibility"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 import { cn } from "@/lib/utils"
@@ -49,34 +50,28 @@ export function PublicMapResourceLinksSection({
   if (links.length === 0) return null
 
   return (
-    <section className={PUBLIC_MAP_DETAIL_SECTION_CLASSNAME}>
+    <section
+      {...getReactGrabOwnerProps({
+        ownerId: `public-map-resource-links:${item.id}`,
+        component: "PublicMapResourceLinksSection",
+        source: "src/components/public/public-map-index/resource-detail-resource-sections.tsx",
+        tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
+        slot: "links",
+      })}
+      className={PUBLIC_MAP_DETAIL_SECTION_CLASSNAME}
+    >
       <h3 className="text-base font-semibold">Links</h3>
-      <div className="mt-3 grid gap-2">
-        {links.map((link) => {
-          const external = isExternalHttpHref(link.href)
-
-          return (
-            <a
-              key={link.id}
-              href={link.href}
-              target={external ? "_blank" : undefined}
-              rel={external ? "noreferrer" : undefined}
-              className={cn(
-                "flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm",
-                PUBLIC_MAP_SIDEBAR_ACTION_SURFACE_CLASSNAME
-              )}
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{link.label}</span>
-                <span className="text-muted-foreground block truncate">
-                  {link.domain ??
-                    PUBLIC_MAP_RESOURCE_LINK_TYPE_LABELS[link.type]}
-                </span>
-              </span>
-              <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            </a>
-          )
-        })}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {links.map((link) => (
+          <PublicMapResourceLinkButton
+            key={link.id}
+            ownerId={`public-map-resource-link:${item.id}:${link.id}`}
+            href={link.href}
+            label={link.label || PUBLIC_MAP_RESOURCE_LINK_TYPE_LABELS[link.type]}
+            websiteHref={links.find((candidate) => candidate.type === "website")?.href}
+            faviconUrl={item.faviconUrl ?? item.logoUrl}
+          />
+        ))}
       </div>
     </section>
   )

@@ -1,0 +1,48 @@
+.category {
+  --category-color: var(--color-slate-400);
+}
+
+.category[data-category="coaching"] {
+  --category-color: var(--color-violet-500);
+}
+
+.category[data-category="software"] {
+  --category-color: var(--color-blue-500);
+}
+
+.category[data-category="discount"] {
+  --category-color: var(--color-orange-500);
+}
+
+.category[data-category="funding"] {
+  --category-color: var(--color-emerald-500);
+}
+
+.category[data-category="learning"] {
+  --category-color: var(--color-amber-400);
+}
+
+.category[data-category="people"] {
+  --category-color: var(--color-pink-500);
+}
+
+.category[data-category="professional-support"] {
+  --category-color: var(--color-cyan-500);
+}
+
+.category[data-category="resource-bank"] {
+  --category-color: var(--color-rose-500);
+}
+
+.category[data-category][data-state="on"] {
+  background-color: color-mix(
+    in oklab,
+    var(--category-color) 16%,
+    var(--background)
+  );
+  color: var(--foreground);
+}
+
+.dot {
+  background-color: var(--category-color);
+}

@@ -11,7 +11,7 @@ export const MEMBER_WORKSPACE_PROJECT_OVERVIEW_EDITOR_CLASS_NAME = cn(
 export const MEMBER_WORKSPACE_PROJECT_OVERVIEW_DOCUMENT_CLASS_NAME = cn(
   "tiptap ProseMirror block w-full min-w-0 break-words",
   "prose prose-sm dark:prose-invert max-w-none",
-  "max-h-[32rem] overflow-y-auto bg-transparent px-4 py-3",
+  "max-h-[32rem] overflow-y-auto bg-transparent px-4 py-3 lg:pt-0 lg:[&>:first-child]:mt-0",
   "prose-h1:text-3xl prose-h1:font-bold prose-h1:tracking-tight",
   "prose-h2:text-2xl prose-h2:font-semibold prose-h3:text-xl prose-h3:font-semibold",
   "prose-p:my-3 prose-ul:list-disc prose-ol:list-decimal prose-ul:pl-5 prose-ol:pl-6 prose-ol:list-inside",

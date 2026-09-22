@@ -436,9 +436,10 @@ export type TaskRowDnDProps = {
   onToggle: () => void
   onOpen?: () => void
   canReorder?: boolean
+  organizationName?: string
 }
 
-export function TaskRowDnD({ task, onToggle, onOpen, canReorder = true }: TaskRowDnDProps) {
+export function TaskRowDnD({ task, onToggle, onOpen, canReorder = true, organizationName }: TaskRowDnDProps) {
   const isDone = task.status === "done"
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -470,8 +471,8 @@ export function TaskRowDnD({ task, onToggle, onOpen, canReorder = true }: TaskRo
           title={task.name}
           onCheckedChange={onToggle}
           titleAriaLabel={task.name}
-          titleSuffix={<TaskBadges workstreamName={task.workstreamName} className="hidden sm:inline" />}
-          subtitle={<div className="hidden sm:inline">{getTaskDescriptionSnippet(task)}</div>}
+          titleSuffix={<TaskBadges workstreamName={task.workstreamName} className="hidden sm:inline lg:inline-flex lg:shrink-0 lg:leading-4" />}
+          subtitle={organizationName ?? <div className="hidden sm:inline">{getTaskDescriptionSnippet(task)}</div>}
           meta={
             <>
               <TaskStatus status={task.status} />
@@ -485,7 +486,7 @@ export function TaskRowDnD({ task, onToggle, onOpen, canReorder = true }: TaskRo
               )}
               {task.priority && <TaskPriority priority={task.priority} className="hidden sm:inline" />}
               {task.tag && (
-                <Badge variant="outline" className="whitespace-nowrap text-[11px] hidden sm:inline">
+                <Badge variant="outline" className="whitespace-nowrap text-[11px] hidden sm:inline lg:inline-flex lg:leading-4">
                   {task.tag}
                 </Badge>
               )}
@@ -522,6 +523,7 @@ export function TaskRowDnD({ task, onToggle, onOpen, canReorder = true }: TaskRo
 }
 
 export type ProjectTaskListViewProps = {
+  flat?: boolean
   groups: ProjectTaskGroup[]
   onToggleTask: (taskId: string) => void
   onAddTask: (context: CreateTaskContext) => void
@@ -530,12 +532,27 @@ export type ProjectTaskListViewProps = {
 }
 
 export function ProjectTaskListView({
+  flat = false,
   groups,
   onToggleTask,
   onAddTask,
   onOpenTask,
   canReorder = true,
 }: ProjectTaskListViewProps) {
+  if (flat) {
+    const tasks = groups.flatMap((group) => group.tasks).sort((a, b) =>
+      Number(a.status === "done") - Number(b.status === "done") ||
+      (a.startDate?.getTime() ?? 0) - (b.startDate?.getTime() ?? 0) || a.name.localeCompare(b.name)
+    )
+    return <div role="list" aria-label="My tasks" className="divide-border divide-y">
+      {tasks.map((task) => <div key={task.id} role="listitem">
+        <TaskRowDnD task={task} canReorder={false}
+          organizationName={task.organizationName ?? task.projectName}
+          onToggle={() => onToggleTask(task.id)}
+          onOpen={onOpenTask ? () => onOpenTask(task) : undefined} />
+      </div>)}
+    </div>
+  }
   return (
     <>
       {groups.map((group) => (

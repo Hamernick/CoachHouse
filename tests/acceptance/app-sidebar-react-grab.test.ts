@@ -103,6 +103,34 @@ describe("app sidebar react grab", () => {
     )
   })
 
+  it("renders active admin destinations inside the Admin accordion", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        SidebarProvider,
+        null,
+        React.createElement(NavMain, {
+          items: [
+            { title: "Find", href: "/" },
+            {
+              title: "Admin",
+              children: [
+                { title: "Organizations", href: "/organizations" },
+                { title: "Tasks", href: "/tasks", icon: ClipboardListIcon },
+              ],
+            },
+          ],
+        })
+      )
+    )
+
+    expect(markup.indexOf(">Find<")).toBeLessThan(markup.indexOf(">Admin<"))
+    expect(markup).toContain('aria-label="Collapse Admin"')
+    expect(markup).toContain('href="/tasks"')
+    expect(markup).toContain(
+      'data-react-grab-owner-id="app-sidebar:main:tasks"'
+    )
+  })
+
   it("does not render the onboarding-locked Welcome nav item", () => {
     const markup = renderToStaticMarkup(
       React.createElement(

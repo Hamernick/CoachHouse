@@ -25,18 +25,35 @@ function transact<T>(
   return openDatabase().then(
     (database) =>
       new Promise<T>((resolve, reject) => {
-        const transaction = database.transaction(STORE_NAME, mode)
-        const request = operation(transaction.objectStore(STORE_NAME))
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(request.error)
-        transaction.oncomplete = () => database.close()
-        transaction.onerror = () => reject(transaction.error)
+        try {
+          const transaction = database.transaction(STORE_NAME, mode)
+          const request = operation(transaction.objectStore(STORE_NAME))
+          transaction.oncomplete = () => {
+            database.close()
+            resolve(request.result)
+          }
+          const fail = () => {
+            database.close()
+            reject(
+              transaction.error ??
+                request.error ??
+                new Error("Image storage transaction failed")
+            )
+          }
+          transaction.onerror = fail
+          transaction.onabort = fail
+          request.onerror = fail
+        } catch (error) {
+          database.close()
+          reject(error)
+        }
       })
   )
 }
 
 export function loadBrandAssets() {
-  if (typeof indexedDB === "undefined") return Promise.resolve([])
+  if (typeof indexedDB === "undefined")
+    return Promise.reject(new Error("Image storage unavailable"))
   return transact<StoredBrandAsset[]>("readonly", (store) => store.getAll())
 }
 

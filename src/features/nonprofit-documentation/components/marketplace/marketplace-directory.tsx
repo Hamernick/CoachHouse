@@ -28,7 +28,7 @@ function syncFilterUrl(filters: MarketplaceFilters) {
     ["cost", filters.cost],
   ]
   for (const [key, value] of values) {
-    if (!value || value === "all") url.searchParams.delete(key)
+    if (!value || (key !== "q" && value === "all")) url.searchParams.delete(key)
     else url.searchParams.set(key, value)
   }
   window.history.replaceState(
@@ -60,15 +60,18 @@ export function MarketplaceDirectory() {
   return (
     <section
       id="directory"
-      className="scroll-mt-24 pt-4"
+      className="scroll-mt-24"
       aria-labelledby="directory-title"
     >
       <h2 id="directory-title" className="sr-only">
         Tools and resources
       </h2>
-      <MarketplaceFeatured />
-      <MarketplaceFiltersPanel filters={filters} onChange={syncFilterUrl} />
-      <div className="my-5 flex flex-wrap items-center justify-between gap-3">
+      <MarketplaceFiltersPanel
+        // Preserve spaces during typing; the resource predicate normalizes search.
+        filters={{ ...filters, query: (params.get("q") ?? "").slice(0, 100) }}
+        onChange={syncFilterUrl}
+      />
+      <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <div>
           <p
             className="text-sm font-medium"
@@ -100,7 +103,7 @@ export function MarketplaceDirectory() {
       </div>
 
       {resources.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid auto-rows-fr items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {resources.map((resource) => (
             <MarketplaceResourceCard
               key={resource.id}
@@ -123,6 +126,9 @@ export function MarketplaceDirectory() {
           description="Clear a filter or search for a broader need. Try a provider name or a broader term."
         />
       )}
+      <div className="mt-8">
+        <MarketplaceFeatured />
+      </div>
     </section>
   )
 }

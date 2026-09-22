@@ -1,10 +1,18 @@
 import type { MarketplaceResourceGuide } from "../marketplace-types"
 import { GOOGLE_AD_GRANTS_GUIDE } from "./google-ad-grants-guide"
+import { MONKEYPOD_GUIDE } from "./marketplace-monkeypod"
+import { PUBLISHING_GUIDES } from "./marketplace-publishing-guides"
+import { SOCIAL_GUIDES } from "./marketplace-social-resources"
+import { FUNDRAISING_GUIDES } from "./marketplace-fundraising-resources"
 
 export const MARKETPLACE_RESOURCE_GUIDES: Record<
   string,
   MarketplaceResourceGuide
 > = {
+  monkeypod: MONKEYPOD_GUIDE,
+  ...PUBLISHING_GUIDES,
+  ...SOCIAL_GUIDES,
+  ...FUNDRAISING_GUIDES,
   "google-ad-grants": GOOGLE_AD_GRANTS_GUIDE,
   "google-workspace-nonprofits": {
     outcome:

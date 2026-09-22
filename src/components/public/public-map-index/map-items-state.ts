@@ -29,14 +29,22 @@ type PublicMapGroupFilterKey = PublicMapResourceCategoryKey | "all"
 
 export type PublicMapListItem = PublicMapItem
 
-export function buildPublicMapSelectableItemMap(items: PublicMapItem[]) {
+export function buildPublicMapSelectableItemMap(
+  items: PublicMapItem[],
+  savedItems: PublicMapItem[] = []
+) {
+  // Saved resources use the same weather presentation as the current map.
+  // Visible presentations win when the same ID appears in both collections.
   return new Map(
-    items.map((item) => [resolvePublicMapItemSelectableId(item), item] as const)
+    [...savedItems, ...items].map((item) => [resolvePublicMapItemSelectableId(item), item] as const)
   )
 }
 
-export function usePublicMapSelectableItemMap(items: PublicMapItem[]) {
-  return useMemo(() => buildPublicMapSelectableItemMap(items), [items])
+export function usePublicMapSelectableItemMap(
+  items: PublicMapItem[],
+  savedItems: PublicMapItem[] = []
+) {
+  return useMemo(() => buildPublicMapSelectableItemMap(items, savedItems), [items, savedItems])
 }
 
 function buildPublicMapResourceCategorySearchText(

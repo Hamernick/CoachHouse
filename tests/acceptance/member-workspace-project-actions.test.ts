@@ -375,3 +375,23 @@ describe("member workspace project actions", () => {
     )
   })
 })
+
+
+describe("project option atomic save routing", () => {
+  it("routes metadata through the atomic create wrapper", async () => {
+    const { transitionOrganizationProjectCreation } = await import("@/features/member-workspace/server/project-transition-support")
+    const rpc = vi.fn().mockResolvedValue({ data: { ok: true, projectId: "new-project" }, error: null })
+    createSupabaseAdminClientMock.mockReturnValue({ rpc })
+    const project = { name: "Project", option_settings: { tags: [], sprintTypes: [] } }
+    await expect(transitionOrganizationProjectCreation({ actorId: "actor", orgId: "org", project, hasOverviewDocument: false, overviewDocumentHtml: null, overviewDocumentText: null })).resolves.toEqual({ ok: true, projectId: "new-project" })
+    expect(rpc).toHaveBeenCalledWith("create_organization_project_with_options", expect.objectContaining({ p_project: project }))
+  })
+  it("reports missing metadata migration without silently dropping colors", async () => {
+    const { transitionOrganizationProjectUpdate } = await import("@/features/member-workspace/server/project-transition-support")
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST202" } })
+    createSupabaseAdminClientMock.mockReturnValue({ rpc })
+    const result = await transitionOrganizationProjectUpdate({ actorId: "actor", expectedOrgId: "org", expectedUpdatedAt: "stamp", projectId: "project", project: { option_settings: { tags: [], sprintTypes: [] } }, hasOverviewDocument: false, overviewDocumentHtml: null, overviewDocumentText: null })
+    expect(rpc).toHaveBeenCalledWith("update_organization_project_with_options", expect.anything())
+    expect(result).toEqual({ error: expect.stringContaining("migrations") })
+  })
+})

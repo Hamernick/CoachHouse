@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Empty } from "@/components/ui/empty"
 import type { PublicPersonDirectoryEntry } from "@/features/public-profiles"
+import { marketplacePersonHref } from "../../lib/marketplace-people"
+import { MarketplacePeoplePagination } from "./marketplace-people-pagination"
 
 import {
   MARKETPLACE_COACHES,
@@ -122,7 +124,7 @@ export function MarketplacePeople({
             {directory.people.map((person) => (
               <Link
                 key={person.handle}
-                href={person.href}
+                href={marketplacePersonHref(person.handle)}
                 className="hover:bg-muted/40 focus-visible:ring-ring flex min-w-0 items-center gap-4 rounded-xl p-4 focus-visible:ring-2"
                 data-marketplace-person={person.handle}
               >
@@ -177,38 +179,10 @@ export function MarketplacePeople({
             }
           />
         )}
-        {directory.page > 1 || directory.hasMore ? (
-          <nav aria-label="Community pages" className="mt-3 flex gap-3">
-            {directory.page > 1 ? (
-              <Button
-                asChild
-                variant="outline"
-                className="min-h-11 rounded-full"
-              >
-                <Link
-                  href={`?view=people&peoplePage=${directory.page - 1}`}
-                  scroll={false}
-                >
-                  Previous profiles
-                </Link>
-              </Button>
-            ) : null}
-            {directory.hasMore ? (
-              <Button
-                asChild
-                variant="outline"
-                className="min-h-11 rounded-full"
-              >
-                <Link
-                  href={`?view=people&peoplePage=${directory.page + 1}`}
-                  scroll={false}
-                >
-                  More profiles
-                </Link>
-              </Button>
-            ) : null}
-          </nav>
-        ) : null}
+        <MarketplacePeoplePagination
+          page={directory.page}
+          hasMore={directory.hasMore}
+        />
       </section>
     </div>
   )

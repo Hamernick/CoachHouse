@@ -5,10 +5,46 @@ import { MARKETPLACE_COACHES } from "@/features/nonprofit-documentation/lib/mark
 import { MARKETPLACE_RESOURCE_ADDITIONS } from "@/features/nonprofit-documentation/lib/marketplace-resource-additions"
 import { MARKETPLACE_RESOURCE_GUIDES } from "@/features/nonprofit-documentation/lib/marketplace-resource-guides"
 import { sanitizeMarketplaceShortlist } from "@/features/nonprofit-documentation/lib/marketplace-directory"
+import { marketplacePeoplePageHref } from "@/features/nonprofit-documentation/lib/marketplace-people"
 
 describe("Marketplace workflows", () => {
+  it.each([1, 3])(
+    "preserves resource filters when paging People to page %i",
+    (page) => {
+      const filters = {
+        q: "Community & care + support",
+        type: "software",
+        function: "technology",
+        stage: "forming",
+        cost: "free-eligible",
+      }
+      const search = new URLSearchParams({
+        ...filters,
+        view: "people",
+        peoplePage: "2",
+      })
+      const href = marketplacePeoplePageHref(search.toString(), page)
+      const destination = new URL(
+        href,
+        "https://coachhouse.app/documentation/marketplace"
+      )
+
+      expect(destination.pathname).toBe("/documentation/marketplace")
+      expect(Object.fromEntries(destination.searchParams)).toEqual({
+        ...filters,
+        view: "people",
+        peoplePage: String(page),
+      })
+      expect(search.get("peoplePage")).toBe("2")
+    }
+  )
+
+  it("opens the requested People page without resource filters", () => {
+    expect(marketplacePeoplePageHref("", 2)).toBe("?view=people&peoplePage=2")
+  })
+
   it("gives every newly researched resource a concrete workflow and primary sources", () => {
-    expect(MARKETPLACE_RESOURCE_ADDITIONS).toHaveLength(9)
+    expect(MARKETPLACE_RESOURCE_ADDITIONS).toHaveLength(20)
     for (const resource of MARKETPLACE_RESOURCE_ADDITIONS) {
       const guide = MARKETPLACE_RESOURCE_GUIDES[resource.id]
       expect(guide.steps.length).toBeGreaterThanOrEqual(3)

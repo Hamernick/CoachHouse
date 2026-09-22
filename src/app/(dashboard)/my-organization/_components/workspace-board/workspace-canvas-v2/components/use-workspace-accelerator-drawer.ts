@@ -78,6 +78,10 @@ function resolveInitialWorkspaceDataDrawerRequest(
     return { tab: "tools" }
   }
 
+  if (initialDrawerTab === "particles") {
+    return { tab: "particles" }
+  }
+
   return null
 }
 

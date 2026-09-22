@@ -1,5 +1,7 @@
 "use client"
 
+import type { WorkspaceParticleState } from "@/features/workspace-particles"
+
 import { memo } from "react"
 
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
@@ -51,6 +53,7 @@ export type WorkspaceBoardFlowSurfaceProps = {
   onTutorialShortcutOpened: () => void
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOnboardingFlowChange: (next: WorkspaceBoardOnboardingFlowState) => void
+  onParticlesChange: (state: WorkspaceParticleState) => void
   onPersistNodePosition: (cardId: WorkspaceCardId, x: number, y: number) => void
   onToggleCardVisibility: (
     cardId: WorkspaceCardId,
@@ -96,6 +99,7 @@ export const WorkspaceBoardFlowSurface = memo(
           onTutorialRestart={props.onTutorialRestart}
           onTutorialShortcutOpened={props.onTutorialShortcutOpened}
           onFocusCard={props.onFocusCard}
+          onParticlesChange={props.onParticlesChange}
           onPersistNodePosition={props.onPersistNodePosition}
           onConnectCards={props.onConnectCards}
           onDisconnectConnection={props.onDisconnectConnection}

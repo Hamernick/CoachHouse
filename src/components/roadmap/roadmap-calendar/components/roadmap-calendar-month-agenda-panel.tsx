@@ -5,7 +5,6 @@ import ChevronLeftIcon from "lucide-react/dist/esm/icons/chevron-left"
 import ChevronRightIcon from "lucide-react/dist/esm/icons/chevron-right"
 import CircleIcon from "lucide-react/dist/esm/icons/circle"
 
-import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
@@ -23,7 +22,7 @@ import {
 
 import { cn } from "@/lib/utils"
 
-import { RoadmapCalendarDayWithEventDots } from "./roadmap-calendar-day-with-event-dots"
+import { RoadmapCalendarMonthGrid } from "./roadmap-calendar-month-grid"
 import {
   ROADMAP_CALENDAR_EVENT_MODIFIER_BY_TYPE,
   ROADMAP_CALENDAR_EVENT_TYPE_ORDER,
@@ -39,6 +38,7 @@ import {
 } from "./roadmap-calendar-month-agenda-panel-parts"
 
 type RoadmapCalendarMonthAgendaPanelProps = {
+  monthGridOnly?: boolean
   personalEvents?: CalendarEvent[]
   googleCalendarControls?: ReactNode
   compactHeaderControls?: boolean
@@ -67,6 +67,7 @@ const ROADMAP_CALENDAR_MONTH_AGENDA_PANEL_SOURCE =
 
 export const RoadmapCalendarMonthAgendaPanel = memo(
   function RoadmapCalendarMonthAgendaPanel({
+    monthGridOnly = false,
     compactHeaderControls = false,
     personalEvents = [],
     googleCalendarControls,
@@ -104,71 +105,77 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
 
     return (
       <section
-        className={cn(
-          "border-border/60 bg-muted/45 mx-auto flex max-h-[min(42rem,calc(100svh-5.5rem))] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border p-2.5",
-          className
-        )}
+        className={
+          monthGridOnly
+            ? "contents"
+            : cn(
+                "border-border/60 bg-muted/45 mx-auto flex max-h-[min(42rem,calc(100svh-5.5rem))] min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border p-2.5",
+                className
+              )
+        }
       >
-        <div className="grid grid-cols-1 items-center gap-2 px-2 pt-1 pb-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="text-foreground shrink-0 text-lg font-semibold tracking-normal whitespace-nowrap">
-              {formatMonthLabel(month)}
-            </h2>
-            <Badge
-              variant="secondary"
-              className="bg-muted-foreground/10 text-muted-foreground h-6 min-w-8 rounded-full border-0 px-2 text-xs tabular-nums"
-            >
-              {events.length + personalEvents.length}
-            </Badge>
-          </div>
-          <div className="flex min-w-0 shrink-0 items-center gap-1.5 justify-self-end">
-            <RoadmapCalendarAddEventMenu
-              disabled={!canManageCalendar}
-              iconOnly={compactHeaderControls}
-              onOpenCreate={onOpenCreate}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-8 rounded-full shadow-none"
-              onClick={() => onMonthChange(addMonths(month, -1))}
-              aria-label="Show previous month"
-            >
-              <ChevronLeftIcon data-icon aria-hidden />
-            </Button>
-            {showTodayButton ? (
+        {!monthGridOnly ? (
+          <div className="grid grid-cols-1 items-center gap-2 px-2 pt-1 pb-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="text-foreground shrink-0 text-lg font-semibold tracking-normal whitespace-nowrap">
+                {formatMonthLabel(month)}
+              </h2>
+              <Badge
+                variant="secondary"
+                className="bg-muted-foreground/10 text-muted-foreground h-6 min-w-8 rounded-full border-0 px-2 text-xs tabular-nums"
+              >
+                {events.length + personalEvents.length}
+              </Badge>
+            </div>
+            <div className="flex min-w-0 shrink-0 items-center gap-1.5 justify-self-end">
+              <RoadmapCalendarAddEventMenu
+                disabled={!canManageCalendar}
+                iconOnly={compactHeaderControls}
+                onOpenCreate={onOpenCreate}
+              />
               <Button
                 type="button"
                 variant="outline"
-                size={compactHeaderControls ? "icon" : "default"}
-                className={cn(
-                  "h-8 rounded-full shadow-none",
-                  compactHeaderControls ? "w-8" : "px-3 text-sm"
-                )}
-                onClick={onGoToToday}
-                aria-label={compactHeaderControls ? "Go to today" : undefined}
-                title={compactHeaderControls ? "Go to today" : undefined}
+                size="icon"
+                className="size-8 rounded-full shadow-none"
+                onClick={() => onMonthChange(addMonths(month, -1))}
+                aria-label="Show previous month"
               >
-                {compactHeaderControls ? (
-                  <CircleIcon className="size-2 fill-current" aria-hidden />
-                ) : (
-                  "Today"
-                )}
+                <ChevronLeftIcon data-icon aria-hidden />
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-8 rounded-full shadow-none"
-              onClick={() => onMonthChange(addMonths(month, 1))}
-              aria-label="Show next month"
-            >
-              <ChevronRightIcon data-icon aria-hidden />
-            </Button>
+              {showTodayButton ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size={compactHeaderControls ? "icon" : "default"}
+                  className={cn(
+                    "h-8 rounded-full shadow-none",
+                    compactHeaderControls ? "w-8" : "px-3 text-sm"
+                  )}
+                  onClick={onGoToToday}
+                  aria-label={compactHeaderControls ? "Go to today" : undefined}
+                  title={compactHeaderControls ? "Go to today" : undefined}
+                >
+                  {compactHeaderControls ? (
+                    <CircleIcon className="size-2 fill-current" aria-hidden />
+                  ) : (
+                    "Today"
+                  )}
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-8 rounded-full shadow-none"
+                onClick={() => onMonthChange(addMonths(month, 1))}
+                aria-label="Show next month"
+              >
+                <ChevronRightIcon data-icon aria-hidden />
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div
           className="bg-background flex min-h-0 w-full flex-col rounded-[24px] px-3 py-3"
@@ -181,12 +188,11 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
             primitiveImport: "@/components/ui/calendar",
           })}
         >
-          <Calendar
-            mode="single"
-            selected={selectedDate}
+          <RoadmapCalendarMonthGrid
+            selectedDate={selectedDate}
             month={month}
             onMonthChange={onMonthChange}
-            onSelect={(date) => onSelectDate(date ?? undefined)}
+            onSelectDate={onSelectDate}
             modifiers={{
               ...eventModifiers,
               google_calendar: (date) =>
@@ -194,25 +200,6 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
                   calendarEventOccursOnDay(event, date)
                 ),
             }}
-            className="w-full shrink-0 bg-transparent p-0 [--cell-size:2.45rem] sm:[--cell-size:2.55rem]"
-            classNames={{
-              root: "w-full",
-              months: "w-full",
-              month: "w-full",
-              month_grid: "w-full table-fixed border-collapse",
-              month_caption: "sr-only",
-              nav: "hidden",
-              weekdays: "w-full border-b border-border/40",
-              weekday:
-                "w-[14.285714%] pb-2 text-center text-xs font-semibold text-muted-foreground/62",
-              weeks: "w-full",
-              week: "w-full",
-              day: "w-[14.285714%] min-w-0 p-0 pt-2 text-center align-middle",
-              today:
-                "rounded-xl bg-transparent text-foreground data-[selected=true]:rounded-xl",
-              outside: "text-muted-foreground/35",
-            }}
-            components={{ DayButton: RoadmapCalendarDayWithEventDots }}
           />
 
           {googleCalendarControls}

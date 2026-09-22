@@ -32,17 +32,20 @@ import {
 import { Toggle } from "@/components/ui/toggle"
 import type { RoadmapSection } from "@/lib/roadmap"
 import { cn } from "@/lib/utils"
+import { useIsMobile } from "@/hooks/use-mobile"
 
+import { useWorkspaceDrawerSnapPoints } from "./use-workspace-drawer-snap-points"
 import { useWorkspaceCanvasOverlayDrawerContainer } from "./workspace-canvas-overlay-drawer-container"
 import {
   isWorkspaceDataDrawerCollapsedSnapPoint as isDrawerCollapsed,
   isWorkspaceDataDrawerFullscreenSnapPoint as isDrawerFullscreen,
   resolveWorkspaceDataDrawerSnapPoint,
+  resolveWorkspaceDataDrawerDisplaySnapPoint,
+  resolveWorkspaceDataDrawerStoredSnapPoint,
   resolveWorkspaceDataDrawerViewportHeight,
   WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT,
   WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT,
   WORKSPACE_DATA_DRAWER_FULL_SNAP_POINT,
-  WORKSPACE_DATA_DRAWER_SNAP_POINTS,
 } from "./workspace-canvas-overlay-drawer-state"
 import {
   type WorkspaceCanvasDrawerTab,
@@ -104,6 +107,12 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const [tab, setTab] = useState<WorkspaceCanvasDrawerTab>(
       request?.tab ?? "accelerator"
     )
+    const isMobile = useIsMobile()
+    const mobileParticles = isMobile && tab === "particles"
+    const snapPoints = useWorkspaceDrawerSnapPoints(
+      canvasContainer,
+      mobileParticles
+    )
     const handledRequestIdRef = useRef(0)
     const handledAcceleratorRequestIdRef = useRef(0)
     const [, startTabTransition] = useTransition()
@@ -111,8 +120,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const drawerCollapsed = open && isDrawerCollapsed(activeSnapPoint)
     const drawerExpanded = open && !isDrawerCollapsed(activeSnapPoint)
     const drawerFullscreen = open && isDrawerFullscreen(activeSnapPoint)
-    const drawerViewportHeight =
-      resolveWorkspaceDataDrawerViewportHeight(activeSnapPoint)
+    const drawerViewportHeight = resolveWorkspaceDataDrawerViewportHeight(
+      activeSnapPoint,
+      mobileParticles
+    )
     const dataShortcutLabel = drawerExpanded
       ? "Collapse workspace data"
       : "Open workspace data"
@@ -130,8 +141,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
             typeof nextSnapPoint === "function"
               ? nextSnapPoint(current)
               : nextSnapPoint
-          const storedSnapPoint =
-            resolveWorkspaceDataDrawerSnapPoint(resolvedSnapPoint)
+          const storedSnapPoint = resolveWorkspaceDataDrawerStoredSnapPoint(
+            resolvedSnapPoint,
+            mobileParticles
+          )
           if (storedSnapPoint === null) {
             return current ?? WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT
           }
@@ -141,7 +154,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
           return storedSnapPoint
         })
       },
-      [uiPreferencesScope]
+      [uiPreferencesScope, mobileParticles]
     )
 
     useEffect(() => {
@@ -273,7 +286,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
       <Drawer
         open={canvasContainer ? open : false}
         onOpenChange={handleOpenChange}
-        activeSnapPoint={activeSnapPoint}
+        activeSnapPoint={resolveWorkspaceDataDrawerDisplaySnapPoint(
+          activeSnapPoint,
+          mobileParticles
+        )}
         direction="bottom"
         container={canvasContainer ?? undefined}
         disablePreventScroll
@@ -284,7 +300,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
         noBodyStyles
         repositionInputs={false}
         setActiveSnapPoint={handleActiveSnapPointChange}
-        snapPoints={[...WORKSPACE_DATA_DRAWER_SNAP_POINTS]}
+        snapPoints={snapPoints}
         snapToSequentialPoint
         shouldScaleBackground={false}
       >
@@ -363,7 +379,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
             </div>
             <DrawerDescription className="sr-only">
               Switch between your organization profile, people, documents,
-              Finance, Tools, and Accelerator.
+              Particles, Finance, Tools, and Accelerator.
             </DrawerDescription>
             <div
               data-workspace-data-drawer-content-viewport="true"

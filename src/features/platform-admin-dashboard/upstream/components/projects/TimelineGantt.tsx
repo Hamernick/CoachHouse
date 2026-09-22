@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import {
   addDays,
-  differenceInDays,
+  differenceInCalendarDays,
   format,
   isSameDay,
   isWithinInterval,
@@ -21,6 +21,7 @@ import type {
   ProjectActivityItem,
   TimelineTask,
 } from "@/features/platform-admin-dashboard/upstream/lib/data/project-details"
+import { CoachingAvatarGroup } from "@/components/coaching/coaching-avatar-group"
 import { Badge } from "@/features/platform-admin-dashboard/upstream/components/ui/badge"
 import { Button } from "@/features/platform-admin-dashboard/upstream/components/ui/button"
 import { Calendar } from "@/features/platform-admin-dashboard/upstream/components/ui/calendar"
@@ -48,6 +49,7 @@ type TimelineGanttProps = {
 }
 
 type TimelineRow = {
+  assignee?: TimelineTask["assignee"]
   endDate: Date | null
   id: string
   kind: "Program" | "Task"
@@ -81,11 +83,12 @@ function toTitleCase(value: string) {
 function buildTimelineRows(tasks: TimelineTask[], programs: TimelineProgram[]) {
   return [
     ...tasks.map<TimelineRow>((task) => ({
-      endDate: task.endDate,
+      assignee: task.assignee,
+      endDate: new Date(task.endDate.getUTCFullYear(), task.endDate.getUTCMonth(), task.endDate.getUTCDate()),
       id: `task:${task.id}`,
       kind: "Task",
       name: task.name,
-      startDate: task.startDate,
+      startDate: new Date(task.startDate.getUTCFullYear(), task.startDate.getUTCMonth(), task.startDate.getUTCDate()),
       statusLabel: toTitleCase(task.status),
     })),
     ...programs.map<TimelineRow>((program) => {
@@ -144,7 +147,7 @@ export function TimelineGantt({
     end: rangeEndDate,
   })
   const todayIndex = clamp(
-    differenceInDays(today, rangeStartDate),
+    differenceInCalendarDays(today, rangeStartDate),
     0,
     days.length - 1
   )
@@ -374,10 +377,10 @@ export function TimelineGantt({
           {visibleRows.length ? (
             visibleRows.map((row, rowIndex) => {
               const startOffset = row.startDate
-                ? differenceInDays(row.startDate, days[0])
+                ? differenceInCalendarDays(row.startDate, days[0])
                 : 0
               const endOffset = row.endDate
-                ? differenceInDays(row.endDate, days[0])
+                ? differenceInCalendarDays(row.endDate, days[0])
                 : startOffset
               const totalDays = days.length
               const leftPct = clamp((startOffset / totalDays) * 100, 0, 100)
@@ -396,7 +399,12 @@ export function TimelineGantt({
                       <p className="text-foreground truncate text-sm">
                         {row.name}
                       </p>
-                      <div className="mt-1 flex min-w-0 flex-wrap gap-1">
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+                        {row.assignee ? (
+                          <CoachingAvatarGroup size="xs" label="Task assignee" avatars={[{
+                            id: row.assignee.id, name: row.assignee.name, imageUrl: row.assignee.avatarUrl ?? null,
+                          }]} />
+                        ) : row.kind === "Task" ? <span className="text-muted-foreground text-[11px]">Unassigned</span> : null}
                         <Badge
                           variant={
                             row.kind === "Program" ? "secondary" : "outline"
@@ -477,23 +485,29 @@ export function TimelineGantt({
                       className="relative h-12 min-w-0"
                     >
                       {events.length ? (
-                        <div
-                          className="border-border bg-muted absolute inset-x-0.5 top-1/2 flex h-8 min-w-0 -translate-y-1/2 items-center gap-2 overflow-hidden rounded-md border px-1.5"
-                          data-timeline-activity-bar
-                          title={events.map((event) => event.title).join(", ")}
-                          aria-label={`${events.length} activity events on ${format(days[index], "MMMM d, yyyy")}: ${events.map((event) => event.title).join(", ")}`}
-                        >
-                          <Badge
-                            variant="secondary"
-                            className="shrink-0 px-2.5 py-1 text-sm leading-none tabular-nums"
-                          >
-                            {events.length}{" "}
-                            {events.length === 1 ? "event" : "events"}
-                          </Badge>
-                          <span className="text-foreground min-w-0 truncate text-xs">
-                            {events[0].title}
-                          </span>
-                        </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="absolute inset-x-1 top-1/2 h-7 min-w-0 -translate-y-1/2 rounded-md px-1 text-xs tabular-nums"
+                              data-timeline-activity-bar
+                              aria-label={`${events.length} activity events on ${format(days[index], "MMMM d, yyyy")}: ${events.map((event) => event.title).join(", ")}`}
+                            >
+                              {events.length}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-72 max-w-[calc(100vw-2rem)] p-3">
+                            <p className="mb-2 text-sm font-medium">
+                              {format(days[index], "EEEE, MMMM d")}
+                            </p>
+                            <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
+                              {events.map((event) => (
+                                <li key={event.id} className="break-words">{event.title}</li>
+                              ))}
+                            </ul>
+                          </PopoverContent>
+                        </Popover>
                       ) : null}
                     </div>
                   ))}

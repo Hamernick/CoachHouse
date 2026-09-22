@@ -1,3 +1,4 @@
+import type { WorkspaceParticleState } from "@/features/workspace-particles"
 import type { WorkspaceBoardToggleContext } from "../../workspace-board-debug"
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
 import type {
@@ -42,6 +43,7 @@ export type WorkspaceCanvasSurfaceV2Props = {
   onTutorialRestart: () => void
   onTutorialShortcutOpened: () => void
   onFocusCard: (cardId: WorkspaceCardId) => void
+  onParticlesChange: (state: WorkspaceParticleState) => void
   onPersistNodePosition: (cardId: WorkspaceCardId, x: number, y: number) => void
   onConnectCards: (source: WorkspaceCardId, target: WorkspaceCardId) => void
   onDisconnectConnection: (connectionId: string) => void

@@ -975,14 +975,14 @@ describe("workspace ontology integration contract", () => {
     expect(viewSource).not.toContain("ontologyPanel")
     expect(viewSource).not.toContain("data-workspace-ontology-panel-anchor")
     expect(surfaceSource).toContain(
-      "const WORKSPACE_LIVE_CANVAS_ONTOLOGY_ENABLED = false"
+      "enabled: false,"
     )
     expect(surfaceSource).toContain(
-      "enabled: WORKSPACE_LIVE_CANVAS_ONTOLOGY_ENABLED && !tutorialActiveFromBoard"
+      "enabled: false,"
     )
     expect(surfaceSource).toContain("ontologyRootControls: undefined")
     expect(surfaceSource).toContain(
-      "WORKSPACE_LIVE_CANVAS_ONTOLOGY_ENABLED ? ontology.edges : []"
+      "ontologyEdges: [],"
     )
     expect(projectionHookSource).toContain(
       'filter: { query: "", categories: [] }'

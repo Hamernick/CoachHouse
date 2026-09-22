@@ -51,13 +51,13 @@ import {
   usePublicMapResourceItems,
 } from "./public-map-index/use-resource-map-items"
 import { usePublicMapResourceItemDetail } from "./public-map-index/use-resource-item-detail"
+import { usePublicMapSeasonalResources, usePublicMapSeasonalSavedItems } from "./public-map-index/use-seasonal-resources"
 import { usePublicMapLocationWeather } from "./public-map-index/use-public-map-location-weather"
 import { resolvePublicMapDirectoryCount } from "./public-map-index/directory-status-pill"
 import {
   useFocusPublicMapCameraTarget,
   useInitialSidebarMode,
   usePublicMapOnboardingState,
-  usePublicMapSavedItems,
   useSelectedPublicMapResource,
 } from "./public-map-index/public-map-index-state"
 
@@ -70,6 +70,17 @@ function usePublicMapRetryState() {
   }, [])
 
   return { mapError, retryMap, retryVersion, setMapError }
+}
+
+function useSelectedResourceDetail(
+  items: Parameters<typeof useSelectedPublicMapResource>[0],
+  selectedId: string | null,
+  endpoint?: string
+) {
+  const item = useSelectedPublicMapResource(items, selectedId)
+  return usePublicMapResourceItemDetail(
+    item, endpoint?.startsWith("/api/public/resource-map/index") ?? false
+  )
 }
 
 export function PublicMapIndex({
@@ -137,11 +148,13 @@ export function PublicMapIndex({
   })
   const {
     error: resourceItemsLoadError,
-    resourceItems,
+    resourceItems: sourceResourceItems,
     retry: retryResourceItems,
     status: resourceItemsLoadStatus,
     totalResourceCount,
   } = usePublicMapResourceItems({ initialResourceItems, resourceItemsEndpoint })
+  const { resourceItems, showCoolingCenters, weather, setWeather } =
+    usePublicMapSeasonalResources(sourceResourceItems)
   const deferredQuery = useDeferredValue(query)
   const {
     collectedResourceIds,
@@ -164,7 +177,7 @@ export function PublicMapIndex({
     activeGroup,
     deferredQuery,
     favorites,
-    includeSeedResources,
+    includeSeedResources: includeSeedResources && sourceResourceItems.length === 0,
     organizations,
     resourceItems,
   })
@@ -176,10 +189,11 @@ export function PublicMapIndex({
     visibleMapItems,
   } = usePublicMapResourceGuideState({
     activeGuideId,
+    showCoolingCenters,
     filteredMapItems: filterState.filteredItems,
     organizations,
     includeSeedResources,
-    resourceItems,
+    resourceItems: sourceResourceItems,
     setSameLocationSelection,
     setSelectedListItemId,
     setSelectedOrgId,
@@ -192,32 +206,27 @@ export function PublicMapIndex({
       savedGuideIds,
       setSavedGuideIds,
     })
-  const selectableMapItemById = usePublicMapSelectableItemMap(visibleMapItems)
-  const selectedOrganization = resolvePublicMapSelectedOrganization({
-    organizationById,
-    selectedOrgId,
-  })
-  const selectedResourceIndexItem = useSelectedPublicMapResource(
-    selectableMapItemById,
-    selectedListItemId
-  )
-  const selectedResourceItem = usePublicMapResourceItemDetail(
-    selectedResourceIndexItem,
-    resourceItemsEndpoint?.startsWith("/api/public/resource-map/index") ?? false
-  )
   const {
     savedOrganizations,
     savedResources,
     toggleCollectedResource,
     unresolvedCollectedResourceCount,
-  } = usePublicMapSavedItems({
+  } = usePublicMapSeasonalSavedItems({
     collectedResourceIds,
     favorites,
     organizationById,
-    resourceItems,
+    resourceItems: sourceResourceItems,
     retainMissingResources: resourceItemsLoadStatus !== "ready",
     setCollectedResourceIds,
+  }, showCoolingCenters)
+  const selectableMapItemById = usePublicMapSelectableItemMap(visibleMapItems, savedResources)
+  const selectedOrganization = resolvePublicMapSelectedOrganization({
+    organizationById,
+    selectedOrgId,
   })
+  const selectedResourceItem = useSelectedResourceDetail(
+    selectableMapItemById, selectedListItemId, resourceItemsEndpoint
+  )
   const authAction = searchParams.get("auth_action")
   const authOrganizationId = searchParams.get("auth_org")
   const handleSameLocationSelectionChange = useCallback(
@@ -325,7 +334,8 @@ export function PublicMapIndex({
     retryVersion,
     theme: mapTheme,
   })
-  const { locationControl, setWeather, weather } = usePublicMapLocationWeather({
+  const { locationControl } = usePublicMapLocationWeather({
+    weather,
     activeSameLocationGroupKey: sameLocationSelection?.key ?? null,
     favorites,
     mapRef,
@@ -415,6 +425,7 @@ export function PublicMapIndex({
       onAuthSheetOpenChange={setAuthSheetOpen}
       onSidebarInsetChange={setSidebarInsetLeft}
       onDrawerInsetChange={setDrawerInsetBottom}
+      welcomeControl={memberOnboardingState.welcomeControl}
       mapOverlay={memberOnboardingState.overlay}
     />
   )

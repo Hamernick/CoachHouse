@@ -102,19 +102,6 @@ export function MemberWorkspaceProjectCardsView({
             }
           />
         ))}
-        {onCreateProject ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="border-border/60 bg-background text-muted-foreground hover:border-border/80 hover:bg-background hover:text-foreground min-h-[180px] rounded-2xl border border-dashed p-6 text-sm"
-            onClick={onCreateProject}
-          >
-            <div className="flex flex-col items-center justify-center gap-2 text-center">
-              <Plus className="h-5 w-5" />
-              <span>Create new organization</span>
-            </div>
-          </Button>
-        ) : null}
       </div>
     </div>
   )

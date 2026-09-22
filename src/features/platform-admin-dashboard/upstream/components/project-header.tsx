@@ -6,7 +6,7 @@ import { FilterChip } from "@/features/platform-admin-dashboard/upstream/compone
 import { ViewOptionsPopover } from "@/features/platform-admin-dashboard/upstream/components/view-options-popover"
 import { FilterPopover } from "@/features/platform-admin-dashboard/upstream/components/filter-popover"
 import { ChipOverflow } from "@/features/platform-admin-dashboard/upstream/components/chip-overflow"
-import { Link as LinkIcon, Plus, Sparkle } from "@phosphor-icons/react/dist/ssr"
+import { Link as LinkIcon, Plus } from "@phosphor-icons/react/dist/ssr"
 import type { FilterCounts } from "@/features/platform-admin-dashboard/upstream/lib/data/projects"
 import type { FilterChip as FilterChipType, ViewOptions } from "@/features/platform-admin-dashboard/upstream/lib/view-options"
 
@@ -51,14 +51,6 @@ export function ProjectHeader({ filters, onRemoveFilter, onFiltersChange, counts
         </div>
         <div className="flex items-center gap-2">
           <ViewOptionsPopover options={viewOptions} onChange={onViewOptionsChange} />
-          <div className="relative">
-            <div className="relative">
-              <Button className="h-8 gap-2 rounded-lg bg-primary shadow-sm text-primary-foreground hover:bg-primary/90 relative z-10 px-3">
-                <Sparkle className="h-4 w-4" weight="fill" />
-                Ask AI
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     </header>

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import dynamic from "next/dynamic"
 
 import Loader2Icon from "lucide-react/dist/esm/icons/loader-2"
 import UserPlusIcon from "lucide-react/dist/esm/icons/user-plus"
@@ -17,8 +18,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-import { OrganizationAccessInvitesList } from "./organization-access-invites-list"
-import { OrganizationAccessRequestsList } from "./organization-access-requests-list"
 import {
   INVITEABLE_ROLES,
   INVITE_ROLE_LABELS,
@@ -26,9 +25,38 @@ import {
   type OrganizationInviteRoleOption,
 } from "./organization-access-manager-helpers"
 import { useOrganizationAccessManagerState } from "./organization-access-manager-state"
-import { OrganizationAccessMembersList } from "./organization-access-members-list"
 import { OrganizationAccessPolicyControls } from "./organization-access-policy-controls"
 import { OrganizationAccessProfileCard } from "./organization-access-profile-card"
+
+function LoadingAccessList() {
+  return (
+    <p role="status" className="text-muted-foreground text-sm">
+      Loading…
+    </p>
+  )
+}
+
+const OrganizationAccessMembersList = dynamic(
+  () =>
+    import("./organization-access-members-list").then(
+      (mod) => mod.OrganizationAccessMembersList
+    ),
+  { loading: LoadingAccessList }
+)
+const OrganizationAccessInvitesList = dynamic(
+  () =>
+    import("./organization-access-invites-list").then(
+      (mod) => mod.OrganizationAccessInvitesList
+    ),
+  { loading: LoadingAccessList }
+)
+const OrganizationAccessRequestsList = dynamic(
+  () =>
+    import("./organization-access-requests-list").then(
+      (mod) => mod.OrganizationAccessRequestsList
+    ),
+  { loading: LoadingAccessList }
+)
 
 export function OrganizationAccessManager({
   organizationName,
