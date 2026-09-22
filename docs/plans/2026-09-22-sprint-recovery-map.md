@@ -7,6 +7,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 - Fresh `origin/main`: `dc36b113` (`[STEP S99] Restore Workspace tab content widths (#244)`)
 - Recent merged releases on `main`: PR #242 admin/coach tools, PR #243 Documents/Drive-backed Core Documents, PR #244 Workspace tab width hotfix.
 - Closed/rejected broad release: PR #241. Do not revive it as-is.
+- Durable open-work entrypoint: `docs/agent/open-work-index.md`.
 
 ## Preservation Checkpoints
 
@@ -14,6 +15,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 |---|---|---:|---|---|
 | Workspace particles/objective resume | `feat/workspace-particles-objective-resume-20260922` | `c855aea6` | local only | clean; quality mostly passed, visual blocked by unrelated Documents banner drift |
 | Google Calendar resume | `feat/google-calendar-resume-20260922` | `508b8df0` | local only | clean; static, acceptance, RLS, build, and focused Calendar visual passed |
+| Public Documentation/Marketplace recovery snapshot | `feat/public-docs-marketplace-resume-20260922` | `3b91b2ad` | local only | clean preservation snapshot; not release-ready; split AppShell/mobile/public-profiles first |
 | Root sprint pile | `chore/local-development-20260907` | `00692e48` | `chore/root-sprint-recovery-20260922` | clean |
 | Workspace particles/objective | `chore/parallel-development-20260914` | `fd5e5f77` | `chore/particles-objective-recovery-20260922` | clean |
 | Google Calendar sync | `feat/google-calendar-sync-20260908` | `1713e8c3` | `chore/google-calendar-recovery-20260922` | clean |
@@ -35,6 +37,7 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 | `0a1895fc` | 621 | member/admin/coach, nonprofit docs, tests, visuals, app shell/dashboard, particles/objective, docs |
 | `c855aea6` | 89 | fresh-main replay of Workspace particles/objective planner plus validation runlog |
 | `508b8df0` | 47 | fresh-main replay of Google Calendar sync plus validation runlog |
+| `3b91b2ad` | 446 | fresh-main public Documentation/Marketplace preservation snapshot; includes shared AppShell/mobile/public-profile closure and must be split before release |
 | `fd5e5f77` | 46 | Workspace particles/objective planner, visual tests, docs, acceptance tests |
 | `1713e8c3` | 95 | Google Calendar feature, API routes, tests, legal consent, migrations |
 | `911b1d5a` | 9 | Drive privacy consent migration/tests/docs; current `main` already matches all non-runlog files |
@@ -57,10 +60,11 @@ Purpose: preserve and classify local sprint work without discarding anything. Th
 
 1. Workspace particles/objective planner: resume from `feat/workspace-particles-objective-resume-20260922` at `c855aea6`; static, acceptance, build, RLS, focused tests, and Workspace particles/objective visuals passed. Resolve or separately baseline the unrelated Documents banner visual drift before declaring full visual green.
 2. Google Calendar sync: resume from `feat/google-calendar-resume-20260922` at `508b8df0`; local code gates passed. Separate code readiness from OAuth/provider setup and live calendar verification before release.
-3. Nonprofit docs/Brand/Marketplace: extract only selected public changes from root; require screenshot review before accepting visual baselines.
+3. Public Documentation/Marketplace: use `feat/public-docs-marketplace-resume-20260922` at `3b91b2ad` only as a preservation source. Split into separate public-docs, AppShell/mobile, and public-profile/marketplace-people lanes before any PR.
 4. Member/admin/coach leftovers: compare against merged PR #242 first to avoid replaying shipped internal tooling.
 5. Public Find/mobile map: isolate from Marketplace and nonprofit docs; do not blend raw candidate/resource-map work into public Find.
-6. Launch-clean legacy: inspect only for ideas or components; do not merge wholesale.
+6. Resource-map acquisition scripts: isolate private acquisition tooling from public `/find`.
+7. Launch-clean legacy: inspect only for ideas or components; do not merge wholesale.
 
 ## Closed / Absorbed Lanes
 

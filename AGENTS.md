@@ -37,6 +37,7 @@ Canonical agent contract for this repo. Keep this file short; details live in `/
 - UI quality rubric (MUST/SHOULD/NEVER): `docs/agent/ui-rubric.md`
 - Interface craft principles and source notes: `docs/agent/design-craft/README.md`
 - Prompt templates for deterministic execution: `docs/agent/codex-execution-playbook.md`
+- Active unshipped work index: `docs/agent/open-work-index.md`
 - External engineering references for guardrails: `docs/agent/engineering-sources.md`
 - Workspace presentation operations checklist: `docs/agent/workspace-presentation-runbook.md`
 - Workspace canvas node shell anatomy and React Flow boundary: `docs/agent/workspace-node-frame-contract.md`
