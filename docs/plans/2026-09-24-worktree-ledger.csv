@@ -51,7 +51,7 @@ path,branch,head,status,next_action
 /Users/calebhamernick/Development/coach-house-platform-profile-settings-fix-20260914,fix/profile-settings-completion-20260914,5e1fac10,clean,keep clean; select lane before editing
 /Users/calebhamernick/Development/coach-house-platform-public-docs-resume-20260922,feat/public-docs-marketplace-resume-20260922,3b91b2ad,clean,keep clean; select lane before editing
 /Users/calebhamernick/Development/coach-house-platform-public-documentation-content-20260922,feat/public-documentation-content-20260922,67c7fa8d,clean,keep clean; select lane before editing
-/Users/calebhamernick/Development/coach-house-platform-public-documentation-production-20260924,preservation/s02-closeout-local-20260924,80cb2c3f,clean,keep clean; select lane before editing
+/Users/calebhamernick/Development/coach-house-platform-public-documentation-production-20260924,chore/preserve-s02-closeout-local-20260924,80cb2c3f,clean,keep clean; select lane before editing
 /Users/calebhamernick/Development/coach-house-platform-public-documentation-release-20260923,feat/public-documentation-release-20260923,ef459f3c,clean,keep clean; select lane before editing
 /Users/calebhamernick/Development/coach-house-platform-public-impact-profiles-20260831,feat/public-impact-profiles-20260831,bb262360,clean,keep clean; select lane before editing
 /Users/calebhamernick/Development/coach-house-platform-public-legal-links-20260911,fix/public-home-legal-links-20260911,1a41dac1,clean,keep clean; select lane before editing

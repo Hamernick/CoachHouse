@@ -220,17 +220,17 @@ hotfix/resource-map-promotion-evidence-chunks-2026-07-13,21b4b720,origin/hotfix/
 hotfix/subscription-sync,043a25ac,origin/hotfix/subscription-sync,none,none,/Users/calebhamernick/Development/coach-house-platform-subscription-sync-hotfix,historical or mixed source; held for comparison,preserve; compare file/hunk against current main before reuse
 launch/canvas-map-implementation,f15ce510,,none,none,/Users/calebhamernick/Development/coach-house-platform-launch-clean,historical or mixed source; held for comparison,preserve; compare file/hunk against current main before reuse
 main,bb1a3e0b,origin/main,32d7e8d8,different,,historical or mixed source; held for comparison,preserve; compare file/hunk against current main before reuse
-organize/app-shell-mobile-20260924,2f15f54f,origin/main,2f15f54f,same,,scoped lane backup,review product and integration gates; no release claim
-organize/google-calendar-20260924,a1acccad,origin/main,a1acccad,same,,scoped lane backup,review product and integration gates; no release claim
-organize/marketplace-people-20260924,21026428,origin/main,21026428,same,,scoped lane backup,review product and integration gates; no release claim
-organize/workspace-particles-objectives-20260924,8eabd28e,origin/main,8eabd28e,same,,scoped lane backup,review product and integration gates; no release claim
+chore/app-shell-mobile-20260924,2f15f54f,origin/chore/app-shell-mobile-20260924,2f15f54f,same,,scoped lane backup,review product and integration gates; no release claim
+chore/google-calendar-20260924,a1acccad,origin/chore/google-calendar-20260924,a1acccad,same,,scoped lane backup,review product and integration gates; no release claim
+chore/marketplace-people-20260924,21026428,origin/chore/marketplace-people-20260924,21026428,same,,scoped lane backup,review product and integration gates; no release claim
+chore/workspace-particles-objectives-20260924,8eabd28e,origin/chore/workspace-particles-objectives-20260924,8eabd28e,same,,scoped lane backup,review product and integration gates; no release claim
 perf/find-interaction-ready-20260814,7172a6b7,origin/perf/find-interaction-ready-20260814,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
 perf/find-location-lcp-20260812,76df713a,origin/perf/find-location-lcp-20260812,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
 perf/find-map-post-lcp-start-20260812,ddf0dd57,origin/perf/find-map-post-lcp-start-20260812,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
 perf/find-map-start-delay-20260812,dd2f6a34,origin/perf/find-map-start-delay-20260812,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
 perf/find-release-budgets-20260812,efeb8ee7,origin/perf/find-release-budgets-20260812,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
 perf/find-server-consent-paint-20260812,e5110999,origin/perf/find-server-consent-paint-20260812,none,none,,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
-preservation/s02-closeout-local-20260924,80cb2c3f,,none,none,/Users/calebhamernick/Development/coach-house-platform-public-documentation-production-20260924,closed S02 notes,retain locally as closed historical record
+chore/preserve-s02-closeout-local-20260924,80cb2c3f,,none,none,/Users/calebhamernick/Development/coach-house-platform-public-documentation-production-20260924,closed S02 notes,retain locally as closed historical record
 record-cook-county-ledger-evidence-20260813,bfc06614,origin/record-cook-county-ledger-evidence-20260813,none,none,,historical or mixed source; held for comparison,preserve; compare file/hunk against current main before reuse
 record-wave6-canary-proof-20260813,bcc841d8,origin/record-wave6-canary-proof-20260813,none,none,,historical or mixed source; held for comparison,preserve; compare file/hunk against current main before reuse
 recovery/find-organization-profile-20260820,4b27fa12,,none,none,/private/tmp/coach-house-find-org-profile-recovery.6qo0ah,public Find or resource source; held for comparison,preserve; compare file/hunk against current main before reuse
