@@ -1,10 +1,16 @@
 # Open Work Index
 
-Updated 2026-09-24. Read after `AGENTS.md`, `docs/RUNLOG.md`, and its latest monthly entries. Cleanup base: `origin/main` `32d7e8d8`; recheck Git before new work.
+Updated 2026-09-25. Read after `AGENTS.md`, `docs/RUNLOG.md`, and its latest monthly entries. Cleanup base: `origin/main` `32d7e8d8`; recheck Git before new work.
+
+Maintain one active entry per lane or preservation hold. Update entries in place:
+replace renamed branch references and obsolete next actions instead of appending
+duplicates. Keep historical closeout records in the logs; they do not reopen work.
+When changing the startup sequence, keep `AGENTS.md`, `docs/RUNLOG.md`, and the
+workflow checkpoint aligned in the same change.
 
 ## Closed
 
-Caleb confirmed Public Documentation / S02 shipped and PRs #247, #248, #249 merged. Do not reopen them, repeat production checks, or continue the old menu investigation. #249 changed test isolation only.
+Caleb confirmed Public Documentation / S02 shipped and PRs #247–#251 merged. Do not reopen them, repeat production checks, or restart the historical menu investigation from old handoffs. #249 changed test isolation only. Caleb also confirmed the navigation/startup cleanup merged; PR #253 is closed work. Do not restart its menu fix or repeat merge/production verification.
 
 ## Open lanes
 
@@ -17,7 +23,6 @@ The four `chore/*` backup branches start at `32d7e8d8`, contain scoped copies of
 | Particles/Objectives — high priority | `chore/workspace-particles-objectives-20260924` (`8eabd28e`); `feat/workspace-particles-objective-resume-20260922` (`c855aea6`) | Product concept and UI/UX remain rough. Decide the flow, then review canvas/drawer/mobile and Drive authorization. Passing tests do not establish readiness. |
 | Google Calendar | `chore/google-calendar-20260924` (`a1acccad`); `feat/google-calendar-resume-20260922` (`508b8df0`) | Review Workspace Tools/roadmap/AppShell integration; finish provider/OAuth setup and approved live-flow verification separately from code checks. |
 
-The next isolated fix is the **Build hover-menu buttons that lead nowhere**. Start from current main, establish intended destinations, test desktop/mobile clicks, and keep this separate from feature lanes.
 
 ## Named preservation holds
 
@@ -39,3 +44,14 @@ All 61 valid registered worktrees were clean after cleanup. Closed S02 notes wer
 The root mixed recovery branch remains local. Four scoped backup branches passed staged and complete outgoing-commit secret scans and diff hygiene. No new application or hosted release tests ran in this organization pass. No open lane is marked release-ready.
 
 Before shipping any lane: inspect branch/upstream/dirt and compare with current main; resolve shared-file ownership; run focused checks and browser review for affected UI; append the current monthly runlog; pass the current PR's hosted `quality`, code-owner review, and branch protection. Provider setup, live data, deployment, and production verification have separate gates. Particles and Calendar own only their respective additions to `tests/acceptance/projects.json`; current-main entries must remain. Work one lane at a time.
+
+## Local continuation checkpoint — 2026-09-25
+
+- Root checkout: `chore/local-development-20260907`, mixed local preservation history. Startup documents are synced from `origin/main` at `b8cce495` with this local closeout. Application files are unchanged. Root state before sync is preserved at `285a0899`; do not push or replay the mixed history wholesale.
+- Navigation/startup cleanup is closed per Caleb. Eight unfinished feature lanes above remain open; none is declared release-ready. Start the selected lane in a clean isolated worktree from freshly fetched `origin/main`, adapting only its remaining changes.
+- Readiness audit: all 62 usable worktrees were clean; four scoped `chore/*` lane backups matched live GitHub refs. Nine stale registrations remain preserved, not active worktrees. Ignored credentials/local data and localhost:3000 remain untouched.
+- `H-STALE-REGISTRATIONS`: nine previously inventoried missing/broken worktree registrations. Keep the existing worktree ledger as evidence; inspect surviving directories and preserve any files before considering pruning. They do not block a new isolated lane.
+- `H-STASH-20251229`: two historical stashes remain local, intentionally unapplied. Ownership and current-main equivalence are unproven. During relevant lane review, inspect only file names/diffs needed to classify remaining work; never apply or upload them wholesale. Saved refs:
+  - `stash@{0} 0ef785437a0b20ec0e780d2289efd60c14ee467f 2025-12-29`
+  - `stash@{1} be29667362023ccd7d8a4ec1454eb1fea947d3de 2025-12-29`
+- This is a local handoff checkpoint, not a release or cloud backup. Carry the PR #253 closed status into the next lane's normal handoff update; no separate bookkeeping PR is needed. The merged AGENTS snapshot contained two equivalent continuation bullets; this local copy keeps the canonical linked rule only.
