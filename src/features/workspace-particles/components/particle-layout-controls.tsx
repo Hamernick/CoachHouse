@@ -1,0 +1,121 @@
+"use client"
+
+import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
+import { useEffect } from "react"
+import { useStore } from "@xyflow/react"
+import { Button } from "@/components/ui/button"
+import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+import type { useParticleLayout } from "../hooks/use-particle-layout"
+
+export function ParticleGeometryObserver({
+  onChange,
+}: {
+  onChange: () => void
+}) {
+  const key = useStore((state) => {
+    // React Flow owns each drag frame. Routing only needs gesture boundaries.
+    if (Array.from(state.nodeLookup.values()).some((node) => node.dragging))
+      return "dragging"
+    return JSON.stringify(
+      Array.from(state.nodeLookup.values(), (node) => [
+        node.id,
+        node.hidden,
+        node.dragging,
+        node.internals.positionAbsolute,
+        node.measured,
+        node.internals.handleBounds,
+      ])
+    )
+  })
+  useEffect(() => onChange(), [key, onChange])
+  return null
+}
+
+export function ParticleLayoutActions({
+  layout,
+  disabled,
+}: {
+  layout: ReturnType<typeof useParticleLayout>
+  disabled: boolean
+}) {
+  const saving = layout.phase === "saving" || layout.phase === "animating"
+  const actions = [
+    {
+      id: "layout-all",
+      label: "Auto-layout",
+      disabled: disabled || layout.busy,
+      onClick: () => void layout.run(),
+    },
+    {
+      id: "layout-selection",
+      label: "Arrange selection",
+      disabled: disabled || layout.busy,
+      onClick: () => void layout.run(true),
+    },
+    ...(layout.canUndo
+      ? [
+          {
+            id: "layout-undo",
+            label: "Undo layout",
+            disabled: disabled || layout.busy,
+            onClick: () => void layout.undoLayout(),
+          },
+        ]
+      : []),
+    ...(layout.busy
+      ? [
+          {
+            id: "layout-cancel",
+            label: "Cancel layout",
+            disabled: saving,
+            onClick: layout.cancel,
+          },
+        ]
+      : []),
+  ]
+  return (
+    <div
+      className="nodrag nopan flex flex-col gap-1 border-t px-2 py-2"
+      role="group"
+      aria-label="Arrange Particles"
+    >
+      {actions.map((action) => (
+        <Button
+          key={action.id}
+          type="button"
+          variant="ghost"
+          className="h-11 justify-start rounded-xl px-3"
+          disabled={action.disabled}
+          onClick={action.onClick}
+          {...getReactGrabOwnerProps({
+            ownerId: `workspace-particle:${action.id}`,
+            component: "ParticleLayoutActions",
+            source:
+              "src/features/workspace-particles/components/particle-layout-controls.tsx",
+            slot: "trigger",
+            primitiveImport: "@/components/ui/button",
+          })}
+        >
+          {action.id === "layout-all" && layout.busy ? (
+            <LoaderCircleIcon
+              aria-hidden
+              className="size-4 animate-spin motion-reduce:animate-none"
+            />
+          ) : null}
+          {action.label}
+        </Button>
+      ))}
+      <p role="status" className="text-muted-foreground max-w-64 px-3 text-xs">
+        {layout.busy
+          ? {
+              measuring: "Measuring cards…",
+              calculating: "Arranging Particles…",
+              saving: "Saving positions…",
+              animating: "Moving into place…",
+              idle: "",
+            }[layout.phase]
+          : layout.message}
+      </p>
+    </div>
+  )
+}

@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import CheckCircle2Icon from "lucide-react/dist/esm/icons/check-circle-2"
 import CircleAlertIcon from "lucide-react/dist/esm/icons/circle-alert"
 import DatabaseIcon from "lucide-react/dist/esm/icons/database"
@@ -12,7 +13,7 @@ import ScaleIcon from "lucide-react/dist/esm/icons/scale"
 import ShieldCheckIcon from "lucide-react/dist/esm/icons/shield-check"
 import UserRoundIcon from "lucide-react/dist/esm/icons/user-round"
 import type { ReactNode } from "react"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -272,7 +273,7 @@ function FinanceReleasePlanCurrentState({
 export function FinanceReleasePlanNode({
   data,
   isConnectable,
-}: NodeProps<FinanceReleasePlanNodeData>) {
+}: NodeProps<ReactFlowNode<FinanceReleasePlanNodeData>>) {
   if (data.kind === "lane") {
     return <FinanceReleasePlanLaneNode data={data} />
   }

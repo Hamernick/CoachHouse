@@ -44,7 +44,7 @@ describe("workspace node frame contract", () => {
       acceleratorShell,
       fiscalShell,
     ]) {
-      expect(source).not.toContain('from "reactflow"')
+      expect(source).not.toContain('from "@xyflow/react"')
       expect(source).not.toContain("useNodesState")
       expect(source).not.toContain("useEdgesState")
       expect(source).not.toContain("useStore(")

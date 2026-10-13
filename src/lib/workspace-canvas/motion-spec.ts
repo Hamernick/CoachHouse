@@ -61,6 +61,12 @@ export type WorkspaceCanvasStageMotion = {
 
 export const WORKSPACE_CANVAS_STAGED_EASE = [0.22, 1, 0.36, 1] as const
 
+// Particle positions animate through React Flow so edges share every frame.
+export const WORKSPACE_CANVAS_PARTICLE_LAYOUT_MOTION = {
+  duration: 0.24,
+  ease: WORKSPACE_CANVAS_STAGED_EASE,
+} as const
+
 const WORKSPACE_TUTORIAL_SURFACE_HANDOFF_DELAY_MS = 110
 const WORKSPACE_ACCELERATOR_ENTRY_HANDOFF_DELAY_MS = 140
 

@@ -11,7 +11,7 @@ import type {
   Edge,
   NodeMouseHandler,
   ReactFlowInstance,
-} from "reactflow"
+} from "@xyflow/react"
 
 import { buildWorkspaceCardEdgeGeometryLookup } from "../../workspace-board-connection-handles"
 import type { WorkspaceBoardState } from "../../workspace-board-types"

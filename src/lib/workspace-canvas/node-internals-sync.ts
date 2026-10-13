@@ -1,7 +1,7 @@
 "use client"
 
 import { type RefObject, useLayoutEffect } from "react"
-import { useUpdateNodeInternals } from "reactflow"
+import { useUpdateNodeInternals } from "@xyflow/react"
 
 export function useWorkspaceNodeInternalsSync(
   nodeId: string,

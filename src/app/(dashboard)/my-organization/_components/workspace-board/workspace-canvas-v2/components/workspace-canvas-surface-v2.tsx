@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { type ReactFlowInstance } from "reactflow"
-import "reactflow/dist/style.css"
+import { type ReactFlowInstance } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import { useWorkspaceAcceleratorDrawer } from "./use-workspace-accelerator-drawer"
 import { useWorkspaceOntologyActionRequest } from "./use-workspace-ontology-action-request"
 import type { WorkspaceCanvasSurfaceV2Props } from "./workspace-canvas-surface-v2-types"
@@ -44,6 +44,7 @@ export function WorkspaceCanvasSurfaceV2({
   onConnectCards,
   onDisconnectConnection,
   onDisconnectAllConnections,
+  onPlaceWorkspaceTool,
   onToggleCardVisibility,
   onTutorialCompletionExitHandled,
 }: WorkspaceCanvasSurfaceV2Props) {
@@ -391,6 +392,10 @@ export function WorkspaceCanvasSurfaceV2({
     visibleNodeIds: ontologyInteractions.visibleNodeIds,
   })
   const viewProps = {
+    particleGraph: boardState.particleGraph,
+    libraryCardData: cardDataLookup,
+    hiddenToolIds: boardState.hiddenCardIds,
+    onPlaceWorkspaceTool,
     nodes: ontologyInteractions.nodes,
     edges: flowState.renderEdges,
     allowEditing,
@@ -442,5 +447,5 @@ export function WorkspaceCanvasSurfaceV2({
     onDisconnectToTarget: flowState.handleContextDisconnectToTarget,
     onDisconnectAll: flowState.handleContextDisconnectAll,
   }
-  return <WorkspaceCanvasSurfaceV2View {...viewProps} />
+  return <WorkspaceCanvasSurfaceV2View key={seed.orgId} {...viewProps} />
 }

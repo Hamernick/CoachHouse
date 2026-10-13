@@ -1,7 +1,8 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo } from "react"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
@@ -27,7 +28,7 @@ export type DecisionStepNodeData = DocumentationDecisionStep & {
 
 export const DecisionStepNode = memo(function DecisionStepNode({
   data,
-}: NodeProps<DecisionStepNodeData>) {
+}: NodeProps<ReactFlowNode<DecisionStepNodeData>>) {
   return (
     <WorkspaceNodeFrameRoot
       {...getReactGrabOwnerProps({

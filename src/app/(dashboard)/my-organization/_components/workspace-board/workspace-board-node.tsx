@@ -1,9 +1,11 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo, useLayoutEffect, useRef } from "react"
-import { type NodeProps } from "reactflow"
+import { type NodeProps } from "@xyflow/react"
 
 import { useWorkspaceNodeInternalsSync } from "@/lib/workspace-canvas/node-internals-sync"
+import { ParticleRemoveControl } from "@/features/workspace-particles/client"
 import { cn } from "@/lib/utils"
 import { WorkspaceOntologyBranchToggle } from "@/features/workspace-ontology"
 
@@ -23,7 +25,7 @@ import type { WorkspaceBoardNodeData } from "./workspace-board-node-types"
 export const WorkspaceBoardNode = memo(function WorkspaceBoardNode({
   id,
   data,
-}: NodeProps<WorkspaceBoardNodeData>) {
+}: NodeProps<ReactFlowNode<WorkspaceBoardNodeData>>) {
   const nodeRef = useRef<HTMLDivElement>(null)
   const lastReportedHeightRef = useRef<number | null>(null)
   useWorkspaceNodeInternalsSync(id, nodeRef)
@@ -56,11 +58,19 @@ export const WorkspaceBoardNode = memo(function WorkspaceBoardNode({
     <div
       ref={nodeRef}
       className={cn(
-        "relative min-h-0 w-full min-w-0",
+        "group/particle relative min-h-0 w-full min-w-0",
         resolveWorkspaceCardHeightModeClassName(data.cardId)
       )}
     >
-      <div className="relative min-h-0 w-full min-w-0">
+      <div
+        className="relative min-h-0 w-full min-w-0"
+      >
+        {data.onReturnToLibrary && (
+          <ParticleRemoveControl
+            title={WORKSPACE_CARD_META[data.cardId].title}
+            onRemove={data.onReturnToLibrary}
+          />
+        )}
         <WorkspaceBoardCard data={data} />
         <ConnectionHandles
           cardId={data.cardId}

@@ -42,6 +42,7 @@ export function useOrgProfileEditorState({
   initialTab,
   initialProgramId,
   initialEditMode,
+  navigationRequestId,
 }: UseOrgProfileEditorStateArgs): UseOrgProfileEditorStateResult {
   const normalizedInitial = useMemo(
     () => normalizeCompanyProfile(initial),
@@ -51,7 +52,10 @@ export function useOrgProfileEditorState({
   const [editMode, setEditMode] = useState(canEdit && initialEditMode === true)
   const [isPending, startTransition] = useTransition()
   const [dirty, setDirty] = useState(false)
-  const { tab, setTab, handleTabChange } = useOrgProfileTabState({ initialTab })
+  const { tab, setTab, handleTabChange } = useOrgProfileTabState({
+    initialTab,
+    navigationRequestId,
+  })
   const [company, setCompany] = useState<OrgProfile>(() => normalizedInitial)
   const [savedCompany, setSavedCompany] = useState<OrgProfile>(
     () => normalizedInitial
@@ -71,22 +75,40 @@ export function useOrgProfileEditorState({
   const [editOpen, setEditOpen] = useState(false)
   const hasUnsavedChanges = dirty
   const [slugStatus, setSlugStatus] = useState<SlugStatus>(null)
-  const didOpenProgramRef = useRef(false)
+  const openedProgramRequestRef = useRef<string | null>(null)
 
   useEffect(() => {
     savedCompanyRef.current = savedCompany
   }, [savedCompany])
 
   useEffect(() => {
-    if (!initialProgramId || !canEdit || didOpenProgramRef.current) return
+    if (canEdit && initialEditMode) setEditMode(true)
+  }, [canEdit, initialEditMode, navigationRequestId])
+
+  useEffect(() => {
+    const requestKey = `${navigationRequestId ?? "initial"}:${initialProgramId}`
+    if (
+      !initialProgramId ||
+      !canEdit ||
+      openedProgramRequestRef.current === requestKey ||
+      editOpen
+    )
+      return
     const match =
       programs.find((program) => program.id === initialProgramId) ?? null
     if (!match) return
     setTab("programs")
     setEditProgram(match)
     setEditOpen(true)
-    didOpenProgramRef.current = true
-  }, [canEdit, initialProgramId, programs, setTab])
+    openedProgramRequestRef.current = requestKey
+  }, [
+    canEdit,
+    initialProgramId,
+    programs,
+    setTab,
+    navigationRequestId,
+    editOpen,
+  ])
 
   useOrgProfileUnsavedGuards({
     canEdit,

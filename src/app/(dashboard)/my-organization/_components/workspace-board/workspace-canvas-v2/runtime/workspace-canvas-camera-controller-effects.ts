@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, type MutableRefObject } from "react"
-import type { ReactFlowInstance } from "reactflow"
+import type { ReactFlowInstance } from "@xyflow/react"
 
 import { ACCELERATOR_STEP_NODE_ID } from "../../workspace-board-flow-surface-accelerator-graph-composition"
 import { WORKSPACE_CANVAS_EVENTS } from "../contracts/workspace-canvas-events"
@@ -35,14 +35,7 @@ function resolveNodeMeasuredDimension(value: unknown): number | null {
 export function hasRenderableNodeBounds(
   node: ReturnType<ReactFlowInstance["getNodes"]>[number]
 ) {
-  const measured = (
-    node as {
-      measured?: {
-        width?: number
-        height?: number
-      }
-    }
-  ).measured
+  const measured = node.measured
   const width =
     resolveNodeMeasuredDimension(measured?.width) ??
     resolveNodeMeasuredDimension(node.width)

@@ -7,9 +7,13 @@ const ACTIVE_TAB_STORAGE_KEY = "myorg.activeTab"
 
 type UseOrgProfileTabStateArgs = {
   initialTab?: ProfileTab
+  navigationRequestId?: number
 }
 
-export function useOrgProfileTabState({ initialTab }: UseOrgProfileTabStateArgs) {
+export function useOrgProfileTabState({
+  initialTab,
+  navigationRequestId,
+}: UseOrgProfileTabStateArgs) {
   const [tab, setTab] = useState<ProfileTab>(() =>
     initialTab && ORG_PROFILE_TABS.some((option) => option.value === initialTab)
       ? initialTab
@@ -31,19 +35,27 @@ export function useOrgProfileTabState({ initialTab }: UseOrgProfileTabStateArgs)
   useEffect(() => {
     try {
       if (typeof window === "undefined") return
-      if (initialTab && ORG_PROFILE_TABS.some((option) => option.value === initialTab)) {
+      if (
+        initialTab &&
+        ORG_PROFILE_TABS.some((option) => option.value === initialTab)
+      ) {
         setTab(initialTab)
         window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, initialTab)
         return
       }
-      const stored = window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY) as ProfileTab | null
-      if (stored && ORG_PROFILE_TABS.some((option) => option.value === stored)) {
+      const stored = window.localStorage.getItem(
+        ACTIVE_TAB_STORAGE_KEY
+      ) as ProfileTab | null
+      if (
+        stored &&
+        ORG_PROFILE_TABS.some((option) => option.value === stored)
+      ) {
         setTab(stored)
       }
     } catch {
       // ignore
     }
-  }, [initialTab])
+  }, [initialTab, navigationRequestId])
 
   return {
     tab,

@@ -30,10 +30,12 @@ export async function commitWorkspaceBoardState({
   maxAttempts = MAX_WORKSPACE_BOARD_WRITE_ATTEMPTS,
   readSnapshot,
   writeSnapshot,
+  updateParticleGraph,
 }: {
   buildState: (
     persistedState: WorkspaceBoardState | null
   ) => WorkspaceBoardState
+  updateParticleGraph?: (stored: Json | undefined) => Json
   maxAttempts?: number
   readSnapshot: () => Promise<WorkspaceBoardSnapshotReadResult>
   writeSnapshot: (
@@ -45,8 +47,18 @@ export async function commitWorkspaceBoardState({
     const readResult = await readSnapshot()
     if ("error" in readResult) return readResult
 
+    const candidate = buildState(readResult.snapshot.state)
+    // Whole-board clients never own this field. Preserve even unknown versions;
+    // only the dedicated authenticated mutation path may replace it.
+    const { particleGraph: _untrustedParticleGraph, particles: _untrustedLegacyParticles, ...boardFields } = candidate
+    const particleGraph = updateParticleGraph
+      ? updateParticleGraph(readResult.snapshot.state?.particleGraph)
+      : readResult.snapshot.state?.particleGraph
+    const legacyParticles = readResult.snapshot.state?.particles
     const boardState = {
-      ...buildState(readResult.snapshot.state),
+      ...boardFields,
+      ...(legacyParticles !== undefined ? { particles: legacyParticles } : {}),
+      ...(particleGraph !== undefined ? { particleGraph } : {}),
       updatedAt: new Date().toISOString(),
     }
     const writeResult = await writeSnapshot(readResult.snapshot, boardState)
@@ -74,16 +86,19 @@ export async function persistWorkspaceBoardState({
   orgId,
   supabase,
   userId,
+  updateParticleGraph,
 }: {
   buildState: (
     persistedState: WorkspaceBoardState | null
   ) => WorkspaceBoardState
+  updateParticleGraph?: (stored: Json | undefined) => Json
   orgId: string
   supabase: SupabaseClient<Database>
   userId: string
 }) {
   return commitWorkspaceBoardState({
     buildState,
+    updateParticleGraph,
     readSnapshot: async () => {
       const { data, error } = await supabase
         .from("organization_workspace_boards")

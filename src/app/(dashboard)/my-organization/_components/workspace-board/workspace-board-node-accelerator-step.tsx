@@ -1,8 +1,9 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { memo, useRef } from "react"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
 import { resolveWorkspaceBoardHandleClassName } from "@/lib/workspace-canvas/handle-styles"
 import { useWorkspaceNodeInternalsSync } from "@/lib/workspace-canvas/node-internals-sync"
@@ -18,7 +19,7 @@ export const WorkspaceBoardAcceleratorStepNode = memo(
   function WorkspaceBoardAcceleratorStepNode({
     id,
     data,
-  }: NodeProps<WorkspaceBoardAcceleratorStepNodeData>) {
+  }: NodeProps<ReactFlowNode<WorkspaceBoardAcceleratorStepNodeData>>) {
     const nodeRef = useRef<HTMLDivElement>(null)
     useWorkspaceNodeInternalsSync(id, nodeRef)
     if (!data.step) return null

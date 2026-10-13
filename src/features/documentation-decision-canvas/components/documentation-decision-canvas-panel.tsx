@@ -1,13 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   BackgroundVariant,
   ReactFlowProvider,
   useReactFlow,
   type Node,
-} from "reactflow"
+} from "@xyflow/react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import WorkflowIcon from "lucide-react/dist/esm/icons/workflow"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,7 @@ import {
   type DecisionEditorContent,
 } from "./decision-canvas-editor"
 import { useDecisionCanvasExpansion } from "../hooks/use-decision-canvas-expansion"
-import "reactflow/dist/style.css"
+import "@xyflow/react/dist/style.css"
 import styles from "./decision-canvas.module.css"
 
 const nodeTypes = { decision: DecisionStepNode }

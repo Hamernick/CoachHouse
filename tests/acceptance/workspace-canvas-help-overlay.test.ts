@@ -52,7 +52,7 @@ describe("workspace canvas help overlay", () => {
     expect(source).toContain('<InfoIcon className="h-4 w-4" aria-hidden />')
     expect(source).toContain("MousePointer2Icon")
     expect(source).toContain("Select a group")
-    expect(source).toContain("Hold Shift and drag a box")
+    expect(source).toContain("Drag empty space to select a group")
     expect(source).toContain("selecting groups")
     expect(source).toContain('className="flex flex-col gap-1 p-2"')
     expect(source).not.toContain('variant="outline"')

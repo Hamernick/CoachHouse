@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo, useEffect, useRef, type CSSProperties } from "react"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import CalendarDaysIcon from "lucide-react/dist/esm/icons/calendar-days"
@@ -14,7 +15,7 @@ import LandmarkIcon from "lucide-react/dist/esm/icons/landmark"
 import ListChecksIcon from "lucide-react/dist/esm/icons/list-checks"
 import NetworkIcon from "lucide-react/dist/esm/icons/network"
 import UsersIcon from "lucide-react/dist/esm/icons/users"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
@@ -101,7 +102,7 @@ const WORKSPACE_ONTOLOGY_NODE_REACT_GRAB_PROPS = getReactGrabOwnerProps({
 export const WorkspaceOntologyNode = memo(function WorkspaceOntologyNode({
   data,
   selected,
-}: NodeProps<WorkspaceOntologyNodeData>) {
+}: NodeProps<ReactFlowNode<WorkspaceOntologyNodeData>>) {
   const {
     node,
     detailLevel,

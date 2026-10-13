@@ -153,4 +153,6 @@ export interface OrgProfileCardProps {
   initialProgramStep?: number | null
   initialFocus?: string | null
   initialEditMode?: boolean
+  navigationRequestId?: number
+  onProgramEditorOpenChange?: (open: boolean) => void
 }

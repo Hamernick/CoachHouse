@@ -21,6 +21,8 @@ type MyOrganizationEditorViewProps = {
   initialProgramStep?: number | null
   initialFocus?: string | null
   initialEditMode?: boolean
+  navigationRequestId?: number
+  onProgramEditorOpenChange?: (open: boolean) => void
   canEdit: boolean
   embedded?: boolean
   scrollMode?: "self" | "parent"
@@ -35,6 +37,8 @@ export function MyOrganizationEditorView({
   initialProgramStep,
   initialFocus,
   initialEditMode = false,
+  navigationRequestId,
+  onProgramEditorOpenChange,
   canEdit,
   embedded = false,
   scrollMode = "self",
@@ -96,6 +100,8 @@ export function MyOrganizationEditorView({
       initialProgramStep={initialProgramStep}
       initialFocus={initialFocus}
       initialEditMode={initialEditMode}
+      navigationRequestId={navigationRequestId}
+      onProgramEditorOpenChange={onProgramEditorOpenChange}
       canEdit={canEdit}
     />
   )

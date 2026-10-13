@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { type NodeDragHandler } from "reactflow"
+import { type OnNodeDrag } from "@xyflow/react"
 
 import {
   type WorkspaceCanvasTutorialNodeData,
@@ -214,7 +214,7 @@ export function useWorkspaceCanvasTutorialScene({
     tutorialTransitionPlan,
   ])
 
-  const handleTutorialNodeDragStop = useCallback<NodeDragHandler>(
+  const handleTutorialNodeDragStop = useCallback<OnNodeDrag>(
     (_, node) => {
       if (!tutorialActive) return
       if (node.id !== WORKSPACE_CANVAS_TUTORIAL_NODE_ID) return

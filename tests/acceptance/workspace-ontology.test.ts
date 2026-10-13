@@ -1049,8 +1049,9 @@ describe("workspace ontology integration contract", () => {
     expect(nodeSource).not.toContain("data.onOpenAction")
     expect(ontologyInteractionsSource).toContain("activateNode(node.id)")
     expect(ontologyInteractionsSource).toContain("handleKeyDownCapture")
-    expect(viewSource).toContain("onNodeClick={onNodeClick}")
-    expect(viewSource).toContain("onKeyDownCapture={onKeyDownCapture}")
+    expect(viewSource).toContain("createWorkspaceParticleFlowHandlers(particles, {")
+    expect(viewSource).toContain("onNodeClick,")
+    expect(viewSource).toContain("onKeyDownCapture,")
     expect(nodeSource).not.toContain("workspace-ontology-node-drag-handle")
     expect(branchToggleSource).not.toContain("backdrop-blur-md")
     expect(branchToggleSource).toContain(

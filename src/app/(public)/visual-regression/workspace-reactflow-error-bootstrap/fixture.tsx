@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { StrictMode, useCallback, useState } from "react"
 import {
   Background,
@@ -12,8 +13,8 @@ import {
   type Node,
   type NodeProps,
   type NodeTypes,
-} from "reactflow"
-import "reactflow/dist/style.css"
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 
 import {
   WorkspaceReactFlowErrorBootstrap,
@@ -40,7 +41,7 @@ const FIXTURE_EDGES: Edge[] = [
   { id: "source-target", source: "source", target: "target" },
 ]
 
-function FixtureNodeType({ data }: NodeProps<{ label: string }>) {
+function FixtureNodeType({ data }: NodeProps<ReactFlowNode<{ label: string }>>) {
   return (
     <div className="bg-card relative w-40 rounded-lg border px-4 py-3 text-sm shadow-sm">
       <Handle type="target" position={Position.Left} />

@@ -1,5 +1,6 @@
 "use client"
 
+import type { PlaceWorkspaceTool } from "./workspace-board-tool-placement"
 import { memo } from "react"
 
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
@@ -52,6 +53,7 @@ export type WorkspaceBoardFlowSurfaceProps = {
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOnboardingFlowChange: (next: WorkspaceBoardOnboardingFlowState) => void
   onPersistNodePosition: (cardId: WorkspaceCardId, x: number, y: number) => void
+  onPlaceWorkspaceTool: PlaceWorkspaceTool
   onToggleCardVisibility: (
     cardId: WorkspaceCardId,
     context?: WorkspaceBoardToggleContext
@@ -100,6 +102,7 @@ export const WorkspaceBoardFlowSurface = memo(
           onConnectCards={props.onConnectCards}
           onDisconnectConnection={props.onDisconnectConnection}
           onDisconnectAllConnections={props.onDisconnectAllConnections}
+          onPlaceWorkspaceTool={props.onPlaceWorkspaceTool}
           onToggleCardVisibility={props.onToggleCardVisibility}
           onTutorialCompletionExitHandled={
             props.onTutorialCompletionExitHandled

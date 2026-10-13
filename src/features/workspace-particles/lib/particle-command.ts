@@ -1,0 +1,29 @@
+import type { ParticleResult } from "../types"
+
+export const PARTICLE_CREATE_TYPES = [
+  "objective",
+  "activity",
+  "workflow",
+] as const
+export function parseParticleCreateCommand(
+  input: string
+): ParticleResult<{
+  type: (typeof PARTICLE_CREATE_TYPES)[number]
+  title: string
+}> {
+  const match = /^create (objective|activity|workflow)\s+([\s\S]+)$/i.exec(
+    input.trim()
+  )
+  const type = PARTICLE_CREATE_TYPES.find(
+    (item) => item === match?.[1]?.toLowerCase()
+  )
+  const title = match?.[2]?.trim()
+  if (!type || !title || title.length > 240)
+    return {
+      ok: false,
+      code: "invalid",
+      error:
+        "Use: create objective Your goal (up to 240 characters). Or choose +.",
+    }
+  return { ok: true, value: { type, title } }
+}

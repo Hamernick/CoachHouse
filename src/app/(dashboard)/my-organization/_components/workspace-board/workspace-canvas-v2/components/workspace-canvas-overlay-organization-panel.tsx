@@ -1,11 +1,13 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import type { ComponentProps } from "react"
+import { useEffect, useState, type ComponentProps } from "react"
 
+import { toast } from "@/lib/toast"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import type { WorkspaceOrganizationEditorData } from "../../workspace-board-types"
+import { resolveRetainedDrawerRequest } from "./workspace-retained-panel"
 import type { WorkspaceDataDrawerRequest } from "./workspace-canvas-overlay-drawer-tabs"
 
 const MyOrganizationEditorView = dynamic<
@@ -34,40 +36,58 @@ export function WorkspaceCanvasOverlayOrganizationPanel({
   data: WorkspaceOrganizationEditorData
   request: WorkspaceDataDrawerRequest | null
 }) {
+  const [programEditorOpen, setProgramEditorOpen] = useState(false)
+  const [appliedRequest, setAppliedRequest] = useState(request)
+  // An open program owns its form and initial step. Apply a new destination only
+  // after it closes; profile drafts remain in the same editor throughout.
+  const destination = resolveRetainedDrawerRequest(
+    appliedRequest,
+    request,
+    !programEditorOpen
+  )
+  if (destination !== appliedRequest) setAppliedRequest(destination)
+  const pendingRequestId =
+    programEditorOpen && request?.id !== appliedRequest?.id ? request?.id : null
+  useEffect(() => {
+    if (pendingRequestId != null)
+      toast.info("Close the current program editor to follow this link.")
+  }, [pendingRequestId])
   return (
     <div
       data-workspace-organization-drawer-panel="true"
-      className="mx-auto box-border w-full max-w-3xl min-w-0 select-text p-2 sm:p-3 [&_[data-slot=organization-profile-section]]:grid-cols-1 [&_div:has(>[data-slot=organization-profile-field])]:grid-cols-1"
+      className="mx-auto box-border w-full max-w-3xl min-w-0 p-2 select-text sm:p-3 [&_[data-slot=organization-profile-section]]:grid-cols-1 [&_div:has(>[data-slot=organization-profile-field])]:grid-cols-1"
     >
       <MyOrganizationEditorView
-        key={
-          request?.tab === "organization"
-            ? `organization-request:${request.id}`
-            : "organization-default"
-        }
+        navigationRequestId={destination?.id}
+        onProgramEditorOpenChange={setProgramEditorOpen}
         embedded
         scrollMode="parent"
         initialProfile={data.initialProfile}
         people={data.people}
         programs={data.programs}
         initialTab={
-          request?.tab === "organization"
-            ? (request.organizationTab ?? "company")
+          destination?.tab === "organization"
+            ? (destination.organizationTab ?? "company")
             : undefined
         }
         initialProgramId={
-          request?.tab === "organization" ? request.organizationProgramId : null
+          destination?.tab === "organization"
+            ? destination.organizationProgramId
+            : null
         }
         initialProgramStep={
-          request?.tab === "organization"
-            ? request.organizationProgramStep
+          destination?.tab === "organization"
+            ? destination.organizationProgramStep
             : null
         }
         initialFocus={
-          request?.tab === "organization" ? request.organizationFocus : null
+          destination?.tab === "organization"
+            ? destination.organizationFocus
+            : null
         }
         initialEditMode={
-          request?.tab === "organization" && request.organizationEditMode
+          destination?.tab === "organization" &&
+          destination.organizationEditMode
         }
         canEdit={data.canEdit}
       />

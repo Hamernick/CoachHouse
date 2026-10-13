@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
 
 import FocusIcon from "lucide-react/dist/esm/icons/focus"
 import GripIcon from "lucide-react/dist/esm/icons/grip"
@@ -12,12 +12,16 @@ import XIcon from "lucide-react/dist/esm/icons/x"
 import ZoomInIcon from "lucide-react/dist/esm/icons/zoom-in"
 import type { LucideIcon } from "lucide-react"
 
+import {
+  getReactGrabOwnerProps,
+  getReactGrabLinkedSurfaceProps,
+} from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 type WorkspaceCanvasHelpItem = {
   icon: LucideIcon
@@ -30,29 +34,30 @@ const WORKSPACE_CANVAS_HELP_ITEMS: WorkspaceCanvasHelpItem[] = [
     icon: MoveIcon,
     label: "Pan canvas",
     description:
-      "Drag empty space, or swipe with two fingers on a trackpad, to move around.",
+      "Hold Space and drag, use the middle/right mouse button, or swipe with two fingers on a trackpad. Touch: drag empty space.",
   },
   {
     icon: FocusIcon,
     label: "Focus a card",
-    description: "Double-click a card to center it and fit it in the workspace.",
+    description:
+      "Double-click a card to center it and fit it in the workspace.",
   },
   {
     icon: GripIcon,
     label: "Move cards",
-    description: "Drag a card by its header to reposition it on the canvas.",
+    description:
+      "Drag a card header or selected group to move it. Arrow keys move selected Particles; Shift moves farther. Locked Particles stay fixed.",
   },
   {
     icon: MousePointer2Icon,
     label: "Select a group",
     description:
-      "Hold Shift and drag a box around cards or people. Use Meta or Control to add items, then drag one selected item.",
+      "Drag empty space to select a group. Shift-click (or Command/Control-click) adds or removes an item. On touch-capable devices, use Shift-drag with a keyboard. Escape clears selection.",
   },
   {
     icon: ZoomInIcon,
     label: "Zoom",
-    description:
-      "Pinch to zoom, or hold Meta or Control while scrolling.",
+    description: "Pinch to zoom, or hold Meta or Control while scrolling.",
   },
   {
     icon: PanelLeftOpenIcon,
@@ -78,8 +83,10 @@ export function resolveWorkspaceCanvasHelpTipInitialVisibility() {
 
 export function WorkspaceCanvasSurfaceV2HelpOverlay({
   integrated = false,
+  particleActions,
 }: {
   integrated?: boolean
+  particleActions?: ReactNode
 }) {
   const [tipVisible, setTipVisible] = useState(true)
 
@@ -118,7 +125,7 @@ export function WorkspaceCanvasSurfaceV2HelpOverlay({
           >
             <div className="bg-primary text-primary-foreground relative flex items-center gap-2 rounded-md px-3 py-1.5 text-xs leading-tight shadow-md">
               <span className="min-w-0 flex-1 whitespace-nowrap">
-                Hover for canvas help
+                Canvas help and Particles
               </span>
               <Button
                 type="button"
@@ -142,17 +149,21 @@ export function WorkspaceCanvasSurfaceV2HelpOverlay({
           </div>
         ) : null}
 
-        <HoverCard
-          openDelay={120}
-          closeDelay={120}
-          onOpenChange={handleHelpOpenChange}
-        >
-          <HoverCardTrigger asChild>
+        <Popover onOpenChange={handleHelpOpenChange}>
+          <PopoverTrigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               aria-label="Workspace canvas help"
+              {...getReactGrabOwnerProps({
+                ownerId: "workspace-canvas:help",
+                component: "WorkspaceCanvasSurfaceV2HelpOverlay",
+                source:
+                  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-help-overlay.tsx",
+                slot: "trigger",
+                tokenSource: "src/app/globals.css",
+              })}
               className={
                 integrated
                   ? "pointer-events-auto relative h-8 w-11 touch-manipulation rounded-lg after:absolute after:inset-x-0 after:-inset-y-1.5 md:w-8 md:after:hidden"
@@ -162,16 +173,26 @@ export function WorkspaceCanvasSurfaceV2HelpOverlay({
             >
               <InfoIcon className="h-4 w-4" aria-hidden />
             </Button>
-          </HoverCardTrigger>
+          </PopoverTrigger>
 
-          <HoverCardContent
+          <PopoverContent
             align="end"
             side="bottom"
             sideOffset={10}
             collisionPadding={16}
-            className="pointer-events-auto w-80 rounded-2xl p-0"
+            className="pointer-events-auto max-h-[var(--radix-popover-content-available-height)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl p-0 motion-reduce:animate-none"
+            {...getReactGrabLinkedSurfaceProps({
+              ownerId: "workspace-canvas:help",
+              component: "WorkspaceCanvasHelpContent",
+              source:
+                "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-help-overlay.tsx",
+              surfaceKind: "content",
+              tokenSource: "src/app/globals.css",
+              primitiveImport: "@/components/ui/popover",
+            })}
           >
             <div className="flex flex-col">
+              {particleActions}
               <div className="border-border/60 flex flex-col gap-1 border-b px-4 py-3">
                 <p className="text-foreground text-sm font-semibold">
                   Canvas help
@@ -204,8 +225,8 @@ export function WorkspaceCanvasSurfaceV2HelpOverlay({
                 ))}
               </div>
             </div>
-          </HoverCardContent>
-        </HoverCard>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   )

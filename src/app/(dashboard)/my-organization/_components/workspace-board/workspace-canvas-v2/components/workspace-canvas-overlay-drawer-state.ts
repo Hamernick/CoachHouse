@@ -68,3 +68,21 @@ export function isWorkspaceDataDrawerFullscreenSnapPoint(
         WORKSPACE_DATA_DRAWER_FULLSCREEN_SNAP_TOLERANCE
   )
 }
+
+// Floating dock geometry includes 16px clearance at both canvas edges.
+// Vaul offsets remain relative to the full canvas, so subtract both gaps
+// from its visible detent when sizing the panel inside the transparent shell.
+export function resolveWorkspaceFloatingDrawerHeight(
+  canvasHeight: number,
+  snapPoint: number | string | null,
+  composerHeight: number,
+  chromeHeight = 58
+) {
+  if (isWorkspaceDataDrawerCollapsedSnapPoint(snapPoint))
+    return chromeHeight + composerHeight
+  const fraction =
+    typeof snapPoint === "number"
+      ? snapPoint
+      : WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
+  return Math.max(chromeHeight + composerHeight, canvasHeight * fraction - 32)
+}

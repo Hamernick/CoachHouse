@@ -1,6 +1,6 @@
 "use client"
 
-import "reactflow/dist/style.css"
+import "@xyflow/react/dist/style.css"
 
 import { useCallback, useMemo, useState, type KeyboardEvent } from "react"
 import {
@@ -14,7 +14,7 @@ import {
   type Node,
   type ReactFlowInstance,
   useOnViewportChange,
-} from "reactflow"
+} from "@xyflow/react"
 
 import {
   WorkspaceNodeFrameHeader,

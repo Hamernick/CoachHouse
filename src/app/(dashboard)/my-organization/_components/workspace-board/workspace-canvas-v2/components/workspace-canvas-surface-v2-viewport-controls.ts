@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, type MutableRefObject } from "react"
-import type { ReactFlowInstance } from "reactflow"
+import type { ReactFlowInstance } from "@xyflow/react"
 
 import {
   WORKSPACE_CANVAS_V2_CARD_FOCUS_OPTIONS,

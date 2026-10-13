@@ -1,4 +1,4 @@
-import type { NodeChange } from "reactflow"
+import type { NodeChange } from "@xyflow/react"
 
 export function shouldReconcileWorkspaceCanvasNodes(changes: NodeChange[]) {
   return !changes.some(

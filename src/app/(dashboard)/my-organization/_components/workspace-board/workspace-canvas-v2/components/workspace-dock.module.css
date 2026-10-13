@@ -1,0 +1,127 @@
+/* Vaul needs a full-height positioning host; only the inner panel paints chrome.
+   Only explicit keyboard interaction enables a panel ring; mount/restored focus
+   is not evidence that the user is navigating with the keyboard. */
+.floatingShell:focus {
+  outline: none;
+}
+
+.floatingShell[data-keyboard-focus="true"]:focus-visible > .panel {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.panel {
+  container: workspace-dock / inline-size;
+  --workspace-dock-header-height: 24px;
+  --workspace-dock-tabs-height: 32px;
+}
+
+.panel [data-workspace-dock-header] {
+  height: var(--workspace-dock-header-height);
+}
+
+.panel [data-workspace-dock-navigation] {
+  gap: 4px;
+}
+
+.panel .tabList {
+  gap: 2px;
+}
+
+@media (forced-colors: active) {
+  .floatingShell[data-keyboard-focus="true"]:focus-visible > .panel {
+    outline-color: Highlight;
+  }
+}
+
+.panel .tab {
+  flex: 0 0 auto;
+  padding-inline: 6px;
+  font-size: 13px;
+}
+
+@container workspace-dock (min-width: 480px) {
+  .panel .tab {
+    padding-inline: 8px;
+  }
+}
+
+@media (pointer: coarse) {
+  .panel {
+    --workspace-dock-header-height: 44px;
+    --workspace-dock-tabs-height: 44px;
+  }
+
+  .panel [data-workspace-composer-action] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Desktop keeps Vaul mounted for identity, but the dock has no snap transform.
+   Only the two painted surfaces accept pointer input. */
+.floatingShell[data-workspace-presentation="window"] {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.floatingShell[data-workspace-presentation="window"] > .panel {
+  position: relative;
+  overflow: visible;
+}
+
+.contentWindow {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 16px);
+  pointer-events: auto;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.windowControl {
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+@media (pointer: coarse) {
+  .windowControl {
+    transition:
+      background-color 120ms ease-out,
+      color 120ms ease-out;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Stop projected layout transforms immediately even if the OS preference flips
+   during a frame. The live subscription also cancels the JS animation. */
+@media (prefers-reduced-motion: reduce) {
+  .contentWindow,
+  .contentWindow > * {
+    transform: none !important;
+  }
+
+  .windowControl {
+    transition: none;
+  }
+}
+
+/* A breakpoint handoff may interrupt a projected desktop resize. Mobile gives
+   the parent Vaul host sole ownership of movement, including that handoff frame. */
+.contentSurface:not([data-workspace-content-window]),
+.contentSurface:not([data-workspace-content-window]) > * {
+  transform: none !important;
+}
+
+.contentSurface:not([data-workspace-content-window]) {
+  opacity: 1 !important;
+}

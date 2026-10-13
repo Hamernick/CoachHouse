@@ -11,7 +11,11 @@ import {
 import Plus from "lucide-react/dist/esm/icons/plus"
 
 import { buildProgramUpdatePatch } from "@/lib/programs/update-patch"
-import { createProgramAction, updateProgramAction, type UpdateProgramPayload } from "@/actions/programs"
+import {
+  createProgramAction,
+  updateProgramAction,
+  type UpdateProgramPayload,
+} from "@/actions/programs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +27,7 @@ import { resolveOrganizationActivityKind } from "@/lib/organization/primary-obje
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
+import { saveProgramBeforeClose } from "./program-wizard/save-before-close"
 import { DRAFT_STORAGE_KEY, STEPS } from "./program-wizard/constants"
 import {
   computeFeasibility,
@@ -82,27 +87,70 @@ export function ProgramWizard({
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydratedRef = useRef(false)
   const editedRef = useRef(false)
+  const editRevisionRef = useRef(0)
+  const closingRef = useRef(false)
   const savedPayloadRef = useRef<UpdateProgramPayload>({})
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const saveProgram = useCallback((payload: UpdateProgramPayload) => {
-    const run = async () => {
-      const patch = organizationId ? buildProgramUpdatePatch(savedPayloadRef.current, payload) : payload
-      if (!Object.keys(patch).length) return { ok: true }
-      const response = await updateProgramAction(program?.id ?? "", patch, organizationId)
-      if (!("error" in response)) savedPayloadRef.current = payload
-      return response
-    }
-    const result = saveQueueRef.current.then(run, run)
-    saveQueueRef.current = result.then(() => undefined, () => undefined)
-    return result
-  }, [organizationId, program?.id])
+  const saveProgram = useCallback(
+    (payload: UpdateProgramPayload) => {
+      const run = async () => {
+        const patch = organizationId
+          ? buildProgramUpdatePatch(savedPayloadRef.current, payload)
+          : payload
+        if (!Object.keys(patch).length) return { ok: true }
+        const response = await updateProgramAction(
+          program?.id ?? "",
+          patch,
+          organizationId
+        )
+        if (!("error" in response)) savedPayloadRef.current = payload
+        return response
+      }
+      const result = saveQueueRef.current.then(run, run)
+      saveQueueRef.current = result.then(
+        () => undefined,
+        () => undefined
+      )
+      return result
+    },
+    [organizationId, program?.id]
+  )
 
   const setOpen = useCallback(
     (value: boolean) => {
-      if (isControlled) onOpenChange?.(value)
-      else setInternalOpen(value)
+      const applyOpen = () => {
+        if (isControlled) onOpenChange?.(value)
+        else setInternalOpen(value)
+      }
+      if (value || mode !== "edit" || !program?.id || !editedRef.current) {
+        applyOpen()
+        return
+      }
+      if (closingRef.current) return
+      closingRef.current = true
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+      setIsAutoSaving(true)
+      void saveProgramBeforeClose({
+        save: async () => {
+          const response = await saveProgram(serializePayload(form))
+          return "error" in response ? response.error : null
+        },
+        getRevision: () => editRevisionRef.current,
+        close: applyOpen,
+      })
+        .then((result) => {
+          if (result.status === "failed") toast.error(result.error)
+          if (result.status === "changed")
+            toast.info(
+              "You made more changes while saving. Close again to save them."
+            )
+        })
+        .finally(() => {
+          closingRef.current = false
+          setIsAutoSaving(false)
+        })
     },
-    [isControlled, onOpenChange]
+    [isControlled, onOpenChange, mode, program?.id, saveProgram, form]
   )
 
   const feasibility = useMemo(() => computeFeasibility(form), [form])
@@ -178,7 +226,13 @@ export function ProgramWizard({
   }, [form, isOpen, mode])
 
   useEffect(() => {
-    if (!isOpen || mode !== "edit" || !program?.id || !hydratedRef.current || !editedRef.current)
+    if (
+      !isOpen ||
+      mode !== "edit" ||
+      !program?.id ||
+      !hydratedRef.current ||
+      !editedRef.current
+    )
       return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
 
@@ -202,6 +256,7 @@ export function ProgramWizard({
   }, [form, isOpen, mode, program?.id, saveProgram])
 
   const update = (patch: Partial<ProgramWizardFormState>) => {
+    editRevisionRef.current++
     editedRef.current = true
     setForm((current) => {
       const next = {
@@ -274,6 +329,7 @@ export function ProgramWizard({
       }
 
       toast.success(mode === "create" ? "Activity created" : "Activity updated")
+      editedRef.current = false
       setOpen(false)
       setForm(defaultProgramWizardForm)
       setCurrentStep(0)

@@ -1,6 +1,10 @@
 import dynamic from "next/dynamic"
 import type { ComponentProps } from "react"
 import {
+  ParticleNode,
+  ParticleEdge,
+} from "@/features/workspace-particles/client"
+import {
   WorkspaceOntologyEdge,
   WorkspaceOntologyNode,
 } from "@/features/workspace-ontology"
@@ -31,6 +35,7 @@ const WorkspaceCanvasTutorialNode = dynamic<
 )
 
 export const WORKSPACE_CANVAS_V2_NODE_TYPES = Object.freeze({
+  "workspace-particle": ParticleNode,
   workspace: WorkspaceBoardNode,
   "accelerator-step": WorkspaceBoardAcceleratorStepNode,
   "onboarding-guide": WorkspaceBoardOnboardingGuideNode,
@@ -40,6 +45,7 @@ export const WORKSPACE_CANVAS_V2_NODE_TYPES = Object.freeze({
 })
 
 export const WORKSPACE_CANVAS_V2_EDGE_TYPES = Object.freeze({
+  "workspace-particle": ParticleEdge,
   [WORKSPACE_CANVAS_PERSON_RELATIONSHIP_EDGE_TYPE]:
     WorkspaceCanvasPersonRelationshipEdge,
   "workspace-ontology": WorkspaceOntologyEdge,

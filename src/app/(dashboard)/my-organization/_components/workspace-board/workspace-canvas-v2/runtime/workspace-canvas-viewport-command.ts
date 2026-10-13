@@ -1,8 +1,8 @@
 import {
-  getRectOfNodes,
+  getNodesBounds,
   getViewportForBounds,
   type ReactFlowInstance,
-} from "reactflow"
+} from "@xyflow/react"
 
 import type { WorkspaceCardId } from "../../workspace-board-types"
 import { resolveWorkspaceCanvasFallbackFocusTarget } from "./workspace-canvas-focus-policy"
@@ -307,7 +307,7 @@ export function executeWorkspaceCanvasViewportCommand({
       focusViewportSize === undefined
         ? resolveWorkspaceCanvasFocusViewportSize()
         : focusViewportSize
-    const focusedBounds = getRectOfNodes(focusedNodes)
+    const focusedBounds = getNodesBounds(focusedNodes)
 
     if (
       drawerAwareViewportSize &&

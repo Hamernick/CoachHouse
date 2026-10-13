@@ -9,6 +9,7 @@ export function useOrgProfileEditorDeepLinkFocus({
   canEdit,
   editMode,
   focusKey,
+  requestId,
   rootRef,
   setEditMode,
   tab,
@@ -16,6 +17,7 @@ export function useOrgProfileEditorDeepLinkFocus({
   canEdit: boolean
   editMode: boolean
   focusKey?: string | null
+  requestId?: number
   rootRef: RefObject<HTMLElement | null>
   setEditMode: (next: boolean) => void
   tab: ProfileTab
@@ -28,6 +30,7 @@ export function useOrgProfileEditorDeepLinkFocus({
   useOrganizationDeepLinkFocus({
     enabled: tab === "company" && (!canEdit || editMode),
     focusKey,
+    requestId,
     rootRef,
   })
 }

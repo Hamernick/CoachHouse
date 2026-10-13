@@ -8,7 +8,8 @@ import {
   useState,
   type MutableRefObject,
 } from "react"
-import type { Node, ReactFlowInstance } from "reactflow"
+import type { WorkspaceCanvasPersonNodeData } from "./workspace-canvas-person-node-model"
+import type { Node, ReactFlowInstance } from "@xyflow/react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 
@@ -340,9 +341,10 @@ export function useWorkspaceCanvasPeoplePlacementController({
         return false
       }
 
+      const personId = node.data.person.id
       commitWorkspacePersonPlacements((current) =>
         current.map((placement) =>
-          placement.personId === node.data.person.id
+          placement.personId === personId
             ? {
                 ...placement,
                 x: Math.round(node.position.x),
@@ -360,7 +362,7 @@ export function useWorkspaceCanvasPeoplePlacementController({
       if (!enabled) return false
       const personNodePositions = nodes
         .filter(
-          (node) =>
+          (node): node is Node<WorkspaceCanvasPersonNodeData> =>
             node.type === "workspace-person" &&
             isWorkspaceCanvasPersonNodeData(node.data)
         )

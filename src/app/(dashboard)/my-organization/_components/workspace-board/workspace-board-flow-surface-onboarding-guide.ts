@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useMemo } from "react"
-import { Position, type Node } from "reactflow"
+import { Position, type Node } from "@xyflow/react"
 
 import {
   getNextOnboardingStage,

@@ -7,7 +7,7 @@ import {
   useMemo,
   useRef,
 } from "react"
-import { type NodeDragHandler } from "reactflow"
+import { type OnNodeDrag } from "@xyflow/react"
 
 import {
   resolveWorkspaceCanvasTutorialCallout,
@@ -65,9 +65,9 @@ export function useWorkspaceCanvasNodeDragStop({
       { x: number; y: number; snapRadius: number }
     >
   >
-  onTutorialNodeDragStop: NodeDragHandler
+  onTutorialNodeDragStop: OnNodeDrag
 }) {
-  return useCallback<NodeDragHandler>(
+  return useCallback<OnNodeDrag>(
     (event, node, nodes) => {
       if (node.id === WORKSPACE_CANVAS_TUTORIAL_NODE_ID) {
         onTutorialNodeDragStop(event, node, nodes)

@@ -98,6 +98,7 @@ export type DocumentsTabProps = {
   editMode: boolean
   canEdit: boolean
   initialFocusKey?: string | null
+  focusRequestId?: number
   notes?: ModuleNoteIndexEntry[]
 }
 

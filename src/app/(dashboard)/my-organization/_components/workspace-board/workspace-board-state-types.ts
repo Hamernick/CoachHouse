@@ -1,3 +1,5 @@
+import type { Json } from "@/lib/supabase"
+
 import type { WorkspaceCanvasTutorialStepId } from "@/features/workspace-canvas-tutorial"
 import type { WorkspaceOntologyState } from "@/features/workspace-ontology"
 
@@ -47,6 +49,8 @@ export type WorkspaceBoardOnboardingFlowState = {
 }
 
 export type WorkspaceBoardVisibilityState = {
+  /** Distinguishes deliberate library removal from legacy malformed hidden roots. */
+  organizationHiddenExplicitly?: boolean
   allCardsHiddenExplicitly: boolean
 }
 
@@ -62,6 +66,10 @@ export type WorkspaceBoardForwardCompatibilityState = {
 }
 
 export type WorkspaceBoardState = {
+  /** Opaque on the board boundary; decode through workspace-particles before use. */
+  particleGraph?: Json
+  /** Preserved read-only payload from the older Particle placement feature. */
+  particles?: Json
   version: 1
   preset: WorkspaceLayoutPreset
   autoLayoutMode: WorkspaceAutoLayoutMode

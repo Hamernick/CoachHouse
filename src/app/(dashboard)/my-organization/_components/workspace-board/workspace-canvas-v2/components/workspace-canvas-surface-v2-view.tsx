@@ -7,14 +7,24 @@ import {
   BackgroundVariant,
   ReactFlow,
   ReactFlowProvider,
+  type Node,
   SelectionMode,
-} from "reactflow"
+  ConnectionLineType,
+} from "@xyflow/react"
 
 import {
   useRegisterAppShellAccountMenuAction,
   type AppShellAccountMenuAction,
 } from "@/components/app-shell/account-menu-actions-context"
 import { WorkspaceReactFlowErrorBootstrap } from "@/components/workspace/workspace-reactflow-error-bootstrap"
+import {
+  useParticleFlow,
+  ParticleGeometryObserver,
+} from "@/features/workspace-particles/client"
+import {
+  applyWorkspaceParticleBatchAction,
+  loadWorkspaceParticleGraphAction,
+} from "../../../../_lib/workspace-particle-actions"
 import { WorkspaceCardShortcutRail } from "../shortcuts/workspace-card-shortcut-rail"
 import { WorkspaceCanvasErrorBoundary } from "../runtime/workspace-canvas-error-boundary"
 import {
@@ -31,6 +41,16 @@ import {
   hasWorkspaceCanvasPersonDragPayload,
   readWorkspaceCanvasPersonDragPayload,
 } from "./workspace-canvas-people-dnd"
+import {
+  WorkspaceParticleInspectorSlot,
+  WorkspaceParticleLibrarySlot,
+  WorkspaceParticleComposerSlot,
+  WorkspaceParticleCreateSlot,
+} from "./workspace-particle-dock-content"
+import { useWorkspaceParticleLibrary } from "./use-workspace-particle-library"
+import { useWorkspaceCanvasSelection } from "./use-workspace-canvas-selection"
+import { useWorkspaceParticleConnectionLayer } from "./use-workspace-particle-connection-layer"
+import { createWorkspaceParticleFlowHandlers } from "./workspace-particle-flow-handlers"
 import type { WorkspaceCanvasSurfaceV2ViewProps } from "./workspace-canvas-surface-v2-view-types"
 
 const WORKSPACE_CANVAS_V2_PRO_OPTIONS = Object.freeze({ hideAttribution: true })
@@ -59,6 +79,10 @@ function useWorkspaceTutorialRestartAccountMenuAction({
 }
 
 export function WorkspaceCanvasSurfaceV2View({
+  particleGraph,
+  libraryCardData,
+  hiddenToolIds,
+  onPlaceWorkspaceTool,
   nodes,
   edges,
   allowEditing,
@@ -114,12 +138,41 @@ export function WorkspaceCanvasSurfaceV2View({
   onDisconnectToTarget,
   onDisconnectAll,
 }: WorkspaceCanvasSurfaceV2ViewProps) {
+  const particles = useParticleFlow({
+    workspaceId: uiPreferencesScope.orgId,
+    stored: particleGraph,
+    visibleToolIds: nodes.filter((node) => !node.hidden).map((node) => node.id),
+    canEdit: allowEditing && !tutorialActive,
+    transport: applyWorkspaceParticleBatchAction,
+    load: loadWorkspaceParticleGraphAction,
+  })
+  const particleConnections = useWorkspaceParticleConnectionLayer(
+    particles,
+    {
+      onConnect,
+      isValidConnection,
+      onEdgeDoubleClick,
+      onEdgeContextMenu,
+    },
+    onCloseEdgeContextMenu
+  )
+  const library = useWorkspaceParticleLibrary({
+    nodes,
+    particles,
+    workspaceId: uiPreferencesScope.orgId,
+    hiddenToolIds,
+    onPlaceWorkspaceTool,
+    libraryCardData,
+    allowEditing,
+    tutorialActive,
+  })
   const [surfaceContainer, setSurfaceContainer] =
     useState<HTMLDivElement | null>(null)
   const [flowFrameContainer, setFlowFrameContainer] =
     useState<HTMLDivElement | null>(null)
   const nodeTypes = useMemo(() => WORKSPACE_CANVAS_V2_NODE_TYPES, [])
   const edgeTypes = useMemo(() => WORKSPACE_CANVAS_V2_EDGE_TYPES, [])
+  const selectionGestures = useWorkspaceCanvasSelection(tutorialActive)
   const nodesSelectable = !tutorialActive
   const selectNodesOnDrag =
     !tutorialActive && (allowEditing || peopleCanvasInteractionEnabled)
@@ -130,16 +183,18 @@ export function WorkspaceCanvasSurfaceV2View({
     })
   const handleCanvasDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
+      if (library.dragOver(event)) return
       if (!hasWorkspaceCanvasPersonDragPayload(event.dataTransfer)) return
       if (!peopleCanvasInteractionEnabled) return
 
       event.preventDefault()
       event.dataTransfer.dropEffect = "copy"
     },
-    [peopleCanvasInteractionEnabled]
+    [peopleCanvasInteractionEnabled, library]
   )
   const handleCanvasDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
+      if (library.drop(event)) return
       const personIds = readWorkspaceCanvasPersonDragPayload(event.dataTransfer)
       if (personIds.length === 0) return
 
@@ -163,7 +218,7 @@ export function WorkspaceCanvasSurfaceV2View({
         clientY: event.clientY,
       })
     },
-    [onAddWorkspacePeopleToCanvas, onWorkspacePersonDropToCanvas]
+    [onAddWorkspacePeopleToCanvas, onWorkspacePersonDropToCanvas, library]
   )
   const handleAddWorkspacePeopleToCanvas = useCallback(
     (personIds: string[]) => {
@@ -208,6 +263,28 @@ export function WorkspaceCanvasSurfaceV2View({
             items={shortcutItems}
             dataAction={
               <WorkspaceCanvasOverlayDrawer
+                particleSelectionId={particles.selectedId}
+                particleSelectionKey={particles.selectionRequest}
+                particleInspector={
+                  particles.selected ? (
+                    <WorkspaceParticleInspectorSlot session={particles} />
+                  ) : null
+                }
+                onCloseParticleInspector={() =>
+                  particles.select(null, { restoreFocus: false })
+                }
+                particleLibrary={
+                  <WorkspaceParticleLibrarySlot
+                    session={particles}
+                    tools={library.tools}
+                    canEdit={workspaceDataDrawerCanEdit}
+                  />
+                }
+                particleComposer={
+                  !tutorialActive ? (
+                    <WorkspaceParticleComposerSlot session={particles} />
+                  ) : null
+                }
                 people={workspaceDataDrawerPeople}
                 placedPersonIds={placedWorkspacePersonIds}
                 viewerId={workspaceDataDrawerViewerId}
@@ -231,6 +308,11 @@ export function WorkspaceCanvasSurfaceV2View({
             }
           />
           <WorkspaceCanvasSurfaceV2ViewportControls
+            particleActions={
+              !tutorialActive ? (
+                <WorkspaceParticleCreateSlot session={particles} />
+              ) : null
+            }
             tutorialCalendarButtonCallout={
               tutorialCalendarButtonCallout ?? null
             }
@@ -247,47 +329,52 @@ export function WorkspaceCanvasSurfaceV2View({
             <ReactFlowProvider>
               <WorkspaceReactFlowErrorBootstrap onError={onError}>
                 {(handleReactFlowError) => (
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
+                  <ReactFlow<Node>
+                    nodes={[...library.nodes, ...particles.nodes]}
+                    edges={[...edges, ...particles.edges]}
                     nodeTypes={nodeTypes}
                     edgeTypes={edgeTypes}
                     nodesDraggable={nodesDraggable}
                     nodesConnectable={allowEditing && !tutorialActive}
                     nodeDragThreshold={4}
+                    connectionRadius={32}
+                    connectionLineType={ConnectionLineType.SmoothStep}
+                    connectionLineStyle={{
+                      stroke: "var(--muted-foreground)",
+                      strokeWidth: 2,
+                    }}
                     elementsSelectable={nodesSelectable}
                     selectionKeyCode="Shift"
-                    multiSelectionKeyCode={["Meta", "Control"]}
+                    multiSelectionKeyCode={["Shift", "Meta", "Control"]}
                     selectionMode={SelectionMode.Partial}
-                    selectionOnDrag={false}
+                    {...selectionGestures}
+                    panActivationKeyCode="Space"
                     selectNodesOnDrag={selectNodesOnDrag}
-                    onNodesChange={onNodesChange}
-                    onNodeClick={onNodeClick}
+                    {...createWorkspaceParticleFlowHandlers(particles, {
+                      onNodesChange,
+                      onNodeClick,
+                      onKeyDownCapture,
+                      onNodeDragStop,
+                      onSelectionDragStop,
+                      onInit,
+                    })}
                     onNodeDoubleClick={onNodeDoubleClick}
-                    onKeyDownCapture={onKeyDownCapture}
-                    onNodeDragStop={onNodeDragStop}
-                    onSelectionDragStop={onSelectionDragStop}
                     onMoveStart={onMoveStart}
                     onMoveEnd={onMoveEnd}
-                    onConnect={onConnect}
-                    isValidConnection={isValidConnection}
-                    onEdgeDoubleClick={onEdgeDoubleClick}
-                    onEdgeContextMenu={onEdgeContextMenu}
+                    {...particleConnections.handlers}
                     onDragOver={handleCanvasDragOver}
                     onDrop={handleCanvasDrop}
                     zoomOnPinch
                     zoomOnScroll
                     zoomOnDoubleClick={false}
-                    panOnDrag
                     panOnScroll
                     panOnScrollSpeed={0.8}
                     preventScrolling
                     minZoom={0.2}
                     maxZoom={1.25}
-                    onlyRenderVisibleElements
+                    onlyRenderVisibleElements={!particles.layout.measureAll}
                     proOptions={WORKSPACE_CANVAS_V2_PRO_OPTIONS}
                     onError={handleReactFlowError}
-                    onInit={onInit}
                     className="org-flow workspace-flow"
                   >
                     <Background
@@ -301,18 +388,24 @@ export function WorkspaceCanvasSurfaceV2View({
                           : "rgba(148, 163, 184, 0.64)"
                       }
                     />
+                    <ParticleGeometryObserver
+                      onChange={particles.layout.geometryChanged}
+                    />
                   </ReactFlow>
                 )}
               </WorkspaceReactFlowErrorBootstrap>
             </ReactFlowProvider>
           </div>
-          {nodes.length === 0 && emptyStateMessage ? (
+          {nodes.length === 0 &&
+          particles.nodes.length === 0 &&
+          emptyStateMessage ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center px-6">
               <p className="border-border/70 bg-card/80 text-muted-foreground rounded-md border px-3 py-2 text-center text-xs shadow-sm backdrop-blur-sm">
                 {emptyStateMessage}
               </p>
             </div>
           ) : null}
+          {particleConnections.menu}
           {edgeContextMenuState ? (
             <WorkspaceCanvasEdgeContextMenu
               state={edgeContextMenuState}

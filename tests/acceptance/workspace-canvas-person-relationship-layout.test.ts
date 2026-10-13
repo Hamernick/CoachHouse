@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { Node } from "reactflow"
+import type { Node, InternalNode } from "@xyflow/react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import {
@@ -12,7 +12,10 @@ import {
   buildWorkspaceCanvasPersonRelationships,
   resolveWorkspacePeopleRelationshipGraphPersonIds,
 } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-relationship-engine"
-import { buildWorkspaceCanvasPersonRelationshipEdges } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-relationship-edges"
+import {
+  buildWorkspaceCanvasPersonRelationshipEdges,
+  resolveWorkspaceFloatingEdgeParams,
+} from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-relationship-edges"
 import {
   WORKSPACE_CANVAS_PERSON_NODE_SIZE,
   getWorkspaceCanvasPersonNodeId,
@@ -353,9 +356,7 @@ describe("workspace canvas person relationship layout", () => {
     expect(placementCenterY(boardChair)).toBeLessThan(placementCenterY(lead))
     expect(placementCenterY(lead)).toBeLessThan(placementCenterY(staffA))
     expect(placementCenterY(staffA)).toBe(placementCenterY(staffB))
-    expect(placementCenterY(staffA)).toBeLessThan(
-      placementCenterY(contractor)
-    )
+    expect(placementCenterY(staffA)).toBeLessThan(placementCenterY(contractor))
     expect(placementCenterY(contractor)).toBeLessThan(
       placementCenterY(volunteer)
     )
@@ -442,13 +443,14 @@ describe("workspace canvas person relationship layout", () => {
         data: {},
       },
     ] as Node[]
-    const shifted = shiftWorkspacePeopleRelationshipPlacementsAwayFromWorkspaceCards({
-      placements: [
-        { personId: "person-a", x: 400, y: 120 },
-        { personId: "person-b", x: 716, y: 120 },
-      ],
-      nodes,
-    })
+    const shifted =
+      shiftWorkspacePeopleRelationshipPlacementsAwayFromWorkspaceCards({
+        placements: [
+          { personId: "person-a", x: 400, y: 120 },
+          { personId: "person-b", x: 716, y: 120 },
+        ],
+        nodes,
+      })
     const bounds = placementBounds(shifted)
 
     expect(bounds.minX).toBeGreaterThanOrEqual(800)
@@ -502,5 +504,43 @@ describe("workspace canvas person relationship layout", () => {
         presentationMode: false,
       })
     ).toEqual([])
+  })
+})
+
+describe("v12 measured people geometry", () => {
+  it("anchors floating connections to measured sizes and internal absolute positions", () => {
+    const source: Node = {
+      id: "source",
+      data: {},
+      position: { x: 0, y: 0 },
+      width: 1,
+      height: 1,
+      measured: { width: 200, height: 100 },
+    }
+    const internal: InternalNode = {
+      ...source,
+      measured: { width: 200, height: 100 },
+      internals: {
+        positionAbsolute: { x: 100, y: 50 },
+        z: 0,
+        userNode: source,
+      },
+    }
+    const target: Node = {
+      id: "target",
+      data: {},
+      position: { x: 500, y: 50 },
+      measured: { width: 200, height: 100 },
+    }
+    const route = resolveWorkspaceFloatingEdgeParams({
+      sourceNode: internal,
+      targetNode: target,
+    })
+    expect(route).toMatchObject({
+      sourceX: 300,
+      sourceY: 100,
+      targetX: 500,
+      targetY: 100,
+    })
   })
 })

@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { useStoreApi } from "reactflow"
+import { useStoreApi } from "@xyflow/react"
 
 const REACT_FLOW_TYPES_WARNING_CODE = "002"
 
@@ -40,7 +40,7 @@ export function WorkspaceReactFlowErrorBootstrap({
     []
   )
 
-  // React Flow v11 parses nodeTypes before StoreUpdater applies the onError prop.
+  // Install error handling before the shared React Flow subtree mounts.
   useLayoutEffect(() => {
     if (store.getState().onError !== handleReactFlowError) {
       store.setState({ onError: handleReactFlowError })

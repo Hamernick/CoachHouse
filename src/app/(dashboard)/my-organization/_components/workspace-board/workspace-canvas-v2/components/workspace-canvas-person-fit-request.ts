@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, type MutableRefObject } from "react"
-import type { Node, ReactFlowInstance } from "reactflow"
+import type { Node, ReactFlowInstance } from "@xyflow/react"
 
 export type WorkspaceCanvasPersonFitRequest = {
   nodeIds: string[]

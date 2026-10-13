@@ -1,4 +1,4 @@
-import { MarkerType, type Edge, type Node } from "reactflow"
+import { MarkerType, type Edge, type Node } from "@xyflow/react"
 
 import {
   FINANCE_RELEASE_PLAN_NODE_IDS,

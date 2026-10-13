@@ -7,7 +7,7 @@ import {
   useState,
   type MutableRefObject,
 } from "react"
-import type { OnMoveEnd, ReactFlowInstance } from "reactflow"
+import type { OnMoveEnd, ReactFlowInstance } from "@xyflow/react"
 
 import {
   normalizeWorkspaceCanvasViewportPreference,

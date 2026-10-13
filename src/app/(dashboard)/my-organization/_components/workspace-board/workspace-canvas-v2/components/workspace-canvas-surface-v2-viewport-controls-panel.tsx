@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import LocateFixedIcon from "lucide-react/dist/esm/icons/locate-fixed"
 import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
@@ -27,12 +29,14 @@ function getViewportControlOwnerProps(
 }
 
 export function WorkspaceCanvasSurfaceV2ViewportControls({
+  particleActions,
   tutorialCalendarButtonCallout,
   onTutorialCalendarButtonComplete,
   onRecenterView,
   onZoomIn,
   onZoomOut,
 }: {
+  particleActions?: ReactNode
   tutorialCalendarButtonCallout?: { title: string; instruction: string } | null
   onTutorialCalendarButtonComplete?: (() => void) | undefined
   onRecenterView: () => void
@@ -86,7 +90,10 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
         >
           <LocateFixedIcon className="h-4 w-4" aria-hidden />
         </Button>
-        <WorkspaceCanvasSurfaceV2HelpOverlay integrated />
+        <WorkspaceCanvasSurfaceV2HelpOverlay
+          integrated
+          particleActions={particleActions}
+        />
       </div>
     </div>
   )

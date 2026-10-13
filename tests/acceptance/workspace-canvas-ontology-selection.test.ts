@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { NodeChange } from "reactflow"
+import type { NodeChange } from "@xyflow/react"
 
 import { buildWorkspaceOntologyEmphasisResolver } from "../../src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-ontology-emphasis"
 import { applyWorkspaceOntologySelectionChanges } from "../../src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-ontology-selection"

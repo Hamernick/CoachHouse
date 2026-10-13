@@ -1,3 +1,4 @@
+import { preserveParticleGraphJson } from "@/features/workspace-particles/client"
 import {
   buildDefaultWorkspaceOntologyState,
   normalizeWorkspaceOntologyState,
@@ -190,6 +191,9 @@ function normalizeWorkspaceVisibilityState(
   const record = value as Partial<WorkspaceBoardVisibilityState>
   return {
     allCardsHiddenExplicitly: record.allCardsHiddenExplicitly === true,
+    ...(record.organizationHiddenExplicitly === true
+      ? { organizationHiddenExplicitly: true }
+      : {}),
   }
 }
 
@@ -329,6 +333,8 @@ export function normalizeWorkspaceBoardState(
   }
 
   const record = value as Partial<WorkspaceBoardState>
+  const particleGraph = preserveParticleGraphJson(record.particleGraph)
+  const legacyParticles = preserveParticleGraphJson(record.particles)
   const preset: WorkspaceLayoutPreset =
     record.preset === "calendar-focused" ||
     record.preset === "communications-focused" ||
@@ -348,7 +354,9 @@ export function normalizeWorkspaceBoardState(
   const normalizedHiddenCardIds =
     normalizeWorkspaceBoardHiddenCardIdsForPayload(
       forwardCompatibleInput.hiddenCardIds,
-      forwardCompatibleInput.nodes
+      forwardCompatibleInput.nodes,
+      normalizeWorkspaceVisibilityState(record.visibility)
+        .organizationHiddenExplicitly === true
     )
   const normalizedConnections = normalizeConnectionState(
     forwardCompatibleInput.connections
@@ -356,6 +364,8 @@ export function normalizeWorkspaceBoardState(
 
   return {
     version: 1,
+    ...(particleGraph !== undefined ? { particleGraph } : {}),
+    ...(legacyParticles !== undefined ? { particles: legacyParticles } : {}),
     preset,
     autoLayoutMode,
     nodes: normalizeNodeState(

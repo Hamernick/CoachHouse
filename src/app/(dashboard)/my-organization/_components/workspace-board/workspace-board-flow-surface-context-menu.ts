@@ -8,7 +8,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react"
-import type { Edge, Node } from "reactflow"
+import type { Edge, Node } from "@xyflow/react"
 
 import type { WorkspaceFlowContextMenuState } from "./workspace-board-context-menu"
 import type { WorkspaceBoardNodeData } from "./workspace-board-node"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 import { ProgramWizardLazy } from "@/components/programs/program-wizard-lazy"
@@ -30,6 +30,8 @@ export function OrgProfileEditor({
   initialProgramStep,
   initialFocus,
   initialEditMode,
+  navigationRequestId,
+  onProgramEditorOpenChange,
 }: OrgProfileCardProps) {
   const editorRootRef = useRef<HTMLDivElement>(null)
   const {
@@ -65,15 +67,21 @@ export function OrgProfileEditor({
     initialTab,
     initialProgramId,
     initialEditMode,
+    navigationRequestId,
   })
   useOrgProfileEditorDeepLinkFocus({
     canEdit,
     editMode,
     focusKey: initialFocus,
+    requestId: navigationRequestId,
     rootRef: editorRootRef,
     setEditMode,
     tab,
   })
+
+  useEffect(() => {
+    onProgramEditorOpenChange?.(editOpen)
+  }, [editOpen, onProgramEditorOpenChange])
 
   const tabsIdBase = "org-profile-tabs"
 

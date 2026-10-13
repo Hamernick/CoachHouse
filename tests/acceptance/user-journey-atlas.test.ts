@@ -90,7 +90,9 @@ describe("user-journey-atlas feature contract", () => {
 
     expect(markup).toContain("User journey atlas")
     expect(markup).not.toContain("Workspace canvas graph")
-    expect(markup).not.toContain("Mermaid source")
+    // v12 SSR includes graph cards; a Mermaid-source card is legitimate data.
+    expect(markup).toContain('aria-label="User journey atlas"')
+    expect(markup).not.toMatch(/<h[1-6][^>]*>Mermaid source<\/h[1-6]>/)
     expect(input.nodes.map((node) => node.file)).toEqual(
       expect.arrayContaining([
         "src/app/(public)/page.tsx",
@@ -211,7 +213,7 @@ describe("user-journey-atlas feature contract", () => {
     expect(markup).toContain('aria-label="Fit view"')
     expect(markup).toContain('data-user-journey-atlas-flow="react-flow"')
     expect(source).toContain("ReactFlow")
-    expect(source).toContain('import "reactflow/dist/style.css"')
+    expect(source).toContain('import "@xyflow/react/dist/style.css"')
     expect(source).toContain("buildUserJourneyOutlineNodes")
     expect(source).toContain("buildUserJourneyOutlineEdges")
     expect(source).toContain("userJourneyOutline")

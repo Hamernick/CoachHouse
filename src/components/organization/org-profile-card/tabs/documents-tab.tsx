@@ -52,6 +52,7 @@ function ScopedDocumentsTab({
   editMode,
   canEdit,
   initialFocusKey,
+  focusRequestId,
   notes,
 }: DocumentsTabProps) {
   const [coreOverrides, setCoreOverrides] = useState<
@@ -101,6 +102,7 @@ function ScopedDocumentsTab({
 
   useOrganizationDeepLinkFocus({
     focusKey: initialFocusKey,
+    requestId: focusRequestId,
     rootRef: documentsRootRef,
   })
 
