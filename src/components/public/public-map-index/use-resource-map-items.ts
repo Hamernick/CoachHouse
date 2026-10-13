@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 
+import { hydrateFindResourceIndexItem } from "@/features/find-resource-index"
+
 import type { FindResourceIndexItem } from "@/features/find-resource-index"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 import { warmPublicMapListItemSearchCache } from "./map-items-state"
@@ -49,37 +51,6 @@ function isFindResourceIndexItem(
   )
 }
 
-function hydrateFindResourceIndexItem(
-  item: FindResourceIndexItem
-): ExternalResourceMapItem {
-  const address = [item.city, item.state, item.country]
-    .filter(Boolean)
-    .join(", ")
-
-  return {
-    ...item,
-    description: null,
-    address: address || null,
-    addressStreet: null,
-    orgCategory: null,
-    sourceLabel: null,
-    sourceUrl: null,
-    lastVerifiedAt: null,
-    availability: item.availability
-      ? {
-          ...item.availability,
-          nextOpenAt: null,
-          nextCloseAt: null,
-          timezone: null,
-          label: null,
-          notes: null,
-          appointmentRequired: false,
-          sourceStatus: null,
-          temporaryClosedUntil: null,
-        }
-      : undefined,
-  }
-}
 
 function normalizeLoadedResourceItem(value: unknown) {
   return isFindResourceIndexItem(value)
@@ -232,15 +203,22 @@ export function usePublicMapResourceItems({
 
     const endpoint = resourceItemsEndpoint
     let cancelled = false
+    let requestPending = false
 
-    async function loadResourceItems() {
-      setStatus("loading")
-      setError(null)
+    async function loadResourceItems(background = false) {
+      if (requestPending) return
+      requestPending = true
+      let loadedTotalCount: number | null = null
+      if (!background) {
+        setStatus("loading")
+        setError(null)
+      }
       try {
         const payload = await loadPublicMapResourceItems(
           endpoint,
           (items, totalCount) => {
-            if (!cancelled) {
+            loadedTotalCount = totalCount ?? items.length
+            if (!cancelled && !background) {
               setResourceItems((currentItems) =>
                 mergeProgressiveResourceItems(currentItems, items)
               )
@@ -255,18 +233,24 @@ export function usePublicMapResourceItems({
             currentItems.every((item, index) => item === payload[index])
           return alreadyPublished ? currentItems : payload
         })
+        setTotalResourceCount(loadedTotalCount ?? payload.length)
         setStatus("ready")
+        setError(null)
       } catch (error) {
         if (cancelled) return
-        setStatus("error")
-        setError(
-          navigator.onLine === false
-            ? PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR
-            : PUBLIC_MAP_RESOURCE_ITEMS_UNAVAILABLE_ERROR
-        )
+        if (!background) {
+          setStatus("error")
+          setError(
+            navigator.onLine === false
+              ? PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR
+              : PUBLIC_MAP_RESOURCE_ITEMS_UNAVAILABLE_ERROR
+          )
+        }
         console.warn("[public-map] resource items unavailable", {
           message: error instanceof Error ? error.message : String(error),
         })
+      } finally {
+        requestPending = false
       }
     }
 
@@ -278,7 +262,7 @@ export function usePublicMapResourceItems({
         setError(PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR)
         return
       }
-      void loadResourceItems()
+      void loadResourceItems(true)
     }
     const markResourceItemsOffline = () => {
       setStatus("error")
@@ -292,21 +276,14 @@ export function usePublicMapResourceItems({
       refreshVisibleResourceItems,
       PUBLIC_MAP_RESOURCE_ITEMS_REFRESH_INTERVAL_MS
     )
-    window.addEventListener("focus", refreshVisibleResourceItems)
     window.addEventListener("offline", markResourceItemsOffline)
     window.addEventListener("online", refreshResourceItemsOnline)
-    document.addEventListener("visibilitychange", refreshVisibleResourceItems)
 
     return () => {
       cancelled = true
       window.clearInterval(refreshInterval)
-      window.removeEventListener("focus", refreshVisibleResourceItems)
       window.removeEventListener("offline", markResourceItemsOffline)
       window.removeEventListener("online", refreshResourceItemsOnline)
-      document.removeEventListener(
-        "visibilitychange",
-        refreshVisibleResourceItems
-      )
     }
   }, [loadRequestId, resourceItemsEndpoint])
 

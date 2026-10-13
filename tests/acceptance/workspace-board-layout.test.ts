@@ -51,6 +51,38 @@ describe("workspace board layout", () => {
     )
   })
 
+  it("starts Organization and Activity together without overlapping visible cards", () => {
+    const state = buildDefaultBoardState()
+    const organization = findNode(state.nodes, "organization-overview")
+    const activity = findNode(state.nodes, "programs")
+    const accelerator = findNode(state.nodes, "accelerator")
+    const roadmap = findNode(state.nodes, "roadmap")
+    expect(activity.y).toBe(organization.y)
+    expect(activity.x).toBeGreaterThan(organization.x)
+    expect(accelerator.x).toBe(organization.x)
+    expect(roadmap.x).toBe(activity.x)
+    expect(accelerator.y).toBe(roadmap.y)
+    expect(accelerator.y).toBeGreaterThan(activity.y)
+    const visible = state.nodes.filter((node) => !state.hiddenCardIds.includes(node.id))
+    for (const [index, node] of visible.entries()) {
+      const size = resolveCardDimensions(node.size, node.id)
+      for (const other of visible.slice(index + 1)) {
+        const otherSize = resolveCardDimensions(other.size, other.id)
+        expect(
+          node.x + size.width <= other.x || other.x + otherSize.width <= node.x ||
+          node.y + size.height <= other.y || other.y + otherSize.height <= node.y
+        ).toBe(true)
+      }
+    }
+    expect(normalizeWorkspaceBoardState(state).nodes).toEqual(state.nodes)
+  })
+
+  it("retains an existing organization's moved cards when loading the board", () => {
+    const state = buildDefaultBoardState()
+    state.nodes = state.nodes.map((node) => ({ ...node, x: node.x + 1600, y: node.y - 800, positionMode: "manual" }))
+    expect(normalizeWorkspaceBoardState(state).nodes).toEqual(state.nodes)
+  })
+
   it("clamps communications cards away from small sizing during normalization", () => {
     const normalized = normalizeWorkspaceBoardState({
       nodes: [
@@ -69,9 +101,12 @@ describe("workspace board layout", () => {
     expect(communications?.size).toBe("md")
   })
 
-  it("infers managed and manual ownership for legacy node positions", () => {
+  it("infers managed and manual ownership for legacy node positions", async () => {
     const defaults = buildDefaultBoardState()
-    const legacyNodes = defaults.nodes.map((node) => {
+    const timelineNodes = await applyAutoLayout(defaults.nodes, "timeline", {
+      hiddenCardIds: defaults.hiddenCardIds,
+    })
+    const legacyNodes = timelineNodes.map((node) => {
       const { positionMode: _positionMode, ...legacyNode } = node
       return node.id === "programs"
         ? { ...legacyNode, x: legacyNode.x + 120 }

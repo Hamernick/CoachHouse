@@ -30,7 +30,9 @@ export type OnboardingDraftFlags = {
 }
 
 export type OnboardingDraft = {
+  savedAt?: number
   step?: number
+  stepId?: OnboardingStepId
   formationStatus?: FormationStatus | ""
   intentFocus?: IntentFocus | ""
   roleInterest?: RoleInterest | ""
@@ -41,6 +43,7 @@ export type OnboardingDraft = {
 }
 
 export type OnboardingFlowDefaults = {
+  draftScope?: string | null
   defaultEmail?: string | null
   defaultOrgName?: string | null
   defaultOrgSlug?: string | null

@@ -1,5 +1,7 @@
 "use server"
 
+import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
@@ -11,6 +13,7 @@ import { mergeProjectOptions, projectFiscalSponsorshipEnabled } from "../lib/pro
 export async function enableProjectFiscalSponsorshipAction(projectId: string) {
   if (!z.string().uuid().safeParse(projectId).success) return { error: "Choose a valid project." }
   const actor = await resolveMemberWorkspaceActorContext()
+  if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId }))) return { error: "Use the fiscal application review for this project." }
   const access = ensureMemberWorkspaceFeatureAccess(actor)
   if (access) return access
   if (!actorCanAccessOrganizations(actor) && !actor.canEdit) {

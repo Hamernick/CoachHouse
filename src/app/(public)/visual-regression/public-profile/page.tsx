@@ -61,7 +61,7 @@ export default async function PublicProfileVisualRegressionPage({
                   title: "Harlem Community Food Guide",
                   subtitle: "Free groceries and meal support",
                   locationLabel: "Harlem, New York",
-                  href: "/?q=Harlem%20Community%20Food%20Guide",
+                  href: "/map?q=Harlem%20Community%20Food%20Guide",
                 },
                 {
                   kind: "organization",
@@ -69,7 +69,7 @@ export default async function PublicProfileVisualRegressionPage({
                   title: "Open House Collective",
                   subtitle: "Community programs and shared space",
                   locationLabel: "New York, New York",
-                  href: "/?organization=open-house",
+                  href: "/map?organization=open-house",
                 },
               ],
             },
@@ -144,7 +144,7 @@ export default async function PublicProfileVisualRegressionPage({
         locationLabel: "Harlem, New York",
         websiteUrl: "https://example.org",
         donateUrl: "https://example.org/donate",
-        findUrl: "/?organization=harlem-code-house",
+        findUrl: "/map?organization=harlem-code-house",
         people: [
           {
             id: "maya-thompson",

@@ -12,11 +12,13 @@ const FIND_MAP_WEATHER_CARD_SOURCE =
 const FIND_MAP_WEATHER_CARD_OWNER_ID = "find-map-weather-card:current-location"
 
 export function FindMapWeatherCard({
+  unstyled = false,
   className,
   weather,
 }: {
   className?: string
   weather: FindMapWeatherSnapshot | null
+  unstyled?: boolean
 }) {
   if (!weather) return null
 
@@ -53,6 +55,7 @@ export function FindMapWeatherCard({
       data-weather-temperature-length={temperatureLength}
       className={cn(
         "pointer-events-auto size-10 shrink-0 gap-0 overflow-hidden rounded-xl py-0 shadow-sm sm:size-11",
+        unstyled && "h-8 w-auto rounded-none border-0 bg-transparent text-foreground shadow-none sm:h-8 sm:w-auto",
         className
       )}
     >

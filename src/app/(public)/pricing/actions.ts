@@ -5,6 +5,8 @@ import { redirect } from "next/navigation"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
 import Stripe from "stripe"
 
+import { getSubscriptionPeriodEndIso } from "@/lib/billing/subscription-period"
+
 import { requireServerSession } from "@/lib/auth"
 import { resolveDevtoolsAudience, resolveTesterMetadata } from "@/lib/devtools/audience"
 import {
@@ -219,9 +221,7 @@ export async function startCheckout(formData: FormData) {
               stripe_mode: stripeConfig.mode,
             },
           })
-          const currentPeriodEndUnix =
-            (updated as Stripe.Subscription & { current_period_end?: number }).current_period_end ?? null
-          const currentPeriodEnd = currentPeriodEndUnix ? new Date(currentPeriodEndUnix * 1000).toISOString() : null
+          const currentPeriodEnd = getSubscriptionPeriodEndIso(updated)
           const updatePayload: SubscriptionInsert = {
             user_id: orgId,
             stripe_customer_id: typeof updated.customer === "string" ? updated.customer : null,

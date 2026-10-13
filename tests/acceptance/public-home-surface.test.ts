@@ -1,8 +1,47 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { resolvePublicMapScreenMode } from "@/components/public/public-map-index/embedded-screen-state"
+
+import { resolveEmbeddedProfileId } from "@/components/public/public-map-index/use-public-map-profile-navigation"
 
 const ROOT = process.cwd()
+
+describe("home profile history resolution", () => {
+  const organizations = new Map([
+    ["org-1", { id: "org-1", publicSlug: "manoextendida" }],
+    ["org-2", { id: "org-2", publicSlug: null }],
+  ])
+  it("restores organization selections from public slugs or published ID fallbacks", () => {
+    expect(resolveEmbeddedProfileId("/manoextendida", organizations)).toBe("org-1")
+    expect(resolveEmbeddedProfileId("/org-2", organizations)).toBe("org-2")
+    expect(resolveEmbeddedProfileId("/", organizations)).toBeNull()
+    expect(resolveEmbeddedProfileId("/private-handle", organizations)).toBeNull()
+  })
+  it("restores supported directory identities and rejects malformed paths", () => {
+    expect(resolveEmbeddedProfileId("/find/resources/010044660", organizations)).toBe("nonprofit:010044660")
+    const id = "95601a05-635f-46cf-bbb0-41d7f648a440"
+    expect(resolveEmbeddedProfileId(`/find/resources/${id}`, organizations)).toBe(`resource_map:${id}`)
+    expect(resolveEmbeddedProfileId("/find/resources/not-public", organizations)).toBeNull()
+    expect(resolveEmbeddedProfileId("/find/resources/010044660/extra", organizations)).toBeNull()
+  })
+})
+
+describe("public map screen presentation", () => {
+  const base = { embedded: true, detailsOpen: false }
+
+  it("keeps the map present while the adjacent panel displays results", () => {
+    expect(resolvePublicMapScreenMode(base)).toBe("map")
+    expect(resolvePublicMapScreenMode({ ...base, detailsOpen: true })).toBe("detail")
+    expect(resolvePublicMapScreenMode(base)).toBe("map")
+  })
+
+  it("uses the same profile surface for every embedded selection and preserves standalone map behavior", () => {
+    expect(resolvePublicMapScreenMode({ ...base, detailsOpen: true })).toBe("detail")
+    expect(resolvePublicMapScreenMode({ ...base, embedded: false, detailsOpen: true })).toBe("map")
+  })
+
+})
 
 function readSource(relativePath: string) {
   return readFileSync(join(ROOT, relativePath), "utf8")
@@ -42,7 +81,7 @@ describe("public marketing canvas", () => {
     )
     expect(source).not.toContain("HomeFundingPreview")
     expect(source).toContain("data-public-home-build-pricing")
-    expect(source).toContain('action="/"')
+    expect(source).toContain('action={FIND_PATH}')
     expect(source).toContain('href="/home-canvas?section=platform"')
   })
 
@@ -60,7 +99,7 @@ describe("public marketing canvas", () => {
       "src/components/public/home-canvas-preview-shell.tsx"
     )
 
-    expect(source).toContain('href="/"')
+    expect(source).toContain('href={FIND_PATH}')
     expect(source).toContain(
       'aria-current={activeSection === "hero" ? "true" : undefined}'
     )

@@ -76,9 +76,9 @@ export function buildMainNav({
       ]
     : []
   const items: MainNavItem[] = [
+    ...workspaceHomeItem,
     ...(showMemberWorkspace
       ? [
-          ...workspaceHomeItem,
           ...(canAccessOrganizations ? [] : memberWorkspaceItems),
         ]
       : []),

@@ -7,6 +7,12 @@ import type {
 
 export const ONBOARDING_DRAFT_STORAGE_KEY = "onboardingDraftV2"
 
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+export function onboardingDraftStorageKey(scope?: string | null) {
+  return scope ? `onboardingDraftV3:${encodeURIComponent(scope)}` : ONBOARDING_DRAFT_STORAGE_KEY
+}
+
 function parseOnboardingDraft(raw: string | null): OnboardingDraft | null {
   if (!raw) return null
 
@@ -18,28 +24,32 @@ function parseOnboardingDraft(raw: string | null): OnboardingDraft | null {
   }
 }
 
-export function readOnboardingDraft(): OnboardingDraft | null {
+export function readOnboardingDraft(scope?: string | null): OnboardingDraft | null {
   if (typeof window === "undefined") return null
-  return parseOnboardingDraft(
-    window.localStorage.getItem(ONBOARDING_DRAFT_STORAGE_KEY),
-  )
+  try {
+    const draft = parseOnboardingDraft(window.localStorage.getItem(onboardingDraftStorageKey(scope)))
+    if (scope && (typeof draft?.savedAt !== "number" || !Number.isFinite(draft.savedAt) || Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS)) return null
+    return draft
+  } catch { return null }
 }
 
-export function writeOnboardingDraft(draft: OnboardingDraft): void {
+export function writeOnboardingDraft(draft: OnboardingDraft, scope?: string | null): void {
   if (typeof window === "undefined") return
-  window.localStorage.setItem(ONBOARDING_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+  try {
+    window.localStorage.setItem(onboardingDraftStorageKey(scope), JSON.stringify({ ...draft, savedAt: Date.now() }))
+  } catch { /* Storage may be unavailable; keep the live form usable. */ }
 }
 
-export function clearOnboardingDraft(): void {
+export function clearOnboardingDraft(scope?: string | null): void {
   if (typeof window === "undefined") return
-  window.localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY)
+  try { window.localStorage.removeItem(onboardingDraftStorageKey(scope)) } catch {}
 }
 
-export function readDraftSnapshot(): {
+export function readDraftSnapshot(scope?: string | null): {
   values: OnboardingDraftValues
   flags: OnboardingDraftFlags
 } {
-  const draft = readOnboardingDraft()
+  const draft = readOnboardingDraft(scope)
   const values =
     draft?.values && typeof draft.values === "object" ? draft.values : {}
   const flags = draft?.flags && typeof draft.flags === "object" ? draft.flags : {}

@@ -1,3 +1,4 @@
+import { parseFundraisingAmount, readFundraisingGoal } from "@/features/fiscal-sponsorship/lib/fundraising-goal"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -302,3 +303,25 @@ function createWorkbenchData({
     timelineEvents: [],
   }
 }
+
+
+describe("anticipated fundraising", () => {
+  it.each(["monthly", "annually", "total"] as const)("round-trips %s separately from the legacy expense budget", (period) => {
+    const data = { projectId: "project-1", projectName: "Project", applicantName: "Applicant" }
+    const original = buildFiscalSponsorshipApplicationDraft({ data })
+    const draft = buildFiscalSponsorshipApplicationDraft({ data, application: {
+      metadata: { fundraisingGoal: { amountCents: 1234567, period } },
+      estimatedBudgetCents: 500000,
+    } as never })
+    expect(original.fundraisingGoalDollars).toBe("")
+    expect(draft.fundraisingGoalDollars).toBe("12345.67")
+    expect(draft.fundraisingGoalPeriod).toBe(period)
+    expect(draft.estimatedBudgetDollars).toBe("5000")
+    expect(readFundraisingGoal({ fundraisingGoal: { amountCents: parseFundraisingAmount(draft.fundraisingGoalDollars), period } })).toEqual({ amountCents: 1234567, period })
+  })
+  it("rejects malformed, negative, over-precision and unsafe amounts", () => {
+    for (const value of ["abc10", "-10", "0", "1.234", "1,2", "999999999999999999"]) expect(parseFundraisingAmount(value)).toBeNull()
+    expect(parseFundraisingAmount("$12,345.67")).toBe(1234567)
+    expect(readFundraisingGoal({ fundraisingGoal: { amountCents: 100, period: "weekly" } })).toBeNull()
+  })
+})

@@ -2,7 +2,6 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SidebarContent } from "@/components/ui/sidebar"
-import { useScrollFadeEffect } from "@/lib/scroll-fade-effect"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import type { ReactNode } from "react"
@@ -28,15 +27,12 @@ function PublicMapDrawerDetailScrollViewport({
 }: {
   children: ReactNode
 }) {
-  const scrollFadeRef = useScrollFadeEffect(true, "vertical")
-
   return (
     <div
-      ref={scrollFadeRef}
       data-public-map-sidebar-section="drawer-detail-scroll"
-      className="scroll-fade-effect-y h-full min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [--mask-height:1.5rem] [--scroll-buffer:1rem] [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:px-4"
+      className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:px-4"
     >
-      <div className="box-border min-h-full w-full max-w-full min-w-0 pb-[max(env(safe-area-inset-bottom),1rem)]">
+      <div className="box-border min-h-full w-full max-w-full min-w-0 pt-[var(--public-map-detail-top-inset,0px)] pb-[max(env(safe-area-inset-bottom),1rem)]">
         {children}
       </div>
     </div>
@@ -134,24 +130,22 @@ export function PublicMapDrawerDetailPanel({
   showHeaderControls = true,
 }: PublicMapDrawerDetailPanelProps) {
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      {showHeaderControls ? (
-        <OrganizationDetailPanelChrome
-          canManageResourceMap={canManageResourceMap}
-          className="shrink-0 px-6 sm:px-10"
-          organizationCurationAction={organizationCurationAction}
-          organization={organization}
-          favorites={favorites}
-          onBack={onBack}
-          onToggleFavorite={onToggleFavorite}
-        />
-      ) : null}
-      <PublicMapDrawerDetailScrollViewport>
-        <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 mx-auto w-full max-w-3xl motion-safe:duration-200">
-          <PublicMapOrganizationDetail organization={organization} compact />
-        </div>
-      </PublicMapDrawerDetailScrollViewport>
-    </div>
+    <PublicMapDrawerDetailScrollViewport>
+      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 mx-auto w-full max-w-3xl motion-safe:duration-200">
+        {showHeaderControls ? (
+          <OrganizationDetailPanelChrome
+            canManageResourceMap={canManageResourceMap}
+            className="px-4 pt-3 sm:px-6"
+            organizationCurationAction={organizationCurationAction}
+            organization={organization}
+            favorites={favorites}
+            onBack={onBack}
+            onToggleFavorite={onToggleFavorite}
+          />
+        ) : null}
+        <PublicMapOrganizationDetail organization={organization} compact />
+      </div>
+    </PublicMapDrawerDetailScrollViewport>
   )
 }
 

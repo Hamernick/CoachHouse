@@ -59,6 +59,7 @@ export function CreatePersonDialog({
   const [category, setCategory] = React.useState<OrgPerson["category"]>(
     initial?.category ?? "staff"
   )
+  const [customRole, setCustomRole] = React.useState<string | null>(initial?.customRole ?? null)
   const [image, setImage] = React.useState<string | null>(
     initial?.image ?? null
   )
@@ -90,6 +91,7 @@ export function CreatePersonDialog({
     setEmail(initial?.email ?? "")
     setSocialLinks(readPersonSocialLinks(initial))
     setCategory(initial?.category ?? "staff")
+    setCustomRole(initial?.customRole ?? null)
     setImage(initial?.image ?? null)
     setReportsToId(initial?.reportsToId ?? null)
   }, [initial])
@@ -125,6 +127,7 @@ export function CreatePersonDialog({
           ? socialLinks
           : { linkedin: socialLinks.linkedin }),
         category,
+        customRole,
         image,
         reportsToId: reportsToId || null,
       })
@@ -187,6 +190,8 @@ export function CreatePersonDialog({
               socialLinks={socialLinks}
               extendedSocialLinksEnabled={extendedSocialLinksEnabled}
               category={category}
+              customRole={customRole}
+              onCustomRoleChange={setCustomRole}
               image={image}
               reportsToId={reportsToId}
               onNameChange={setName}

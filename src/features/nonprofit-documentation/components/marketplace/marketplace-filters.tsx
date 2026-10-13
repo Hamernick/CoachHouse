@@ -38,7 +38,7 @@ export function MarketplaceFiltersPanel({
 
   return (
     <div className="grid gap-4" aria-label="Marketplace filters">
-      <div className="bg-muted/20 focus-within:border-ring focus-within:ring-ring/20 max-w-3xl rounded-2xl border p-1.5 focus-within:ring-2">
+      <div className="bg-muted/20 focus-within-visible:border-ring focus-within-visible:ring-ring/20 max-w-3xl rounded-2xl border p-1.5 focus-within-visible:ring-2">
         <InputGroup className="items-center gap-1">
           <InputGroupAddon className="text-muted-foreground pl-2">
             <SearchIcon className="size-5" aria-hidden />

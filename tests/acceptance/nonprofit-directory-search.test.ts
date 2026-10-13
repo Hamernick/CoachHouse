@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const { rpc, createClient } = vi.hoisted(() => ({
+const { rpc, createClient, summaryFrom } = vi.hoisted(() => ({
+  summaryFrom: vi.fn(),
   rpc: vi.fn(),
   createClient: vi.fn(),
 }))
 vi.mock("@supabase/supabase-js", () => ({ createClient }))
+vi.mock("server-only", () => ({}))
+vi.mock("next/cache", () => ({ unstable_cache: (callback: () => Promise<number>) => callback }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ from: summaryFrom }) }))
 vi.mock("@/lib/env", () => ({
   env: {
     NEXT_PUBLIC_SUPABASE_URL: "https://directory.supabase.co",
@@ -240,4 +244,74 @@ it("passes category-only browser queries with bounded pagination", async () => {
   expect(fetchMock.mock.calls[0][0]).toBe(
     "/api/public/nonprofits/search?q=&limit=20&category=faith"
   )
+})
+
+it("uses the shared listing shape without inventing a pin or verified service", async () => {
+  const { nonprofitDirectoryMapItem } = await import("@/features/find-resource-index/lib/nonprofit-map-item")
+  const source = { ...item("012345678"), operatingStatus: "unknown" as const, listingType: "nonprofit_organization" as const, city: "Albany", state: "NY", website: "https://example.org", websiteBasis: "source_reported" as const, descriptionSourcePeriod: "2024-12-31" }
+  const listing = nonprofitDirectoryMapItem(source)
+  expect(listing).toMatchObject({ id: "nonprofit:012345678", itemType: "external_resource", latitude: null, longitude: null, address: null, addressStreet: null, resourceCategories: [], verificationStatus: "external_data", lastVerifiedAt: null })
+  expect(listing.nonprofit).toMatchObject({ ein: source.ein, websiteBasis: "source_reported", descriptionSourcePeriod: "2024-12-31" })
+  expect(listing.services).toBeUndefined()
+  expect(listing.availability).toBeUndefined()
+  expect(listing.links?.[0].url).toBe(source.website)
+  expect(nonprofitDirectoryMapItem(source, "food").resourceCategories).toEqual(["food"])
+})
+
+
+it("counts only the public projection using a bounded, estimated HEAD request", async () => {
+  const abortSignal = vi.fn().mockResolvedValue({ count: 1_956_245, error: null })
+  const select = vi.fn().mockReturnValue({ abortSignal })
+  summaryFrom.mockReturnValue({ select })
+  const { nonprofitSummaryGET } = await import("@/features/find-resource-index/server/nonprofit-summary")
+  const response = await nonprofitSummaryGET()
+  expect(summaryFrom).toHaveBeenCalledWith("nonprofit_directory_public")
+  expect(select).toHaveBeenCalledWith("ein", { count: "planned", head: true })
+  expect(abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal))
+  expect(await response.json()).toEqual({ count: 1_956_245, estimated: true })
+  expect(response.headers.get("cache-control")).toContain("s-maxage=300")
+})
+
+it("does not cache a failed count or substitute a private/imported total", async () => {
+  summaryFrom.mockReturnValue({ select: () => ({ abortSignal: () => Promise.resolve({ count: null, error: { code: "57014" } }) }) })
+  const { nonprofitSummaryGET } = await import("@/features/find-resource-index/server/nonprofit-summary")
+  const response = await nonprofitSummaryGET()
+  expect(response.status).toBe(503)
+  expect(response.headers.get("cache-control")).toBe("no-store")
+  expect(await response.json()).not.toHaveProperty("count")
+})
+
+
+describe("standalone public resource pages", () => {
+  it("uses stable URLs only for supported public identities", async () => {
+    const { publicResourceProfileHref, publicResourceProfileItemId } = await import("@/lib/public-map/resource-profile-href")
+    expect(publicResourceProfileHref("nonprofit:012345678")).toBe("/find/resources/012345678")
+    expect(publicResourceProfileItemId("012345678")).toBe("nonprofit:012345678")
+    const id = "47cd59b4-10dc-490b-9840-cf683e1ef9ad"
+    expect(publicResourceProfileHref(`resource_map:${id}`)).toBe(`/find/resources/${id}`)
+    expect(publicResourceProfileItemId(id)).toBe(`resource_map:${id}`)
+    expect(publicResourceProfileHref("raw:candidate")).toBeNull()
+    expect(publicResourceProfileItemId("../../private")).toBeNull()
+  })
+
+  it("reads an IRS profile through the anonymous public projection", async () => {
+    rpc.mockResolvedValue({ data: item("012345678"), error: null })
+    const { fetchPublicResourceProfile } = await import("@/lib/queries/public-resource-profile")
+    const profile = await fetchPublicResourceProfile("012345678")
+    expect(profile).toMatchObject({ id: "nonprofit:012345678", latitude: null, longitude: null, visibility: "published" })
+    expect(createClient.mock.calls[0][1]).toBe("anon-only")
+    expect(rpc).toHaveBeenCalledWith("get_nonprofit_directory", { p_ein: "012345678" })
+  })
+
+  it("rejects invalid IDs without querying and unavailable public identities without fallback", async () => {
+    const { fetchPublicResourceProfile } = await import("@/lib/queries/public-resource-profile")
+    expect(await fetchPublicResourceProfile("raw:candidate")).toBeNull()
+    expect(rpc).not.toHaveBeenCalled()
+    rpc.mockResolvedValue({ data: null, error: null })
+    expect(await fetchPublicResourceProfile("012345678")).toBeNull()
+    rpc.mockResolvedValue({ data: item("987654321"), error: null })
+    expect(await fetchPublicResourceProfile("012345678")).toBeNull()
+    rpc.mockResolvedValue({ data: null, error: { code: "offline" } })
+    await expect(fetchPublicResourceProfile("012345678")).rejects.toThrow("temporarily unavailable")
+  })
 })

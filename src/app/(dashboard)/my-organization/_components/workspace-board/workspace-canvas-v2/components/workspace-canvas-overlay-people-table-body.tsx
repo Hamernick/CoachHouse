@@ -14,6 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import { TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { workspacePeopleColumnStyle } from "./workspace-canvas-people-table-fill"
 
 import {
   WorkspacePeopleRowResizeHandle,
@@ -109,7 +110,7 @@ export const WorkspacePeopleDrawerTableBody = memo(
         .getSelectedRowModel()
         .rows.map((selectedRow) => selectedRow.original.id)
 
-      return selectedPersonIds.length > 0 ? selectedPersonIds : [person.id]
+      return [person.id, ...selectedPersonIds.filter((id) => id !== person.id)]
     }
 
     const renderRow = (
@@ -140,7 +141,7 @@ export const WorkspacePeopleDrawerTableBody = memo(
                   minHeight: resolvedRowHeight,
                   position: "absolute",
                   transform: `translateY(${virtualPosition.start}px)`,
-                  width: "calc(var(--workspace-people-table-width) * 1px)",
+                  width: "100%",
                 }
               : { minHeight: resolvedRowHeight }),
           }}
@@ -151,12 +152,10 @@ export const WorkspacePeopleDrawerTableBody = memo(
           className={cn(
             "group flex cursor-grab transition-colors active:cursor-grabbing",
             virtualPosition && "top-0 left-0",
-            dragging && "opacity-60",
-            placed && "bg-muted/25 text-muted-foreground hover:bg-muted/35"
+            dragging && "opacity-60"
           )}
         >
           {row.getVisibleCells().map((cell) => {
-            const columnWidth = `calc(var(--col-${cell.column.id}-size) * 1px)`
             const selectCell = cell.column.id === "select"
             const personCell = cell.column.id === "person"
             const actionCell = cell.column.id === "action"
@@ -173,9 +172,7 @@ export const WorkspacePeopleDrawerTableBody = memo(
                 key={cell.id}
                 data-workspace-people-column={cell.column.id}
                 style={{
-                  width: columnWidth,
-                  minWidth: columnWidth,
-                  maxWidth: columnWidth,
+                  ...workspacePeopleColumnStyle(cell.column.id, cell.column.getCanResize()),
                   ...(personCell
                     ? {
                         left: "calc(var(--col-select-size) * 1px)",
@@ -183,20 +180,20 @@ export const WorkspacePeopleDrawerTableBody = memo(
                     : {}),
                 }}
                 className={cn(
-                  "flex min-w-0 shrink-0 items-center overflow-hidden px-3 py-1 [&>*]:max-w-full",
+                  "border-border flex min-w-0 shrink-0 items-center overflow-hidden border-r px-3 py-1 last:border-r-0 [&>*]:max-w-full",
                   wrapsText
                     ? "break-words whitespace-normal"
                     : "whitespace-nowrap",
                   selectCell &&
-                    "border-border bg-background group-hover:bg-muted/50 group-data-[state=selected]:bg-muted group-data-[workspace-person-placed=true]:bg-muted/25 sticky left-0 z-20 grid place-items-center overflow-visible border-r p-0",
+                    "border-border bg-background group-hover:bg-muted group-data-[state=selected]:bg-muted sticky left-0 z-20 grid place-items-center overflow-visible border-r p-0",
                   personCell &&
-                    "border-border bg-background group-hover:bg-muted/50 group-data-[state=selected]:bg-muted group-data-[workspace-person-placed=true]:bg-muted/25 sticky z-10 border-r",
+                    "border-border bg-background group-hover:bg-muted group-data-[state=selected]:bg-muted sticky z-10 border-r max-md:!left-auto",
                   cell.column.id === "email" && "text-muted-foreground text-sm",
                   wrapsText && cell.column.id === "email" && "break-all",
                   cell.column.id === "linkedin" && "text-sm",
                   actionCell && "grid place-items-center overflow-visible p-0",
                   canvasCell &&
-                    "bg-background group-hover:bg-muted group-data-[state=selected]:bg-muted group-data-[workspace-person-placed=true]:bg-muted sticky right-0 z-20 px-2 text-right"
+                    "bg-background group-hover:bg-muted group-data-[state=selected]:bg-muted sticky right-0 z-20 border-l px-2 text-right"
                 )}
               >
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -220,7 +217,7 @@ export const WorkspacePeopleDrawerTableBody = memo(
     return (
       <TableBody
         data-workspace-people-content-mode={contentMode}
-        className={cn("grid", shouldVirtualize && "relative")}
+        className={cn("grid shrink-0 [&_tr:last-child]:border-b", shouldVirtualize && "relative")}
         style={
           shouldVirtualize
             ? { height: rowVirtualizer.getTotalSize() }

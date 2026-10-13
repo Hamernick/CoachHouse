@@ -1,8 +1,8 @@
-import CheckIcon from "lucide-react/dist/esm/icons/check"
+import { TierFeatures } from "@/components/public/pricing-surface-sections/shared"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PricingPlanTier } from "@/lib/billing/plan-tier"
 import { cn } from "@/lib/utils"
 
@@ -29,55 +29,42 @@ export function PaywallTierCard({
 }: PaywallTierCardProps) {
   const details = resolveTierLabel({ tier, currentPlanTier })
   const paidPlan = tier.id === "free" ? null : tier.id
+  const eyebrow = tier.eyebrow.match(/^(.*?)(\s*\(.*\))$/)
 
   return (
     <Card
+      role="group"
+      aria-label={`${tier.title} plan`}
       className={cn(
-        "relative flex h-full flex-col overflow-hidden rounded-2xl border-border/70 bg-card/95 shadow-sm",
-        tier.featured && "border-primary/35 ring-1 ring-primary/20",
-        tier.id === currentPlanTier && "border-foreground/20 ring-1 ring-foreground/10",
+        "border-border/70 flex h-full flex-col rounded-3xl border",
+        tier.featured && "border-primary/30 ring-primary/15 shadow-md ring-1",
       )}
     >
-      <div
-        className={cn(
-          "h-1 w-full bg-border/60",
-          tier.featured && "bg-primary/60",
-          tier.id === currentPlanTier && "bg-foreground/45",
-        )}
-        aria-hidden
-      />
-      <CardHeader className="space-y-4 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tier.eyebrow}</p>
+      <CardHeader className="flex flex-col gap-5 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-muted-foreground min-w-0 text-xs font-semibold tracking-wide uppercase">
+            <span className="block">{eyebrow?.[1]?.trim() ?? tier.eyebrow}</span>
+            {eyebrow?.[2] ? <span className="mt-0.5 block">{eyebrow[2].trim()}</span> : null}
+          </p>
           {details.badge ? (
-            <Badge variant="secondary" className="rounded-full border border-border/70 bg-muted/40 text-xs">
+            <Badge variant="secondary" className="rounded-full text-xs">
               {details.badge}
             </Badge>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <CardTitle className="text-2xl font-semibold tracking-tight">{tier.title}</CardTitle>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-semibold tracking-tight">{tier.priceLine}</span>
-            {tier.priceNote ? <span className="pb-1 text-xs font-medium text-muted-foreground">{tier.priceNote}</span> : null}
+        <div className="flex flex-col gap-3">
+          <CardTitle className="min-h-10 text-3xl font-semibold tracking-tight">{tier.title}</CardTitle>
+          <div className="flex min-h-11 items-end gap-2">
+            <span className="text-4xl font-semibold tracking-tight">{tier.priceLine}</span>
+            {tier.priceNote ? <span className="text-muted-foreground pb-1 text-sm font-medium">{tier.priceNote}</span> : null}
           </div>
-          <p className="min-h-12 text-sm text-muted-foreground">{tier.subtitle}</p>
+          <CardDescription className="text-muted-foreground min-h-20 text-sm leading-relaxed">{tier.subtitle}</CardDescription>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4 p-5 pt-0">
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          {tier.features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2">
-              <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground/70" aria-hidden />
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-auto space-y-2 pt-2">
+        <div className="flex flex-col gap-2">
           {details.cta && tier.planName && paidPlan ? (
             <Button
               type="button"
-              className="h-10 w-full rounded-xl"
+              className="h-auto min-h-9 w-full whitespace-normal rounded-xl text-center"
               variant={tier.id === "organization" ? "default" : "secondary"}
               onClick={() =>
                 window.location.assign(
@@ -99,6 +86,10 @@ export function PaywallTierCard({
           )}
           {details.cta ? <p className="text-xs leading-relaxed text-muted-foreground">{details.note}</p> : null}
         </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-5 px-6 pb-6">
+        <div className="bg-border/70 h-px w-full" aria-hidden />
+        <TierFeatures heading="Includes" items={tier.features} tone="muted" />
       </CardContent>
     </Card>
   )

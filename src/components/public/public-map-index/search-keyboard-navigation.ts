@@ -29,7 +29,8 @@ export function usePublicMapSearchKeyboardNavigation() {
 
       if (event.key === "Escape") {
         event.preventDefault()
-        containerRef.current
+        const scope = containerRef.current?.closest("[data-slot=sidebar-inset]") ?? containerRef.current
+        scope
           ?.querySelector<HTMLInputElement>(SEARCH_INPUT_SELECTOR)
           ?.focus()
         return

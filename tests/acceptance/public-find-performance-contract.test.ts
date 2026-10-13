@@ -71,7 +71,7 @@ describe("public Find performance contract", () => {
     expect(panelsSource).not.toContain('from "./sidebar-detail-panels"')
   })
 
-  it("keeps the shell interactive before intentional Mapbox startup", () => {
+  it("starts Mapbox immediately on desktop and touch devices", () => {
     const source = readSource(
       "src/components/public/public-map-index/public-map-index-runtime.ts"
     )
@@ -79,30 +79,13 @@ describe("public Find performance contract", () => {
       "src/components/public/public-map-index/map-surface.tsx"
     )
 
-    expect(source).toContain("initializeFrameId = window.requestAnimationFrame")
-    expect(source).toContain("PUBLIC_MAP_INTERACTION_READY_DELAY_MS = 8_000")
-    expect(source).toContain("initializeTimeoutId = window.setTimeout")
-    expect(source).toContain(
-      'mapContainer.addEventListener("pointerdown", startMap'
-    )
-    expect(source).toContain(
-      'PUBLIC_MAP_COARSE_POINTER_MEDIA_QUERY = "(pointer: coarse)"'
-    )
-    expect(source).toContain("if (!hasCoarsePointer)")
-    expect(source).toContain(
-      'mapContainer.addEventListener("keydown", startMapFromKeyboard)'
-    )
+    expect(source).toContain("mapStartRef.current = startMap\n    startMap()")
     expect(source).toContain("if (cancelled || initializationStarted) return")
-    expect(source).toContain(
-      'mapContainer.removeEventListener("pointerdown", startMap)'
-    )
-    expect(source).toContain(
-      'mapContainer.removeEventListener("keydown", startMapFromKeyboard)'
-    )
-    expect(source).toContain("window.cancelAnimationFrame(initializeFrameId)")
-    expect(source).toContain("window.clearTimeout(initializeTimeoutId)")
+    expect(source).not.toContain("PUBLIC_MAP_INTERACTION_READY_DELAY_MS")
+    expect(source).not.toContain("hasCoarsePointer")
+    expect(source).not.toContain('addEventListener("pointerdown", startMap')
     expect(surfaceSource).toContain('role="region"')
-    expect(surfaceSource).toContain("tabIndex={0}")
+    expect(surfaceSource).toContain("tabIndex={embedded && (!mapReady || mapError || screen.mapHidden) ? -1 : 0}")
   })
 
   it("renders the intended location consent state in the initial shell", () => {

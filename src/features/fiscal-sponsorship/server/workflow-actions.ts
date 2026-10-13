@@ -133,6 +133,7 @@ export async function reviewFiscalSponsorshipApplication(
     !(await canManageFiscalSponsorshipForOrganization({
       accessLevel: context.profileAudience.platformAccessLevel,
       organizationId: context.project.org_id,
+      projectId: context.project.id,
       supabase: context.supabase,
       userId: context.user.id,
     }))
@@ -256,6 +257,7 @@ export async function reviewFiscalSponsorshipDocument(
     !(await canManageFiscalSponsorshipForOrganization({
       accessLevel: context.profileAudience.platformAccessLevel,
       organizationId: context.project.org_id,
+      projectId: context.project.id,
       supabase: context.supabase,
       userId: context.user.id,
     }))

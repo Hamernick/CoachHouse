@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { resolveAppShellOnboardingRedirectTarget } from "@/components/app-shell/onboarding-redirect"
 import { resolveOnboardingRequirements } from "@/lib/onboarding/requirements"
 
 const complete = {
@@ -51,11 +52,6 @@ describe("saved onboarding requirements", () => {
     [{ name: "   ", formationStatus: "approved" }, "community-house"],
     [{ name: "Community House", formationStatus: "approved" }, ""],
     [{ name: "Community House", formationStatus: "approved" }, null],
-    [{ name: "Community House" }, "community-house"],
-    [
-      { name: "Community House", formationStatus: "unknown" },
-      "community-house",
-    ],
   ])(
     "requires each missing organization field despite completion metadata",
     (organizationProfile, publicSlug) => {
@@ -83,6 +79,16 @@ describe("saved onboarding requirements", () => {
       ).toBe(false)
     }
   )
+
+  it("allows completed builders to enter before answering formation status", () => {
+    expect(resolveOnboardingRequirements({ ...complete, organizationProfile: { name: "Community House" } }).required).toBe(false)
+  })
+
+  it("routes a fresh Google organization signup through onboarding", () => {
+    const requirements = resolveOnboardingRequirements({ ...complete, userMetadata: { full_name: "Google User", avatar_url: "https://example.com/avatar.jpg", onboarding_intent_focus: "build", email_verified: true }, organizationProfile: null, publicSlug: null })
+    expect(requirements).toMatchObject({ required: true, mode: "post_signup_access" })
+    expect(resolveAppShellOnboardingRedirectTarget({ onboardingLocked: requirements.required, onboardingIntentFocus: "build", isAdminContext: false, pathname: "/workspace" })).toBe("/onboarding?source=onboarding")
+  })
 
   it("keeps fresh builders on access selection before organization setup", () => {
     expect(

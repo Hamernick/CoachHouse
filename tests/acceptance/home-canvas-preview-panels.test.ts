@@ -79,7 +79,7 @@ describe("home canvas auth panel", () => {
       'data-builder-redirect-to="/onboarding?source=home_signup"'
     )
     expect(markup).toContain(
-      'data-member-redirect-to="/?member_onboarding=1&amp;source=home_signup"'
+      'data-member-redirect-to="/onboarding?source=home_signup"'
     )
     expect(markup).toContain('class="mb-3 space-y-1"')
     expect(markup).not.toContain('class="mb-5 space-y-1"')

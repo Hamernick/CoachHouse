@@ -30,6 +30,7 @@ import type { FiscalSponsorshipApplicationDraft } from "../lib/application-draft
 import type { DraftFieldChange } from "./fiscal-sponsorship-application-editor-controls"
 
 type FiscalSponsorshipBudgetPlanEditorProps = {
+  guest?: boolean
   applicationReady: boolean
   draft: FiscalSponsorshipApplicationDraft
   formId: string
@@ -55,6 +56,7 @@ function formatMoney(value: number) {
 
 export function FiscalSponsorshipBudgetPlanEditor({
   applicationReady,
+  guest = false,
   draft,
   formId,
   onFieldChange,
@@ -183,11 +185,17 @@ export function FiscalSponsorshipBudgetPlanEditor({
           <div className="min-w-0">
             <FieldLabel>Budget plan</FieldLabel>
             <FieldDescription>
-              {sourceActivityTitle
-                ? `Linked to the budget for ${sourceActivityTitle}.`
-                : "Linked to the budget for the selected activity or program."}{" "}
-              Saving this application updates the same line items in the program
-              builder.
+              {guest ? (
+                "List the costs you expect. Add rows or import a CSV to build your budget."
+              ) : (
+                <>
+                  {sourceActivityTitle
+                    ? `Linked to the budget for ${sourceActivityTitle}.`
+                    : "Linked to the budget for the selected activity or program."}{" "}
+                  Saving this application updates the same line items in the program
+                  builder.
+                </>
+              )}
             </FieldDescription>
           </div>
           <Button
@@ -233,13 +241,13 @@ export function FiscalSponsorshipBudgetPlanEditor({
 
       <Field>
         <FieldLabel htmlFor={supportFileInputId}>
-          Budget support files
+          {guest ? "Import a budget (optional)" : "Budget support files"}
         </FieldLabel>
         <Input
           ref={fileInputRef}
           id={supportFileInputId}
           type="file"
-          accept={BUDGET_SUPPORT_ACCEPT}
+          accept={guest ? ".csv,text/csv" : BUDGET_SUPPORT_ACCEPT}
           onChange={(event) =>
             setSelectedSupportFile(event.target.files?.[0] ?? null)
           }
@@ -247,7 +255,9 @@ export function FiscalSponsorshipBudgetPlanEditor({
         <FieldDescription>
           {selectedSupportFile
             ? `${selectedSupportFile.name} selected`
-            : "CSV, spreadsheet, PDF, image, and document files are supported."}
+            : guest
+              ? "CSV rows are added to your application. The file itself is not uploaded."
+              : "CSV, spreadsheet, PDF, image, and document files are supported."}
         </FieldDescription>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -260,7 +270,8 @@ export function FiscalSponsorshipBudgetPlanEditor({
             <FileSpreadsheetIcon data-icon="inline-start" aria-hidden />
             Import CSV rows
           </Button>
-          <Button
+          {!guest ? (
+            <Button
             type="button"
             size="sm"
             disabled={
@@ -279,9 +290,10 @@ export function FiscalSponsorshipBudgetPlanEditor({
               <FileUpIcon data-icon="inline-start" aria-hidden />
             )}
             Upload support file
-          </Button>
+            </Button>
+          ) : null}
         </div>
-        {!applicationReady ? (
+        {!guest && !applicationReady ? (
           <FieldDescription>
             Save the application first to attach budget files for review.
           </FieldDescription>

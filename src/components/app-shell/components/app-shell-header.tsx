@@ -60,7 +60,7 @@ export function AppShellHeader({
     <header className="text-muted-foreground flex shrink-0 flex-col bg-[var(--shell-bg)] text-sm">
       <div
         className={cn(
-          "flex min-h-16 min-w-0 items-center py-2 pr-1 pl-[var(--shell-content-pad)] md:min-h-14 md:py-0 md:pr-[var(--shell-content-pad)]",
+          "flex min-h-16 min-w-0 items-center py-2 pr-1 pl-[var(--shell-content-pad)] md:h-14 md:min-h-14 md:py-0 md:pr-[var(--shell-content-pad)]",
           isCompactMobileHeader && "min-h-12 py-1.5"
         )}
       >
@@ -82,7 +82,7 @@ export function AppShellHeader({
               <MenuIcon />
             </Button>
             <SidebarTrigger
-              className={cn(toggleButtonClass, "hidden md:inline-flex")}
+              className="hidden size-8 rounded-md border-0 bg-transparent text-sidebar-foreground/80 shadow-none ring-sidebar-ring transition-colors duration-200 ease-out hover:bg-sidebar-accent hover:text-sidebar-foreground/70 focus-visible:ring-2 focus-visible:ring-inset active:bg-sidebar-accent active:text-sidebar-accent-foreground motion-reduce:transition-none md:inline-flex dark:hover:bg-sidebar-accent"
               aria-label="Toggle sidebar"
             />
             {showHeaderToggles && hasBreadcrumbs ? (
@@ -115,7 +115,7 @@ export function AppShellHeader({
               <AppShellCalendarAction />
             ) : null}
             {hasUser && !isCompactMobileHeader ? <NotificationsMenu /> : null}
-            <div className="hidden md:block">
+            <div className="hidden items-center md:flex">
               <ThemeToggle />
             </div>
             {!hasUser ? (

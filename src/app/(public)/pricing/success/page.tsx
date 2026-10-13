@@ -10,17 +10,15 @@ import { isElectiveAddOnModuleSlug } from "@/lib/accelerator/elective-modules"
 import { persistCheckoutSubscription } from "./_lib/subscription-persistence"
 import { maybeStartOrganizationTrialFromAccelerator } from "./_lib/success-helpers"
 import {
-  trackSuccessfulCheckoutWithoutSubscription,
   trackSuccessfulSubscriptionCheckout,
 } from "./_lib/telemetry"
 import {
-  appendInternalRedirectParams,
   appendSuccessfulPricingReturn,
-  canTreatCheckoutAsSuccessfulSubscriptionReturn,
   getSafeRedirect,
   resolveCheckoutSubscription,
 } from "./_lib/onboarding-return"
 import type { Database } from "@/lib/supabase"
+import { CheckoutActivationStatus } from "./_components/checkout-activation-status"
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -55,6 +53,7 @@ export default async function PricingSuccessPage({ searchParams }: { searchParam
   }
 
   if (sessionId) {
+    let paymentRequired = false
     try {
       let checkout: Stripe.Checkout.Session | null = null
       let checkoutStripeConfig = stripeConfigs[0]
@@ -162,7 +161,7 @@ export default async function PricingSuccessPage({ searchParams }: { searchParam
           })
 
           const isSuccessfulSubscriptionState =
-            status === "trialing" || status === "active" || status === "past_due"
+            status === "trialing" || status === "active"
 
           if (isSuccessfulSubscriptionState) {
             await trackSuccessfulSubscriptionCheckout({
@@ -178,41 +177,17 @@ export default async function PricingSuccessPage({ searchParams }: { searchParam
             })
           }
 
-          if (kind === "accelerator") {
-            redirect(`/organization?purchase=accelerator${welcomeQuery}`)
-          }
-
-          if (redirectTarget) {
-            if (isSuccessfulSubscriptionState) {
+          if (!isSuccessfulSubscriptionState) {
+            paymentRequired = true
+          } else {
+            if (kind === "accelerator") {
+              redirect(`/organization?purchase=accelerator${welcomeQuery}`)
+            }
+            if (redirectTarget) {
               redirect(appendSuccessfulPricingReturn(redirectTarget, resolvedPlanTier))
             }
-            redirect(
-              appendInternalRedirectParams(redirectTarget, {
-                checkout_error: "checkout_failed",
-                subscription: status,
-              }),
-            )
-          }
-
-          if (isSuccessfulSubscriptionState) {
             redirect(`/organization?subscription=${status}${welcomeQuery}`)
           }
-          redirect(`/organization?checkout_error=checkout_failed&subscription=${status}`)
-        }
-
-        if (redirectTarget && canTreatCheckoutAsSuccessfulSubscriptionReturn(checkout)) {
-          const resolvedPlanTier = await trackSuccessfulCheckoutWithoutSubscription({
-            userId,
-            checkout,
-            stripeMode: checkoutStripeConfig.mode,
-            redirectTarget,
-          })
-          redirect(
-            appendSuccessfulPricingReturn(
-              redirectTarget,
-              resolvedPlanTier,
-            ),
-          )
         }
       }
     } catch (error) {
@@ -220,19 +195,13 @@ export default async function PricingSuccessPage({ searchParams }: { searchParam
         throw error
       }
       console.warn("Unable to read Stripe checkout session", error)
-      if (redirectTarget) {
-        redirect(
-          appendInternalRedirectParams(redirectTarget, {
-            checkout_error: "checkout_failed",
-          }),
-        )
-      }
     }
+    return <CheckoutActivationStatus returnHref={redirectTarget ?? "/workspace"} paymentRequired={paymentRequired} />
   }
 
   if (redirectTarget) {
     redirect(redirectTarget)
   }
 
-  redirect("/organization?checkout=success")
+  redirect("/workspace")
 }

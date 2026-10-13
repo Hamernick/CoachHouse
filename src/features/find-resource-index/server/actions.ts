@@ -1,9 +1,10 @@
+import { getFindResourceCatalog } from "./catalog"
+
 import { unstable_cache } from "next/cache"
 
 import {
   fetchPublicResourceMapItemById,
   fetchPublicResourceMapItems,
-  fetchPublicResourceMapItemsPageById,
 } from "@/lib/queries/resource-map-public-items"
 
 import {
@@ -44,9 +45,8 @@ export async function fetchFindResourceIndexPage({
   cursor: string | null
   limit: number
 }) {
-  const page = await fetchPublicResourceMapItemsPageById({ cursor, limit })
-  return {
-    items: page.items.map(serializeFindResourceIndexItem),
-    totalCount: page.totalCount,
-  }
+  const catalog = await getFindResourceCatalog()
+  const ordered = [...catalog.items].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  const start = cursor ? ordered.findIndex((item) => item.id > cursor) : 0
+  return { items: start < 0 ? [] : ordered.slice(start, start + limit + 1), totalCount: ordered.length }
 }

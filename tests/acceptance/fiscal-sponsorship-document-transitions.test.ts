@@ -87,6 +87,7 @@ function createWorkflowClient({
   }
 
   return {
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     from: vi.fn((table: string) => {
       if (table === "organization_projects") {
         return queryResult({ id: "project-1", org_id: "org-1" })

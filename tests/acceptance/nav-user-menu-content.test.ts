@@ -1,11 +1,30 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { NavUserMenuContent } from "@/components/nav-user/nav-user-menu-content"
+
+vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }))
+afterEach(() => vi.unstubAllGlobals())
 
 const ROOT = process.cwd()
 
 describe("nav user menu content", () => {
+  it.each([true, false])("renders the optional upgrade button in the account menu (%s)", (showUpgrade) => {
+    vi.stubGlobal("document", { body: {} })
+    const markup = renderToStaticMarkup(createElement(NavUserMenuContent, {
+      open: true, menuRef: { current: null }, menuStyle: null, user: {}, displayName: "Ada", displayEmail: "ada@example.test", avatarFallback: "A",
+      isAdmin: false, showOrgAdmin: false, canAccessOrgAdmin: false, signOutPending: false, showUpgrade, planLabel: showUpgrade ? "Free" : "Paid plan",
+      onOpenUpgrade: () => undefined, onCloseMenu: () => undefined, onOpenSettings: () => undefined, onSignOut: () => undefined,
+    }))
+    expect(markup.includes("Upgrade")).toBe(showUpgrade)
+    expect(markup.includes("lucide-gift")).toBe(showUpgrade)
+    expect(markup).not.toContain("source=sidebar_upgrade")
+    expect(markup).toContain(showUpgrade ? "Free" : "Paid plan")
+  })
+
   it("owns the org admin link in the avatar menu instead of stale sidebar menu rows", () => {
     const menuSource = readFileSync(
       join(ROOT, "src/components/nav-user/nav-user-menu-content.tsx"),

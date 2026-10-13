@@ -69,8 +69,8 @@ export function ResourcesCard({ resources, variant = "grid", children }: Resourc
                 key={`${trimmedUrl || label}-${index}`}
                 className={
                   stacked
-                    ? "group min-w-0 w-full min-h-[220px] rounded-2xl border border-border/60 bg-card/70 p-3 focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background"
-                    : "group aspect-square w-full max-w-[260px] rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm transition hover:shadow-md focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background"
+                    ? "group min-w-0 w-full min-h-[220px] rounded-2xl border border-border/60 bg-card/70 p-3 focus-within-visible:ring-2 focus-within-visible:ring-primary/40 focus-within-visible:ring-offset-2 focus-within-visible:ring-offset-background"
+                    : "group aspect-square w-full max-w-[260px] rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm transition hover:shadow-md focus-within-visible:ring-2 focus-within-visible:ring-primary/40 focus-within-visible:ring-offset-2 focus-within-visible:ring-offset-background"
                 }
               >
                 <div className="flex h-full flex-col justify-between">

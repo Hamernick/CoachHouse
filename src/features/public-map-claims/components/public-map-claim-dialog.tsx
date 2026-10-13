@@ -151,13 +151,13 @@ export function PublicMapClaimDialog() {
       <Button
         type="button"
         variant="ghost"
-        className="h-auto w-full flex-col gap-0.5 rounded-xl py-4 text-center"
+        className="h-auto w-full flex-col gap-0.5 rounded-xl py-4 text-center whitespace-normal"
         onClick={begin}
       >
-        <span className="text-muted-foreground text-sm">
+        <span className="text-muted-foreground text-xs">
           Have an NFP listed on Coach House?
         </span>
-        <span className="flex items-center gap-1 text-sm font-medium">
+        <span className="flex items-center gap-1 text-xs font-medium">
           Claim or manage it
           <ArrowUpRightIcon aria-hidden className="size-3.5" />
         </span>

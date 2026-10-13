@@ -1,3 +1,4 @@
+import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
 import { buildProjectAssetOpenPath } from "@/features/member-workspace"
 import type { Database } from "@/lib/supabase"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
@@ -174,16 +175,19 @@ export async function isPlatformAdmin({
 }
 
 export async function canAccessProjectOrg({
+  projectId,
   orgId,
   requireEdit,
   supabase,
   userId,
 }: {
+  projectId: string
   orgId: string
   requireEdit: boolean
   supabase: ProjectAssetsRouteClient
   userId: string
 }) {
+  if (!(await isOrdinaryWorkspaceProject({ supabase, userId, projectId }))) return false
   const { data: staff, error: staffError } = await supabase
     .from("platform_staff_members")
     .select("access_level,can_access_unassigned_organizations")

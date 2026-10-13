@@ -10,6 +10,16 @@ function readSource(relativePath: string) {
 }
 
 describe("fiscal sponsorship entrypoints", () => {
+  it("houses public intake in Documentation and preserves the old URL", () => {
+    const route = readSource("src/app/(public)/documentation/fiscal-sponsorship/page.tsx")
+    expect(route).toContain('canonical: "/documentation/fiscal-sponsorship"')
+    expect(route).toContain("<FiscalSponsorshipPublicPage />")
+    expect(readSource("src/app/(public)/fiscalsponsorship/page.tsx")).toContain('permanentRedirect("/documentation/fiscal-sponsorship")')
+    expect(readSource("src/features/fiscal-sponsorship/components/fiscal-sponsorship-public-page.tsx")).toContain("Sponsorship does not guarantee funding.")
+    expect(readSource("src/features/nonprofit-documentation/lib/search-documents.ts")).toContain('href: "/documentation/fiscal-sponsorship"')
+    expect(readSource("src/lib/organization/reserved-public-slugs.ts")).toContain('"fiscalsponsorship"')
+  })
+
   it("is available from the prototype lab as the default centered canvas entry", () => {
     const entries = readSource("src/features/prototype-lab/lib/index.ts")
     const sidebarTree = readSource(

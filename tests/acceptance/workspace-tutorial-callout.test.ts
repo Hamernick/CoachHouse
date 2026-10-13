@@ -32,7 +32,7 @@ describe("workspace tutorial callout", () => {
     expect(markup).toContain("data-react-grab-link-id=")
     expect(TOOLTIP_ARROW_CLASSNAME).toContain("rotate-45")
     expect(TOOLTIP_ARROW_CLASSNAME).toContain("rounded-[2px]")
-    expect(TOOLTIP_ARROW_CLASSNAME).toContain("bg-popover")
+    expect(TOOLTIP_ARROW_CLASSNAME).toContain("bg-foreground")
     expect(markup).not.toContain("workspace-tutorial-pointer")
     expect(markup).not.toContain(
       "rounded-xl border border-border/70 bg-popover/95"

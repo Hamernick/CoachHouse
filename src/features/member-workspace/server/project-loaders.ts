@@ -82,7 +82,7 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
       orgId: organization.orgId,
       name: organization.name,
     }))
-    const [assigneeOptions, canonicalProjects, standardProjects] =
+    const [assigneeOptions, canonicalProjects, standardProjects, guestResult] =
       await Promise.all([
         loadMemberWorkspacePersonOptionsForOrganizations({
           orgIds: [],
@@ -97,7 +97,13 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
           orgIds,
           supabase: actor.supabase,
         }),
+        directory === "projects"
+          ? actor.supabase.rpc("list_fiscal_guest_projects", { p_user_id: actor.userId })
+          : Promise.resolve({ data: [], error: null }),
       ])
+
+    if (guestResult.error) throw toMemberWorkspaceDataError(guestResult.error, "Unable to load assigned fiscal projects.")
+    const guestProjects = (guestResult.data ?? []) as unknown as OrganizationProjectRecord[]
 
     if (!canonicalProjects || !standardProjects) {
       return {
@@ -146,6 +152,7 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
         }
       }),
       ...standardProjects.map(mapOrganizationProjectToViewModel).map((project) => ({ ...project, client: project.organizationUnassigned ? undefined : organizationNames.get(project.organizationId ?? "") ?? undefined })),
+      ...guestProjects.map(mapOrganizationProjectToViewModel),
     ]
     const workstreamConfiguration =
       await loadPlatformAdminWorkstreamConfiguration({
@@ -175,7 +182,7 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
       storageMode: "custom" as const,
       starterProjectCount: 0,
       hasUserProjects:
-        organizationsWithProjectIds.length > 0 || standardProjects.length > 0,
+        organizationsWithProjectIds.length > 0 || standardProjects.length > 0 || guestProjects.length > 0,
       canResetStarterData: false,
       canCreateProjects: true,
       scope: "platform-admin" as const,

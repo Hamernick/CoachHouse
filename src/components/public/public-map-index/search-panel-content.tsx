@@ -2,9 +2,12 @@
 
 import type { ReactNode } from "react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import CloudOffIcon from "lucide-react/dist/esm/icons/cloud-off"
+import WifiOffIcon from "lucide-react/dist/esm/icons/wifi-off"
+import RotateCwIcon from "lucide-react/dist/esm/icons/rotate-cw"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { NonprofitDirectoryResults } from "@/features/find-resource-index/client"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import type { PublicMapResourceGuideId } from "@/lib/public-map/resource-guide-ids"
 import { cn } from "@/lib/utils"
@@ -91,26 +94,33 @@ export function PublicMapResourceItemsErrorNotice({
   onRetry: () => void
 }) {
   if (!error) return null
+  const offline = error === PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR
+  const StatusIcon = offline ? WifiOffIcon : CloudOffIcon
   const message = hasStaleResourceItems
-    ? error === PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR
-      ? "You’re offline. Showing last loaded results."
-      : "Latest results are unavailable. Showing last loaded results."
-    : error
+    ? `Showing last loaded results. ${offline ? "Reconnect, then try again." : "Try again to refresh."}`
+    : offline
+      ? "Reconnect to load the remaining results."
+      : "You can still browse the available results below."
 
   return (
-    <Alert className="border-destructive/30 bg-background/45 py-2.5">
-      <AlertDescription className="col-start-1 flex w-full flex-row items-center justify-between gap-3">
-        <span className="text-pretty">{message}</span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 shrink-0 rounded-full"
-          onClick={onRetry}
-        >
-          Try again
-        </Button>
-      </AlertDescription>
+    <Alert className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 rounded-2xl border-border/70 bg-muted/25 p-4 shadow-none sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-center">
+      <span aria-hidden="true" className="text-muted-foreground bg-background/70 flex size-9 items-center justify-center rounded-xl border border-border/60">
+        <StatusIcon className="size-4" />
+      </span>
+      <div className="min-w-0 space-y-1">
+        <AlertTitle className="line-clamp-none text-sm leading-5">{offline ? "You’re offline" : "Some results couldn’t load"}</AlertTitle>
+        <AlertDescription className="block text-pretty text-xs leading-5">{message}</AlertDescription>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="col-start-2 h-11 justify-self-start rounded-full px-3 shadow-none sm:col-start-3"
+        onClick={onRetry}
+      >
+        <RotateCwIcon className="size-3.5" aria-hidden />
+        Try again
+      </Button>
     </Alert>
   )
 }
@@ -131,6 +141,8 @@ export function PublicMapOrganizationsStack({
   resourceItemsLoadError = null,
   resourceItemsLoadStatus,
   scrollable = false,
+  bounded = false,
+  paged = false,
   selectedItemId,
   selectedOrgId = null,
 }: {
@@ -149,6 +161,8 @@ export function PublicMapOrganizationsStack({
   resourceItemsLoadError?: string | null
   resourceItemsLoadStatus: PublicMapResourceItemsLoadStatus
   scrollable?: boolean
+  bounded?: boolean
+  paged?: boolean
   selectedItemId: string | null
   selectedOrgId?: string | null
 }) {
@@ -172,16 +186,11 @@ export function PublicMapOrganizationsStack({
         loadError={resourceItemsLoadError}
         constrainedLayout={constrainedLayout}
         incrementalLoading
+        remotePagination
         scrollable={scrollable}
-        leadingContent={
-          <>
-            {leadingContent}
-            <NonprofitDirectoryResults
-              query={query}
-              category={activeGroup === "all" ? null : activeGroup}
-            />
-          </>
-        }
+        bounded={bounded}
+        paged={paged}
+        leadingContent={leadingContent}
         onClearCategory={onClearCategory}
         onClearQuery={onClearQuery}
         onRetryLoad={onRetryResourceItems}

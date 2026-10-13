@@ -1,5 +1,4 @@
 export {
-  AuthenticatedFindShell,
   FindMapLoadingSidebar,
   FindMapLoadingState,
   PublicFindRoute,

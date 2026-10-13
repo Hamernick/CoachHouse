@@ -1,4 +1,5 @@
 "use client"
+import { useWorkspaceDrawerGuide, useWorkspaceDrawerGuideState } from "./use-workspace-drawer-guide"
 import type { WorkspaceOverlayDrawerProps } from "./workspace-overlay-drawer-props"
 
 import {
@@ -19,11 +20,10 @@ import {
   isWorkspaceDataDrawerCollapsedSnapPoint as isDrawerCollapsed,
   isWorkspaceDataDrawerFullscreenSnapPoint as isDrawerFullscreen,
   resolveWorkspaceDataDrawerSnapPoint,
+  resolveWorkspaceDataDrawerRequestSnapPoint,
   resolveWorkspaceFloatingDrawerHeight,
   resolveWorkspaceDataDrawerViewportHeight,
   WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT,
-  WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT,
-  WORKSPACE_DATA_DRAWER_FULL_SNAP_POINT,
   WORKSPACE_DATA_DRAWER_SNAP_POINTS,
 } from "./workspace-canvas-overlay-drawer-state"
 import {
@@ -79,17 +79,15 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const canvasContainer = useWorkspaceCanvasOverlayDrawerContainer()
     const { height: canvasHeight, width: canvasWidth } =
       useWorkspaceDrawerCanvasSize(canvasContainer)
+    const guideState = useWorkspaceDrawerGuideState()
+    const restoredPreferencesScopeRef = useRef<string | null>(null)
     const [preferencesReady, setPreferencesReady] = useState(false)
     const [open, setOpen] = useState(true)
     const [activeSnapPoint, setActiveSnapPoint] = useState<
       number | string | null
-    >(
-      request
-        ? WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
-        : WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT
-    )
+    >(() => guideState?.snapPoint ?? resolveWorkspaceDataDrawerRequestSnapPoint(request))
     const [tab, setTab] = useState<WorkspaceCanvasDrawerTab>(
-      request?.tab ?? "accelerator"
+      guideState?.tab ?? request?.tab ?? "organization"
     )
     const handledRequestIdRef = useRef(0)
     const handledAcceleratorRequestIdRef = useRef(0)
@@ -150,7 +148,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
       })
 
     const { tabIndicator, tabsHeaderRef, tabsListRef } =
-      useWorkspaceDataDrawerTabIndicator({ tab })
+      useWorkspaceDataDrawerTabIndicator({ tab, expanded: drawerExpanded })
     const dockHeight = chrome.total + composerHeight
     const windowState = useWorkspaceContentWindow({
       enabled: Boolean(particleComposer),
@@ -165,9 +163,12 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const desktop = Boolean(windowState.geometry)
     useLayoutEffect(() => {
       setPreferencesReady(true)
+      const scopeKey = JSON.stringify([uiPreferencesScope.orgId, uiPreferencesScope.viewerId])
+      if (restoredPreferencesScopeRef.current === scopeKey) return
+      restoredPreferencesScopeRef.current = scopeKey
+      if (request || guideState) return
       const storedPreferences =
         readWorkspaceBoardUiPreferences(uiPreferencesScope)
-      if (request) return
       setTab(storedPreferences.dataDrawerTab)
       const storedSnapPoint = resolveWorkspaceDataDrawerSnapPoint(
         storedPreferences.dataDrawerSnapPoint
@@ -175,7 +176,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
       if (storedSnapPoint === null) return
       setOpen(true)
       setActiveSnapPoint(storedSnapPoint)
-    }, [request, uiPreferencesScope])
+    }, [request, uiPreferencesScope, guideState])
 
     useLayoutEffect(() => {
       if (!request || handledRequestIdRef.current === request.id) return
@@ -189,9 +190,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
         dataDrawerTab: request.tab,
       })
       handleActiveSnapPointChange(
-        request.tab === "roadmap"
-          ? WORKSPACE_DATA_DRAWER_FULL_SNAP_POINT
-          : WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT
+        resolveWorkspaceDataDrawerRequestSnapPoint(request)
       )
     }, [
       handleActiveSnapPointChange,
@@ -199,6 +198,16 @@ export const WorkspaceCanvasOverlayDrawer = memo(
       uiPreferencesScope,
       leaveParticle,
     ])
+
+    useWorkspaceDrawerGuide({ state: guideState, setOpen, setTab, setSnap: setActiveSnapPoint })
+
+    const handleAddPeopleToCanvas = useCallback((personIds: string[]) => {
+      const added = peopleCanvasActions.add(personIds)
+      if (added > 0 && drawerFullscreen) {
+        handleActiveSnapPointChange(WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT)
+      }
+      return added
+    }, [drawerFullscreen, handleActiveSnapPointChange, peopleCanvasActions])
 
     const { handleOpenChange, handleDataShortcutClick } =
       useWorkspaceDrawerControls({
@@ -222,7 +231,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
 
     // Mount Vaul with the restored snap and a measurable canvas, never the
     // temporary collapsed/zero-height startup geometry.
-    if (!preferencesReady || canvasHeight <= 0) return null
+    if (!preferencesReady || canvasHeight <= 0 || canvasWidth <= 0) return null
 
     return (
       <Drawer
@@ -291,7 +300,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
                     ...floatingShellStyle(canvasHeight),
                     ...(desktop ? { height: dockHeight } : {}),
                   }
-                : undefined
+                : { height: canvasHeight, width: canvasWidth }
             }
             data-workspace-canvas-drawer-fullscreen={
               !desktop && drawerFullscreen ? "true" : undefined
@@ -342,7 +351,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
                   }
                   handleTabOpen={handleTabOpen}
                   handleTabChange={handleTabChange}
-                  peopleCanvasActions={peopleCanvasActions}
+                  peopleCanvasActions={{ ...peopleCanvasActions, add: handleAddPeopleToCanvas }}
                   organizationEditorData={organizationEditorData}
                   financeInput={financeInput}
                   pendingAcceleratorRequest={pendingAcceleratorRequest}

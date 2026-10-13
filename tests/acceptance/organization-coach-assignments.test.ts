@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   defaultOrganizationCoachFilter,
@@ -251,6 +251,7 @@ describe("organization-coach-assignments feature contract", () => {
   it("allows project assets for a permitted coach only while the organization is unassigned", async () => {
     function client(canAccessUnassigned: boolean, assignedCoachId: string | null) {
       return {
+        rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
         from(table: string) {
           const filters = new Map<string, string>()
           const query = {
@@ -277,7 +278,7 @@ describe("organization-coach-assignments feature contract", () => {
       } as unknown as Parameters<typeof canAccessProjectOrg>[0]["supabase"]
     }
 
-    const input = { orgId: "org-1", userId: "coach-1", requireEdit: true }
+    const input = { projectId: "20000000-0000-4000-8000-000000000002", orgId: "org-1", userId: "coach-1", requireEdit: true }
     expect(await canAccessProjectOrg({ ...input, supabase: client(true, null) })).toBe(true)
     expect(await canAccessProjectOrg({ ...input, supabase: client(true, "coach-2") })).toBe(false)
     expect(await canAccessProjectOrg({ ...input, supabase: client(false, null) })).toBe(false)

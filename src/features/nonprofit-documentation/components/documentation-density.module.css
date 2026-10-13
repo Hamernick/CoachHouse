@@ -23,7 +23,7 @@
 }
 
 /* Documentation owns this scale; shared app primitives retain their defaults. */
-.surface :global(:where(button:not([role]))),
+.surface :global(:where(button:not([role]):not([data-fiscal-section-trigger]))),
 .surface :global([data-slot="button"]),
 .surface :global([data-slot="input"]),
 .surface :global([data-slot="select-trigger"]) {
@@ -51,7 +51,7 @@
 }
 
 @media (min-width: 48rem) {
-  .surface :global(:where(button:not([role]))),
+  .surface :global(:where(button:not([role]):not([data-fiscal-section-trigger]))),
   .surface :global([data-slot="button"]) {
     height: auto;
     min-height: 2rem;
@@ -90,7 +90,7 @@
     font-size: 0.8125rem;
   }
 
-  .surface :global(:where(button:not([role])) > svg),
+  .surface :global(:where(button:not([role]):not([data-fiscal-section-trigger])) > svg),
   .surface :global([data-slot="button"] > svg),
   .surface :global([data-slot="select-trigger"] > svg) {
     width: 0.875rem;

@@ -54,14 +54,15 @@ describe("public home-canvas login section", () => {
     expect(result.props.initialSection).toBeUndefined()
   })
 
-  it("keeps pricing in the existing canvas surface", async () => {
+  it("redirects old canvas pricing links while preserving campaign and plan parameters", async () => {
     const { default: LandingPage } =
       await import("@/app/(public)/home-canvas/page")
-    const result = await LandingPage({
-      searchParams: Promise.resolve({ section: "pricing" }),
-    })
+    const destination = await captureRedirect(() => LandingPage({
+      searchParams: Promise.resolve({ section: "pricing", embed: "1", source: "campaign", plan: "organization" }),
+    }))
 
-    expect(result.props.initialSection).toBe("pricing")
+    expect(destination).toBe("/pricing?source=campaign&plan=organization")
+    expect(createSupabaseServerClientServerMock).not.toHaveBeenCalled()
   })
 
   it("still renders the home login section for signed-out visitors", async () => {

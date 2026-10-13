@@ -2,9 +2,14 @@
 
 import dynamic from "next/dynamic"
 import { useEffect, useState, type ComponentProps } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
 
 import { toast } from "@/lib/toast"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { getOrganizationLaunchReturnHref, resolveEditorReturnDestination } from "@/lib/workspace/editor-navigation"
 
 import type { WorkspaceOrganizationEditorData } from "../../workspace-board-types"
 import { resolveRetainedDrawerRequest } from "./workspace-retained-panel"
@@ -52,11 +57,21 @@ export function WorkspaceCanvasOverlayOrganizationPanel({
     if (pendingRequestId != null)
       toast.info("Close the current program editor to follow this link.")
   }, [pendingRequestId])
+  const searchParams = useSearchParams()
+  const guided = searchParams.get("guide") === "1" && searchParams.get("view") !== "editor"
+  const guidePrograms = guided &&
+    searchParams.get("guideStep") === "program" && searchParams.get("view") !== "editor"
+  const returnHref = getOrganizationLaunchReturnHref(searchParams.toString())
   return (
     <div
       data-workspace-organization-drawer-panel="true"
       className="mx-auto box-border w-full max-w-3xl min-w-0 p-2 select-text sm:p-3 [&_[data-slot=organization-profile-section]]:grid-cols-1 [&_div:has(>[data-slot=organization-profile-field])]:grid-cols-1"
     >
+      {returnHref ? (
+        <Button asChild variant="ghost" size="sm" className="sticky top-0 z-20 mb-2 gap-1.5 bg-background text-xs text-muted-foreground">
+          <Link href={returnHref}><ArrowLeftIcon className="size-3.5" aria-hidden="true" />{searchParams.get("from") === "workspace-guide" ? "Back to setup" : resolveEditorReturnDestination(returnHref).label === "Public preview" ? "Back to preview" : "Back to checklist"}</Link>
+        </Button>
+      ) : null}
       <MyOrganizationEditorView
         navigationRequestId={destination?.id}
         onProgramEditorOpenChange={setProgramEditorOpen}
@@ -66,30 +81,30 @@ export function WorkspaceCanvasOverlayOrganizationPanel({
         people={data.people}
         programs={data.programs}
         initialTab={
-          destination?.tab === "organization"
+          guided ? (guidePrograms ? "programs" : "company") : destination?.tab === "organization"
             ? (destination.organizationTab ?? "company")
             : undefined
         }
         initialProgramId={
-          destination?.tab === "organization"
+          !guided && destination?.tab === "organization"
             ? destination.organizationProgramId
             : null
         }
         initialProgramStep={
-          destination?.tab === "organization"
+          !guided && destination?.tab === "organization"
             ? destination.organizationProgramStep
             : null
         }
         initialFocus={
-          destination?.tab === "organization"
+          !guided && destination?.tab === "organization"
             ? destination.organizationFocus
             : null
         }
         initialEditMode={
-          destination?.tab === "organization" &&
+          !guided && destination?.tab === "organization" &&
           destination.organizationEditMode
         }
-        canEdit={data.canEdit}
+        canEdit={data.canEdit && !guided}
       />
     </div>
   )

@@ -95,6 +95,12 @@ export async function loadW9Context(projectId: string): Promise<
 > {
   const context = await resolveProjectAndContext(projectId)
   if ("error" in context) return context
+  const guestScope = await context.supabase.rpc("fiscal_guest_project_reviewer_access", {
+    p_project_id: context.project.id, p_user_id: context.user.id,
+  })
+  if (guestScope.error || guestScope.data !== null) {
+    return { error: "Guest tax-form signing is not available yet." }
+  }
   const loaded = await loadFiscalApplicationForProject(context)
   if ("error" in loaded) return loaded
   const signerResult = await resolveFiscalApplicantSigner(loaded.application)

@@ -50,6 +50,7 @@ type GoogleAuthPanelProps = {
   intentFocus?: GoogleSignupInput["intentFocus"]
   signUpMetadata?: Record<string, unknown>
   showDivider?: boolean
+  redirectOnSuccess?: boolean
   onSuccess?: () => void | Promise<void>
 }
 
@@ -62,6 +63,7 @@ export function GoogleAuthPanel({
   signUpMetadata,
   showDivider = true,
   onSuccess,
+  redirectOnSuccess = true,
 }: GoogleAuthPanelProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
   const {
@@ -79,6 +81,7 @@ export function GoogleAuthPanel({
     intentFocus,
     signUpMetadata,
     onSuccess,
+    redirectOnSuccess,
   })
   const isConfigured = resolveGoogleAuthCapabilities({
     clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,

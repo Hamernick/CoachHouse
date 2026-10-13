@@ -23,7 +23,6 @@ import {
 } from "./workspace-board-debug"
 import { useWorkspaceNodePositionPersistence } from "./workspace-board-canvas-node-position-persistence"
 import {
-  applyWorkspaceTutorialSnapshot,
   areWorkspaceOnboardingFlowStatesEqual,
 } from "./workspace-board-onboarding-flow"
 import { WorkspaceBoardCanvasBody } from "./workspace-board-canvas-body"
@@ -65,12 +64,8 @@ export function WorkspaceBoardCanvas({
     const reducedBoardState = reduceWorkspaceBoardVisibility(seed.boardState, {
       type: "hydrate_legacy_visibility",
     })
-    const resolvedBoardState = reducedBoardState.onboardingFlow.active
-      ? applyWorkspaceTutorialSnapshot(
-          reducedBoardState,
-          reducedBoardState.onboardingFlow
-        )
-      : reducedBoardState
+    // The action guide uses real editors and leaves authored canvas positions intact.
+    const resolvedBoardState = reducedBoardState
 
     return initialFocusCardId
       ? {

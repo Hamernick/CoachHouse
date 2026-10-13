@@ -16,6 +16,7 @@ import { getWorkspaceAcceleratorPaywallPath } from "@/lib/workspace/routes"
 
 import { resolveWorkspaceAcceleratorReadinessSummary } from "../../workspace-board-accelerator-card-helpers"
 import type { WorkspaceDataDrawerRequest } from "./workspace-canvas-overlay-drawer-tabs"
+import { resolveWorkspaceDataDrawerRequest } from "./workspace-canvas-overlay-drawer-tabs"
 import type { WorkspaceCanvasSurfaceV2Props } from "./workspace-canvas-surface-v2-types"
 
 type WorkspaceAcceleratorDrawerArgs = Pick<
@@ -47,6 +48,7 @@ function resolveInitialWorkspaceDataDrawerRequest(
   if (initialDrawerTab === "accelerator") {
     return {
       tab: "accelerator",
+      focusKey: organizationEditorData.initialFocus,
       acceleratorStepId: organizationEditorData.initialAcceleratorStepId,
       acceleratorModuleId: organizationEditorData.initialAcceleratorModuleId,
       acceleratorLessonGroupKey: organizationEditorData.initialAcceleratorGroup,
@@ -123,6 +125,14 @@ export function useWorkspaceAcceleratorDrawer({
       }),
     [open]
   )
+  useEffect(() => {
+    const restoreFromUrl = () => {
+      const next = resolveWorkspaceDataDrawerRequest(window.location.href)
+      if (next) open(next)
+    }
+    window.addEventListener("popstate", restoreFromUrl)
+    return () => window.removeEventListener("popstate", restoreFromUrl)
+  }, [open])
   useEffect(() => {
     if (
       handledInitialDrawerRequestRef.current === initialDrawerRequestSignature

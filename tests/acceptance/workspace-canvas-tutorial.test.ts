@@ -312,6 +312,7 @@ describe("workspace canvas tutorial", () => {
       "calendar",
       "communications",
       "atlas",
+      "fiscal-sponsorship",
     ])
   })
 })

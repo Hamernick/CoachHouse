@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+import { mockPublicResourceDirectory } from "./fixtures/public-resource-directory"
 
 async function stabilizeForScreenshot(page: Page) {
   await page.addStyleTag({
@@ -290,207 +291,39 @@ test("Fund fiscal sponsorship card wraps at 320 pixels", async ({ page }) => {
   ).toBeVisible()
 })
 
-test("public Find uses the shared tabs in its permanent drawer", async ({
-  page,
-}) => {
-  test.setTimeout(60_000)
-  await page.route("**/api/public/resource-map/index?**", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: {
-        page: {
-          hasMore: false,
-          limit: 200,
-          nextCursor: null,
-          totalCount: 1,
-        },
-        resourceItems: [
-          {
-            city: "Chicago",
-            country: "United States",
-            id: "resource_map:visual-food-pantry",
-            itemType: "external_resource",
-            latitude: 41.881,
-            longitude: -87.629,
-            primaryResourceCategory: "food",
-            resourceCategories: ["food"],
-            state: "IL",
-            subtitle: "Community food access",
-            title: "Visual Test Food Pantry",
-            verificationStatus: "external_data",
-            visibility: "published",
-          },
-        ],
-        version: 2,
-      },
-      status: 200,
-    })
-  })
-  await page.goto("/")
-
-  const drawer = page.getByRole("dialog", { name: "Resource map panel" })
-  await expect(drawer).toBeVisible({ timeout: 45_000 })
-  const tabList = drawer.locator("[data-public-map-tab-list]")
-  await expect(tabList).toBeVisible()
-  await expect(tabList.getByRole("tab")).toHaveCount(3)
-  await expect(tabList.getByRole("tab", { name: "Find" })).toHaveAttribute(
-    "data-state",
-    "active"
-  )
-  await expect(tabList.getByRole("tab", { name: "Guides" })).toBeVisible()
-  await expect(tabList.getByRole("tab", { name: "My Map" })).toBeVisible()
-  await expect(
-    drawer.getByRole("searchbox", {
-      name: "Find organizations and resources",
-    })
-  ).toBeVisible()
-  await expect(
-    drawer.getByRole("heading", { name: "Find Nearby" })
-  ).toBeVisible()
-  await expect(drawer.getByLabel("Filter resources by category")).toHaveCount(0)
-  const searchInput = drawer.getByRole("searchbox", {
-    name: "Find organizations and resources",
-  })
-  expect(
-    await searchInput.evaluate(
-      (element) =>
-        getComputedStyle(element.closest(".text-card-foreground")!)
-          .borderBottomWidth
-    )
-  ).toBe("0px")
-  await searchInput.fill("food")
-  await expect(drawer.getByLabel("Filter resources by category")).toBeVisible()
-  await expect(drawer.getByRole("button", { name: "Cancel" })).toBeVisible()
-  const resultTriggers = drawer.locator(
-    '[data-public-map-result-trigger="true"]'
-  )
-  await expect(resultTriggers.first()).toBeVisible()
-  await expect(
-    drawer.locator('[data-public-map-organization-list-section="card-grid"]')
-  ).toHaveClass(/divide-y/)
-
-  await searchInput.press("ArrowDown")
-  await expect(page.locator(":focus")).toHaveAttribute(
-    "data-public-map-result-trigger",
-    "true"
-  )
-  const firstFocusedLabel = await page
-    .locator(":focus")
-    .getAttribute("aria-label")
-  await page.keyboard.press("ArrowDown")
-  await expect(page.locator(":focus")).not.toHaveAttribute(
-    "aria-label",
-    firstFocusedLabel ?? ""
-  )
-  await page.keyboard.press("Escape")
-  await expect(searchInput).toBeFocused()
-  await searchInput.press("Escape")
-  await expect(searchInput).toHaveValue("")
-  await searchInput.press("Escape")
-  await expect(
-    drawer.getByRole("heading", { name: "Find Nearby" })
-  ).toBeVisible()
-})
-
-test("public Find resizes its mobile drawer through the accessible handle", async ({
-  page,
-}) => {
-  test.setTimeout(60_000)
-  const consoleErrors: string[] = []
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text())
-  })
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto("/")
-
-  const drawer = page.locator('[data-slot="drawer-content"]')
-  await expect(drawer).toBeVisible({ timeout: 30_000 })
-  const tabList = drawer.locator("[data-public-map-tab-list]")
-  await expect(tabList.getByRole("tab")).toHaveCount(3)
-  await expect(tabList.getByRole("tab", { name: "Find" })).toBeVisible()
-  await expect(tabList.getByRole("tab", { name: "Guides" })).toBeVisible()
-  await expect(tabList.getByRole("tab", { name: "My Map" })).toBeVisible()
-  await expect(
-    drawer.getByRole("searchbox", {
-      name: "Find organizations and resources",
-    })
-  ).toBeVisible()
-  await expect(drawer).toHaveAttribute("data-public-map-drawer-snap-index", "0")
-  const resizeToMiddleControl = drawer.getByRole("button", {
-    name: "Resize resource map panel to middle height",
-  })
-  await expect(resizeToMiddleControl).toBeVisible()
-  const resizeControlHeight = await resizeToMiddleControl.evaluate((element) =>
-    Math.round(element.getBoundingClientRect().height)
-  )
-  const restingBackground = await resizeToMiddleControl.evaluate(
-    (element) => getComputedStyle(element).backgroundColor
-  )
-  expect(resizeControlHeight).toBe(23)
-  await resizeToMiddleControl.hover()
-  await expect
-    .poll(() =>
-      resizeToMiddleControl.evaluate(
-        (element) => getComputedStyle(element).backgroundColor
-      )
-    )
-    .toBe(restingBackground)
-  await resizeToMiddleControl.click()
-  await expect(drawer).toHaveAttribute("data-public-map-drawer-snap-index", "1")
-  const resizeToFullControl = drawer.getByRole("button", {
-    name: "Resize resource map panel to full height",
-  })
-  await expect(resizeToFullControl).toBeVisible()
-  await resizeToFullControl.click()
-  await expect(drawer).toHaveAttribute("data-public-map-drawer-snap-index", "2")
-  const returnToMiddleControl = drawer.getByRole("button", {
-    name: "Resize resource map panel to middle height",
-  })
-  await expect(returnToMiddleControl).toBeVisible()
-  await returnToMiddleControl.click()
-  await expect(drawer).toHaveAttribute("data-public-map-drawer-snap-index", "1")
-  await expect(resizeToFullControl).toBeVisible()
-  await expect(
-    page.locator('header button[aria-label="Open Find, Guides, and Saved"]')
-  ).toHaveCount(0)
-  expect(consoleErrors).toEqual([])
-})
-
-test("public Find keeps balanced desktop frame gutters", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/")
-
-  const contentFrame = page.locator("[data-public-find-content-frame]").last()
-  await expect(contentFrame).toBeVisible()
-  const gutters = await contentFrame.evaluate((element) => {
-    const style = window.getComputedStyle(element)
-    const frame = element.firstElementChild?.getBoundingClientRect()
-
-    return {
-      frameLeft: frame?.left ?? null,
-      frameRight: frame ? window.innerWidth - frame.right : null,
-      paddingLeft: Number.parseFloat(style.paddingLeft),
-      paddingRight: Number.parseFloat(style.paddingRight),
-    }
-  })
-
-  expect(gutters.paddingLeft).toBeGreaterThan(0)
-  expect(gutters.paddingLeft).toBe(gutters.paddingRight)
-  expect(gutters.frameLeft).toBe(gutters.frameRight)
-})
-
-for (const width of [768, 1024]) {
-  test(`public Find keeps one directory drawer at ${width}px`, async ({
-    page,
-  }) => {
-    test.setTimeout(60_000)
-    await page.setViewportSize({ width, height: 800 })
-    await page.goto("/")
-
-    await expect(page.locator("[data-public-map-tab-list]")).toBeVisible()
-    await expect(page.locator('[data-slot="drawer-content"]')).toHaveCount(1)
-    await expect(
-      page.locator('[data-public-map-tabbed-rail-placement="home-canvas"]')
-    ).toHaveCount(0)
+// Resources replaced the old permanent drawer and Find/Guides/My Map tabs.
+// Keep responsive/search coverage against the shipped map + floating dock flow.
+for (const width of [390, 768, 1024, 1440]) {
+  test(`public Resources keeps its map and search dock reachable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await mockPublicResourceDirectory(page)
+    await page.goto("/resources?react-grab=0")
+    const map = page.locator("[data-public-map-card]")
+    const dock = page.getByRole("navigation", { name: "Resource search and collection" })
+    await expect(map).toBeVisible()
+    await expect(dock).toBeVisible()
+    await expect(dock.getByRole("searchbox", { name: "Find organizations and resources" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Find Nearby" })).toBeVisible()
+    await expect(page.locator('[data-slot="drawer-content"]')).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    const mapBox = await map.boundingBox()
+    const dockBox = await dock.boundingBox()
+    expect(mapBox!.y).toBeGreaterThanOrEqual(0)
+    expect(dockBox!.y + dockBox!.height).toBeLessThanOrEqual(845)
+    expect(mapBox!.width).toBeLessThanOrEqual(width)
   })
 }
+
+test("public Resources searches and clears from its floating dock", async ({ page }) => {
+  await mockPublicResourceDirectory(page)
+  await page.goto("/resources?react-grab=0")
+  const search = page.getByRole("searchbox", { name: "Find organizations and resources" })
+  await expect(search).toBeVisible()
+  await search.fill("food")
+  await expect(search).toHaveValue("food")
+  await expect(page.locator("[data-public-map-search-results-status]")).toBeVisible()
+  await search.press("Escape")
+  await expect(search).toHaveValue("")
+  await search.press("Escape")
+  await expect(page.getByRole("heading", { name: "Find Nearby" })).toBeVisible()
+})

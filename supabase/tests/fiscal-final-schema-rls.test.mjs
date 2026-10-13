@@ -125,13 +125,64 @@ try {
   ])
   started = true
 
+  if (process.argv.includes("--guest")) {
+    runSql("supabase/tests/guest-fiscal-submission.bootstrap.sql")
+    runSql("supabase/migrations/20260609154000_add_fiscal_sponsorship_applications.sql")
+    runSql("supabase/migrations/20261010100000_guest_fiscal_submission.sql")
+    runSql("supabase/migrations/20261010120000_fiscal_staff_event_notifications.sql")
+    runSql("supabase/migrations/20261012160000_guest_fiscal_submission_notifications.sql")
+    runSql("supabase/tests/guest-fiscal-submission.assertions.sql")
+    runSql("supabase/tests/fiscal-staff-notifications.assertions.sql")
+    runSql("supabase/tests/guest-fiscal-reviewer-scope.bootstrap.sql")
+    runSql("supabase/migrations/20261010130000_guest_fiscal_reviewer_scope.sql")
+    runSql("supabase/migrations/20261010140000_guest_fiscal_project_views.sql")
+    runSql("supabase/tests/guest-fiscal-project-views.assertions.sql")
+    runSql("supabase/migrations/20261010150000_guest_fiscal_delivery.sql")
+    runSql("supabase/tests/guest-fiscal-delivery.assertions.sql")
+    runSql("supabase/migrations/20261010160000_guest_fiscal_drafts.sql")
+    runSql("supabase/tests/guest-fiscal-drafts.assertions.sql")
+    runSql("supabase/migrations/20261010170000_guest_fiscal_email_proof.sql")
+    runSql("supabase/tests/guest-fiscal-email-proof.assertions.sql")
+    runSql("supabase/tests/guest-fiscal-profile-claim.bootstrap.sql")
+    if (!process.argv.includes("--release-mvp")) {
+      runSql("supabase/migrations/20261010180000_guest_fiscal_profile_claim.sql")
+      runSql("supabase/tests/guest-fiscal-profile-claim.assertions.sql")
+    }
+    runSql("supabase/tests/guest-fiscal-reviewer-scope.assertions.sql")
+    runSql("supabase/migrations/20261011090000_guest_fiscal_followup.sql")
+    runSql("supabase/migrations/20261011100000_guest_fiscal_followup_notifications.sql")
+    runSql("supabase/tests/guest-fiscal-followup.assertions.sql")
+    runSql("supabase/migrations/20261011110000_guest_fiscal_recovery.sql")
+    runSql("supabase/tests/guest-fiscal-recovery.assertions.sql")
+    runSql("supabase/migrations/20261011120000_fiscal_email_delivery_tracking.sql")
+    runSql("supabase/tests/fiscal-email-delivery.assertions.sql")
+    runSql("supabase/tests/guest-fiscal-related-records.bootstrap.sql")
+    runSql("supabase/migrations/20261011130000_guest_fiscal_related_records.sql")
+    runSql("supabase/tests/guest-fiscal-related-records.assertions.sql")
+    if (process.argv.includes("--connected")) {
+      const connected = spawnSync("pnpm", ["exec", "vitest", "run", "tests/acceptance/fiscal-sponsorship-connected-storage.test.ts", "--maxWorkers=1", "--config", "vitest.config.ts"], {
+        cwd: root, encoding: "utf8", timeout: 90000,
+        env: { ...process.env, FISCAL_STORAGE_TEST: "ephemeral", FISCAL_STORAGE_TEST_PORT: port, FISCAL_STORAGE_TEST_PSQL: binary("psql") },
+      })
+      if (connected.status !== 0) throw new Error(`Connected storage test failed:\n${connected.stdout}\n${connected.stderr}`)
+      console.log(connected.stdout)
+    }
+    console.log("[guest-fiscal] Atomic project/application/assignment/outbox and denial tests passed.")
+  } else {
   runSql("supabase/tests/fiscal-final-schema-rls.bootstrap.sql")
   runSql("supabase/migrations/20260806010000_harden_fiscal_sponsorship_rls.sql")
   runSql("supabase/tests/fiscal-final-schema-rls.assertions.sql")
 
+  runSql("supabase/tests/public-fiscal-intake.bootstrap.sql")
+  runSql("supabase/migrations/20260505120000_gate_member_workspace_paid_access.sql")
+  runSql("supabase/migrations/20261010090000_public_fiscal_intake.sql")
+  runSql("supabase/tests/public-fiscal-intake.assertions.sql")
+
+  console.log("[fiscal-intake] Anonymous denial, owner isolation, profile preservation and idempotent start passed.")
   console.log(
     "[fiscal-rls] Final-schema role matrix passed for owner, staff, board, sponsor operator, assigned coach, unassigned coach, and unrelated user."
   )
+  }
 } finally {
   if (started) {
     spawnSync(binary("pg_ctl"), [

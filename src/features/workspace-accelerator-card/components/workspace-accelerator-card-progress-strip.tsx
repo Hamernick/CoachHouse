@@ -1,15 +1,13 @@
 "use client"
 
-import { AcceleratorProgressRail } from "@/components/accelerator/accelerator-progress-rail"
+import * as ProgressPrimitive from "@radix-ui/react-progress"
+import { clampPercent } from "@/components/accelerator/accelerator-org-snapshot-strip/helpers"
+import { WorkspaceAcceleratorReadinessControls } from "./workspace-accelerator-readiness-controls"
 import {
   getReactGrabLinkedSurfaceProps,
   getReactGrabOwnerProps,
 } from "@/components/dev/react-grab-surface"
 import { WorkspaceTutorialCallout } from "@/components/workspace/workspace-tutorial-callout"
-import {
-  ACCELERATOR_FUNDABLE_THRESHOLD,
-  ACCELERATOR_VERIFIED_THRESHOLD,
-} from "@/lib/accelerator/readiness"
 import type { WorkspaceAcceleratorTutorialCallout } from "../types"
 import type { AcceleratorReadinessSummary } from "@/lib/accelerator/readiness"
 import { cn } from "@/lib/utils"
@@ -44,7 +42,7 @@ export function WorkspaceAcceleratorCardProgressPercent({
           "text-sky-600 dark:text-sky-300"
       )}
     >
-      {progressPercent}%
+      {clampPercent(progressPercent)}% lessons complete
     </span>
   )
 }
@@ -59,15 +57,22 @@ export function WorkspaceAcceleratorCardProgressRail({
 }: WorkspaceAcceleratorCardProgressStripProps) {
   const rail = (
     <div className={cn("space-y-2", className)}>
-      <AcceleratorProgressRail
-        progressPercent={progressPercent}
-        fundableCheckpoint={ACCELERATOR_FUNDABLE_THRESHOLD}
-        verifiedCheckpoint={ACCELERATOR_VERIFIED_THRESHOLD}
-        fundableChecklist={readinessSummary?.fundableChecklist ?? []}
-        verifiedChecklist={readinessSummary?.verifiedChecklist ?? []}
-        showMilestones={showMilestones}
-        showMilestoneTooltips={showMilestoneTooltips}
-      />
+      <ProgressPrimitive.Root
+        data-slot="accelerator-lesson-progress"
+        value={clampPercent(progressPercent)}
+        max={100}
+        aria-label="Lessons complete"
+        className="relative h-3 w-full overflow-hidden rounded-full bg-muted"
+      >
+        <ProgressPrimitive.Indicator
+          data-slot="accelerator-lesson-progress-indicator"
+          className="h-full rounded-full bg-primary motion-safe:transition-[width]"
+          style={{ width: `${clampPercent(progressPercent)}%` }}
+        />
+      </ProgressPrimitive.Root>
+      {showMilestones && showMilestoneTooltips ? (
+        <WorkspaceAcceleratorReadinessControls summary={readinessSummary} />
+      ) : null}
     </div>
   )
 
@@ -104,7 +109,7 @@ export function WorkspaceAcceleratorCardProgressSummary({
         source: WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE,
         slot: "progress-summary",
         notes:
-          "Owns the accelerator percent, progress rail, and milestone checkpoint triggers as one progress cluster.",
+          "Owns lesson completion and the separate organization readiness checklists.",
       })}
       className={cn("flex min-w-0 flex-1 flex-col gap-2", className)}
     >
@@ -125,7 +130,7 @@ export function WorkspaceAcceleratorCardProgressSummary({
               "text-sky-600 dark:text-sky-300"
           )}
         >
-          {progressPercent}% complete
+          {clampPercent(progressPercent)}% lessons complete
         </p>
       </div>
       <div
@@ -135,7 +140,7 @@ export function WorkspaceAcceleratorCardProgressSummary({
           source: WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE,
           slot: "progress-rail",
           surfaceKind: "root",
-          primitiveImport: "@/components/accelerator/accelerator-progress-rail",
+          primitiveImport: "@radix-ui/react-progress",
         })}
         className="w-full"
       >

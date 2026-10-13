@@ -1,0 +1,48 @@
+name: public-visual-reference
+
+# Generates review artifacts only. The separate required quality workflow still
+# compares committed references and must pass before merge.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/public-visual-reference.yml
+      - tests/visual/build-collect-navigation.visual.spec.ts
+      - tests/visual/public-shell.visual.spec.ts
+      - tests/visual/find-resource-detail.visual.spec.ts
+      - tests/visual/fixtures/public-resource-directory.ts
+      - tests/visual/documentation.visual.spec.ts
+      - tests/visual/app-shell-mobile.visual.spec.ts
+      - tests/visual/focus-indicators.visual.spec.ts
+
+permissions:
+  contents: read
+
+jobs:
+  references:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Generate public references for review
+        run: pnpm test:visual:update all tests/visual/build-collect-navigation.visual.spec.ts tests/visual/public-shell.visual.spec.ts tests/visual/find-resource-detail.visual.spec.ts tests/visual/documentation.visual.spec.ts tests/visual/app-shell-mobile.visual.spec.ts tests/visual/focus-indicators.visual.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-visual-references-${{ github.sha }}
+          path: |
+            tests/visual/build-collect-navigation.visual.spec.ts-snapshots/
+            tests/visual/public-shell.visual.spec.ts-snapshots/
+            tests/visual/documentation.visual.spec.ts-snapshots/
+            tests/visual/app-shell-mobile.visual.spec.ts-snapshots/
+            test-results/
+          retention-days: 7

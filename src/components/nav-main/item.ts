@@ -21,7 +21,7 @@ export type NavMainItem = {
   upgradeLabel?: string
 }
 
-export function buildMainNavItemReactGrabProps(item: NavMainItem) {
+export function buildMainNavItemReactGrabProps(item: NavMainItem, source = NAV_MAIN_SOURCE) {
   const ownerId = buildAppSidebarOwnerId("main", item.href ?? item.title)
   const notes = `Main sidebar nav item: ${item.title}`
 
@@ -29,14 +29,14 @@ export function buildMainNavItemReactGrabProps(item: NavMainItem) {
     ownerProps: buildAppSidebarMenuButtonOwnerProps({
       ownerId,
       component: "AppSidebarMainNavItem",
-      source: NAV_MAIN_SOURCE,
+      source,
       variant: item.tree?.length ? "tree" : item.locked ? "locked" : "link",
       notes,
     }),
     tooltipProps: buildAppSidebarTooltipProps({
       ownerId,
       component: "AppSidebarMainNavItem",
-      source: NAV_MAIN_SOURCE,
+      source,
       children: item.title,
       notes,
     }),

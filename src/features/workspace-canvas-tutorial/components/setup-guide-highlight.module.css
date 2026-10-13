@@ -1,0 +1,11 @@
+/* Highlight the surface itself so its radius, zoom and clipping stay exact. */
+.target {
+  border-color: var(--chart-2) !important;
+  box-shadow: 0 0 0 1px var(--chart-2) !important;
+}
+
+/* Activity is an unpadded section, so surround its content without moving it. */
+.target[data-setup-guide-target="programs"] {
+  margin: -8px;
+  padding: 8px;
+}

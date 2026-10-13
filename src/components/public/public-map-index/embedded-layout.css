@@ -1,0 +1,89 @@
+/* Leave room for complete result rows and their controls on short screens. */
+.public-map-embedded-layout:has([data-public-map-paged-results]) [data-public-map-screen] {
+  --map-available-height: min(var(--map-expanded-height), max(5rem, calc(100svh - 26rem)));
+  --map-results-height: var(--map-available-height);
+}
+
+.public-map-embedded-layout:has([data-public-map-paged-results]) [data-public-map-pinned] {
+  padding-bottom: 0;
+}
+
+/* The dock covers the bottom; only the scrolled top edge fades. */
+.public-map-embedded-layout [data-public-map-result-feed] {
+  --feed-bottom-clearance: calc(var(--map-feed-dock-overlap, 32px) + 16px);
+  scroll-padding-bottom: var(--feed-bottom-clearance);
+}
+
+.public-map-embedded-layout [data-public-map-result-feed] {
+  --map-scroll-fade-inset: 0px;
+}
+
+/* Match the shared 64px scroll fade. Alpha reveals the actual page surface,
+   so light, dark and system themes never acquire a mismatched color strip. */
+.public-map-embedded-layout [data-public-map-result-feed][data-scrolled="true"],
+.public-map-embedded-layout [data-public-map-explorer-panel][data-scrolled="true"] {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent var(--map-scroll-fade-inset),
+    rgb(0 0 0 / 0.16) calc(var(--map-scroll-fade-inset) + 16px),
+    rgb(0 0 0 / 0.5) calc(var(--map-scroll-fade-inset) + 32px),
+    rgb(0 0 0 / 0.84) calc(var(--map-scroll-fade-inset) + 48px),
+    black calc(var(--map-scroll-fade-inset) + 64px)
+  );
+}
+
+.public-map-embedded-layout [data-public-map-feed-content] {
+  /* At the end, the claim action can scroll fully above the dock. */
+  padding-bottom: var(--feed-bottom-clearance);
+}
+
+.public-map-embedded-layout:has([data-public-map-paged-results]) [data-compact="true"] [data-public-map-screen] {
+  --map-results-height: min(var(--map-available-height), clamp(5rem, calc(var(--map-available-height) * 0.5), 11.25rem));
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] article {
+  height: 5rem;
+  min-height: 5rem;
+  padding: 0;
+  content-visibility: visible !important;
+  animation: public-map-result-enter 180ms ease-out both;
+}
+
+@keyframes public-map-result-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-map-embedded-layout [data-public-map-paged-results] article { animation: none; }
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] [data-public-map-result-trigger] {
+  height: 100%;
+  border-radius: inherit;
+  padding: 0.75rem 1rem;
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] [data-public-map-list-title] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] [data-public-map-list-metadata] {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] [data-public-map-list-metadata] > div {
+  flex-wrap: nowrap;
+}
+
+.public-map-embedded-layout [data-public-map-paged-results] [data-public-map-list-metadata] span span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

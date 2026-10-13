@@ -515,6 +515,7 @@ export function buildWorkspaceCanvasTutorialCompletionHiddenCardIds() {
     "calendar",
     "communications",
     "atlas",
+    "fiscal-sponsorship",
   ]
 
   return allCards.filter((cardId) => !visibleOnRest.includes(cardId))

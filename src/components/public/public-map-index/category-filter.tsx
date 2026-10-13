@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { ScrollFadeEffect } from "@/components/scroll-fade-effect"
 import {
-  PUBLIC_MAP_RESOURCE_ALL_CATEGORY_ORDER,
   PUBLIC_MAP_RESOURCE_CATEGORY_COLORS,
   PUBLIC_MAP_RESOURCE_CATEGORY_LABELS,
   PUBLIC_MAP_RESOURCE_CATEGORY_ORDER,
@@ -37,10 +36,6 @@ export const PUBLIC_MAP_GROUP_FILTER_ORDER = [
   ...PUBLIC_MAP_RESOURCE_CATEGORY_ORDER,
 ] satisfies PublicMapGroupFilterKey[]
 
-const PUBLIC_MAP_GROUP_FILTER_COUNT_ORDER = [
-  "all",
-  ...PUBLIC_MAP_RESOURCE_ALL_CATEGORY_ORDER,
-] satisfies PublicMapGroupFilterKey[]
 
 function resolvePublicMapGroupFilterLabel(key: PublicMapGroupFilterKey) {
   return key === "all" ? "All" : PUBLIC_MAP_RESOURCE_CATEGORY_LABELS[key]
@@ -64,31 +59,7 @@ export function resolvePublicMapGroupFilterParam(
   return isPublicMapGroupFilterKey(value) ? value : "all"
 }
 
-export function buildPublicMapGroupFilterCounts(
-  items: Array<{ resourceCategories?: readonly PublicMapResourceCategoryKey[] }>
-): PublicMapGroupFilterCounts {
-  const counts = Object.fromEntries(
-    PUBLIC_MAP_GROUP_FILTER_COUNT_ORDER.map((key) => [key, 0])
-  ) as PublicMapGroupFilterCounts
-
-  counts.all = items.length
-  for (const item of items) {
-    const matchedCategories = new Set<PublicMapResourceCategoryKey>()
-    const categories =
-      item.resourceCategories && item.resourceCategories.length > 0
-        ? item.resourceCategories
-        : (["community"] as const)
-    for (const category of categories) {
-      matchedCategories.add(category)
-      matchedCategories.add(resolvePublicMapResourceTopLevelCategory(category))
-    }
-    for (const category of matchedCategories) {
-      counts[category] += 1
-    }
-  }
-
-  return counts
-}
+export { buildPublicMapGroupFilterCounts } from "@/lib/public-map/resource-map-counts"
 
 export function PublicMapCategoryFilter({
   activeGroup,

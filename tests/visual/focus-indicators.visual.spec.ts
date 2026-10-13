@@ -6,6 +6,10 @@ for (const colorScheme of ["light", "dark"] as const) {
   test(`shared controls keep visible, contrasting focus (${colorScheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme })
     await page.goto("/visual-regression/project-feedback?scenario=accelerator")
+    // The lazy-mounted setup form focuses its first field. Wait for that
+    // initial focus before checking deliberate pointer/keyboard transitions.
+    const input = page.getByTestId("setup-preview").locator("#orgName")
+    await expect(input).toBeFocused()
     const button = page.getByRole("button", { name: /^(Fail|Allow) saves$/ })
     await button.click()
     await expect(button).not.toHaveCSS("outline-style", "solid")
@@ -15,10 +19,15 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(button).toHaveCSS("outline-width", "2px")
     await expect(button).toHaveCSS("outline-style", "solid")
 
-    const input = page.getByTestId("setup-preview").locator("#orgName")
     const notes = page.getByTestId("lesson-preview").locator("textarea")
     for (const control of [input, notes]) {
       await control.click()
+      await expect(control).not.toHaveCSS("outline-style", "solid")
+      await page.keyboard.press("a")
+      await expect(control).not.toHaveCSS("outline-style", "solid")
+      await page.keyboard.press("Shift+Tab")
+      await page.keyboard.press("Tab")
+      await expect(control).toBeFocused()
       await expect(control).toHaveCSS("outline-width", "2px")
       await expect(control).toHaveCSS("outline-style", "solid")
       await expect(control).toHaveCSS("outline-offset", "2px")
@@ -51,13 +60,50 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     await input.evaluate((element) => element.setAttribute("aria-invalid", "true"))
     await input.click()
+    await expect(input).not.toHaveCSS("outline-style", "solid")
+    await page.keyboard.press("Shift+Tab")
+    await page.keyboard.press("Tab")
+    await expect(input).toBeFocused()
     await expect(input).toHaveCSS("outline-width", "2px")
     await expect(input).toHaveCSS("outline-style", "solid")
 
     await page.emulateMedia({ forcedColors: "active" })
-    await input.focus()
+    await input.click()
     await expect(input).toHaveCSS("outline-width", "2px")
     await expect(input).toHaveCSS("outline-style", "solid")
     await expect(input).not.toHaveCSS("outline-color", "rgba(0, 0, 0, 0)")
   })
 }
+
+
+test("resource search distinguishes pointer and keyboard focus", async ({ page }) => {
+  await page.goto("/resources")
+  const input = page.locator("[data-public-map-search-input]")
+  await input.click()
+  await expect(input).toBeFocused()
+  await expect(input).not.toHaveCSS("outline-style", "solid")
+  await page.keyboard.press("a")
+  await expect(input).not.toHaveCSS("outline-style", "solid")
+  await page.keyboard.press("Shift+Tab")
+  await page.keyboard.press("Tab")
+  await expect(input).toBeFocused()
+  await expect(input).toHaveCSS("outline-style", "solid")
+  await expect(input).toHaveCSS("outline-offset", "-3px")
+  await input.click()
+  await expect(input).not.toHaveCSS("outline-style", "solid")
+})
+
+test("touch search focus remains usable without a ring", async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  await page.goto("/resources")
+  const input = page.locator("[data-public-map-search-input]")
+  await input.tap()
+  await expect(input).toBeFocused()
+  await expect(input).not.toHaveCSS("outline-style", "solid")
+  await page.keyboard.press("Tab")
+  await page.keyboard.press("Shift+Tab")
+  await expect(input).toBeFocused()
+  await expect(input).toHaveCSS("outline-style", "solid")
+  await context.close()
+})

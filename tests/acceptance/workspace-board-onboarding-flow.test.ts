@@ -4,11 +4,13 @@ import {
   applyWorkspaceTutorialSnapshot,
   areWorkspaceOnboardingFlowStatesEqual,
   buildDefaultWorkspaceOnboardingFlowState,
+  buildCompletedWorkspaceTutorialBoardState,
   buildRestartedWorkspaceTutorialBoardState,
   normalizeWorkspaceOnboardingFlowState,
 } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-onboarding-flow"
 import type { WorkspaceCanvasTutorialStepId } from "@/features/workspace-canvas-tutorial"
 import type { WorkspaceBoardState } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-types"
+import { buildDefaultBoardState, toggleWorkspaceBoardCardVisibility } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-layout"
 
 const BASE_BOARD_STATE: WorkspaceBoardState = {
   version: 1,
@@ -63,6 +65,20 @@ const BASE_BOARD_STATE: WorkspaceBoardState = {
 }
 
 describe("workspace board onboarding flow equality", () => {
+  it("keeps fiscal sponsorship hidden through new-board tutorial completion", () => {
+    const initial = buildDefaultBoardState()
+    const completed = buildCompletedWorkspaceTutorialBoardState(initial)
+    expect(initial.hiddenCardIds).toContain("fiscal-sponsorship")
+    expect(completed.hiddenCardIds).toContain("fiscal-sponsorship")
+    const restarted = buildRestartedWorkspaceTutorialBoardState(completed)
+    expect(restarted.hiddenCardIds).toContain("fiscal-sponsorship")
+  })
+
+  it("does not hide fiscal sponsorship that an existing organization opened", () => {
+    const visible = toggleWorkspaceBoardCardVisibility(buildDefaultBoardState(), "fiscal-sponsorship")
+    expect(buildCompletedWorkspaceTutorialBoardState(visible).hiddenCardIds).not.toContain("fiscal-sponsorship")
+  })
+
   it("treats opened tutorial step changes as meaningful", () => {
     const base = buildDefaultWorkspaceOnboardingFlowState()
     const openedTutorialStepIds: WorkspaceCanvasTutorialStepId[] = ["accelerator"]

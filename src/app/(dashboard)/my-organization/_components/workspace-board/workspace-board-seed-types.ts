@@ -98,6 +98,7 @@ export type WorkspaceSeedData = {
 }
 
 export type WorkspaceOrganizationEditorData = {
+  organizationLocation?: { latitude: number | null; longitude: number | null }
   initialDrawerTab: WorkspaceDrawerTab | null
   initialAcceleratorGroup: string | null
   initialAcceleratorModuleId: string | null

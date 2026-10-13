@@ -117,8 +117,9 @@ describe("onboarding step footer", () => {
     }
 
     const button = findButton(footer)
-    expect(button?.props.type).toBe("button")
-    button?.props.onClick({
+    const props = button?.props as { type?: string; onClick: (event: { preventDefault: () => void }) => void } | undefined
+    expect(props?.type).toBe("button")
+    props?.onClick({
       preventDefault: () => calls.push("preventDefault"),
     })
 

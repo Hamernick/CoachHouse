@@ -94,11 +94,14 @@ export function DocumentationPageHeader({
             </div>
           </div>
         ) : (
-          <div className="relative isolate grid min-h-60 w-full min-w-0 place-items-center overflow-hidden rounded-lg px-5 py-8 sm:aspect-[3/1] sm:min-h-64 sm:px-8 print:block print:aspect-auto print:min-h-0 print:rounded-none print:p-0">
+          <div className="relative isolate grid min-h-60 w-full min-w-0 place-items-center overflow-hidden rounded-lg bg-neutral-900 px-5 py-8 sm:aspect-[3/1] sm:min-h-64 sm:px-8 print:block print:aspect-auto print:min-h-0 print:rounded-none print:bg-transparent print:p-0">
+            {/* These small local WebPs are already compressed; avoid cold image-optimizer work. */}
             <Image
               src={artworkImage}
               alt=""
               fill
+              placeholder="blur"
+              unoptimized
               className="rounded-lg object-cover print:hidden"
               sizes="(min-width: 1280px) 1100px, (min-width: 768px) 75vw, 100vw"
               preload

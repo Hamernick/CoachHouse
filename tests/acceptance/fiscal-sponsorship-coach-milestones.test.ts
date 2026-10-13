@@ -1,9 +1,40 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { selectFiscalReviewerRecipientIds } from "@/features/fiscal-sponsorship/lib/reviewer-recipients"
+import { canManageFiscalSponsorshipForOrganization, canReadGuestFiscalProject } from "@/features/fiscal-sponsorship/lib/authorization"
+
+describe("guest fiscal reviewer authorization", () => {
+  function client(data: boolean | null, error: object | null = null) {
+    const assignment = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: { coach_user_id: "coach" }, error: null }) }
+    const mock = { rpc: vi.fn().mockResolvedValue({ data, error }), from: vi.fn().mockReturnValue(assignment) }
+    return { mock, supabase: mock as unknown as Parameters<typeof canManageFiscalSponsorshipForOrganization>[0]["supabase"] }
+  }
+  it("accepts an assigned guest reviewer without an organization assignment", async () => {
+    const { mock, supabase } = client(true)
+    expect(await canManageFiscalSponsorshipForOrganization({ accessLevel: "coach", organizationId: "host", projectId: "guest", userId: "coach", supabase })).toBe(true)
+    expect(mock.from).not.toHaveBeenCalled()
+    expect(mock.rpc).toHaveBeenCalledWith("fiscal_guest_project_reviewer_access", { p_project_id: "guest", p_user_id: "coach" })
+  })
+  it.each([false, null])("does not fall back to org assignment on denied/failed guest lookup (%s)", async (data) => {
+    const { mock, supabase } = client(data, data === null ? { code: "unavailable" } : null)
+    expect(await canManageFiscalSponsorshipForOrganization({ accessLevel: "coach", organizationId: "host", projectId: "guest", userId: "coach", supabase })).toBe(false)
+    expect(mock.from).not.toHaveBeenCalled()
+  })
+  it("retains organization assignment for an ordinary project", async () => {
+    const { mock, supabase } = client(null)
+    expect(await canManageFiscalSponsorshipForOrganization({ accessLevel: "coach", organizationId: "host", projectId: "ordinary", userId: "coach", supabase })).toBe(true)
+    expect(mock.from).toHaveBeenCalledWith("organization_coach_assignments")
+  })
+  it("blocks elevated-client reads for unassigned guests and lookup failures", async () => {
+    for (const [data, error] of [[false, null], [null, { code: "unavailable" }]] as const) {
+      const { supabase } = client(data, error)
+      expect(await canReadGuestFiscalProject({ projectId: "guest", userId: "coach", supabase })).toBe(false)
+    }
+  })
+})
 
 const ROOT = process.cwd()
 
@@ -85,5 +116,61 @@ describe("fiscal sponsorship coach milestones", () => {
     expect(organizationPage).toContain(
       "canManageFiscalSponsorshipForOrganization"
     )
+  })
+})
+
+
+const deliveryMocks = vi.hoisted(() => ({ rpc: vi.fn(), send: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: deliveryMocks.rpc }) }))
+vi.mock("@/lib/email/resend", () => ({ sendResendEmail: deliveryMocks.send, canSendResendEmail: () => true }))
+vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_SITE_URL: "https://coachhouse.app" } }))
+import { dispatchFiscalStaffEmails, handleFiscalEmailCron } from "@/features/fiscal-sponsorship/server/staff-email-dispatch"
+
+const notificationJob = {
+  event_id: "10000000-0000-4000-8000-000000000001",
+  project_id: "10000000-0000-4000-8000-000000000002",
+  lease_token: "10000000-0000-4000-8000-000000000003",
+  event_type: "application_submitted",
+}
+
+describe("Karissa fiscal event emails", () => {
+  beforeEach(() => {
+    deliveryMocks.rpc.mockReset()
+    deliveryMocks.send.mockReset().mockResolvedValue({ ok: true, id: "email-id" })
+    vi.stubEnv("INTERNAL_CRON_SECRET", "test-cron-secret")
+    vi.stubEnv("FISCAL_STAFF_EMAILS_ENABLED", "true")
+    deliveryMocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_staff_emails" ? [notificationJob] : true, error: null }))
+  })
+  afterEach(() => vi.unstubAllEnvs())
+  it("does not dispatch staff messages without explicit activation", async () => {
+    vi.stubEnv("FISCAL_STAFF_EMAILS_ENABLED", "false")
+    await expect(dispatchFiscalStaffEmails()).rejects.toThrow("not configured")
+    expect(deliveryMocks.rpc).not.toHaveBeenCalled()
+    expect(deliveryMocks.send).not.toHaveBeenCalled()
+  })
+  it("denies unauthenticated queue dispatch without database or provider calls", async () => {
+    const result = await handleFiscalEmailCron(new Request("https://coachhouse.app/api/internal/cron/fiscal-notifications"))
+    expect(result.status).toBe(401)
+    expect(deliveryMocks.rpc).not.toHaveBeenCalled()
+    expect(deliveryMocks.send).not.toHaveBeenCalled()
+  })
+  it("emails the confirmed fiscal inbox with a stable event key and records provider acceptance", async () => {
+    expect(await dispatchFiscalStaffEmails()).toEqual({ sent: 1, failed: 0 })
+    expect(deliveryMocks.send).toHaveBeenCalledWith(expect.objectContaining({
+      to: "fs@coachhousesolutions.org", idempotencyKey: `fiscal-staff-event/${notificationJob.event_id}`,
+      text: expect.stringContaining(`/projects/${notificationJob.project_id}`),
+    }))
+    expect(deliveryMocks.rpc).toHaveBeenLastCalledWith("finish_fiscal_staff_email", {
+      p_event_id: notificationJob.event_id, p_lease_token: notificationJob.lease_token, p_message_id: "email-id", p_success: true,
+    })
+  })
+  it("records delivery failure for retry without marking it sent", async () => {
+    deliveryMocks.send.mockRejectedValue(new Error("network error"))
+    expect(await dispatchFiscalStaffEmails()).toEqual({ sent: 0, failed: 1 })
+    expect(deliveryMocks.rpc).toHaveBeenLastCalledWith("finish_fiscal_staff_email", expect.objectContaining({ p_success: false, p_message_id: null }))
+  })
+  it("does not claim success when acknowledgement fails", async () => {
+    deliveryMocks.rpc.mockResolvedValueOnce({ data: [notificationJob], error: null }).mockResolvedValueOnce({ data: false, error: null })
+    await expect(dispatchFiscalStaffEmails()).rejects.toThrow("could not be recorded")
   })
 })

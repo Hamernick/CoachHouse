@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     const canRead = await canAccessProjectOrg({
+      projectId,
       orgId: asset.org_id,
       requireEdit: false,
       supabase,
@@ -179,6 +180,7 @@ export async function POST(request: NextRequest) {
     }
 
     const canEdit = await canAccessProjectOrg({
+      projectId,
       orgId: project.org_id,
       requireEdit: true,
       supabase,
@@ -345,6 +347,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const canEdit = await canAccessProjectOrg({
+      projectId,
       orgId: asset.org_id,
       requireEdit: true,
       supabase,
@@ -436,6 +439,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const canEdit = await canAccessProjectOrg({
+      projectId,
       orgId: asset.org_id,
       requireEdit: true,
       supabase,

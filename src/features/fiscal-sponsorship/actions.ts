@@ -1,5 +1,48 @@
 "use server"
 
+import { handleGuestFiscalRecovery as guestRecovery, guestFiscalRecoveryAvailable } from "./server/guest-recovery"
+export async function handleGuestFiscalRecovery(request: Request) { return guestRecovery(request) }
+export async function loadGuestFiscalRecoveryAvailability() { return guestFiscalRecoveryAvailable() }
+
+import { handleGuestFiscalFollowup as guestFollowup } from "./server/guest-followup"
+export async function handleGuestFiscalFollowup(request: Request) { return guestFollowup(request) }
+
+import { handleGuestFiscalProfile as guestProfile } from "./server/guest-profile"
+export async function handleGuestFiscalProfile(request: Request) { return guestProfile(request) }
+
+import { handleGuestFiscalEmailVerification as guestEmailVerification } from "./server/guest-email-proof"
+export async function handleGuestFiscalEmailVerification(request: Request) { return guestEmailVerification(request) }
+
+import { handleGuestFiscalDraft as guestDraft } from "./server/guest-draft"
+import { handleGuestFiscalDraftRetention as guestDraftRetention } from "./server/guest-draft-retention"
+export async function handleGuestFiscalDraft(request: Request) { return guestDraft(request) }
+export async function handleGuestFiscalDraftRetention(request: Request) { return guestDraftRetention(request) }
+
+import { handleGuestFiscalSession as guestSession, handleGuestFiscalSubmission as guestSubmission } from "./server/guest-submission"
+import { handleGuestFiscalEmailCron as guestEmailCron } from "./server/guest-email-dispatch"
+
+export async function handleGuestFiscalSession(request: Request) { return guestSession(request) }
+export async function handleGuestFiscalSubmission(request: Request) { return guestSubmission(request) }
+export async function handleGuestFiscalEmailCron(request: Request) { return guestEmailCron(request) }
+
+
+import { loadGuestFiscalProjectReview as loadGuestFiscalProjectReviewImpl } from "./server/guest-project-review"
+
+export async function loadGuestFiscalProjectReview(projectId: string) {
+  return loadGuestFiscalProjectReviewImpl(projectId)
+}
+
+import { handleFiscalEmailCron as handleFiscalEmailCronImpl } from "./server/staff-email-dispatch"
+
+export async function handleFiscalEmailCron(request: Request) {
+  return handleFiscalEmailCronImpl(request)
+}
+
+import {
+  loadPublicFiscalApplicant as loadPublicFiscalApplicantImpl,
+  startPublicFiscalIntake as startPublicFiscalIntakeImpl,
+} from "./server/public-intake"
+
 import {
   loadFiscalSponsorshipApplicationDraft as loadFiscalSponsorshipApplicationDraftImpl,
   saveFiscalSponsorshipApplicationDraft as saveFiscalSponsorshipApplicationDraftImpl,
@@ -130,4 +173,12 @@ export async function loadFiscalSponsorshipW9Session(
   ...args: Parameters<typeof loadFiscalSponsorshipW9SessionImpl>
 ) {
   return loadFiscalSponsorshipW9SessionImpl(...args)
+}
+
+export async function loadPublicFiscalApplicant() {
+  return loadPublicFiscalApplicantImpl()
+}
+
+export async function startPublicFiscalIntake(...args: Parameters<typeof startPublicFiscalIntakeImpl>) {
+  return startPublicFiscalIntakeImpl(...args)
 }

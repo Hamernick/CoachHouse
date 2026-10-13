@@ -240,7 +240,11 @@ export function buildCompletedWorkspaceTutorialBoardState(
   boardState: WorkspaceBoardState,
 ) {
   const completionAutoLayoutMode = "dagre-tree" as const
+  const fiscalAlreadyVisible =
+    boardState.nodes.some((node) => node.id === "fiscal-sponsorship") &&
+    !boardState.hiddenCardIds.includes("fiscal-sponsorship")
   const nextHiddenCardIds = buildWorkspaceCanvasTutorialCompletionHiddenCardIds()
+    .filter((id) => id !== "fiscal-sponsorship" || !fiscalAlreadyVisible)
   const nextConnections = ensureWorkspaceTutorialCompletionConnections(
     boardState.connections,
   )

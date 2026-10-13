@@ -145,6 +145,7 @@ export async function resolveSigningContext(
     (await canManageFiscalSponsorshipForOrganization({
       accessLevel: appContext.profileAudience.platformAccessLevel,
       organizationId: packet.org_id,
+      projectId: packet.project_id,
       supabase,
       userId: appContext.user.id,
     }))

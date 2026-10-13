@@ -182,7 +182,7 @@ describe("resource-map-admin feature contract", () => {
     expect(actions).toContain("reviewResourceMapImportMatchAction")
     expect(actions).toContain("markResourceMapImportPromotedAction")
     expect(actions).toContain("assertResourceMapImportReadyForApproval")
-    expect(actions).toContain('revalidatePath("/")')
+    expect(actions).toContain('revalidatePath("/map")')
     expect(actions).toContain('action: "promote"')
     expect(actions).toContain('"contact_visibility"')
     expect(actions).toContain('"link_visibility"')

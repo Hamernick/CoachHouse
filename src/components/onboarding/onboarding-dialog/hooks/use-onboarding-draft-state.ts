@@ -17,7 +17,9 @@ import {
   isRoleInterest,
   slugify,
 } from "@/components/onboarding/onboarding-dialog/helpers"
+import { restoreOnboardingAvatar } from "../avatar-draft"
 import { resolveOnboardingSteps } from "@/components/onboarding/onboarding-dialog/constants"
+import { resolveOnboardingDraftStep } from "../step-position"
 import {
   isOnboardingAccountStepReady,
   type OnboardingAccountValues,
@@ -30,6 +32,7 @@ import type {
 } from "@/components/onboarding/onboarding-dialog/types"
 
 type UseOnboardingDraftStateArgs = {
+  draftScope?: string | null
   open: boolean
   step: number
   formRef: RefObject<HTMLFormElement | null>
@@ -51,6 +54,7 @@ type UseOnboardingDraftStateArgs = {
 }
 
 export function useOnboardingDraftState({
+  draftScope,
   open,
   step,
   formRef,
@@ -138,7 +142,7 @@ export function useOnboardingDraftState({
   const rehydrateVisibleDraftFields = useCallback(() => {
     if (typeof window === "undefined" || !formRef.current) return
 
-    const draft = readOnboardingDraft()
+    const draft = readOnboardingDraft(draftScope)
     if (!draft) return
 
     const form = formRef.current
@@ -148,14 +152,14 @@ export function useOnboardingDraftState({
       "orgName",
       draft.values?.orgName
     )
-    if (draftOrgName) {
+    if (draft.values && "orgName" in draft.values) {
       setOrgNameValue(draftOrgName)
     }
 
     const draftOrgSlug = slugify(
       resolveDraftFieldValue("orgSlug", draft.values?.orgSlug)
     )
-    if (draftOrgSlug) {
+    if (draft.values && "orgSlug" in draft.values) {
       setSlugValue(draftOrgSlug)
       setOrgSlugInputValue(draftOrgSlug)
     }
@@ -178,6 +182,7 @@ export function useOnboardingDraftState({
     applyDraftFlagsToForm(form, draft.flags)
     applyDraftAccountState({ values: draft.values, flags: draft.flags })
   }, [
+    draftScope,
     applyDraftAccountState,
     formRef,
     resolveDraftFieldValue,
@@ -192,24 +197,16 @@ export function useOnboardingDraftState({
     if (!open) return
     if (typeof window === "undefined") return
 
-    const draft = readOnboardingDraft()
+    const draft = readOnboardingDraft(draftScope)
     if (!draft) return
 
-    if (typeof draft.step === "number") {
+    if (draft.stepId || typeof draft.step === "number") {
       const draftIntentFocus =
         intentFocusOverride ??
         (isIntentFocus(draft.intentFocus) ? draft.intentFocus : "")
       const allSteps = resolveOnboardingSteps(draftIntentFocus)
       const visibleSteps = resolveVisibleSteps(draftIntentFocus)
-      const draftStepId = allSteps[draft.step]?.id
-      const visibleStepIndex = draftStepId
-        ? visibleSteps.findIndex((candidate) => candidate.id === draftStepId)
-        : -1
-      setStep(
-        visibleStepIndex >= 0
-          ? visibleStepIndex
-          : Math.max(0, Math.min(visibleSteps.length - 1, draft.step))
-      )
+      setStep(resolveOnboardingDraftStep(draft, visibleSteps, allSteps))
     }
     if (isFormationStatus(draft.formationStatus)) {
       setFormationStatus(draft.formationStatus)
@@ -223,22 +220,25 @@ export function useOnboardingDraftState({
       setRoleInterest(draft.roleInterest)
     }
     setSlugEdited(Boolean(draft.slugEdited))
-    if (typeof draft.avatar === "string" && draft.avatar.trim().length > 0) {
-      setAvatarPreview(draft.avatar)
-    }
-
     const form = formRef.current
     if (!form) return
+    if (typeof draft.avatar === "string") {
+      if (draft.avatar.startsWith("data:")) {
+        if (restoreOnboardingAvatar(form, draft.avatar)) setAvatarPreview(draft.avatar)
+      } else if (draft.avatar.startsWith("https://")) {
+        setAvatarPreview(draft.avatar)
+      }
+    }
 
     applyDraftValuesToForm(form, draft.values, resolveDraftFieldValue)
 
     const orgName = resolveDraftFieldValue("orgName", draft.values?.orgName)
-    if (orgName) {
+    if (draft.values && "orgName" in draft.values) {
       setOrgNameValue(orgName)
     }
 
     const slug = resolveDraftFieldValue("orgSlug", draft.values?.orgSlug)
-    if (slug) {
+    if (draft.values && "orgSlug" in draft.values) {
       const normalizedSlug = slugify(slug)
       setSlugValue(normalizedSlug)
       setOrgSlugInputValue(normalizedSlug)
@@ -269,6 +269,7 @@ export function useOnboardingDraftState({
       syncProgress()
     })
   }, [
+    draftScope,
     applyDraftAccountState,
     formRef,
     open,

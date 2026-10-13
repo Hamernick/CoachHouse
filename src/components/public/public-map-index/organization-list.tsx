@@ -1,11 +1,12 @@
 "use client"
 
-import { memo, type CSSProperties, type ReactNode } from "react"
+import { useResourceDirectoryPagination } from "@/features/find-resource-index/client"
+
+import { memo, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Empty } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollFadeEffect } from "@/components/scroll-fade-effect"
 import {
   buildPlatformOrganizationMapItem,
   resolvePublicMapItemSelectableId,
@@ -23,6 +24,8 @@ import {
   usePublicMapOrganizationListPagination,
 } from "./organization-list-pagination"
 import { PUBLIC_MAP_SIDEBAR_CARD_CLASSNAME } from "./sidebar-theme"
+import { useOrganizationFeedViewport } from "./organization-feed-viewport"
+import { PublicMapClaimPrompt } from "./footer"
 import type { PublicMapGroupFilterKey } from "./category-filter"
 import {
   PUBLIC_MAP_RESOURCE_ITEMS_OFFLINE_ERROR,
@@ -43,12 +46,12 @@ function PublicMapOrganizationListSkeleton() {
   return (
     <div
       data-public-map-search-loading="true"
-      className="flex min-w-0 flex-col gap-3"
+      className="@container/results flex min-w-0 flex-col gap-3"
       role="status"
       aria-live="polite"
     >
       <p className="text-muted-foreground px-1 text-xs">Loading resources…</p>
-      <div className="grid w-full min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-3">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-3 @min-[38rem]/results:grid-cols-2">
         {Array.from({ length: 4 }, (_, index) => (
           <div
             key={index}
@@ -81,6 +84,9 @@ function PublicMapOrganizationListComponent({
   constrainedLayout = false,
   incrementalLoading = false,
   scrollable = false,
+  bounded = false,
+  paged = false,
+  remotePagination = false,
   leadingContent,
   initialVisibleCount = PUBLIC_MAP_LIST_INITIAL_PAGE_SIZE,
   pageSize = PUBLIC_MAP_LIST_PAGE_SIZE,
@@ -102,6 +108,9 @@ function PublicMapOrganizationListComponent({
   constrainedLayout?: boolean
   incrementalLoading?: boolean
   scrollable?: boolean
+  bounded?: boolean
+  paged?: boolean
+  remotePagination?: boolean
   leadingContent?: ReactNode
   initialVisibleCount?: number
   pageSize?: number
@@ -115,6 +124,8 @@ function PublicMapOrganizationListComponent({
   onSelectOrg: (id: string) => void
   onOpenDetails?: (id: string) => void
 }) {
+  const remoteContext = useResourceDirectoryPagination()
+  const remote = remotePagination ? remoteContext : null
   const listItems = buildPublicMapListItems({ items, organizations })
   const resolvedSelectedItemId = selectedItemId ?? selectedOrgId
   const {
@@ -125,14 +136,18 @@ function PublicMapOrganizationListComponent({
     paginationEnabled,
     visibleItems,
   } = usePublicMapOrganizationListPagination({
+    remote,
     getItemId: resolvePublicMapItemSelectableId,
     items: listItems,
-    selectedItemId: resolvedSelectedItemId,
+    selectedItemId: bounded ? null : resolvedSelectedItemId,
     query,
     incrementalLoading,
-    initialVisibleCount,
+    autoLoadMore: paged || !bounded,
+    autoLoadRemote: paged,
+    initialVisibleCount: paged ? 6 : initialVisibleCount,
     pageSize,
   })
+  const feed = useOrganizationFeedViewport(paged, `${remote?.key ?? ""}|${query ?? ""}|${activeGroup}`, listItems.length === 0)
 
   if (listItems.length === 0 && loadStatus === "loading") {
     return (
@@ -154,7 +169,7 @@ function PublicMapOrganizationListComponent({
       : loadFailed
         ? "Resource directory unavailable"
         : hasSearchQuery
-          ? `No service listings match “${normalizedQuery}”`
+          ? `No listings match “${normalizedQuery}”`
           : hasCategoryFilter
             ? "No resources in this category"
             : "No resources available"
@@ -207,11 +222,12 @@ function PublicMapOrganizationListComponent({
       />
     )
 
+    if (paged) return <>{emptyState}<PublicMapClaimPrompt /></>
     if (!leadingContent) return emptyState
 
     return (
       <div className="flex w-full min-w-0 flex-col gap-2">
-        <div className="divide-border/60 bg-background/85 border-input divide-y overflow-hidden rounded-2xl border backdrop-blur-xl">
+        <div className="divide-border/60 bg-background/85 divide-y overflow-hidden rounded-2xl backdrop-blur-xl">
           {leadingContent}
         </div>
         {emptyState}
@@ -221,40 +237,44 @@ function PublicMapOrganizationListComponent({
 
   return (
     <div
+      ref={feed.ref}
+      data-public-map-paged-results={paged ? "" : undefined}
+      style={paged ? { height: feed.height } : undefined}
       data-public-map-organization-list-section="list-stack"
       aria-busy={loadStatus === "loading"}
       className={cn(
-        "mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-2",
+        "mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-2 @container/results",
         scrollable && "min-h-0 flex-1"
       )}
     >
-      <ScrollFadeEffect
-        enabled={scrollable}
-        orientation="vertical"
+      <div
+        data-lenis-prevent={bounded || paged ? "" : undefined}
+        data-public-map-result-feed={paged ? "" : undefined}
         data-public-map-organization-list-section="rounded-scroll"
         data-public-map-organization-list-scroll={
-          scrollable ? "true" : undefined
-        }
-        style={
-          scrollable
-            ? ({
-                "--mask-height": "1.5rem",
-                "--scroll-buffer": "1rem",
-              } as CSSProperties)
-            : undefined
+          scrollable || paged ? "true" : undefined
         }
         className={cn(
-          "divide-border/60 bg-background/85 border-input w-full min-w-0 rounded-2xl border backdrop-blur-xl",
-          scrollable
-            ? "min-h-0 flex-1 [scroll-padding-bottom:max(env(safe-area-inset-bottom),0.75rem)] overflow-x-hidden overscroll-contain pr-1 pb-[env(safe-area-inset-bottom)] [-webkit-overflow-scrolling:touch]"
-            : "overflow-hidden"
+          "w-full min-w-0",
+          !paged && "divide-border/60 bg-background/85 rounded-2xl backdrop-blur-xl",
+          scrollable || paged
+            ? "min-h-0 flex-1 [scroll-padding-bottom:max(env(safe-area-inset-bottom),0.75rem)] overflow-x-hidden overflow-y-auto overscroll-contain pr-1 pb-[env(safe-area-inset-bottom)] [-webkit-overflow-scrolling:touch]"
+            : "overflow-hidden",
+          bounded && "max-h-full flex-[0_1_auto]",
+          paged && "min-h-0 flex-1 pr-0 pb-0 [overflow-anchor:none] [scrollbar-width:thin]"
         )}
       >
+        <div data-public-map-feed-content={paged ? "" : undefined} className={paged ? "min-w-0" : "contents"}>
+        {paged ? null : leadingContent}
         <div
           data-public-map-organization-list-section="card-grid"
-          className="divide-border/60 grid w-full min-w-0 shrink-0 grid-cols-1 items-stretch divide-y"
+          className={cn(
+            "grid w-full min-w-0 shrink-0 grid-cols-1 items-stretch @min-[38rem]/results:grid-cols-2 [&>article:only-child]:col-span-full",
+            paged
+              ? "gap-2 [&>article]:rounded-xl [&>article]:bg-white dark:[&>article]:bg-card"
+              : "divide-border/60 divide-y @min-[38rem]/results:gap-x-3 @min-[38rem]/results:gap-y-2 @min-[38rem]/results:divide-y-0"
+          )}
         >
-          {leadingContent}
           {visibleItems.map((item) => {
             const selectableItemId = resolvePublicMapItemSelectableId(item)
             const selected = resolvedSelectedItemId === selectableItemId
@@ -266,7 +286,7 @@ function PublicMapOrganizationListComponent({
                   item={item}
                   selected={selected}
                   query={query}
-                  constrainedLayout={constrainedLayout}
+                  constrainedLayout={paged || constrainedLayout}
                   onSelectItem={onSelectItem}
                 />
               )
@@ -278,7 +298,7 @@ function PublicMapOrganizationListComponent({
                 item={item}
                 selected={selected}
                 query={query}
-                constrainedLayout={constrainedLayout}
+                constrainedLayout={paged || constrainedLayout}
                 onSelectOrg={onSelectOrg}
                 onOpenDetails={onOpenDetails}
               />
@@ -286,15 +306,20 @@ function PublicMapOrganizationListComponent({
           })}
         </div>
         <PublicMapOrganizationListPaginationFooter
+          compact={paged}
           hasMoreOrganizations={hasMoreOrganizations}
           loadMoreSentinelRef={loadMoreSentinelRef}
           loadNextPage={loadNextPage}
           nextPageCount={nextPageCount}
-          organizationCount={listItems.length}
+          organizationCount={remote ? remote.totalCount : listItems.length}
+          loading={remote?.loading}
+          error={remote?.error}
           paginationEnabled={paginationEnabled}
           visibleCount={visibleItems.length}
         />
-      </ScrollFadeEffect>
+        {paged ? <PublicMapClaimPrompt /> : null}
+        </div>
+      </div>
     </div>
   )
 }

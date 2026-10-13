@@ -10,6 +10,9 @@ import type { WorkspaceDrawerTabsProps } from "./workspace-drawer-content-types"
 // One Tabs provider and content tree in both responsive presentations.
 export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
   const { tab, handleTabChange, drawerCollapsed } = props
+  const [hasExpanded, setHasExpanded] = useState(!drawerCollapsed)
+  if (!drawerCollapsed && !hasExpanded) setHasExpanded(true)
+  const showSelectedTab = !drawerCollapsed || hasExpanded
   const title = props.bodyOverride
     ? "Particle"
     : tab.charAt(0).toUpperCase() + tab.slice(1)
@@ -25,7 +28,7 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
     setLastVisible({ bodyOverride: props.bodyOverride, title })
   return (
     <Tabs
-      value={tab}
+      value={showSelectedTab ? tab : ""}
       onValueChange={handleTabChange}
       activationMode="manual"
       className={cn(
@@ -37,6 +40,7 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
     >
       <WorkspaceDrawerNavigation
         {...props}
+        tabIndicator={{ ...props.tabIndicator, visible: showSelectedTab && props.tabIndicator.visible }}
         drawerCollapsed={
           drawerCollapsed || Boolean(props.windowState?.geometry)
         }

@@ -12,10 +12,13 @@ import {
   WorkspaceAcceleratorDrawerHeaderControls,
   WorkspaceAcceleratorHeaderPicker,
 } from "@/features/workspace-accelerator-card/components/workspace-accelerator-card-panel-support"
-import { WorkspaceAcceleratorCardProgressStrip } from "@/features/workspace-accelerator-card/components/workspace-accelerator-card-progress-strip"
+import type { AcceleratorReadinessSummary } from "@/lib/accelerator/readiness"
+import { WorkspaceAcceleratorCardProgressSummary, WorkspaceAcceleratorCardProgressStrip } from "@/features/workspace-accelerator-card/components/workspace-accelerator-card-progress-strip"
 import { WORKSPACE_ACCELERATOR_TUTORIAL_GUARD_CHROME_CLASSNAME } from "@/features/workspace-accelerator-card/components/workspace-accelerator-tutorial-guard-tooltip"
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/workspace",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     push: () => {},
   }),
@@ -41,6 +44,46 @@ function extractProgressPercentMarkup(markup: string) {
 }
 
 describe("workspace accelerator header picker", () => {
+  it("keeps complete lessons independent from incomplete readiness", () => {
+    const summary: AcceleratorReadinessSummary = {
+      score: 80, progressPercent: 80, fundableCheckpoint: 70, verifiedCheckpoint: 90,
+      fundable: false, verified: false, fundableMissing: ["Document"], verifiedMissing: ["Document", "Approval"],
+      fundableChecklist: Array.from({ length: 3 }, (_, index) => ({ id: `f-${index}`, label: `Requirement ${index}`, complete: index < 2 })),
+      verifiedChecklist: Array.from({ length: 5 }, (_, index) => ({ id: `v-${index}`, label: `Requirement ${index}`, complete: index < 3 })),
+    }
+    const markup = renderToStaticMarkup(React.createElement(WorkspaceAcceleratorCardProgressSummary, {
+      progressPercent: 100, readinessSummary: summary,
+    }))
+    expect(markup).toContain("100% lessons complete")
+    expect(markup).toContain('aria-valuenow="100"')
+    expect(markup).toContain('style="width:100%"')
+    expect(markup).toContain("2/3 ready")
+    expect(markup).toContain("3/5 ready")
+    expect(markup.match(/aria-haspopup="dialog"/g)).toHaveLength(2)
+    expect(markup).not.toContain("Fundable segment")
+    expect(markup).not.toContain("Verified segment")
+  })
+
+  it.each([0, 42, 100])("keeps the lesson label and fill aligned at %s percent", (progressPercent) => {
+    const markup = renderToStaticMarkup(React.createElement(WorkspaceAcceleratorCardProgressSummary, {
+      progressPercent, showMilestones: false,
+    }))
+    expect(markup).toContain(`${progressPercent}% lessons complete`)
+    expect(markup).toContain(`aria-valuenow="${progressPercent}"`)
+    expect(markup).toContain(`style="width:${progressPercent}%"`)
+    expect(markup).not.toContain("Fundable")
+    expect(markup).not.toContain("Verified")
+  })
+
+  it("does not invent readiness when its summary is unavailable", () => {
+    const markup = renderToStaticMarkup(React.createElement(WorkspaceAcceleratorCardProgressSummary, {
+      progressPercent: 100, readinessSummary: null,
+    }))
+    expect(markup).toContain("Unavailable")
+    expect(markup).not.toContain("0/0 ready")
+    expect(markup.match(/disabled=""/g)).toHaveLength(2)
+  })
+
   it("constrains the embedded drawer checklist to the established reading width", () => {
     const source = readFileSync(
       "src/features/workspace-accelerator-card/components/workspace-accelerator-card-panel.tsx",
@@ -72,9 +115,9 @@ describe("workspace accelerator header picker", () => {
     expect(markup).toContain("py-3")
     expect(markup).toContain("sm:justify-between")
     expect(markup).toContain("sm:max-w-lg")
-    expect(markup).toContain("14% complete")
+    expect(markup).toContain("14% lessons complete")
     expect(markup).toContain('data-react-grab-surface-slot="progress-rail"')
-    expect(markup.indexOf("14% complete")).toBeLessThan(
+    expect(markup.indexOf("14% lessons complete")).toBeLessThan(
       markup.indexOf(
         'aria-label="Choose a class track. Current selection: Formation"'
       )
@@ -581,7 +624,7 @@ describe("workspace accelerator header picker", () => {
     expect(markup).not.toContain("0 of 1 complete")
     expect(markup).toContain("In progress")
     expect(markup).toContain("bg-primary/10 text-primary")
-    expect(markup).toContain(">Continue</button>")
+    expect(markup).toContain(">Continue</a>")
     expect(markup).not.toContain(">continue</span>")
   })
 

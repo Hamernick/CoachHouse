@@ -142,14 +142,14 @@ describe("workspace fiscal sponsorship card", () => {
     expect(activityAction).not.toContain("String(criterion.met)")
   })
 
-  it("analyzes activity eligibility before lighting up the fiscal action", () => {
+  it.each(["United States", "Canada"])("accepts a known %s location for application readiness", (country) => {
     const ready = analyzeFiscalSponsorshipActivityEligibility({
       activity: {
         title: "Youth Stewardship Fellows",
         description: "Youth leaders coordinate neighborhood food access.",
         addressCity: "Chicago",
         addressState: "IL",
-        addressCountry: "United States",
+        addressCountry: country,
         focusArea: "Training & Capacity Building",
         goalCents: 1400000,
         publicBenefit: "Residents get reliable resource-night support.",
@@ -161,7 +161,7 @@ describe("workspace fiscal sponsorship card", () => {
         addressCity: "Chicago",
         addressState: "IL",
         addressPostal: "60601",
-        addressCountry: "United States",
+        addressCountry: country,
       },
       prefill: null,
     })
@@ -176,7 +176,7 @@ describe("workspace fiscal sponsorship card", () => {
     expect(ready.completedCount).toBe(5)
     expect(ready.criteria.map((criterion) => criterion.label)).toEqual([
       "Impact narrative",
-      "U.S. operations",
+      "Operating location",
       "Funding use",
       "Mission fit signal",
       "Tax ID + mailing",

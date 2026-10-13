@@ -11,7 +11,7 @@ import {
 } from "@/lib/organization/profile-persistence-validation"
 import { resolveOrganizationNarrativePlainText } from "@/lib/roadmap"
 
-import { resetTestMocks, revalidatePathMock } from "./test-utils"
+import { resetTestMocks, revalidatePathMock, revalidateTagMock } from "./test-utils"
 
 const authMocks = vi.hoisted(() => ({
   requireServerSession: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock("@/lib/organization/active-org", () => ({
   canEditOrganization: authMocks.canEditOrganization,
 }))
 
-function prepareOrganizationSave(existingProfile: Record<string, unknown>) {
+function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string } = {}) {
   let updatedRow: Record<string, unknown> | null = null
   const selectQuery = {
     eq: vi.fn().mockReturnThis(),
@@ -39,7 +39,7 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>) {
         location_lat: null,
         location_lng: null,
         public_slug: null,
-        is_public: false,
+        is_public: options.isPublic ?? false,
         updated_at: "2026-08-05T18:00:00.000Z",
       },
       error: null,
@@ -49,8 +49,8 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>) {
     eq: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({
-      data: { user_id: "org-1" },
-      error: null,
+      data: options.writeError ? null : { user_id: "org-1" },
+      error: options.writeError ? { message: options.writeError } : null,
     }),
   }
   const organizationTable = {
@@ -90,6 +90,33 @@ describe("organization profile persistence validation", () => {
     authMocks.requireServerSession.mockReset()
     authMocks.resolveActiveOrganization.mockReset()
     authMocks.canEditOrganization.mockReset()
+  })
+
+  it.each([true, false])("immediately expires public reads after saving visibility %s", async (isPublic) => {
+    prepareOrganizationSave({ name: "Test" }, { isPublic: !isPublic })
+    expect(await updateOrganizationProfileAction({ isPublic })).toMatchObject({ ok: true })
+    expect(revalidateTagMock).toHaveBeenCalledWith("public-map-organizations", { expire: 0 })
+    expect(revalidateTagMock).toHaveBeenCalledWith("public-profiles", { expire: 0 })
+  })
+
+  it("does not invalidate public reads when a visibility save fails", async () => {
+    prepareOrganizationSave({ name: "Test" }, { isPublic: true, writeError: "Save failed" })
+    expect(await updateOrganizationProfileAction({ isPublic: false })).toEqual({ error: "Save failed" })
+    expect(revalidateTagMock).not.toHaveBeenCalled()
+  })
+
+  it("rejects publication after switching away from the reviewed organization", async () => {
+    const saved = prepareOrganizationSave({ name: "Test" })
+    const result = await updateOrganizationProfileAction({ isPublic: true }, { organizationId: "another-org", updatedAt: "2026-08-05T18:00:00.000Z" })
+    expect(result).toHaveProperty("error", "Your active organization changed. Reload the preview before publishing.")
+    expect(saved.getUpdatedProfile()).toBeNull()
+  })
+
+  it("rejects publication when the reviewed organization version is stale", async () => {
+    const saved = prepareOrganizationSave({ name: "Test" })
+    const result = await updateOrganizationProfileAction({ isPublic: true }, { organizationId: "org-1", updatedAt: "old-version" })
+    expect(result).toHaveProperty("error", "This organization was updated elsewhere. Reload before publishing.")
+    expect(saved.getUpdatedProfile()).toBeNull()
   })
 
   it("rejects a whitespace-only name before any profile write", async () => {
@@ -279,7 +306,7 @@ describe("organization profile persistence validation", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/workspace")
     expect(revalidatePathMock).toHaveBeenCalledWith("/my-organization")
     expect(revalidatePathMock).toHaveBeenCalledWith("/organization")
-    expect(revalidatePathMock).toHaveBeenCalledWith("/")
+    expect(revalidatePathMock).toHaveBeenCalledWith("/resources")
   })
 
   it("preserves Brand Kit and unknown fields during an MVV save", async () => {

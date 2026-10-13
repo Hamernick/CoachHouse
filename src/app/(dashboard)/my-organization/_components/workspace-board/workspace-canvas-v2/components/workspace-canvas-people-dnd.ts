@@ -11,6 +11,7 @@ export type WorkspaceCanvasPersonDropRequest = {
 }
 
 export type WorkspaceCanvasPeopleAddRequest = {
+  intent?: "drop"
   personIds: string[]
   clientX: number
   clientY: number

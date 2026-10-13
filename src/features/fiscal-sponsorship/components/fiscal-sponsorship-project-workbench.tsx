@@ -308,6 +308,7 @@ function WorkbenchPhaseTimeline({
 }
 
 export function FiscalSponsorshipProjectWorkbench({
+  applicationActionLabel = "Edit",
   canConnectDocuments = false,
   className,
   connectFiscalSponsorshipDocumentAssetAction,
@@ -323,6 +324,7 @@ export function FiscalSponsorshipProjectWorkbench({
   sendFiscalSponsorshipAgreementForSignatureAction,
 }: FiscalSponsorshipProjectWorkbenchAdminActionProps &
   FiscalSponsorshipProjectWorkbenchDocumentActionProps & {
+    applicationActionLabel?: "Edit" | "View"
     canConnectDocuments?: boolean
     className?: string
     data: FiscalSponsorshipProjectWorkbenchData
@@ -489,7 +491,7 @@ export function FiscalSponsorshipProjectWorkbench({
             onClick={handleOpenApplication}
           >
             <FileTextIcon data-icon="inline-start" aria-hidden />
-            Edit
+            {applicationActionLabel}
           </Button>
           <FiscalSponsorshipProjectWorkbenchAdminActions
             agreementDocumentId={data.latestAgreementDocumentId}

@@ -105,7 +105,7 @@ export function CanvasAuthPanel({
               defaultIntentFocus={defaultIntentFocus}
               lockedIntentFocus={shouldLockBuilderIntent ? "build" : null}
               builderRedirectTo={builderRedirectTo}
-              memberRedirectTo={`${FIND_PATH}?member_onboarding=1&source=home_signup`}
+              memberRedirectTo="/onboarding?source=home_signup"
               loginHref={builderLoginHref}
             />
           </>

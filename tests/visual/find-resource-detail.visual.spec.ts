@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test"
+import { mockPublicResourceDirectory } from "./fixtures/public-resource-directory"
+import type { FindResourceIndexItem } from "../../src/features/find-resource-index/types"
 
 // Explicit test data, served only by intercepted public requests.
-const shelter = {
+const shelter: FindResourceIndexItem & { description: string } = {
   id: "resource_map:detail-loading-shelter",
   itemType: "external_resource",
   title: "Housing Forward - Emergency Overnight Shelter",
@@ -33,22 +35,11 @@ for (const width of [1280, 390]) {
         errors.push(message.text())
       }
     })
-    await page.route("**/api/public/nonprofits/search?**", (route) =>
-      route.fulfill({ json: { items: [], nextCursor: null } })
-    )
-    await page.route("**/api/public/resource-map/index?**", (route) =>
-      route.fulfill({
-        json: {
-          version: 2,
-          resourceItems: [shelter],
-          page: { hasMore: false, limit: 200, nextCursor: null, totalCount: 1 },
-        },
-      })
-    )
+    await mockPublicResourceDirectory(page, [shelter])
     await page.route("**/api/public/resource-map/items/**", (route) =>
-      route.fulfill({ json: { resourceItem: shelter } })
+      route.fulfill({ json: { version: 1, resourceItem: shelter } })
     )
-    await page.goto("/")
+    await page.goto("/resources?react-grab=0")
     const search = page.getByRole("searchbox", {
       name: "Find organizations and resources",
     })
@@ -58,7 +49,7 @@ for (const width of [1280, 390]) {
       .filter({ hasText: shelter.title })
     await expect(result).toBeVisible()
     await result.click()
-    const detail = page.locator('[data-public-map-profile="resource"]')
+    const detail = page.getByRole("region", { name: "Resource profile", exact: true })
     await expect(
       detail.getByRole("heading", { name: shelter.title, exact: true })
     ).toBeVisible()

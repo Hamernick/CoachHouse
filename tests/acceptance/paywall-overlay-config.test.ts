@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { createElement, type ReactNode } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { PaywallOverlay } from "@/components/paywall/paywall-overlay"
 
 import {
   buildStripeCheckoutPath,
@@ -77,6 +80,8 @@ describe("paywall overlay query handling", () => {
     expect(getSafeInternalPaywallPath("https://bad.example")).toBeNull()
     expect(getSafeInternalPaywallPath("//bad.example/path")).toBeNull()
     expect(getSafeInternalPaywallPath("/workspace")).toBe("/workspace")
+    expect(getSafeInternalPaywallPath("/\\bad.example")).toBeNull()
+    expect(getSafeInternalPaywallPath("/\t/bad.example")).toBeNull()
     expect(
       buildStripeCheckoutPath({
         plan: "operations_support",
@@ -100,5 +105,65 @@ describe("paywall overlay query handling", () => {
         paywallKind: null,
       }),
     ).toBe(false)
+  })
+})
+
+
+const overlayMocks = vi.hoisted(() => ({
+  replace: vi.fn(),
+  query: "drawer=people&focus=team",
+  onOpenChange: null as null | ((open: boolean) => void),
+}))
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/workspace",
+  useRouter: () => ({ replace: overlayMocks.replace }),
+  useSearchParams: () => new URLSearchParams(overlayMocks.query),
+}))
+vi.mock("@/components/ui/dialog", () => ({
+  Dialog: ({ open, onOpenChange, children }: { open: boolean; onOpenChange: (open: boolean) => void; children: ReactNode }) => {
+    overlayMocks.onOpenChange = onOpenChange
+    return open ? children : null
+  },
+  DialogContent: ({ children, className }: { children: ReactNode; className: string }) => createElement("section", { className }, children),
+  DialogClose: ({ children }: { children: ReactNode }) => children,
+  DialogHeader: ({ children }: { children: ReactNode }) => children,
+  DialogTitle: ({ children }: { children: ReactNode }) => children,
+  DialogDescription: ({ children }: { children: ReactNode }) => children,
+}))
+vi.mock("@/components/paywall/paywall-overlay/paywall-tier-card", () => ({
+  PaywallTierCard: ({ redirectTarget, cancelTarget }: { redirectTarget: string; cancelTarget: string }) => createElement("div", { "data-return": redirectTarget, "data-cancel": cancelTarget }),
+}))
+
+describe("in-place pricing overlay", () => {
+  beforeEach(() => {
+    overlayMocks.replace.mockReset()
+    overlayMocks.query = "drawer=people&focus=team"
+    overlayMocks.onOpenChange = null
+  })
+
+  it("closes locally without routing and retains the exact workspace return URL", () => {
+    const onOpenChange = vi.fn()
+    const markup = renderToStaticMarkup(createElement(PaywallOverlay, { open: true, onOpenChange }))
+    expect(markup).toContain("h-dvh")
+    expect(markup).not.toContain("Back to workspace")
+    expect(markup).not.toContain("Open billing settings")
+    expect(markup).toContain('aria-label="Close pricing"')
+    expect(markup).toContain('data-return="/workspace?drawer=people&amp;focus=team"')
+    expect(markup).toContain('data-cancel="/workspace?drawer=people&amp;focus=team"')
+    overlayMocks.onOpenChange?.(false)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(overlayMocks.replace).not.toHaveBeenCalled()
+  })
+
+  it("keeps a locally closed overlay closed even when another paywall owns the URL", () => {
+    overlayMocks.query = "paywall=organization&drawer=people"
+    expect(renderToStaticMarkup(createElement(PaywallOverlay, { open: false, onOpenChange: vi.fn() }))).toBe("")
+  })
+
+  it("preserves legacy query-driven paywall dismissal", () => {
+    overlayMocks.query = "paywall=organization&drawer=people"
+    renderToStaticMarkup(createElement(PaywallOverlay))
+    overlayMocks.onOpenChange?.(false)
+    expect(overlayMocks.replace).toHaveBeenCalledWith("/workspace?drawer=people", { scroll: false })
   })
 })

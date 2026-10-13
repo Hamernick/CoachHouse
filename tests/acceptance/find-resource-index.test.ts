@@ -1,3 +1,4 @@
+import { buildFindResourceCatalog, parseFindResourceCatalogQuery, queryFindResourceCatalog, resourceIndexItemInBounds } from "@/features/find-resource-index/lib/catalog-query"
 import { describe, expect, it } from "vitest"
 
 import { GET as getLegacyResourceMapItems } from "@/app/api/public/resource-map/items/route"
@@ -339,5 +340,45 @@ describe("find resource index feature contract", () => {
     expect(
       resolveFindResourceDetailItem([item], "resource_map:missing")
     ).toBeNull()
+  })
+})
+
+
+describe("bounded server resource queries", () => {
+  const indexItem = serializeFindResourceIndexItem(buildResourceItem())
+  it("pages server-filtered results without excluding locationless resources", () => {
+    const items = Array.from({ length: 57 }, (_, i) => ({ ...indexItem, id: `resource_map:${String(i).padStart(3, "0")}`, title: `Food pantry ${String(i).padStart(3, "0")}`, latitude: i === 56 ? null : indexItem.latitude, longitude: i === 56 ? null : indexItem.longitude }))
+    const catalog = buildFindResourceCatalog(items, "revision-1")
+    const options = parseFindResourceCatalogQuery(new URLSearchParams("mode=directory&q=food&category=food&limit=24"))!
+    const first = queryFindResourceCatalog(catalog, options)
+    const second = queryFindResourceCatalog(catalog, { ...options, cursor: first.page.nextCursor })
+    const third = queryFindResourceCatalog(catalog, { ...options, cursor: second.page.nextCursor })
+    expect([first.resourceItems.length, second.resourceItems.length, third.resourceItems.length]).toEqual([24, 24, 9])
+    expect(new Set([...first.resourceItems, ...second.resourceItems, ...third.resourceItems].map((item) => item.id)).size).toBe(57)
+    expect(third.resourceItems.at(-1)?.latitude).toBeNull()
+    expect(third.page.hasMore).toBe(false)
+    expect(first.page.totalCount).toBe(57)
+    expect(first.discoveryCounts.food).toBe(57)
+    expect(queryFindResourceCatalog(catalog, { ...options, query: "nomatch" }).resourceItems).toEqual([])
+  })
+
+  it("bounds map responses, supports the antimeridian and never invents coordinates", () => {
+    const item = { ...indexItem, longitude: 179, latitude: 10 }
+    expect(resourceIndexItemInBounds(item, [170, -20, -170, 20])).toBe(true)
+    expect(resourceIndexItemInBounds({ ...item, longitude: -179 }, [170, -20, -170, 20])).toBe(true)
+    expect(resourceIndexItemInBounds({ ...item, longitude: 0 }, [170, -20, -170, 20])).toBe(false)
+    expect(resourceIndexItemInBounds({ ...item, latitude: null }, [-180, -90, 180, 90])).toBe(false)
+    const catalog = buildFindResourceCatalog([item, { ...item, id: "second" }, { ...item, id: "online", latitude: null }], "v1")
+    const options = parseFindResourceCatalogQuery(new URLSearchParams("mode=map&bounds=170,-20,-170,20&limit=1"))!
+    const page = queryFindResourceCatalog(catalog, options)
+    expect(page.resourceItems).toHaveLength(1)
+    expect(page.page).toMatchObject({ hasMore: true, totalCount: 2 })
+  })
+
+  it("rejects malformed queries and never restarts a removed cursor", () => {
+    for (const query of ["mode=map", "mode=map&bounds=0,90,10,-90", "mode=map&bounds=0,0,NaN,1", "mode=directory&category=bad", "mode=directory&limit=501", "mode=directory&guide=bad"]) expect(parseFindResourceCatalogQuery(new URLSearchParams(query))).toBeNull()
+    const catalog = buildFindResourceCatalog([indexItem], "v1")
+    const options = parseFindResourceCatalogQuery(new URLSearchParams("mode=directory&cursor=deleted"))!
+    expect(queryFindResourceCatalog(catalog, options).resourceItems).toEqual([])
   })
 })

@@ -222,7 +222,7 @@ export function FinancePlanResponseDock({
             resolvedAction={resolvedAction}
           />
 
-          <div className="border-input bg-background focus-within:border-ring focus-within:ring-ring/50 flex h-12 min-w-0 flex-1 items-center rounded-full border px-1 shadow-xs focus-within:ring-3">
+          <div className="border-input bg-background focus-within-visible:border-ring focus-within-visible:ring-ring/50 flex h-12 min-w-0 flex-1 items-center rounded-full border px-1 shadow-xs focus-within-visible:ring-3">
             <input
               accept="image/avif,image/gif,image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,application/pdf,text/plain,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.rtf"
               className="sr-only"

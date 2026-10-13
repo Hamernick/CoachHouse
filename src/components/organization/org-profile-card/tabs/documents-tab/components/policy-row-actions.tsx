@@ -137,7 +137,7 @@ export function PolicyRowActions({
           </Button>
         </>
       ) : (
-        <span className="text-muted-foreground text-xs">View only</span>
+        <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(row.policy)}>View policy</Button>
       )}
     </div>
   )

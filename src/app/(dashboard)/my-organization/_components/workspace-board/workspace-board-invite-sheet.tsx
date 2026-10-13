@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react"
@@ -18,6 +19,7 @@ import {
   createWorkspaceCollaborationInviteAction,
   revokeWorkspaceCollaborationInviteAction,
 } from "../../_lib/workspace-actions"
+import { PaywallOverlay } from "@/components/paywall/paywall-overlay"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -88,6 +90,7 @@ export function WorkspaceBoardInviteSheet({
   triggerVariant?: "outline" | "ghost" | "secondary" | "default"
 }) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const [inviteAudience, setInviteAudience] =
     useState<WorkspaceInviteAudience>("team")
   const [inviteAccessLevel, setInviteAccessLevel] =
@@ -102,7 +105,7 @@ export function WorkspaceBoardInviteSheet({
   const [isPending, startTransition] = useTransition()
   const fallbackOrganizationAccessState =
     useWorkspaceBoardOrganizationAccessState({
-      enabled: open && !organizationAccessState,
+      enabled: !organizationAccessState,
     })
   const resolvedOrganizationAccessState =
     organizationAccessState ?? fallbackOrganizationAccessState
@@ -146,8 +149,14 @@ export function WorkspaceBoardInviteSheet({
     return members.filter((member) => !invited.has(member.userId))
   }, [activeInvites, members])
 
+  const accessResolved =
+    !resolvedOrganizationAccessState.loading &&
+    !resolvedOrganizationAccessState.loadError
+  const requiresUpgrade = accessResolved && !resolvedOrganizationAccessState.hasPaidTeamAccess
   const canOpenInviteSheet =
-    manageAccess || canInvite || resolvedOrganizationAccessState.canInviteTeam
+    accessResolved &&
+    resolvedOrganizationAccessState.hasPaidTeamAccess &&
+    (manageAccess || canInvite || resolvedOrganizationAccessState.canInviteTeam)
 
   const handleCreate = () => {
     if (!selectedMemberId) {
@@ -304,25 +313,47 @@ export function WorkspaceBoardInviteSheet({
     })
   }
 
+  const trigger = (
+    <Button
+      ref={triggerRef}
+      type="button"
+      size={triggerSize}
+      variant={triggerVariant}
+      className={cn("h-8", triggerClassName)}
+      disabled={!requiresUpgrade && !canOpenInviteSheet}
+      aria-label={triggerAriaLabel}
+      aria-haspopup="dialog"
+      onClick={requiresUpgrade ? () => setOpen(true) : undefined}
+    >
+      {triggerContent ?? (
+        <>
+          <UserPlus2Icon className="h-3.5 w-3.5" aria-hidden />
+          {manageAccess ? "Manage access" : "Invite"}
+        </>
+      )}
+    </Button>
+  )
+
+  // Gate this shared entry point too: toolbar and hover-card callers can bypass
+  // the shell header. Never mount access controls before entitlement resolves.
+  if (!canOpenInviteSheet) {
+    return (
+      <>
+        {trigger}
+        {requiresUpgrade ? (
+          <PaywallOverlay
+            open={open}
+            onOpenChange={setOpen}
+            restoreFocus={() => triggerRef.current?.focus({ preventScroll: true })}
+          />
+        ) : null}
+      </>
+    )
+  }
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          size={triggerSize}
-          variant={triggerVariant}
-          className={cn("h-8", triggerClassName)}
-          disabled={!canOpenInviteSheet}
-          aria-label={triggerAriaLabel}
-        >
-          {triggerContent ?? (
-            <>
-              <UserPlus2Icon className="h-3.5 w-3.5" aria-hidden />
-              {manageAccess ? "Manage access" : "Invite"}
-            </>
-          )}
-        </Button>
-      </SheetTrigger>
+      <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>
@@ -338,7 +369,7 @@ export function WorkspaceBoardInviteSheet({
         </SheetHeader>
 
         <WorkspaceBoardInviteSheetBody
-          canInviteTemporary={canInvite}
+          canInviteTemporary={canInvite && resolvedOrganizationAccessState.hasPaidTeamAccess}
           isPending={isPending}
           organizationAccessState={resolvedOrganizationAccessState}
           accessManagementActions={accessManagementActions}

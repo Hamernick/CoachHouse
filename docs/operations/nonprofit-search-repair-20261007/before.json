@@ -1,0 +1,17 @@
+[
+  {
+    "operator_role": "supabase_read_only_user",
+    "v1_owner": "postgres",
+    "v1_definition_hash": "72ffa63717767118b7a133c819c5243e",
+    "projection_hash": "11532d07a3a07e371d67fef23c0f9b88",
+    "anon_can_create": false,
+    "authenticated_can_create": false,
+    "existing_directory_forced_rls": true,
+    "existing_identity_count": 1957327,
+    "existing_publication_settings": {
+      "target_ref": "vswzhuwjtgzrkxknrmxu",
+      "policy_version": "nonprofit-directory-retained-audit-v1",
+      "publication_enabled": true
+    }
+  }
+]

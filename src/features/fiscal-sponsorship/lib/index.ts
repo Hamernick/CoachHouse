@@ -1,3 +1,4 @@
+import { hasFundraisingGoal, readFundraisingGoal } from "./fundraising-goal"
 import type {
   FiscalSponsorshipApplicationInput,
   FiscalSponsorshipApplicationStatus,
@@ -95,6 +96,10 @@ export function normalizeFiscalSponsorshipInput(
       ok: false,
       error: "Choose a project before saving this application.",
     }
+  }
+
+  if (hasFundraisingGoal(input.metadata) && !readFundraisingGoal(input.metadata)) {
+    return { ok: false, error: "Enter a valid fundraising amount and choose Monthly, Annually, or Total." }
   }
 
   const applicantFirstName = normalizeOptionalString(input.applicantFirstName)

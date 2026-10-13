@@ -17,7 +17,7 @@ import type {
 } from "./resource-map-items"
 import { shouldShowPublicMapResourceLink } from "./resource-link-visibility"
 
-type ResourceMapPublicItemRow = ResourceMapPublicItemsView["Row"]
+type ResourceMapPublicItemRow = Partial<ResourceMapPublicItemsView["Row"]>
 
 const PUBLIC_MAP_RESOURCE_CATEGORY_KEYS = new Set<string>(
   PUBLIC_MAP_RESOURCE_ALL_CATEGORY_ORDER
@@ -92,7 +92,7 @@ function isResourceCategoryKey(
 function normalizeResourceCategories(
   row: ResourceMapPublicItemRow
 ): PublicMapResourceCategoryKey[] {
-  const categories = row.resource_categories
+  const categories = (row.resource_categories ?? [])
     .flatMap((value) => {
       const category = resolvePublicMapResourceCategoryInputKey(value)
       return category && isResourceCategoryKey(category) ? [category] : []
@@ -146,7 +146,7 @@ function normalizeContactType(value: unknown): PublicMapResourceContactType {
 }
 
 function normalizeVerificationStatus(
-  value: string
+  value: string | undefined
 ): PublicMapVerificationStatus {
   return value === "verified_platform" ||
     value === "external_data" ||
@@ -253,7 +253,7 @@ export function buildExternalResourceMapItemFromPublicRow(
   const resourceCategories = normalizeResourceCategories(row)
   const primaryResourceCategory = resourceCategories[0] ?? "community"
   const { address, addressStreet } = buildResourceAddress(row)
-  const deliveryModes = normalizeDeliveryModes(row.delivery_modes)
+  const deliveryModes = normalizeDeliveryModes(row.delivery_modes ?? [])
   const links = normalizePublicResourceLinks(row.public_links)
   const contacts = normalizePublicResourceContacts(row.public_contacts)
   const serviceArea = readStringArray(row.coverage_area)
@@ -268,8 +268,8 @@ export function buildExternalResourceMapItemFromPublicRow(
     temporaryClosedUntil: row.temporary_closed_until,
   })
   const ageRange = buildResourceAgeRange({
-    maximumAge: row.maximum_age,
-    minimumAge: row.minimum_age,
+    maximumAge: row.maximum_age ?? null,
+    minimumAge: row.minimum_age ?? null,
   })
 
   return {
@@ -286,8 +286,8 @@ export function buildExternalResourceMapItemFromPublicRow(
     description:
       readStringOrNull(row.description) ??
       readStringOrNull(row.organization_description),
-    latitude: row.latitude,
-    longitude: row.longitude,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
     address,
     addressStreet,
     city: readStringOrNull(row.city),
@@ -301,7 +301,7 @@ export function buildExternalResourceMapItemFromPublicRow(
       readStringOrNull(row.source_label) ??
       readStringOrNull(row.source_attribution),
     sourceUrl: readStringOrNull(row.source_url),
-    lastVerifiedAt: row.last_verified_at,
+    lastVerifiedAt: row.last_verified_at ?? null,
     visibility: "published",
     markerImageUrl:
       readStringOrNull(row.logo_url) ?? readStringOrNull(row.favicon_url),
@@ -319,7 +319,7 @@ export function buildExternalResourceMapItemFromPublicRow(
     contacts,
     services: [
       {
-        id: row.service_id,
+        id: row.service_id ?? itemId,
         title,
         description: readStringOrNull(row.description),
         whoItHelps: readStringOrNull(row.who_it_helps),

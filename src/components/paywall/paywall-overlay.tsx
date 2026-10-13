@@ -1,49 +1,47 @@
 "use client"
 
 import { useCallback, useEffect, useMemo } from "react"
-import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import ArrowUpDownIcon from "lucide-react/dist/esm/icons/arrow-up-down"
-import LockIcon from "lucide-react/dist/esm/icons/lock"
-import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
+import XIcon from "lucide-react/dist/esm/icons/x"
 
-import { StripePoweredBadge } from "@/components/billing/stripe-powered-badge"
 import {
   OVERLAY_TIERS,
   buildDismissedPaywallHref,
   getCheckoutErrorMessage,
-  getPaywallReasonCopy,
   getSafeInternalPaywallPath,
   resolvePaywallOverlayDisplayPlanTier,
   shouldAutoDismissPaywallOverlay,
 } from "@/components/paywall/paywall-overlay/config"
 import { PaywallTierCard } from "@/components/paywall/paywall-overlay/paywall-tier-card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 import type { PricingPlanTier } from "@/lib/billing/plan-tier"
 
 type PaywallOverlayProps = {
   currentPlanTier?: PricingPlanTier
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  restoreFocus?: () => void
 }
 
-export function PaywallOverlay({ currentPlanTier = "free" }: PaywallOverlayProps) {
+export function PaywallOverlay({ currentPlanTier = "free", open, onOpenChange, restoreFocus }: PaywallOverlayProps) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const paywallKind = searchParams.get("paywall")
-  const source = searchParams.get("source")
-  const isOpen = Boolean(paywallKind)
-  const isOnboardingSource = source === "onboarding"
+  const isLocalOverlay = open !== undefined
+  const paywallKind = isLocalOverlay ? "organization" : searchParams.get("paywall")
+  const source = isLocalOverlay ? "sidebar_upgrade" : searchParams.get("source")
+  const isOpen = open ?? Boolean(paywallKind)
   const isPreview = searchParams.get("paywall_preview") === "1"
-  const redirectTarget = getSafeInternalPaywallPath(searchParams.get("redirect"))
-  const cancelTarget = getSafeInternalPaywallPath(searchParams.get("cancel"))
+  const currentHref = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`
+  const redirectTarget = isLocalOverlay ? currentHref : getSafeInternalPaywallPath(searchParams.get("redirect"))
+  const cancelTarget = isLocalOverlay ? currentHref : getSafeInternalPaywallPath(searchParams.get("cancel"))
   const checkoutErrorCode = searchParams.get("checkout_error")
   const checkoutErrorDetail = searchParams.get("checkout_detail")
   const checkoutErrorDebug = searchParams.get("checkout_debug")
   const checkoutErrorMessage = getCheckoutErrorMessage(checkoutErrorCode)
-  const reasonCopy = getPaywallReasonCopy({ isOnboardingSource, paywallKind })
   const dismissHref = useMemo(
     () => buildDismissedPaywallHref({ pathname, searchParams }),
     [pathname, searchParams],
@@ -59,54 +57,41 @@ export function PaywallOverlay({ currentPlanTier = "free" }: PaywallOverlayProps
   })
 
   const close = useCallback(() => {
+    if (isLocalOverlay) {
+      onOpenChange?.(false)
+      return
+    }
     router.replace(dismissHref, { scroll: false })
-  }, [dismissHref, router])
+  }, [dismissHref, isLocalOverlay, onOpenChange, router])
 
   useEffect(() => {
     if (!shouldAutoDismiss) return
     close()
   }, [close, shouldAutoDismiss])
 
-  if (!isOpen || shouldAutoDismiss) return null
+  if (shouldAutoDismiss) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="flex max-h-[92vh] w-[min(1240px,96vw)] max-w-[1240px] flex-col gap-0 overflow-hidden rounded-3xl border border-border/70 p-0 sm:max-w-[1240px]">
-        <div className="relative border-b border-border/70 bg-muted/20">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-foreground/8 to-transparent"
-            aria-hidden
-          />
-          <DialogHeader className="relative gap-3 px-5 py-5 pr-12 sm:px-6">
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 bg-background/80">
-                <LockIcon className="h-4 w-4" aria-hidden />
-              </span>
-              {isOnboardingSource ? "Choose your plan" : "Plan management"}
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              {isOnboardingSource
-                ? "Optional now. Keep moving on free or choose a paid plan without leaving the workspace."
-                : "Upgrade or downgrade between paid tiers in one place."}
-            </DialogDescription>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="rounded-full border border-border/70 bg-background/80">
-                Current: {displayPlanTier === "operations_support" ? "Operations Support" : displayPlanTier === "organization" ? "Organization" : "Free"}
-              </Badge>
-              <Badge variant="secondary" className="rounded-full border border-border/70 bg-background/80">
-                <ArrowUpDownIcon className="mr-1 h-3 w-3" aria-hidden />
-                Upgrade or downgrade anytime
-              </Badge>
-            </div>
-          </DialogHeader>
-        </div>
-
-        <div className="relative min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          <div className="space-y-5">
-            <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/30 p-3 sm:p-4">
-              <SparklesIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground/70" aria-hidden />
-              <p className="text-sm font-medium text-foreground">{reasonCopy}</p>
-            </div>
+      <DialogContent
+        data-pricing-overlay="true"
+        showCloseButton={false}
+        overlayClassName="motion-reduce:animate-none"
+        onCloseAutoFocus={restoreFocus ? (event) => { event.preventDefault(); restoreFocus() } : undefined}
+        className={cn(
+          "[--background:var(--surface)] flex max-h-[92vh] w-[min(1240px,96vw)] max-w-[1240px] flex-col gap-0 overflow-hidden rounded-3xl border border-border/70 p-0 sm:max-w-[1240px] motion-reduce:animate-none",
+          isLocalOverlay && "inset-0 h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 rounded-none border-0 shadow-none sm:max-w-none data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100",
+        )}
+      >
+        <DialogClose asChild>
+          <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 z-10 size-9 rounded-md" aria-label="Close pricing">
+            <XIcon className="size-4" aria-hidden />
+          </Button>
+        </DialogClose>
+        <DialogTitle className="sr-only">Choose your plan</DialogTitle>
+        <DialogDescription className="sr-only">Compare plans and upgrade your workspace.</DialogDescription>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto flex w-[min(1000px,92%)] flex-col gap-6 py-20 sm:py-24">
             {checkoutErrorMessage ? (
               <div className="rounded-2xl border border-amber-300/70 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
                 <p>{checkoutErrorMessage}</p>
@@ -118,7 +103,7 @@ export function PaywallOverlay({ currentPlanTier = "free" }: PaywallOverlayProps
                 ) : null}
               </div>
             ) : null}
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {OVERLAY_TIERS.map((tier) => (
                 <PaywallTierCard
                   key={tier.id}
@@ -133,17 +118,6 @@ export function PaywallOverlay({ currentPlanTier = "free" }: PaywallOverlayProps
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 px-5 py-3 sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <StripePoweredBadge />
-            <Button asChild type="button" variant="ghost" className="h-10">
-              <Link href="/billing">Open billing settings</Link>
-            </Button>
-          </div>
-          <Button type="button" variant="ghost" onClick={close} className="h-10">
-            {isOnboardingSource ? "Not now" : "Close"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   )

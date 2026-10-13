@@ -78,8 +78,8 @@ export function AccountStep({
 
   return (
     <div className="space-y-5 py-5" data-onboarding-step-id="account">
-      <div className="border-border/70 bg-background/60 flex min-h-[10.5rem] flex-col items-center justify-center gap-3 rounded-2xl border px-4 py-6">
-        <div className="relative size-16">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative size-16 shrink-0">
           <div className="border-border bg-card h-full w-full overflow-hidden rounded-full border">
             {avatarPreview ? (
               <Image
@@ -111,7 +111,8 @@ export function AccountStep({
           </Button>
         </div>
         <div id={avatarHintId} className="text-muted-foreground text-xs">
-          Upload a profile picture (optional)
+          <p className="text-foreground text-sm font-medium">Profile photo</p>
+          <p className="mt-1">Optional. You can add one later.</p>
         </div>
         {avatarPreview ? (
           <Button
@@ -134,6 +135,8 @@ export function AccountStep({
           <Input
             id="firstName"
             name="firstName"
+            autoComplete="given-name"
+            className="h-11"
             data-onboarding-primary-focus="true"
             defaultValue={initialFirstName}
             aria-invalid={attemptedStep === step && Boolean(errors.firstName)}
@@ -154,6 +157,8 @@ export function AccountStep({
           <Input
             id="lastName"
             name="lastName"
+            autoComplete="family-name"
+            className="h-11"
             defaultValue={initialLastName}
             aria-invalid={attemptedStep === step && Boolean(errors.lastName)}
             aria-describedby={showLastNameError ? lastNameErrorId : undefined}
@@ -183,9 +188,9 @@ export function AccountStep({
             autoComplete="username"
             inputMode="text"
             spellCheck={false}
-            placeholder="your-name"
+            placeholder="your-name…"
             defaultValue={initialPersonHandle}
-            className="h-9 min-w-[8rem] flex-1 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0 sm:text-sm"
+            className="h-9 min-w-[8rem] flex-1 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0 md:text-sm"
             aria-invalid={showPersonHandleError}
             aria-describedby={personHandleDescription}
             onChange={(event) => {
@@ -228,11 +233,17 @@ export function AccountStep({
         )}
       </div>
 
+      <div className="border-border/70 border-t pt-5">
+        <h3 className="text-sm font-medium">More about you <span className="text-muted-foreground font-normal">(optional)</span></h3>
+        <p className="text-muted-foreground mt-1 text-xs">You can add these details later in your account settings.</p>
+      </div>
       <div className="grid gap-2">
         <Label htmlFor="phone">Phone (optional)</Label>
         <Input
           id="phone"
           name="phone"
+          autoComplete="tel"
+          className="h-11"
           type="tel"
           placeholder="(555) 555-5555"
           defaultValue={initialPhone}
@@ -255,6 +266,8 @@ export function AccountStep({
           <Input
             id="publicEmail"
             name="publicEmail"
+            autoComplete="email"
+            className="h-11"
             type="email"
             placeholder="contact@yourorg.org"
             defaultValue={initialPublicEmail}
@@ -269,6 +282,8 @@ export function AccountStep({
           <Input
             id="title"
             name="title"
+            autoComplete="organization-title"
+            className="h-11"
             placeholder="Founder, Executive Director, etc."
             defaultValue={initialTitle}
           />
@@ -281,6 +296,9 @@ export function AccountStep({
         <Input
           id="linkedin"
           name="linkedin"
+          autoCapitalize="none"
+          spellCheck={false}
+          className="h-11"
           placeholder="https://linkedin.com/in/…"
           defaultValue={initialLinkedin}
         />

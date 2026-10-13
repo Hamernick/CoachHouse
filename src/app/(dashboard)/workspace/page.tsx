@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation"
-
-import { FIND_PATH } from "@/lib/find/routes"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { measureServerStep } from "@/lib/performance/server-timing"
 import { trackUserJourneyMilestone } from "@/lib/user-journey"
@@ -19,21 +16,6 @@ export default async function WorkspacePage({
     () => resolveDashboardLayoutState(),
     { thresholdMs: 250 }
   )
-
-  if (state.userPresent && !state.isAdmin && !state.showMemberWorkspace) {
-    if (
-      state.onboardingLocked &&
-      (state.onboardingIntentFocus === "find" ||
-        state.onboardingIntentFocus === "fund" ||
-        state.onboardingIntentFocus === "support")
-    ) {
-      redirect(`${FIND_PATH}?member_onboarding=1&source=workspace`)
-    }
-
-    if (!state.onboardingLocked) {
-      redirect(FIND_PATH)
-    }
-  }
 
   if (state.userPresent && !state.isAdmin) {
     const context = await resolveOptionalAuthenticatedAppContext()

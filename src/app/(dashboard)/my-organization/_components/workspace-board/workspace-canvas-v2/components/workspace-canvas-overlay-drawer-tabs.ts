@@ -113,6 +113,7 @@ export function resolveWorkspaceAcceleratorDrawerRequest(
 
   return {
     tab: "accelerator",
+    focusKey: destination.searchParams.get("focus"),
     acceleratorStepId: destination.searchParams.get("step"),
     acceleratorModuleId: destination.searchParams.get("module"),
     acceleratorLessonGroupKey: destination.searchParams.get("group"),
@@ -201,8 +202,10 @@ const WORKSPACE_DATA_DRAWER_EMPTY_TAB_INDICATOR: WorkspaceDataDrawerTabIndicator
 
 export function useWorkspaceDataDrawerTabIndicator({
   tab,
+  expanded,
 }: {
   tab: WorkspaceCanvasDrawerTab
+  expanded: boolean
 }) {
   const tabsHeaderRef = useRef<HTMLDivElement | null>(null)
   const tabsListRef = useRef<HTMLDivElement | null>(null)
@@ -282,7 +285,7 @@ export function useWorkspaceDataDrawerTabIndicator({
       tabsList?.removeEventListener("scroll", updateTabIndicator)
       window.removeEventListener("resize", revealActiveTab)
     }
-  }, [tab, updateTabIndicator])
+  }, [tab, expanded, updateTabIndicator])
 
   return {
     tabIndicator,

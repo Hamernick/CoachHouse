@@ -18,13 +18,15 @@ export async function loadMyOrganizationProfileContext({
 }) {
   const { data: orgRow, error } = await supabase
     .from("organizations")
-    .select("ein, profile, public_slug, is_public")
+    .select("ein, profile, public_slug, is_public, location_lat, location_lng")
     .eq("user_id", orgId)
     .maybeSingle<{
       ein: string | null
       profile: Record<string, unknown> | null
       public_slug: string | null
       is_public: boolean | null
+      location_lat: number | null
+      location_lng: number | null
     }>()
 
   if (error) throw supabaseErrorToError(error, "Unable to load organization setup.")

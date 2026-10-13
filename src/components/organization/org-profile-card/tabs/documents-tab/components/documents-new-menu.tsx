@@ -49,6 +49,7 @@ const NATIVE_CREATION_ITEMS = [
 ] as const
 
 type Props = {
+  canUpload: boolean
   canEdit: boolean
   editMode: boolean
   driveConnected: boolean
@@ -59,6 +60,7 @@ type Props = {
 
 export function DocumentsNewMenu({
   canEdit,
+  canUpload,
   editMode,
   driveConnected,
   drivePending,
@@ -75,11 +77,12 @@ export function DocumentsNewMenu({
         ref={inputRef}
         type="file"
         multiple
+        disabled={!canUpload}
         className="sr-only"
         aria-label="Choose files to upload"
         onChange={(event) => {
           const files = Array.from(event.currentTarget.files ?? [])
-          if (files.length > 0) void onUploadFiles(files)
+          if (canUpload && files.length > 0) void onUploadFiles(files)
           event.currentTarget.value = ""
         }}
       />
@@ -128,12 +131,13 @@ export function DocumentsNewMenu({
           <DropdownMenuSeparator className="mx-2 my-2" />
           <DropdownMenuItem
             className="min-h-11 rounded-lg text-base sm:min-h-9 sm:text-sm"
+            disabled={!canUpload}
             onSelect={() =>
               window.setTimeout(() => inputRef.current?.click(), 0)
             }
           >
             <IconUpload className="size-4" aria-hidden />
-            Upload files
+            {canUpload ? "Upload files" : "Upload files · Upgrade"}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="mx-2 my-2" />

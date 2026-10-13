@@ -1,6 +1,7 @@
 import type { DocumentsOption, PolicyDraft } from "../types"
 
 export type PolicyEditorDialogProps = {
+  readOnly?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   draft: PolicyDraft

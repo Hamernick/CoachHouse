@@ -10,10 +10,12 @@ import type { PublicMapOrganizationCurationAction } from "./organization-detail-
 import type { PublicMapResourceCurationAction } from "./resource-detail-admin-actions"
 
 export type PublicMapIndexProps = {
+  embedded?: boolean
   organizations: PublicMapOrganization[]
   mapboxToken?: string
   initialPublicSlug?: string
-  viewer?: { id: string; email: string | null } | null
+  initialResource?: ExternalResourceMapItem
+  viewer?: { id: string; email: string | null; displayName?: string | null; avatarUrl?: string | null } | null
   includeSeedResources?: boolean
   resourceItems?: ExternalResourceMapItem[]
   resourceItemsEndpoint?: string

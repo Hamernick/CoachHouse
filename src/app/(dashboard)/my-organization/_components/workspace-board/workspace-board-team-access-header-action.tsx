@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+import { PaywallOverlay } from "@/components/paywall/paywall-overlay"
 import { HeaderActionsPortal } from "@/components/header-actions-portal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -85,6 +86,12 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
 }: WorkspaceBoardTeamAccessHeaderActionProps) {
   const [nowMs, setNowMs] = useState(() => Date.now())
   const organizationAccessState = useWorkspaceBoardOrganizationAccessState()
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const requiresUpgrade =
+    !organizationAccessState.loading &&
+    !organizationAccessState.loadError &&
+    !organizationAccessState.hasPaidTeamAccess
 
   useEffect(() => {
     setNowMs(Date.now())
@@ -151,10 +158,13 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
   const trigger = (
     <Button
       {...WORKSPACE_TEAM_ACCESS_TRIGGER_PROPS}
+      ref={triggerRef}
+      onClick={requiresUpgrade ? () => setUpgradeOpen(true) : undefined}
+      aria-haspopup={requiresUpgrade ? "dialog" : undefined}
       type="button"
       variant="ghost"
       size="sm"
-      className="border-border/65 bg-card hover:bg-muted/20 h-9 max-w-[13rem] min-w-0 rounded-full border px-2 py-1 text-left transition-colors"
+      className="border-border/65 bg-card hover:bg-muted/20 mr-2 h-9 max-w-[13rem] min-w-0 rounded-full border px-2 py-1 text-left transition-colors"
       aria-label={`Team access. ${summaryText}. ${realtimeLabel}.`}
     >
       <span className="flex min-w-0 items-center">
@@ -208,6 +218,19 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
       </span>
     </Button>
   )
+
+  if (requiresUpgrade) {
+    return (
+      <>
+        {trigger}
+        <PaywallOverlay
+          open={upgradeOpen}
+          onOpenChange={setUpgradeOpen}
+          restoreFocus={() => triggerRef.current?.focus({ preventScroll: true })}
+        />
+      </>
+    )
+  }
 
   return (
     <HoverCard openDelay={150} closeDelay={100}>

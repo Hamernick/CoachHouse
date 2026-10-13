@@ -15,11 +15,18 @@ const PAGE_LAYOUT_BUDGET_ALLOWLIST = new Set()
 const PAGE_LAYOUT_BUDGET_ALLOWLIST_MAX = 0
 const ROUTE_IMPORT_CONTRACTS = new Map([
   [
-    "src/app/(public)/page.tsx",
+    "src/app/(public)/resources/page.tsx",
     {
-      requireImports: ["@/features/find-map"],
+      requireImports: ["@/components/public/home-resource-explorer"],
       forbidImports: ["@/components/public/public-header"],
-      requireSourcePatterns: [/<PublicFindRoute\b/u],
+      requireSourcePatterns: [/<PublicHomeResourceExplorer\b/u],
+    },
+  ],
+  [
+    "src/app/(public)/map/page.tsx",
+    {
+      requireImports: ["next/navigation", "@/lib/find/routes"],
+      requireSourcePatterns: [/permanentRedirect\b/u],
     },
   ],
   [

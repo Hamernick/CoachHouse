@@ -27,6 +27,7 @@ import {
 } from "@/lib/workspace/routes"
 
 import { resolveRoadmapBasePath } from "../paths"
+import { withEditorReturnTo } from "@/lib/workspace/editor-navigation"
 import { deriveRoadmapEditorSectionUi } from "../ui-state"
 import {
   createDraft,
@@ -268,8 +269,9 @@ export function useRoadmapEditorState({
       setActiveId(next.id)
       if (navigationMode === "embedded") return
       if (typeof window === "undefined") return
-      const nextHref = getSectionHref(next.slug)
-      if (window.location.pathname === nextHref) return
+      const returnTo = new URLSearchParams(window.location.search).get("returnTo")
+      const nextHref = returnTo ? withEditorReturnTo(getSectionHref(next.slug), returnTo) : getSectionHref(next.slug)
+      if (`${window.location.pathname}${window.location.search}` === nextHref) return
       window.history.replaceState(window.history.state, "", nextHref)
     },
     [flushActiveSectionDraft, getSectionHref, navigationMode]

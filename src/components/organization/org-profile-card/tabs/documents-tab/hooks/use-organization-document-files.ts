@@ -22,6 +22,7 @@ export type OrganizationDocumentFile = {
 }
 
 type FilesResponse = {
+  hasStorageAccess?: boolean
   files?: OrganizationDocumentFile[]
   quota?: {
     usedBytes: number
@@ -38,6 +39,7 @@ async function readResponseError(response: Response) {
 }
 
 export function useOrganizationDocumentFiles(refreshKey = "") {
+  const [hasStorageAccess, setHasStorageAccess] = useState(false)
   const [files, setFiles] = useState<OrganizationDocumentFile[]>([])
   const [usedBytes, setUsedBytes] = useState(0)
   const [limitBytes, setLimitBytes] = useState(
@@ -61,12 +63,14 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
       if (!response.ok) {
         throw new Error(payload?.error ?? "Unable to load uploaded files.")
       }
+      setHasStorageAccess(payload?.hasStorageAccess === true)
       setFiles(payload?.files ?? [])
       setUsedBytes(payload?.quota?.usedBytes ?? 0)
       setLimitBytes(
         payload?.quota?.limitBytes ?? ORGANIZATION_DOCUMENT_QUOTA_BYTES
       )
     } catch (error: unknown) {
+      setHasStorageAccess(false)
       toast.error(
         error instanceof Error
           ? error.message
@@ -310,6 +314,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
   )
 
   return {
+    hasStorageAccess,
     downloadFile,
     files,
     limitBytes,

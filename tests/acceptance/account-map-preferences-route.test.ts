@@ -44,6 +44,17 @@ describe("account map preferences route", () => {
     vi.clearAllMocks()
   })
 
+  it("rejects signed-out collection reads and writes", async () => {
+    const updateUser = vi.fn()
+    createSupabaseRouteHandlerClientMock.mockReturnValue({ auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }), updateUser,
+    } })
+    const { GET, PATCH } = await import("@/app/api/account/map-preferences/route")
+    expect((await GET(new NextRequest("http://localhost/api/account/map-preferences"))).status).toBe(401)
+    expect((await PATCH(buildPatchRequest({ collectedResourceIds: ["resource-1"] }))).status).toBe(401)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
   it("returns normalized account-backed resource collections", async () => {
     const { supabase } = buildSupabaseStub({
       collectedResourceIds: ["resource-1", " resource-2 ", "resource-1"],

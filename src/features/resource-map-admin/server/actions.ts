@@ -216,7 +216,8 @@ async function insertCurationEvent({
 }
 
 function revalidateResourceMapAdminPaths() {
-  revalidatePath("/")
+  revalidatePath("/map")
+  revalidatePath("/resources")
   revalidatePath("/admin")
   revalidatePath("/admin/platform/resource-map")
   revalidatePath("/internal")

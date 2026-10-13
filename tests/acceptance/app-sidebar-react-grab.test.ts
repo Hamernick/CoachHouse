@@ -20,6 +20,32 @@ afterEach(() => {
 })
 
 describe("app sidebar react grab", () => {
+  it("opens grouped navigation as a menu button when the desktop rail is collapsed", async () => {
+    const stream = await renderToReadableStream(
+      React.createElement(
+        SidebarProvider,
+        { defaultOpen: false },
+        React.createElement(NavMain, {
+          items: [{
+            title: "Admin Dashboard",
+            href: "/admin/dashboard",
+            icon: ClipboardListIcon,
+            children: [{ title: "Tasks", href: "/tasks" }],
+          }],
+        })
+      )
+    )
+    await stream.allReady
+    const markup = await new Response(stream).text()
+
+    expect(markup).toContain('aria-label="Admin Dashboard menu"')
+    expect(markup).toContain('aria-haspopup="menu"')
+    expect(markup).toContain('data-active="true"')
+    expect(markup).toContain('data-react-grab-owner-id="app-sidebar:main:admin-dashboard"')
+    expect(markup).not.toContain('href="/admin/dashboard"')
+    expect(markup).not.toContain('aria-label="Collapse Admin Dashboard"')
+  })
+
   it("tags main nav items with semantic ownership metadata and sidebar class assembly", () => {
     vi.stubGlobal("window", { __REACT_GRAB_SURFACES__: {} })
 
@@ -159,7 +185,7 @@ describe("app sidebar react grab", () => {
     expect(markup).not.toContain("app-sidebar:onboarding:welcome")
   })
 
-  it("renders an upgrade CTA above resources for signed-in free users", () => {
+  it("shows the gift upgrade button above the profile for free users", () => {
     const markup = renderToStaticMarkup(
       React.createElement(
         SidebarProvider,
@@ -179,15 +205,12 @@ describe("app sidebar react grab", () => {
       )
     )
 
-    const upgradeIndex = markup.indexOf("Upgrade account")
-    const resourcesIndex = markup.indexOf(">Resources<")
+    expect(markup).toContain(">Resources<")
+    expect(markup).toContain('aria-label="Upgrade"')
+    expect(markup).toContain("lucide-gift")
+    expect(markup.indexOf('aria-label="Upgrade"')).toBeLessThan(markup.indexOf('data-tour="account-menu"'))
+    expect(markup).not.toContain("source=sidebar_upgrade")
 
-    expect(upgradeIndex).toBeGreaterThan(-1)
-    expect(resourcesIndex).toBeGreaterThan(-1)
-    expect(upgradeIndex).toBeLessThan(resourcesIndex)
-    expect(markup).toContain(
-      "/?paywall=organization&amp;plan=organization&amp;source=sidebar_upgrade&amp;redirect=%2Fworkspace&amp;cancel=%2F&amp;paywall_preview=1"
-    )
   })
 
   it("does not render the free upgrade CTA for paid workspace users", () => {
@@ -210,11 +233,11 @@ describe("app sidebar react grab", () => {
       )
     )
 
-    expect(markup).not.toContain("Upgrade account")
+    expect(markup).not.toContain('aria-label="Upgrade"')
     expect(markup).not.toContain("source=sidebar_upgrade")
   })
 
-  it("renders the upgrade CTA for platform admins so they can test checkout placement", () => {
+  it("hides the free upgrade button for paid admins", () => {
     const markup = renderToStaticMarkup(
       React.createElement(
         SidebarProvider,
@@ -234,7 +257,7 @@ describe("app sidebar react grab", () => {
       )
     )
 
-    expect(markup).toContain("Upgrade account")
-    expect(markup).toContain("source=sidebar_upgrade")
+    expect(markup).not.toContain('aria-label="Upgrade"')
+    expect(markup).not.toContain("source=sidebar_upgrade")
   })
 })

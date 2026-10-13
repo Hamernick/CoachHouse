@@ -1,3 +1,4 @@
+import { parseFundraisingAmount, readFundraisingGoal, type FundraisingPeriod } from "./fundraising-goal"
 import type {
   FiscalSponsorshipApplicationInput,
   FiscalSponsorshipApplicationRecord,
@@ -42,6 +43,8 @@ export type FiscalSponsorshipApplicationDraft = {
   projectDescription: string
   projectLocation: string
   budgetRows: BudgetTableRow[]
+  fundraisingGoalDollars: string
+  fundraisingGoalPeriod: FundraisingPeriod
   estimatedBudgetDollars: string
   expenseSummary: string
   prospectiveFundingSources: string
@@ -125,7 +128,7 @@ function booleanValue(value: FiscalSponsorshipBooleanChoice) {
 }
 
 function applicantNameFromWorkbench(
-  data: FiscalSponsorshipProjectWorkbenchData
+  data: Pick<FiscalSponsorshipProjectWorkbenchData, "applicantName">
 ) {
   return data.applicantName === "Applicant needed" ? "" : data.applicantName
 }
@@ -157,8 +160,9 @@ export function buildFiscalSponsorshipApplicationDraft({
   data,
 }: {
   application?: FiscalSponsorshipApplicationRecord | null
-  data: FiscalSponsorshipProjectWorkbenchData
+  data: Pick<FiscalSponsorshipProjectWorkbenchData, "projectId" | "projectName" | "applicantName" | "applicationPrefill">
 }): FiscalSponsorshipApplicationDraft {
+  const fundraisingGoal = readFundraisingGoal(application?.metadata)
   const prefill = data.applicationPrefill ?? null
   const prefillApplicantName = firstText(
     prefill?.applicantFullName,
@@ -272,6 +276,8 @@ export function buildFiscalSponsorshipApplicationDraft({
       prefill?.projectLocation
     ),
     budgetRows,
+    fundraisingGoalDollars: formatBudgetCentsForDraft(fundraisingGoal?.amountCents),
+    fundraisingGoalPeriod: fundraisingGoal?.period ?? "total",
     estimatedBudgetDollars,
     expenseSummary: firstText(
       application?.expenseSummary,
@@ -412,6 +418,8 @@ export function buildFiscalSponsorshipApplicationInput({
       },
     },
     metadata: {
+      budgetMode: "fundraising_goal",
+      fundraisingGoal: { amountCents: parseFundraisingAmount(draft.fundraisingGoalDollars), period: draft.fundraisingGoalPeriod },
       budgetRows: draft.budgetRows,
       lastEditedSurface: "project-fiscal-sponsorship-drawer",
       selectedActivityId: data.applicationPrefill?.sourceActivityId ?? null,

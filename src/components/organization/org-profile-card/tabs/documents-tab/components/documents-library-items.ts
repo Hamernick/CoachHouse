@@ -1,3 +1,4 @@
+import { getDocumentEditorHref } from "@/lib/workspace/editor-navigation"
 import { isDocumentsSectionVisible } from "@/lib/organization/core-document-uploads"
 import { stripHtml } from "@/lib/markdown/convert"
 import type { DriveLibraryDocument } from "../hooks/use-google-drive-library"
@@ -143,7 +144,7 @@ export function buildLibraryItems(
         href:
           row.source === "roadmap"
             ? (row.section.driveSource?.webViewLink ??
-              `/roadmap/${row.section.slug}`)
+              getDocumentEditorHref(row.section.slug))
             : undefined,
         uploadedFile: coreFile,
         row,

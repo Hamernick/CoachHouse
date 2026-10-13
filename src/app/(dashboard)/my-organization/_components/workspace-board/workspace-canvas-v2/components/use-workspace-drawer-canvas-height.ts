@@ -14,7 +14,9 @@ export function useWorkspaceDrawerCanvasSize(container: HTMLElement | null) {
   useLayoutEffect(() => {
     if (!container) return
     const measure = () => {
-      const { height, width } = container.getBoundingClientRect()
+      // Match the portal's inner layout box, excluding borders and scrollbars.
+      const height = container.clientHeight
+      const width = container.clientWidth
       setMeasurement((current) =>
         current?.container === container &&
         current.height === height &&

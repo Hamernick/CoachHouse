@@ -42,11 +42,21 @@ export async function generateFiscalSponsorshipAgreement(
 ): Promise<GenerateFiscalSponsorshipAgreementResult> {
   const context = await resolveProjectAndContext(input.projectId)
   if ("error" in context) return context
+  // Guest applicants are not members of the internal host organization.
+  // Never use that organization's identity or members to prepare their agreement.
+  const guestScope = await context.supabase.rpc("fiscal_guest_project_reviewer_access", {
+    p_project_id: context.project.id,
+    p_user_id: context.user.id,
+  })
+  if (guestScope.error || guestScope.data !== null) {
+    return { error: "Guest agreement preparation and signing are not available yet." }
+  }
 
   if (
     !(await canManageFiscalSponsorshipForOrganization({
       accessLevel: context.profileAudience.platformAccessLevel,
       organizationId: context.project.org_id,
+      projectId: context.project.id,
       supabase: context.supabase,
       userId: context.user.id,
     }))
@@ -189,11 +199,21 @@ export async function sendFiscalSponsorshipAgreementForSignature(
 ): Promise<SendFiscalSponsorshipAgreementResult> {
   const context = await resolveProjectAndContext(input.projectId)
   if ("error" in context) return context
+  // Guest applicants are not members of the internal host organization.
+  // Never use that organization's identity or members to prepare their agreement.
+  const guestScope = await context.supabase.rpc("fiscal_guest_project_reviewer_access", {
+    p_project_id: context.project.id,
+    p_user_id: context.user.id,
+  })
+  if (guestScope.error || guestScope.data !== null) {
+    return { error: "Guest agreement preparation and signing are not available yet." }
+  }
 
   if (
     !(await canManageFiscalSponsorshipForOrganization({
       accessLevel: context.profileAudience.platformAccessLevel,
       organizationId: context.project.org_id,
+      projectId: context.project.id,
       supabase: context.supabase,
       userId: context.user.id,
     }))

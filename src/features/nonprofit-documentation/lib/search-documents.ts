@@ -183,6 +183,16 @@ export const DOCUMENTATION_SEARCH_DOCUMENTS: DocumentationSearchDocument[] = [
       },
     ],
   },
+  {
+    href: "/documentation/fiscal-sponsorship",
+    title: "Fiscal sponsorship",
+    category: "Fund your project",
+    description: "Review requirements, create a free account, and apply for fiscal sponsorship.",
+    sections: [
+      section("requirements", "What to prepare", "Charitable public benefit, legal structure, contact information, budget and funding plan."),
+      section("application", "Your application", "Start, save a draft, resume and submit for review. No paid plan required. Sponsorship does not guarantee funding."),
+    ],
+  },
   ...MARKETPLACE_RESOURCES.map((resource): DocumentationSearchDocument => {
     const guide = MARKETPLACE_RESOURCE_GUIDES[resource.id]
     return {

@@ -35,7 +35,7 @@ import {
   shiftWorkspacePeopleRelationshipPlacementsAwayFromWorkspaceCards,
 } from "./workspace-canvas-person-relationship-layout"
 import {
-  WORKSPACE_CANVAS_PERSON_NODE_SIZE,
+  buildWorkspacePeopleDropPlacements,
   getWorkspaceCanvasPersonNodeId,
   isWorkspaceCanvasPersonNodeData,
   type WorkspaceCanvasPersonPlacement,
@@ -143,107 +143,42 @@ export function useWorkspaceCanvasPeoplePlacementController({
     })
   }, [])
 
-  const handleWorkspacePersonDropToCanvas = useCallback(
-    ({ personId, clientX, clientY }: WorkspaceCanvasPersonDropRequest) => {
-      if (!canMutatePeople) return false
-      if (!workspacePersonById.has(personId)) return false
+  const placeWorkspacePeopleAtPoint = useCallback(
+    (personIds: string[], clientX: number, clientY: number) => {
       const flowInstance = flowInstanceRef.current
-      if (!flowInstance) return false
+      if (!canMutatePeople || !flowInstance) return 0
+      const requestedIds = normalizeWorkspaceCanvasPersonIds(personIds).filter(
+        (personId) => workspacePersonById.has(personId)
+      )
+      if (requestedIds.length === 0) return 0
 
-      const flowPosition = flowInstance.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      })
-      const relationshipPersonIds =
-        resolveWorkspacePeopleRelationshipGraphPersonIds({
-          personIds: [personId],
-          peopleById: workspacePersonById,
-        })
-
-      if (!placedWorkspacePersonIds.has(personId)) {
-        const unplacedPersonIds = relationshipPersonIds.filter(
-          (relationshipPersonId) =>
-            !placedWorkspacePersonIds.has(relationshipPersonId)
-        )
-        const focusPersonId = resolveWorkspacePeopleRelationshipFocusPersonId({
-          personIds: unplacedPersonIds,
-          peopleById: workspacePersonById,
-          existingPlacements: workspacePersonPlacements,
-        })
-        const graphNodes = flowInstance.getNodes()
-        const center = resolveWorkspacePeopleRelationshipCanvasCenter({
-          nodes: graphNodes,
-          fallbackCenter: flowPosition,
-          focusPersonId,
-          existingPlacements: workspacePersonPlacements,
-          personCount: relationshipPersonIds.length,
-        })
-        const nextPlacements =
-          shiftWorkspacePeopleRelationshipPlacementsAwayFromWorkspaceCards({
-            placements: buildWorkspacePeopleRelationshipPlacementLayout({
-              personIds: unplacedPersonIds,
-              peopleById: workspacePersonById,
-              existingPlacements: workspacePersonPlacements,
-              center,
-            }),
-            nodes: graphNodes,
-          })
-
-        if (nextPlacements.length > 0) {
-          commitWorkspacePersonPlacements((current) => {
-            const nextByPersonId = new Map(
-              current.map((placement) => [placement.personId, placement])
-            )
-            for (const placement of nextPlacements) {
-              nextByPersonId.set(placement.personId, placement)
-            }
-            return Array.from(nextByPersonId.values())
-          })
-          requestWorkspacePersonFit(relationshipPersonIds)
-          return true
-        }
-      }
-
-      const nextPlacement: WorkspaceCanvasPersonPlacement = {
-        personId,
-        x: Math.round(
-          flowPosition.x - WORKSPACE_CANVAS_PERSON_NODE_SIZE.width / 2
-        ),
-        y: Math.round(
-          flowPosition.y - WORKSPACE_CANVAS_PERSON_NODE_SIZE.height / 2
-        ),
-      }
-
+      const nextPlacements = buildWorkspacePeopleDropPlacements(
+        requestedIds,
+        flowInstance.screenToFlowPosition({ x: clientX, y: clientY })
+      )
+      setFitRequest(null)
       commitWorkspacePersonPlacements((current) => {
-        const existingIndex = current.findIndex(
-          (placement) => placement.personId === personId
+        const nextByPersonId = new Map(
+          current.map((placement) => [placement.personId, placement])
         )
-        if (existingIndex === -1) return [...current, nextPlacement]
-        const existing = current[existingIndex]
-        if (existing.x === nextPlacement.x && existing.y === nextPlacement.y) {
-          return current
+        for (const placement of nextPlacements) {
+          nextByPersonId.set(placement.personId, placement)
         }
-        const next = current.slice()
-        next[existingIndex] = nextPlacement
-        return next
+        return Array.from(nextByPersonId.values())
       })
-      requestWorkspacePersonFit(relationshipPersonIds)
-
-      return true
+      return nextPlacements.length
     },
-    [
-      canMutatePeople,
-      commitWorkspacePersonPlacements,
-      flowInstanceRef,
-      placedWorkspacePersonIds,
-      requestWorkspacePersonFit,
-      workspacePersonById,
-      workspacePersonPlacements,
-    ]
+    [canMutatePeople, commitWorkspacePersonPlacements, flowInstanceRef, workspacePersonById]
+  )
+
+  const handleWorkspacePersonDropToCanvas = useCallback(
+    ({ personId, clientX, clientY }: WorkspaceCanvasPersonDropRequest) =>
+      placeWorkspacePeopleAtPoint([personId], clientX, clientY) > 0,
+    [placeWorkspacePeopleAtPoint]
   )
 
   const handleAddWorkspacePeopleToCanvas = useCallback(
-    ({ personIds, clientX, clientY }: WorkspaceCanvasPeopleAddRequest) => {
+    ({ personIds, clientX, clientY, intent }: WorkspaceCanvasPeopleAddRequest) => {
       if (!canMutatePeople || personIds.length === 0) {
         return 0
       }
@@ -255,6 +190,18 @@ export function useWorkspaceCanvasPeoplePlacementController({
         personIds
       ).filter((personId) => workspacePersonById.has(personId))
       if (requestedPersonIds.length === 0) return 0
+
+      if (intent === "drop") {
+        return placeWorkspacePeopleAtPoint(requestedPersonIds, clientX, clientY)
+      }
+      if (requestedPersonIds.length === 1) {
+        const personId = requestedPersonIds[0]!
+        if (!placedWorkspacePersonIds.has(personId)) {
+          placeWorkspacePeopleAtPoint([personId], clientX, clientY)
+        }
+        requestWorkspacePersonFit([personId])
+        return 1
+      }
 
       const relationshipPersonIds =
         resolveWorkspacePeopleRelationshipGraphPersonIds({
@@ -325,6 +272,7 @@ export function useWorkspaceCanvasPeoplePlacementController({
       commitWorkspacePersonPlacements,
       flowInstanceRef,
       placedWorkspacePersonIds,
+      placeWorkspacePeopleAtPoint,
       requestWorkspacePersonFit,
       workspacePersonById,
       workspacePersonPlacements,

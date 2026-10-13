@@ -1,6 +1,7 @@
 import Link from "next/link"
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import { Button } from "@/components/ui/button"
+import { DocumentationFundingBanner } from "./documentation-funding-banner"
 import { cn } from "@/lib/utils"
 import density from "./documentation-density.module.css"
 import { DOCUMENTATION_TOOL_METADATA } from "../lib/documentation-tools"
@@ -75,6 +76,7 @@ export function DocumentationHome() {
             Practical guides and working tools for nonprofit founders and teams.
           </p>
         </header>
+        <DocumentationFundingBanner />
         <section
           id="quickstart"
           aria-labelledby="quickstart-title"

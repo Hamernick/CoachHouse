@@ -13,6 +13,7 @@ import { PolicyEditorDialogFields } from "./policy-editor-dialog-fields"
 import type { PolicyEditorDialogProps } from "./policy-editor-dialog-types"
 
 export function PolicyEditorDialog({
+  readOnly = false,
   open,
   onOpenChange,
   draft,
@@ -37,13 +38,15 @@ export function PolicyEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{draft.id ? "Edit policy" : "New policy"}</DialogTitle>
+          <DialogTitle>{readOnly ? draft.title : draft.id ? "Edit policy" : "New policy"}</DialogTitle>
           <DialogDescription>
-            Add a policy with categories, associations, and a supporting PDF file.
+            {readOnly ? "View your saved policy. Upgrade to make changes." : "Add a policy with categories, associations, and a supporting PDF file."}
           </DialogDescription>
         </DialogHeader>
 
-        <PolicyEditorDialogFields
+        {readOnly ? (
+          <p className="max-h-[60dvh] overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground">{draft.summary || "No summary added."}</p>
+        ) : <PolicyEditorDialogFields
           open={open}
           draft={draft}
           categoryOptions={categoryOptions}
@@ -60,15 +63,15 @@ export function PolicyEditorDialog({
           onClearPendingDocument={onClearPendingDocument}
           onRemoveExistingDocument={onRemoveExistingDocument}
           onViewDocument={onViewDocument}
-        />
+        />}
 
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
-          <Button type="button" onClick={onSave} disabled={pending || pendingDocumentUpload}>
+          {!readOnly ? <Button type="button" onClick={onSave} disabled={pending || pendingDocumentUpload}>
             {pending || pendingDocumentUpload ? "Saving…" : "Save policy"}
-          </Button>
+          </Button> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

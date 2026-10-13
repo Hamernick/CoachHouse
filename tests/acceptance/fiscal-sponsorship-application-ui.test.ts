@@ -1,3 +1,8 @@
+import React from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { OrganizationFormationStatusPicker } from "@/components/organization/organization-formation-status-picker"
+import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
+import { FORMATION_STATUS_OPTIONS } from "@/lib/organization/formation-status"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
@@ -18,6 +23,35 @@ function readSource(relativePath: string) {
 }
 
 describe("fiscal sponsorship application UI", () => {
+  it("renders one named radio per formation card and only the selected value is checked", () => {
+    for (const value of ["", "approved"] as const) {
+      const html = renderToStaticMarkup(React.createElement(OrganizationFormationStatusPicker, {
+        value, onValueChange: () => {}, labelledBy: "formation-label",
+      }))
+      expect(html.match(/role="radio"/g)).toHaveLength(3)
+      expect(html.match(/aria-checked="true"/g) ?? []).toHaveLength(value ? 1 : 0)
+      expect(html).toContain('role="radiogroup"')
+      for (const option of FORMATION_STATUS_OPTIONS) expect(html).toContain(`aria-label="${option.label}"`)
+      if (value) expect(html).toMatch(/<button[^>]*aria-checked="true"[^>]*aria-label="Approved"/)
+    }
+    const readonly = renderToStaticMarkup(React.createElement(OrganizationFormationStatusSummary, {
+      formationStatus: FORMATION_STATUS_OPTIONS[2],
+    }))
+    expect(readonly).toContain("Approved")
+    expect(readonly).not.toContain('<button')
+    expect(readonly).not.toContain('role="radio"')
+  })
+
+  it("uses the radio-card picker in the application", () => {
+    for (const path of [
+      "src/features/fiscal-sponsorship/components/fiscal-sponsorship-application-editor-primary-sections.tsx",
+    ]) {
+      const source = readSource(path)
+      expect(source).toContain("<OrganizationFormationStatusPicker")
+      expect(source).not.toContain("ToggleGroupPrimitive")
+    }
+  })
+
   it("keeps client-callable fiscal actions behind a real Server Action boundary", () => {
     const actionFacade = readSource(
       "src/features/fiscal-sponsorship/actions.ts"
@@ -59,9 +93,11 @@ describe("fiscal sponsorship application UI", () => {
     expect(applicationDrawer).toContain(
       "buildFiscalSponsorshipApplicationInput"
     )
-    expect(applicationDrawer).toContain("Save draft")
-    expect(applicationDrawer).toContain("Submit for review")
-    expect(applicationDrawer).toContain("Submitting…")
+    const actions = readSource("src/features/fiscal-sponsorship/components/fiscal-sponsorship-application-editor-actions.tsx")
+    expect(applicationDrawer).toContain("<FiscalSponsorshipApplicationEditorActions")
+    expect(actions).toContain("Save draft")
+    expect(actions).toContain("Submit for review")
+    expect(actions).toContain("Submitting…")
     expect(applicationDrawer).toContain('status: "draft"')
     expect(applicationDrawer).toContain("data.workflowSummary?.applicationId")
     expect(applicationDrawer).toContain("projectId={data.projectId}")
@@ -122,7 +158,7 @@ describe("fiscal sponsorship application UI", () => {
     expect(applicationEditorControls).toContain("Complete")
     expect(applicationEditorControls).toContain("Needed")
     expect(applicationEditorControls).toContain(
-      "h-7 max-w-full overflow-visible rounded-full"
+      "h-5 max-w-full overflow-visible rounded-full"
     )
     expect(applicationEditorControls).not.toContain("group-hover:shadow-sm")
 
@@ -132,9 +168,9 @@ describe("fiscal sponsorship application UI", () => {
     expect(applicationPrimarySections).toContain('field="applicantFirstName"')
     expect(applicationPrimarySections).toContain('field="applicantLastName"')
     expect(applicationPrimarySections).toContain("FormationStatusCardPicker")
-    expect(applicationPrimarySections).toContain("ToggleGroupPrimitive.Root")
+    expect(applicationPrimarySections).toContain("OrganizationFormationStatusPicker")
     expect(applicationPrimarySections).toContain(
-      "OrganizationFormationStatusSummary"
+      "OrganizationFormationStatusPicker"
     )
     expect(applicationPrimarySections).toContain(
       'nextLegalEntityType === "individual"'
@@ -161,9 +197,11 @@ describe("fiscal sponsorship application UI", () => {
       'draft.operatesOutsideUnitedStates === "yes"'
     )
     expect(applicationReviewSections).toContain("Budget, funding, and benefit")
-    expect(applicationReviewSections).toContain(
-      "FiscalSponsorshipBudgetPlanEditor"
-    )
+    expect(applicationReviewSections).not.toContain("FiscalSponsorshipBudgetPlanEditor")
+    expect(applicationReviewSections).toContain('field="fundraisingGoalDollars"')
+    expect(applicationReviewSections).toContain('label="Timeframe"')
+    expect(applicationReviewSections).not.toContain('field="shortPublicDescription"')
+    expect(applicationReviewSections).not.toContain('field="receivesInvestorReturnFunds"')
     expect(applicationReviewSections).not.toContain('field="expenseSummary"')
   })
 

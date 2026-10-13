@@ -169,7 +169,7 @@ export function WorkspacePeopleDrawerSelectionActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-11 rounded-xl px-2.5 md:h-8"
+            className="h-8 rounded-xl px-2.5"
             onClick={() => setEditingPerson(singleSelectedPerson)}
           >
             <PencilIcon aria-hidden />
@@ -181,7 +181,7 @@ export function WorkspacePeopleDrawerSelectionActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-11 rounded-xl px-2.5 md:h-8"
+            className="h-8 rounded-xl px-2.5"
             onClick={handleAddToCanvas}
           >
             <LayoutDashboardIcon aria-hidden />
@@ -193,7 +193,7 @@ export function WorkspacePeopleDrawerSelectionActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-11 rounded-xl px-2.5 md:h-8"
+            className="h-8 rounded-xl px-2.5"
             onClick={() => {
               onAddToSegment(selectedAvailableSegmentIds)
               onClearSelection()
@@ -208,7 +208,7 @@ export function WorkspacePeopleDrawerSelectionActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-11 rounded-xl px-2.5 md:h-8"
+            className="h-8 rounded-xl px-2.5"
             onClick={() => {
               onRemoveFromSegment(selectedSegmentMemberIds)
               onClearSelection()
@@ -223,7 +223,7 @@ export function WorkspacePeopleDrawerSelectionActions({
             type="button"
             variant="ghost"
             size="sm"
-            className="text-destructive hover:text-destructive h-11 rounded-xl px-2.5 md:h-8"
+            className="text-destructive hover:text-destructive h-8 rounded-xl px-2.5"
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2Icon aria-hidden />

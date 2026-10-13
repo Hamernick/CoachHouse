@@ -4,11 +4,9 @@ import "@fontsource-variable/inter/wght.css"
 import "@fontsource-variable/jetbrains-mono/wght.css"
 import "./globals.css"
 
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-
 import { ReactGrabLoader } from "@/components/dev/react-grab-loader"
 import { AppProviders } from "@/components/providers/app-providers"
+import { AppTelemetry } from "@/components/providers/app-telemetry"
 import { getLocale } from "@/lib/locale.server"
 
 export const metadata: Metadata = {
@@ -51,8 +49,7 @@ export default async function RootLayout({
       <body className="bg-background min-h-screen font-sans antialiased">
         <ReactGrabLoader />
         <AppProviders>{children}</AppProviders>
-        <Analytics />
-        <SpeedInsights sampleRate={0.5} />
+        <AppTelemetry />
       </body>
     </html>
   )

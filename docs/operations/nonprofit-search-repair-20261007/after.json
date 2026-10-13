@@ -1,0 +1,77 @@
+[
+  {
+    "kind": "migration",
+    "data": [
+      {
+        "name": "nonprofit_categories",
+        "version": "20261007070000"
+      }
+    ]
+  },
+  {
+    "kind": "new_tables",
+    "data": [
+      {
+        "rls": true,
+        "table": "nonprofit_category_chunks",
+        "force_rls": true,
+        "anon_any_privilege": false,
+        "authenticated_any_privilege": false
+      },
+      {
+        "rls": true,
+        "table": "nonprofit_category_sets",
+        "force_rls": true,
+        "anon_any_privilege": false,
+        "authenticated_any_privilege": false
+      },
+      {
+        "rls": true,
+        "table": "nonprofit_directory_categories",
+        "force_rls": true,
+        "anon_any_privilege": false,
+        "authenticated_any_privilege": false
+      }
+    ]
+  },
+  {
+    "kind": "functions",
+    "data": [
+      {
+        "owner": "postgres",
+        "definer": true,
+        "function": "nonprofit_category_preflight",
+        "anon_execute": false,
+        "configuration": [
+          "search_path=\"\"",
+          "statement_timeout=3s"
+        ],
+        "authenticated_execute": false
+      },
+      {
+        "owner": "postgres",
+        "definer": true,
+        "function": "search_nonprofit_directory_v2",
+        "anon_execute": true,
+        "configuration": [
+          "search_path=\"\"",
+          "statement_timeout=3s"
+        ],
+        "authenticated_execute": true
+      }
+    ]
+  },
+  {
+    "kind": "compatibility",
+    "data": {
+      "category_rows": 0,
+      "projection_hash": "11532d07a3a07e371d67fef23c0f9b88",
+      "v1_definition_hash": "72ffa63717767118b7a133c819c5243e",
+      "publication_settings": {
+        "target_ref": "vswzhuwjtgzrkxknrmxu",
+        "policy_version": "nonprofit-directory-retained-audit-v1",
+        "publication_enabled": true
+      }
+    }
+  }
+]

@@ -1,5 +1,8 @@
 "use client"
 
+import type { Ref } from "react"
+import XIcon from "lucide-react/dist/esm/icons/x"
+import { Button } from "@/components/ui/button"
 import GraduationCapIcon from "lucide-react/dist/esm/icons/graduation-cap"
 
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
@@ -17,27 +20,37 @@ const WORKSPACE_ACCELERATOR_BANNER_OWNER_PROPS = getReactGrabOwnerProps({
     "WorkspaceAcceleratorBanner owns the Accelerator drawer introduction.",
 })
 
-export function WorkspaceAcceleratorBanner() {
+export function WorkspaceAcceleratorBanner({ onDismiss, dismissButtonRef }: {
+  onDismiss: () => void
+  dismissButtonRef?: Ref<HTMLButtonElement>
+}) {
   return (
     <section
       {...WORKSPACE_ACCELERATOR_BANNER_OWNER_PROPS}
-      className="border-border/70 mx-auto mt-1 w-full sm:mt-4 max-w-3xl rounded-2xl border bg-zinc-100/80 px-4 py-4 text-left sm:text-center sm:px-5 sm:py-5 dark:bg-zinc-900/30"
+      className="border-border/70 bg-muted/30 col-span-full mx-auto flex w-full max-w-[420px] items-start gap-3 rounded-xl border p-4 @min-[900px]/accelerator-overview:max-w-none"
     >
-      <div className="mx-auto flex max-w-[68ch] min-w-0 flex-col items-start sm:items-center">
-        <span className="border-border/70 bg-background text-muted-foreground inline-flex size-9 shrink-0 sm:size-12 origin-center items-center justify-center rounded-2xl border shadow-xs motion-safe:animate-[soft-pop_600ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
-          <GraduationCapIcon className="size-5" aria-hidden />
-        </span>
-        <h2
-          id="workspace-accelerator-title"
-          className="text-foreground mt-3 max-w-[30ch] text-base font-semibold text-balance sm:text-xl"
-        >
-          Build your organization with guided lessons.
+      <span className="bg-background text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70">
+        <GraduationCapIcon className="size-4" aria-hidden="true" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h2 id="workspace-accelerator-title" className="text-foreground text-sm font-semibold text-balance">
+          Get started with the Accelerator
         </h2>
-        <p className="text-muted-foreground mt-2 max-w-[60ch] text-sm leading-relaxed text-pretty">
-          Move through guided videos, resources, and assignments while your
-          progress stays connected to this workspace.
+        <p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed text-pretty">
+          Guided lessons to build your nonprofit’s mission, programs, and funding plan. Choose a lesson below to begin.
         </p>
       </div>
+      <Button
+        ref={dismissButtonRef}
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="-mr-2 -mt-2 size-11 shrink-0 rounded-lg sm:mr-0 sm:mt-0 sm:size-8"
+        aria-label="Dismiss Accelerator introduction"
+        onClick={onDismiss}
+      >
+        <XIcon aria-hidden="true" />
+      </Button>
     </section>
   )
 }

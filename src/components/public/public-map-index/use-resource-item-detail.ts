@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 
+import { loadNonprofitMapItem } from "@/features/find-resource-index"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 
 const PUBLIC_RESOURCE_DETAIL_ENDPOINT = "/api/public/resource-map/items"
@@ -15,26 +16,26 @@ export function loadPublicMapResourceItemDetail(id: string) {
   const cached = resourceDetailLoadById.get(id)
   if (cached && cached.expiresAt > Date.now()) return cached.load
 
-  const load = fetch(
-    `${PUBLIC_RESOURCE_DETAIL_ENDPOINT}/${encodeURIComponent(id)}`,
-    {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    }
-  )
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Resource detail failed: ${response.status}`)
-      }
-      const payload = (await response.json()) as { resourceItem?: unknown }
-      return payload.resourceItem && typeof payload.resourceItem === "object"
-        ? (payload.resourceItem as ExternalResourceMapItem)
-        : null
-    })
-    .catch((error) => {
-      resourceDetailLoadById.delete(id)
-      throw error
-    })
+  const load = (
+    id.startsWith("nonprofit:")
+      ? loadNonprofitMapItem(id)
+      : fetch(`${PUBLIC_RESOURCE_DETAIL_ENDPOINT}/${encodeURIComponent(id)}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        }).then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`Resource detail failed: ${response.status}`)
+          }
+          const payload = (await response.json()) as { resourceItem?: unknown }
+          return payload.resourceItem &&
+            typeof payload.resourceItem === "object"
+            ? (payload.resourceItem as ExternalResourceMapItem)
+            : null
+        })
+  ).catch((error) => {
+    resourceDetailLoadById.delete(id)
+    throw error
+  })
 
   resourceDetailLoadById.set(id, {
     expiresAt: Date.now() + PUBLIC_RESOURCE_DETAIL_CACHE_MS,

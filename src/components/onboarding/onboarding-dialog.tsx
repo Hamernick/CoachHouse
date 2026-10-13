@@ -17,6 +17,7 @@ export function OnboardingDialog({
   return (
     <OnboardingDialogShell open={open} presentation={presentation}>
       <OnboardingFlow
+        key={defaults.draftScope ?? defaults.defaultEmail ?? "onboarding"}
         {...defaults}
         open={open}
         isInline={presentation === "inline"}

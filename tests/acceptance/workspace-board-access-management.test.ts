@@ -2,10 +2,21 @@ import { createElement } from "react"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { WorkspaceBoardInviteSheet } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-invite-sheet"
 import { OrganizationAccessMembersList } from "@/components/account-settings/sections/organization-access-members-list"
+
+const { paywallOverlayMock } = vi.hoisted(() => ({
+  paywallOverlayMock: vi.fn((_props: unknown) => null),
+}))
+
+vi.mock("@/components/paywall/paywall-overlay", () => ({
+  PaywallOverlay: (props: unknown) => {
+    paywallOverlayMock(props)
+    return null
+  },
+}))
 
 const ROOT = process.cwd()
 
@@ -36,6 +47,51 @@ function createOrganizationAccessState(
 }
 
 describe("workspace board access management", () => {
+  beforeEach(() => paywallOverlayMock.mockClear())
+
+  it.each([false, true])("gates the shared free invite entry point (manageAccess=%s)", (manageAccess) => {
+    const markup = renderToStaticMarkup(
+      createElement(WorkspaceBoardInviteSheet, {
+        canInvite: true,
+        members: [],
+        invites: [],
+        onInvitesChange: vi.fn(),
+        manageAccess,
+        organizationAccessState: createOrganizationAccessState({
+          hasPaidTeamAccess: false,
+          canInviteTeam: true,
+        }),
+      })
+    )
+    expect(markup).toContain(manageAccess ? "Manage access" : "Invite")
+    expect(markup).not.toContain('data-slot="sheet-trigger"')
+    expect(markup).not.toMatch(/<button[^>]*\sdisabled(?:=|>)/)
+    expect(paywallOverlayMock.mock.calls[0]?.[0]).toMatchObject({
+      open: false,
+      onOpenChange: expect.any(Function),
+      restoreFocus: expect.any(Function),
+    })
+  })
+
+  it.each([
+    { loading: true },
+    { loadError: "Unable to load subscription status." },
+  ])("does not expose the sheet while access is unresolved: %o", (access) => {
+    const markup = renderToStaticMarkup(
+      createElement(WorkspaceBoardInviteSheet, {
+        canInvite: true,
+        members: [],
+        invites: [],
+        onInvitesChange: vi.fn(),
+        manageAccess: true,
+        organizationAccessState: createOrganizationAccessState(access),
+      })
+    )
+    expect(markup).not.toContain('data-slot="sheet-trigger"')
+    expect(markup).toMatch(/<button[^>]*\sdisabled(?:=|>)/)
+    expect(paywallOverlayMock).not.toHaveBeenCalled()
+  })
+
   it("keeps the management drawer available to read-only members", () => {
     const markup = renderToStaticMarkup(
       createElement(WorkspaceBoardInviteSheet, {

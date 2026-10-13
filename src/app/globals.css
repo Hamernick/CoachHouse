@@ -173,18 +173,55 @@
   }
 }
 
-/* A crisp keyboard indicator; outline also survives forced-colors mode. */
-@utility focus-ring {
+/* Text inputs match native :focus-visible even after a click. Keep our
+   indicators keyboard-driven, with native fallback before hydration and
+   unconditional focus visibility in forced-colors mode. */
+@custom-variant focus-visible {
   &:focus-visible {
+    &:where(html:not([data-focus-modality="pointer"]) *) {
+      @slot;
+    }
+    @media (forced-colors: active) {
+      @slot;
+    }
+  }
+}
+
+/* Composite controls follow the same policy as their focused child. */
+@custom-variant focus-within-visible {
+  &:has(:focus-visible) {
+    &:where(html:not([data-focus-modality="pointer"]) *) {
+      @slot;
+    }
+    @media (forced-colors: active) {
+      @slot;
+    }
+  }
+}
+
+@utility focus-ring {
+  &:focus-visible:where(html:not([data-focus-modality="pointer"]) *) {
     outline: 2px solid var(--focus-ring);
     outline-offset: var(--focus-ring-offset, 2px);
   }
 
   @media (forced-colors: active) {
     &:focus-visible {
-      outline-color: Highlight;
+      outline: 2px solid Highlight;
+      outline-offset: var(--focus-ring-offset, 2px);
     }
   }
+}
+
+/* Match the home shell surround when browser overscroll exposes the document. */
+html.light:has([data-public-home-scroll]),
+html.light body:has([data-public-home-scroll]) {
+  background-color: var(--muted);
+}
+
+html:has([data-public-home-landing]),
+html body:has([data-public-home-landing]) {
+  background-color: var(--background);
 }
 
 @layer base {
@@ -488,6 +525,13 @@
 
 .workspace-flow .react-flow__pane {
   touch-action: none;
+}
+
+/* React Flow's explicit pointer-events must not bypass a modal menu's
+   outside-click lock and activate nodes behind the nonmodal drawer. */
+body[style*="pointer-events: none"] .workspace-flow,
+body[style*="pointer-events: none"] .workspace-flow * {
+  pointer-events: none !important;
 }
 
 .workspace-flow .react-flow__node {
@@ -1031,4 +1075,16 @@
 
 .scroll-fade-effect-x[data-scroll-fade-end="visible"] {
   --right-mask-width: var(--mask-width) !important;
+}
+
+/* The public front page uses borders and glass, without decorative elevation.
+   Scope through the route marker so body-portaled menus/dialogs follow it too.
+   Reset only shadow layers; retain focus rings, outlines and blur filters. */
+html:has([data-public-home-flat-surfaces]) body,
+html:has([data-public-home-flat-surfaces]) body *,
+html:has([data-public-home-flat-surfaces]) body *::before,
+html:has([data-public-home-flat-surfaces]) body *::after {
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-inset-shadow: 0 0 #0000 !important;
+  --tw-drop-shadow: drop-shadow(0 0 0 transparent) !important;
 }

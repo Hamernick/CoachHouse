@@ -1,3 +1,4 @@
+import type { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 import { getCoreDocumentSectionId } from "@/lib/organization/core-document-uploads"
 
 export type FileRow = {
@@ -28,4 +29,28 @@ export function fileResponse(file: FileRow) {
     createdAt: file.created_at,
     updatedAt: file.updated_at,
   }
+}
+
+export async function loadFile(
+  supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
+  orgId: string,
+  fileId: string
+) {
+  const result = await supabase
+    .from("organization_document_files")
+    .select(
+      "id, name, mime_type, size_bytes, storage_path, deleted_at, created_at, updated_at"
+    )
+    .eq("id", fileId)
+    .eq("org_id", orgId)
+    .is("document_kind", null)
+    .maybeSingle<FileRow>()
+  if (
+    result.data &&
+    (!result.data.storage_path.startsWith(`${orgId}/library/`) ||
+      result.data.storage_path.split("/").includes(".."))
+  ) {
+    return { ...result, data: null }
+  }
+  return result
 }

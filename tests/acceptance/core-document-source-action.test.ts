@@ -12,7 +12,12 @@ beforeEach(() => {
   const read = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: row, error: null }) }
   const write = { eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: { user_id: "org-a" }, error: null }) }
   mocks.update.mockReturnValue(write)
-  mocks.from.mockReturnValue({ ...read, update: mocks.update })
+  const subscription = {
+    select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: { status: "active", metadata: { plan_tier: "organization" } }, error: null }),
+  }
+  mocks.from.mockImplementation((table: string) => table === "subscriptions" ? subscription : { ...read, update: mocks.update })
   mocks.client.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: "user-a" } }, error: null }) }, from: mocks.from })
   mocks.organization.mockResolvedValue({ orgId: "org-a", role: "owner" })
   mocks.file.mockResolvedValue({ id: "selected_file_123", name: "Different Google title", webViewLink: "https://docs.google.com/document/d/selected_file_123/edit", status: "available" })

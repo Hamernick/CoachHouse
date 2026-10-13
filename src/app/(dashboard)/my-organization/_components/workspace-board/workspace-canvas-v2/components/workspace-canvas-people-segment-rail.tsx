@@ -2,7 +2,6 @@
 
 import { memo, type DragEvent } from "react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
-import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import XIcon from "lucide-react/dist/esm/icons/x"
 
 import { Button } from "@/components/ui/button"
@@ -29,7 +28,6 @@ type WorkspacePeopleSegmentRailProps = {
   activeDropSegmentId: string | null
   canManageSegments: boolean
   onSegmentChange: (segmentId: string) => void
-  onCreateSegment: () => void
   onRenameSegment: (segmentId: string, label: string) => void
   onEditSegment: (segmentId: string) => void
   onRemoveSegment: (segmentId: string) => void
@@ -57,7 +55,7 @@ const WorkspacePeopleCustomSegmentEditor = memo(
     onCancelEditSegment: () => void
   }) {
     return (
-      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-right-1 bg-background inline-flex h-8 shrink-0 items-center gap-1 rounded-full pr-1 pl-2 shadow-sm motion-safe:duration-150">
+      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-right-1 bg-background inline-flex h-6 shrink-0 items-center gap-1 rounded-lg pr-1 pl-2 shadow-none motion-safe:duration-150">
         <Editable
           key={segment.id}
           defaultValue={segment.label}
@@ -72,7 +70,7 @@ const WorkspacePeopleCustomSegmentEditor = memo(
           <EditableArea className="min-w-0">
             <EditableInput
               aria-label={`Rename ${segment.label}`}
-              className="border-border/70 h-6 max-w-40 min-w-24 rounded-full px-2 py-0 text-xs"
+              className="border-border/70 h-5 max-w-40 min-w-24 rounded-md px-2 py-0 text-xs shadow-none"
             />
           </EditableArea>
           <EditableToolbar className="gap-0.5">
@@ -81,7 +79,7 @@ const WorkspacePeopleCustomSegmentEditor = memo(
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="nodrag nopan text-muted-foreground hover:text-foreground size-6 rounded-full"
+                className="nodrag nopan text-muted-foreground hover:text-foreground size-5 rounded-md"
                 aria-label={`Save ${segment.label}`}
                 title="Save segment name"
               >
@@ -93,7 +91,7 @@ const WorkspacePeopleCustomSegmentEditor = memo(
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="nodrag nopan text-muted-foreground hover:text-foreground size-6 rounded-full"
+                className="nodrag nopan text-muted-foreground hover:text-foreground size-5 rounded-md"
                 aria-label={`Cancel editing ${segment.label}`}
                 title="Cancel rename"
               >
@@ -153,12 +151,12 @@ const WorkspacePeopleSegmentTab = memo(function WorkspacePeopleSegmentTab({
         activeDrop ? "true" : undefined
       }
       className={cn(
-        "inline-flex h-8 shrink-0 items-center rounded-full",
+        "inline-flex h-6 shrink-0 items-center rounded-lg",
         custom &&
           "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-right-1 motion-safe:duration-150",
         acceptingDrop && "ring-border bg-background/60 ring-1 ring-inset",
         activeDrop && "ring-ring bg-accent ring-2",
-        selectedCustomSegment && "bg-background shadow-sm"
+        selectedCustomSegment && "bg-background shadow-none"
       )}
       title={
         acceptingDrop
@@ -176,7 +174,7 @@ const WorkspacePeopleSegmentTab = memo(function WorkspacePeopleSegmentTab({
         value={segment.id}
         size="sm"
         className={cn(
-          "data-[state=on]:bg-background h-8 rounded-full border-0 px-3 text-xs data-[state=on]:shadow-sm",
+          "data-[state=on]:bg-background h-6 rounded-lg border-0 px-3 text-xs data-[state=on]:shadow-none",
           selectedCustomSegment &&
             "pr-1 data-[state=on]:bg-transparent data-[state=on]:shadow-none",
           activeDrop &&
@@ -209,7 +207,6 @@ export const WorkspacePeopleSegmentRail = memo(
     activeDropSegmentId,
     canManageSegments,
     onSegmentChange,
-    onCreateSegment,
     onRenameSegment,
     onEditSegment,
     onRemoveSegment,
@@ -224,7 +221,7 @@ export const WorkspacePeopleSegmentRail = memo(
     return (
       <div
         ref={scrollFadeRef}
-        className="scroll-fade-effect-x min-w-0 flex-1 overflow-x-auto overscroll-x-contain px-1 py-1 [--mask-width:1.5rem] [scroll-padding-inline:1.5rem] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="scroll-fade-effect-x min-w-0 flex-1 overflow-x-auto overscroll-x-contain [--mask-width:1.5rem] [scroll-padding-inline:1.5rem] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <ToggleGroup
           type="single"
@@ -233,7 +230,7 @@ export const WorkspacePeopleSegmentRail = memo(
           onValueChange={(value) => {
             if (value) onSegmentChange(value)
           }}
-          className="bg-muted/70 w-max rounded-full p-1"
+          className="bg-muted/70 h-8 w-max rounded-xl p-1 shadow-none"
         >
           {segments.map((segment) =>
             segment.kind === "custom" && editingSegmentId === segment.id ? (
@@ -260,20 +257,6 @@ export const WorkspacePeopleSegmentRail = memo(
               />
             )
           )}
-          {canManageSegments ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="nodrag nopan text-muted-foreground hover:bg-background hover:text-foreground size-8 shrink-0 rounded-full"
-              onClick={onCreateSegment}
-              aria-label="Create people segment"
-              title="Create segment"
-              data-workspace-people-segment-add="true"
-            >
-              <PlusIcon aria-hidden />
-            </Button>
-          ) : null}
         </ToggleGroup>
       </div>
     )

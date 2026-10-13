@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-import { PublicMapDirectoryStatusPill } from "./directory-status-pill"
+import { PublicMapDirectoryStatusPill, type DirectoryFormationCounts } from "./directory-status-pill"
 import { PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME } from "./sidebar-theme"
 import type {
   PublicMapUserCoordinates,
@@ -25,6 +25,8 @@ import type {
 
 const PUBLIC_MAP_LOCATION_CARD_SOURCE =
   "src/components/public/public-map-index/location-control.tsx"
+const PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID =
+  "public-map-location-control:current-location"
 const PUBLIC_MAP_LOCATION_CARD_OWNER_ID =
   "public-map-location-card:current-location"
 
@@ -61,30 +63,46 @@ function resolveLocationFeedbackTitle(
 }
 
 export function PublicMapLocationControl({
+  inline = false,
   active,
   controlOpen,
   directoryCount,
+  directoryCountEstimated = false,
+  directoryFormationCounts,
   feedback,
   onConfirm,
   onControlClick,
   onOpenChange,
   status,
-}: PublicMapLocationControlState & { directoryCount: number | null }) {
+}: PublicMapLocationControlState & { directoryCount: number | null; directoryCountEstimated?: boolean; directoryFormationCounts?: DirectoryFormationCounts; inline?: boolean }) {
   const isPending = status === "checking" || status === "requesting"
   const isConsentPrompt = status === "idle" || status === "prompt"
   const label = resolveLocationControlLabel({ active, status })
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[60]">
+    <div
+      className={cn(
+        inline ? "pointer-events-auto relative z-[60]" : "pointer-events-none absolute inset-0 z-[60]"
+      )}
+    >
       <div
         data-public-map-location-controls="true"
-        className="absolute top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] flex items-center gap-2"
+        className={cn("flex items-center gap-2", !inline && "absolute top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))]")}
       >
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
+              {...getReactGrabOwnerProps({
+                ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
+                component: "PublicMapLocationControl",
+                source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
+                slot: "trigger",
+                primitiveImport: "@/components/ui/button",
+                tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
+                notes: "Requests location access or recenters the map on the current location.",
+              })}
               type="button"
-              variant="outline"
+              variant={inline ? "ghost" : "outline"}
               size="icon"
               aria-label={label}
               aria-pressed={active}
@@ -92,23 +110,43 @@ export function PublicMapLocationControl({
               aria-expanded={controlOpen}
               aria-controls="public-map-location-card"
               className={cn(
-                PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME,
-                "hover:bg-input/50 pointer-events-auto size-8 rounded-full shadow-sm",
-                active && "border-blue-500/60 text-blue-600 dark:text-blue-400"
+                !inline && PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME,
+                "hover:bg-input/50 pointer-events-auto size-8 rounded-full [&_svg]:pointer-events-auto",
+                inline && "size-11 touch-manipulation sm:size-8",
+                !inline && "shadow-sm",
+                active && "text-blue-600 dark:text-blue-400",
+                active && !inline && "border-blue-500/60"
               )}
               onClick={onControlClick}
             >
-              <LocateFixedIcon aria-hidden />
+              <LocateFixedIcon aria-hidden {...getReactGrabLinkedSurfaceProps({
+                ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
+                component: "PublicMapLocationControl",
+                source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
+                slot: "icon",
+                surfaceKind: "indicator",
+              })} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
+          <TooltipContent
+            {...getReactGrabLinkedSurfaceProps({
+              ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
+              component: "PublicMapLocationControl",
+              source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
+              slot: "tooltip",
+              surfaceKind: "content",
+              primitiveImport: "@/components/ui/tooltip",
+            })}
+            side={inline ? "top" : "right"}
+            sideOffset={8}
+          >
             {label}
           </TooltipContent>
         </Tooltip>
-        <PublicMapDirectoryStatusPill count={directoryCount} />
+        <PublicMapDirectoryStatusPill count={directoryCount} formationCounts={directoryFormationCounts} estimated={directoryCountEstimated} unstyled={inline} />
       </div>
       {controlOpen ? (
-        <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className={inline ? "absolute top-full left-0 w-72 pt-2" : "absolute inset-0 flex items-center justify-center p-4"}>
           <Card
             {...getReactGrabOwnerProps({
               ownerId: PUBLIC_MAP_LOCATION_CARD_OWNER_ID,

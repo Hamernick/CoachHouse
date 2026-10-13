@@ -26,7 +26,7 @@ function resolveTutorialStepIndex(stepId: string) {
 }
 
 describe("workspace board canvas body", () => {
-  it("routes the collaboration callout to the shell header action", () => {
+  it("keeps team access visible while the setup guide owns tutorial presentation", () => {
     const tutorialCallout = resolveWorkspaceCanvasTutorialCallout(
       resolveTutorialStepIndex("collaboration"),
       []
@@ -40,7 +40,8 @@ describe("workspace board canvas body", () => {
 
     expect(tutorialCallout?.kind).toBe("team-access")
     expect(bodySource).toContain("<WorkspaceBoardTeamAccessHeaderAction")
-    expect(bodySource).toContain('tutorialCallout?.kind === "team-access"')
+    expect(bodySource).toContain("tutorialCallout={null}")
+    expect(bodySource).toContain("<WorkspaceSetupGuide")
     expect(actionSource).toContain('<HeaderActionsPortal slot="right">')
     expect(bodySource).not.toContain("useAppShellRightRailControls")
     expect(bodySource).not.toContain("setRightOpenAuto")

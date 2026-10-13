@@ -83,12 +83,7 @@ export async function maybeStartOrganizationSubscription({
     idempotencyKey,
   })
 
-  const periodUnix = (
-    subscription as Stripe.Subscription & { current_period_end?: number }
-  ).current_period_end ?? null
-  const currentPeriodEnd = periodUnix
-    ? new Date(periodUnix * 1000).toISOString()
-    : null
+  const currentPeriodEnd = getCurrentPeriodEndIso(subscription)
 
   await upsertSubscription({
     userId,

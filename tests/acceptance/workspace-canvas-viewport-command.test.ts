@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { focusWorkspaceCanvasPeople } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-fit-request"
 
 import {
   executeWorkspaceCanvasViewportCommand,
@@ -33,6 +34,31 @@ afterEach(() => {
 })
 
 describe("workspace canvas viewport command", () => {
+  it("reveals an unmeasured offscreen person above the drawer", () => {
+    const setViewport = vi.fn()
+    const fitView = vi.fn()
+    focusWorkspaceCanvasPeople(
+      { setViewport, fitView } as never,
+      [{ id: "workspace-person:a", position: { x: 5000, y: -2000 }, data: {} }],
+      { width: 1000, height: 320 }
+    )
+    const [viewport, options] = setViewport.mock.calls[0]
+    expect((5000 + 122) * viewport.zoom + viewport.x).toBeCloseTo(500)
+    expect((-2000 + 32) * viewport.zoom + viewport.y).toBeCloseTo(160)
+    expect(options.duration).toBe(260)
+    expect(fitView).not.toHaveBeenCalled()
+  })
+
+  it("reveals a person without animation for reduced motion", () => {
+    vi.stubGlobal("window", { matchMedia: () => ({ matches: true }) })
+    const setViewport = vi.fn()
+    focusWorkspaceCanvasPeople(
+      { setViewport } as never,
+      [{ id: "workspace-person:a", position: { x: 20, y: 30 }, data: {} }],
+      { width: 1000, height: 320 }
+    )
+    expect(setViewport.mock.calls[0][1]).toEqual({ duration: 0 })
+  })
   it("removes camera motion when reduced motion is requested", () => {
     vi.stubGlobal("window", {
       matchMedia: vi.fn(() => ({ matches: true })),
@@ -85,6 +111,30 @@ describe("workspace canvas viewport command", () => {
     expect(result.executed).toBe(true)
     expect(setViewport).toHaveBeenCalledOnce()
     expect(fitView).not.toHaveBeenCalled()
+  })
+
+  it("frames an organization and guide as a column during identity", () => {
+    const setViewport = vi.fn()
+    vi.stubGlobal("document", { querySelector: (selector: string) => {
+      if (selector.includes("data-setup-guide-stage")) return { querySelector: () => ({ offsetHeight: 240 }) }
+      if (selector.includes("flow-frame")) return { getBoundingClientRect: () => ({ top: 80, width: 390, height: 660 }) }
+      if (selector.includes("overlay-drawer")) return { getBoundingClientRect: () => ({ top: 672 }) }
+      return null
+    } })
+    executeWorkspaceCanvasViewportCommand({
+      flowInstance: { getNodes: () => [{ id: "organization-overview", position: { x: 400, y: 300 }, width: 672, height: 800 }], setViewport } as never,
+      command: { kind: "focus-card", cardId: "organization-overview" },
+      layoutFitOptions: LAYOUT_OPTIONS, sceneFitOptions: SCENE_OPTIONS, focusCardOptions: FOCUS_OPTIONS,
+      focusViewportSize: null,
+    })
+    const camera = setViewport.mock.calls[0][0]
+    const top = 300 * camera.zoom + camera.y
+    const bottom = top + 800 * camera.zoom
+    const guideHeight = 240
+    expect((400 + 336) * camera.zoom + camera.x).toBeCloseTo(195)
+    expect((top + bottom + 20 + guideHeight) / 2).toBeCloseTo(296)
+    expect(bottom + 20 + guideHeight).toBeLessThanOrEqual(576)
+    expect(camera.zoom).toBeLessThan(0.4)
   })
 
   it("uses the shared precedence of scene-fit, then tutorial completion exit, then focus-card, then fit-visible", () => {

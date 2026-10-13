@@ -1,3 +1,4 @@
+import { readPublicResourceIndexPage, PUBLIC_RESOURCE_INDEX_COLUMNS } from "@/lib/queries/resource-map-index-snapshot"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -670,7 +671,7 @@ describe("fetchPublicResourceMapItems", () => {
       )
       expect(
         discoveryPreviewItems.filter((item) =>
-          item.sourceLabel.toLowerCase().includes("wikidata")
+          item.sourceLabel?.toLowerCase().includes("wikidata")
         )
       ).toEqual(
         expect.arrayContaining([
@@ -859,5 +860,27 @@ describe("fetchPublicResourceMapItems", () => {
       "[resource-map] public RPC unavailable; using seed fallback",
       expect.objectContaining({ code: "42883" })
     )
+  })
+})
+
+
+describe("compact cached resource index projection", () => {
+  it("selects index columns without an exact count and advances by item ID", async () => {
+    const rows = [buildPublicResourceRow()]
+    const builder = { select: vi.fn(), order: vi.fn(), limit: vi.fn(), gt: vi.fn(), then: (resolve: (result: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(resolve) }
+    for (const method of [builder.select, builder.order, builder.limit, builder.gt]) method.mockReturnValue(builder)
+    createClientMock.mockReturnValue({ from: vi.fn(() => builder) })
+    expect(await readPublicResourceIndexPage("previous-id")).toEqual(rows)
+    expect(builder.select).toHaveBeenCalledWith(PUBLIC_RESOURCE_INDEX_COLUMNS)
+    expect(PUBLIC_RESOURCE_INDEX_COLUMNS).not.toContain("description")
+    expect(PUBLIC_RESOURCE_INDEX_COLUMNS).not.toContain("public_contacts")
+    expect(PUBLIC_RESOURCE_INDEX_COLUMNS).toContain("source_attribution")
+    expect(builder.limit).toHaveBeenCalledWith(500)
+    expect(builder.gt).toHaveBeenCalledWith("item_id", "previous-id")
+  })
+
+  it("normalizes compact rows without requiring detail arrays", () => {
+    const item = buildExternalResourceMapItemFromPublicRow({ item_id: "compact", title: "Resource", resource_categories: ["food"], city: "Chicago" })
+    expect(item).toMatchObject({ id: "resource_map:compact", title: "Resource", latitude: null, longitude: null, resourceCategories: ["food"] })
   })
 })

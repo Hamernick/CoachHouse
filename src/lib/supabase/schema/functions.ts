@@ -2,6 +2,45 @@ import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
 
 export type PublicFunctions = {
+  record_fiscal_email_delivery: { Args: { p_event_id: string; p_message_id: string; p_event_type: string; p_occurred_at: string }; Returns: undefined }
+  get_fiscal_guest_email_status: { Args: { p_project_id: string; p_user_id: string }; Returns: Json }
+  purge_fiscal_email_delivery_events: { Args: Record<string, never>; Returns: number }
+  request_fiscal_guest_recovery: { Args: { p_reference: string; p_email: string; p_request_id: string }; Returns: Json }
+  read_fiscal_guest_application: { Args: { p_reference: string; p_key_hash: string }; Returns: Json }
+  resubmit_fiscal_guest_application: { Args: { p_reference: string; p_key_hash: string; p_request_id: string; p_version: string; p_application: Json }; Returns: Json }
+  preview_fiscal_guest_profile: { Args: { p_reference: string; p_key_hash: string; p_user_id: string }; Returns: Json }
+  save_fiscal_guest_profile: { Args: { p_reference: string; p_key_hash: string; p_user_id: string; p_request_id: string; p_version: string; p_fields: Json }; Returns: Json }
+  prepare_fiscal_guest_email_proof: { Args: { p_job_id: string; p_lease_token: string; p_nonce: string; p_token_hash: string; p_expires_at: string }; Returns: Json }
+  verify_fiscal_guest_email: { Args: { p_token_hash: string; p_key_hash: string; p_expires_at: string }; Returns: Json }
+  purge_expired_fiscal_guest_proofs: { Args: Record<string, never>; Returns: number }
+  read_fiscal_guest_draft: { Args: { p_key_hash: string; p_expires_at: string }; Returns: Json }
+  save_fiscal_guest_draft: { Args: { p_key_hash: string; p_expires_at: string; p_version: number; p_request_id: string; p_draft: Json }; Returns: Json }
+  purge_expired_fiscal_guest_drafts: { Args: Record<string, never>; Returns: number }
+  submit_guest_fiscal_application: { Args: { p_submission_key_hash: string; p_application: Json }; Returns: Json }
+  consume_fiscal_guest_limit: { Args: { p_key_hash: string; p_limit: number; p_window_seconds: number }; Returns: boolean }
+  get_fiscal_guest_receipt: { Args: { p_key_hash: string }; Returns: Json }
+  claim_fiscal_guest_emails: { Args: Record<string, never>; Returns: Json }
+  finish_fiscal_guest_email: { Args: { p_id: string; p_lease_token: string; p_message_id: string | null; p_success: boolean }; Returns: boolean }
+
+  get_fiscal_guest_notification_recipients: {
+    Args: { p_project_id: string }
+    Returns: Json
+  }
+  list_fiscal_guest_projects: { Args: { p_user_id: string }; Returns: Json }
+  get_fiscal_guest_project_summary: { Args: { p_project_id: string; p_user_id: string }; Returns: Json }
+  fiscal_guest_project_reviewer_access: {
+    Args: { p_project_id: string; p_user_id: string }
+    Returns: boolean | null
+  }
+  claim_fiscal_staff_emails: { Args: Record<string, never>; Returns: Json }
+  finish_fiscal_staff_email: {
+    Args: { p_event_id: string; p_lease_token: string; p_message_id: string | null; p_success: boolean }
+    Returns: boolean
+  }
+  start_public_fiscal_intake: {
+    Args: { p_organization_name: string }
+    Returns: string
+  }
   search_nonprofit_directory_v2: {
     Args: { p_query?: string; p_state?: string | null; p_category?: string | null; p_after?: string | null; p_limit?: number }
     Returns: Json

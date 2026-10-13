@@ -2,9 +2,12 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/lib/supabase"
 
 import {
   commitPeopleProfileMutation,
+  mutateOrganizationPeopleProfile,
   PEOPLE_PROFILE_WRITE_CONFLICT_ERROR,
 } from "@/lib/people/profile-write"
 
@@ -104,6 +107,41 @@ describe("People profile write concurrency", () => {
     expect(result).toEqual({ error: PEOPLE_PROFILE_WRITE_CONFLICT_ERROR })
     expect(readCount).toBe(3)
     expect(writeCount).toBe(3)
+  })
+
+  it("atomically retries role creation alongside concurrent role and profile edits", async () => {
+    let stored = { mission: "Original", org_people: [{ id: "a", customRole: null as string | null }], people_roles: [] as string[] }
+    let attempted: typeof stored | null = null
+    let writes = 0
+    const query = {
+      select: () => query,
+      eq: () => query,
+      update: ({ profile }: { profile: typeof stored }) => { attempted = profile; return query },
+      maybeSingle: async () => {
+        if (!attempted) return { data: { profile: structuredClone(stored), updated_at: String(writes) }, error: null }
+        writes += 1
+        if (writes === 1) {
+          stored = { ...stored, mission: "Concurrent edit", people_roles: ["Mentor"] }
+          attempted = null
+          return { data: null, error: null }
+        }
+        stored = attempted
+        attempted = null
+        return { data: { updated_at: String(writes) }, error: null }
+      },
+    }
+    const result = await mutateOrganizationPeopleProfile<{ id: string; customRole: string | null }, null>({
+      supabase: { from: () => query } as unknown as SupabaseClient<Database>,
+      orgId: "org-a",
+      mutate: (people, profile) => ({
+        ok: true, changed: true, value: null,
+        people: people.map((person) => ({ ...person, customRole: "Partner" })),
+        peopleRoles: [...(profile.people_roles as string[]), "Partner"],
+      }),
+    })
+    expect(result).toEqual({ ok: true, value: null })
+    expect(writes).toBe(2)
+    expect(stored).toEqual({ mission: "Concurrent edit", org_people: [{ id: "a", customRole: "Partner" }], people_roles: ["Mentor", "Partner"] })
   })
 
   it("skips the database write for an unchanged mutation", async () => {

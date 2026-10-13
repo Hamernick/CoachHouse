@@ -62,7 +62,7 @@ export function resolveInitialWorkspaceDrawerData({
       initialRoadmapSectionSlug:
         requestedDrawerTab === "roadmap" ? roadmapSectionParam : null,
       initialFocus:
-        organizationEditorRequested || requestedDrawerTab === "documents"
+        organizationEditorRequested || requestedDrawerTab === "documents" || requestedDrawerTab === "accelerator"
           ? focusParam || null
           : null,
       initialEditMode: viewParam === "editor",

@@ -253,7 +253,7 @@ describe("workspace board canvas helpers", () => {
     expect(roadmap?.x ?? 0).toBeLessThan(organization?.x ?? 0)
     expect(organization?.x ?? 0).toBeLessThan(programs?.x ?? 0)
     expect(programs?.y ?? 0).toBe(organization?.y ?? 0)
-    expect(calendar?.x ?? 0).toBeGreaterThanOrEqual(programs?.x ?? 0)
+    expect(calendar?.y ?? 0).toBeGreaterThan(organization?.y ?? 0)
   })
 
   it("resolves one explicit completion exit request from the completed board state", () => {

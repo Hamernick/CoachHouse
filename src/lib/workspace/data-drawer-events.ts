@@ -1,3 +1,6 @@
+import { withEditorReturnTo } from "./editor-navigation"
+import { getWorkspaceDrawerPath, getWorkspaceRoadmapDrawerPath } from "./routes"
+
 export type WorkspaceRoadmapDrawerRequest = {
   tab: "roadmap"
   roadmapSectionSlug: string
@@ -19,7 +22,7 @@ function isWorkspaceRoadmapDrawerRequest(
   )
 }
 
-export function requestWorkspaceRoadmapDrawer(slug: string): boolean {
+export function requestWorkspaceRoadmapDrawer(slug: string, returnTo?: string): boolean {
   const roadmapSectionSlug = slug.trim()
   if (typeof window === "undefined" || !roadmapSectionSlug) return false
 
@@ -34,6 +37,21 @@ export function requestWorkspaceRoadmapDrawer(slug: string): boolean {
     }
   )
   window.dispatchEvent(event)
+  if (event.defaultPrevented) {
+    const current = new URL(window.location.href)
+    const parent = returnTo || current.searchParams.get("returnTo") ||
+      (current.pathname === "/workspace" && !current.searchParams.has("drawer")
+        ? getWorkspaceDrawerPath({ tab: "accelerator" })
+        : `${current.pathname}${current.search}`)
+    const href = withEditorReturnTo(getWorkspaceRoadmapDrawerPath(roadmapSectionSlug), parent)
+    if (`${current.pathname}${current.search}` !== href) {
+      // Give Back a concrete drawer destination when the canvas had no URL state.
+      if (current.pathname === "/workspace" && !current.searchParams.has("drawer")) {
+        window.history.replaceState(null, "", new URL(href, current).searchParams.get("returnTo"))
+      }
+      window.history.pushState(null, "", href)
+    }
+  }
   return event.defaultPrevented
 }
 

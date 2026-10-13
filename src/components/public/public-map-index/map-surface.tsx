@@ -1,5 +1,7 @@
 "use client"
 
+import type { DirectoryFormationCounts } from "./directory-status-pill"
+
 import dynamic from "next/dynamic"
 import {
   useEffect,
@@ -25,7 +27,11 @@ import {
   type PublicMapLocationControlState,
 } from "./location-control"
 import { PublicMapFailureState } from "./map-failure-state"
+import { PublicMapLoadingState } from "./map-loading-state"
+import { PublicMapEmbeddedProfile } from "./embedded-profile"
+import { usePublicMapEmbeddedScreen } from "./embedded-screen-state"
 import { PublicMapSidebar } from "./sidebar"
+import { PublicMapEmbeddedLayout } from "./embedded-layout"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import type { PublicMapSidebarSearchContext } from "./sidebar"
 import type { PublicMapPanelPresentation } from "./map-view-helpers"
@@ -60,10 +66,14 @@ const PublicMapWeatherController = dynamic(
   { ssr: false }
 )
 
-type PublicMapSurfaceProps = {
+export type PublicMapSurfaceProps = {
+  mapReady?: boolean
+  embedded?: boolean
   containerRef: RefObject<HTMLDivElement | null>
   sidebarMode: SidebarMode
   directoryCount: number | null
+  directoryFormationCounts?: DirectoryFormationCounts
+  directoryCountEstimated?: boolean
   filteredItems: PublicMapListItem[]
   filteredOrganizations: PublicMapOrganization[]
   selectedItemId: string | null
@@ -123,10 +133,15 @@ type PublicMapSurfaceProps = {
   ) => void
 }
 
-export function PublicMapSurface({
+export function PublicMapSurface(props: PublicMapSurfaceProps) {
+  const {
+  mapReady = false,
+  embedded = false,
   containerRef,
   sidebarMode,
   directoryCount,
+  directoryCountEstimated = false,
+  directoryFormationCounts,
   filteredItems,
   filteredOrganizations,
   selectedItemId,
@@ -179,12 +194,18 @@ export function PublicMapSurface({
   renderDesktopSidebar = true,
   renderMobileDrawer = true,
   onPanelPresentationChange,
-}: PublicMapSurfaceProps) {
+  } = props
+  const screen = usePublicMapEmbeddedScreen(props)
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [panelPortalContainer, setPanelPortalContainer] =
     useState<HTMLDivElement | null>(null)
   const [surfaceWidth, setSurfaceWidth] = useState(0)
   const [surfaceHeight, setSurfaceHeight] = useState(0)
+  const onLocationOpenChange = locationControl.onOpenChange
+
+  useEffect(() => {
+    if (embedded && (sidebarMode === "details" || screen.mapHidden)) onLocationOpenChange(false)
+  }, [embedded, sidebarMode, screen.mapHidden, onLocationOpenChange])
 
   useLayoutEffect(() => {
     const element = surfaceRef.current
@@ -234,87 +255,117 @@ export function PublicMapSurface({
     onPanelPresentationChange?.(panelReady ? panelPresentation : null)
   }, [onPanelPresentationChange, panelPresentation, panelReady])
 
-  return (
+  const sidebar = (
+    <PublicMapSidebar
+      inline={embedded}
+      sidebarMode={embedded ? "search" : sidebarMode}
+      sidebarWidth={sidebarWidth}
+      surfaceHeight={surfaceHeight}
+      panelPresentation={panelPresentation ?? "drawer"}
+      portalContainer={panelPortalContainer}
+      filteredItems={filteredItems}
+      filteredOrganizations={filteredOrganizations}
+      selectedItemId={selectedItemId}
+      selectedOrganization={selectedOrganization}
+      selectedResourceItem={selectedResourceItem}
+      canManageResourceMap={canManageResourceMap}
+      organizationCurationAction={organizationCurationAction}
+      resourceMapCurationAction={resourceMapCurationAction}
+      favorites={favorites}
+      collectedResourceIds={collectedResourceIds}
+      guides={guides}
+      featuredGuides={featuredGuides}
+      savedGuideIds={savedGuideIds}
+      savedGuides={savedGuides}
+      savedOrganizations={savedOrganizations}
+      savedResources={savedResources}
+      unresolvedCollectedResourceCount={unresolvedCollectedResourceCount}
+      query={query}
+      activeGroup={activeGroup}
+      discoveryGroupCounts={discoveryGroupCounts}
+      groupCounts={groupCounts}
+      resourceItemsLoadStatus={resourceItemsLoadStatus}
+      resourceItemsLoadError={resourceItemsLoadError}
+      searchPending={searchPending}
+      searchContext={searchContext}
+      setQuery={onQueryChange}
+      setActiveGroup={onActiveGroupChange}
+      retryResourceItems={onRetryResourceItems}
+      toggleFavorite={onToggleFavorite}
+      toggleCollectedResource={onToggleCollectedResource}
+      onGuideSelect={onGuideSelect}
+      onToggleSavedGuide={onToggleSavedGuide}
+      onSelectOrganization={onSelectOrganization}
+      onSelectItem={onSelectItem}
+      onOpenDetails={onOpenOrgDetails}
+      onBackToSearch={onBackToSearch}
+      setSidebarMode={onSidebarModeChange}
+    />
+  )
+  const mapSurface = (
     <div
       ref={surfaceRef}
-      className="bg-background relative h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden"
+      className={cn(
+        "relative h-full min-h-0 w-full min-w-0 flex-1",
+        embedded ? "pointer-events-none overflow-hidden rounded-3xl" : "overflow-hidden bg-background"
+      )}
     >
       <div
         ref={setPanelPortalContainer}
-        className="pointer-events-none absolute inset-0 z-50 transform-gpu overflow-hidden"
+        className="pointer-events-none absolute inset-0 z-50 transform-gpu overflow-hidden rounded-[inherit]"
       />
-      {panelReady &&
+      {!embedded &&
+      panelReady &&
       panelPresentation &&
       (panelPresentation === "drawer"
         ? renderMobileDrawer
-        : renderDesktopSidebar) ? (
-        <PublicMapSidebar
-          sidebarMode={sidebarMode}
-          sidebarWidth={sidebarWidth}
-          surfaceHeight={surfaceHeight}
-          panelPresentation={panelPresentation}
-          portalContainer={panelPortalContainer}
-          filteredItems={filteredItems}
-          filteredOrganizations={filteredOrganizations}
-          selectedItemId={selectedItemId}
-          selectedOrganization={selectedOrganization}
-          selectedResourceItem={selectedResourceItem}
-          canManageResourceMap={canManageResourceMap}
-          organizationCurationAction={organizationCurationAction}
-          resourceMapCurationAction={resourceMapCurationAction}
-          favorites={favorites}
-          collectedResourceIds={collectedResourceIds}
-          guides={guides}
-          featuredGuides={featuredGuides}
-          savedGuideIds={savedGuideIds}
-          savedGuides={savedGuides}
-          savedOrganizations={savedOrganizations}
-          savedResources={savedResources}
-          unresolvedCollectedResourceCount={unresolvedCollectedResourceCount}
-          query={query}
-          activeGroup={activeGroup}
-          discoveryGroupCounts={discoveryGroupCounts}
-          groupCounts={groupCounts}
-          resourceItemsLoadStatus={resourceItemsLoadStatus}
-          resourceItemsLoadError={resourceItemsLoadError}
-          searchPending={searchPending}
-          searchContext={searchContext}
-          setQuery={onQueryChange}
-          setActiveGroup={onActiveGroupChange}
-          retryResourceItems={onRetryResourceItems}
-          toggleFavorite={onToggleFavorite}
-          toggleCollectedResource={onToggleCollectedResource}
-          onGuideSelect={onGuideSelect}
-          onToggleSavedGuide={onToggleSavedGuide}
-          onSelectOrganization={onSelectOrganization}
-          onSelectItem={onSelectItem}
-          onOpenDetails={onOpenOrgDetails}
-          onBackToSearch={onBackToSearch}
-          setSidebarMode={onSidebarModeChange}
-        />
-      ) : null}
+        : renderDesktopSidebar)
+        ? sidebar
+        : null}
 
       {!tokenAvailable ? (
         <PublicMapFailureState
           reason="configuration"
+          className={embedded ? "pointer-events-auto z-30 min-h-0 rounded-3xl" : undefined}
           onBrowseDirectory={() => onSidebarModeChange("search")}
         />
       ) : (
-        <div className="relative h-full min-h-[520px]">
-          <div data-public-map-overscan="12px" className="absolute -inset-3">
+        <div
+          className={cn(
+            "relative h-full",
+            embedded ? "min-h-0" : "min-h-[520px]"
+          )}
+        >
+          <div
+            data-public-map-overscan={embedded ? undefined : "12px"}
+            data-lenis-prevent={embedded ? "" : undefined}
+            className={embedded ? "pointer-events-auto absolute inset-0 z-0" : "absolute -inset-3"}
+          >
             <div
               ref={containerRef}
-              className="h-full w-full [&_.mapboxgl-ctrl-logo]:!hidden"
+              data-public-map-visible={embedded ? mapReady && !mapError && !screen.mapHidden : undefined}
+              inert={embedded && screen.mapHidden}
+              aria-hidden={embedded && screen.mapHidden}
+              className={cn(
+                "h-full w-full [&_.mapboxgl-ctrl-logo]:!hidden",
+                embedded && "transition-[opacity,visibility] duration-200 ease-out motion-reduce:transition-none",
+                embedded && (!mapReady || mapError || screen.mapHidden) && "invisible opacity-0"
+              )}
               aria-label="Public organization map"
+              aria-busy={embedded && !mapReady && !mapError}
               role="region"
-              tabIndex={0}
+              tabIndex={embedded && (!mapReady || mapError || screen.mapHidden) ? -1 : 0}
             />
           </div>
-          <div className="pointer-events-none absolute inset-0 hidden dark:block dark:bg-[linear-gradient(180deg,rgba(250,250,250,0.08),rgba(250,250,250,0.025)_28%,rgba(24,24,27,0.015)_58%,rgba(9,9,11,0.06))]" />
-          <PublicMapLocationControl
+          <div className={cn(
+            "pointer-events-none absolute inset-0 hidden dark:block dark:bg-[linear-gradient(180deg,rgba(250,250,250,0.08),rgba(250,250,250,0.025)_28%,rgba(24,24,27,0.015)_58%,rgba(9,9,11,0.06))]",
+            embedded && "rounded-3xl"
+          )} />
+          {embedded ? <PublicMapLoadingState loading={!mapReady && !mapError} /> : null}
+          {!embedded ? <PublicMapLocationControl
             {...locationControl}
-            directoryCount={directoryCount}
-          />
+            directoryCount={directoryCount} directoryFormationCounts={directoryFormationCounts} directoryCountEstimated={directoryCountEstimated}
+          /> : null}
           <PublicMapWeatherController
             coordinates={locationControl.coordinates}
             onWeatherChange={onWeatherChange}
@@ -324,10 +375,10 @@ export function PublicMapSurface({
             data-public-map-status-overlays="true"
             className="pointer-events-none absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-20 flex max-w-[calc(100%_-_2rem)] flex-col items-end gap-2"
           >
-            <FindMapWeatherCard
+            {!embedded ? <FindMapWeatherCard
               weather={weather}
               className={PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME}
-            />
+            /> : null}
             {preferencesSaveError ? (
               <Alert
                 className={cn(
@@ -342,7 +393,7 @@ export function PublicMapSurface({
           {mapError ? (
             <PublicMapFailureState
               reason="runtime"
-              className="absolute inset-0 z-30 min-h-0"
+              className={cn("pointer-events-auto absolute inset-0 z-30 min-h-0", embedded && "rounded-3xl")}
               onBrowseDirectory={() => onSidebarModeChange("search")}
               onRetry={onRetryMap}
             />
@@ -367,5 +418,20 @@ export function PublicMapSurface({
         />
       ) : null}
     </div>
+  )
+
+  return embedded ? (
+    <PublicMapEmbeddedLayout
+      contentActive={screen.mapHidden}
+      profile={<PublicMapEmbeddedProfile key={selectedOrganization?.id ?? selectedResourceItem?.id} surface={props} />}
+      map={mapSurface}
+      panel={sidebar}
+      toolbar={tokenAvailable ? <>
+        <PublicMapLocationControl {...locationControl} directoryCount={directoryCount} directoryFormationCounts={directoryFormationCounts} directoryCountEstimated={directoryCountEstimated} inline />
+        <FindMapWeatherCard weather={weather} unstyled />
+      </> : null}
+    />
+  ) : (
+    mapSurface
   )
 }

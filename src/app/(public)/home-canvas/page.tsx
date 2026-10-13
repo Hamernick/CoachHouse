@@ -57,6 +57,12 @@ export default async function HomeCanvasPreviewPage({
     redirect(authCallbackHref)
   }
   const initialSection = readStringParam(resolvedSearchParams?.section)
+  if (initialSection === "pricing") {
+    searchParamsObject.delete("section")
+    searchParamsObject.delete("embed")
+    const query = searchParamsObject.toString()
+    redirect(query ? `/pricing?${query}` : "/pricing")
+  }
   const loginRedirectTo = getSafeRedirectPath(
     readStringParam(resolvedSearchParams?.redirect)
   )

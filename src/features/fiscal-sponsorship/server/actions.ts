@@ -8,6 +8,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { canEditOrganization } from "@/lib/organization/active-org"
 import type { Database, Json } from "@/lib/supabase"
 import { normalizeFiscalSponsorshipInput } from "../lib"
+import { hasFundraisingGoal } from "../lib/fundraising-goal"
+import { canReadGuestFiscalProject } from "../lib/authorization"
 import {
   getBudgetTotal,
   readBudgetRowsFromMetadata,
@@ -240,6 +242,9 @@ export async function loadFiscalSponsorshipApplicationDraft(
     supabase,
   })
   if (!projectResult.ok) return { error: projectResult.error }
+  if (!(await canReadGuestFiscalProject({
+    projectId: projectResult.project.id, userId: context.user.id, supabase,
+  }))) return { error: "Unable to find that organization project." }
 
   if (
     !canAccessFiscalProject({
@@ -294,6 +299,9 @@ export async function saveFiscalSponsorshipApplicationDraft(
     supabase,
   })
   if (!projectResult.ok) return { error: projectResult.error }
+  if (!(await canReadGuestFiscalProject({
+    projectId: projectResult.project.id, userId: context.user.id, supabase,
+  }))) return { error: "Unable to find that organization project." }
 
   if (
     !canEditFiscalProject({
@@ -318,6 +326,7 @@ export async function saveFiscalSponsorshipApplicationDraft(
   }
   const metadata = normalized.value.metadata
   const hasBudgetRows = Boolean(
+    !hasFundraisingGoal(metadata) &&
     metadata &&
     typeof metadata === "object" &&
     !Array.isArray(metadata) &&

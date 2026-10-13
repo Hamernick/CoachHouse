@@ -1,7 +1,3 @@
-import Tag from "lucide-react/dist/esm/icons/tag"
-
-import { Badge } from "@/components/ui/badge"
-
 export function PricingHeroSection({
   headingLevel = "h1",
 }: {
@@ -11,25 +7,17 @@ export function PricingHeroSection({
 
   return (
     <section className="mx-auto max-w-3xl text-center">
-      <Badge
-        variant="secondary"
-        className="border-border/70 mx-auto mb-6 inline-flex items-center gap-2 rounded-full border bg-white px-4 py-1 text-xs font-medium text-black dark:bg-white dark:text-black"
-      >
-        <Tag className="h-3.5 w-3.5" aria-hidden />
-        Pricing
-      </Badge>
+      <p className="text-muted-foreground mb-3 text-sm">Pricing</p>
       <Heading
         id="pricing-heading"
-        className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl"
+        className="text-4xl leading-[1.08] font-normal tracking-tight text-balance sm:text-5xl lg:text-6xl"
       >
         Simple pricing
         <br />
         for nonprofit builders
       </Heading>
-      <p className="text-muted-foreground mt-5 text-base text-balance sm:text-lg">
-        Start with Individual for free, upgrade to Organization as your team
-        grows, and scale with Operations Support when you need deeper
-        infrastructure.
+      <p className="text-muted-foreground mx-auto mt-2 max-w-2xl text-base leading-snug text-balance sm:text-lg lg:text-xl">
+        Start free, upgrade to build your organization in one place.
       </p>
     </section>
   )

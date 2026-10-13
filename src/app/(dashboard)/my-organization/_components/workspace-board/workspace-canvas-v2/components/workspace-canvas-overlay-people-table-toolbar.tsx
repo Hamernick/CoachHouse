@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import Columns3Icon from "lucide-react/dist/esm/icons/columns-3"
 import FolderOpenIcon from "lucide-react/dist/esm/icons/folder-open"
 import RotateCcwIcon from "lucide-react/dist/esm/icons/rotate-ccw"
@@ -35,6 +36,8 @@ import type {
 } from "./workspace-canvas-overlay-people-table-sizing"
 
 type WorkspacePeopleDrawerTableToolbarProps = {
+  segmentControls?: ReactNode
+  controls?: ReactNode
   peopleCount: number
   selectedCount: number
   table: ReactTable<OrgPersonWithImage>
@@ -60,6 +63,8 @@ type WorkspacePeopleDrawerTableToolbarProps = {
 }
 
 export function WorkspacePeopleDrawerTableToolbar({
+  segmentControls,
+  controls,
   peopleCount,
   selectedCount,
   table,
@@ -94,27 +99,42 @@ export function WorkspacePeopleDrawerTableToolbar({
     .rows.map((row) => row.original)
 
   return (
-    <div className="border-border/60 flex min-h-11 min-w-0 shrink-0 flex-col items-stretch gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-muted-foreground max-w-full min-w-0 truncate text-xs font-medium sm:max-w-52">
-        {selectedCount > 0
-          ? `${selectedCount} selected`
-          : `${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
-      </p>
+    <div
+      data-setup-guide-target="people"
+      className="border-border/60 flex min-h-11 min-w-0 shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {segmentControls}
+        <p
+          className={
+            segmentControls
+              ? "sr-only"
+              : "text-muted-foreground max-w-52 min-w-0 truncate text-xs font-medium"
+          }
+        >
+          {selectedCount > 0
+            ? `${selectedCount} selected`
+            : `${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
+        </p>
+      </div>
 
-      <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-1.5 sm:ml-auto sm:w-auto sm:justify-end">
-        <WorkspacePeopleDrawerSelectionActions
-          selectedPeople={selectedPeople}
-          allPeople={allPeople}
-          viewerId={viewerId}
-          placedPersonIds={placedPersonIds}
-          customSegment={customSegment}
-          customSegmentMemberIds={customSegmentMemberIds}
-          canEdit={canEdit}
-          onAddPeopleToCanvas={onAddPeopleToCanvas}
-          onAddToSegment={onAddToSegment}
-          onRemoveFromSegment={onRemoveFromSegment}
-          onClearSelection={() => table.resetRowSelection()}
-        />
+      <div className="ml-auto flex w-auto min-w-0 flex-wrap items-center justify-end gap-1.5">
+        {controls}
+        <div className="w-auto empty:hidden">
+          <WorkspacePeopleDrawerSelectionActions
+            selectedPeople={selectedPeople}
+            allPeople={allPeople}
+            viewerId={viewerId}
+            placedPersonIds={placedPersonIds}
+            customSegment={customSegment}
+            customSegmentMemberIds={customSegmentMemberIds}
+            canEdit={canEdit}
+            onAddPeopleToCanvas={onAddPeopleToCanvas}
+            onAddToSegment={onAddToSegment}
+            onRemoveFromSegment={onRemoveFromSegment}
+            onClearSelection={() => table.resetRowSelection()}
+          />
+        </div>
         {hideableColumns.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -122,10 +142,10 @@ export function WorkspacePeopleDrawerTableToolbar({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-foreground hover:text-foreground h-11 shrink-0 gap-1.5 rounded-xl px-2.5 md:h-8"
+                className="text-foreground hover:text-foreground h-8 w-auto shrink-0 gap-1.5 rounded-xl px-2.5"
               >
                 <Columns3Icon aria-hidden />
-                Columns
+                <span>Columns</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
@@ -143,8 +163,8 @@ export function WorkspacePeopleDrawerTableToolbar({
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuGroup>
-              <DropdownMenuSeparator className="hidden md:block" />
-              <DropdownMenuGroup className="hidden md:block">
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
                 <DropdownMenuLabel>Row height</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={rowHeight}
@@ -163,8 +183,8 @@ export function WorkspacePeopleDrawerTableToolbar({
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
-              <DropdownMenuSeparator className="hidden md:block" />
-              <DropdownMenuGroup className="hidden md:block">
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
                 <DropdownMenuLabel>Cell content</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={contentMode}
@@ -182,16 +202,15 @@ export function WorkspacePeopleDrawerTableToolbar({
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
-              <DropdownMenuSeparator className="hidden md:block" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="hidden md:flex"
                 onSelect={onAutoSizeColumns}
               >
                 <ScanLineIcon aria-hidden />
                 Auto-fit columns
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="hidden md:flex">
+                <DropdownMenuSubTrigger>
                   Reset one column
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-44">
@@ -207,25 +226,22 @@ export function WorkspacePeopleDrawerTableToolbar({
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuItem
-                className="hidden md:flex"
                 onSelect={onResetColumnWidths}
               >
                 <RotateCcwIcon aria-hidden />
                 Reset column widths
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="hidden md:block" />
-              <DropdownMenuLabel className="hidden md:block">
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>
                 Saved layout
               </DropdownMenuLabel>
               <DropdownMenuItem
-                className="hidden md:flex"
                 onSelect={onSaveLayout}
               >
                 <SaveIcon aria-hidden />
                 Save current layout
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="hidden md:flex"
                 disabled={!hasSavedLayout}
                 onSelect={onApplySavedLayout}
               >
@@ -233,7 +249,7 @@ export function WorkspacePeopleDrawerTableToolbar({
                 Apply saved layout
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive hidden md:flex"
+                className="text-destructive focus:text-destructive"
                 disabled={!hasSavedLayout}
                 onSelect={onClearSavedLayout}
               >

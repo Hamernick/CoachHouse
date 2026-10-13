@@ -10,9 +10,8 @@ import {
   type DragEvent,
 } from "react"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
-import { type PersonCategory } from "@/lib/people/categories"
+import type { PersonRoleFilterValue } from "@/lib/people/roles"
 import type { OrganizationPeopleSegment } from "@/lib/people/segments"
 import type { OrganizationPeopleTag } from "@/lib/people/tags"
 import { cn } from "@/lib/utils"
@@ -33,6 +32,7 @@ import {
 } from "./workspace-canvas-overlay-people-filtering"
 import { WorkspacePeopleDrawerControls } from "./workspace-canvas-overlay-people-controls"
 import { WorkspacePeopleDrawerTable } from "./workspace-canvas-overlay-people-table"
+import { WorkspacePeopleAddMenu } from "./workspace-canvas-people-add-menu"
 import { WorkspacePeopleSegmentRail } from "./workspace-canvas-people-segment-rail"
 import { useWorkspacePeopleSegments } from "./use-workspace-people-segments"
 import { useWorkspacePeopleTags } from "./use-workspace-people-tags"
@@ -78,7 +78,7 @@ export const WorkspacePeopleDrawerPanel = memo(
     >(null)
     const [peopleSearch, setPeopleSearch] = useState("")
     const [peopleCategoryFilter, setPeopleCategoryFilter] = useState<
-      PersonCategory | "all"
+      PersonRoleFilterValue
     >("all")
     const [, startSegmentTransition] = useTransition()
     const deferredPeopleSearch = useDeferredValue(peopleSearch)
@@ -281,140 +281,83 @@ export const WorkspacePeopleDrawerPanel = memo(
           draggingPersonIds.length > 0 && "select-none"
         )}
       >
-        <div className="border-border/60 w-full min-w-0 shrink-0 border-b px-2 py-3 sm:px-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <WorkspacePeopleSegmentRail
-              segments={segments}
-              selectedSegmentId={selectedSegment.id}
-              editingSegmentId={editingSegmentId}
-              draggingPersonCount={draggingPersonIds.length}
-              activeDropSegmentId={activeSegmentDropId}
-              canManageSegments={canEdit}
-              onSegmentChange={handleSegmentChange}
-              onCreateSegment={handleCreateSegment}
-              onRenameSegment={handleRenameSegment}
-              onEditSegment={setEditingSegmentId}
-              onRemoveSegment={handleRemoveSegment}
-              onCancelEditSegment={() => setEditingSegmentId(null)}
-              onSegmentDragOver={handleSegmentDragOver}
-              onSegmentDragEnter={handleSegmentDragEnter}
-              onSegmentDragLeave={handleSegmentDragLeave}
-              onPersonDrop={handlePersonDrop}
-            />
-          </div>
-        </div>
-
-        <ScrollArea
-          className="min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden"
-          viewportClassName="h-full max-w-full overscroll-contain touch-pan-y md:[&>div]:!h-full [&>div]:!block [&>div]:!w-full [&>div]:!max-w-full [&>div]:!min-w-0"
-          contentClassName="flex min-h-full max-w-full flex-col gap-3 md:h-full md:min-h-0 p-2 sm:p-3 [&>*]:min-w-0"
-        >
-          {people.length === 0 ? (
-            <div className="border-border/70 text-muted-foreground grid min-h-48 place-items-center rounded-2xl border border-dashed px-6 text-center text-sm">
-              No people yet.
-            </div>
-          ) : null}
-
-          {people.length > 0 ? (
+        <WorkspacePeopleDrawerTable
+          segmentControls={
+            <>
+              {canEdit ? (
+                <WorkspacePeopleAddMenu
+                  people={people}
+                  onCreateSegment={handleCreateSegment}
+                />
+              ) : null}
+              <WorkspacePeopleSegmentRail
+                segments={segments}
+                selectedSegmentId={selectedSegment.id}
+                editingSegmentId={editingSegmentId}
+                draggingPersonCount={draggingPersonIds.length}
+                activeDropSegmentId={activeSegmentDropId}
+                canManageSegments={canEdit}
+                onSegmentChange={handleSegmentChange}
+                onRenameSegment={handleRenameSegment}
+                onEditSegment={setEditingSegmentId}
+                onRemoveSegment={handleRemoveSegment}
+                onCancelEditSegment={() => setEditingSegmentId(null)}
+                onSegmentDragOver={handleSegmentDragOver}
+                onSegmentDragEnter={handleSegmentDragEnter}
+                onSegmentDragLeave={handleSegmentDragLeave}
+                onPersonDrop={handlePersonDrop}
+              />
+            </>
+          }
+          people={filteredSelectedPeople}
+          allPeople={people}
+          viewerId={viewerId}
+          uiPreferencesScope={uiPreferencesScope}
+          placedPersonIds={placedPersonIds}
+          customSegment={selectedCustomSegment}
+          segments={customSegments}
+          tags={tagState.tags}
+          draggingPersonIds={draggingPersonIdSet}
+          canEdit={canEdit}
+          showReportsTo={showReportsTo}
+          label={`${selectedSegment.label} people`}
+          emptyMessage={
+            people.length === 0
+              ? "No people yet. Add someone to get started."
+              : selectedCustomSegment && selectedPeople.length === 0
+                ? `No people in ${selectedCustomSegment.label} yet. Use Add people above to build this segment.`
+                : normalizedPeopleSearch
+                  ? "No people match your search."
+                  : "No people match these filters."
+          }
+          controls={
             <WorkspacePeopleDrawerControls
-              people={people}
               canEdit={canEdit}
               searchValue={peopleSearch}
               onSearchChange={setPeopleSearch}
               categoryFilter={peopleCategoryFilter}
               onCategoryFilterChange={setPeopleCategoryFilter}
               customSegment={selectedCustomSegment}
+              people={people}
               availablePeople={availablePeople}
               onAddPeopleToSegment={handleAddPeople}
             />
-          ) : null}
-
-          {!selectedCustomSegment &&
-          people.length > 0 &&
-          normalizedPeopleSearch &&
-          filteredSelectedPeople.length === 0 ? (
-            <div className="border-border/70 text-muted-foreground grid min-h-32 place-items-center rounded-2xl border border-dashed px-6 text-center text-sm">
-              No people match your search.
-            </div>
-          ) : null}
-
-          {selectedCustomSegment && selectedPeople.length === 0 ? (
-            <div className="border-border/70 text-muted-foreground grid min-h-32 place-items-center rounded-2xl border border-dashed px-6 text-center text-sm">
-              No people in {selectedCustomSegment.label} yet. Use Add people
-              above to build this segment.
-            </div>
-          ) : null}
-
-          {selectedCustomSegment &&
-          selectedPeople.length > 0 &&
-          filteredSelectedPeople.length === 0 ? (
-            <div className="border-border/70 text-muted-foreground grid min-h-32 place-items-center rounded-2xl border border-dashed px-6 text-center text-sm">
-              No segment members match this role filter.
-            </div>
-          ) : null}
-
-          {selectedCustomSegment && filteredSelectedPeople.length > 0 ? (
-            <WorkspacePeopleDrawerTable
-              people={filteredSelectedPeople}
-              allPeople={people}
-              viewerId={viewerId}
-              uiPreferencesScope={uiPreferencesScope}
-              placedPersonIds={placedPersonIds}
-              customSegment={selectedCustomSegment}
-              segments={customSegments}
-              tags={tagState.tags}
-              draggingPersonIds={draggingPersonIdSet}
-              canEdit={canEdit}
-              showReportsTo={showReportsTo}
-              label={`${selectedCustomSegment.label} members`}
-              onDragStart={handlePersonDragStart}
-              onDragEnd={handlePersonDragEnd}
-              onAdd={handleAddPerson}
-              onRemove={handleRemovePerson}
-              onAddPersonToSegment={handleAddPersonToSegment}
-              onCreateSegment={handleCreateSegmentForPerson}
-              onRemovePersonFromSegment={removePersonFromSegment}
-              onAddPersonToTag={tagState.addPersonToTag}
-              onCreateTag={tagState.createTag}
-              onDeleteTag={tagState.deleteTag}
-              onRemovePersonFromTag={tagState.removePersonFromTag}
-              onUpdateTag={tagState.updateTag}
-              onAddPeopleToCanvas={canvasActions.add}
-              onRemovePersonFromCanvas={canvasActions.remove}
-            />
-          ) : null}
-
-          {!selectedCustomSegment && filteredSelectedPeople.length > 0 ? (
-            <WorkspacePeopleDrawerTable
-              people={filteredSelectedPeople}
-              allPeople={people}
-              viewerId={viewerId}
-              uiPreferencesScope={uiPreferencesScope}
-              placedPersonIds={placedPersonIds}
-              customSegment={null}
-              segments={customSegments}
-              tags={tagState.tags}
-              draggingPersonIds={draggingPersonIdSet}
-              canEdit={canEdit}
-              showReportsTo={showReportsTo}
-              label={`${selectedSegment.label} people`}
-              onDragStart={handlePersonDragStart}
-              onDragEnd={handlePersonDragEnd}
-              onAdd={handleAddPerson}
-              onRemove={handleRemovePerson}
-              onAddPersonToSegment={handleAddPersonToSegment}
-              onCreateSegment={handleCreateSegmentForPerson}
-              onRemovePersonFromSegment={removePersonFromSegment}
-              onAddPersonToTag={tagState.addPersonToTag}
-              onCreateTag={tagState.createTag}
-              onDeleteTag={tagState.deleteTag}
-              onRemovePersonFromTag={tagState.removePersonFromTag}
-              onUpdateTag={tagState.updateTag}
-              onAddPeopleToCanvas={canvasActions.add}
-              onRemovePersonFromCanvas={canvasActions.remove}
-            />
-          ) : null}
-        </ScrollArea>
+          }
+          onDragStart={handlePersonDragStart}
+          onDragEnd={handlePersonDragEnd}
+          onAdd={handleAddPerson}
+          onRemove={handleRemovePerson}
+          onAddPersonToSegment={handleAddPersonToSegment}
+          onCreateSegment={handleCreateSegmentForPerson}
+          onRemovePersonFromSegment={removePersonFromSegment}
+          onAddPersonToTag={tagState.addPersonToTag}
+          onCreateTag={tagState.createTag}
+          onDeleteTag={tagState.deleteTag}
+          onRemovePersonFromTag={tagState.removePersonFromTag}
+          onUpdateTag={tagState.updateTag}
+          onAddPeopleToCanvas={canvasActions.add}
+          onRemovePersonFromCanvas={canvasActions.remove}
+        />
       </div>
     )
   }

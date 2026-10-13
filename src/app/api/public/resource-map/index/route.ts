@@ -1,3 +1,5 @@
+import { getFindResourceCatalogResponse } from "../../../../../features/find-resource-index/server/catalog-route"
+
 import { NextResponse } from "next/server"
 
 import {
@@ -12,6 +14,7 @@ export const revalidate = 300
 
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams
+  if (searchParams.has("mode")) return getFindResourceCatalogResponse(request)
   const limit = parseFindResourceIndexLimit(searchParams.get("limit"))
   if (limit === null) {
     return NextResponse.json(

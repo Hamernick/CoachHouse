@@ -1,5 +1,8 @@
 "use client"
 
+import { mergeResourceGuideSummaries } from "@/features/find-resource-index"
+import type { FindResourceCatalogResponse } from "@/features/find-resource-index"
+
 import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -52,6 +55,7 @@ export function usePublicMapResourceGuideState({
   organizations,
   includeSeedResources,
   resourceItems,
+  guideSummaries,
   setSameLocationSelection,
   setSelectedListItemId,
   setSelectedOrgId,
@@ -63,6 +67,7 @@ export function usePublicMapResourceGuideState({
   organizations: PublicMapOrganization[]
   includeSeedResources: boolean
   resourceItems: ExternalResourceMapItem[]
+  guideSummaries?: FindResourceCatalogResponse["guides"]
   setSameLocationSelection: (
     selection: PublicMapSameLocationSelection | null
   ) => void
@@ -81,8 +86,12 @@ export function usePublicMapResourceGuideState({
     [includeSeedResources, organizations, resourceItems]
   )
   const resourceGuides = useMemo(
-    () => buildPublicMapResourceGuides(guideSourceMapItems),
-    [guideSourceMapItems]
+    () => mergeResourceGuideSummaries(
+      buildPublicMapResourceGuides(guideSourceMapItems),
+      buildPublicMapResourceGuides(buildPublicMapItems({ organizations })),
+      guideSummaries
+    ),
+    [guideSourceMapItems, organizations, guideSummaries]
   )
   const activeGuide = useMemo<PublicMapResourceGuide | null>(
     () => resourceGuides.find((guide) => guide.id === activeGuideId) ?? null,
@@ -220,7 +229,7 @@ export function PublicMapResourceGuideActions({
           type="button"
           variant="outline"
           size="icon"
-          className="bg-background/90 size-9 rounded-full backdrop-blur-md"
+          className="bg-background/90 size-11 touch-manipulation rounded-full backdrop-blur-md sm:size-9"
           aria-label={
             saved
               ? `Remove ${guideTitle} from My Map`
@@ -240,7 +249,7 @@ export function PublicMapResourceGuideActions({
         title={guideTitle}
         label={`Share ${guideTitle}`}
         iconOnly
-        className="bg-background/90 size-9 rounded-full backdrop-blur-md"
+        className="bg-background/90 size-11 touch-manipulation rounded-full backdrop-blur-md sm:size-9"
       />
     </div>
   )
@@ -351,6 +360,7 @@ export function PublicMapResourceGuides({
       ) : null}
       <div
         data-public-map-resource-guides-grid="true"
+        data-lenis-prevent-horizontal=""
         data-presentation={presentation}
         className={cn(
           "min-w-0 items-stretch gap-3",

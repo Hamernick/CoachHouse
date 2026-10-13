@@ -49,8 +49,9 @@ describe("signup accessibility affordances", () => {
       "src/components/onboarding/onboarding-dialog/components/onboarding-dialog-content.tsx"
     )
 
-    expect(intentSource).toContain('role="group"')
-    expect(intentSource).toContain("aria-pressed={selected}")
+    expect(intentSource).toContain('<FieldLabel htmlFor={id}>')
+    expect(intentSource).toContain("aria-invalid={showError}")
+    expect(intentSource).toContain("aria-describedby={showError ? errorId : undefined}")
     expect(intentSource).toContain('role="alert"')
     expect(organizationSource).toContain("aria-describedby={")
     expect(organizationSource).toContain('role="status"')

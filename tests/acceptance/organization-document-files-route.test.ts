@@ -3,6 +3,8 @@ import { NextRequest } from "next/server"
 
 const mocks = vi.hoisted(() => ({
   client: vi.fn(),
+  storageAccess: vi.fn(),
+  requireStorage: vi.fn(),
   organization: vi.fn(),
   notification: vi.fn(),
 }))
@@ -13,6 +15,10 @@ vi.mock("@/lib/organization/active-org", () => ({
   resolveActiveOrganization: mocks.organization,
   canEditOrganization: (role: string) =>
     ["owner", "admin", "staff"].includes(role),
+}))
+vi.mock("@/lib/organization/document-storage-access", () => ({
+  resolveOrganizationDocumentStorageAccess: mocks.storageAccess,
+  requireOrganizationDocumentStorage: mocks.requireStorage,
 }))
 vi.mock("@/lib/notifications", () => ({
   createNotification: mocks.notification,
@@ -166,8 +172,28 @@ describe("organization document file routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.storageAccess.mockResolvedValue({ hasStorageAccess: true })
+    mocks.requireStorage.mockResolvedValue({ ok: true })
     mocks.organization.mockResolvedValue({ orgId: "org-1", role: "admin" })
     mocks.notification.mockResolvedValue({ id: "notification" })
+  })
+
+  it("keeps free documents readable while rejecting every native write", async () => {
+    const calls = setup()
+    mocks.storageAccess.mockResolvedValue({ hasStorageAccess: false })
+    mocks.requireStorage.mockResolvedValue({ error: "Upgrade required" })
+    const listing = await GET(new NextRequest("http://localhost/api/account/organization-document-files"))
+    expect(listing.status).toBe(200)
+    expect(await listing.json()).toMatchObject({ hasStorageAccess: false, quota: { limitBytes: 0 } })
+    const download = await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1"))
+    expect(download.status).toBe(200)
+    expect(calls.signed).toHaveBeenCalledOnce()
+    expect((await POST(uploadRequest())).status).toBe(403)
+    expect((await PATCH(actionRequest("PATCH", "trash"))).status).toBe(403)
+    expect((await DELETE(actionRequest("DELETE"))).status).toBe(403)
+    expect(calls.upload).not.toHaveBeenCalled()
+    expect(calls.update).not.toHaveBeenCalled()
+    expect(calls.remove).not.toHaveBeenCalled()
   })
 
   it("requires authentication before uploading", async () => {

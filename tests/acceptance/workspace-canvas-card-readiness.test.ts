@@ -119,6 +119,9 @@ function makeSeed(
     formationSummary: {} as WorkspaceSeedData["formationSummary"],
     activityFeed: [],
     calendar: {
+      monthLabel: "October", previousMonthHref: "", nextMonthHref: "",
+      previousMonthLabel: "September", nextMonthLabel: "November", grid: [],
+      weekdayLabels: [], eventDays: new Set<number>(), selectedDay: null,
       nextEvent: null,
       upcomingEvents: [],
     } as WorkspaceSeedData["calendar"],

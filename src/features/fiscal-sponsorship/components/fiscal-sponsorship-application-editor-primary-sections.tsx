@@ -1,15 +1,12 @@
 "use client"
 
-import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
-
-import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
+import { OrganizationFormationStatusPicker } from "@/components/organization/organization-formation-status-picker"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { FiscalFieldError, useFiscalFieldError } from "./fiscal-public-field-errors"
 import {
-  FORMATION_STATUS_OPTIONS,
   isFormationStatus,
 } from "@/lib/organization/formation-status"
 import type { FormationStatus } from "@/lib/organization/org-profile-brand-types"
-import { cn } from "@/lib/utils"
 
 import {
   FISCAL_SPONSORSHIP_LEGAL_ENTITY_OPTIONS,
@@ -137,6 +134,7 @@ function LegalEntityField({
 }) {
   return (
     <SelectField
+      field="legalEntityType"
       label="Legal entity type"
       value={draft.legalEntityType || EMPTY_SELECT_VALUE}
       placeholder="Choose legal entity..."
@@ -225,63 +223,35 @@ function FormationStatusCardPicker({
 }) {
   const labelId = `${formId}-formation-status-label`
   const descriptionId = `${formId}-formation-status-description`
+  const error = useFiscalFieldError("formationStatus")
   const selectedValue = resolveFormationStatusValue({
     formationStatus: draft.formationStatus,
     legalEntityHas501c3: draft.legalEntityHas501c3,
   })
 
   return (
-    <Field>
+    <Field tabIndex={error ? -1 : undefined} aria-invalid={Boolean(error)} aria-describedby={error ? `${formId}-formation-error` : undefined}>
       <FieldLabel id={labelId}>Formation status</FieldLabel>
-      <ToggleGroupPrimitive.Root
-        type="single"
-        value={selectedValue || undefined}
+      <OrganizationFormationStatusPicker
+        value={selectedValue}
         onValueChange={(value) => {
-          if (!isFormationStatus(value)) return
-
           const nextStatus = FISCAL_FORMATION_STATUS_VALUES[value]
           onFieldChange("formationStatus", nextStatus.formationStatus)
           onFieldChange("legalEntityHas501c3", nextStatus.legalEntityHas501c3)
         }}
-        aria-labelledby={labelId}
-        aria-describedby={descriptionId}
-        data-slot="toggle-group"
-        className="box-border grid w-full max-w-full min-w-0 items-stretch gap-2 sm:grid-cols-3"
-      >
-        {FORMATION_STATUS_OPTIONS.map((option) => {
-          const selected = selectedValue === option.value
-
-          return (
-            <ToggleGroupPrimitive.Item
-              key={option.value}
-              value={option.value}
-              data-slot="toggle-group-item"
-              className={cn(
-                "flex h-full w-full min-w-0 items-stretch justify-start rounded-2xl border p-0 text-left whitespace-normal shadow-none transition-colors outline-none",
-                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
-                "data-[state=on]:border-primary/60 data-[state=on]:bg-primary/5 data-[state=on]:text-foreground",
-                selected
-                  ? "border-primary/60 bg-primary/5"
-                  : "border-border/70 bg-background/60 text-foreground hover:bg-background"
-              )}
-            >
-              <OrganizationFormationStatusSummary
-                formationStatus={option}
-                contained={false}
-                className="flex h-full w-full min-w-0 flex-col gap-2 rounded-2xl p-3 text-left"
-              />
-            </ToggleGroupPrimitive.Item>
-          )
-        })}
-      </ToggleGroupPrimitive.Root>
+        labelledBy={labelId}
+        describedBy={descriptionId}
+      />
       <FieldDescription id={descriptionId}>
         This sets formation status and 501(c)(3) status together.
       </FieldDescription>
+      <FiscalFieldError field="formationStatus" id={`${formId}-formation-error`} />
     </Field>
   )
 }
 
 export function ApplicantContactSection({
+  lockEmail = false,
   draft,
   formId,
   onFieldChange,
@@ -291,6 +261,7 @@ export function ApplicantContactSection({
   formId: string
   onFieldChange: DraftFieldChange
   sectionChrome: EditorSectionChromeProps
+  lockEmail?: boolean
 }) {
   return (
     <EditorSection
@@ -332,6 +303,7 @@ export function ApplicantContactSection({
         <DraftInputField
           formId={formId}
           field="primaryEmail"
+          readOnly={lockEmail}
           label="Primary email"
           type="email"
           value={draft.primaryEmail}

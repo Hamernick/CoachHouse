@@ -1,9 +1,8 @@
 "use client"
 
 import type { ComponentType } from "react"
-import DownloadIcon from "lucide-react/dist/esm/icons/download"
 import FacebookIcon from "lucide-react/dist/esm/icons/facebook"
-import GlobeIcon from "lucide-react/dist/esm/icons/globe"
+import HeartIcon from "lucide-react/dist/esm/icons/heart"
 import InstagramIcon from "lucide-react/dist/esm/icons/instagram"
 import LinkedinIcon from "lucide-react/dist/esm/icons/linkedin"
 import MailIcon from "lucide-react/dist/esm/icons/mail"
@@ -248,22 +247,11 @@ export function buildResourceLinks(
 export function buildActionLinks(
   organization: PublicMapOrganization
 ): OrganizationDetailActionLink[] {
-  const website = normalizeHref(organization.website)
+  const donateHref = normalizeHref(organization.donateUrl)
   const email = normalizeText(organization.email)
   const phone = normalizeText(organization.phone)
-  const brandKitHref = resolveBrandKitDownloadHref(organization)
 
   const actions: Array<OrganizationDetailActionLink | null> = [
-    website
-      ? {
-          key: "website",
-          kind: "link",
-          label: "Website",
-          href: website,
-          external: true,
-          icon: GlobeIcon,
-        }
-      : null,
     email
       ? {
           key: "email",
@@ -283,14 +271,14 @@ export function buildActionLinks(
           icon: PhoneIcon,
         }
       : null,
-    brandKitHref
+    donateHref
       ? {
-          key: "brand-kit",
+          key: "donate",
           kind: "link",
-          label: "Brand kit",
-          href: brandKitHref,
+          label: "Donate",
+          href: donateHref,
           external: true,
-          icon: DownloadIcon,
+          icon: HeartIcon,
         }
       : null,
   ]

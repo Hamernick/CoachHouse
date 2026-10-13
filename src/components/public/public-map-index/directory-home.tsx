@@ -1,12 +1,11 @@
 "use client"
 
-import { lazy, Suspense } from "react"
-import Link from "next/link"
 import CloudOffIcon from "lucide-react/dist/esm/icons/cloud-off"
 import SearchXIcon from "lucide-react/dist/esm/icons/search-x"
 
 import { Button } from "@/components/ui/button"
 import { Empty } from "@/components/ui/empty"
+import { cn } from "@/lib/utils"
 import type {
   PublicMapGroupFilterCounts,
   PublicMapGroupFilterKey,
@@ -19,13 +18,11 @@ import {
   type PublicMapResourceGuide,
 } from "./resource-guides"
 
-const PublicMapClaimDialog = lazy(() =>
-  import("@/features/public-map-claims").then((module) => ({
-    default: module.PublicMapClaimDialog,
-  }))
-)
+import { PublicMapClaimPrompt, PublicMapFooter } from "./footer"
 
 export function PublicMapDirectoryHome({
+  scrollable = true,
+  showFooter = true,
   counts,
   featuredGuides,
   onCategorySelect,
@@ -36,6 +33,8 @@ export function PublicMapDirectoryHome({
   resourceItemsLoadStatus,
   savedGuideIds,
 }: {
+  scrollable?: boolean
+  showFooter?: boolean
   counts: PublicMapGroupFilterCounts
   featuredGuides: PublicMapResourceGuide[]
   onCategorySelect: (category: PublicMapGroupFilterKey) => void
@@ -53,7 +52,11 @@ export function PublicMapDirectoryHome({
   return (
     <div
       data-public-map-directory-home=""
-      className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pt-1 pb-[max(env(safe-area-inset-bottom),1rem)] [-webkit-overflow-scrolling:touch]"
+      data-lenis-prevent={scrollable ? "" : undefined}
+      className={cn(
+        "min-h-0 flex-1 px-2.5 pt-1 pb-[max(env(safe-area-inset-bottom),1rem)]",
+        scrollable && "overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+      )}
     >
       <div
         data-public-map-directory-home-content=""
@@ -121,48 +124,7 @@ export function PublicMapDirectoryHome({
             />
           </div>
         ) : null}
-        <div className="pt-1">
-          <Suspense fallback={<div className="h-[76px]" aria-hidden />}>
-            <PublicMapClaimDialog />
-          </Suspense>
-          <section
-            aria-label="About Coach House"
-            className="text-muted-foreground mx-auto flex max-w-xl flex-col gap-2 px-2 pt-4 text-center text-sm leading-5"
-          >
-            <div className="flex flex-col gap-1">
-              <h2 className="text-foreground font-semibold leading-tight">
-                Coach House
-              </h2>
-              <p>
-                Find local resources and run your nonprofit with shared plans,
-                documents, and a calendar.
-              </p>
-            </div>
-            <p>
-              Google connections are optional. Sign in with Google and manage
-              your Drive connection in Workspace Tools. Drive file import and
-              Google Calendar syncing are coming soon.
-            </p>
-          </section>
-          <nav aria-label="Legal" className="flex justify-center gap-2">
-            <Button
-              asChild
-              variant="link"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground active:text-foreground focus-visible:text-foreground h-11 touch-manipulation"
-            >
-              <Link href="/privacy">Privacy Policy</Link>
-            </Button>
-            <Button
-              asChild
-              variant="link"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground active:text-foreground focus-visible:text-foreground h-11 touch-manipulation"
-            >
-              <Link href="/terms">Terms of Service</Link>
-            </Button>
-          </nav>
-        </div>
+        {showFooter ? <PublicMapFooter /> : <PublicMapClaimPrompt />}
       </div>
     </div>
   )

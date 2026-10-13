@@ -1,3 +1,4 @@
+import { hasFundraisingGoal, readFundraisingGoal } from "../lib/fundraising-goal"
 import type { FiscalApplicationRow } from "./workflow-support"
 
 function hasText(value: string | null | undefined) {
@@ -44,11 +45,12 @@ export function validateApplicationForSubmission(
   if (!hasText(application.project_duration_type)) {
     missingFields.push("project duration")
   }
-  if (
-    application.estimated_budget_cents === null ||
-    application.estimated_budget_cents <= 0
-  ) {
-    missingFields.push("estimated budget")
+  const goal = readFundraisingGoal(application.metadata)
+  if (hasFundraisingGoal(application.metadata)) {
+    if (!goal?.amountCents) missingFields.push("anticipated fundraising amount and timeframe")
+  } else if (!application.estimated_budget_cents || application.estimated_budget_cents <= 0) {
+    // Existing applications retain their original total budget; do not reinterpret it as a recurring goal.
+    missingFields.push("anticipated fundraising amount")
   }
   if (!hasText(application.prospective_funding_sources)) {
     missingFields.push("funding sources")
@@ -58,12 +60,12 @@ export function validateApplicationForSubmission(
     return `Complete these fiscal application fields before submitting: ${missingFields.join(", ")}.`
   }
 
-  if (application.operates_outside_united_states !== false) {
-    return "Coach House can only review U.S.-based projects right now. Confirm U.S. operations before submitting."
+  if (typeof application.operates_outside_united_states !== "boolean" || typeof application.engages_in_lobbying !== "boolean") {
+    return "Answer the questions about operating outside the United States and lobbying before submitting."
   }
-
-  if (application.receives_investor_return_funds !== false) {
-    return "Coach House cannot sponsor projects that receive investor-return funds. Update the eligibility attestation before submitting."
+  if ([application.operates_outside_united_states, application.engages_in_lobbying,
+    application.has_legal_compliance_financial_concerns].includes(true) && !hasText(application.concerns_explanation)) {
+    return "Explain each eligibility answer marked Yes before submitting. These answers require review, not automatic rejection."
   }
 
   return null

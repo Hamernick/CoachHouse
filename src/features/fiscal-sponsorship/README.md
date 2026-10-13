@@ -37,3 +37,9 @@
 - The intended real version should generate application/agreement/grant request
   documents from persisted applicant data, route signable documents through
   DocuSeal, and store executed files plus audit metadata in Documents.
+
+## Public entry
+
+`/documentation/fiscal-sponsorship` houses the public guest application. `/fiscalsponsorship` permanently redirects there. No account is required to submit. A successful submission atomically creates a private staff project, fiscal application, assigned reviewers and notification jobs. Receipt email verification unlocks the applicant status/corrections view without creating an account.
+
+The current release keeps `FISCAL_GUEST_PROFILE_IMPORT_ENABLED=false`: optional signup/profile reuse is owned by the separate onboarding integration. Its older account-first and profile-import migrations are excluded from this MVP. See `docs/plans/2026-10-12-presentation-release.md` for the applied guest migration set, activation gates and live test checklist. Public submissions and email sending require their independent production flags; database migration alone never activates them.

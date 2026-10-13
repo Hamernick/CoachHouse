@@ -1,3 +1,4 @@
+import { FUNDRAISING_PERIODS, readFundraisingGoal } from "./fundraising-goal"
 import type { FiscalSponsorshipApplicationRecord } from "../types"
 
 export type FiscalSponsorshipAgreementDocument = {
@@ -65,6 +66,8 @@ export function buildFiscalSponsorshipAgreementDocument({
     timeZone: "UTC",
   }).format(new Date(generatedAt))
 
+  const fundraisingGoal = readFundraisingGoal(application.metadata)
+  const period = FUNDRAISING_PERIODS.find((option) => option.value === fundraisingGoal?.period)?.label
   const rows: Array<[string, string | null | undefined]> = [
     ["Project", projectName],
     ["Organization", organizationName],
@@ -74,7 +77,9 @@ export function buildFiscalSponsorshipAgreementDocument({
     ["Formation status", application.formationStatus],
     ["Project location", application.projectLocation],
     ["Focus area", application.focusArea],
-    ["Estimated budget", dollarsFromCents(application.estimatedBudgetCents)],
+    fundraisingGoal
+      ? ["Anticipated fundraising", `${dollarsFromCents(fundraisingGoal.amountCents)} · ${period}`]
+      : ["Estimated budget", dollarsFromCents(application.estimatedBudgetCents)],
   ]
 
   const html = `<!doctype html>
@@ -127,9 +132,7 @@ export function buildFiscalSponsorshipAgreementDocument({
     <p>${textOrPlaceholder(application.publicBenefit)}</p>
 
     <h2>Budget and funding</h2>
-    <p><strong>Expense summary:</strong> ${textOrPlaceholder(
-      application.expenseSummary
-    )}</p>
+    ${fundraisingGoal ? "" : `<p><strong>Expense summary:</strong> ${textOrPlaceholder(application.expenseSummary)}</p>`}
     <p><strong>Prospective funding sources:</strong> ${textOrPlaceholder(
       application.prospectiveFundingSources
     )}</p>
@@ -145,10 +148,10 @@ export function buildFiscalSponsorshipAgreementDocument({
     <h2>Eligibility acknowledgements</h2>
     <ul>
       <li>Operates outside the United States: ${yesNoOrPlaceholder(application.operatesOutsideUnitedStates)}</li>
-      <li>Receives investor-return funds: ${yesNoOrPlaceholder(application.receivesInvestorReturnFunds)}</li>
       <li>Engages in lobbying: ${yesNoOrPlaceholder(application.engagesInLobbying)}</li>
       <li>Legal, compliance, or financial concerns: ${yesNoOrPlaceholder(application.hasLegalComplianceFinancialConcerns)}</li>
     </ul>
+    <p><strong>Explanation:</strong> ${textOrPlaceholder(application.concernsExplanation)}</p>
 
     <h2>Signature packet</h2>
     <p>This agreement is prepared for Coach House countersignature and applicant signature through the configured signing provider.</p>

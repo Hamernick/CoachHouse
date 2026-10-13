@@ -11,7 +11,7 @@ describe("public Documentation sitemap", () => {
     )
 
     for (const item of listLiveDocumentationItems()) {
-      if (item.href.startsWith("/documentation/")) {
+      if (item.href?.startsWith("/documentation/")) {
         expect(urls).toContain(`https://coachhouse.app${item.href}`)
       }
     }

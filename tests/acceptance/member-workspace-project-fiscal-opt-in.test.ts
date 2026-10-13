@@ -101,3 +101,6 @@ describe("project fiscal sponsorship opt-in", () => {
     expect(await enableProjectFiscalSponsorshipAction(projectId)).toEqual({ error: expect.stringContaining("Could not add") })
   })
 })
+
+// These fixtures represent ordinary projects; guest scope has a separate denial suite.
+vi.mock("@/lib/workspace/ordinary-project-access", () => ({ isOrdinaryWorkspaceProject: async () => true }))

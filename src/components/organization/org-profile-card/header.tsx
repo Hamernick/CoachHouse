@@ -331,7 +331,7 @@ export function OrgProfileHeader({
           </div>
         </div>
 
-        <div className={cn("mt-14", editMode && canEdit && "mt-24")}>
+        <div className={cn("mt-12", editMode && canEdit && "mt-24")}>
           <h2 className="text-2xl font-semibold tracking-tight">
             {name || "Organization"}
           </h2>

@@ -4,22 +4,22 @@ import { Separator } from "@/components/ui/separator"
 import type { FiscalSponsorshipApplicationDraft } from "../lib/application-draft"
 import {
   BooleanField,
+  DraftInputField,
+  SelectField,
   DraftTextareaField,
   EditorSection,
   type DraftFieldChange,
   type EditorSectionChromeProps,
 } from "./fiscal-sponsorship-application-editor-controls"
-import { FiscalSponsorshipBudgetPlanEditor } from "./fiscal-sponsorship-budget-plan-editor"
+import { FUNDRAISING_PERIODS } from "../lib/fundraising-goal"
 
 export function BudgetBenefitSection({
-  applicationReady,
   draft,
   formId,
   onFieldChange,
-  projectId,
   sectionChrome,
-  sourceActivityTitle,
 }: {
+  guest?: boolean
   applicationReady: boolean
   draft: FiscalSponsorshipApplicationDraft
   formId: string
@@ -31,17 +31,28 @@ export function BudgetBenefitSection({
   return (
     <EditorSection
       title="Budget, funding, and benefit"
-      description="Collect the planning and public-benefit language needed for review."
+      description="Share your fundraising goal and who will benefit."
       {...sectionChrome}
     >
-      <FiscalSponsorshipBudgetPlanEditor
-        applicationReady={applicationReady}
-        draft={draft}
-        formId={formId}
-        projectId={projectId}
-        sourceActivityTitle={sourceActivityTitle}
-        onFieldChange={onFieldChange}
-      />
+      <div className="grid items-start gap-4 sm:grid-cols-[2fr_1fr]">
+        <DraftInputField
+          formId={formId}
+          field="fundraisingGoalDollars"
+          currency
+          label="How much do you anticipate raising? (USD)"
+          inputMode="decimal"
+          value={draft.fundraisingGoalDollars}
+          placeholder="10,000"
+          onFieldChange={onFieldChange}
+        />
+        <SelectField
+          label="Timeframe"
+          value={draft.fundraisingGoalPeriod}
+          placeholder="Choose a timeframe"
+          options={[...FUNDRAISING_PERIODS]}
+          onValueChange={(value) => onFieldChange("fundraisingGoalPeriod", value as typeof draft.fundraisingGoalPeriod)}
+        />
+      </div>
       <DraftTextareaField
         formId={formId}
         field="prospectiveFundingSources"
@@ -75,14 +86,6 @@ export function BudgetBenefitSection({
         placeholder="Brief background of this initiative..."
         onFieldChange={onFieldChange}
       />
-      <DraftTextareaField
-        formId={formId}
-        field="shortPublicDescription"
-        label="Short public description"
-        value={draft.shortPublicDescription}
-        placeholder="Public-facing sponsored-project profile copy..."
-        onFieldChange={onFieldChange}
-      />
     </EditorSection>
   )
 }
@@ -100,26 +103,19 @@ export function EligibilityAttestationsSection({
 }) {
   const needsConcernExplanation =
     draft.operatesOutsideUnitedStates === "yes" ||
-    draft.receivesInvestorReturnFunds === "yes" ||
     draft.engagesInLobbying === "yes" ||
     draft.hasLegalComplianceFinancialConcerns === "yes"
 
   return (
     <EditorSection
       title="Eligibility attestations"
-      description="Capture risk signals early before review and document generation."
+      description="Yes answers need an explanation for review; they do not automatically disqualify your project."
       {...sectionChrome}
     >
       <BooleanField
         field="operatesOutsideUnitedStates"
         label="Do you plan to operate outside the United States?"
         value={draft.operatesOutsideUnitedStates}
-        onFieldChange={onFieldChange}
-      />
-      <BooleanField
-        field="receivesInvestorReturnFunds"
-        label="Do you plan to receive investor-return funds?"
-        value={draft.receivesInvestorReturnFunds}
         onFieldChange={onFieldChange}
       />
       <BooleanField
@@ -138,9 +134,9 @@ export function EligibilityAttestationsSection({
         <DraftTextareaField
           formId={formId}
           field="concernsExplanation"
-          label="Concern explanation"
+          label="Explain each answer marked Yes"
           value={draft.concernsExplanation}
-          placeholder="Explain any concern marked yes..."
+          placeholder="Describe the activities, locations, or concerns you marked Yes above."
           onFieldChange={onFieldChange}
         />
       ) : null}

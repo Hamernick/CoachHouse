@@ -16,6 +16,7 @@ type FiscalDocumentRow = Pick<
   | "file_sha256"
   | "mime"
   | "org_id"
+  | "project_id"
   | "storage_bucket"
   | "storage_path"
   | "title"
@@ -49,7 +50,7 @@ export async function GET(
       : supabase
   const { data: document, error } = await documentClient
     .from("fiscal_sponsorship_documents")
-    .select("file_sha256, mime, org_id, storage_bucket, storage_path, title")
+    .select("file_sha256, mime, org_id, project_id, storage_bucket, storage_path, title")
     .eq("id", documentId)
     .maybeSingle<FiscalDocumentRow>()
   if (error || !document?.storage_path || !document.file_sha256) {
@@ -60,6 +61,7 @@ export async function GET(
     !(await canManageFiscalSponsorshipForOrganization({
       accessLevel: profileAudience.platformAccessLevel,
       organizationId: document.org_id,
+      projectId: document.project_id,
       supabase: documentClient,
       userId: user.id,
     }))

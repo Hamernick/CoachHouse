@@ -1,0 +1,30 @@
+.root {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 160ms ease-out;
+}
+
+/* Preserve measured geometry while pricing owns focus, including its exit. */
+:global(body:has([data-pricing-overlay="true"])) .root {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition: none;
+  }
+}
+
+.connector {
+  animation: guide-rail 1.8s linear infinite;
+}
+
+@keyframes guide-rail {
+  to { stroke-dashoffset: -22; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connector { animation: none; }
+}

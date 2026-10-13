@@ -1,4 +1,4 @@
-import type { DragEvent } from "react"
+import type { DragEvent, ReactNode } from "react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type {
@@ -10,6 +10,9 @@ import type { WorkspaceBoardUiPreferenceScope } from "../../workspace-board-ui-p
 import type { WorkspaceCustomPeopleSegment } from "./workspace-canvas-people-segment-types"
 
 export type WorkspacePeopleDrawerTableProps = {
+  segmentControls?: ReactNode
+  controls?: ReactNode
+  emptyMessage?: string
   people: OrgPersonWithImage[]
   allPeople: OrgPersonWithImage[]
   viewerId: string

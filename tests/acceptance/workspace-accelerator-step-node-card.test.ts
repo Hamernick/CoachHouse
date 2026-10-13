@@ -158,7 +158,7 @@ describe("workspace accelerator step node card", () => {
 
     expect(markup).toContain("Organization setup")
     expect(markup).toContain("Step 1 of 3")
-    expect(markup).toContain("Create your organization")
+    expect(markup).toContain("Name your organization")
     expect(markup).not.toContain("pointer-events-none min-h-0 select-none")
     expect(markup).not.toContain("inert=")
     expect(markup).not.toContain("absolute inset-0 z-10 cursor-default")
@@ -222,7 +222,7 @@ describe("workspace accelerator step node card", () => {
       })
     )
 
-    expect(markup).toContain("Create your organization")
+    expect(markup).toContain("Name your organization")
     expect(markup).toContain("rounded-none")
     expect(markup).toContain("border-0")
     expect(markup).toContain(
@@ -351,6 +351,7 @@ describe("workspace accelerator step node card", () => {
             completeOnSubmit: true,
             assignmentFields: [
               {
+                required: false,
                 name: "origin_intro",
                 label: "How to approach this exercise",
                 type: "subtitle",
@@ -358,6 +359,7 @@ describe("workspace accelerator step node card", () => {
                 description: "Review the context first.",
               },
               {
+                required: true,
                 name: "origin_roots_place",
                 label: "Where did you grow up?",
                 type: "long_text",
@@ -422,6 +424,7 @@ describe("workspace accelerator step node card", () => {
             completeOnSubmit: true,
             assignmentFields: [
               {
+                required: true,
                 name: "origin_roots_place",
                 label: "Where did you grow up?",
                 type: "long_text",

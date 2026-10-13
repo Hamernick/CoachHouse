@@ -1,6 +1,8 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { getWorkspaceDrawerPath } from "@/lib/workspace/routes"
+
+import { useWorkspaceAcceleratorPrefetch } from "../hooks/use-workspace-accelerator-prefetch"
 import {
   useCallback,
   useEffect,
@@ -61,6 +63,8 @@ import { useWorkspaceAcceleratorDrawerScroll } from "./use-workspace-accelerator
 // eslint-disable-next-line max-lines-per-function
 export function WorkspaceAcceleratorCardPanel({
   input,
+  overviewOnly = false,
+  workspaceOverviewNotice = null,
   roadmapSections = [],
   roadmapBasePath = "/workspace/roadmap",
   presentationMode = "embedded",
@@ -80,7 +84,6 @@ export function WorkspaceAcceleratorCardPanel({
   drawerContainer = null,
   onTutorialActionComplete,
 }: WorkspaceAcceleratorCardPanelProps) {
-  const router = useRouter()
   const controllerInput = useMemo<WorkspaceAcceleratorCardInput>(
     () => buildWorkspaceAcceleratorControllerInput(input),
     [input]
@@ -110,23 +113,15 @@ export function WorkspaceAcceleratorCardPanel({
     [currentStep, stepHrefOverride]
   )
 
-  useEffect(() => {
-    if (fallbackAcceleratorHref.startsWith("/")) {
-      router.prefetch(fallbackAcceleratorHref)
-    }
-  }, [fallbackAcceleratorHref, router])
-
-  useEffect(() => {
-    if (!runtimeStep?.href || !runtimeStep.href.startsWith("/")) return
-    router.prefetch(runtimeStep.href)
-  }, [router, runtimeStep?.href])
+  useWorkspaceAcceleratorPrefetch(fallbackAcceleratorHref, runtimeStep?.href, !overviewOnly)
 
   const [openModuleId, setOpenModuleId] = useState<string | null>(
     initialOpenModuleId
   )
-  const [isModuleViewerOpen, setIsModuleViewerOpen] = useState(
+  const [moduleViewerOpen, setIsModuleViewerOpen] = useState(
     presentationMode === "fullscreen-route" || initialModuleViewerOpen
   )
+  const isModuleViewerOpen = !overviewOnly && moduleViewerOpen
   const workspaceDrawerEmbedded = presentationMode === "workspace-drawer"
   const {
     hasScrollableOverflow: workspaceDrawerHasScrollableOverflow,
@@ -135,10 +130,10 @@ export function WorkspaceAcceleratorCardPanel({
     workspaceDrawerEmbedded && !isModuleViewerOpen
   )
   useEffect(() => {
-    if (!initialOpenModuleId || openStepRequest) return
+    if (overviewOnly || !initialOpenModuleId || openStepRequest) return
     setOpenModuleId(initialOpenModuleId)
     setIsModuleViewerOpen(true)
-  }, [initialOpenModuleId, openStepRequest])
+  }, [initialOpenModuleId, openStepRequest, overviewOnly])
   const previousCurrentModuleIdRef = useRef<string | null>(null)
   const previousTutorialManagedViewerOpenRef = useRef(false)
   const pendingFirstModuleTutorialAdvanceRef = useRef(false)
@@ -161,7 +156,7 @@ export function WorkspaceAcceleratorCardPanel({
   })
   useEffect(() => {
     if (
-      !openStepRequest ||
+      overviewOnly || !openStepRequest ||
       handledOpenStepRequestIdRef.current === openStepRequest.id
     ) {
       return
@@ -178,7 +173,7 @@ export function WorkspaceAcceleratorCardPanel({
       setOpenModuleId(requestedStep.moduleId)
       setIsModuleViewerOpen(true)
     }
-  }, [controller, openStepRequest, setOpenModuleId])
+  }, [controller, openStepRequest, setOpenModuleId, overviewOnly])
   useEffect(() => {
     if (
       !openStepRequest ||
@@ -443,6 +438,7 @@ export function WorkspaceAcceleratorCardPanel({
   }
 
   const handleStepSelect = (step: WorkspaceAcceleratorCardStep) => {
+    if (overviewOnly) return
     if (
       !canWorkspaceAcceleratorTutorialActivateStep({
         tutorialInteractionPolicy,
@@ -512,7 +508,7 @@ export function WorkspaceAcceleratorCardPanel({
     <div
       data-workspace-accelerator-current-step={currentStep.id}
       data-workspace-accelerator-open-module={openModuleId ?? undefined}
-      className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+      className={cn("relative flex h-full min-h-0 flex-1 flex-col overflow-hidden", workspaceDrawerEmbedded && "@container/accelerator-overview")}
     >
       {fullscreenEmbedded ? (
         <WorkspaceAcceleratorCardFullscreenRail
@@ -539,7 +535,7 @@ export function WorkspaceAcceleratorCardPanel({
         {!fullscreenEmbedded && !(workspaceDrawerEmbedded && isModuleViewerOpen) ? (
           <ScrollFadeEffect
             ref={workspaceDrawerScrollRef}
-            enabled={workspaceDrawerHasScrollableOverflow}
+            enabled={workspaceDrawerHasScrollableOverflow && !workspaceDrawerEmbedded}
             data-scrollable={
               workspaceDrawerHasScrollableOverflow ? "true" : undefined
             }
@@ -549,54 +545,60 @@ export function WorkspaceAcceleratorCardPanel({
             className={cn(
               "flex min-h-0 flex-col gap-2",
               workspaceDrawerEmbedded &&
-                "touch-pan-y overscroll-contain [--mask-height:1.5rem] [--scroll-buffer:1rem] [-webkit-overflow-scrolling:touch]",
-              workspaceDrawerEmbedded && isModuleViewerOpen && "hidden"
+                "mx-auto grid w-full min-w-0 max-w-[1200px] auto-rows-max grid-cols-1 content-start items-start gap-6 pt-6 pb-2 sm:pb-3 touch-pan-y overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
+              workspaceDrawerEmbedded && workspaceDrawerHeader && "@min-[900px]/accelerator-overview:grid-cols-[420px_minmax(0,1fr)]"
             )}
           >
             {workspaceDrawerEmbedded ? workspaceDrawerHeader : null}
-            <WorkspaceAcceleratorCardSidebar
-              {...sidebarProps}
-              className={
-                workspaceDrawerEmbedded ? "mx-auto w-full max-w-3xl" : undefined
-              }
-              showProgressSummary={false}
-              fillAvailableHeight={!workspaceDrawerEmbedded}
-              headerControls={
-                workspaceDrawerEmbedded ? (
-                  <WorkspaceAcceleratorDrawerHeaderControls
-                    roadmapSections={roadmapSections}
-                    roadmapBasePath={roadmapBasePath}
-                    filteredProgressPercent={filteredProgressPercent}
-                    lessonGroupOptions={lessonGroupSummaries}
-                    onLessonGroupChange={handleLessonGroupChange}
-                    readinessSummary={readinessSummary}
-                    selectedLessonGroupKey={selectedLessonGroupKey}
-                    showMilestoneTooltips={showMilestoneTooltips}
-                    showPicker={showEmbeddedClassPicker}
-                    tutorialCallout={tutorialCallout}
-                    tutorialInteractionPolicy={tutorialInteractionPolicy ?? null}
-                    viewerOpen={isModuleViewerOpen}
-                  />
-                ) : null
-              }
-              checklistHeaderControls={
-                !workspaceDrawerEmbedded && showEmbeddedClassPicker ? (
-                  <WorkspaceAcceleratorCardInlinePicker
-                    lessonGroupOptions={lessonGroupSummaries}
-                    selectedLessonGroupKey={selectedLessonGroupKey}
-                    tutorialCallout={tutorialCallout}
-                    tutorialInteractionPolicy={tutorialInteractionPolicy ?? null}
-                    viewerOpen={isModuleViewerOpen}
-                    layout="badge"
-                    onLessonGroupChange={handleLessonGroupChange}
-                  />
-                ) : null
-              }
-            />
+            <div className={cn("flex min-w-0 flex-col gap-3", workspaceDrawerEmbedded && "mx-auto w-full max-w-3xl")}>
+              {workspaceOverviewNotice}
+              <div inert={overviewOnly || undefined} aria-label={overviewOnly ? "Accelerator preview — upgrade to access" : undefined}>
+                <WorkspaceAcceleratorCardSidebar
+                  {...sidebarProps}
+                  className={
+                    workspaceDrawerEmbedded ? "mx-auto w-full max-w-3xl" : undefined
+                  }
+                  showProgressSummary={false}
+                  fillAvailableHeight={!workspaceDrawerEmbedded}
+                  headerControls={
+                    workspaceDrawerEmbedded ? (
+                      <WorkspaceAcceleratorDrawerHeaderControls
+                        roadmapReturnTo={getWorkspaceDrawerPath({ tab: "accelerator", group: selectedLessonGroupKey, ...(isModuleViewerOpen ? { moduleId: currentStep.moduleId, stepId: currentStep.id } : {}) })}
+                        roadmapSections={roadmapSections}
+                        roadmapBasePath={roadmapBasePath}
+                        filteredProgressPercent={filteredProgressPercent}
+                        lessonGroupOptions={lessonGroupSummaries}
+                        onLessonGroupChange={handleLessonGroupChange}
+                        readinessSummary={readinessSummary}
+                        selectedLessonGroupKey={selectedLessonGroupKey}
+                        showMilestoneTooltips={showMilestoneTooltips}
+                        showPicker={showEmbeddedClassPicker}
+                        tutorialCallout={tutorialCallout}
+                        tutorialInteractionPolicy={tutorialInteractionPolicy ?? null}
+                        viewerOpen={isModuleViewerOpen}
+                      />
+                    ) : null
+                  }
+                  checklistHeaderControls={
+                    !workspaceDrawerEmbedded && showEmbeddedClassPicker ? (
+                      <WorkspaceAcceleratorCardInlinePicker
+                        lessonGroupOptions={lessonGroupSummaries}
+                        selectedLessonGroupKey={selectedLessonGroupKey}
+                        tutorialCallout={tutorialCallout}
+                        tutorialInteractionPolicy={tutorialInteractionPolicy ?? null}
+                        viewerOpen={isModuleViewerOpen}
+                        layout="badge"
+                        onLessonGroupChange={handleLessonGroupChange}
+                      />
+                    ) : null
+                  }
+                />
+              </div>
+            </div>
           </ScrollFadeEffect>
         ) : null}
 
-        <WorkspaceAcceleratorStepViewerTransition open={isModuleViewerOpen} immediate={workspaceDrawerEmbedded && Boolean(drawerContainer)}>
+        <WorkspaceAcceleratorStepViewerTransition open={!overviewOnly && isModuleViewerOpen} immediate={workspaceDrawerEmbedded && Boolean(drawerContainer)}>
           <WorkspaceAcceleratorStepNodeCard
             variant="embedded"
             drawerContainer={workspaceDrawerEmbedded ? drawerContainer : null}

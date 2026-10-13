@@ -219,3 +219,10 @@ describe("google-auth feature contract", () => {
     )
   })
 })
+
+it("keeps Google authentication in an embedded flow only when explicitly requested", () => {
+  const source = readFileSync("src/features/google-auth/hooks/use-google-auth-controller.ts", "utf8")
+  expect(source).toContain("redirectOnSuccess = true")
+  expect(source).toContain("if (!redirectOnSuccess) return")
+  expect(source).toContain("router.replace(redirectTo)")
+})

@@ -20,6 +20,7 @@ function WorkspaceDrawerTabTrigger({
   return (
     <TabsTrigger
       value={value}
+      data-setup-guide-tab={value}
       onClick={() => onOpen(value)}
       className={cn(
         "h-11 min-w-0 flex-none gap-2 px-3 py-2 text-left after:hidden md:h-7 md:px-2 md:py-1",

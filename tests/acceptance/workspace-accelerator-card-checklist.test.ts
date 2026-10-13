@@ -622,7 +622,7 @@ describe("workspace accelerator checklist helpers", () => {
     expect(markup).toContain("Naming your NFP")
     expect(markup).toContain("Write your first draft")
     expect(markup).not.toContain(">review</span>")
-    expect(markup).toContain(">Review</button>")
+    expect(markup).toContain(">Review</a>")
     expect(markup).not.toContain("2 steps • review")
     expect(markup).not.toContain("2 steps •")
     expect(source).not.toContain("stepLabel")
@@ -742,7 +742,8 @@ describe("workspace accelerator checklist helpers", () => {
     )
 
     expect(markup).toContain("Organization setup")
-    expect(markup).toContain(">Continue</button>")
+    expect(markup).toContain(">Continue</a>")
+    expect(markup).toContain("/workspace/accelerator?step=workspace-onboarding-organization-setup%3Alesson&amp;module=workspace-onboarding-organization-setup")
     expect(markup).not.toContain(">continue</span>")
     expect(markup).not.toContain("1 step • continue")
     expect(markup).not.toContain("lesson • start")
@@ -775,7 +776,7 @@ describe("workspace accelerator checklist helpers", () => {
 
     expect(markup.match(/data-slot="accordion-trigger"/g)?.length ?? 0).toBe(0)
     expect(markup).toContain("NFP Registration")
-    expect(markup).toContain(">Start</button>")
+    expect(markup).toContain(">Start</a>")
     expect(markup).not.toContain(">review</span>")
     expect(markup).not.toContain("1 step • review")
     expect(markup).not.toContain("1 step")

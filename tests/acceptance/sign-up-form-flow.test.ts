@@ -21,3 +21,14 @@ describe("sign up form flow", () => {
     )
   })
 })
+
+describe("embedded collection signup", () => {
+  it("keeps confirmation in-frame while preserving consent and the normal standalone flow", () => {
+    const source = readSource("src/components/auth/sign-up-form.tsx")
+    expect(source).toContain('if (status !== "success" || onAuthenticated) return')
+    expect(source).toContain("data.session && onAuthenticated")
+    expect(source).toContain("legal_consent: legalConsent")
+    expect(source).toContain("router.replace(resolvedLoginHref)")
+    expect(source).toContain("redirectOnSuccess={!onAuthenticated}")
+  })
+})

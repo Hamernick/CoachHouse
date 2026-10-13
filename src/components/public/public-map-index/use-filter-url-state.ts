@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
+import { FIND_PATH } from "@/lib/find/routes"
 
 import { type PublicMapGroupFilterKey } from "./category-filter"
 import type { PublicMapResourceGuideId } from "@/lib/public-map/resource-guide-ids"
@@ -14,8 +15,10 @@ const PUBLIC_MAP_FILTER_URL_SYNC_DELAY_MS = 150
 
 export function usePublicMapFilterUrlState({
   onFilterChange,
+  embedded = false,
 }: {
   onFilterChange: () => void
+  embedded?: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -45,11 +48,11 @@ export function usePublicMapFilterUrlState({
     filterStateRef.current = nextFilterState
     if (!changed) return
 
-    onFilterChange()
+    if (!embedded || pathname === FIND_PATH) onFilterChange()
     setQuery(nextFilterState.query)
     setActiveGroup(nextFilterState.activeGroup)
     setActiveGuideId(nextFilterState.activeGuideId)
-  }, [onFilterChange, searchParams])
+  }, [embedded, onFilterChange, pathname, searchParams])
 
   useEffect(
     () => () => {
@@ -73,17 +76,24 @@ export function usePublicMapFilterUrlState({
       const nextHref = buildPublicMapFilterHref({
         activeGroup: nextActiveGroup,
         activeGuideId: nextActiveGuideId,
-        pathname,
+        pathname: embedded ? FIND_PATH : pathname,
         query: nextQuery,
         searchParams: new URLSearchParams(searchParams.toString()),
       })
       filterStateRef.current = resolvePublicMapFilterUrlState(
         new URL(nextHref, window.location.origin).searchParams
       )
-      window.history.replaceState(window.history.state, "", nextHref)
+      window.history.replaceState({ homeProfileNavigation: false }, "", nextHref)
     },
-    [pathname, searchParams]
+    [embedded, pathname, searchParams]
   )
+
+  const flushFilterHistory = useCallback(() => {
+    if (!filterUrlSyncTimerRef.current) return
+    clearTimeout(filterUrlSyncTimerRef.current)
+    filterUrlSyncTimerRef.current = null
+    replaceFilterHistory({ nextActiveGroup: activeGroup, nextActiveGuideId: activeGuideId, nextQuery: query })
+  }, [activeGroup, activeGuideId, query, replaceFilterHistory])
 
   const scheduleFilterHistoryReplace = useCallback(
     (nextQuery: string, nextActiveGroup: PublicMapGroupFilterKey) => {
@@ -106,16 +116,18 @@ export function usePublicMapFilterUrlState({
     (value: string) => {
       onFilterChange()
       setQuery(value)
+      setActiveGroup("all")
       setActiveGuideId(null)
-      scheduleFilterHistoryReplace(value, activeGroup)
+      scheduleFilterHistoryReplace(value, "all")
     },
-    [activeGroup, onFilterChange, scheduleFilterHistoryReplace]
+    [onFilterChange, scheduleFilterHistoryReplace]
   )
 
   const handleActiveGroupChange = useCallback(
     (value: PublicMapGroupFilterKey) => {
       onFilterChange()
       setActiveGroup(value)
+      setQuery("")
       if (filterUrlSyncTimerRef.current) {
         clearTimeout(filterUrlSyncTimerRef.current)
         filterUrlSyncTimerRef.current = null
@@ -123,11 +135,11 @@ export function usePublicMapFilterUrlState({
       replaceFilterHistory({
         nextActiveGroup: value,
         nextActiveGuideId: null,
-        nextQuery: query,
+        nextQuery: "",
       })
       setActiveGuideId(null)
     },
-    [onFilterChange, query, replaceFilterHistory]
+    [onFilterChange, replaceFilterHistory]
   )
 
   const handleGuideChange = useCallback(
@@ -152,6 +164,7 @@ export function usePublicMapFilterUrlState({
   )
 
   return {
+    flushFilterHistory,
     activeGroup,
     activeGuideId,
     handleActiveGroupChange,

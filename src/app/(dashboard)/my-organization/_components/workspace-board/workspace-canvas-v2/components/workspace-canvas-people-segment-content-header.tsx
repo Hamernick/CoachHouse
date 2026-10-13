@@ -54,7 +54,7 @@ export const WorkspacePeopleSegmentActions = memo(
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="nodrag nopan text-muted-foreground hover:text-foreground size-8 shrink-0 rounded-full"
+                className="nodrag nopan text-muted-foreground hover:text-foreground size-6 shrink-0 rounded-lg"
                 aria-label={`Manage ${segment.label}`}
                 title="Segment options"
               >

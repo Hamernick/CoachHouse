@@ -1,24 +1,30 @@
 import { redirect } from "next/navigation"
 
 import { updatePublicMapOrganizationCurationAction } from "@/actions/public-map-organization-curation"
-import { completeMemberMapOnboardingAction } from "@/actions/member-map-onboarding"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 import { readAppSidebarDefaultOpen } from "@/components/app-shell/sidebar-state-server"
+import { updateResourceMapCanonicalStateAction } from "@/features/resource-map-admin"
+import { AuthenticatedFindShell } from "./authenticated-find-shell"
+
 import { resolvePublicAuthCallbackHref } from "@/components/public/public-auth-callback"
 import { HomeCanvasFindShell } from "@/components/public/home-canvas-find-shell"
 import { PublicMapIndex } from "@/components/public/public-map-index"
-import { updateResourceMapCanonicalStateAction } from "@/features/resource-map-admin"
 import { FIND_ORGANIZATION_QUERY_KEY, FIND_PATH } from "@/lib/find/routes"
 import { fetchPublicMapOrganizations } from "@/lib/queries/public-map-index"
+import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
+import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 
 import { fetchPublicMapViewerState } from "../viewer-state"
-import { AuthenticatedFindShell } from "./authenticated-find-shell"
+import { FindRenderDiagnostic } from "./find-render-diagnostic"
 
 const PUBLIC_RESOURCE_MAP_ITEMS_ENDPOINT =
   "/api/public/resource-map/index?limit=200"
 
 export type PublicFindRouteProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
+  embedded?: boolean
+  initialOrganization?: PublicMapOrganization
+  initialResource?: ExternalResourceMapItem
 }
 
 function firstString(value: string | string[] | undefined) {
@@ -26,8 +32,11 @@ function firstString(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : undefined
 }
 
-export async function PublicFindRoute({
+async function PublicFindRouteContent({
   searchParams,
+  embedded = false,
+  initialOrganization,
+  initialResource,
 }: PublicFindRouteProps = {}) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const callbackParams = new URLSearchParams()
@@ -43,20 +52,23 @@ export async function PublicFindRoute({
   })
   if (authCallbackHref) redirect(authCallbackHref)
 
-  const requestedPublicSlug = firstString(
+  const viewerState = await fetchPublicMapViewerState()
+  const shellState = viewerState.viewer && !embedded
+    ? await resolveDashboardLayoutState()
+    : null
+  if (viewerState.viewer && !embedded && !shellState?.isAdmin) redirect("/workspace")
+
+  const requestedPublicSlug = initialOrganization ? (initialOrganization.publicSlug || initialOrganization.id) : firstString(
     resolvedSearchParams?.[FIND_ORGANIZATION_QUERY_KEY]
   )
     ?.trim()
     .toLowerCase()
-  const [organizations, viewerState] = await Promise.all([
-    fetchPublicMapOrganizations(),
-    fetchPublicMapViewerState(),
-  ])
+  const organizations = await fetchPublicMapOrganizations()
   const initialPublicSlug = requestedPublicSlug
     ? (organizations.find(
         (organization) =>
-          organization.publicSlug?.trim().toLowerCase() === requestedPublicSlug
-      )?.publicSlug ?? undefined)
+          (organization.publicSlug || organization.id).trim().toLowerCase() === requestedPublicSlug
+      ) ? requestedPublicSlug : undefined)
     : undefined
   const candidateTokens = [
     process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
@@ -66,69 +78,47 @@ export async function PublicFindRoute({
     .map((value) => value?.trim() ?? "")
     .find((value) => value.length > 0 && value.startsWith("pk."))
 
-  if (viewerState.viewer) {
-    const [shellState, defaultSidebarOpen] = await Promise.all([
-      resolveDashboardLayoutState(),
-      readAppSidebarDefaultOpen(),
-    ])
-    if (shellState.userPresent) {
-      const memberOnboardingIntent =
-        shellState.onboardingIntentFocus === "find" ||
-        shellState.onboardingIntentFocus === "fund" ||
-        shellState.onboardingIntentFocus === "support"
-          ? shellState.onboardingIntentFocus
-          : null
-      const memberOnboardingEnabled =
-        shellState.onboardingLocked && memberOnboardingIntent !== null
+  if (embedded) {
+    return (
+      <PublicMapIndex
+        embedded
+        organizations={organizations}
+        resourceItemsEndpoint={PUBLIC_RESOURCE_MAP_ITEMS_ENDPOINT}
+        mapboxToken={publicToken}
+        initialPublicSlug={initialPublicSlug}
+        initialResource={initialResource}
+        resourceItems={initialResource ? [initialResource] : undefined}
+        viewer={viewerState.viewer}
+      />
+    )
+  }
 
-      return (
-        <AuthenticatedFindShell
-          state={shellState}
-          defaultSidebarOpen={defaultSidebarOpen}
-          organizationDetail={Boolean(initialPublicSlug)}
-        >
-          <PublicMapIndex
-            presentationMode="app-shell"
-            organizations={organizations}
-            resourceItemsEndpoint={PUBLIC_RESOURCE_MAP_ITEMS_ENDPOINT}
-            mapboxToken={publicToken}
-            initialPublicSlug={initialPublicSlug}
-            viewer={viewerState.viewer}
-            canManageResourceMap={shellState.isAdmin}
-            organizationCurationAction={
-              shellState.isAdmin
-                ? updatePublicMapOrganizationCurationAction
-                : undefined
-            }
-            resourceMapCurationAction={
-              shellState.isAdmin
-                ? updateResourceMapCanonicalStateAction
-                : undefined
-            }
-            adminOnboardingPreview={
-              shellState.isAdmin
-                ? {
-                    canToggle: true,
-                    hasOrganizationSwitcher:
-                      shellState.memberMapOnboarding.hasOrganizationSwitcher,
-                  }
-                : undefined
-            }
-            memberOnboarding={
-              memberOnboardingEnabled
-                ? {
-                    enabled: true,
-                    intentFocus: memberOnboardingIntent,
-                    hasOrganizationSwitcher:
-                      shellState.memberMapOnboarding.hasOrganizationSwitcher,
-                    onComplete: completeMemberMapOnboardingAction,
-                  }
-                : undefined
-            }
-          />
-        </AuthenticatedFindShell>
-      )
-    }
+  // Keep the existing administrative curation surface; members start in Workspace.
+  if (shellState?.userPresent && shellState.isAdmin) {
+    const defaultSidebarOpen = await readAppSidebarDefaultOpen()
+    return (
+      <AuthenticatedFindShell
+        state={shellState}
+        defaultSidebarOpen={defaultSidebarOpen}
+        organizationDetail={Boolean(initialPublicSlug)}
+      >
+        <PublicMapIndex
+          presentationMode="app-shell"
+          organizations={organizations}
+          resourceItemsEndpoint={PUBLIC_RESOURCE_MAP_ITEMS_ENDPOINT}
+          mapboxToken={publicToken}
+          initialPublicSlug={initialPublicSlug}
+          viewer={viewerState.viewer}
+          canManageResourceMap={shellState.isAdmin}
+          organizationCurationAction={updatePublicMapOrganizationCurationAction}
+          resourceMapCurationAction={updateResourceMapCanonicalStateAction}
+          adminOnboardingPreview={{
+            canToggle: true,
+            hasOrganizationSwitcher: shellState.memberMapOnboarding.hasOrganizationSwitcher,
+          }}
+        />
+      </AuthenticatedFindShell>
+    )
   }
 
   return (
@@ -144,4 +134,9 @@ export async function PublicFindRoute({
       </div>
     </HomeCanvasFindShell>
   )
+}
+
+export async function PublicFindRoute(props: PublicFindRouteProps = {}) {
+  const content = await PublicFindRouteContent(props)
+  return <FindRenderDiagnostic>{content}</FindRenderDiagnostic>
 }

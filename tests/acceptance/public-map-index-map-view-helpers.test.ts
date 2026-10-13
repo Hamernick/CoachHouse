@@ -154,7 +154,7 @@ describe("buildMapHref", () => {
         slug: "alpha-org",
         searchParams: new URLSearchParams("auth_action=save"),
       })
-    ).toBe("/?auth_action=save&organization=alpha-org")
+    ).toBe("/resources?auth_action=save&organization=alpha-org")
   })
 })
 
@@ -180,6 +180,7 @@ describe("buildPublicMapOrganizationFeatureCollection", () => {
       brandMarkUrl: null,
       headerUrl: null,
       website: null,
+    donateUrl: null,
       email: null,
       phone: null,
       twitter: null,

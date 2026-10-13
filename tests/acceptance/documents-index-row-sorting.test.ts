@@ -23,7 +23,7 @@ function makeUploadRow(
     updatedAt: "2026-06-06T12:00:00.000Z",
     definition: {
       kind: `kind-${status}`,
-      key: "irsDeterminationLetter",
+      key: "verificationLetter",
       title: status,
       description: status,
       defaultName: `${status}.pdf`,

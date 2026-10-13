@@ -17,8 +17,8 @@ function readSource(relativePath: string) {
 }
 
 describe("app shell sidebar state", () => {
-  it("defaults to collapsed unless the saved sidebar cookie says otherwise", () => {
-    expect(APP_SIDEBAR_DEFAULT_OPEN).toBe(false)
+  it("defaults to expanded while respecting a saved collapsed preference", () => {
+    expect(APP_SIDEBAR_DEFAULT_OPEN).toBe(true)
     expect(APP_SIDEBAR_STATE_COOKIE).toBe("sidebar_state")
 
     expect(parseAppSidebarStateCookie("true")).toBe(true)
@@ -29,8 +29,8 @@ describe("app shell sidebar state", () => {
 
     expect(resolveAppSidebarDefaultOpen("true")).toBe(true)
     expect(resolveAppSidebarDefaultOpen("false")).toBe(false)
-    expect(resolveAppSidebarDefaultOpen(undefined)).toBe(false)
-    expect(resolveAppSidebarDefaultOpen("invalid")).toBe(false)
+    expect(resolveAppSidebarDefaultOpen(undefined)).toBe(true)
+    expect(resolveAppSidebarDefaultOpen("invalid")).toBe(true)
   })
 
   it("reads the saved sidebar preference on every app shell route layout", () => {
@@ -70,7 +70,7 @@ describe("app shell sidebar state", () => {
     const propsSource = readSource("src/components/app-shell/types.ts")
 
     expect(propsSource).toContain("defaultSidebarOpen?: boolean")
-    expect(shellSource).toContain("defaultSidebarOpen = false")
+    expect(shellSource).toContain("defaultSidebarOpen = true")
     expect(shellSource).toContain("defaultOpen={defaultSidebarOpen}")
     expect(shellSource).not.toContain("defaultOpen={!isAcceleratorContext}")
     expect(shellSource).not.toContain("SidebarAutoCollapse")

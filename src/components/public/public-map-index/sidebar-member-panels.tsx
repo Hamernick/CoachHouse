@@ -11,6 +11,7 @@ import type { PublicMapSidebarProps } from "./sidebar-contract"
 import { PUBLIC_MAP_SIDEBAR_RAIL_CLASSNAME } from "./sidebar-theme"
 
 export function PublicMapRailPanel({
+  collectedCount,
   directoryHeaderEnd,
   directoryHeaderStart,
   directoryRail,
@@ -31,6 +32,7 @@ export function PublicMapRailPanel({
   onToggleFavorite,
   onToggleCollectedResource,
 }: {
+  collectedCount: number
   directoryHeaderEnd?: ReactNode
   directoryHeaderStart?: ReactNode
   directoryRail: ReactNode
@@ -74,6 +76,7 @@ export function PublicMapRailPanel({
           className="text-sidebar-foreground h-full w-full overflow-hidden bg-transparent"
         >
           <PublicMapMemberRail
+            collectedCount={collectedCount}
             directoryHeaderEnd={directoryHeaderEnd}
             directoryHeaderStart={directoryHeaderStart}
             directoryRail={directoryRail}

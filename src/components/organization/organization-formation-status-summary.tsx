@@ -1,35 +1,42 @@
 "use client"
 
-import CheckIcon from "lucide-react/dist/esm/icons/check"
-
+import { RadioGroupItem } from "@/components/ui/radio-group"
 import type { FormationStatusOption } from "@/lib/organization/formation-status"
 import { cn } from "@/lib/utils"
+
+type FormationSummaryProps = {
+  formationStatus: FormationStatusOption
+  className?: string
+  contained?: boolean
+  radioId?: string
+}
 
 export function OrganizationFormationStatusSummary({
   formationStatus,
   className,
   contained = true,
-}: {
-  formationStatus: FormationStatusOption
-  className?: string
-  contained?: boolean
-}) {
+  radioId,
+}: FormationSummaryProps) {
   return (
     <div
       className={cn(
-        contained &&
-          "flex flex-col gap-2 rounded-2xl border border-primary/60 bg-primary/5 p-3 text-left",
+        "flex h-full w-full min-w-0 flex-col items-start gap-2 rounded-2xl p-3 text-left",
+        contained && "border border-primary/60 bg-primary/5",
         className,
       )}
     >
-      {contained ? (
-        <span
-          className="flex h-5 w-5 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground"
-          aria-hidden
-        >
-          <CheckIcon className="h-3 w-3" />
+      {!radioId ? (
+        <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded-full border border-primary">
+          {contained ? <span className="size-2 rounded-full bg-primary" /> : null}
         </span>
-      ) : null}
+      ) : (
+        <RadioGroupItem
+          id={radioId}
+          value={formationStatus.value}
+          aria-label={formationStatus.label}
+          className="shadow-none"
+        />
+      )}
       <span className="w-full">
         <span className="block text-sm font-medium text-foreground">
           {formationStatus.label}

@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { redirect as redirectTo } from "next/navigation"
-import { FIND_PATH } from "@/lib/find/routes"
 import {
   buildPostSignupBuilderRedirect,
   resolveSignupBuilderPlanTier,
@@ -78,8 +77,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const memberRedirectTarget =
     redirect ??
     (fallbackQuery
-      ? `${FIND_PATH}?member_onboarding=1&source=signup&${fallbackQuery}`
-      : `${FIND_PATH}?member_onboarding=1&source=signup`)
+      ? `/onboarding?source=signup&${fallbackQuery}`
+      : `/onboarding?source=signup`)
 
   const supabase = await createSupabaseServerClient()
   const {

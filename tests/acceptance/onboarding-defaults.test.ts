@@ -54,6 +54,19 @@ describe("onboarding defaults", () => {
     ).rejects.toThrow("Lookup unavailable")
   })
 
+  it.each([
+    { full_name: "Ada Lovelace", avatar_url: "https://example.com/google.jpg" },
+    { name: "Ada Lovelace", picture: "https://example.com/google.jpg" },
+    { given_name: "Ada", family_name: "Lovelace", picture: "https://example.com/google.jpg" },
+  ])("prefills Google identity metadata without requiring a saved profile", (userMetadata) => {
+    const defaults = buildOnboardingFlowDefaults({ ...recoveryInput, displayName: null, avatarUrl: null, userMetadata })
+    expect(defaults).toMatchObject({ defaultFirstName: "Ada", defaultLastName: "Lovelace", defaultAvatarUrl: "https://example.com/google.jpg", defaultTitle: null })
+  })
+
+  it("prefers the saved profile name, photo and title over provider defaults", () => {
+    expect(buildOnboardingFlowDefaults({ ...recoveryInput, displayName: "Saved Name", avatarUrl: "https://example.com/saved.jpg", profileTitle: "Executive Director", userMetadata: { name: "Google Name", picture: "https://example.com/google.jpg" } })).toMatchObject({ defaultFirstName: "Saved", defaultLastName: "Name", defaultAvatarUrl: "https://example.com/saved.jpg", defaultTitle: "Executive Director" })
+  })
+
   it("derives workspace onboarding defaults from user metadata and org profile", () => {
     const defaults = buildOnboardingFlowDefaults({
       userId: "user-1",

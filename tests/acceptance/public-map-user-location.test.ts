@@ -278,7 +278,7 @@ describe("public map user location", () => {
   it("limits geolocation to same-origin find routes", () => {
     const configSource = readSource("next.config.ts")
 
-    expect(configSource).toContain('source: "/"')
+    expect(configSource).toContain('source: "/resources"')
     expect(configSource).toContain('key: "Permissions-Policy"')
     expect(configSource).toContain('value: "geolocation=(self)"')
   })

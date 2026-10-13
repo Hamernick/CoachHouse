@@ -95,6 +95,8 @@ describe("stripe checkout route", () => {
       "http://localhost/workspace?onboarding_flow=1&source=onboarding_pricing",
     )
     expect(location).toContain("checkout_error=stripe_unavailable")
+    expect(location).toContain("paywall=organization")
+    expect(new URL(location!).searchParams.get("redirect")).toBe("/workspace?onboarding_flow=1&source=onboarding_pricing")
   })
 
   it("adds cancelled=true to the onboarding cancel return URL sent to Stripe", async () => {
@@ -203,4 +205,18 @@ describe("stripe checkout route", () => {
       }),
     )
   })
+  it("does not start a purchase when the selected organization cannot be resolved", async () => {
+    const create = vi.fn()
+    createSupabaseRouteHandlerClientMock.mockReturnValue({ auth: { getUser: vi.fn().mockResolvedValue({
+      data: { user: { id: "buyer", email: "buyer@example.test", user_metadata: {} } },
+    }) } })
+    resolveStripeRuntimeConfigForAudienceMock.mockReturnValue({ client: { checkout: { sessions: { create } } }, mode: "live" })
+    resolveActiveOrganizationMock.mockRejectedValueOnce(new Error("organization unavailable"))
+    const { GET } = await import("@/app/api/stripe/checkout/route")
+    const response = await GET(new NextRequest("http://localhost/api/stripe/checkout?plan=organization&redirect=%2Fworkspace"))
+    expect(create).not.toHaveBeenCalled()
+    expect(response.headers.get("location")).toContain("checkout_detail=organization_unavailable")
+    expect(response.headers.get("location")).toContain("paywall=organization")
+  })
+
 })

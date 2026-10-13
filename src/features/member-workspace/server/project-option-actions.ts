@@ -1,11 +1,14 @@
 "use server"
 
+import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
 import { actorCanAccessOrganization } from "./member-workspace-actor-permissions"
 import { projectOptionSettingsSchema } from "../lib/project-option-settings"
 
 export async function loadProjectOptionSettings(projectId: string) {
   const actor = await resolveMemberWorkspaceActorContext()
+  if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId }))) return { error: "Use the fiscal application review for this project." }
   const scope = await actor.supabase
     .from("organization_projects")
     .select("org_id")

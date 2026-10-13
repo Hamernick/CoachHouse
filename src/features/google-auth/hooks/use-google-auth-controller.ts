@@ -49,6 +49,7 @@ type UseGoogleAuthControllerInput = {
   intentFocus?: GoogleSignupInput["intentFocus"]
   signUpMetadata?: Record<string, unknown>
   disabled?: boolean
+  redirectOnSuccess?: boolean
   onSuccess?: () => void | Promise<void>
 }
 
@@ -60,6 +61,7 @@ export function useGoogleAuthController({
   signUpMetadata,
   disabled = false,
   onSuccess,
+  redirectOnSuccess = true,
 }: UseGoogleAuthControllerInput) {
   const supabase = useSupabaseClient()
   const router = useRouter()
@@ -157,6 +159,7 @@ export function useGoogleAuthController({
           return
         }
 
+        if (!redirectOnSuccess) return
         router.replace(redirectTo)
         router.refresh()
       } catch {
@@ -171,6 +174,7 @@ export function useGoogleAuthController({
       isPending,
       mode,
       onSuccess,
+      redirectOnSuccess,
       redirectTo,
       router,
       signUpMetadata,

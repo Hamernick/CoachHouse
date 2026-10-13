@@ -234,3 +234,6 @@ describe("member workspace project note actions", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/organizations/project-1")
   })
 })
+
+// These fixtures represent ordinary projects; guest scope has a separate denial suite.
+vi.mock("@/lib/workspace/ordinary-project-access", () => ({ isOrdinaryWorkspaceProject: async () => true }))

@@ -51,7 +51,7 @@ function PublicMapResourceIdentityMedia({
   const showImage = Boolean(imageSrc && !errored)
 
   return (
-    <div className="border-border/70 bg-muted/25 relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border shadow-sm sm:size-24">
+    <div className="border-border/70 bg-muted/25 relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border">
       <span
         className="inline-flex size-8 items-center justify-center rounded-full"
         style={{ backgroundColor: markerColor }}
@@ -120,18 +120,24 @@ export function PublicMapResourceDetailChrome({
         >
           <ArrowLeftIcon className="h-4 w-4" aria-hidden />
         </Button>
-        <p className="text-foreground text-sm font-medium">Resource</p>
+        <p className="text-foreground text-sm font-medium">
+          {item.nonprofit ? "Organization" : "Resource"}
+        </p>
       </div>
       <div className="flex items-center gap-1.5">
-        <TrackedResourceShareButton
-          resourceId={item.id}
-          resourceTitle={item.title}
-          className={cn(
-            PUBLIC_MAP_DETAIL_ICON_BUTTON_CLASSNAME,
-            PUBLIC_MAP_DETAIL_CHROME_BUTTON_SURFACE_CLASSNAME
-          )}
-        />
-        {canManageResourceMap && resourceMapCurationAction ? (
+        {!item.nonprofit ? (
+          <TrackedResourceShareButton
+            resourceId={item.id}
+            resourceTitle={item.title}
+            className={cn(
+              PUBLIC_MAP_DETAIL_ICON_BUTTON_CLASSNAME,
+              PUBLIC_MAP_DETAIL_CHROME_BUTTON_SURFACE_CLASSNAME
+            )}
+          />
+        ) : null}
+        {canManageResourceMap &&
+        resourceMapCurationAction &&
+        !item.nonprofit ? (
           <PublicMapResourceAdminActions
             curationAction={resourceMapCurationAction}
             item={item}
@@ -170,8 +176,10 @@ export function PublicMapResourceDetailChrome({
 
 export function PublicMapResourceIdentitySection({
   item,
+  headingLevel: Heading = "h2",
 }: {
   item: ExternalResourceMapItem
+  headingLevel?: "h1" | "h2"
 }) {
   const location = buildResourceLocation(item)
   const title = resolveResourceIdentityTitle(item)
@@ -181,22 +189,22 @@ export function PublicMapResourceIdentitySection({
   )
 
   return (
-    <div className={PUBLIC_MAP_DETAIL_IDENTITY_CLASSNAME}>
+    <div className={cn(PUBLIC_MAP_DETAIL_IDENTITY_CLASSNAME, "gap-3 sm:flex-col sm:items-center sm:text-center")}>
       <PublicMapResourceIdentityMedia item={item} markerColor={markerColor} />
-      <div className="min-w-0 flex-1">
-        <h2 className={PUBLIC_MAP_DETAIL_TITLE_CLASSNAME}>{title}</h2>
+      <div className="w-full min-w-0 flex-1">
+        <Heading className={cn(PUBLIC_MAP_DETAIL_TITLE_CLASSNAME, "text-xl leading-7 tracking-tight sm:text-2xl sm:leading-8")}>{title}</Heading>
         {subtitle ? (
-          <p className="text-muted-foreground mt-1.5 text-base leading-6 text-pretty">
+          <p className="text-muted-foreground mx-auto mt-0.5 max-w-lg text-sm leading-5 text-pretty">
             {subtitle}
           </p>
         ) : null}
         {location ? (
-          <p className="text-muted-foreground mt-2 inline-flex items-center gap-1.5 text-sm leading-5">
+          <p className="text-muted-foreground mt-2 inline-flex items-center gap-1.5 text-xs leading-5">
             <MapPinIcon className="size-4 shrink-0" aria-hidden />
-            {location}
+            {item.nonprofit ? `${location} · Filing location` : location}
           </p>
         ) : null}
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
           {item.resourceCategories.map((category) => (
             <span
               key={category}
@@ -360,7 +368,9 @@ export function PublicMapResourceAddressSection({
 
   return (
     <section className={PUBLIC_MAP_DETAIL_SECTION_CLASSNAME}>
-      <h3 className="text-base font-semibold">Address</h3>
+      <h3 className="text-base font-semibold">
+        {item.nonprofit ? "Filing location" : "Address"}
+      </h3>
       <div className="text-muted-foreground mt-2 space-y-1 text-sm leading-6">
         {addressLines.map((line) => (
           <p key={line}>{line}</p>

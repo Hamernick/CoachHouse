@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import Link from "next/link"
 import BookOpenIcon from "lucide-react/dist/esm/icons/book-open"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import CircleCheckIcon from "lucide-react/dist/esm/icons/circle-check"
@@ -21,6 +22,7 @@ import { WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME } from "@/components/works
 import { cn } from "@/lib/utils"
 
 import {
+  buildWorkspaceAcceleratorFullscreenHref,
   isWorkspaceAcceleratorChecklistModuleComplete,
   type WorkspaceAcceleratorChecklistModule,
 } from "../lib"
@@ -324,14 +326,24 @@ function ChecklistStepRow({
               </p>
               <div className="flex w-full flex-wrap items-center gap-2">
                 <Button
-                  type="button"
+                  asChild
                   size="sm"
                   variant="ghost"
-                  className="ml-auto rounded-full"
-                  disabled={!expanded || !canSelectStep}
-                  onClick={() => onStepSelect(selectableStep)}
+                  className="ml-auto rounded-full aria-disabled:pointer-events-none aria-disabled:opacity-50"
                 >
+                  <Link
+                    href={buildWorkspaceAcceleratorFullscreenHref({ stepId: selectableStep.id, moduleId: selectableStep.moduleId })}
+                    aria-disabled={!expanded || !canSelectStep}
+                    tabIndex={!expanded || !canSelectStep ? -1 : undefined}
+                    onClick={(event) => {
+                      if (!expanded || !canSelectStep) { event.preventDefault(); return }
+                      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                      event.preventDefault()
+                      onStepSelect(selectableStep)
+                    }}
+                  >
                   {actionLabel}
+                  </Link>
                 </Button>
               </div>
             </div>

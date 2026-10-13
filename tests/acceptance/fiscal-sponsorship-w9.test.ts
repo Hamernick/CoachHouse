@@ -164,6 +164,7 @@ describe("fiscal sponsorship W-9 completion", () => {
         requiredDocuments: [
           buildW9Document({ kind: "application", status: "draft" }),
         ],
+        reviewNotes: null,
         reviewedAt: "2026-07-28T22:05:00.000Z",
         submittedAt: "2026-07-28T21:00:00.000Z",
       },

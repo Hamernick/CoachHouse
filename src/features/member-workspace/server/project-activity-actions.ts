@@ -1,5 +1,7 @@
 "use server"
 
+import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+
 import { z } from "zod"
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
 import { actorCanAccessOrganization } from "./member-workspace-actor-permissions"
@@ -21,6 +23,7 @@ export async function refreshOrganizationProjectActivity(input: {
   if (!parsed.success) return { state: "error", items: [] }
   try {
     const actor = await resolveMemberWorkspaceActorContext()
+    if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId: parsed.data.projectId }))) return { state: "forbidden", items: [] }
     if (
       !actor.hasMemberWorkspaceAccess ||
       !actorCanAccessOrganization(actor, parsed.data.orgId)

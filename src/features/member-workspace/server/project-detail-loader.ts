@@ -102,6 +102,7 @@ function isNonEmptyString(value: string | null | undefined): value is string {
 }
 
 export type MemberWorkspaceProjectDetailLoadResult =
+  | { state: "fiscal-intake"; projectId: string }
   | { state: "schema-unavailable" }
   | { state: "not-found" }
   | {
@@ -497,6 +498,12 @@ async function loadPlatformAdminProjectDetailPage({
   }
 
   if (projectRow) {
+    const guestScope = await actor.supabase.rpc("fiscal_guest_project_reviewer_access", {
+      p_project_id: projectRow.id, p_user_id: actor.userId,
+    })
+    if (guestScope.error) return { state: "schema-unavailable" }
+    if (guestScope.data === false) return { state: "not-found" }
+    if (guestScope.data === true) return { state: "fiscal-intake", projectId: projectRow.id }
     if (!actorCanAccessOrganization(actor, projectRow.org_id)) {
       return { state: "not-found" }
     }

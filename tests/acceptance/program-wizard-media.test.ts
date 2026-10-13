@@ -3,11 +3,13 @@ import { join } from "node:path"
 
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { ProgramVisibilitySwitch } from "@/components/organization/org-profile-card/tabs/program-visibility-switch"
 import { ProgramsTab } from "@/components/organization/org-profile-card/tabs/programs-tab"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
-vi.mock("@/lib/feature-flags", () => ({ publicSharingEnabled: true }))
+const sharing = vi.hoisted(() => ({ publicSharingEnabled: true }))
+vi.mock("@/lib/feature-flags", () => sharing)
 vi.mock("@/components/programs/program-wizard-lazy", () => ({ ProgramWizardLazy: () => null }))
 
 import {
@@ -29,6 +31,15 @@ function readSource(relativePath: string) {
 }
 
 describe("program wizard media fields", () => {
+  beforeEach(() => { sharing.publicSharingEnabled = true })
+
+  it.each([true, false])("only disables new sharing when unavailable; saved visibility: %s", (isPublic) => {
+    sharing.publicSharingEnabled = false
+    const markup = renderToStaticMarkup(React.createElement(ProgramVisibilitySwitch, { programId: "program-1", title: "Mentoring", isPublic }))
+    expect(markup.includes('disabled=""')).toBe(!isPublic)
+    expect(markup).toContain(`aria-checked="${isPublic}"`)
+  })
+
   it("keeps new activities private even when public sharing is enabled", () => {
     expect(defaultProgramWizardForm.isPublic).toBe(false)
     expect(ProgramWizardSchema.shape.isPublic.parse(undefined)).toBe(false)

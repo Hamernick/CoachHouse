@@ -17,7 +17,7 @@ function updateScrollFadeState(
       ? element.scrollHeight - element.clientHeight
       : element.scrollWidth - element.clientWidth
   const maxScrollPosition = Math.max(0, scrollExtent)
-  const startVisible = scrollPosition > 1
+  const startVisible = maxScrollPosition > 1 && scrollPosition > 1
   const endVisible =
     maxScrollPosition > 1 && scrollPosition < maxScrollPosition - 1
   const nextStart = startVisible ? "visible" : "hidden"

@@ -26,7 +26,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { FIND_PATH } from "@/lib/find/routes"
 import {
   createSignupLegalConsent,
   LegalConsentNotice,
@@ -39,7 +38,7 @@ const GoogleAuthPanel = dynamic(
 )
 
 const DEFAULT_BUILDER_REDIRECT = "/onboarding?source=signup"
-const DEFAULT_MEMBER_REDIRECT = `${FIND_PATH}?member_onboarding=1&source=signup`
+const DEFAULT_MEMBER_REDIRECT = "/onboarding?source=signup"
 const authInlineLinkClassName =
   "rounded-sm underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 
@@ -50,6 +49,8 @@ type SignUpFormProps = {
   loginHref?: string
   signUpMetadata?: Record<string, unknown>
   defaultIntentFocus?: IntentFocus
+  onAuthenticated?: () => void
+  onSignIn?: () => void
   lockedIntentFocus?: IntentFocus | null
 }
 
@@ -121,6 +122,8 @@ export function SignUpForm({
   signUpMetadata,
   defaultIntentFocus = "build",
   lockedIntentFocus = null,
+  onAuthenticated,
+  onSignIn,
 }: SignUpFormProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
@@ -157,7 +160,7 @@ export function SignUpForm({
   })
 
   useEffect(() => {
-    if (status !== "success") return
+    if (status !== "success" || onAuthenticated) return
 
     setCountdown(20)
     const intervalId = window.setInterval(() => {
@@ -172,7 +175,7 @@ export function SignUpForm({
       window.clearInterval(intervalId)
       window.clearTimeout(timeoutId)
     }
-  }, [resolvedLoginHref, router, status])
+  }, [resolvedLoginHref, router, status, onAuthenticated])
 
   async function onSubmit(values: SignUpValues) {
     setStatus("idle")
@@ -180,44 +183,57 @@ export function SignUpForm({
     setCountdown(20)
 
     startTransition(async () => {
-      const legalConsent = createSignupLegalConsent()
-      const emailRedirectTo = resolveAuthCallbackUrl(resolvedRedirectTo)
+      try {
+        const legalConsent = createSignupLegalConsent()
+        const emailRedirectTo = resolveAuthCallbackUrl(resolvedRedirectTo)
 
-      const { data, error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          emailRedirectTo,
-          data: {
-            ...(signUpMetadata ?? {}),
-            account_intent: resolveLegacyAccountIntent(activeIntentFocus),
-            onboarding_intent_focus: activeIntentFocus,
-            legal_consent: legalConsent,
+        const { data, error } = await supabase.auth.signUp({
+          email: values.email,
+          password: values.password,
+          options: {
+            emailRedirectTo,
+            data: {
+              ...(signUpMetadata ?? {}),
+              account_intent: resolveLegacyAccountIntent(activeIntentFocus),
+              onboarding_intent_focus: activeIntentFocus,
+              legal_consent: legalConsent,
+            },
           },
-        },
-      })
+        })
 
-      if (error) {
-        setStatus("error")
-        setMessage(resolveSignUpErrorMessage(error.message))
-        return
-      }
+        if (error) {
+          setStatus("error")
+          setMessage(resolveSignUpErrorMessage(error.message))
+          return
+        }
 
-      if (isExistingAccountResponse(data.user)) {
-        setStatus("error")
+        if (isExistingAccountResponse(data.user)) {
+          setStatus("error")
+          setMessage(
+            "An account with this email already exists. Sign in instead."
+          )
+          return
+        }
+
+        if (data.session && onAuthenticated) { onAuthenticated(); return }
+        clearOnboardingDraft()
+        setStatus("success")
         setMessage(
-          "An account with this email already exists. Sign in instead."
+          "Check your inbox for your verification link from Coach House."
         )
-        return
+        form.reset()
+      } catch {
+        setStatus("error")
+        setMessage("Unable to create an account. Please try again.")
       }
-
-      clearOnboardingDraft()
-      setStatus("success")
-      setMessage(
-        "Check your inbox for your verification link from Coach House."
-      )
-      form.reset()
     })
+  }
+
+  if (status === "success" && onAuthenticated) {
+    return <div className="space-y-4">
+      <p role="status" className="text-sm leading-relaxed">Check your inbox to confirm your email. We’ll keep this resource ready to collect when you return.</p>
+      {onSignIn ? <Button type="button" variant="outline" className="min-h-11 w-full" onClick={onSignIn}>Already confirmed? Sign in</Button> : null}
+    </div>
   }
 
   return (
@@ -274,7 +290,9 @@ export function SignUpForm({
               role={status === "error" ? "alert" : "status"}
             >
               {message}
-              {status === "success" ? (
+              {onSignIn ? (
+                <Button type="button" variant="link" className="h-auto px-1 py-0" onClick={onSignIn}>Sign in</Button>
+              ) : status === "success" ? (
                 <>
                   {" "}
                   Redirecting to sign in in {countdown}s.{" "}
@@ -310,6 +328,8 @@ export function SignUpForm({
       </Form>
       <GoogleAuthPanel
         mode="signup"
+        onSuccess={onAuthenticated}
+        redirectOnSuccess={!onAuthenticated}
         redirectTo={resolvedRedirectTo}
         disabled={isPending}
         accountIntent={resolveLegacyAccountIntent(activeIntentFocus)}
@@ -319,9 +339,9 @@ export function SignUpForm({
       <LegalConsentNotice />
       <div className="text-muted-foreground text-center text-sm">
         Already have an account?{" "}
-        <Link href={resolvedLoginHref} className={authInlineLinkClassName}>
+        {onSignIn ? <Button type="button" variant="link" className="h-auto p-0" onClick={onSignIn}>Sign in</Button> : <Link href={resolvedLoginHref} className={authInlineLinkClassName}>
           Sign in
-        </Link>
+        </Link>}
       </div>
     </div>
   )

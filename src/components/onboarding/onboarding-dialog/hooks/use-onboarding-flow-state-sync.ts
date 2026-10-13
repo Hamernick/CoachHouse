@@ -92,7 +92,7 @@ function resolvePrimaryFocusSelector(stepId: string) {
     return 'input[name="orgName"]'
   }
   if (stepId === "account") {
-    return 'input[name="firstName"]'
+    return '[data-onboarding-step-id="account"] [data-onboarding-primary-focus="true"]'
   }
   return '[data-onboarding-step-id="community"] a[href], [data-onboarding-step-id="community"] button'
 }

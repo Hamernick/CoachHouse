@@ -111,6 +111,14 @@ export function WorkspaceDrawerContent({
 
           <WorkspaceCanvasOverlayAcceleratorPanel
             input={acceleratorInput}
+            uiPreferencesScope={uiPreferencesScope}
+            organizationLaunch={{
+              ...organizationEditorData.initialProfile,
+              ...organizationEditorData.organizationLocation,
+              programCount: organizationEditorData.programs.length,
+              programs: organizationEditorData.programs.map(({ id, title, description }) => ({ id, title, description })),
+              canEdit: organizationEditorData.canEdit,
+            }}
             drawerContainer={drawerContainer}
             roadmapSections={acceleratorRoadmapSections}
             hasAccess={acceleratorHasAccess}
@@ -142,7 +150,7 @@ export function WorkspaceDrawerContent({
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
           value="people"
-          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden md:px-8"
+          className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
         >
           <WorkspacePeopleDrawerPanel
             people={people}

@@ -18,9 +18,30 @@ import {
 } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-relationship-edges"
 import {
   WORKSPACE_CANVAS_PERSON_NODE_SIZE,
+  buildWorkspacePeopleDropPlacements,
   getWorkspaceCanvasPersonNodeId,
   type WorkspaceCanvasPersonPlacement,
 } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-node-model"
+
+describe("explicit people drops", () => {
+  it.each([{ x: 900, y: 600 }, { x: -480, y: -320 }])(
+    "centers a person on the converted drop point %j without relocating them",
+    (center) => {
+      const [placement] = buildWorkspacePeopleDropPlacements(["person"], center)
+      expect(placement).toEqual({ personId: "person", x: center.x - 122, y: center.y - 32 })
+    }
+  )
+
+  it("keeps the first selected person at the pointer and spaces the others without overlap", () => {
+    const placements = buildWorkspacePeopleDropPlacements(["a", "b", "c"], { x: 122, y: 32 })
+    expect(placements).toEqual([
+      { personId: "a", x: 0, y: 0 },
+      { personId: "b", x: 268, y: 0 },
+      { personId: "c", x: 0, y: 88 },
+    ])
+    expect(buildWorkspacePeopleDropPlacements([], { x: 0, y: 0 })).toEqual([])
+  })
+})
 
 function person(
   id: string,

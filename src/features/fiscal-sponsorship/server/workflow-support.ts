@@ -6,6 +6,7 @@ import type { PlatformAccessLevel } from "@/features/platform-access"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { canEditOrganization } from "@/lib/organization/active-org"
 import type { Database } from "@/lib/supabase"
+import { canReadGuestFiscalProject } from "../lib/authorization"
 import type {
   FiscalSponsorshipApplicationRecord,
   FiscalSponsorshipApplicationStatus,
@@ -412,6 +413,10 @@ export async function resolveProjectAndContext(
     supabase,
   })
   if (!projectResult.ok) return { error: projectResult.error }
+
+  if (!(await canReadGuestFiscalProject({
+    projectId: projectResult.project.id, userId: context.user.id, supabase,
+  }))) return { error: "Unable to find that organization project." }
 
   return {
     ...context,

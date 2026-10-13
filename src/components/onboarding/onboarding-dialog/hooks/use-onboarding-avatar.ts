@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { RefObject } from "react"
 
+import { serializeOnboardingAvatar } from "../avatar-draft"
 import { getCroppedBlob } from "../helpers"
 
 const CROP_RESET = { x: 0, y: 0 }
@@ -71,7 +72,7 @@ export function useOnboardingAvatar({
     if (rawImageUrl && croppedArea) {
       const blob = await getCroppedBlob(rawImageUrl, croppedArea)
       if (blob) {
-        const url = URL.createObjectURL(blob)
+        const url = await serializeOnboardingAvatar(blob)
         setAvatarPreview(url)
         saveDraft({ avatar: url })
 

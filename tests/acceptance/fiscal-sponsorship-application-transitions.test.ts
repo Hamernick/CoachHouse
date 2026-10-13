@@ -36,6 +36,8 @@ import {
   reviewFiscalSponsorshipApplication,
   submitFiscalSponsorshipApplication,
 } from "@/features/fiscal-sponsorship/server/workflow-actions"
+import { validateApplicationForSubmission } from "@/features/fiscal-sponsorship/server/workflow-validation"
+import type { FiscalApplicationRow } from "@/features/fiscal-sponsorship/server/workflow-support"
 import { revalidatePathMock, resetTestMocks } from "./test-utils"
 
 const UPDATED_AT = "2026-08-05T22:00:00.000Z"
@@ -64,7 +66,10 @@ function createApplication(status = "draft") {
     estimated_budget_cents: 500_000,
     prospective_funding_sources: "Local grants",
     operates_outside_united_states: false,
-    receives_investor_return_funds: false,
+    receives_investor_return_funds: null,
+    engages_in_lobbying: false,
+    has_legal_compliance_financial_concerns: false,
+    concerns_explanation: null as string | null,
   }
 }
 
@@ -91,6 +96,7 @@ function setContext({
     assignedCoach ? { coach_user_id: "user-1" } : null
   )
   const supabase = {
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     from: vi.fn((table: string) => {
       if (table === "organization_projects") return projectQuery
       if (table === "fiscal_sponsorship_applications") {
@@ -267,5 +273,30 @@ describe("fiscal sponsorship application transitions", () => {
     ).toHaveLength(2)
     expect(sql).toContain("from public, anon, authenticated")
     expect(sql.match(/to service_role;/g)).toHaveLength(2)
+  })
+})
+
+
+describe("updated fiscal eligibility policy", () => {
+  it.each(["operates_outside_united_states", "engages_in_lobbying"] as const)("reviews explained %s answers instead of rejecting them", (field) => {
+    const application = { ...createApplication(), [field]: true } as FiscalApplicationRow
+    expect(validateApplicationForSubmission(application)).toContain("Explain each")
+    application.concerns_explanation = "Details of the planned activities for individual review."
+    expect(validateApplicationForSubmission(application)).toBeNull()
+    application.concerns_explanation = "   "
+    expect(validateApplicationForSubmission(application)).toContain("Explain each")
+  })
+  it("does not require the removed investor-return answer", () => {
+    const application = createApplication() as FiscalApplicationRow
+    expect(validateApplicationForSubmission(application)).toBeNull()
+    application.receives_investor_return_funds = true
+    expect(validateApplicationForSubmission(application)).toBeNull()
+  })
+  it("requires a valid fundraising goal even if an old expense budget exists", () => {
+    const application = { ...createApplication(), metadata: { fundraisingGoal: { amountCents: null, period: "total" } } } as FiscalApplicationRow
+    expect(validateApplicationForSubmission(application)).toContain("fundraising amount")
+    application.metadata = { fundraisingGoal: { amountCents: 500000, period: "monthly" } }
+    application.estimated_budget_cents = null
+    expect(validateApplicationForSubmission(application)).toBeNull()
   })
 })

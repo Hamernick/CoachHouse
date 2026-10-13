@@ -10,8 +10,8 @@ import { Card } from "@/components/ui/card"
 
 export function PricingFeatureMatrixSection() {
   return (
-    <Card className="rounded-3xl border-border/70">
-      <div className="overflow-x-auto">
+    <Card className="relative min-w-0 overflow-hidden rounded-3xl border-border/70 shadow-none">
+      <div className="overflow-x-auto focus-ring" role="region" aria-label="Plan comparison" tabIndex={0}>
         <table className="w-full min-w-[780px] border-collapse text-sm text-left [&_th]:text-left [&_td]:text-left">
           <thead>
             <tr className="text-left">
@@ -94,7 +94,7 @@ export function PricingFeatureMatrixSection() {
           internal. Organizational Profile is private on Individual and can be made public on paid tiers. Operations
           Support includes expert network access so teams can hire specialists as needed.
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="inline-flex items-center gap-2">
             <Check className="h-4 w-4 text-foreground" aria-hidden /> Included
           </span>

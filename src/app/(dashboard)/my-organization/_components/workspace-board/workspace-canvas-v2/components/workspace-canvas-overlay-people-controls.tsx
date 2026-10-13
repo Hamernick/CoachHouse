@@ -1,53 +1,43 @@
 "use client"
 
 import { memo } from "react"
+import SearchIcon from "lucide-react/dist/esm/icons/search"
 
-import type { OrgPerson } from "@/actions/people"
-import { CreatePersonDialog } from "@/components/people/create-person-dialog"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  PERSON_CATEGORY_OPTIONS,
-  type PersonCategory,
-} from "@/lib/people/categories"
+import { PersonRoleFilter } from "@/features/people-roles/client"
+import type { PersonRoleFilterValue } from "@/lib/people/roles"
 
 import type { WorkspaceCustomPeopleSegment } from "./workspace-canvas-people-segment-types"
 import { WorkspacePeopleSegmentPersonPicker } from "./workspace-canvas-people-segment-person-picker"
 
 type WorkspacePeopleDrawerControlsProps = {
-  people: OrgPerson[]
   canEdit: boolean
   searchValue: string
   onSearchChange: (value: string) => void
-  categoryFilter: PersonCategory | "all"
-  onCategoryFilterChange: (value: PersonCategory | "all") => void
+  categoryFilter: PersonRoleFilterValue
+  onCategoryFilterChange: (value: PersonRoleFilterValue) => void
   customSegment: WorkspaceCustomPeopleSegment | null
+  people: OrgPersonWithImage[]
   availablePeople: OrgPersonWithImage[]
   onAddPeopleToSegment: (personIds: string[]) => void
 }
 
 export const WorkspacePeopleDrawerControls = memo(
   function WorkspacePeopleDrawerControls({
-    people,
     canEdit,
     searchValue,
     onSearchChange,
     categoryFilter,
     onCategoryFilterChange,
     customSegment,
+    people,
     availablePeople,
     onAddPeopleToSegment,
   }: WorkspacePeopleDrawerControlsProps) {
     return (
-      <div className="mx-auto grid w-full max-w-3xl min-w-0 shrink-0 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)_auto] md:items-center">
-        <div className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <div className="relative w-48 min-w-0 max-w-full flex-none">
           {customSegment && canEdit ? (
             <WorkspacePeopleSegmentPersonPicker
               segmentLabel={customSegment.label}
@@ -55,51 +45,20 @@ export const WorkspacePeopleDrawerControls = memo(
               onAddPeople={onAddPeopleToSegment}
             />
           ) : (
-            <Input
-              id="workspace-people-search"
-              placeholder="Search people…"
-              value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
-              className="h-11 rounded-xl md:h-8"
-              aria-label="Search workspace people"
-            />
+            <>
+              <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="workspace-people-search"
+                placeholder="Search people…"
+                value={searchValue}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className="h-8 rounded-xl pl-8 text-sm"
+                aria-label="Search workspace people"
+              />
+            </>
           )}
         </div>
-        <Select
-          value={categoryFilter}
-          onValueChange={(value) => {
-            if (
-              value === "all" ||
-              PERSON_CATEGORY_OPTIONS.some((option) => option.value === value)
-            ) {
-              onCategoryFilterChange(value as PersonCategory | "all")
-            }
-          }}
-        >
-          <SelectTrigger
-            id="workspace-people-category"
-            size="sm"
-            className="h-11 w-full rounded-xl data-[size=sm]:h-11 md:data-[size=sm]:h-8"
-            aria-label="Filter workspace people by role"
-          >
-            <SelectValue placeholder="All roles" />
-          </SelectTrigger>
-          <SelectContent align="end">
-            <SelectItem value="all">All roles</SelectItem>
-            {PERSON_CATEGORY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {canEdit ? (
-          <CreatePersonDialog
-            triggerClassName="h-11 w-full justify-center rounded-xl px-2.5 pr-3.5 has-[>svg]:pr-3.5 md:h-8 md:w-auto"
-            people={people}
-            extendedSocialLinksEnabled
-          />
-        ) : null}
+        <PersonRoleFilter value={categoryFilter} onChange={onCategoryFilterChange} people={people} />
       </div>
     )
   }

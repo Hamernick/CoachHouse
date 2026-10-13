@@ -61,7 +61,7 @@ export function PublicMapPlatformOrganizationListCard({
       key={org.id}
       style={PUBLIC_MAP_LIST_CARD_PERF_STYLE}
       className={cn(
-        "text-foreground relative w-full max-w-full min-w-0 overflow-hidden bg-transparent",
+        "text-foreground relative w-full max-w-full min-w-0 overflow-hidden bg-transparent p-1",
         PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME
       )}
       {...buildPublicMapOrganizationListCardOwnerProps({
@@ -78,12 +78,12 @@ export function PublicMapPlatformOrganizationListCard({
         aria-label={`Open details for ${org.name}`}
         onClick={openDetails}
         className={cn(
-          "group relative z-10 flex min-h-20 w-full min-w-0 justify-start rounded-xl text-left whitespace-normal transition-[background-color,color] motion-reduce:transition-none",
+          "group relative z-10 flex h-auto min-h-16 w-full min-w-0 justify-start rounded-xl text-left whitespace-normal transition-[background-color,color] motion-reduce:transition-none",
           "focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-ring/45 focus-visible:ring-2 focus-visible:ring-inset",
           selected
             ? "bg-accent text-accent-foreground dark:bg-accent/50"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          constrainedLayout ? "p-3" : "p-4"
+          "px-3 py-2"
         )}
         {...buildPublicMapOrganizationListCardSurfaceProps({
           ownerId,
@@ -129,6 +129,7 @@ export function PublicMapPlatformOrganizationListCard({
           </Avatar>
           <div className="min-w-0 flex-1 pt-0.5">
             <p
+              data-public-map-list-title=""
               className="text-foreground truncate text-base leading-snug font-semibold"
               {...buildPublicMapOrganizationListCardSurfaceProps({
                 ownerId,

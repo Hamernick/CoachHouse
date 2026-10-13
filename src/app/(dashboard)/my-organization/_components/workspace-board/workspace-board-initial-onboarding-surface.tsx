@@ -61,7 +61,7 @@ export function WorkspaceBoardInitialOnboardingSurface({
     <WorkspaceCanvasErrorBoundary>
       <div
         ref={surfaceRef}
-        className="workspace-layout-surface relative min-h-[min(820px,calc(100svh-9.5rem))] flex-1 overflow-hidden bg-[#fcfcfc] dark:bg-zinc-800"
+        className="workspace-layout-surface relative min-h-[min(820px,calc(100svh-9.5rem))] flex-1 overflow-hidden bg-[#f5f5f5] dark:bg-zinc-800"
       >
         <ReactFlow
           nodes={[]}
@@ -92,7 +92,7 @@ export function WorkspaceBoardInitialOnboardingSurface({
           />
         </ReactFlow>
         <div className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 md:px-8 md:py-8 lg:px-10 lg:py-10">
-          <div className="pointer-events-auto flex h-full min-h-full w-full max-w-[720px] items-start justify-center">
+          <div className="pointer-events-auto flex h-full min-h-full w-full max-w-[480px] items-start justify-center">
             <OnboardingWorkspaceCard
               {...seed.initialOnboarding.defaults}
               mode="workspace_setup"

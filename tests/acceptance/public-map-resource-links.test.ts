@@ -29,6 +29,7 @@ function buildOrganization(
     brandMarkUrl: null,
     headerUrl: null,
     website: null,
+    donateUrl: null,
     email: null,
     phone: null,
     twitter: null,

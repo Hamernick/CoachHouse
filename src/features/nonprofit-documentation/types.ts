@@ -12,10 +12,11 @@ export type DocumentationNavItem = {
   href?: string
   status: DocumentationNavStatus
   external?: boolean
+  isNew?: boolean
 }
 
 export type DocumentationNavSection = {
-  id: "get-started" | "best-practices" | "tools" | "resources"
+  id: "fund-your-project" | "get-started" | "best-practices" | "tools" | "resources"
   title: string
   items: DocumentationNavItem[]
 }

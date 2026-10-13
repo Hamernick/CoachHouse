@@ -308,7 +308,7 @@ export const WorkspaceOntologyNode = memo(function WorkspaceOntologyNode({
         aria-hidden={transitionPhase === "exiting" ? true : undefined}
         aria-expanded={node.hasChildren ? expanded : undefined}
         className={cn(
-          "bg-background h-full w-full overflow-visible rounded-[2rem] border px-2 py-2.5 focus-within:ring-2",
+          "bg-background h-full w-full overflow-visible rounded-[2rem] border px-2 py-2.5 focus-within-visible:ring-2",
           "transition-[border-color,box-shadow,opacity,filter] duration-180 motion-reduce:transition-none",
           node.presentation === "group" &&
             "border-zinc-300/80 shadow-[0_10px_26px_-22px_rgba(24,24,27,0.7)] dark:border-zinc-600",

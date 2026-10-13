@@ -182,6 +182,10 @@ export function PublicMapRailSearchPanel({
 }
 
 type PublicMapDrawerSearchPanelProps = {
+  showResults?: boolean
+  directoryScrollable?: boolean
+  showFooter?: boolean
+  showSearch?: boolean
   query: string
   searchContext?: PublicMapSidebarSearchContext | null
   items: PublicMapListItem[]
@@ -211,6 +215,10 @@ type PublicMapDrawerSearchPanelProps = {
 }
 
 export function PublicMapDrawerSearchPanel({
+  showResults = true,
+  directoryScrollable = true,
+  showFooter = true,
+  showSearch = true,
   query,
   searchContext = null,
   items,
@@ -247,7 +255,10 @@ export function PublicMapDrawerSearchPanel({
     (resourceItemsLoadStatus !== "error" || items.length === 0)
 
   function focusSearchInput() {
-    containerRef.current
+    const scope = showSearch
+      ? containerRef.current
+      : containerRef.current?.closest("[data-public-map-inline-panel]")
+    scope
       ?.querySelector<HTMLInputElement>("[data-public-map-search-input]")
       ?.focus()
   }
@@ -256,98 +267,121 @@ export function PublicMapDrawerSearchPanel({
     <div
       ref={containerRef}
       className="flex min-h-0 flex-1 flex-col bg-transparent"
-      onKeyDown={handleResultKeyDown}
+      onKeyDown={showSearch ? handleResultKeyDown : undefined}
     >
-      <div className="shrink-0 px-2.5">
-        <PublicMapSearchCard
-          query={query}
-          onQueryChange={onQueryChange}
-          onSearchEngage={onSearchEngage}
-          onSearchCancel={onSearchCancel}
-          onNavigateResults={focusBoundaryResult}
-          activeGroup={activeGroup}
-          groupCounts={showDiscoveryHome ? undefined : groupCounts}
-          onActiveGroupChange={onActiveGroupChange}
-          compact
-          searchPending={searchPending}
-          showCancel={searchActive}
-        />
-      </div>
-      {showDiscoveryHome ? (
-        <PublicMapDirectoryHome
-          counts={discoveryGroupCounts}
-          featuredGuides={featuredGuides}
-          onCategorySelect={onActiveGroupChange}
-          onGuideSelect={onGuideSelect ?? noopPublicMapSearchAction}
-          onRetryResourceItems={onRetryResourceItems}
-          onStartSearch={focusSearchInput}
-          onToggleSavedGuide={onToggleSavedGuide}
-          resourceItemsLoadStatus={resourceItemsLoadStatus}
-          savedGuideIds={savedGuideIds}
-        />
-      ) : (
-        <div
-          className={cn("flex min-h-0 flex-1 flex-col overflow-hidden px-2")}
-        >
-          <PublicMapSearchResultsStatus
-            hasStaleResourceItems={items.some(
-              (item) => item.itemType === "external_resource"
-            )}
-            resourceItemsLoadStatus={resourceItemsLoadStatus}
-            resultCount={items.length}
+      {showSearch ? (
+        <div className="shrink-0 px-2.5">
+          <PublicMapSearchCard
+            query={query}
+            onQueryChange={onQueryChange}
+            onSearchEngage={onSearchEngage}
+            onSearchCancel={onSearchCancel}
+            onNavigateResults={focusBoundaryResult}
+            activeGroup={activeGroup}
+            groupCounts={showDiscoveryHome ? undefined : groupCounts}
+            onActiveGroupChange={onActiveGroupChange}
+            compact
             searchPending={searchPending}
+            showCancel={searchActive}
           />
-          {searchContext ? (
-            <div className="shrink-0 pt-2 pb-2">
-              <PublicMapSearchContextCard
-                context={searchContext}
-                savedGuideIds={savedGuideIds}
-                onToggleSavedGuide={onToggleSavedGuide}
-              />
-            </div>
-          ) : null}
-          {resourceItemsLoadStatus === "error" && items.length > 0 ? (
-            <div className="shrink-0 pb-2">
-              <PublicMapResourceItemsErrorNotice
-                error={resourceItemsLoadError}
-                hasStaleResourceItems={items.some(
-                  (item) => item.itemType === "external_resource"
-                )}
-                onRetry={onRetryResourceItems}
-              />
-            </div>
-          ) : null}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <PublicMapOrganizationsStack
-              items={items}
-              organizations={organizations}
-              selectedItemId={selectedItemId}
-              selectedOrgId={selectedOrgId}
-              query={query}
-              activeGroup={activeGroup}
-              resourceItemsLoadStatus={resourceItemsLoadStatus}
-              resourceItemsLoadError={resourceItemsLoadError}
-              className="h-full pt-2"
-              scrollable
-              leadingContent={
-                <PublicMapSearchShortcuts
-                  activeGroup={activeGroup}
-                  counts={groupCounts}
-                  guides={guides}
-                  query={query}
-                  onCategorySelect={onActiveGroupChange}
-                  onGuideSelect={onGuideSelect}
-                />
-              }
-              onClearCategory={() => onActiveGroupChange("all")}
-              onClearQuery={() => onQueryChange("")}
+        </div>
+      ) : null}
+      {/* Keep discovery mounted to preserve category state without reserving its height. */}
+      <div className={directoryScrollable ? "contents" : "grid min-h-0"}>
+        {showDiscoveryHome || !directoryScrollable ? (
+          <div
+            aria-hidden={!showDiscoveryHome || undefined}
+            inert={!showDiscoveryHome || undefined}
+            className={cn(
+              directoryScrollable ? "contents" : "col-start-1 row-start-1 min-w-0 self-start",
+              !showDiscoveryHome && "hidden"
+            )}
+          >
+            <PublicMapDirectoryHome
+              scrollable={directoryScrollable}
+              showFooter={showFooter}
+              counts={discoveryGroupCounts}
+              featuredGuides={featuredGuides}
+              onCategorySelect={onActiveGroupChange}
+              onGuideSelect={onGuideSelect ?? noopPublicMapSearchAction}
               onRetryResourceItems={onRetryResourceItems}
-              onSelectItem={onSelectItem}
-              onOpenDetails={onOpenDetails}
+              onStartSearch={focusSearchInput}
+              onToggleSavedGuide={onToggleSavedGuide}
+              resourceItemsLoadStatus={resourceItemsLoadStatus}
+              savedGuideIds={savedGuideIds}
             />
           </div>
-        </div>
-      )}
+        ) : null}
+        {!showDiscoveryHome && showResults ? (
+          <div
+            data-public-map-results-region=""
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-hidden px-2",
+              !directoryScrollable && "col-start-1 row-start-1 flex-none self-start"
+            )}
+          >
+            <PublicMapSearchResultsStatus
+              hasStaleResourceItems={items.some(
+                (item) => item.itemType === "external_resource"
+              )}
+              resourceItemsLoadStatus={resourceItemsLoadStatus}
+              resultCount={items.length}
+              searchPending={searchPending}
+            />
+            {searchContext ? (
+              <div className="shrink-0 pt-2 pb-2">
+                <PublicMapSearchContextCard
+                  context={searchContext}
+                  savedGuideIds={savedGuideIds}
+                  onToggleSavedGuide={onToggleSavedGuide}
+                />
+              </div>
+            ) : null}
+            {resourceItemsLoadStatus === "error" && items.length > 0 ? (
+              <div className="shrink-0 pb-2">
+                <PublicMapResourceItemsErrorNotice
+                  error={resourceItemsLoadError}
+                  hasStaleResourceItems={items.some(
+                    (item) => item.itemType === "external_resource"
+                  )}
+                  onRetry={onRetryResourceItems}
+                />
+              </div>
+            ) : null}
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <PublicMapOrganizationsStack
+                items={items}
+                organizations={organizations}
+                selectedItemId={selectedItemId}
+                selectedOrgId={selectedOrgId}
+                query={query}
+                activeGroup={activeGroup}
+                resourceItemsLoadStatus={resourceItemsLoadStatus}
+                resourceItemsLoadError={resourceItemsLoadError}
+                bounded={directoryScrollable && !showSearch}
+                className={directoryScrollable ? "h-full pt-2" : "pt-0.5"}
+                scrollable={directoryScrollable}
+                paged={!directoryScrollable}
+                leadingContent={
+                  <PublicMapSearchShortcuts
+                    activeGroup={activeGroup}
+                    counts={groupCounts}
+                    guides={guides}
+                    query={query}
+                    onCategorySelect={onActiveGroupChange}
+                    onGuideSelect={onGuideSelect}
+                  />
+                }
+                onClearCategory={() => onActiveGroupChange("all")}
+                onClearQuery={() => onQueryChange("")}
+                onRetryResourceItems={onRetryResourceItems}
+                onSelectItem={onSelectItem}
+                onOpenDetails={onOpenDetails}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

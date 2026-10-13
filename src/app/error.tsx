@@ -15,6 +15,9 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("App route error", error)
+    if (process.env.NODE_ENV === "development" && error.stack) {
+      console.error("App route error stack", error.stack)
+    }
     reportPageHealthError({
       error,
       eventType: "route_error",

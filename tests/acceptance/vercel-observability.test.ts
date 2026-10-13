@@ -5,14 +5,16 @@ import { describe, expect, it } from "vitest"
 describe("Vercel observability wiring", () => {
   it("mounts first-party page analytics and speed insights in the root layout", () => {
     const layoutSource = readFileSync("src/app/layout.tsx", "utf8")
+    const telemetrySource = readFileSync("src/components/providers/app-telemetry.tsx", "utf8")
     const packageSource = readFileSync("package.json", "utf8")
 
     expect(packageSource).toContain('"@vercel/analytics"')
     expect(packageSource).toContain('"@vercel/speed-insights"')
-    expect(layoutSource).toContain('from "@vercel/analytics/next"')
-    expect(layoutSource).toContain('from "@vercel/speed-insights/next"')
-    expect(layoutSource).toContain("<Analytics />")
-    expect(layoutSource).toContain("<SpeedInsights sampleRate={0.5} />")
+    expect(telemetrySource).toContain('import("@vercel/analytics/next")')
+    expect(telemetrySource).toContain('import("@vercel/speed-insights/next")')
+    expect(layoutSource).toContain("<AppTelemetry />")
+    expect(telemetrySource).toContain("<Analytics beforeSend={filterPrivateTelemetry} />")
+    expect(telemetrySource).toContain("<SpeedInsights sampleRate={0.5} beforeSend={filterPrivateTelemetry} />")
   })
 
   it("registers OpenTelemetry on Vercel or with explicit OTLP exporters", () => {

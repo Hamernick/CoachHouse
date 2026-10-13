@@ -1,4 +1,16 @@
 export {
+  handleGuestFiscalRecovery,
+  loadGuestFiscalRecoveryAvailability,
+  handleGuestFiscalFollowup,
+  handleGuestFiscalProfile,
+  handleGuestFiscalEmailVerification,
+  handleGuestFiscalDraft,
+  handleGuestFiscalDraftRetention,
+  handleGuestFiscalSession,
+  handleGuestFiscalSubmission,
+  handleGuestFiscalEmailCron,
+  loadGuestFiscalProjectReview,
+  handleFiscalEmailCron,
   connectFiscalSponsorshipDocumentAsset,
   buildFiscalSponsorshipSigningPreview,
   canManageFiscalSponsorshipForOrganization,
@@ -16,6 +28,11 @@ export {
   submitFiscalSponsorshipApplication,
 } from "./actions"
 export {
+  FiscalPublicEmailVerification,
+  FiscalGuestRecovery,
+  FiscalGuestApplication,
+  FiscalOptionalProfile,
+  FiscalGuestProjectReview,
   FiscalSponsorshipApplicationDrawer,
   FiscalSponsorshipApplicationEditor,
   FiscalSponsorshipActivityAction,
@@ -120,3 +137,5 @@ export type {
   FiscalSponsorshipW9Session,
   LoadFiscalSponsorshipW9SessionResult,
 } from "./types"
+
+export { FiscalSponsorshipPublicPage } from "./components"

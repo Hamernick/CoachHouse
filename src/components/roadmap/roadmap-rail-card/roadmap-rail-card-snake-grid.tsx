@@ -184,7 +184,7 @@ export function RoadmapRailCardSnakeGrid({ cards, onDeliverableSelect }: Roadmap
                     className={cn(
                       "group relative flex h-full min-h-[116px] min-w-0 overflow-hidden rounded-[20px] border border-border/60 bg-card text-left transition-transform duration-300 ease-out",
                       "hover:-translate-y-1",
-                      "focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2",
+                      "focus-within:outline-none focus-within-visible:ring-2 focus-within-visible:ring-primary/40 focus-within-visible:ring-offset-2",
                     )}
                   >
                     <div className="relative m-[5px] w-[92px] shrink-0 overflow-hidden rounded-[14px] border border-border/60 bg-muted/20">
@@ -232,7 +232,7 @@ export function RoadmapRailCardSnakeGrid({ cards, onDeliverableSelect }: Roadmap
                 <article
                   className={cn(
                     "group flex h-full min-h-[116px] min-w-0 overflow-hidden rounded-[20px] border border-border/60 bg-card text-left transition-transform duration-300 ease-out",
-                    "hover:-translate-y-1 focus-within:outline-none focus-within:ring-2 focus-within:ring-ring/50",
+                    "hover:-translate-y-1 focus-within:outline-none focus-within-visible:ring-2 focus-within-visible:ring-ring/50",
                   )}
                 >
                   <div className="relative m-[5px] w-[92px] shrink-0 overflow-hidden rounded-[14px] border border-border/60 bg-muted/20">

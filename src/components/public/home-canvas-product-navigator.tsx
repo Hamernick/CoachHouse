@@ -1,5 +1,7 @@
 "use client"
 
+import { FIND_PATH } from "@/lib/find/routes"
+
 import Link from "next/link"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import type { MouseEvent } from "react"
@@ -47,7 +49,7 @@ export function HomeCanvasProductNavigator({
         )}
       >
         <Link
-          href="/"
+          href={FIND_PATH}
           prefetch
           aria-current={activeSection === "hero" ? "true" : undefined}
           aria-busy={isFindRoutePending || undefined}

@@ -1,17 +1,12 @@
-import { HomeCanvasFindShell } from "@/components/public/home-canvas-find-shell"
+import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
-import {
-  FindMapLoadingSidebar,
-  FindMapLoadingState,
-} from "./find-map-loading-state"
-
+// Authentication decides the destination. Avoid flashing map chrome before a
+// signed-in visitor is redirected to their workspace.
 export function PublicFindRouteLoading() {
   return (
-    <HomeCanvasFindShell
-      showAuthActions={false}
-      sidebarFallback={<FindMapLoadingSidebar />}
-    >
-      <FindMapLoadingState />
-    </HomeCanvasFindShell>
+    <div className="flex min-h-[50dvh] items-center justify-center gap-2 p-6 text-sm text-muted-foreground" role="status" aria-live="polite">
+      <LoaderCircleIcon className="size-4 motion-safe:animate-spin" aria-hidden />
+      <span>Loading…</span>
+    </div>
   )
 }

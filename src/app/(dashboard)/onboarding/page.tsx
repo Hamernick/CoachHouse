@@ -6,7 +6,6 @@ import { resolvePricingPlanTier, type PricingPlanTier } from "@/lib/billing/plan
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
 import type { Json } from "@/lib/supabase"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { FIND_PATH } from "@/lib/find/routes"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 import { completeOnboardingAction } from "./actions"
 
@@ -71,20 +70,13 @@ export default async function OnboardingPage({
   }
 
   if (!state.onboardingLocked) {
-    if (
-      state.onboardingIntentFocus === "find" ||
-      state.onboardingIntentFocus === "fund" ||
-      state.onboardingIntentFocus === "support"
-    ) {
-      redirect(`${FIND_PATH}?member_onboarding=0&source=onboarding`)
-    }
-
     redirect("/workspace")
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[980px] min-h-0 flex-1 flex-col py-0 sm:py-2 md:py-4">
+    <div data-onboarding-page className="mx-auto flex w-full max-w-[980px] min-h-0 flex-1 flex-col py-0 sm:py-2 md:py-4">
       <OnboardingWorkspaceCard
+        className="mx-auto my-auto h-auto max-h-none shrink-0 shadow-none [&>form]:h-auto max-w-[480px]"
         {...state.onboardingDefaults}
         defaultBuilderPlanTier={pricingReturnPlanTierOverride ?? state.currentPlanTier}
         mode={state.onboardingMode ?? "post_signup_access"}

@@ -7,6 +7,7 @@ import {
   PERSON_CATEGORY_OPTIONS,
   type PersonCategory,
 } from "@/lib/people/categories"
+import { personMatchesRole, type PersonRoleFilterValue } from "@/lib/people/roles"
 import type { OrganizationPeopleTag } from "@/lib/people/tags"
 
 import type {
@@ -87,6 +88,7 @@ function personMatchesSearch(
     person.title,
     person.email,
     person.category,
+    person.customRole,
     categoryLabel,
     ...(person.tags ?? []),
     ...currentTagLabels,
@@ -99,9 +101,9 @@ function personMatchesSearch(
 
 function personMatchesCategory(
   person: OrgPersonWithImage,
-  categoryFilter: PersonCategory | "all"
+  categoryFilter: PersonRoleFilterValue
 ) {
-  return categoryFilter === "all" || person.category === categoryFilter
+  return personMatchesRole(person, categoryFilter)
 }
 
 function buildPersonTagLabels(tags: OrganizationPeopleTag[]) {
@@ -122,7 +124,7 @@ export function useFilteredWorkspacePeople({
   query,
   tags,
 }: {
-  categoryFilter: PersonCategory | "all"
+  categoryFilter: PersonRoleFilterValue
   people: OrgPersonWithImage[]
   query: string
   tags: OrganizationPeopleTag[]

@@ -35,6 +35,15 @@ async function resolveDrawerData(
 }
 
 describe("workspace foundation core availability", () => {
+  it("preserves the launch focus on a full page reload", async () => {
+    await expect(
+      resolveDrawerData({ drawer: "accelerator", focus: "organization-launch" })
+    ).resolves.toMatchObject({
+      initialDrawerTab: "accelerator",
+      initialFocus: "organization-launch",
+    })
+  })
+
   it("opens every core drawer without rollout configuration", async () => {
     await expect(
       resolveDrawerData({ drawer: "documents", focus: "w9" })

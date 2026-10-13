@@ -1,0 +1,7 @@
+{
+  "time": "2026-10-07T16:46:41.173Z",
+  "target": "vswzhuwjtgzrkxknrmxu",
+  "migrationHash": "ab63acb170fc32b54e6a5bec7d2f30ce3d4812d06ddfa7fe345b50c09160e098",
+  "status": 201,
+  "response": "[{\"applied_version\":\"20261007070000\",\"search_function\":\"search_nonprofit_directory_v2(text,text,text,text,integer)\"}]"
+}

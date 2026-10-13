@@ -44,7 +44,7 @@ describe("app shell navigation performance", () => {
     expect(shellMainContentSource).toContain("ref={routeTransitionRef}")
     expect(transitionHookSource).toContain("element.animate")
     expect(transitionHookSource).toContain("prefers-reduced-motion: reduce")
-    expect(transitionHookSource).toContain("translate3d(0, 3px, 0)")
+    expect(transitionHookSource).toContain("translate3d(0, 6px, 0)")
     expect(shellSource).not.toContain("key={pathname}")
   })
 

@@ -1,5 +1,7 @@
 "use server"
 
+import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+
 import { randomUUID } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -15,6 +17,7 @@ import { buildProjectAssetOpenPath } from "../lib/project-assets"
 async function context(projectId: string) {
   if (!z.string().uuid().safeParse(projectId).success) throw new Error("Choose a valid project.")
   const actor = await resolveMemberWorkspaceActorContext()
+  if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId }))) throw new Error("Use the fiscal application review for this project.")
   const access = ensureMemberWorkspaceFeatureAccess(actor)
   if (access) throw new Error(access.error)
   const result = await actor.supabase.from("organization_projects")

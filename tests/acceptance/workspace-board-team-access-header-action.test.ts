@@ -7,9 +7,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const {
   useWorkspaceBoardOrganizationAccessStateMock,
   workspaceBoardTeamAccessHoverCardMock,
+  paywallOverlayMock,
 } = vi.hoisted(() => ({
   useWorkspaceBoardOrganizationAccessStateMock: vi.fn(),
   workspaceBoardTeamAccessHoverCardMock: vi.fn((_props: unknown) => null),
+  paywallOverlayMock: vi.fn((_props: unknown) => null),
+}))
+
+vi.mock("@/components/paywall/paywall-overlay", () => ({
+  PaywallOverlay: (props: unknown) => { paywallOverlayMock(props); return null },
 }))
 
 vi.mock(
@@ -81,6 +87,7 @@ describe("WorkspaceBoardTeamAccessHeaderAction", () => {
   beforeEach(() => {
     useWorkspaceBoardOrganizationAccessStateMock.mockReset()
     workspaceBoardTeamAccessHoverCardMock.mockClear()
+    paywallOverlayMock.mockClear()
   })
 
   it("renders the team-access pill for the shell header", () => {
@@ -107,6 +114,31 @@ describe("WorkspaceBoardTeamAccessHeaderAction", () => {
     )
     expect(source).not.toContain("teamAccessCollapsed")
     expect(source).not.toContain("ChevronDownIcon")
+  })
+
+  it("keeps the same free-user pill visible with an upgrade dialog instead of team controls", () => {
+    useWorkspaceBoardOrganizationAccessStateMock.mockReturnValue(
+      createOrganizationAccessState({ hasPaidTeamAccess: false })
+    )
+    const markup = renderAction()
+    expect(markup).toContain("Bright Futures Collective")
+    expect(markup).toContain('aria-haspopup="dialog"')
+    expect(markup).toContain("rounded-full")
+    expect(markup).not.toContain('data-slot="hover-card-trigger"')
+    expect(workspaceBoardTeamAccessHoverCardMock).not.toHaveBeenCalled()
+    expect(paywallOverlayMock.mock.calls[0]?.[0]).toMatchObject({
+      open: false, onOpenChange: expect.any(Function), restoreFocus: expect.any(Function),
+    })
+  })
+
+  it.each([
+    { loading: true, hasPaidTeamAccess: false },
+    { loadError: "Unable to check access", hasPaidTeamAccess: false },
+    { hasPaidTeamAccess: true, canInviteTeam: false },
+  ])("does not mistake unresolved access or a paid member role for a free plan: %o", (state) => {
+    useWorkspaceBoardOrganizationAccessStateMock.mockReturnValue(createOrganizationAccessState(state))
+    expect(renderAction()).toContain('data-slot="hover-card-trigger"')
+    expect(paywallOverlayMock).not.toHaveBeenCalled()
   })
 
   it("keeps loading and error state in the accessible trigger summary", () => {

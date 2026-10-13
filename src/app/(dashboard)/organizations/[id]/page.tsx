@@ -11,6 +11,8 @@ import {
   refundLatestAdminOrganizationPaymentAction,
 } from "@/features/admin-organization-billing"
 import {
+  FiscalGuestProjectReview,
+  loadGuestFiscalProjectReview,
   canManageFiscalSponsorshipForOrganization,
   connectFiscalSponsorshipDocumentAsset,
   generateFiscalSponsorshipAgreement,
@@ -85,6 +87,15 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
     )
   }
 
+  if (result.state === "fiscal-intake") {
+    const review = await loadGuestFiscalProjectReview(result.projectId)
+    if (!review) notFound()
+    if ("error" in review) {
+      return <div className="px-6 py-10"><Empty title="Application unavailable" description={review.error} variant="subtle" /></div>
+    }
+    return <FiscalGuestProjectReview {...review} />
+  }
+
   const canManageProject =
     result.scope === "organization" || result.scope === "platform-admin"
   const canManageProjectAssets =
@@ -108,6 +119,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       ? canManageFiscalSponsorshipForOrganization({
           accessLevel: staff.accessLevel,
           organizationId: result.organizationSummary.orgId,
+          projectId: result.project.id,
           supabase: staff.supabase,
           userId: staff.userId,
         })

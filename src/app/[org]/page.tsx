@@ -2,11 +2,12 @@ import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
 import { PublicProfilePage } from "@/features/public-profiles"
+import { PublicHomeResourceExplorer } from "@/components/public/home-resource-explorer"
+import { fetchPublicMapViewerState } from "@/features/find-map"
 import { buildFindOrganizationHref } from "@/lib/find/routes"
 import { buildPublicProfileMetadata } from "@/lib/public-profile-metadata"
 import {
   fetchPublicProfileByHandle,
-  findLegacyPublicOrganizationSlug,
 } from "@/lib/queries/public-profile"
 
 export const revalidate = 300
@@ -53,11 +54,12 @@ export default async function PublicHandlePage({
   }
 
   const profile = await fetchPublicProfileByHandle(slug)
-  if (profile) return <PublicProfilePage profile={profile} />
-
-  const legacyOrganizationSlug = await findLegacyPublicOrganizationSlug(slug)
-  if (legacyOrganizationSlug) {
-    redirect(buildFindOrganizationHref(legacyOrganizationSlug))
+  if (profile?.kind === "organization" && profile.organization) {
+    return <PublicHomeResourceExplorer searchParams={searchParams} initialOrganization={profile.organization} />
+  }
+  if (profile) {
+    const { viewer } = await fetchPublicMapViewerState()
+    return <PublicProfilePage profile={profile} viewer={viewer} />
   }
 
   notFound()

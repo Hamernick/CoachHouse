@@ -203,6 +203,8 @@ describe("public map pin markers", () => {
     )
 
     expect(markerSelectionSource).toContain("focusMapItemOnMap(selectableId)")
-    expect(sameLocationSource).toContain("focusMapItemOnMap(selectableIds[0])")
+    expect(markerSelectionSource).toContain("openDetails: true")
+    expect(sameLocationSource).toContain("handleSelectMapMarker(selectableIds[0], true)")
+    expect(sameLocationSource).not.toContain('setSidebarMode("search")')
   })
 })

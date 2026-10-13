@@ -1,3 +1,5 @@
+import { buildPublicImageTransformUrl } from "@/lib/storage/public-url"
+
 const PUBLIC_MAP_PIN_BITMAP_CACHE_LIMIT = 240
 
 export type PublicMapPinMarkerBitmapResult = {
@@ -33,7 +35,7 @@ async function loadPublicMapPinMarkerBitmap({
   key: string
 }): Promise<PublicMapPinMarkerBitmapResult> {
   try {
-    const response = await fetch(imageUrl, {
+    const response = await fetch(buildPublicImageTransformUrl(imageUrl, { width: 144, height: 144, resize: "contain" }) ?? imageUrl, {
       cache: "force-cache",
       mode: "cors",
     })

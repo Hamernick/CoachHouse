@@ -1,5 +1,7 @@
 "use client"
 
+import { getDocumentEditorHref } from "@/lib/workspace/editor-navigation"
+
 import Link from "next/link"
 import { useId, type ReactNode } from "react"
 import {
@@ -82,7 +84,7 @@ export function DocumentsLibraryCard({
       aria-busy={uploading || undefined}
       className={cn(
         "group/card bg-muted/80 ring-border/60 relative flex aspect-square flex-col overflow-hidden rounded-xl ring-1 transition-[background-color,box-shadow,transform] duration-200 motion-reduce:transition-none sm:min-h-0",
-        "hover:bg-muted focus-within:ring-ring/50 focus-within:ring-2 hover:shadow-lg hover:shadow-black/5 dark:bg-[#303030] dark:hover:bg-[#363636]",
+        "hover:bg-muted focus-within-visible:ring-ring/50 focus-within-visible:ring-2 hover:shadow-lg hover:shadow-black/5 dark:bg-[#303030] dark:hover:bg-[#363636]",
         missingUpload &&
           "hover:bg-muted/40 dark:hover:bg-muted/40 bg-transparent ring-0 hover:shadow-none dark:bg-transparent",
         viewMode === "list" &&
@@ -136,7 +138,7 @@ export function DocumentsLibraryCard({
           <Link
             href={
               item.coreDriveSource?.webViewLink ??
-              `/roadmap/${item.row.section.slug}`
+              getDocumentEditorHref(item.row.section.slug)
             }
             target={item.coreDriveSource ? "_blank" : undefined}
             rel={item.coreDriveSource ? "noopener noreferrer" : undefined}

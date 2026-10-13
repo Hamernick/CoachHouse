@@ -9,6 +9,8 @@ import {
   type RefObject,
 } from "react"
 
+import type { ResourceDirectoryPagination } from "@/features/find-resource-index/client"
+
 import { Button } from "@/components/ui/button"
 
 export const PUBLIC_MAP_LIST_INITIAL_PAGE_SIZE = 8
@@ -49,6 +51,9 @@ export function usePublicMapOrganizationListPagination<
   selectedItemId,
   query,
   incrementalLoading,
+  autoLoadMore = true,
+  autoLoadRemote = false,
+  remote,
   initialVisibleCount,
   pageSize,
   getItemId = (item) => item.id,
@@ -57,6 +62,9 @@ export function usePublicMapOrganizationListPagination<
   selectedItemId: string | null
   query?: string
   incrementalLoading: boolean
+  autoLoadMore?: boolean
+  autoLoadRemote?: boolean
+  remote?: ResourceDirectoryPagination | null
   initialVisibleCount: number
   pageSize: number
   getItemId?: (item: TItem) => string
@@ -89,9 +97,12 @@ export function usePublicMapOrganizationListPagination<
     [items]
   )
 
+  const resetKey = remote?.key ?? itemIdentity
+  const currentResetKey = useRef(resetKey)
+  currentResetKey.current = resetKey
   useEffect(() => {
     setVisibleCount(initialResolvedVisibleCount)
-  }, [baseVisibleCount, initialResolvedVisibleCount, itemIdentity, query])
+  }, [baseVisibleCount, initialResolvedVisibleCount, resetKey, query])
 
   useEffect(() => {
     setVisibleCount((currentVisibleCount) =>
@@ -104,16 +115,22 @@ export function usePublicMapOrganizationListPagination<
 
   const visibleItems = paginationEnabled ? items.slice(0, visibleCount) : items
   const remainingCount = Math.max(0, items.length - visibleItems.length)
-  const hasMoreOrganizations = paginationEnabled && remainingCount > 0
-  const nextPageCount = Math.min(remainingCount, resolvedPageSize)
+  const hasMoreOrganizations = paginationEnabled && (remainingCount > 0 || Boolean(remote?.hasMore))
+  const nextPageCount = remainingCount > 0 ? Math.min(remainingCount, resolvedPageSize) : resolvedPageSize
   const loadNextPage = useCallback(() => {
-    setVisibleCount((currentVisibleCount) =>
-      Math.min(items.length, currentVisibleCount + resolvedPageSize)
-    )
-  }, [items.length, resolvedPageSize])
+    if (remainingCount === 0 && remote?.hasMore) {
+      if (remote.loading) return
+      const key = resetKey
+      void remote.loadMore().then((loaded) => {
+        if (loaded && currentResetKey.current === key) setVisibleCount((count) => count + resolvedPageSize)
+      })
+      return
+    }
+    setVisibleCount((count) => Math.min(items.length, count + resolvedPageSize))
+  }, [items.length, remainingCount, remote, resetKey, resolvedPageSize])
 
   useEffect(() => {
-    if (!paginationEnabled || !hasMoreOrganizations) return
+    if ((remote && !autoLoadRemote) || remote?.loading || remote?.error || !autoLoadMore || !paginationEnabled || !hasMoreOrganizations) return
     if (typeof IntersectionObserver === "undefined") return
     const sentinel = loadMoreSentinelRef.current
     if (!sentinel) return
@@ -135,7 +152,7 @@ export function usePublicMapOrganizationListPagination<
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasMoreOrganizations, loadNextPage, paginationEnabled])
+  }, [remote, autoLoadRemote, autoLoadMore, hasMoreOrganizations, loadNextPage, paginationEnabled])
 
   return {
     hasMoreOrganizations,
@@ -148,6 +165,7 @@ export function usePublicMapOrganizationListPagination<
 }
 
 export function PublicMapOrganizationListPaginationFooter({
+  compact = false,
   hasMoreOrganizations,
   loadMoreSentinelRef,
   loadNextPage,
@@ -155,25 +173,29 @@ export function PublicMapOrganizationListPaginationFooter({
   organizationCount,
   paginationEnabled,
   visibleCount,
+  loading = false,
+  error = null,
 }: {
+  compact?: boolean
   hasMoreOrganizations: boolean
   loadMoreSentinelRef: RefObject<HTMLDivElement | null>
   loadNextPage: () => void
   nextPageCount: number
-  organizationCount: number
+  organizationCount: number | undefined
   paginationEnabled: boolean
   visibleCount: number
+  loading?: boolean
+  error?: string | null
 }) {
   if (!paginationEnabled) return null
 
   return (
     <div
       data-public-map-list-pagination="true"
-      className="flex min-w-0 shrink-0 flex-col items-center gap-1.5 px-2 pt-1 pb-2 text-center"
+      className={hasMoreOrganizations ? `flex min-w-0 shrink-0 flex-col items-center px-2 text-center ${compact ? "gap-0 py-0" : "gap-1.5 pt-1 pb-2"}` : "sr-only"}
     >
       <p className="sr-only" aria-live="polite" aria-atomic="true">
-        Showing {visibleCount.toLocaleString()} of{" "}
-        {organizationCount.toLocaleString()} resources
+        Showing {visibleCount.toLocaleString()}{organizationCount === undefined ? "" : ` of ${organizationCount.toLocaleString()}`} resources
       </p>
       {hasMoreOrganizations ? (
         <>
@@ -189,8 +211,9 @@ export function PublicMapOrganizationListPaginationFooter({
             size="sm"
             className="text-muted-foreground hover:text-foreground h-7 rounded-full px-3 text-xs"
             onClick={loadNextPage}
+            disabled={loading}
           >
-            Load {nextPageCount.toLocaleString()} more
+            {loading ? "Loading…" : error ? "Retry loading more" : `Load ${nextPageCount.toLocaleString()} more`}
           </Button>
         </>
       ) : null}

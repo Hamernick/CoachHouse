@@ -1,5 +1,6 @@
 "use client"
 
+import { FeatureUpgradeNotice } from "@/components/paywall/feature-upgrade-notice"
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import ChevronUpIcon from "lucide-react/dist/esm/icons/chevron-up"
 import Clock4Icon from "lucide-react/dist/esm/icons/clock-4"
@@ -117,6 +118,11 @@ export function WorkspaceBoardInviteSheetBody({
 
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
+      {!organizationAccessState.loading && !organizationAccessState.hasPaidTeamAccess ? (
+        <FeatureUpgradeNotice title="Bring your team into the workspace">
+          Upgrade to invite teammates, assign roles, and give collaborators temporary access. Free is your personal organization workspace.
+        </FeatureUpgradeNotice>
+      ) : null}
       <section className="border-border/60 bg-background/30 space-y-3 rounded-lg border p-3">
         <div className="space-y-2">
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">

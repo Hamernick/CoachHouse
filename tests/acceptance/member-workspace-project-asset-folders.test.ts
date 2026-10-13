@@ -234,3 +234,6 @@ describe("folder drag and drop", () => {
     expect(render(true)).not.toContain('draggable="true"')
   })
 })
+
+// These fixtures represent ordinary projects; guest scope has a separate denial suite.
+vi.mock("@/lib/workspace/ordinary-project-access", () => ({ isOrdinaryWorkspaceProject: async () => true }))

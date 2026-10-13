@@ -17,6 +17,7 @@ import {
 } from "@/lib/people/social-links"
 import { mutateOrganizationPeopleProfile } from "@/lib/people/profile-write"
 import { fetchLinkedInProfileImage } from "@/lib/people/linkedin-image-refresh"
+import { readPeopleRoles, resolvePersonRole } from "@/lib/people/roles"
 import { normalizePersonTags } from "@/lib/people/tags"
 import {
   canEditOrganization,
@@ -29,6 +30,7 @@ export type OrgPerson = {
   title?: string | null
   email?: string | null
   category: PersonCategory
+  customRole?: string | null
   image?: string | null
   reportsToId?: string | null
   pos?: { x: number; y: number } | null
@@ -133,13 +135,17 @@ export async function upsertPersonAction(
   >({
     supabase,
     orgId,
-    mutate: (people) => {
+    mutate: (people, profile) => {
       const existingIndex = people.findIndex((item) => item.id === id)
       if (person.id && existingIndex < 0) {
         return { error: "Person not found." }
       }
 
       const existingPerson = existingIndex >= 0 ? people[existingIndex] : null
+      const roles = readPeopleRoles(profile)
+      const role = resolvePersonRole({ category: normalizedCategory, customRole:
+        person.customRole === undefined ? existingPerson?.customRole : person.customRole }, roles)
+      if ("error" in role) return role
       const socialLinks = normalizePersonSocialLinks(person, existingPerson)
       const nextItem: OrgPerson = {
         id,
@@ -147,7 +153,7 @@ export async function upsertPersonAction(
         title: person.title?.trim() || null,
         email: person.email?.trim() || null,
         ...socialLinks,
-        category: normalizedCategory,
+        ...role,
         image,
         reportsToId:
           canAssignManager(normalizedCategory) &&
@@ -169,6 +175,7 @@ export async function upsertPersonAction(
         ok: true,
         changed: true,
         people: nextPeople,
+        peopleRoles: role.customRole ? [...new Set([...roles, role.customRole])] : roles,
         value: {
           id,
           previousImage:
@@ -202,7 +209,8 @@ export async function upsertPersonAction(
 
 export async function updatePersonCategoryAction(
   id: string,
-  category: PersonCategory
+  category: PersonCategory,
+  customRole: string | null = null
 ): Promise<{ ok: true } | { error: string }> {
   const personId = id.trim()
   if (!personId) return { error: "Person not found." }
@@ -220,18 +228,22 @@ export async function updatePersonCategoryAction(
   const writeResult = await mutateOrganizationPeopleProfile<OrgPerson, null>({
     supabase,
     orgId,
-    mutate: (people) => {
+    mutate: (people, profile) => {
       const person = people.find((item) => item.id === personId)
       if (!person) return { error: "Person not found." }
-      if (person.category === category) {
+      const roles = readPeopleRoles(profile)
+      const role = resolvePersonRole({ category, customRole }, roles)
+      if ("error" in role) return role
+      if (person.category === role.category && (person.customRole ?? null) === role.customRole) {
         return { ok: true, changed: false, value: null }
       }
       return {
         ok: true,
         changed: true,
         people: people.map((item) =>
-          item.id === personId ? { ...item, category } : item
+          item.id === personId ? { ...item, ...role } : item
         ),
+        peopleRoles: role.customRole ? [...new Set([...roles, role.customRole])] : roles,
         value: null,
       }
     },

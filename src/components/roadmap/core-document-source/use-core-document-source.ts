@@ -53,7 +53,7 @@ export function useCoreDocumentSource(
         expectedUserId: scope.userId,
         expectedLastUpdated: section.lastUpdated,
         driveFileId,
-        ...(mode === "remove"
+        ...(mode === "remove" && !section.driveSource
           ? { content: "", budgetRows: [], status: "not_started" as const }
           : {}),
       })

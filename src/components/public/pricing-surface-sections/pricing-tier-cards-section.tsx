@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const pricingCtaButtonClassName =
-  "h-auto min-h-9 w-full whitespace-normal rounded-xl text-center"
+  "h-auto min-h-11 w-full whitespace-normal rounded-full text-center shadow-none"
 
 function splitTierEyebrow(eyebrow: string) {
   const match = eyebrow.match(/^(.*?)(\s*\(.*\))$/)
@@ -34,7 +34,7 @@ function splitTierEyebrow(eyebrow: string) {
 
 export function PricingTierCardsSection() {
   return (
-    <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {PLATFORM_TIERS.map((tier) => {
         const isMailtoCta = tier.ctaHref.startsWith("mailto:")
         const ctaVariant =
@@ -47,9 +47,9 @@ export function PricingTierCardsSection() {
             role="group"
             aria-label={`${tier.title} plan`}
             className={cn(
-              "border-border/70 flex h-full flex-col rounded-3xl border",
+              "border-border/70 flex h-full flex-col rounded-3xl border shadow-none",
               tier.featured &&
-                "border-primary/30 ring-primary/15 shadow-md ring-1"
+                "border-primary/30 bg-muted/30"
             )}
           >
             <CardHeader className="space-y-5 p-6">
@@ -67,12 +67,12 @@ export function PricingTierCardsSection() {
                 ) : null}
               </div>
 
-              <div className="space-y-3">
-                <CardTitle className="min-h-10 text-3xl font-semibold tracking-tight">
+              <div className="space-y-2">
+                <CardTitle className="min-h-10 text-2xl font-medium tracking-tight">
                   {tier.title}
                 </CardTitle>
                 <div className="flex min-h-11 items-end gap-2">
-                  <span className="text-4xl font-semibold tracking-tight">
+                  <span className="text-4xl font-normal tracking-tight">
                     {tier.priceLine}
                   </span>
                   {tier.priceNote ? (

@@ -8,8 +8,8 @@ export function CommunityStep() {
       <div className="rounded-2xl border border-border/70 bg-background/50 p-4">
         <CommunityJoinCards
           compact
-          title="Join our communities"
-          description="Optional: hop into Discord or WhatsApp now so you can ask questions as you set things up."
+          title="Find your people"
+          description="Ask a question, share what you’re building, or come back when you’re ready. Joining is optional."
         />
       </div>
     </div>

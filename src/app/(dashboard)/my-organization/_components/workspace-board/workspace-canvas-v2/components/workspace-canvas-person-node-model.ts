@@ -13,6 +13,24 @@ export type WorkspaceCanvasPersonPlacement = {
   y: number
 }
 
+export function buildWorkspacePeopleDropPlacements(
+  personIds: string[],
+  center: { x: number; y: number }
+): WorkspaceCanvasPersonPlacement[] {
+  const columns = Math.ceil(Math.sqrt(personIds.length))
+  return personIds.map((personId, index) => ({
+    personId,
+    x: Math.round(
+      center.x - WORKSPACE_CANVAS_PERSON_NODE_SIZE.width / 2 +
+      (index % columns) * (WORKSPACE_CANVAS_PERSON_NODE_SIZE.width + 24)
+    ),
+    y: Math.round(
+      center.y - WORKSPACE_CANVAS_PERSON_NODE_SIZE.height / 2 +
+      Math.floor(index / columns) * (WORKSPACE_CANVAS_PERSON_NODE_SIZE.height + 24)
+    ),
+  }))
+}
+
 export type WorkspaceCanvasPersonNodePerson = {
   id: string
   name: string

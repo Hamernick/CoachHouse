@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 const TOOLTIP_SOURCE = "src/components/ui/tooltip.tsx"
 const TOOLTIP_IMPORT = "@/components/ui/tooltip"
 export const TOOLTIP_ARROW_CLASSNAME =
-  "z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-popover fill-popover"
+  "z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground"
 
 function TooltipProvider({
   delayDuration = 0,
@@ -52,7 +52,7 @@ function TooltipContent({
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   const reactGrabAttributes = props as ReactGrabDebugSurfaceAttributes
   const resolvedClassName = cn(
-    "bg-popover text-popover-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-w-[22rem] origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs leading-tight whitespace-nowrap shadow-md",
+    "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-balance text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 motion-reduce:animate-none",
     className
   )
   const debugRecord = buildReactGrabDebugSurfaceRecord({

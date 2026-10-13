@@ -147,7 +147,7 @@ describe("app sidebar nav data", () => {
 
   })
 
-  it("keeps Find hidden for free self-only member accounts", () => {
+  it("shows Workspace for free accounts without exposing paid or admin tools", () => {
     const nav = buildMainNav({
       isAdmin: false,
       showOrgAdmin: false,
@@ -156,8 +156,8 @@ describe("app sidebar nav data", () => {
       hasMemberWorkspaceAccess: false,
     })
 
-    expect(nav.map((item) => item.title)).toEqual([])
-    expect(nav.find((item) => item.title === "Workspace")).toBeUndefined()
+    expect(nav.map((item) => item.title)).toEqual(["Workspace"])
+    expect(nav.find((item) => item.title === "Workspace")?.href).toBe("/workspace")
     expect(nav.find((item) => item.title === "Find")).toBeUndefined()
     expect(nav.find((item) => item.title === "Organizations")).toBeUndefined()
     expect(nav.find((item) => item.title === "Projects")).toBeUndefined()
@@ -193,7 +193,7 @@ describe("app sidebar nav data", () => {
       hasMemberWorkspaceAccess: false,
     })
 
-    expect(nav.map((item) => item.title)).toEqual([])
+    expect(nav.map((item) => item.title)).toEqual(["Workspace"])
     expect(nav.find((item) => item.title === "Admin Dashboard")).toBeUndefined()
     expect(nav.map((item) => item.badge)).not.toContain("Upgrade")
   })

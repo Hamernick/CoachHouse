@@ -670,7 +670,7 @@ describe("coaching booking feature", () => {
     expect(shellMainContent).toContain(': "overflow-y-auto"')
     expect(scrollFade).toContain("enabled?: boolean")
     expect(scrollFade).toContain(
-      "data-[orientation=vertical]:scroll-fade-effect-y"
+      "scroll-fade-effect-y overflow-y-auto"
     )
     expect(scrollFade).toContain("useScrollFadeEffect")
     expect(scrollFadeLogic).toContain("dataset.scrollFadeStart")
@@ -1002,6 +1002,13 @@ describe("coaching booking feature", () => {
     expect(broker).toContain("buildGoogleEventAttendees({")
     expect(featureReadme).toContain("keyless Cloud Run broker")
     expect(featureReadme).toContain("Vercel OIDC")
+  })
+
+  it("starts a free account without complimentary coaching credits", async () => {
+    const summary = await resolveCoachingCreditSummary({
+      supabase: createCreditSummarySupabaseStub({}), userId: "new-free-user", orgId: "free-org",
+    })
+    expect(summary).toMatchObject({ available: 0, priceTier: "full", hasDiscountAccess: false })
   })
 
   it("limits discounted paid booking to Operations Support after included credits are gone", async () => {

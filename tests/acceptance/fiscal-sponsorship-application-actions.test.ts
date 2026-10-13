@@ -248,6 +248,7 @@ describe("fiscal sponsorship application persistence", () => {
       }),
     }
     const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       from: vi.fn((table: string) => {
         if (table === "organization_projects") return projectQuery
         if (table === "fiscal_sponsorship_applications") return applicationTable
@@ -281,6 +282,10 @@ describe("fiscal sponsorship application persistence", () => {
         estimatedBudgetCents: 500000,
         operatesOutsideUnitedStates: false,
         sourceSnapshot: { project: "source" },
+        metadata: {
+          fundraisingGoal: { amountCents: 250000, period: "monthly" },
+          budgetRows: [{ id: "legacy", category: "Supplies", amount: 5000 }],
+        },
       })
     ).resolves.toEqual({
       ok: true,
@@ -302,6 +307,10 @@ describe("fiscal sponsorship application persistence", () => {
           primary_email: "ana@example.com",
           legal_entity_type: "informal_group_with_ein",
           estimated_budget_cents: 500000,
+          metadata: expect.objectContaining({
+            fundraisingGoal: { amountCents: 250000, period: "monthly" },
+            budgetRows: [{ id: "legacy", category: "Supplies", amount: 5000 }],
+          }),
           operates_outside_united_states: false,
           source_snapshot: { project: "source" },
           created_by: "user-1",
@@ -323,6 +332,7 @@ describe("fiscal sponsorship application persistence", () => {
       org_id: "org-1",
     })
     const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       from: vi.fn((table: string) => {
         if (table === "organization_projects") return projectQuery
         throw new Error(`Unexpected table: ${table}`)
@@ -364,6 +374,7 @@ describe("fiscal sponsorship application persistence", () => {
       }),
     }
     const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       from: vi.fn((table: string) => {
         if (table === "organization_projects") return projectQuery
         if (table === "fiscal_sponsorship_applications") return applicationTable
@@ -473,6 +484,7 @@ describe("fiscal sponsorship application persistence", () => {
       }),
     }
     const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       from: vi.fn((table: string) => {
         if (table === "organization_projects") return projectQuery
         if (table === "fiscal_sponsorship_applications") return applicationTable

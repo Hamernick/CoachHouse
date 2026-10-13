@@ -3,8 +3,8 @@
 import * as React from "react"
 
 import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { FiscalApplicationDateField } from "./fiscal-application-date-field"
 
 import {
   FISCAL_SPONSORSHIP_PROJECT_DURATION_OPTIONS,
@@ -12,7 +12,6 @@ import {
 } from "../lib/application-draft"
 import type { FiscalSponsorshipProjectDurationType } from "../types"
 import {
-  DraftInputField,
   EMPTY_SELECT_VALUE,
   SelectField,
   type DraftFieldChange,
@@ -27,6 +26,7 @@ function ProjectDurationField({
 }) {
   return (
     <SelectField
+      field="projectDurationType"
       label="Project duration"
       value={draft.projectDurationType || EMPTY_SELECT_VALUE}
       placeholder="Choose duration..."
@@ -63,7 +63,6 @@ function ProjectTimelineFields({
   const [hasNoProposedEndDate, setHasNoProposedEndDate] = React.useState(
     draft.temporaryEndDate.length === 0
   )
-  const endDateInputId = `${formId}-temporaryEndDate`
   const noEndDateInputId = `${formId}-temporaryEndDateUnknown`
 
   React.useEffect(() => {
@@ -83,66 +82,55 @@ function ProjectTimelineFields({
 
   if (projectDurationType === "ongoing_multi_year") {
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        <DraftInputField
+      <FieldGroup className="max-w-56 gap-2">
+        <FiscalApplicationDateField
           formId={formId}
           field="temporaryStartDate"
           label="Launch or start date"
-          type="date"
           value={draft.temporaryStartDate}
           onFieldChange={onFieldChange}
         />
-        <Field className="rounded-lg border border-dashed p-3">
-          <FieldLabel>No end date required</FieldLabel>
-          <FieldDescription>
-            Ongoing or multi-year projects can leave the end date open.
-          </FieldDescription>
-        </Field>
-      </div>
+        <FieldDescription>No end date required for ongoing projects.</FieldDescription>
+      </FieldGroup>
     )
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <DraftInputField
+    <FieldGroup className="max-w-md gap-x-4 gap-y-2 sm:grid-cols-2 sm:items-start">
+      <FiscalApplicationDateField
         formId={formId}
         field="temporaryStartDate"
         label="Start date"
-        type="date"
         value={draft.temporaryStartDate}
         onFieldChange={onFieldChange}
       />
-      <Field>
-        <FieldLabel htmlFor={endDateInputId}>Proposed end date</FieldLabel>
-        <Input
-          id={endDateInputId}
-          name="temporaryEndDate"
-          type="date"
-          value={draft.temporaryEndDate}
-          disabled={hasNoProposedEndDate}
-          onChange={(event) =>
-            onFieldChange("temporaryEndDate", event.target.value)
-          }
+      <FiscalApplicationDateField
+        formId={formId}
+        field="temporaryEndDate"
+        label="Proposed end date"
+        value={draft.temporaryEndDate}
+        disabled={hasNoProposedEndDate}
+        onFieldChange={onFieldChange}
+      />
+      <Field orientation="horizontal" className="min-h-11 grid-cols-[auto_1fr] items-center justify-start gap-2 sm:col-span-2">
+        <Checkbox
+          className="shadow-none"
+          id={noEndDateInputId}
+          checked={hasNoProposedEndDate}
+          onCheckedChange={(checked) => {
+            const nextChecked = checked === true
+            setHasNoProposedEndDate(nextChecked)
+            if (nextChecked) onFieldChange("temporaryEndDate", "")
+          }}
         />
-        <Field orientation="horizontal" className="grid-cols-[auto_1fr] gap-2">
-          <Checkbox
-            id={noEndDateInputId}
-            checked={hasNoProposedEndDate}
-            onCheckedChange={(checked) => {
-              const nextChecked = checked === true
-              setHasNoProposedEndDate(nextChecked)
-              if (nextChecked) onFieldChange("temporaryEndDate", "")
-            }}
-          />
-          <FieldLabel
-            htmlFor={noEndDateInputId}
-            className="text-muted-foreground text-xs leading-snug font-normal"
-          >
-            No proposed end date yet
-          </FieldLabel>
-        </Field>
+        <FieldLabel
+          htmlFor={noEndDateInputId}
+          className="text-muted-foreground flex min-h-11 cursor-pointer items-center text-xs leading-snug font-normal"
+        >
+          No proposed end date yet
+        </FieldLabel>
       </Field>
-    </div>
+    </FieldGroup>
   )
 }
 
