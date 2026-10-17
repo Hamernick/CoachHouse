@@ -1,6 +1,6 @@
 # Google Calendar setup and activation
 
-Updated 2026-09-28. Use the [current release checklist](2026-09-28-google-calendar-release-readiness.md)
+Updated 2026-10-16. Use the [current release checklist](2026-09-28-google-calendar-release-readiness.md)
 for implementation and validation status. Older verification submissions and recordings
 are historical evidence, not instructions to repeat consent or provider setup.
 
@@ -27,7 +27,8 @@ Required server-side variables:
 - `GOOGLE_CALENDAR_REDIRECT_URI`
 - `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEYS`
 - `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_CURRENT_VERSION`
-- `GOOGLE_CALENDAR_CRON_SECRET`
+
+Scheduler authentication: Vercel uses the existing `CRON_SECRET` (minimum 32 characters). A custom scheduler may instead use `GOOGLE_CALENDAR_CRON_SECRET` (same minimum); existing dedicated credentials remain supported.
 
 Use the existing dedicated Calendar OAuth client and encryption key version. Never
 regenerate an existing encryption key as setup; saved connections depend on it.
@@ -48,18 +49,21 @@ tables have forced RLS with no anon/authenticated SELECT privilege. Do not repla
 
 ## Scheduled sync and activation
 
-The scheduler calls `GET /api/integrations/google-calendar/cron` with
-`Authorization: Bearer <GOOGLE_CALENDAR_CRON_SECRET>`. The secret must have at least
-32 characters. Each invocation handles up to ten due accounts within 45 seconds;
-successful accounts become due five minutes later. Actual freshness depends on scheduler
-cadence and capacity. A cron route alone does not establish that a scheduler exists. Read-only inspection on
-September 28 found pg_cron installed but no Calendar job. One enabled connection was
-overdue; verify any external scheduler before creating a duplicate or triggering sync.
+The scheduler calls `GET /api/integrations/google-calendar/cron`. Vercel sends
+`Authorization: Bearer <CRON_SECRET>` automatically; custom schedulers can keep
+`Authorization: Bearer <GOOGLE_CALENDAR_CRON_SECRET>`. Both must have at least 32 characters.
+The current `vercel.json` change adds a five-minute schedule. It becomes a real job
+only on production deployment; no manual provider job was created during development.
 
-Read-only Vercel inspection on September 28 returned HTTP 403. Current Production
-flag/variables, deployed configuration and scheduler have not been verified. Confirm
-hosting support/cost and exact side effects before authorizing scheduler creation or
-feature activation. Preview configuration does not establish Production configuration.
+Each invocation handles up to ten due accounts within45 seconds. Successful accounts
+become due five minutes later; actual freshness depends on scheduling alignment and
+capacity. October16 read-only audit confirms no personal Calendar job in either Vercel
+or Supabase. Keep the separate coaching-calendar reconciliation and three fiscal jobs.
+
+Production remains globally disabled. Seven Calendar settings and the existing platform
+scheduler secret are present, and the callback matches `coachhouse.app`. One real Caleb
+connection has saved workspace export enabled; resolve the import/export test scope before
+activation or sync. No key rotation or repeat Google approval is needed.
 
 ## Live canary
 
