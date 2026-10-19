@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { resolveOnboardingRequirements } from "@/lib/onboarding/requirements"
+import { resolveAppShellOnboardingRedirectTarget } from "@/components/app-shell/onboarding-redirect"
 
 // Compile the mocked page before timed cases; per-case factories still reload
 // after resetModules, without a cold transform outliving a case’s mocks.
@@ -97,7 +99,7 @@ describe("onboarding gate", () => {
     ).toContain("py-0")
   })
 
-  it("opens the existing setup form for a legacy paid owner instead of restarting pricing", async () => {
+  it("opens the existing setup form for an unfinished paid owner instead of restarting pricing", async () => {
     vi.doMock("@/components/app-shell/dashboard-layout-state", () => ({
       resolveDashboardLayoutState: async () => ({
         userPresent: true, onboardingLocked: true, onboardingIntentFocus: "build",
@@ -114,6 +116,39 @@ describe("onboarding gate", () => {
       mode: "workspace_setup", defaultBuilderPlanTier: "operations_support", defaultEmail: "review@example.com",
     })
     expect(redirectMock).not.toHaveBeenCalled()
+  })
+
+  it("returns a completed owner with missing basics from onboarding to a workspace that does not redirect back", async () => {
+    const requirements = resolveOnboardingRequirements({
+      userId: "returning-owner",
+      organizationId: "returning-owner",
+      isPlatformStaff: false,
+      userMetadata: {
+        onboarding_completed: true,
+        onboarding_intent_focus: "build",
+        workspace_onboarding_stage: 2,
+      },
+      organizationProfile: { roadmap: { sections: [{ id: "vision", content: "Saved work" }] } },
+      publicSlug: null,
+    })
+    vi.doMock("@/components/app-shell/dashboard-layout-state", () => ({
+      resolveDashboardLayoutState: async () => ({
+        userPresent: true,
+        onboardingLocked: requirements.required,
+        onboardingMode: requirements.mode,
+        onboardingIntentFocus: "build",
+        onboardingDefaults: {},
+      }),
+    }))
+    const { default: Page } = await import("@/app/(dashboard)/onboarding/page")
+    const destination = await captureRedirect(() => Page())
+    expect(destination).toBe("/workspace")
+    expect(resolveAppShellOnboardingRedirectTarget({
+      onboardingLocked: requirements.required,
+      isAdminContext: false,
+      pathname: destination,
+    })).toBeNull()
+    expect(fetchLearningEntitlementsMock).not.toHaveBeenCalled()
   })
 
   it("recovers a paid onboarding pricing return from Stripe-backed entitlements when the local subscription row was missing before sync", async () => {
