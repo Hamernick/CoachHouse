@@ -162,7 +162,7 @@ export function RichTextToolbar({
       {toolbarActions ? <div className="flex items-center gap-1">{toolbarActions}</div> : null}
       <DropdownMenu>
         <ToolbarMenuTrigger icon={TypeIcon} label="Text style" valueLabel={textStyleLabel} />
-        <DropdownMenuContent align="start" className="w-44">
+        <DropdownMenuContent align="start" className="w-44 shadow-none">
           <DropdownMenuItem
             onSelect={() => editor.chain().focus().setParagraph().run()}
             className={blockItemClass(textStyle === "paragraph")}
@@ -217,7 +217,7 @@ export function RichTextToolbar({
       <ToolbarDivider />
       <DropdownMenu>
         <ToolbarMenuTrigger icon={ListIcon} label="Blocks" valueLabel="Blocks" />
-        <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuContent align="start" className="w-48 shadow-none">
           <DropdownMenuItem
             onSelect={() => editor.chain().focus().toggleBulletList().run()}
             className={blockItemClass(editor.isActive("bulletList"))}
@@ -264,7 +264,7 @@ export function RichTextToolbar({
         <>
           <DropdownMenu>
             <ToolbarMenuTrigger icon={Table2} label="Table" valueLabel="Table" />
-            <DropdownMenuContent align="start" className="w-52">
+            <DropdownMenuContent align="start" className="w-52 shadow-none">
               <DropdownMenuItem
                 onSelect={() =>
                   editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
@@ -319,7 +319,7 @@ export function RichTextToolbar({
           <ToolbarDivider />
           <DropdownMenu>
             <ToolbarMenuTrigger icon={AlignLeft} label="Align" valueLabel="Align" />
-            <DropdownMenuContent align="start" className="w-40">
+            <DropdownMenuContent align="start" className="w-40 shadow-none">
               <DropdownMenuRadioGroup
                 value={alignmentValue}
                 onValueChange={(value) => {

@@ -53,7 +53,7 @@ export function RichTextPasteMenu({ editor }: { editor: Editor }) {
       <DropdownMenuContent
         {...getReactGrabLinkedSurfaceProps({ ownerId: "rich-text:paste", component: "RichTextPasteMenu", source: "src/components/rich-text-editor/components/rich-text-paste-menu.tsx", surfaceKind: "content" })}
         align="start"
-        className="max-w-[calc(100vw-2rem)]"
+        className="max-w-[calc(100vw-2rem)] shadow-none"
         onCloseAutoFocus={(event) => {
           if (pastingRef.current) {
             event.preventDefault()

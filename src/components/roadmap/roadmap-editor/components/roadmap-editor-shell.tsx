@@ -141,9 +141,9 @@ export function RoadmapEditorShell({
                   readOnly: !canEdit,
                   placeholder: editorPlaceholder,
                   countClassName:
-                    "bg-[#e6e6e6] px-4 py-2 text-xs text-muted-foreground dark:bg-[#1c1c1c]",
+                    "bg-[#f5f5f5] px-4 py-2 text-xs text-muted-foreground dark:bg-[#1c1c1c]",
                   contentClassName:
-                    "flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[#ededed] dark:bg-[#171717] rounded-none",
+                    "flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[#fafafa] dark:bg-[#171717] rounded-none",
                   onImageUpload: canEdit ? onImageUpload : undefined,
                   insertUploadedImage: true,
                   disableResize: true,
@@ -165,9 +165,9 @@ export function RoadmapEditorShell({
                   ) : null,
                   toolbarPortalId: ROADMAP_TOOLBAR_ID,
                   toolbarClassName:
-                    "flex-nowrap gap-0.5 overflow-x-auto overscroll-x-contain rounded-xl border border-border/60 bg-background/80 py-1 shadow-[0_1px_1px_rgba(0,0,0,0.06)] sm:gap-0.5 dark:shadow-[0_1px_1px_rgba(0,0,0,0.24)] [&>div]:shrink-0 [&_button]:min-h-11 [&_button]:min-w-11 sm:[&_button]:min-h-8 sm:[&_button]:min-w-8 [&_[data-toolbar-menu-trigger]]:gap-0.5 [&_[data-toolbar-menu-trigger]]:has-[>svg]:px-1 sm:[&_[data-toolbar-menu-trigger]]:has-[>svg]:px-1.5",
+                    "flex-nowrap gap-0.5 overflow-x-auto overscroll-x-contain rounded-xl border border-border/60 bg-background/80 py-1 shadow-none sm:gap-0.5 [&>div]:shrink-0 [&_button]:min-h-11 [&_button]:min-w-11 sm:[&_button]:min-h-8 sm:[&_button]:min-w-8 [&_[data-toolbar-menu-trigger]]:gap-0.5 [&_[data-toolbar-menu-trigger]]:has-[>svg]:px-1 sm:[&_[data-toolbar-menu-trigger]]:has-[>svg]:px-1.5",
                   className:
-                    "flex h-full min-h-0 flex-1 flex-col bg-card dark:bg-[#1f1f1f]",
+                    "flex h-full min-h-0 flex-1 flex-col bg-card shadow-none dark:bg-[#1f1f1f]",
                   editorClassName:
                     "flex-1 min-h-0 h-full overflow-visible rounded-none bg-transparent dark:bg-[#171717]",
                 }

@@ -1,14 +1,19 @@
 "use client"
 import { useState } from "react"
+import { createPortal } from "react-dom"
+import History from "lucide-react/dist/esm/icons/history"
+import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { RoadmapBudgetTableEditor } from "@/components/roadmap/roadmap-budget-table-editor"
 import { normalizeRoadmapBudgetRows } from "@/lib/roadmap/budget"
 import { RichTextEditor } from "@/components/rich-text-editor"
 import { defaultDocumentTransport } from "../hooks/use-organization-document-collaboration-controller"
 import type { DocumentScope, DocumentVersion, DocumentTransport } from "../types"
 
-export function DocumentVersionHistory({ scope, disabled, restore, transport = defaultDocumentTransport }: {
+export function DocumentVersionHistory({ scope, disabled, restore, transport = defaultDocumentTransport, toolbar = false, triggerContainer }: {
   scope: DocumentScope; transport?: DocumentTransport; disabled: boolean; restore: (version: DocumentVersion) => void
+  toolbar?: boolean; triggerContainer?: HTMLElement | null
 }) {
   const [versions, setVersions] = useState<DocumentVersion[] | null>(null)
   const [selected, setSelected] = useState<DocumentVersion | null>(null)
@@ -23,10 +28,16 @@ export function DocumentVersionHistory({ scope, disabled, restore, transport = d
     } catch { setError("Unable to load history. Try again.") }
     finally { setLoading(false) }
   }
-  return <div className="space-y-3">
-    <Button size="sm" variant="outline" onClick={() => versions ? setVersions(null) : void load()} disabled={loading}>
-      {loading ? "Loading history…" : versions ? "Close history" : "Version history"}
-    </Button>
+  const label = versions ? "Close version history" : "Version history"
+  const trigger = <Button type="button" size="sm" variant={toolbar ? "ghost" : "outline"}
+    className={cn(toolbar && "h-7 w-7 p-0 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8")}
+    aria-label={label} title={label} aria-expanded={Boolean(versions)} aria-busy={loading}
+    onClick={() => versions ? setVersions(null) : void load()} disabled={loading}>
+    {toolbar ? loading ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <History className="size-4" aria-hidden="true" />
+      : loading ? "Loading history…" : versions ? "Close history" : "Version history"}
+  </Button>
+  return <>
+    {toolbar ? triggerContainer ? createPortal(trigger, triggerContainer) : null : <div>{trigger}</div>}
     {error ? <p role="alert" className="text-destructive text-sm">{error}</p> : null}
     {versions ? <div className="space-y-3 rounded-lg border p-3">
       <p className="text-muted-foreground text-sm">Preview a saved version before restoring it. Restoring creates a new version.</p>
@@ -47,5 +58,5 @@ export function DocumentVersionHistory({ scope, disabled, restore, transport = d
         }}>Restore this version</Button>
       </> : null}
     </div> : null}
-  </div>
+  </>
 }
