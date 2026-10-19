@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   attachGoogleDriveDocuments: vi.fn(),
   createGoogleDrivePickerToken: vi.fn(),
   getGoogleDriveConnection: vi.fn(),
+  getGoogleDriveDocumentThumbnail: vi.fn(),
   loggerInfo: vi.fn(),
   loggerWarn: vi.fn(),
   requireGoogleDriveContext: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@/features/google-drive", async (importOriginal) => ({
   attachGoogleDriveDocuments: mocks.attachGoogleDriveDocuments,
   createGoogleDrivePickerToken: mocks.createGoogleDrivePickerToken,
   getGoogleDriveConnection: mocks.getGoogleDriveConnection,
+  getGoogleDriveDocumentThumbnail: mocks.getGoogleDriveDocumentThumbnail,
   requireGoogleDriveContext: mocks.requireGoogleDriveContext,
   startGoogleDriveConnection: mocks.startGoogleDriveConnection,
 }))
@@ -35,6 +37,62 @@ describe("Google Drive route contracts", () => {
       user,
       organization,
     })
+  })
+
+  it("serves private preview bytes scoped to the authenticated workspace", async () => {
+    mocks.getGoogleDriveDocumentThumbnail.mockResolvedValue({
+      bytes: Buffer.from("thumbnail bytes"),
+      contentType: "image/png",
+    })
+    const { GET } = await import(
+      "@/app/api/integrations/google-drive/documents/[documentId]/preview/route"
+    )
+    const request = new NextRequest(
+      "https://coachhouse.app/api/integrations/google-drive/documents/doc-1/preview?organizationId=other-org"
+    )
+    const response = await GET(request, {
+      params: Promise.resolve({ documentId: "doc-1" }),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe("thumbnail bytes")
+    expect(response.headers.get("content-type")).toBe("image/png")
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff")
+    expect(response.headers.get("content-security-policy")).toContain("sandbox")
+    expect(response.headers.get("x-request-id")).toBeTruthy()
+    expect(mocks.requireGoogleDriveContext).toHaveBeenCalledWith(request, expect.anything())
+    expect(mocks.getGoogleDriveDocumentThumbnail).toHaveBeenCalledExactlyOnceWith({
+      documentId: "doc-1", orgId: "org-1",
+    })
+  })
+
+  it.each([["unauthorized", 401], ["forbidden", 403]] as const)(
+    "rejects %s preview requests before reading a file", async (code, status) => {
+      const { GoogleDriveError } = await import("@/features/google-drive")
+      mocks.requireGoogleDriveContext.mockRejectedValue(new GoogleDriveError(code, status))
+      const { GET } = await import(
+        "@/app/api/integrations/google-drive/documents/[documentId]/preview/route"
+      )
+      const response = await GET(new NextRequest("https://coachhouse.app/preview"), {
+        params: Promise.resolve({ documentId: "doc-1" }),
+      })
+      expect(response.status).toBe(status)
+      expect(await response.json()).toEqual({ ok: false, code })
+      expect(mocks.getGoogleDriveDocumentThumbnail).not.toHaveBeenCalled()
+    }
+  )
+
+  it("redacts failed preview provider details and disables caching", async () => {
+    mocks.getGoogleDriveDocumentThumbnail.mockRejectedValue(new Error("token=private-secret"))
+    const { GET } = await import(
+      "@/app/api/integrations/google-drive/documents/[documentId]/preview/route"
+    )
+    const response = await GET(new NextRequest("https://coachhouse.app/preview"), {
+      params: Promise.resolve({ documentId: "doc-1" }),
+    })
+    expect(response.status).toBe(503)
+    expect(response.headers.get("cache-control")).toBe("no-store")
+    expect(await response.json()).toEqual({ ok: false, code: "provider_unavailable" })
   })
 
   it("starts an editor-scoped OAuth flow with redacted no-store output", async () => {
