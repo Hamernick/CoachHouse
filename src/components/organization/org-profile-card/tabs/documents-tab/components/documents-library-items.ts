@@ -160,7 +160,9 @@ export function buildLibraryItems(
     updatedAt: document.modifiedAt,
     deleted: document.status === "trashed",
     href: document.webViewLink,
-    previewPath: `/api/integrations/google-drive/documents/${encodeURIComponent(document.id)}/preview`,
+    previewPath: document.status === "available"
+      ? `/api/integrations/google-drive/documents/${encodeURIComponent(document.id)}/preview`
+      : undefined,
     previewVersion: document.modifiedAt ?? undefined,
     driveDocument: document,
   }))
