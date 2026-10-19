@@ -303,6 +303,7 @@
       "tests/acceptance/core-document-drive-source.test.ts",
       "tests/acceptance/document-controller-polling.test.ts",
       "tests/acceptance/document-presence-transport.test.ts",
+      "tests/acceptance/document-preview-dialog.test.ts",
       "tests/acceptance/documents-index-row-sorting.test.ts",
       "tests/acceptance/documents-preview-availability.test.ts",
       "tests/acceptance/email-ops.test.ts",
