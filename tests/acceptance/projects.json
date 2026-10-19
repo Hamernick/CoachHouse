@@ -470,6 +470,7 @@
       "tests/acceptance/resource-map-test-fixture-visibility.test.ts",
       "tests/acceptance/roadmap-budget-table.test.ts",
       "tests/acceptance/roadmap-calendar-board-reminders.test.ts",
+      "tests/acceptance/roadmap-calendar-event-edit.test.ts",
       "tests/acceptance/roadmap-calendar-month-agenda.test.ts",
       "tests/acceptance/roadmap-editor-compact-layout.test.ts",
       "tests/acceptance/roadmap-editor-paths.test.ts",

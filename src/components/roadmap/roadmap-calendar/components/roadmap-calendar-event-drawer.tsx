@@ -61,9 +61,10 @@ export const RoadmapCalendarEventDrawer = memo(function RoadmapCalendarEventDraw
             <Input
               id="calendar-title"
               value={draft.title}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, title: event.currentTarget.value }))
-              }
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                setDraft((prev) => ({ ...prev, title: value }))
+              }}
             />
           </div>
 
@@ -72,9 +73,10 @@ export const RoadmapCalendarEventDrawer = memo(function RoadmapCalendarEventDraw
             <Textarea
               id="calendar-description"
               value={draft.description}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, description: event.currentTarget.value }))
-              }
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                setDraft((prev) => ({ ...prev, description: value }))
+              }}
               rows={3}
             />
           </div>
@@ -127,9 +129,10 @@ export const RoadmapCalendarEventDrawer = memo(function RoadmapCalendarEventDraw
               id="calendar-start"
               type="datetime-local"
               value={draft.startsAt}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, startsAt: event.currentTarget.value }))
-              }
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                setDraft((prev) => ({ ...prev, startsAt: value }))
+              }}
             />
           </div>
 
@@ -139,9 +142,10 @@ export const RoadmapCalendarEventDrawer = memo(function RoadmapCalendarEventDraw
               id="calendar-end"
               type="datetime-local"
               value={draft.endsAt}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, endsAt: event.currentTarget.value }))
-              }
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                setDraft((prev) => ({ ...prev, endsAt: value }))
+              }}
             />
           </div>
 
@@ -266,14 +270,15 @@ export const RoadmapCalendarEventDrawer = memo(function RoadmapCalendarEventDraw
                     id="calendar-recurrence-end"
                     type="date"
                     value={draft.recurrence.endDate ?? ""}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value
                       setDraft((prev) => ({
                         ...prev,
                         recurrence: prev.recurrence
-                          ? { ...prev.recurrence, endDate: event.currentTarget.value || null }
+                          ? { ...prev.recurrence, endDate: value || null }
                           : null,
                       }))
-                    }
+                    }}
                   />
                 </div>
 
