@@ -1,13 +1,13 @@
 # Fiscal UI patch — October 20, 2026
 
-Status: implementation `a20a8584` pushed; open non-draft [PR341](https://github.com/Hamernick/CoachHouse/pull/341). Normal Node22 prepush passes (9.65s). Caleb owns hosted review/release and live acceptance. No production migrations, account/data changes, emails or provider changes performed. This is the authoritative implementation/evidence checkpoint; the original investigation follows for context.
+Status: merged [PR341](https://github.com/Hamernick/CoachHouse/pull/341); merged source `8b25f35f`; the import-guard preservation correction is on follow-up branch `fix/fiscal-import-guard-20261020`. User explicitly authorized “apply the migrations.” All three new migrations are now applied and independently verified in production. Application deployment and live UI acceptance remain separate. This is the authoritative implementation/evidence checkpoint; original investigation follows for context.
 
 - Original packet: `03-accounts-onboarding-fiscal.md`, stages 3–6. Historical work and SHIP revision40 remain untouched.
-- Branch: `fix/fiscal-ui-patch-20261020`, base `89108944` (merged invitation PR340).
+- Original branch: `fix/fiscal-ui-patch-20261020`, merged in PR341. Active follow-up branch: `fix/fiscal-import-guard-20261020`, base `8b25f35f`; the same isolated worktree preserves the preview.
 - Worktree: `/Users/calebhamernick/Development/coach-house-platform-fiscal-ui-patch-20261020`.
 - Preview: http://localhost:3127/fs; Node22, Next webpack, exec session93132, independent `.next`. Verify listener cwd before restarting it. Other lanes/servers preserved.
 - Existing backend configuration and lockfile-matching dependencies reused; local fiscal guest/staff email sending remains disabled.
-- Release boundary: normal prepush, branch push and open PR are agent-owned. Caleb owns hosted quality/review, merge, the exact reviewed migration application, deployment and live acceptance. The prepared migrations are not applied by this task. Linked staff/applicant screens depend on those new RPCs, so the current shared-backend localhost cannot prove their live operation until an authorized migrated backend is available.
+- Release boundary: normal prepush, branch push and open PR are agent-owned. Caleb owns hosted quality/review, merge, the exact reviewed migration application, deployment and live acceptance. User subsequently authorized the three exact migrations; they are applied and verified. The current shared-backend localhost can now use the new RPCs. This does not prove an authenticated staff/applicant UI journey or deploy PR code.
 
 ## Implemented outcome
 
@@ -40,17 +40,19 @@ All commands use Node22 unless noted. Reuse these results while their affected s
 - Independent review found browser transport recovery and skipped legacy-claim reopening gaps; both were repaired with regression coverage. Further reviewed attachment/upload paths had no additional high-confidence authorization or data-loss finding.
 - No authenticated real FS upload/link/application journey or production Google auth was performed. Test evidence combines component interactions, API handlers and ephemeral PostgreSQL/RLS. After migration/deployment, Caleb must verify the actual FS project and destination applicant workspace, reload/open an uploaded file, then check an unrelated identity is denied.
 
-### Prepared migrations — not applied
+### Production migrations — applied and verified
 
-Apply only these new migrations in ascending order after reviewed release authorization; never replay historical fiscal migrations:
+Applied only these new migrations in ascending order, with all three history entries in the same guarded transaction. Do not replay them or historical fiscal migrations:
 
 1. `20261020230000_fiscal_organization_link.sql`: association/audit table, scoped linking/search/owner RPCs, selected-field-save wrapper, conservative legacy backfill, applicant projection and duplicate-native-application guard.
 2. `20261020231000_fiscal_reviewer_asset_upload.sql`: service-only exact reviewer asset registration and audit transaction.
 3. `20261020232000_personal_notification_privacy.sql`: owner-only personal inbox policies and clearer actor receipt producer.
 
-Deploy schema before dependent application code. Keep existing fiscal guest/profile rollout flags enabled for the intended paths. Reversal must preserve associations, files and audit records; migration comments identify function/policy rollback boundaries. A rollback is a separately reviewed migration, not destructive table/data deletion. Unlink/reassignment, mismatched-email identity overrides and merging two applications are deferred.
+Schema is applied; dependent application deployment remains Caleb-owned. Keep existing fiscal guest/profile rollout flags enabled for the intended paths. Reversal must preserve associations, files and audit records; migration comments identify function/policy rollback boundaries. A rollback is a separately reviewed migration, not destructive table/data deletion. Unlink/reassignment, mismatched-email identity overrides and merging two applications are deferred.
 
 Graphify completed the full-root AST refresh:21,664nodes/62,197edges. Targeted host-agent semantic checkpoint refresh adds2nodes/1edge without external API calls. The merge helper refused an unrelated fuzzy-dedup shrink; the current graph was preserved and only the two checkpoint nodes/edge were added (21,666nodes/62,198edges). No forced shrink or duplicate full refresh.
+
+Production receipt: live preflight showed the assignment trigger had an import-suppression guard added by `20260928170000_tracker_task_support.sql`. The receipt-copy migration now preserves that exact guard. A new SQL regression failed before the correction and passes afterward, including normal notifications after import completion. Only these three new migrations were applied; old migrations were not replayed. Independent readback verifies exact stored SQL and function bodies, security-definer/search paths, function/table grants, forced link-table RLS, unique indexes, duplicate trigger and owner-only notification policies. FS and developer role probes both return zero foreign notifications. Existing counts remain3submissions/11applications/12project-assets/15events; eligible backfill0 and resulting links0. No real application, attachment, upload or email was created for verification. Private production receipt: `~/.local/share/coach-house/fiscal-completion/2026-10-20-ui-migrations/migration-receipt.json`.
 
 Private read-only evidence and detailed agent receipts remain at `~/.local/share/coach-house/fiscal-completion/2026-10-20-ui-audit/`; never put raw customer identities, tokens or application content in the public PR. Local compiler report: `/tmp/fiscal-patch-types.json`; browser fixture scripts: `/tmp/fiscal-public-browser-check.py` and `/tmp/fiscal-google-browser-check.py`.
 

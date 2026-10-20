@@ -1,7 +1,8 @@
 -- Personal inboxes belong only to their recipient, including platform developers.
 -- Trusted SECURITY DEFINER producers and service-role maintenance keep their access.
 -- Rollback: restore the three policies from 20260115210000_add_notifications.sql
--- and notify_organization_task_assignment from 20260928160000_task_assignment_notifications.sql.
+-- and the prior notify_organization_task_assignment body, retaining the
+-- import-suppression guard added by 20260928170000_tracker_task_support.sql.
 begin;
 drop policy if exists notifications_select on public.notifications;
 create policy notifications_select on public.notifications for select to authenticated
@@ -23,6 +24,7 @@ declare
   v_assignee_name text;
   v_href text;
 begin
+  if public.is_task_tracker_import_active() then return new; end if;
   if tg_op = 'UPDATE' and new.user_id = old.user_id and new.task_id = old.task_id then
     return new;
   end if;

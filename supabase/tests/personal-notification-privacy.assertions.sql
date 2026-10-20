@@ -37,3 +37,15 @@ select pg_temp.assert_true((select count(*)>0 from notifications), 'Trusted serv
 insert into notifications(user_id,title,description) values
   ('00000000-0000-4000-8000-000000000002','Delivery check','Trusted producer');
 reset role;
+
+-- Existing production import suppression must survive the receipt-copy update.
+begin;
+insert into public.task_tracker_import_batches(id,status) values
+  ('00000000-0000-4000-8000-000000000901','applying');
+select set_config('app.task_tracker_import_batch','00000000-0000-4000-8000-000000000901',true);
+select public.create_organization_task_transition('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000110','Silent imported task',null,'task','todo','2026-09-28','2026-09-29','medium',null,null,'00000000-0000-4000-8000-000000000002');
+select pg_temp.assert_true((select count(*)=0 from notifications where description like '%Silent imported task%'),'Active imports must not send assignment notices or actor receipts');
+update public.task_tracker_import_batches set status='complete' where id='00000000-0000-4000-8000-000000000901';
+select public.create_organization_task_transition('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000110','Normal post-import task',null,'task','todo','2026-09-28','2026-09-29','medium',null,null,'00000000-0000-4000-8000-000000000002');
+select pg_temp.assert_true((select count(*)=2 from notifications where description like '%Normal post-import task%'),'Normal assignments still notify after import completes');
+rollback;
