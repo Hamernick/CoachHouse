@@ -117,6 +117,7 @@ export type ServerSupabaseClient = Awaited<
 export type AuthenticatedUser = {
   id: string
   email?: string | null
+  email_confirmed_at?: string | null
   created_at?: string | null
   user_metadata?: Record<string, unknown>
 }

@@ -66,6 +66,21 @@ describe("sign up page", () => {
     expect(destination).toBe("/sign-up?redirect=%2Ffind&source=pricing")
   })
 
+  it("keeps invited signup on the team path even with a builder plan", async () => {
+    createSupabaseServerClientServerMock.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    })
+    const { default: SignUpPage } = await import("@/app/(auth)/sign-up/page")
+    const page = await SignUpPage({ searchParams: Promise.resolve({
+      redirect: "/join-organization?token=invite_123", plan: "organization",
+    }) })
+    const form = page.props.children.props.children
+    expect(form.props.lockedIntentFocus).toBe("support")
+    expect(form.props.builderRedirectTo).toBe("/join-organization?token=invite_123")
+    expect(form.props.memberRedirectTo).toBe("/join-organization?token=invite_123")
+    expect(form.props.signUpMetadata).toBeUndefined()
+  })
+
   it("routes signed-in member-intent users into onboarding", async () => {
     createSupabaseServerClientServerMock.mockResolvedValue({
       auth: {

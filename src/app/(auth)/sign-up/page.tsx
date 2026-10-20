@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { redirect as redirectTo } from "next/navigation"
+import { getSafeRedirectPath } from "@/lib/auth/redirects"
+import { getOrganizationInviteRedirect } from "@/lib/auth/organization-invite"
 import {
   buildPostSignupBuilderRedirect,
   resolveSignupBuilderPlanTier,
@@ -15,13 +17,6 @@ type SearchParams = Record<string, string | string[] | undefined>
 
 type SignUpPageProps = {
   searchParams?: Promise<SearchParams>
-}
-
-function getSafeRedirect(value: unknown) {
-  if (typeof value !== "string") return undefined
-  if (!value.startsWith("/")) return undefined
-  if (value.startsWith("//")) return undefined
-  return value
 }
 
 function buildCanonicalSignUpHref(searchParams: SearchParams) {
@@ -51,17 +46,18 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     redirectTo(buildCanonicalSignUpHref(resolved))
   }
 
-  const redirect = getSafeRedirect(resolved.redirect)
+  const redirect = getSafeRedirectPath(resolved.redirect)
+  const inviteRedirect = getOrganizationInviteRedirect(redirect)
   const explicitIntent = resolveSignupIntentFocus(resolved.intent)
   const plan = typeof resolved.plan === "string" ? resolved.plan : undefined
   const tier = typeof resolved.tier === "string" ? resolved.tier : undefined
   const addon = typeof resolved.addon === "string" ? resolved.addon : undefined
-  const selectedBuilderPlanTier =
+  const selectedBuilderPlanTier = inviteRedirect ? null :
     resolveSignupBuilderPlanTier(plan) ??
     resolveSignupBuilderPlanTier(tier) ??
     null
   const selectedAddon = addon === "accelerator" ? "accelerator" : null
-  const defaultIntentFocus = explicitIntent ?? "build"
+  const defaultIntentFocus = inviteRedirect ? "support" : explicitIntent ?? "build"
 
   const fallbackParams = new URLSearchParams()
   if (selectedBuilderPlanTier) fallbackParams.set("plan", selectedBuilderPlanTier)
@@ -101,12 +97,14 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     <AuthScreenShell showBrand>
       <AuthCard
         title="Create your account"
-        description="After email verification, Coach House will continue to your next step."
+        description={inviteRedirect
+          ? "Use the invited email address. After verification, join your team’s existing workspace."
+          : "After email verification, Coach House will continue to your next step."}
       >
         <SignUpForm
           loginHref={loginHref}
           defaultIntentFocus={defaultIntentFocus}
-          lockedIntentFocus={selectedBuilderPlanTier ? "build" : null}
+          lockedIntentFocus={inviteRedirect ? "support" : selectedBuilderPlanTier ? "build" : null}
           builderRedirectTo={builderRedirectTarget}
           memberRedirectTo={memberRedirectTarget}
           signUpMetadata={

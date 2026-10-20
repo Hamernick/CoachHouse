@@ -94,6 +94,14 @@ describe("proxy auth route redirects", () => {
     expect(getUserMock).toHaveBeenCalledOnce()
   })
 
+  it.each(["/login", "/sign-up"])("preserves an invite for an existing session at %s", async (path) => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "invited-member" } } })
+    const destination = "/join-organization?token=invite_123"
+    const response = await proxy(new NextRequest(`https://coachhouse.test${path}?redirect=${encodeURIComponent(destination)}`))
+    expect(response.headers.get("location")).toBe(`https://coachhouse.test${destination}`)
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("refreshed")
+  })
+
   it("preserves signed-in auth redirects", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "member" } } })
     const response = await proxy(new NextRequest("https://coachhouse.test/login"))

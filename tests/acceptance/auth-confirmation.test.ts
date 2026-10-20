@@ -15,6 +15,23 @@ import {
 } from "@/lib/supabase/auth-confirmation"
 
 describe("auth confirmation", () => {
+  it("preserves an organization invitation through the actual confirmation form action", async () => {
+    const destination = "/join-organization?token=sample-invite"
+    const callback = `https://coachhouse.app/auth/callback?redirect=${encodeURIComponent(destination)}`
+    headersMock.mockResolvedValue({ get: (name: string) => name === "host" ? "coachhouse.app" : undefined })
+    createSupabaseServerClientServerMock.mockResolvedValue({ auth: { verifyOtp: vi.fn().mockResolvedValue({
+      data: { user: { user_metadata: { onboarding_intent_focus: "support" } } }, error: null,
+    }) } })
+    const { default: ConfirmEmailPage } = await import("@/app/auth/confirm/page")
+    const page = await ConfirmEmailPage({ searchParams: Promise.resolve({ token_hash: "test-token", type: "email", next: callback }) })
+    const form = page.props.children.props.children
+    const formData = new FormData()
+    for (const input of form.props.children.filter((child: { type: string }) => child.type === "input")) {
+      formData.set(input.props.name, input.props.value)
+    }
+    expect(await captureRedirect(() => form.props.action(formData))).toBe(`https://coachhouse.app${destination}`)
+  })
+
   it.each(["relative", "absolute", "callback"])("preserves the homepage collection through %s human confirmation", async (format) => {
     const returnHref = homeCollectionReturnHref({ id: "resource-1", kind: "resource", query: "food help", createdAt: 1 }, "food help")
     const next = format === "relative" ? returnHref : format === "absolute"

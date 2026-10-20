@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { acceptOrganizationInviteAction } from "@/app/actions/organization-access"
+import { AuthCard } from "@/components/auth/auth-card"
+import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
 import { Button } from "@/components/ui/button"
-import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
-import { writeActiveOrganizationCookie } from "@/lib/organization/active-org-cookie"
 import { createSupabaseServerClient } from "@/lib/supabase"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
+import { JoinOrganizationForm } from "./_components/join-organization-form"
 
 export const dynamic = "force-dynamic"
 
@@ -45,27 +45,14 @@ export default async function JoinOrganizationPage({
 
   if (!user) {
     const redirectPath = `/join-organization?token=${encodeURIComponent(tokenParam)}`
-    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`)
+    redirect(`/sign-up?redirect=${encodeURIComponent(redirectPath)}`)
   }
 
-  const result = await acceptOrganizationInviteAction(tokenParam)
-  if ("error" in result) {
-    return (
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Invite could not be accepted</h1>
-          <p className="text-sm text-muted-foreground">{result.error}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href={DEFAULT_POST_AUTH_REDIRECT}>Go to Workspace</Link>
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const joinedRole = result.inviteKind === "funder" ? "funder" : result.role
-  await writeActiveOrganizationCookie(result.orgId)
-  redirect(`${DEFAULT_POST_AUTH_REDIRECT}?joined=1&role=${encodeURIComponent(joinedRole)}`)
+  return (
+    <AuthScreenShell showBrand>
+      <AuthCard title="Join organization" description="Accept your invitation to access your team’s existing workspace.">
+        <JoinOrganizationForm token={tokenParam} email={user.email ?? "your account"} />
+      </AuthCard>
+    </AuthScreenShell>
+  )
 }

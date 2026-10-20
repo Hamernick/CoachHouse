@@ -15,6 +15,7 @@ import {
   HomeCanvasMapHeroPanel,
 } from "@/components/public/home-canvas-product-panels"
 import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
+import { getOrganizationInviteRedirect } from "@/lib/auth/organization-invite"
 import { FIND_PATH } from "@/lib/find/routes"
 import {
   buildPostSignupBuilderRedirect,
@@ -73,14 +74,17 @@ export function CanvasAuthPanel({
 }) {
   const isLogin = mode === "login"
   const heading = "Create account"
-  const description = buildSignupDescription(signupPlanTier)
-  const builderRedirectTo = buildPostSignupBuilderRedirect({
+  const inviteRedirect = getOrganizationInviteRedirect(loginRedirectTo)
+  const description = inviteRedirect
+    ? "Create your account with the invited email address. After verification, join your team’s existing workspace."
+    : buildSignupDescription(signupPlanTier)
+  const builderRedirectTo = inviteRedirect ?? buildPostSignupBuilderRedirect({
     planTier: signupPlanTier,
     source: "home_signup",
   })
   const builderLoginHref = "/home-canvas?section=login"
   const shouldLockBuilderIntent = signupPlanTier !== null
-  const defaultIntentFocus = signupIntentFocus ?? "build"
+  const defaultIntentFocus = inviteRedirect ? "support" : signupIntentFocus ?? "build"
 
   return (
     <CanvasPanelShell centered>
@@ -103,9 +107,9 @@ export function CanvasAuthPanel({
             </div>
             <SignUpForm
               defaultIntentFocus={defaultIntentFocus}
-              lockedIntentFocus={shouldLockBuilderIntent ? "build" : null}
+              lockedIntentFocus={inviteRedirect ? "support" : shouldLockBuilderIntent ? "build" : null}
               builderRedirectTo={builderRedirectTo}
-              memberRedirectTo="/onboarding?source=home_signup"
+              memberRedirectTo={inviteRedirect ?? "/onboarding?source=home_signup"}
               loginHref={builderLoginHref}
             />
           </>

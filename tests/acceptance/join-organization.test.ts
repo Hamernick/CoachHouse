@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   captureRedirect,
   createSupabaseServerClientMock,
+  createSupabaseServerClientServerMock,
   resetTestMocks,
 } from "./test-utils"
 
@@ -25,7 +26,7 @@ describe("join organization page", () => {
     writeActiveOrganizationCookieMock.mockResolvedValue(undefined)
   })
 
-  it("redirects signed-out invitees to login and preserves the invite token", async () => {
+  it("redirects signed-out invitees to signup and preserves the invite token", async () => {
     createSupabaseServerClientMock.mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -43,61 +44,51 @@ describe("join organization page", () => {
     )
 
     expect(destination).toBe(
-      "/login?redirect=%2Fjoin-organization%3Ftoken%3Dinvite_123",
+      "/sign-up?redirect=%2Fjoin-organization%3Ftoken%3Dinvite_123",
     )
   })
 
-  it("sends accepted standard invites to workspace", async () => {
+  it("does not accept an invite or write cookies during page rendering", async () => {
     createSupabaseServerClientMock.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user_123" } },
-          error: null,
-        }),
-      },
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user_123", email: "member@example.test" } }, error: null }) },
     })
-    acceptOrganizationInviteActionMock.mockResolvedValue({
-      ok: true,
-      orgId: "org_123",
-      role: "member",
-      inviteKind: "standard",
-    })
-
     const { default: Page } = await import("@/app/(auth)/join-organization/page")
-    const destination = await captureRedirect(() =>
-      Page({
-        searchParams: Promise.resolve({ token: "invite_123" }),
-      }),
-    )
-
-    expect(destination).toBe("/workspace?joined=1&role=member")
-    expect(writeActiveOrganizationCookieMock).toHaveBeenCalledWith("org_123")
+    const page = await Page({ searchParams: Promise.resolve({ token: "invite_123" }) })
+    expect(page.props.children.props.children.props.token).toBe("invite_123")
+    expect(acceptOrganizationInviteActionMock).not.toHaveBeenCalled()
+    expect(writeActiveOrganizationCookieMock).not.toHaveBeenCalled()
   })
 
-  it("sends accepted funder invites to workspace with funder context", async () => {
-    createSupabaseServerClientMock.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user_123" } },
-          error: null,
-        }),
-      },
-    })
-    acceptOrganizationInviteActionMock.mockResolvedValue({
-      ok: true,
-      orgId: "org_123",
-      role: "member",
-      inviteKind: "funder",
-    })
+  it.each([["standard", "board", "board"], ["funder", "member", "funder"]])(
+    "accepts %s invites through a server action before selecting the workspace",
+    async (inviteKind, role, joinedRole) => {
+      acceptOrganizationInviteActionMock.mockResolvedValue({ ok: true, orgId: "org_123", role, inviteKind })
+      const { joinOrganizationAction } = await import("@/app/(auth)/join-organization/actions")
+      const form = new FormData()
+      form.set("token", "invite_123")
+      expect(await captureRedirect(() => joinOrganizationAction(null, form)))
+        .toBe(`/workspace?joined=1&role=${joinedRole}`)
+      expect(acceptOrganizationInviteActionMock).toHaveBeenCalledWith("invite_123")
+      expect(writeActiveOrganizationCookieMock).toHaveBeenCalledWith("org_123")
+    },
+  )
 
-    const { default: Page } = await import("@/app/(auth)/join-organization/page")
-    const destination = await captureRedirect(() =>
-      Page({
-        searchParams: Promise.resolve({ token: "invite_123" }),
-      }),
-    )
+  it("switches only the current session and retains the invite for sign-in", async () => {
+    const signOut = vi.fn().mockResolvedValue({ error: null })
+    createSupabaseServerClientServerMock.mockResolvedValue({ auth: { signOut } })
+    const { switchInviteAccountAction } = await import("@/app/(auth)/join-organization/actions")
+    const form = new FormData()
+    form.set("token", "invite_123")
+    expect(await captureRedirect(() => switchInviteAccountAction(form))).toBe("/login?redirect=%2Fjoin-organization%3Ftoken%3Dinvite_123")
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" })
+  })
 
-    expect(destination).toBe("/workspace?joined=1&role=funder")
-    expect(writeActiveOrganizationCookieMock).toHaveBeenCalledWith("org_123")
+  it("keeps rejected invites on the join form without changing workspace", async () => {
+    acceptOrganizationInviteActionMock.mockResolvedValue({ error: "This invite was sent to a different email address." })
+    const { joinOrganizationAction } = await import("@/app/(auth)/join-organization/actions")
+    const form = new FormData()
+    form.set("token", "invite_123")
+    expect(await joinOrganizationAction(null, form)).toEqual({ error: "This invite was sent to a different email address." })
+    expect(writeActiveOrganizationCookieMock).not.toHaveBeenCalled()
   })
 })

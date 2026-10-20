@@ -64,6 +64,18 @@ describe("home canvas auth panel", () => {
     )
   })
 
+  it("preserves an organization invite through the homepage signup panel", () => {
+    const markup = renderToStaticMarkup(createElement(CanvasAuthPanel, {
+      mode: "signup",
+      loginRedirectTo: "/join-organization?token=invite_123",
+      signupPlanTier: "organization",
+    }))
+    expect(markup).toContain('data-builder-redirect-to="/join-organization?token=invite_123"')
+    expect(markup).toContain('data-member-redirect-to="/join-organization?token=invite_123"')
+    expect(markup).toContain('data-locked-intent-focus="support"')
+    expect(markup).not.toContain("secure checkout")
+  })
+
   it("defaults free signup to post-confirmation onboarding", () => {
     const markup = renderToStaticMarkup(
       createElement(CanvasAuthPanel, { mode: "signup" })

@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr"
 
 import { env } from "@/lib/env"
 import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
+import { getOrganizationInviteRedirect } from "@/lib/auth/organization-invite"
 import { hasCoachCoachingAccess, isCoachRestrictedPath } from "@/features/platform-access"
 import type { Database } from "@/lib/supabase/types"
 
@@ -95,7 +96,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && isAuthRoute) {
     const redirectResponse = NextResponse.redirect(
-      new URL(DEFAULT_POST_AUTH_REDIRECT, request.url)
+      new URL(getOrganizationInviteRedirect(request.nextUrl.searchParams.get("redirect")) ?? DEFAULT_POST_AUTH_REDIRECT, request.url)
     )
     copyCookies(response, redirectResponse)
     return redirectResponse
