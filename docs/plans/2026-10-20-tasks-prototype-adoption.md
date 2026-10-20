@@ -1,6 +1,6 @@
 # Tasks prototype adoption — plan and implementation prompt
 
-Status: implementation complete locally; PR packaging in progress. Production migration is not applied. See the implementation checkpoint below.
+Status: [PR343](https://github.com/Hamernick/CoachHouse/pull/343) open, implementation `bbb46ab65ac730cec539e396a081434fe6becade` pushed. Production migration is not applied. See the implementation checkpoint below.
 
 Planning branch: `chore/tasks-plan-20261020`, base `9e08dbf7` (current fetched main).
 Worktree: `/Users/calebhamernick/Development/coach-house-platform-tasks-plan-20261020`.
@@ -135,4 +135,4 @@ Preview: `http://localhost:3140/visual-regression/tasks?taskWeek=2026-10-19` (sa
 
 ### Handoff
 
-Default delivery is an open PR. Caleb owns hosted quality/review, migration authorization/application, merge/deployment and real authenticated staff acceptance. No production task changes or migration application occurred. Update this checkpoint with final PR/head/prepush evidence; preserve other lanes and SHIP40.
+Open [PR343](https://github.com/Hamernick/CoachHouse/pull/343), implementation `bbb46ab65ac730cec539e396a081434fe6becade`, pushed and remote tracked. Normal Node22 prepush passed in9.53s. All six browser scenarios passed across focused runs; drag test now waits for activated/target states rather than racing sensor measurement. Application TypeScript has zero diagnostics. Caleb owns hosted quality/review, migration authorization/application, merge/deployment and real authenticated staff acceptance. No production task changes or migration application occurred. Other lanes and SHIP40 preserved.
