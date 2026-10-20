@@ -28,6 +28,7 @@ export async function loadFiscalReviewTasks(user: { id: string; name: string; av
     // The existing checkbox uses the narrow status RPC below. Full task editing
     // would replace the shared assignments and remains unavailable.
     canUpdate: false,
+    capabilities: { status: true, details: false, schedule: false, order: false },
   }))
 }
 

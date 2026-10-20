@@ -69,7 +69,36 @@ export type MemberWorkspaceTaskAssignee = {
   avatarUrl: string | null
 }
 
+export type MemberWorkspaceTaskCapabilities = {
+  status: boolean
+  details: boolean
+  schedule: boolean
+  order: boolean
+}
+
+export type MemberWorkspaceScheduleTaskInput = {
+  taskId: string
+  projectId: string
+  startDate: string
+  expectedStartDate: string
+  expectedEndDate: string
+}
+
+export type MemberWorkspaceMoveTaskInput = {
+  taskId: string
+  projectId: string
+  neighborTaskId: string
+  placement: "before" | "after"
+  expectedSortOrder: number
+  expectedNeighborSortOrder: number
+  expectedUpdatedAt: string
+  expectedNeighborUpdatedAt: string
+}
+
 export type MemberWorkspaceTaskItem = {
+  sortOrder?: number
+  updatedAt?: string
+  capabilities?: MemberWorkspaceTaskCapabilities
   tracker?: TaskTrackerDetails
   organizationName?: string
   id: string

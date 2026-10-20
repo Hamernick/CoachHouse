@@ -9,6 +9,7 @@ export {
   PlatformLabTasksPage,
 } from "./components/public-platform-lab-pages"
 export { ProgressCircle } from "./upstream/components/progress-circle"
+export { TaskRowBase } from "./upstream/components/tasks/TaskRowBase"
 export { ChipOverflow } from "./upstream/components/chip-overflow"
 export {
   FilterPopover,

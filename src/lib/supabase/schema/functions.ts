@@ -363,6 +363,25 @@ export type PublicFunctions = {
     }
     Returns: Json
   }
+  schedule_organization_task_transition: {
+    Args: {
+      p_actor_id: string; p_task_id: string; p_project_id: string; p_expected_org_id: string
+      p_start_date: string | null; p_expected_start_date: string | null; p_expected_end_date: string | null
+    }
+    Returns: Json
+  }
+  move_organization_task_transition: {
+    Args: {
+      p_actor_id: string
+      p_task_id: string
+      p_project_id: string
+      p_expected_org_id: string
+      p_neighbor_task_id: string; p_placement: string
+      p_expected_sort_order: number; p_expected_neighbor_sort_order: number
+      p_expected_updated_at: string; p_expected_neighbor_updated_at: string
+    }
+    Returns: Json
+  }
   reorder_organization_tasks_transition: {
     Args: {
       p_actor_id: string
