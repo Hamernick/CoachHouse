@@ -8,7 +8,6 @@ import {
   isOrganizationMemberRole,
   normalizeEmail,
   parseInviteKindFromToken,
-  resolveUserEmail,
 } from "./shared"
 import type { AcceptInviteResult } from "./shared"
 
@@ -23,8 +22,9 @@ export async function acceptOrganizationInviteActionImpl(
   const normalizedToken = String(token ?? "").trim()
   if (!normalizedToken) return { error: "Missing invite token." }
 
-  const email = resolveUserEmail(user)
+  const email = user.email
   if (!email) return { error: "Your account does not have an email address." }
+  if (!user.email_confirmed_at) return { error: "Verify your email before accepting this invitation." }
 
   let adminClient: ReturnType<typeof createSupabaseAdminClient>
   try {
@@ -55,18 +55,28 @@ export async function acceptOrganizationInviteActionImpl(
   }
   const inviteRole = invite.role
 
-  if (invite.accepted_at) {
-    return { ok: true, orgId: invite.org_id, role: inviteRole, inviteKind }
-  }
-
-  if (new Date(invite.expires_at).getTime() < Date.now()) {
-    return { error: "This invite link has expired." }
-  }
-
   const normalizedInviteEmail = normalizeEmail(invite.email)
   const normalizedUserEmail = normalizeEmail(email)
   if (normalizedInviteEmail !== normalizedUserEmail) {
     return { error: "This invite was sent to a different email address." }
+  }
+
+  if (invite.accepted_at) {
+    const { data: membership, error } = await adminClient
+      .from("organization_memberships")
+      .select("role")
+      .eq("org_id", invite.org_id)
+      .eq("member_id", user.id)
+      .maybeSingle<{ role: string }>()
+    if (error || !membership || !isOrganizationMemberRole(membership.role)) {
+      return { error: "This invitation has already been used. Ask your team for a new invitation." }
+    }
+    return { ok: true, orgId: invite.org_id, role: membership.role, inviteKind }
+  }
+
+  const expiresAt = Date.parse(invite.expires_at)
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    return { error: "This invite link has expired. Ask your team for a new invitation." }
   }
 
   const now = new Date().toISOString()
