@@ -1,6 +1,6 @@
 # Fiscal UI patch — October 20, 2026
 
-Status: approved implementation complete locally; preparing the normal commit/push/open-PR handoff. No production migrations, account/data changes, emails or provider changes performed. This is the authoritative implementation/evidence checkpoint; the original investigation follows for context.
+Status: implementation `a20a8584` pushed; open non-draft [PR341](https://github.com/Hamernick/CoachHouse/pull/341). Normal Node22 prepush passes (9.65s). Caleb owns hosted review/release and live acceptance. No production migrations, account/data changes, emails or provider changes performed. This is the authoritative implementation/evidence checkpoint; the original investigation follows for context.
 
 - Original packet: `03-accounts-onboarding-fiscal.md`, stages 3–6. Historical work and SHIP revision40 remain untouched.
 - Branch: `fix/fiscal-ui-patch-20261020`, base `89108944` (merged invitation PR340).
@@ -49,6 +49,8 @@ Apply only these new migrations in ascending order after reviewed release author
 3. `20261020232000_personal_notification_privacy.sql`: owner-only personal inbox policies and clearer actor receipt producer.
 
 Deploy schema before dependent application code. Keep existing fiscal guest/profile rollout flags enabled for the intended paths. Reversal must preserve associations, files and audit records; migration comments identify function/policy rollback boundaries. A rollback is a separately reviewed migration, not destructive table/data deletion. Unlink/reassignment, mismatched-email identity overrides and merging two applications are deferred.
+
+Graphify completed the full-root AST refresh:21,664nodes/62,197edges. Targeted host-agent semantic checkpoint refresh adds2nodes/1edge without external API calls. The merge helper refused an unrelated fuzzy-dedup shrink; the current graph was preserved and only the two checkpoint nodes/edge were added (21,666nodes/62,198edges). No forced shrink or duplicate full refresh.
 
 Private read-only evidence and detailed agent receipts remain at `~/.local/share/coach-house/fiscal-completion/2026-10-20-ui-audit/`; never put raw customer identities, tokens or application content in the public PR. Local compiler report: `/tmp/fiscal-patch-types.json`; browser fixture scripts: `/tmp/fiscal-public-browser-check.py` and `/tmp/fiscal-google-browser-check.py`.
 
