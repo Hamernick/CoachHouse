@@ -126,7 +126,9 @@ try {
   runSql("supabase/migrations/20260116130000_extend_notifications.sql")
   runSql("supabase/migrations/20260805233500_atomic_organization_task_creation.sql")
   runSql("supabase/migrations/20260928160000_task_assignment_notifications.sql")
+  runSql("supabase/migrations/20261020232000_personal_notification_privacy.sql")
   runSql("supabase/tests/task-assignment-notifications.assertions.sql")
+  runSql("supabase/tests/personal-notification-privacy.assertions.sql")
   console.log("[recurring-projects] Month-end recurrence, idempotency, rollback, task copies, optional fields, assignment notifications, and RLS passed.")
 } finally {
   if (started) {

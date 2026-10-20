@@ -148,6 +148,7 @@ function resolveWorkflowItemActionLabel(
 }
 
 type FiscalSponsorshipWorkspaceCardSurfaceProps = {
+  applicationSummary?: { name: string; status: string }
   applicationLinks?: ReactNode
   className?: string
   draggable?: boolean
@@ -162,6 +163,7 @@ type FiscalSponsorshipWorkspaceCardSurfaceProps = {
 }
 
 export function FiscalSponsorshipWorkspaceCardSurface({
+  applicationSummary,
   applicationLinks,
   className,
   draggable = false,
@@ -226,19 +228,19 @@ export function FiscalSponsorshipWorkspaceCardSurface({
         <div className="bg-background border-border/60 mx-3 rounded-[1.6rem] border p-3">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold">{programSummary.label}</p>
+              <p className="text-sm font-semibold">{applicationSummary?.name ?? programSummary.label}</p>
               <p className="text-muted-foreground mt-1 text-xs leading-snug">
-                {programSummary.description}
+                {applicationSummary?.status ?? programSummary.description}
               </p>
             </div>
-            <div className="text-right">
+            {!applicationSummary && <div className="text-right">
               <p className="text-sm font-semibold tabular-nums">
                 {resolvedProgress}%
               </p>
               <p className="text-muted-foreground text-[11px]">ready</p>
-            </div>
+            </div>}
           </div>
-          <Progress value={resolvedProgress} className="mt-3 h-1.5" />
+          {!applicationSummary && <Progress value={resolvedProgress} className="mt-3 h-1.5" />}
           {programs.length > 0 ? (
             <div className="mt-3 flex flex-col gap-1.5">
               <p className="text-muted-foreground px-1 text-[11px] font-medium">

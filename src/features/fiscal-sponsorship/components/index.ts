@@ -26,3 +26,5 @@ export { FiscalPublicEmailVerification } from "./fiscal-public-email-verificatio
 export { FiscalOptionalProfile } from "./fiscal-optional-profile"
 
 export { FiscalGuestApplication } from "./fiscal-guest-application"
+
+export { FiscalLinkedWorkspaceCard } from "./fiscal-linked-workspace-card"

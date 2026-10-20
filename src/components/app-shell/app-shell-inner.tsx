@@ -340,6 +340,7 @@ export function AppShellInner({
               <AppShellHeader
                 breadcrumbs={breadcrumbs}
                 hasUser={hasUser}
+                notificationIdentity={user?.email}
                 isAdmin={isAdmin}
                 onboardingLocked={onboardingLocked}
                 rightOpen={rightOpen}

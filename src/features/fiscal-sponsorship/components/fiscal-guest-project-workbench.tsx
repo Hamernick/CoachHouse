@@ -1,16 +1,18 @@
 "use client"
 
+import { FiscalGuestOrganizationLink } from "./fiscal-guest-organization-link"
 import { FiscalGuestEmailStatus } from "./fiscal-guest-email-status"
 import { buildFiscalSponsorshipProjectWorkbenchData } from "../lib/project-workbench-data"
-import type { FiscalSponsorshipApplicationRecord, FiscalSponsorshipProjectWorkflowSummary } from "../types"
-import { reviewFiscalSponsorshipApplication } from "../actions"
+import type { FiscalSponsorshipApplicationRecord, FiscalSponsorshipProjectAssetOption, FiscalSponsorshipProjectWorkflowSummary } from "../types"
+import { connectFiscalSponsorshipDocumentAsset, reviewFiscalSponsorshipDocument, reviewFiscalSponsorshipApplication } from "../actions"
 import { FiscalSponsorshipProjectWorkbench } from "./fiscal-sponsorship-project-workbench"
 import { FiscalGuestApplicationDetails } from "./fiscal-guest-application-details"
 
 export function FiscalGuestProjectWorkbench({
-  projectId, projectName, application, workflow, emailDelivery,
+  projectId, projectName, application, workflow, emailDelivery, projectAssets = [],
 }: {
   emailDelivery?: { recipient: string; status: string; queuedAt: string; occurredAt: string | null }[] | null
+  projectAssets?: FiscalSponsorshipProjectAssetOption[]
   projectId: string
   projectName: string
   application: FiscalSponsorshipApplicationRecord
@@ -26,11 +28,17 @@ export function FiscalGuestProjectWorkbench({
   return (
     <>
       <FiscalGuestEmailStatus deliveries={emailDelivery} />
+      <FiscalGuestOrganizationLink key={projectId} projectId={projectId} applicantEmail={application.primaryEmail ?? ""} />
       <FiscalSponsorshipProjectWorkbench
         className="max-w-none shadow-none"
         data={data}
         applicationActionLabel="View"
         renderApplicationEditor={({ open }) => open ? <FiscalGuestApplicationDetails application={application} /> : null}
+        canConnectDocuments
+        projectAssets={projectAssets}
+        onOpenAssets={() => document.getElementById("fiscal-sponsorship-required-documents")?.scrollIntoView({ block: "start" })}
+        connectFiscalSponsorshipDocumentAssetAction={connectFiscalSponsorshipDocumentAsset}
+        reviewFiscalSponsorshipDocumentAction={reviewFiscalSponsorshipDocument}
         reviewFiscalSponsorshipApplicationAction={reviewFiscalSponsorshipApplication}
       />
     </>

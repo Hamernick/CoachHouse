@@ -56,10 +56,15 @@ export function formatNotificationTime(createdAt: string) {
 
 export function toNotificationItem(item: AppNotification): NotificationItem {
   const organizationAccessRequestId = resolveOrganizationAccessRequestId(item)
+  // Old receipts retain their stored description/history, but make the actor's
+  // receipt distinct from the assignee's personal task notification.
+  const title = item.type === "task_assignment_confirmed" && item.title === "Task assignment confirmed"
+    ? "You assigned a task"
+    : item.title
 
   return {
     id: item.id,
-    title: item.title,
+    title,
     description: item.description,
     href: item.href,
     tone: item.tone ?? "info",

@@ -32,9 +32,9 @@ export async function handleGuestFiscalProfile(request: Request) {
     if (limit.error) throw new Error("limit_unavailable")
     if (!limit.data) return reply({ error: "Please wait before trying again." }, 429)
     if (process.env.FISCAL_GUEST_PROFILE_IMPORT_ENABLED === "true") {
-      const linked = await auth.rpc("read_linked_fiscal_application", { p_reference: parsed.data.reference })
+      const linked = await auth.rpc("fiscal_profile_owner_linked", { p_reference: parsed.data.reference })
       if (linked.error) throw new Error("profile_unavailable")
-      if (linked.data) {
+      if (linked.data === true) {
         // Reopen an existing claim; never copy answers or claim without proof.
         if (parsed.data.operation === "open") {
           await writeActiveOrganizationCookie(user.id)

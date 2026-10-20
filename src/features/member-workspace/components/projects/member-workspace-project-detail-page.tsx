@@ -442,6 +442,7 @@ export function MemberWorkspaceProjectDetailPage({
                   />
 
                   <MemberWorkspaceProjectDetailTabs
+                    actionScope={directoryHref === "/organizations" ? "platform" : "workspace"}
                     showOrganizationPrograms={directoryHref === "/organizations"}
                     organizationPrograms={organizationPrograms} activeTab={activeTab}
                     assigneeOptions={assigneeOptions}

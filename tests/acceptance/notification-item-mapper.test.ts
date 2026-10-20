@@ -29,6 +29,12 @@ function buildNotification(
 }
 
 describe("notification item mapper", () => {
+  it("distinguishes historical assigning-staff receipts from personal assignments", () => {
+    const receipt = buildNotification({ type: "task_assignment_confirmed", title: "Task assignment confirmed", description: "A task was assigned to Caleb." })
+    expect(toNotificationItem(receipt)).toMatchObject({ title: "You assigned a task", description: receipt.description })
+    expect(toNotificationItem(buildNotification({ type: "task_assigned", title: "Task assigned to you" })).title).toBe("Task assigned to you")
+    expect(toNotificationItem({ ...receipt, title: "You assigned a task to Caleb" }).title).toBe("You assigned a task to Caleb")
+  })
   it("extracts organization access request ids from access-request review links", () => {
     expect(
       readOrganizationAccessRequestIdFromNotificationHref(

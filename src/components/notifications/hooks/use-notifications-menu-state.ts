@@ -62,6 +62,7 @@ export function useNotificationsMenuState() {
 
   useEffect(() => {
     setMounted(true)
+    return () => { refreshVersion.current += 1 }
   }, [])
 
   const refreshNotifications = useCallback(async () => {
@@ -73,6 +74,8 @@ export function useNotificationsMenuState() {
       const result = await listNotificationsAction(currentTab.current)
       if (version !== refreshVersion.current) return
       if ("error" in result) {
+        setInbox(null)
+        setSelectedId(null)
         setLoadError(result.error)
         toast.error(result.error)
         return
@@ -85,6 +88,8 @@ export function useNotificationsMenuState() {
       })
     } catch {
       if (version !== refreshVersion.current) return
+      setInbox(null)
+      setSelectedId(null)
       const message = "Unable to load notifications."
       setLoadError(message)
       toast.error(message)

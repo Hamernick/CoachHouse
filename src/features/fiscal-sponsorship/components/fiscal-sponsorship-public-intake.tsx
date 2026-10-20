@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react"
 import Link from "next/link"
-import { guestFollowupHref } from "../lib/guest-followup"
 import { guestProfileHref } from "../lib/guest-profile"
 import { Button } from "@/components/ui/button"
 import type { DraftFieldChange } from "./fiscal-sponsorship-application-editor-controls"
@@ -37,10 +36,8 @@ export function FiscalSponsorshipPublicIntake({ draftPersistenceEnabled = false,
       <p className="mt-1 text-sm text-muted-foreground">Your application is submitted for review. No account is required.</p>
       <p className="mt-2 text-sm text-muted-foreground">We’ll email a copy of your answers. You’re done—no account or email confirmation is needed to submit. The email also includes optional access to application updates. Submission doesn’t mean the project is approved.</p>
       <p className="mt-3 break-all text-xs text-muted-foreground">Reference: {state.reference}</p>
-      {state.reference && <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button asChild variant="outline" className="min-h-11 rounded-full shadow-none"><Link href={guestFollowupHref(state.reference)}>Check status (optional)</Link></Button>
-        {profileImportEnabled && <Button asChild variant="outline" className="min-h-11 rounded-full shadow-none"><Link href={guestProfileHref(state.reference)}>Create your organization profile</Link></Button>}
-        <Button asChild variant="link" className="min-h-11"><Link href="/documentation">Not now</Link></Button>
+      {state.reference && profileImportEnabled && <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button asChild variant="outline" className="min-h-11 rounded-full shadow-none"><Link href={guestProfileHref(state.reference)}>Start free and save your info</Link></Button>
       </div>}
     </section>
   )
@@ -80,12 +77,8 @@ export function FiscalSponsorshipPublicIntake({ draftPersistenceEnabled = false,
           <Button type="submit" disabled={!submissionEnabled || submission.working || state.phase === "loading"} aria-describedby="application-preview-note" className="h-11 rounded-full px-5 shadow-none">
             {submission.working ? "Submitting…" : submission.uncertain ? "Retry confirmation" : "Submit application"}
           </Button>
-          <p className="text-xs leading-5 text-muted-foreground">No payment or account needed to apply.</p>
         </div>
       </form>
-      {profileImportEnabled && <p className="mx-auto mt-3 max-w-md text-center text-xs leading-5 text-muted-foreground">
-        After submitting, you’ll have the option to create a free profile and reuse your details. You can skip that step.
-      </p>}
     </section>
   )
 }

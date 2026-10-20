@@ -28,6 +28,22 @@ beforeEach(() => {
 })
 
 describe("project fiscal sponsorship opt-in", () => {
+  it("rejects untrusted action scope values before resolving an actor", async () => {
+    expect(await enableProjectFiscalSponsorshipAction(projectId, "invalid" as never)).toEqual({ error: "Choose a valid project view." })
+    expect(mocks.actor).not.toHaveBeenCalled()
+  })
+
+  it("uses directory platform scope without broadening support workspace operations", async () => {
+    const actor = await mocks.actor()
+    mocks.actor.mockImplementation(async (scope) => scope === "platform"
+      ? { ...actor, canAccessOrganizations: true, organizationCoachScope: { mode: "assigned", organizationIds: new Set(["org-a"]), canAccessUnassigned: false } }
+      : { ...actor, activeOrg: { orgId: "support-org" } })
+    expect(await enableProjectFiscalSponsorshipAction(projectId)).toEqual({ error: "Unable to access that project." })
+    expect(write.update).not.toHaveBeenCalled()
+    expect(await enableProjectFiscalSponsorshipAction(projectId, "platform")).toEqual({ ok: true })
+    expect(mocks.actor).toHaveBeenLastCalledWith("platform")
+  })
+
   it("defaults off and projects both setup paths from saved data", () => {
     expect(projectFiscalSponsorshipEnabled()).toBe(false)
     for (const row of [{ option_settings: { fiscalSponsorshipEnabled: true } }, { guided_setup: { fiscalSponsorshipEnabled: true } }]) {

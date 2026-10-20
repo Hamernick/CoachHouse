@@ -2,6 +2,11 @@ import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
 
 export type PublicFunctions = {
+  fiscal_profile_owner_linked: { Args: { p_reference: string }; Returns: boolean }
+  register_fiscal_guest_project_asset: { Args: { p_actor_id: string; p_project_id: string; p_asset_id: string; p_filename: string; p_title: string; p_description: string | null; p_mime: string | null; p_size_bytes: number; p_storage_path: string }; Returns: Json }
+  search_fiscal_organization_link: { Args: { p_project_id: string; p_query: string }; Returns: Json }
+  link_fiscal_organization: { Args: { p_project_id: string; p_org_id: string; p_request_id: string; p_version: string }; Returns: Json }
+  list_fiscal_organization_applications: { Args: { p_org_id: string }; Returns: Json }
   fiscal_guest_email_send_allowed: { Args: { p_id: string; p_lease_token: string }; Returns: boolean }
   fiscal_staff_email_send_allowed: { Args: { p_event_id: string; p_lease_token: string }; Returns: boolean }
   list_fiscal_review_tasks: { Args: { p_user_id: string }; Returns: Json }

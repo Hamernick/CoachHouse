@@ -171,6 +171,13 @@ try {
     runSql("supabase/tests/fiscal-review-task.bootstrap.sql")
     runSql("supabase/migrations/20261016200000_fiscal_review_tasks_and_cc.sql")
     runSql("supabase/tests/fiscal-review-task.assertions.sql")
+    if (!process.argv.includes("--release-mvp")) {
+      runSql("supabase/migrations/20261020230000_fiscal_organization_link.sql")
+      runSql("supabase/tests/fiscal-organization-link.assertions.sql")
+      runSql("supabase/tests/fiscal-reviewer-assets.bootstrap.sql")
+      runSql("supabase/migrations/20261020231000_fiscal_reviewer_asset_upload.sql")
+      runSql("supabase/tests/fiscal-reviewer-assets.assertions.sql")
+    }
     if (process.argv.includes("--connected")) {
       const connected = spawnSync("pnpm", ["exec", "vitest", "run", "tests/acceptance/fiscal-sponsorship-connected-storage.test.ts", "--maxWorkers=1", "--config", "vitest.config.ts"], {
         cwd: root, encoding: "utf8", timeout: 90000,

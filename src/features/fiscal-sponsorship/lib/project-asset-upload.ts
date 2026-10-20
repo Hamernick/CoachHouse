@@ -1,3 +1,5 @@
+import { getProjectAssetUploadId } from "@/lib/workspace/project-asset-upload-id"
+
 type FiscalSponsorshipProjectAssetUploadResponse = {
   assets?: Array<{
     id?: unknown
@@ -29,6 +31,7 @@ export async function uploadFiscalSponsorshipProjectAsset({
   title: string
 }) {
   const form = new FormData()
+  form.append("uploadId", getProjectAssetUploadId({ projectId, files: [file], title, description }))
   form.append("projectId", projectId)
   form.append("title", title)
   form.append("description", description)

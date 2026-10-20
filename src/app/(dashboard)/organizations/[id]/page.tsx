@@ -183,7 +183,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       currentUser={result.currentUser}
       organizationSummary={result.organizationSummary}
       fiscalSponsorshipWorkflowSummary={fiscalSponsorshipWorkflowData}
-      fiscalSponsorshipWorkbench={result.fiscalReview ? <FiscalGuestProjectWorkbench {...result.fiscalReview} /> : undefined}
+      fiscalSponsorshipWorkbench={result.fiscalReview ? <FiscalGuestProjectWorkbench {...result.fiscalReview} projectAssets={result.project.files.map((file) => ({ id: file.id, name: file.name, description: file.description ?? null, url: file.url, sizeLabel: file.isLinkAsset ? "Link" : `${file.sizeMB.toFixed(1)} MB` }))} /> : undefined}
       canManageProject={canManageProject}
       canManageProjectAssets={canManageProjectAssets}
       canEditProjectDetails={canEditProjectDetails}

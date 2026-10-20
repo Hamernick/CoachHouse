@@ -1,7 +1,8 @@
 "use server"
 
-import { loadLinkedFiscalApplications as loadLinkedFiscalApplicationsImpl } from "./server/linked-applications"
+import { loadFiscalOrganizationApplications as loadFiscalOrganizationApplicationsImpl, loadLinkedFiscalApplications as loadLinkedFiscalApplicationsImpl } from "./server/linked-applications"
 export async function loadLinkedFiscalApplications() { return loadLinkedFiscalApplicationsImpl() }
+export async function loadFiscalOrganizationApplications(organizationId: string) { return loadFiscalOrganizationApplicationsImpl(organizationId) }
 
 import { handleGuestFiscalRecovery as guestRecovery, guestFiscalRecoveryAvailable } from "./server/guest-recovery"
 export async function handleGuestFiscalRecovery(request: Request) { return guestRecovery(request) }
@@ -185,3 +186,7 @@ export async function loadPublicFiscalApplicant() {
 export async function startPublicFiscalIntake(...args: Parameters<typeof startPublicFiscalIntakeImpl>) {
   return startPublicFiscalIntakeImpl(...args)
 }
+
+import { searchFiscalOrganizationLink as searchFiscalOrganizationLinkImpl, linkFiscalOrganization as linkFiscalOrganizationImpl } from "./server/organization-link-actions"
+export async function searchFiscalOrganizationLink(projectId: string, query: string) { return searchFiscalOrganizationLinkImpl(projectId, query) }
+export async function linkFiscalOrganization(input: unknown) { return linkFiscalOrganizationImpl(input) }

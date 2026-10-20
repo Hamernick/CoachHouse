@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process"
+import { execFile, execFileSync } from "node:child_process"
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
@@ -62,7 +62,7 @@ describe.skipIf(!enabled)("connected fiscal application storage", () => {
   })
   mocks.send.mockImplementation(async () => ({ ok: true, id: randomUUID() }))
   mocks.accountRpc.mockImplementation(async (name: string, args: Record<string, unknown> = {}) => {
-    if (!["list_linked_fiscal_applications", "read_linked_fiscal_application", "resubmit_linked_fiscal_application"].includes(name)) throw new Error("Unexpected account RPC")
+    if (!["fiscal_profile_owner_linked", "list_linked_fiscal_applications", "list_fiscal_organization_applications", "read_linked_fiscal_application", "resubmit_linked_fiscal_application"].includes(name)) throw new Error("Unexpected account RPC")
     const { data: { user } } = await mocks.user()
     try {
       const result = sql(`set role authenticated; set request.jwt.claim.sub = ${quote(user?.id ?? "")}; select to_jsonb(public.${name}(${Object.entries(args).map(([key, value]) => `${key} => ${quote(value)}`).join(",")}));`)
@@ -180,4 +180,46 @@ describe.skipIf(!enabled)("connected fiscal application storage", () => {
   expect((await handleGuestFiscalEmailVerification(request({ token: recovery.text.match(/#verify=([^\s]+)/)[1] }))).status).toBe(200)
   expect(await (await handleGuestFiscalFollowup(request({ operation: "read", reference }))).json()).toMatchObject({ status: "submitted", application: null })
  })
+ it("serializes two reviewer sessions attaching different applications to one organization", async () => {
+  const owner = randomUUID()
+  const email = `race-${owner}@example.test`
+  const reviewer = "10000000-0000-0000-0000-000000000002"
+  const references = [randomUUID(), randomUUID()]
+  const projects = [randomUUID(), randomUUID()]
+  const requests = [randomUUID(), randomUUID()]
+  sql(`insert into public.profiles values(${quote(owner)},${quote(email)});
+    insert into auth.users values(${quote(owner)},${quote(email)},now());
+    insert into public.organizations(user_id,profile) values(${quote(owner)},'{"name":"Concurrent owner"}');`)
+  for (let index = 0; index < 2; index++) {
+    const app = randomUUID()
+    sql(`insert into public.organization_projects(id,org_id,project_kind,name,created_source,created_by,organization_unassigned)
+      values(${quote(projects[index])},'10000000-0000-0000-0000-000000000001','standard','Concurrent application','system',${quote(reviewer)},true);
+      insert into public.fiscal_sponsorship_applications select (jsonb_populate_record(null::public.fiscal_sponsorship_applications,
+      to_jsonb(a)||jsonb_build_object('id',${quote(app)},'project_id',${quote(projects[index])},'primary_email',${quote(email)}))).*
+      from public.fiscal_sponsorship_applications a order by a.created_at,a.id limit 1;
+      insert into public.fiscal_guest_submissions(id,submission_key_hash,application_id,project_id,contact_email)
+      values(${quote(references[index])},md5(${quote(references[index])})||md5(${quote(references[index])}),${quote(app)},${quote(projects[index])},${quote(email)});
+      insert into public.fiscal_project_reviewers values(${quote(projects[index])},${quote(reviewer)},now());`)
+  }
+  const versions = projects.map((projectId) => JSON.parse(sql(`set role authenticated; set request.jwt.claim.sub=${quote(reviewer)};
+    select public.search_fiscal_organization_link(${quote(projectId)},'Concurrent');`)).candidates[0].version)
+  const execute = (source: string) => new Promise<string>((resolve, reject) => {
+    if (!enabled) { reject(new Error("Ephemeral harness required")); return }
+    const child = execFile(process.env.FISCAL_STORAGE_TEST_PSQL!, ["-X", "-h", "/tmp", "-p", process.env.FISCAL_STORAGE_TEST_PORT!, "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"],
+      { encoding: "utf8", timeout: 10000 }, (error, stdout, stderr) => error ? reject(new Error(stderr)) : resolve(stdout.trim()))
+    child.stdin?.end(source)
+  })
+  const transition = (index: number) => `begin; set local role authenticated; set local request.jwt.claim.sub=${quote(reviewer)};
+    select public.link_fiscal_organization(${quote(projects[index])},${quote(owner)},${quote(requests[index])},${quote(versions[index])});
+    select pg_sleep(0.1); commit;`
+  const results = await Promise.all([execute(transition(0)), execute(transition(1))])
+  expect(results.map((result) => JSON.parse(result).state).sort()).toEqual(["conflict", "linked"])
+  expect(sql(`select count(*) from public.fiscal_application_organization_links where org_id=${quote(owner)};`)).toBe("1")
+  expect(sql(`select count(*) from public.organization_projects where id in (${projects.map(quote).join(",")}) and org_id='10000000-0000-0000-0000-000000000001';`)).toBe("2")
+  const winner = results.findIndex((result) => JSON.parse(result).state === "linked")
+  const retries = await Promise.all([execute(transition(winner)), execute(transition(winner))])
+  expect(retries.map((result) => JSON.parse(result).state)).toEqual(["linked", "linked"])
+  expect(sql(`select count(*) from public.fiscal_application_organization_links where org_id=${quote(owner)};`)).toBe("1")
+ })
+
 })
