@@ -37,3 +37,7 @@ The exact reported mobile path also passes in Chromium: login -> homepage signup
 No production mutation, migration, resend, provider configuration or release occurred. Default delivery is an open PR; Caleb owns hosted quality/review, merge, deployment and real acceptance. Existing unrelated type diagnostics remain a recorded limitation, not an authorized adjacent fix.
 
 After deployment, the affected invitee can sign in with the account already created, reopen the original still-valid invitation and choose Join organization. If the password is forgotten, use the existing password-reset flow; no second signup or workspace setup is needed. After expiry, the organization should issue a fresh invitation. Do not manually create an organization or mark onboarding complete to repair this incident.
+
+## PR handoff
+
+[PR340](https://github.com/Hamernick/CoachHouse/pull/340) is open/non-draft, implementation `4cc4e4af`. Staged secret scan and normal Node22 pre-push pass (8.34s). Final documentation is on the same branch/PR; no runtime changes after the187-test/browser/type-comparison evidence. Git remote SHA/clean-state readback follows the final documentation push. Local preview is `http://localhost:3132/join-organization?token=local-invite-review` (fake local auth settings, not a real invite). Do not use it for production authentication. Supabase production was queried read-only only. Caleb owns hosted checks/review/release and customer acceptance.
