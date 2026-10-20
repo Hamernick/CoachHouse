@@ -196,6 +196,7 @@ export function renderWorkspaceBoardResolvedCard({
         : null
     return (
       <WorkspaceBoardFiscalSponsorshipCard
+        organizationId={seed.orgId}
         actionRequest={fiscalActionRequest}
         applicationPrefill={
           data.organizationEditorData?.fiscalSponsorshipApplicationPrefill ??

@@ -998,3 +998,34 @@ describe("project header setup controls", () => {
     }
   })
 })
+
+
+describe("fiscal project identity badge", () => {
+  it.each([false, true])("shows fiscal identity without editing the stored status (editable: %s)", (canEditProject) => {
+    const fiscalProject = { ...project, source: { ...project.source!, fiscalSponsorshipEnabled: true }, backlog: { ...project.backlog, statusLabel: "Backlog" as const } }
+    const snapshot = JSON.stringify(fiscalProject)
+    const html = renderToStaticMarkup(React.createElement(MemberWorkspaceProjectDetailHeader, {
+      project: fiscalProject, canEditProject,
+      draft: buildMemberWorkspaceProjectDetailDraft(fiscalProject), onChangeDraftField: () => {},
+    }))
+    expect(html).toContain("Fiscal Sponsorship")
+    expect(html).not.toContain("Onboarding")
+    expect(html).not.toContain('id="member-workspace-project-status"')
+    expect(JSON.stringify(fiscalProject)).toBe(snapshot)
+  })
+  it("preserves lifecycle status editing when a fiscal project is explicitly being edited", () => {
+    const fiscalProject = { ...project, source: { ...project.source!, fiscalSponsorshipEnabled: true } }
+    const html = renderToStaticMarkup(React.createElement(MemberWorkspaceProjectDetailHeader, {
+      project: fiscalProject, canEditProject: true, isEditing: true,
+      draft: buildMemberWorkspaceProjectDetailDraft(fiscalProject), onChangeDraftField: () => {},
+    }))
+    expect(html).toContain('id="member-workspace-project-status"')
+    expect(html).toContain("Project status")
+  })
+  it("preserves ordinary project status labels", () => {
+    const ordinaryProject = { ...project, source: { ...project.source!, fiscalSponsorshipEnabled: false }, backlog: { ...project.backlog, statusLabel: "Backlog" as const } }
+    const html = renderToStaticMarkup(React.createElement(MemberWorkspaceProjectDetailHeader, { project: ordinaryProject }))
+    expect(html).toContain("Onboarding")
+    expect(html).not.toContain("Fiscal Sponsorship")
+  })
+})

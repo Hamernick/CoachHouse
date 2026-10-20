@@ -47,12 +47,28 @@ beforeEach(() => {
 })
 
 describe("project file folders", () => {
+  it("rejects untrusted action scope values before resolving an actor", async () => {
+    expect(await loadProjectAssetFolders(projectId, "invalid" as never)).toEqual({ error: "Choose a valid project view." })
+    expect(mocks.actor).not.toHaveBeenCalled()
+  })
+
+  it("uses verified platform scope for a directory file library while support workspace stays restricted", async () => {
+    const actor = await mocks.actor()
+    mocks.actor.mockImplementation(async (scope) => scope === "platform"
+      ? { ...actor, canAccessOrganizations: true, organizationCoachScope: { mode: "assigned", organizationIds: new Set(["org-a"]), canAccessUnassigned: false } }
+      : { ...actor, activeOrg: { orgId: "support-org" } })
+    expect(await loadProjectAssetFolders(projectId)).toEqual({ error: "Unable to access that project." })
+    expect(await loadProjectAssetFolders(projectId, "platform")).toHaveProperty("canEdit", true)
+    expect(mocks.actor).toHaveBeenLastCalledWith("platform")
+  })
+
   it("allows a fiscal reviewer to read only project files without host documents or writes", async () => {
     const actor = await mocks.actor()
     actor.supabase.rpc.mockResolvedValue({ data: true, error: null })
     mocks.actor.mockResolvedValue({ ...actor, activeOrg: { orgId: "another-org" }, isAdmin: true })
     const result = await loadProjectAssetFolders(projectId)
     expect(result).toHaveProperty("canEdit", false)
+    expect(result).toHaveProperty("canUpload", true)
     expect(result).toHaveProperty("organizationDocuments", null)
     expect(result).toHaveProperty("files", [expect.objectContaining({ key: fileKey, source: "project" })])
     expect(assets.eq).toHaveBeenCalledWith("project_id", projectId)

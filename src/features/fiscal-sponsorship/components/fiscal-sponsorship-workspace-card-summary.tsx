@@ -16,7 +16,6 @@ import type {
   FiscalSponsorshipProjectWorkflowSummary,
 } from "../types"
 import { FiscalSponsorshipApplicationDrawer } from "./fiscal-sponsorship-application-drawer"
-import { FiscalLinkedApplications } from "./fiscal-linked-applications"
 import { FiscalSponsorshipWorkflowDrawer } from "./fiscal-sponsorship-workflow-drawer"
 import {
   FALLBACK_WORKFLOW_ITEMS,
@@ -284,7 +283,6 @@ export function FiscalSponsorshipWorkspaceCardSummary({
     <>
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <FiscalSponsorshipWorkspaceCardSurface
-          applicationLinks={<FiscalLinkedApplications />}
           draggable
           programs={programs}
           selectedProgramId={selectedProgramId}

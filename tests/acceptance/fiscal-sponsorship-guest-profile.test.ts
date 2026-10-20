@@ -27,9 +27,9 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllEnvs())
 describe("optional verified fiscal profile reuse", () => {
-  it("reopens an existing claim without copying answers when its guest session is gone", async () => {
+  it("reopens a legacy own-organization claim without copying answers when its guest session is gone", async () => {
     vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
-    mocks.accountRpc.mockResolvedValue({ data: { reference }, error: null })
+    mocks.accountRpc.mockResolvedValue({ data: true, error: null })
     for (const operation of ["preview", "open"]) {
       const input = request({ operation, reference }); input.headers.delete("cookie")
       const response = await handleGuestFiscalProfile(input)
@@ -38,6 +38,14 @@ describe("optional verified fiscal profile reuse", () => {
     expect(mocks.activeOrg).toHaveBeenCalledOnce()
     expect(mocks.activeOrg).toHaveBeenCalledWith(actor)
     expect(mocks.rpc.mock.calls.every(([name]) => name === "consume_fiscal_guest_limit")).toBe(true)
+  })
+  it("does not open an editor's personal organization from another organization's application", async () => {
+    vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+    mocks.accountRpc.mockResolvedValue({ data: false, error: null })
+    const input = request({ operation: "open", reference }); input.headers.delete("cookie")
+    expect((await handleGuestFiscalProfile(input)).status).toBe(403)
+    expect(mocks.accountRpc).toHaveBeenCalledWith("fiscal_profile_owner_linked", { p_reference: reference })
+    expect(mocks.activeOrg).not.toHaveBeenCalled()
   })
   it("cannot create a claim or copy profile answers with only a signed-in account", async () => {
     vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")

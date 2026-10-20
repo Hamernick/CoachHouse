@@ -33,6 +33,7 @@ export {
   FiscalGuestApplication,
   FiscalOptionalProfile,
   FiscalGuestProjectWorkbench,
+  FiscalLinkedWorkspaceCard,
   FiscalSponsorshipApplicationDrawer,
   FiscalSponsorshipApplicationEditor,
   FiscalSponsorshipActivityAction,

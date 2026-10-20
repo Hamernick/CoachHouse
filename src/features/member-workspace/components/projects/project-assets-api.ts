@@ -1,5 +1,7 @@
 "use client"
 
+import { getProjectAssetUploadId } from "@/lib/workspace/project-asset-upload-id"
+
 export type ProjectAssetUploadResult = {
   assets: {
     id: string
@@ -26,6 +28,7 @@ export async function createProjectAssets(input: {
   files: File[]
 }): Promise<ProjectAssetUploadResult> {
   const form = new FormData()
+  form.append("uploadId", getProjectAssetUploadId(input))
   form.append("projectId", input.projectId)
   if (input.title) {
     form.append("title", input.title)

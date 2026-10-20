@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { resolveWorkspaceProjectScope } from "@/lib/workspace/ordinary-project-access"
+import { projectAssetReadClient, uploadFiscalReviewerAssets } from "./fiscal-upload"
 
 import {
   buildProjectAssetOpenPath,
@@ -52,10 +54,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const readClient = await projectAssetReadClient(supabase, user.id, projectId)
     const asset = await loadAsset({
       assetId,
       projectId,
-      supabase,
+      supabase: readClient,
     })
 
     if (!asset) {
@@ -84,7 +87,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { data: signed, error: signedError } = await supabase.storage
+    const { data: signed, error: signedError } = await readClient.storage
       .from(BUCKET)
       .createSignedUrl(
         asset.storage_path,
@@ -165,6 +168,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: fileTypeError }, { status: 400 })
     }
   }
+
+  const scope = await resolveWorkspaceProjectScope({ supabase, userId: user.id, projectId })
+  if (scope === "denied") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (scope === "fiscal") return uploadFiscalReviewerAssets({
+    actorId: user.id, projectId, uploadId: toTrimmedString(form.get("uploadId")), files, title, description, link,
+  })
 
   const insertedAssets: AssetRow[] = []
   const uploadedPaths: string[] = []

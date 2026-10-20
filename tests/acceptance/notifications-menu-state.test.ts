@@ -116,6 +116,25 @@ afterEach(() => {
 })
 
 describe("notification menu server counts and request ordering", () => {
+  it.each(["session-error", "network-error"])("clears private preview and counts after %s", async outcome => {
+    const state = await mount()
+    state.handleSelect(state.inboxItems[0])
+    if (outcome === "session-error") actions.list.mockResolvedValue({ error: "Not authenticated." })
+    else actions.list.mockRejectedValue(new Error("Offline"))
+    await state.refreshNotifications()
+    expect(render()).toMatchObject({ inboxItems: [], selectedItem: null, totalCount: null, unreadCount: 0 })
+  })
+
+  it("discards an old account's in-flight load when its menu unmounts", async () => {
+    const state = await mount()
+    const stale = deferred<ReturnType<typeof response>>()
+    actions.list.mockReturnValueOnce(stale.promise)
+    const request = state.refreshNotifications()
+    hooks.cleanups.forEach(stop => stop())
+    stale.resolve(response(999, 999, [notification("old-account")]))
+    await request
+    expect(render().inboxItems.map(item => item.id)).not.toContain("old-account")
+  })
   it("shows authoritative totals beyond the loaded page and no fabricated initial total", async () => {
     expect(render().totalCount).toBeNull()
     render(); await settle()

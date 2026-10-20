@@ -45,3 +45,15 @@ export async function loadLinkedFiscalFollowup(input: z.infer<typeof guestFollow
   if (result.error) throw new Error("application_unavailable")
   return result.data
 }
+
+export async function loadFiscalOrganizationApplications(organizationId: string): Promise<{ applications: LinkedFiscalApplication[]; error?: string }> {
+  if (!z.string().uuid().safeParse(organizationId).success) return { applications: [], error: "Organization unavailable." }
+  if (process.env.FISCAL_GUEST_PROFILE_IMPORT_ENABLED !== "true") return { applications: [] }
+  try {
+    const client = await applicantClient()
+    if (!client) return { applications: [] }
+    const { data, error } = await client.rpc("list_fiscal_organization_applications", { p_org_id: organizationId })
+    if (error) throw new Error("applications_unavailable")
+    return { applications: applicationsSchema.parse(data) }
+  } catch { return { applications: [], error: "Your organization's application couldn’t load. Please retry." } }
+}

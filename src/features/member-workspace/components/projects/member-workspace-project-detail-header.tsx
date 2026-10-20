@@ -170,6 +170,7 @@ export function MemberWorkspaceProjectDetailHeader({
   const beginEdit = () => { if (!isEditing) onEditProject?.() }
   const organizationImage = organizationSummary ? resolveOrganizationCardImage(organizationSummary) : null
   const statusOptions = project.source && "projectKind" in project.source && project.source.projectKind === "standard" ? MEMBER_WORKSPACE_STANDARD_PROJECT_STATUS_OPTIONS : MEMBER_WORKSPACE_PROJECT_STATUS_OPTIONS
+  const isFiscalSponsorship = project.source?.fiscalSponsorshipEnabled === true
   const statusLabel =
     canEditFields && draft
       ? statusOptions.find((option) => option.value === draft.status)?.label ?? formatStatusLabel(draft.status)
@@ -246,7 +247,12 @@ export function MemberWorkspaceProjectDetailHeader({
               </h1>
             )}
             <div className={cn("flex flex-wrap items-center gap-2", isOrganization && "justify-center")}>
-              {canEditFields && draft && onChangeDraftField ? (
+              {isFiscalSponsorship && !(isEditing && canEditFields) ? (
+                <Badge variant="secondary" className={cn(headerChipClassName, statusBadgeClasses("Fiscal Sponsorship"))}>
+                  <Star className="h-3 w-3" aria-hidden />
+                  Fiscal Sponsorship
+                </Badge>
+              ) : canEditFields && draft && onChangeDraftField ? (
                 <SelectChip
                   id="member-workspace-project-status"
                   label="Project status"

@@ -14,9 +14,10 @@ import { loadOrganizationDocuments } from "./organization-documents"
 import { mergeProjectOptions } from "../lib/project-fiscal-sponsorship"
 import { buildProjectAssetOpenPath } from "../lib/project-assets"
 
-async function context(projectId: string, allowFiscalRead = false) {
+async function context(projectId: string, allowFiscalRead = false, actionScope: "workspace" | "platform" = "workspace") {
+  if (actionScope !== "workspace" && actionScope !== "platform") throw new Error("Choose a valid project view.")
   if (!z.string().uuid().safeParse(projectId).success) throw new Error("Choose a valid project.")
-  const actor = await resolveMemberWorkspaceActorContext()
+  const actor = await resolveMemberWorkspaceActorContext(actionScope)
   const scope = await resolveWorkspaceProjectScope({ supabase: actor.supabase, userId: actor.userId, projectId })
   if (scope === "denied" || (scope === "fiscal" && !allowFiscalRead)) throw new Error("Use the fiscal application review for this project.")
   const access = ensureMemberWorkspaceFeatureAccess(actor)
@@ -29,9 +30,9 @@ async function context(projectId: string, allowFiscalRead = false) {
   return { actor, project: result.data, fiscal: scope === "fiscal", canEdit: scope !== "fiscal" && (actorCanAccessOrganizations(actor) || actor.canEdit) }
 }
 
-export async function loadProjectAssetFolders(projectId: string) {
+export async function loadProjectAssetFolders(projectId: string, actionScope: "workspace" | "platform" = "workspace") {
   try {
-    const { actor, project, canEdit, fiscal } = await context(projectId, true)
+    const { actor, project, canEdit, fiscal } = await context(projectId, true, actionScope)
     const isOrganization = !fiscal && project.project_kind === "organization_admin"
     const [assets, documents, organizationDocuments] = await Promise.all([
       actor.supabase.from("organization_project_assets").select("id, name")
@@ -47,18 +48,18 @@ export async function loadProjectAssetFolders(projectId: string) {
       ...(documents?.data ?? []).map((file) => ({ key: `organization:${file.id}`, name: file.name, source: "organization" as const, url: `/api/account/organization-document-files?${new URLSearchParams({ organizationId: project.org_id, id: file.id })}` })),
       ...(organizationDocuments ? organizationFolderFiles(organizationDocuments) : []),
     ]
-    return { state: readProjectAssetFolders(project.option_settings), files, canEdit, organizationDocuments, organizationId: project.org_id }
+    return { state: readProjectAssetFolders(project.option_settings), files, canEdit, organizationDocuments, organizationId: project.org_id, canUpload: fiscal || canEdit }
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Unable to load folders." }
   }
 }
 
-export async function mutateProjectAssetFolder(projectId: string, input: FolderMutation) {
+export async function mutateProjectAssetFolder(projectId: string, input: FolderMutation, actionScope: "workspace" | "platform" = "workspace") {
   try {
     const parsed = folderMutationSchema.safeParse(input)
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the folder details." }
     const change = parsed.data
-    const { actor, project, canEdit } = await context(projectId)
+    const { actor, project, canEdit } = await context(projectId, false, actionScope)
     if (!canEdit) return { error: "Only project editors can organize files." }
     if (change.type === "move") {
       const [source, id] = change.fileKey.split(":")
