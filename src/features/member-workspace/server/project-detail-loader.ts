@@ -130,7 +130,7 @@ async function loadProjectTaskRows({
     .eq("org_id", orgId)
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true })
-    .order("start_date", { ascending: true })
+    .order("id", { ascending: true })
     .returns<MemberWorkspaceProjectTaskRecord[]>()
 
   if (taskError) {

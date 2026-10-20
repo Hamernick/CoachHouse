@@ -46,9 +46,10 @@ export type MemberWorkspaceDeleteTaskResult =
   | { error: string }
 
 export async function createMemberWorkspaceTaskAction(
-  input: MemberWorkspaceCreateTaskInput
+  input: MemberWorkspaceCreateTaskInput,
+  actorScope: "workspace" | "platform" = "workspace"
 ): Promise<MemberWorkspaceCreateTaskResult> {
-  const actor = await resolveMemberWorkspaceActorContext()
+  const actor = await resolveMemberWorkspaceActorContext(actorScope)
   const featureAccess = ensureMemberWorkspaceFeatureAccess(actor)
   if (featureAccess) return featureAccess
 
@@ -131,9 +132,10 @@ export async function createMemberWorkspaceTaskAction(
 
 export async function updateMemberWorkspaceTaskAction(
   taskId: string,
-  input: MemberWorkspaceCreateTaskInput
+  input: MemberWorkspaceCreateTaskInput,
+  actorScope: "workspace" | "platform" = "workspace"
 ): Promise<MemberWorkspaceUpdateTaskResult> {
-  const actor = await resolveMemberWorkspaceActorContext()
+  const actor = await resolveMemberWorkspaceActorContext(actorScope)
   const featureAccess = ensureMemberWorkspaceFeatureAccess(actor)
   if (featureAccess) return featureAccess
 
@@ -255,7 +257,8 @@ export async function updateMemberWorkspaceTaskAction(
 
 export async function updateMemberWorkspaceTaskStatusAction(
   taskId: string,
-  nextStatus: MemberWorkspaceTaskStatus
+  nextStatus: MemberWorkspaceTaskStatus,
+  actorScope: "workspace" | "platform" = "workspace"
 ): Promise<MemberWorkspaceUpdateTaskStatusResult> {
   const normalizedTaskId = taskId.trim()
 
@@ -267,7 +270,7 @@ export async function updateMemberWorkspaceTaskStatusAction(
     return { error: "Choose a valid task status." }
   }
 
-  const actor = await resolveMemberWorkspaceActorContext()
+  const actor = await resolveMemberWorkspaceActorContext(actorScope)
   const featureAccess = ensureMemberWorkspaceFeatureAccess(actor)
   if (featureAccess) return featureAccess
 

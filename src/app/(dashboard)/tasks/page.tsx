@@ -1,10 +1,11 @@
 import {
   clearMemberWorkspaceStarterDataAction,
-  createMemberWorkspaceTaskAction,
+  createDirectoryTaskAction,
   loadMemberWorkspaceTasksPage,
   MemberWorkspaceTasksPage,
-  updateMemberWorkspaceTaskOrderAction,
-  updateMemberWorkspaceTaskAction,
+  scheduleMemberWorkspaceTaskAction,
+  moveMemberWorkspaceTaskAction,
+  updateDirectoryTaskAction,
   updateDirectoryTaskStatusAction,
 } from "@/features/member-workspace"
 import { hasPlatformCapability } from "@/features/platform-access"
@@ -38,13 +39,12 @@ export default async function TasksPage() {
       canManageTasks={canManageTasks}
       clearStarterDataAction={clearMemberWorkspaceStarterDataAction}
       updateTaskStatusAction={
-        canManageTasks ? updateDirectoryTaskStatusAction : undefined
+        updateDirectoryTaskStatusAction
       }
-      createTaskAction={canManageTasks ? createMemberWorkspaceTaskAction : undefined}
-      updateTaskAction={canManageTasks ? updateMemberWorkspaceTaskAction : undefined}
-      updateTaskOrderAction={
-        canManageTasks ? updateMemberWorkspaceTaskOrderAction : undefined
-      }
+      createTaskAction={canManageTasks ? createDirectoryTaskAction : undefined}
+      updateTaskAction={canManageTasks ? updateDirectoryTaskAction : undefined}
+      scheduleTaskAction={canManageTasks ? scheduleMemberWorkspaceTaskAction : undefined}
+      moveTaskAction={canManageTasks ? moveMemberWorkspaceTaskAction : undefined}
       scope={scope}
       assigneeOptions={assigneeOptions}
       projectOptions={projectOptions}

@@ -7,9 +7,10 @@ import { getServerUser } from "@/server/auth/server-user"
 import type { MemberWorkspaceTaskStatus } from "../types"
 import { updateFiscalReviewTaskStatus } from "./fiscal-review-tasks"
 import { updateMemberWorkspaceTaskStatusAction } from "./task-actions"
+import { resolveDirectoryTaskScope } from "./task-directory-scope"
 
 export async function updateDirectoryTaskStatusAction(taskId: string, status: MemberWorkspaceTaskStatus) {
-  if (!z.string().uuid().safeParse(taskId).success || !["todo", "in-progress", "done"].includes(status)) {
+  if (!z.string().uuid().safeParse(taskId).success || !["todo", "in-progress", "waiting", "done"].includes(status)) {
     return { error: "Choose a valid task and status." }
   }
   // This is a personal staff task, not a mutation of the selected support
@@ -18,7 +19,7 @@ export async function updateDirectoryTaskStatusAction(taskId: string, status: Me
   const { data: { user }, error } = await getServerUser(await createSupabaseServerClient())
   if (error || !user) return { error: "Sign in to update your task." }
   const fiscal = await updateFiscalReviewTaskStatus(taskId, user.id, status)
-  if (!fiscal) return updateMemberWorkspaceTaskStatusAction(taskId, status)
+  if (!fiscal) return updateMemberWorkspaceTaskStatusAction(taskId, status, await resolveDirectoryTaskScope())
   if ("error" in fiscal) return fiscal
   revalidatePath("/tasks")
   revalidatePath(`/projects/${fiscal.projectId}`)

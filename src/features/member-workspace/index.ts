@@ -55,6 +55,10 @@ export {
 } from "./project-detail-actions"
 export {
   createMemberWorkspaceTaskAction,
+  createDirectoryTaskAction,
+  updateDirectoryTaskAction,
+  scheduleMemberWorkspaceTaskAction,
+  moveMemberWorkspaceTaskAction,
   deleteMemberWorkspaceTaskAction,
   updateMemberWorkspaceTaskAction,
   updateMemberWorkspaceTaskOrderAction,

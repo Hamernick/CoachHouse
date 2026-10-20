@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import { withSaveFeedback } from '@/lib/with-save-feedback'
 
 export type CreateTaskContext = {
+  startDate?: string
   projectId?: string
   workstreamId?: string
   workstreamName?: string
@@ -41,6 +42,8 @@ export type TaskQuickCreateWorkstreamOption = {
 
 type TaskQuickCreateModalProps = {
   open: boolean
+  hideUnsupportedControls?: boolean
+  requireProjectSelection?: boolean
   onClose: () => void
   context?: CreateTaskContext
   onTaskCreated?: (task: ProjectTask) => void
@@ -142,6 +145,8 @@ export function TaskQuickCreateModal({
   workstreamOptionsByProjectId,
   assigneeOptions = [],
   onSubmitTask,
+  hideUnsupportedControls = false,
+  requireProjectSelection = false,
 }: TaskQuickCreateModalProps) {
   const initializedDraft = useRef<string | null>(null)
   const [title, setTitle] = useState('')
@@ -163,7 +168,7 @@ export function TaskQuickCreateModal({
 
   useEffect(() => {
     if (!open) { initializedDraft.current = null; return }
-    const key = editingTask?.id ?? `new:${context?.projectId ?? ''}:${context?.workstreamId ?? ''}:${context?.workstreamName ?? ''}`
+    const key = editingTask?.id ?? `new:${context?.projectId ?? ''}:${context?.workstreamId ?? ''}:${context?.workstreamName ?? ''}:${context?.startDate ?? ''}`
     if (initializedDraft.current === key) return
     initializedDraft.current = key
 
@@ -221,7 +226,7 @@ export function TaskQuickCreateModal({
     setIsDescriptionExpanded(false)
     setAssignee(assigneeOptions[0])
     setStatus(STATUS_OPTIONS[0])
-    setStartDate(undefined)
+    setStartDate(context?.startDate ? parse(context.startDate, "yyyy-MM-dd", new Date()) : undefined)
     setTargetDate(undefined)
     setPriority(PRIORITY_OPTIONS[0])
     setSelectedTag(undefined)
@@ -230,6 +235,7 @@ export function TaskQuickCreateModal({
     context?.projectId,
     context?.workstreamId,
     context?.workstreamName,
+    context?.startDate,
     editingTask,
     assigneeOptions,
     workstreamOptionsByProjectId,
@@ -262,6 +268,10 @@ export function TaskQuickCreateModal({
 
   const handleSubmit = () => {
     if (isSubmitting) return
+    if (requireProjectSelection && !projectId && !editingTask?.projectId) {
+      toast.error('Choose a project.')
+      return
+    }
     const effectiveProjectId = projectId ?? editingTask?.projectId ?? projectOptions[0]?.id
     if (!effectiveProjectId) return
 
@@ -592,12 +602,14 @@ export function TaskQuickCreateModal({
 
       <div className="flex items-center justify-between mt-auto w-full pt-4 shrink-0">
         <div className="flex items-center gap-1">
+          {!hideUnsupportedControls && <>
           <button className="flex items-center justify-center size-10 rounded-lg hover:bg-muted transition-colors">
             <Paperclip className="size-4 text-muted-foreground" />
           </button>
           <button className="flex items-center justify-center size-10 rounded-lg hover:bg-muted transition-colors">
             <Microphone className="size-4 text-muted-foreground" />
           </button>
+          </>}
         </div>
 
         <div className="flex items-center gap-4">
