@@ -1090,3 +1090,8 @@ Set shared FormRow vertical title/content gap to8px in stacked and split layouts
 ### October 21 — Text-only organization tabs
 
 Renamed About to Organization and removed tab icons. Existing tab values/handlers retained. Focused lint/whitespace and browser label verification pass. Development branch only.
+
+
+### October 21 — Public profile link
+
+Renamed the header link to View Public Profile, added a trailing Lucide up-right arrow and target=_blank with noopener/noreferrer plus screen-reader new-tab description. Focused lint/whitespace pass; authenticated DOM confirms target/rel/icon. Screenshot `/tmp/workspace-public-profile-link-20261021.png`. Graph refresh queued in session12114 after job56607 covers these small follow-ups; no duplicate job. Development branch only.

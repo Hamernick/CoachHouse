@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus"
 import { cn } from "@/lib/utils"
 import {
@@ -303,7 +304,11 @@ export function OrgProfileHeaderActions({
             className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
             variant="secondary"
           >
-            <Link href={publicLink}>View map profile</Link>
+            <Link href={publicLink} target="_blank" rel="noopener noreferrer">
+              View Public Profile
+              <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </Link>
           </Button>
         ) : null}
         {canEdit ? (
