@@ -1050,3 +1050,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Banner dimensions hint now sits above its control in a bounded, right-aligned stack (8px gap). Banner upload/actions use the same28px circular ImagePlus style as the logo control, including44px effective touch targets, theme colors and loading/disabled behavior. Shared local style constant avoids divergence. Native file input and existing adjust/replace/remove actions preserved.
 - Focused lint/whitespace pass. Live light-mode preview verified hint bottom148/button top156 and28x28 control; screenshot `/tmp/workspace-banner-image-button-20261021.png`. No uploads or data changes. Same development branch. Graph refresh log `/tmp/workspace-banner-button-graphify-20261021.log`.
+
+
+### October 21 — Profile tabs above banner
+
+- Moved existing profile navigation above the banner by lifting its controlled shadcn Tabs provider to the card root. Kept the same tab IDs, selected state, navigation/dirty guard handler and content; gap0 preserves the banner/header spacing.
+- Scoped lint/whitespace pass and authenticated preview confirms horizontal About/Activity tabs at the card top in edit mode. Screenshot `/tmp/workspace-profile-tabs-above-banner-20261021.png`. No saved content changes. Graph log `/tmp/workspace-profile-tabs-graphify-20261021.log`; development branch only.
