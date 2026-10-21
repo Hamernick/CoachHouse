@@ -31,8 +31,9 @@ vi.mock("@/lib/organization/active-org", () => ({
   canEditOrganization: authMocks.canEditOrganization,
 }))
 
-function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string; ein?: string } = {}) {
+function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string; ein?: string; brandIdentity?: unknown } = {}) {
   let updatedRow: Record<string, unknown> | null = null
+  let savedBrand: unknown = null
   const selectQuery = {
     eq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({
@@ -64,6 +65,7 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
     }),
   }
   const from = vi.fn((table: string) => {
+    if (table === "organization_brand_kits") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: options.brandIdentity ? { identity: options.brandIdentity } : null, error: null }) }) }) }
     if (table !== "organizations") {
       throw new Error(`Unexpected table: ${table}`)
     }
@@ -71,7 +73,12 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
   })
 
   authMocks.requireServerSession.mockResolvedValue({
-    supabase: { from },
+    supabase: { from, rpc: vi.fn(async (_name, args) => {
+      if (options.writeError) return { data: false, error: { message: options.writeError } }
+      updatedRow = args.p_profile_patch
+      savedBrand = args.p_identity
+      return { data: true, error: null }
+    }) },
     session: { user: { id: "user-1" } },
   })
   authMocks.resolveActiveOrganization.mockResolvedValue({
@@ -81,6 +88,7 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
   authMocks.canEditOrganization.mockReturnValue(true)
 
   return {
+    getSavedBrand() { return savedBrand },
     getUpdatedProfile() {
       return (updatedRow?.profile ?? null) as Record<string, unknown> | null
     },
@@ -434,5 +442,55 @@ describe("organization profile persistence validation", () => {
     expect(
       resolveOrganizationNarrativePlainText(updatedProfile, "mission")
     ).toBe("Updated mission")
+  })
+})
+
+describe("organization brand identity persistence", () => {
+  const orgId = "11111111-1111-4111-8111-111111111111"
+  async function kit() {
+    const { resolveWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    return resolveWorkspaceBrandIdentity({ name: "Test organization" })
+  }
+  it("saves a kit with a new revision and preserves unrelated data", async () => {
+    const save = prepareOrganizationSave({ unrelated: "retained" })
+    authMocks.resolveActiveOrganization.mockResolvedValue({ orgId, role: "owner" })
+    const result = await updateOrganizationProfileAction({ expectedOrganizationId: orgId, brandIdentity: await kit() })
+    expect(result).toMatchObject({ ok: true, brandIdentity: { revision: expect.any(String) } })
+    expect(save.getUpdatedProfile()).toMatchObject({ unrelated: "retained" })
+    expect(save.getUpdatedProfile()).not.toHaveProperty("brandIdentity")
+    expect(save.getSavedBrand()).toMatchObject({ draft: { organizationName: "Test organization" } })
+    expect(save.getUpdatedProfile()).not.toHaveProperty("expectedOrganizationId")
+  })
+  it("rejects stale organization context and stale kit revisions without writing", async () => {
+    const initial = { ...await kit(), revision: "22222222-2222-4222-8222-222222222222" }
+    const save = prepareOrganizationSave({}, { brandIdentity: initial })
+    authMocks.resolveActiveOrganization.mockResolvedValue({ orgId, role: "owner" })
+    expect(await updateOrganizationProfileAction({ brandIdentity: initial })).toHaveProperty("error")
+    expect(await updateOrganizationProfileAction({ expectedOrganizationId: orgId, brandIdentity: { ...initial, revision: null } })).toMatchObject({ error: expect.stringContaining("updated elsewhere") })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+  it("rejects embedded files and malformed palette data", async () => {
+    const initial = await kit()
+    expect(validateOrganizationProfilePersistencePatch({ brandIdentity: { ...initial, assets: { "primary-logo": { url: "data:image/png;base64,invalid" } } } }).success).toBe(false)
+    expect(validateOrganizationProfilePersistencePatch({ brandIdentity: { ...initial, draft: { ...initial.draft, colors: [initial.draft.colors[0]] } } }).success).toBe(false)
+  })
+  it("verifies private file ownership, canonical metadata, and unavailable files", async () => {
+    const { prepareOrganizationBrandIdentitySave } = await import("@/lib/organization/brand-identity-persistence")
+    const fileId = "33333333-3333-4333-8333-333333333333"
+    const incoming = { ...await kit(), assets: { "primary-logo": { fileId, name: "Untrusted name", type: "image/png" as const, size: 1, updatedAt: "" } } }
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), then: vi.fn() }
+    const canonical = { id: fileId, name: "Original.svg", mime_type: "image/svg+xml", size_bytes: 200, updated_at: "2026-10-21T00:00:00Z", storage_path: `${orgId}/library/logo.svg` }
+    query.then.mockImplementation(resolve => resolve({ data: [canonical], error: null }))
+    const supabase = { from: vi.fn((table: string) => table === "organization_brand_kits"
+      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }
+      : query) } as never
+    const result = await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })
+    expect(query.eq).toHaveBeenCalledWith("org_id", orgId)
+    expect(query.is).toHaveBeenCalledWith("deleted_at", null)
+    expect(result).toMatchObject({ value: { assets: { "primary-logo": { name: "Original.svg", type: "image/svg+xml", size: 200 } } } })
+    query.then.mockImplementation(resolve => resolve({ data: [], error: null }))
+    expect(await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })).toHaveProperty("error")
+    query.then.mockImplementation(resolve => resolve({ data: [{ ...canonical, storage_path: "other-org/library/logo.svg" }], error: null }))
+    expect(await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })).toHaveProperty("error")
   })
 })

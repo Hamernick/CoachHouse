@@ -14,7 +14,11 @@ import { BrandIdentitySection } from "./brand-identity-section"
 export function FoundationSection({
   draft,
   updateDraft,
+  audienceMaxLength,
+  taglineMaxLength,
 }: {
+  audienceMaxLength?: number
+  taglineMaxLength?: number
   draft: BrandIdentityDraft
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
 }) {
@@ -53,6 +57,7 @@ export function FoundationSection({
         <Field label="Organization name" htmlFor="brand-organization-name">
           <Input
             id="brand-organization-name"
+            maxLength={120}
             value={draft.organizationName}
             onChange={(event) =>
               updateDraft({ organizationName: event.target.value })
@@ -62,6 +67,7 @@ export function FoundationSection({
         <Field label="Tagline" htmlFor="brand-tagline">
           <Input
             id="brand-tagline"
+            maxLength={taglineMaxLength}
             value={draft.tagline}
             onChange={(event) => updateDraft({ tagline: event.target.value })}
           />
@@ -87,6 +93,7 @@ export function FoundationSection({
         <Field label="Primary audience" htmlFor="brand-audience">
           <Textarea
             id="brand-audience"
+            maxLength={audienceMaxLength}
             rows={4}
             value={draft.audience}
             onChange={(event) => updateDraft({ audience: event.target.value })}

@@ -1,3 +1,4 @@
+import type { OrganizationBrandKitsTable } from "./organization_brand_kits"
 import type { DocumentCollaborationRoomsTable, DocumentCollaborationUpdatesTable, DocumentFileVersionsTable, DocumentVersionOperationsTable } from "./document_collaboration"
 import type { CoachingCreditGrantsTable } from "./coaching_credit_grants"
 import type { OrganizationDocumentFilesTable } from "./organization_document_files"
@@ -345,6 +346,7 @@ export type PublicTables = {
   platform_admin_project_workstream_states: PlatformAdminProjectWorkstreamStatesTable
   platform_admin_workstream_categories: PlatformAdminWorkstreamCategoriesTable
   platform_staff_members: PlatformStaffMembersTable
+  organization_brand_kits: OrganizationBrandKitsTable
   organization_workspace_boards: OrganizationWorkspaceBoardsTable
   organization_workspace_pages: OrganizationWorkspacePagesTable
   organization_workspace_calendar_revisions: OrganizationWorkspaceCalendarRevisionsTable

@@ -118,6 +118,10 @@ try {
   runSql("supabase/tests/free-workspace-access.bootstrap.sql")
   runSql("supabase/migrations/20261012163000_gate_free_workspace_document_writes.sql")
   runSql("supabase/tests/free-workspace-access.assertions.sql")
+  runSql("supabase/tests/organization-brand-kits.bootstrap.sql")
+  runSql("supabase/migrations/20261021200000_private_organization_brand_kits.sql")
+  runSql("supabase/tests/organization-brand-kits.assertions.sql")
+  console.log("[organization-brand-kits] Private reads, editor roles, atomic saves, stale revisions, and unavailable assets passed.")
   console.log("[free-workspace-access] Reads, Drive links, profile edits, paid writes, tenant isolation, and free write restrictions passed.")
   console.log(
     "[organization-document-files-rls] Tenant access, existing per-file limit, arbitrary MIME types, and 5 GB quota passed."

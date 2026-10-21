@@ -1,3 +1,4 @@
+import { organizationBrandIdentitySchema } from "./brand-identity-schema"
 import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
 import { z } from "zod"
 
@@ -70,6 +71,8 @@ export const organizationProfileNameSchema = z
 export const organizationProfilePersistencePatchSchema = z
   .object({
     name: organizationProfileNameSchema.optional(),
+    expectedOrganizationId: z.string().uuid().optional(),
+    brandIdentity: organizationBrandIdentitySchema.optional(),
     mission: organizationProfileNarrativeSchema("Mission")
       .nullable()
       .optional(),

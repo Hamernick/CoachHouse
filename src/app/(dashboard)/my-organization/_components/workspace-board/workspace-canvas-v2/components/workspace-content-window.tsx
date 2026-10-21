@@ -1,6 +1,7 @@
 "use client"
 
 import { useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react"
+import { WorkspaceWindowSizeProvider } from "@/components/workspace/workspace-window-size"
 import { WorkspaceWindowHeaderProvider } from "@/components/workspace/workspace-window-header-slots"
 import { LayoutGroup, motion } from "motion/react"
 import { useWorkspaceContentWindowMotion } from "./use-workspace-content-window-motion"
@@ -15,6 +16,7 @@ import styles from "./workspace-dock.module.css"
 
 export type WorkspaceContentWindowState = {
   geometry: WorkspaceContentWindowGeometry | null
+  resolvePreferredGeometry?: (width: number) => WorkspaceContentWindowGeometry | null
   presentation?: "window" | "sidebar"
   maximized: boolean
   getAnchorRect?: () => DOMRect | null
@@ -51,7 +53,10 @@ function WorkspaceContentWindowSurface({
     null
   )
   const [titleTarget, setTitleTarget] = useState<HTMLDivElement | null>(null)
-  const availableGeometry = windowState?.geometry
+  const [preferredWidth, setPreferredWidth] = useState<number>()
+  const availableGeometry = preferredWidth && windowState?.resolvePreferredGeometry
+    ? windowState.resolvePreferredGeometry(preferredWidth)
+    : windowState?.geometry
   const geometry =
     availableGeometry &&
     !windowState?.maximized &&
@@ -91,10 +96,11 @@ function WorkspaceContentWindowSurface({
     return () => cancelAnimationFrame(frame)
   }, [sidebar, collapsed, organizationTriggerRef, surfaceRef])
   const sidebarContentStyle = sidebar ? {
-    width: geometry?.width,
+    width: geometry ? geometry.width - 2 : undefined,
     visibility: collapsed ? "hidden" as const : undefined,
   } : undefined
   return (
+    <WorkspaceWindowSizeProvider value={setPreferredWidth}>
     <WorkspaceWindowHeaderProvider
       enabled={headerSlots}
       actions={actionsTarget}
@@ -169,6 +175,7 @@ function WorkspaceContentWindowSurface({
         </motion.div>
       </motion.section>
     </WorkspaceWindowHeaderProvider>
+    </WorkspaceWindowSizeProvider>
   )
 }
 

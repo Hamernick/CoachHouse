@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server"
 
+import { persistOrganizationProfile } from "@/lib/organization/profile-persistence-write"
+import { prepareOrganizationBrandIdentitySave, matchesBrandOrganizationContext } from "@/lib/organization/brand-identity-persistence"
+import type { OrganizationBrandIdentity } from "@/lib/organization/brand-identity-schema"
+
 import { revalidatePath, revalidateTag } from "next/cache"
 
 import { resolveCoreDocumentPublication, type CoreDocumentPublicationPatch } from "@/lib/roadmap/core-document-publication"
@@ -96,6 +100,8 @@ type OrgProfilePayload = {
   publicSlug?: string | null
   isPublic?: boolean | null
   coreDocumentPublication?: CoreDocumentPublicationPatch
+  brandIdentity?: OrganizationBrandIdentity
+  expectedOrganizationId?: string
   narrativeRevisions?: OrganizationNarrativeRevisions
 }
 
@@ -109,6 +115,9 @@ export async function updateOrganizationProfileAction(
   const { orgId, role } = await resolveActiveOrganization(supabase, userId)
   const canEdit = canEditOrganization(role)
   if (!canEdit) return { error: "Forbidden" }
+  if (!matchesBrandOrganizationContext(payload, orgId)) {
+    return { error: "Your active organization changed. Reload before saving the brand kit." }
+  }
   if (expectedReview && expectedReview.organizationId !== orgId) return { error: "Your active organization changed. Reload the preview before publishing." }
 
   const validation = validateOrganizationProfilePersistencePatch(payload)
@@ -148,6 +157,8 @@ export async function updateOrganizationProfileAction(
   if (expectedReview && expectedReview.updatedAt !== orgRow?.updated_at) return { error: "This organization was updated elsewhere. Reload before publishing." }
 
   const current = (orgRow?.profile ?? {}) as Record<string, unknown>
+  const brandSave = await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming: payload.brandIdentity })
+  if ("error" in brandSave) return { error: brandSave.error, field: "brandIdentity" }
   // Only formation/EIN writes enforce this rule; unrelated partial saves must
   // remain usable for legacy approved profiles that have not supplied an EIN.
   if (Object.hasOwn(payload, "formationStatus") || Object.hasOwn(payload, "ein")) {
@@ -165,18 +176,9 @@ export async function updateOrganizationProfileAction(
       return { error: "This core document was updated elsewhere. Reload before saving.", conflict: key }
     }
   }
-  const previousLogoUrl =
-    typeof current["logoUrl"] === "string"
-      ? (current["logoUrl"] as string)
-      : null
-  const previousBrandMarkUrl =
-    typeof current["brandMarkUrl"] === "string"
-      ? (current["brandMarkUrl"] as string)
-      : null
-  const previousHeaderUrl =
-    typeof current["headerUrl"] === "string"
-      ? (current["headerUrl"] as string)
-      : null
+  const previousLogoUrl = profileString(current, "logoUrl")
+  const previousBrandMarkUrl = profileString(current, "brandMarkUrl")
+  const previousHeaderUrl = profileString(current, "headerUrl")
   const logoTouched = Object.prototype.hasOwnProperty.call(payload, "logoUrl")
   const brandMarkTouched = Object.prototype.hasOwnProperty.call(
     payload,
@@ -238,7 +240,7 @@ export async function updateOrganizationProfileAction(
   ])
 
   for (const [k, v] of Object.entries(payload)) {
-    if (k === "narrativeRevisions" || k === "coreDocumentPublication") continue
+    if (["expectedOrganizationId", "brandIdentity", "narrativeRevisions", "coreDocumentPublication"].includes(k)) continue
     if (k === "mission" || k === "vision" || k === "values") continue
     if (k === "need" || k === "originStory" || k === "theoryOfChange") continue
     // Store EIN in both the column and profile for now (column is canonical)
@@ -425,27 +427,11 @@ export async function updateOrganizationProfileAction(
     location_lng: locationLng,
   }
 
-  if (orgRow) {
-    const { data: updatedRow, error: updateError } = await supabase
-      .from("organizations")
-      .update(insertPayload)
-      .eq("user_id", orgId)
-      .eq("updated_at", orgRow.updated_at)
-      .select("user_id")
-      .maybeSingle<{ user_id: string }>()
-
-    if (updateError) return { error: updateError.message }
-    if (!updatedRow) {
-      return {
-        error: "This organization was updated elsewhere. Reload before saving.",
-      }
-    }
-  } else {
-    const { error: insertError } = await supabase
-      .from("organizations")
-      .insert(insertPayload)
-    if (insertError) return { error: insertError.message }
-  }
+  const persistence = await persistOrganizationProfile({
+    supabase, orgId, expectedUpdatedAt: orgRow?.updated_at, brandIdentity: brandSave.value,
+    expectedBrandRevision: payload.brandIdentity?.revision, profilePatch: insertPayload,
+  })
+  if ("error" in persistence) return persistence
 
   if (cleanupPaths.size > 0) {
     await supabase.storage
@@ -470,6 +456,7 @@ export async function updateOrganizationProfileAction(
   })
   return {
     ok: true,
+    ...(brandSave.value ? { brandIdentity: brandSave.value } : {}),
     coreDocumentPublication: resolveCoreDocumentPublication(next),
     narrativeRevisions: resolveOrganizationNarrativeRevisions(next),
     location: { latitude: locationLat, longitude: locationLng },
@@ -520,4 +507,8 @@ function revalidateOrganizationViews({
     revalidatePath(`/${nextSlug}`)
     revalidatePath(`/${nextSlug}`)
   }
+}
+
+function profileString(profile: Record<string, unknown>, key: string) {
+  return typeof profile[key] === "string" ? profile[key] : null
 }

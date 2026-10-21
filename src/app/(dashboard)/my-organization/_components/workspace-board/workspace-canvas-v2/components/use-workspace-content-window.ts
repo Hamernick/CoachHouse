@@ -78,6 +78,9 @@ export function useWorkspaceContentWindow({
   }
   return {
     geometry,
+    resolvePreferredGeometry: (preferredWidth: number) => enabled
+      ? resolveWorkspaceContentWindowGeometry({ canvasWidth, canvasHeight, dockHeight, maximized, tab, preferredWidth })
+      : null,
     presentation: tab === "organization" ? "sidebar" as const : "window" as const,
     getAnchorRect,
     maximized,

@@ -341,3 +341,13 @@ export type {
   MarketplaceResourceType,
 } from "./marketplace-types"
 export { MarketplaceResourcePage } from "./components/marketplace-resource-page"
+
+export { FoundationSection as BrandIdentityFoundation } from "./components/brand-identity/foundation-section"
+export { MarksSection as BrandIdentityMarks } from "./components/brand-identity/marks-section"
+export { PaletteSection as BrandIdentityPalette } from "./components/brand-identity/palette-section"
+export { TypographySection as BrandIdentityTypography } from "./components/brand-identity/typography-section"
+export { ApplicationsSection as BrandIdentityApplications } from "./components/brand-identity/applications-section"
+export { ExportsSection as BrandIdentityExports } from "./components/brand-identity/exports-section"
+export { buildBrandPackage, downloadBlob } from "./lib/brand-identity-export"
+export { brandAssetError } from "./lib/brand-asset-validation"
+export type { BrandAssetPreview } from "./types"

@@ -1,3 +1,4 @@
+import { organizationBrandIdentitySchema } from "@/lib/organization/brand-identity-schema"
 import { z } from "zod"
 import { getApprovedFormationEinError } from "@/lib/organization/formation-status"
 
@@ -35,6 +36,7 @@ const brandVoiceLongForm = organizationProfileBrandVoiceLongFormSchema
 
 export const organizationProfileSchema = z.object({
   name: organizationProfileNameSchema,
+  brandIdentity: organizationBrandIdentitySchema.optional(),
   tagline: z.string().max(160).optional().or(z.literal("")),
   description: z.string().max(5000).optional().or(z.literal("")),
   ein: z.string().trim().optional(),

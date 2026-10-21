@@ -2,6 +2,10 @@ import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
 
 export type PublicFunctions = {
+  save_organization_profile_with_brand_kit: {
+    Args: { p_org_id: string; p_expected_updated_at: string; p_expected_brand_revision: string | null; p_identity: Json; p_profile_patch: Json }
+    Returns: boolean
+  }
   workspace_canvas_storage_version: { Args: Record<never, never>; Returns: number }
   commit_workspace_page: {
     Args: {

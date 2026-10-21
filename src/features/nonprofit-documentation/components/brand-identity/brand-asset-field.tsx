@@ -6,7 +6,7 @@ import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import UploadIcon from "lucide-react/dist/esm/icons/upload"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { BrandAssetId, StoredBrandAsset } from "../../types"
+import type { BrandAssetId, BrandAssetPreview } from "../../types"
 import { downloadBlob } from "../../lib/brand-identity-export"
 import {
   BRAND_ASSET_ACCEPT,
@@ -22,16 +22,18 @@ export function BrandAssetField({
   previewUrl,
   onUpload,
   onDelete,
+  onDownload,
   aspect = "wide",
   disabled = false,
 }: {
   id: BrandAssetId
   label: string
   guidance: string
-  asset?: StoredBrandAsset
+  asset?: BrandAssetPreview
   previewUrl?: string
   onUpload: (id: BrandAssetId, file: File) => Promise<boolean>
   onDelete: (id: BrandAssetId) => Promise<void>
+  onDownload?: (id: BrandAssetId) => Promise<void>
   aspect?: "wide" | "square" | "portrait"
   disabled?: boolean
 }) {
@@ -189,7 +191,10 @@ export function BrandAssetField({
                 variant="secondary"
                 className="size-8 shadow-none [@media(hover:none)]:size-11"
                 aria-label={`Download ${label.toLowerCase()}`}
-                onClick={() => downloadBlob(asset.blob, asset.name)}
+                onClick={() => {
+                  if (asset.blob) downloadBlob(asset.blob, asset.name)
+                  else void onDownload?.(id).catch(() => setError("The image could not be downloaded. Try again."))
+                }}
 
               >
                 <DownloadIcon aria-hidden />

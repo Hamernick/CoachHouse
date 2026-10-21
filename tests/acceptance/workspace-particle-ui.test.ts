@@ -533,6 +533,9 @@ describe("responsive content window geometry", () => {
   it("sizes each destination independently and lets Accelerator use tall screens", () => {
     const canvas = { canvasWidth: 1440, canvasHeight: 1400, dockHeight: 100, maximized: false }
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization" })).toEqual({ width: 440, height: 1384 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization", preferredWidth: 760 })).toEqual({ width: 760, height: 1276 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, canvasWidth: 375, tab: "organization", preferredWidth: 760 })).toEqual({ width: 359, height: 1276 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization", preferredWidth: 760, maximized: true })).toEqual({ width: 1424, height: 1276 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "people" })).toEqual({ width: 960, height: 560 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "tools" })).toEqual({ width: 560, height: 360 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "documents" })).toEqual({ width: 760, height: 560 })

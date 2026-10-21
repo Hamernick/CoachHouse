@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useWorkspaceWindowPreferredWidth } from "@/components/workspace/workspace-window-size"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 import { ProgramWizardLazy } from "@/components/programs/program-wizard-lazy"
@@ -35,6 +36,7 @@ export function OrgProfileEditor({
   navigationRequestId,
   onProgramEditorOpenChange,
 }: OrgProfileCardProps) {
+  const [brandBusy, setBrandBusy] = useState(false)
   const editorRootRef = useRef<HTMLDivElement>(null)
   const {
     tab,
@@ -71,6 +73,7 @@ export function OrgProfileEditor({
     initialEditMode,
     navigationRequestId,
   })
+  useWorkspaceWindowPreferredWidth(tab === "brand-kit" ? 760 : undefined)
   useOrgProfileEditorDeepLinkFocus({
     canEdit,
     editMode,
@@ -93,7 +96,7 @@ export function OrgProfileEditor({
         publicLink={publicLink}
         editMode={editMode}
         canEdit={canEdit}
-        isSaving={isPending}
+        isSaving={isPending || brandBusy}
         isDirty={dirty}
         onEnterEdit={() => canEdit && setEditMode(true)}
         onCancelEdit={handleCancelEdit}
@@ -101,7 +104,7 @@ export function OrgProfileEditor({
       />
       <Tabs
         value={tab}
-        onValueChange={handleTabChange}
+        onValueChange={(value) => { if (!brandBusy) handleTabChange(value) }}
         className="w-full min-w-0 gap-3"
       >
         <OrgProfileTabNavigation
@@ -109,12 +112,12 @@ export function OrgProfileEditor({
           tabsIdBase={tabsIdBase}
         />
         <div className="w-full min-w-0 pb-6">
-          <OrgProfileHeader
+          {tab !== "brand-kit" ? <OrgProfileHeader
             name={company.name || "Organization"}
             tagline={company.tagline || "—"}
             logoUrl={company.logoUrl ?? ""}
             editMode={editMode}
-            isSaving={isPending}
+            isSaving={isPending || brandBusy}
             canEdit={canEdit}
             visibilityControl={editMode && canEdit ? (
               <OrgProfileHeaderVisibility
@@ -129,7 +132,7 @@ export function OrgProfileEditor({
             links={<OrgProfileHeaderLinks company={company} centered />}
             donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
             onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
-          />
+          /> : null}
 
           <div className="p-0">
             <TabsContent
@@ -176,6 +179,7 @@ export function OrgProfileEditor({
                 company={company}
                 errors={errors}
                 editMode={editMode}
+                onBusyChange={setBrandBusy}
                 onUpdate={handleCompanyUpdate}
                 onDirty={markDirty}
                 onAutoSave={persistProfileUpdates}

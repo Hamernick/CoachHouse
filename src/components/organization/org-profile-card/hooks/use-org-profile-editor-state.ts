@@ -14,7 +14,7 @@ import {
 import { useRouter } from "next/navigation"
 import { getOrganizationLaunchReturnHref } from "@/lib/workspace/editor-navigation"
 
-import { prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
+import { prepareOrgProfileSave, acknowledgeOrgProfileSave } from "./use-org-profile-editor-state-helpers"
 
 import { updateOrganizationProfileAction } from "@/actions/organization"
 import { toast } from "@/lib/toast"
@@ -305,7 +305,7 @@ export function useOrgProfileEditorState({
 
       let res: Awaited<ReturnType<typeof updateOrganizationProfileAction>>
       try {
-        const payload = prepareCoreDocumentProfileSave(company, savedCompanyRef.current)
+        const payload = prepareOrgProfileSave(company, savedCompanyRef.current)
         res = await updateOrganizationProfileAction(payload)
       } catch {
         toast.error(
@@ -318,16 +318,15 @@ export function useOrgProfileEditorState({
         return
       }
       toast.success("Organization updated")
-      const narrativeRevisions = "narrativeRevisions" in res ? res.narrativeRevisions : undefined
-      const savedCompany = {
-        ...company,
-        ...(narrativeRevisions ? { narrativeRevisions } : {}),
-        ...("coreDocumentPublication" in res ? { coreDocumentPublication: res.coreDocumentPublication } : {}),
-      }
+      const savedCompany = acknowledgeOrgProfileSave(company, "ok" in res ? res : {})
       setSavedCompany(savedCompany)
       if (
         JSON.stringify(latestCompanyRef.current) !== JSON.stringify(company)
       ) {
+        if ("brandIdentity" in res && res.brandIdentity) {
+          const revision = res.brandIdentity.revision
+          setCompany(prev => prev.brandIdentity ? { ...prev, brandIdentity: { ...prev.brandIdentity, revision } } : prev)
+        }
         toast.info("Earlier changes saved. Your newer edits are still unsaved.")
         return
       }

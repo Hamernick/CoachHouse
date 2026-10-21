@@ -1,28 +1,15 @@
 "use client"
 
-import {
-  hasWorkspaceBrandKitProfileContent,
-  WorkspaceBrandKitProfilePreview,
-} from "@/features/workspace-brand-kit"
-
-import { BrandKitSection } from "./company-tab/edit-sections/brand-kit"
+import { WorkspaceBrandKitProfileEditor } from "@/features/workspace-brand-kit"
 import type { CompanyEditProps } from "./company-tab/types"
 
-type BrandKitTabProps = Pick<
-  CompanyEditProps,
-  "company" | "errors" | "onUpdate" | "onDirty" | "onAutoSave"
-> & { editMode: boolean }
+type BrandKitTabProps = Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty" | "onAutoSave"> & {
+  editMode: boolean
+  onBusyChange?: (busy: boolean) => void
+}
 
-export function BrandKitTab({ editMode, ...props }: BrandKitTabProps) {
-  return (
-    <div key={editMode ? "edit" : "view"} className="animate-in fade-in duration-150 motion-reduce:animate-none">
-      {editMode ? (
-        <BrandKitSection {...props} />
-      ) : hasWorkspaceBrandKitProfileContent(props.company) ? (
-        <WorkspaceBrandKitProfilePreview profile={props.company} />
-      ) : (
-        <p className="text-muted-foreground text-center text-sm">No brand assets yet.</p>
-      )}
-    </div>
-  )
+export function BrandKitTab({ editMode, company, errors, onUpdate, onDirty, onAutoSave, onBusyChange }: BrandKitTabProps) {
+  return <WorkspaceBrandKitProfileEditor profile={company} errors={errors} readOnly={!editMode}
+    onBusyChange={onBusyChange} onAutoSave={onAutoSave}
+    onChange={(updates) => { onUpdate(updates); onDirty() }} />
 }

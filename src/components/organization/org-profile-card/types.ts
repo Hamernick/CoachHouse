@@ -1,3 +1,4 @@
+import type { OrganizationBrandIdentity } from "@/lib/organization/brand-identity-schema"
 import type { CoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { OrganizationNarrativeRevisions } from "@/lib/roadmap"
@@ -26,6 +27,8 @@ export type BrandTypographyConfig = {
 }
 
 export type OrgProfile = {
+  brandIdentity?: OrganizationBrandIdentity
+  expectedOrganizationId?: string
   name?: string | null
   description?: string | null
   tagline?: string | null

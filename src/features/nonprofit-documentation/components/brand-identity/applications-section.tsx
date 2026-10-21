@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type {
   BrandAssetId,
   BrandIdentityDraft,
-  StoredBrandAsset,
+  BrandAssetPreview,
 } from "../../types"
 import { BrandCampaignPreview } from "./brand-campaign-preview"
 import { BrandAssetField } from "./brand-asset-field"
@@ -28,13 +28,15 @@ export function ApplicationsSection({
   uploadAsset,
   deleteAsset,
   disabled = false,
+  downloadAsset,
 }: {
   draft: BrandIdentityDraft
-  assets: StoredBrandAsset[]
+  assets: BrandAssetPreview[]
   assetUrls: Partial<Record<BrandAssetId, string>>
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
   uploadAsset: (id: BrandAssetId, file: File) => Promise<boolean>
   deleteAsset: (id: BrandAssetId) => Promise<void>
+  downloadAsset?: (id: BrandAssetId) => Promise<void>
   disabled?: boolean
 }) {
   const application = assets.find((asset) => asset.id === "application-image")
@@ -81,6 +83,7 @@ export function ApplicationsSection({
           previewUrl={assetUrls["application-image"]}
           onUpload={uploadAsset}
           onDelete={deleteAsset}
+        onDownload={downloadAsset}
           disabled={disabled}
         />
       </BrandIdentitySubsection>
@@ -110,6 +113,7 @@ export function ApplicationsSection({
             previewUrl={assetUrls["application-vertical-image"]}
             onUpload={uploadAsset}
             onDelete={deleteAsset}
+        onDownload={downloadAsset}
             disabled={disabled}
             aspect="portrait"
           />
@@ -141,6 +145,7 @@ export function ApplicationsSection({
               previewUrl={assetUrls[id]}
               onUpload={uploadAsset}
               onDelete={deleteAsset}
+        onDownload={downloadAsset}
               disabled={disabled}
               aspect="square"
             />

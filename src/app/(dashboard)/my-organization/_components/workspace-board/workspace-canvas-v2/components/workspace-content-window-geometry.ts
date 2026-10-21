@@ -10,12 +10,14 @@ export function resolveWorkspaceContentWindowGeometry({
   dockHeight,
   maximized,
   tab,
+  preferredWidth = 440,
 }: {
   canvasWidth: number
   canvasHeight: number
   dockHeight: number
   maximized: boolean
   tab?: WorkspaceCanvasDrawerTab
+  preferredWidth?: number
 }): WorkspaceContentWindowGeometry | null {
   if (
     ![canvasWidth, canvasHeight, dockHeight].every(Number.isFinite) ||
@@ -25,11 +27,12 @@ export function resolveWorkspaceContentWindowGeometry({
   // Organization is a canvas-local sidebar that expands from its profile trigger.
   if (tab === "organization") {
     // On narrower canvases the centered dock intersects the sidebar width.
-    const bottom = maximized || canvasWidth < 1424 ? dockHeight + 16 : 8
+    const width = Number.isFinite(preferredWidth) ? Math.max(440, preferredWidth) : 440
+    const bottom = maximized || canvasWidth < 1424 + 2 * (width - 440) ? dockHeight + 16 : 8
     const height = canvasHeight - 8 - bottom
     if (canvasWidth <= 16 || height <= 0) return null
     return {
-      width: maximized ? canvasWidth - 16 : Math.min(440, canvasWidth - 16),
+      width: maximized ? canvasWidth - 16 : Math.min(width, canvasWidth - 16),
       height,
     }
   }

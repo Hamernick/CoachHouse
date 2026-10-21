@@ -1,3 +1,4 @@
+import { readOrganizationBrandIdentity } from "@/lib/organization/brand-identity-schema"
 import { resolveCoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import type { ModuleCardStatus } from "@/lib/accelerator/progress"
 import { normalizeOrganizationLocationFields } from "@/lib/location/organization-location"
@@ -165,9 +166,13 @@ function readTypographyConfig(value: unknown): BrandTypographyConfig | null {
 }
 
 export function buildInitialOrganizationProfile({
+  organizationId,
+  brandIdentity,
   profile,
   organization,
 }: {
+  organizationId?: string
+  brandIdentity?: unknown
   profile: Record<string, unknown>
   organization: OrganizationRow
 }): OrgProfile {
@@ -244,6 +249,8 @@ export function buildInitialOrganizationProfile({
     brandTypography: readTypographyConfig(profile["brandTypography"]),
     publicSlug: String(organization?.public_slug ?? ""),
     isPublic: Boolean(organization?.is_public ?? false),
+    brandIdentity: readOrganizationBrandIdentity(brandIdentity),
+    expectedOrganizationId: organizationId,
     coreDocumentPublication: resolveCoreDocumentPublication(profile),
     narrativeRevisions: resolveOrganizationNarrativeRevisions(profile),
   }

@@ -146,6 +146,8 @@ export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
     brandVoicePersonality: source.brandVoicePersonality ?? "",
     brandVoiceGuidelines: source.brandVoiceGuidelines ?? "",
     brandVoiceAvoid: source.brandVoiceAvoid ?? "",
+    brandIdentity: source.brandIdentity,
+    expectedOrganizationId: source.expectedOrganizationId,
     coreDocumentPublication: source.coreDocumentPublication,
     narrativeRevisions: source.narrativeRevisions ?? {
       mission: null,
