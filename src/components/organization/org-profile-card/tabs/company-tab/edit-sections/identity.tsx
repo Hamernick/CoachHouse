@@ -33,27 +33,27 @@ export function IdentitySection({
       description="Basic details that represent your organization."
     >
       <div className={styles.group}>
-        <ProfileField label="Organization name" focusKey="name">
+        <ProfileField label="Organization name" focusKey="name" hideLabel>
           <Input
             id="name"
             name="name"
             value={company.name ?? ""}
             onChange={onInputChange}
             aria-invalid={Boolean(errors.name)}
-            placeholder="Bright Futures Initiative"
+            placeholder="Organization name"
           />
           {errors.name ? (
             <p className="text-destructive text-xs">{errors.name}</p>
           ) : null}
         </ProfileField>
-        <ProfileField label="Tag line" focusKey="tagline">
+        <ProfileField label="Tagline" focusKey="tagline" hideLabel>
           <Input
             id="tagline"
             name="tagline"
             value={company.tagline ?? ""}
             onChange={onInputChange}
             aria-invalid={Boolean(errors.tagline)}
-            placeholder="Powering opportunity for youth"
+            placeholder="Tagline"
           />
           {errors.tagline ? (
             <p className="text-destructive text-xs">{errors.tagline}</p>

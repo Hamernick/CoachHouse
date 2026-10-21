@@ -1174,3 +1174,8 @@ Removed only “Avoid reserved words like /admin.” from PublicPageSettings hel
 ### October 21 — Remove formation status helper copy
 
 Removed the requested “Used to tailor your formation checklist and map listing steps.” paragraph from IdentitySection. Formation selector and conditional EIN field/validation unchanged. Whitespace/pre-push checks cover this copy-only edit.
+
+
+### October 21 — Full-width identity name and tagline
+
+Organization name and Tagline now use placeholder labels and occupy the full grouped row. Added opt-in hidden accessible labels to ProfileField; other labels remain unchanged. Scoped grouped-field styles keep validation messages full-width. Browser verified both inputs at 390px within 414px rows, matching accessible label associations, and 1px visually hidden labels. Focused lint passes. Existing graph refresh session 64618 remains in flight; no duplicate job. No user values changed.

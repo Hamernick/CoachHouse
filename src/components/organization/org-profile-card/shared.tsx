@@ -22,10 +22,12 @@ export function ProfileField({
   label,
   children,
   focusKey,
+  hideLabel = false,
 }: {
   label: ReactNode
   children: ReactNode
   focusKey?: string
+  hideLabel?: boolean
 }) {
   const childArray = Children.toArray(children).filter((child) => {
     if (child == null) return false
@@ -38,13 +40,17 @@ export function ProfileField({
   return (
     <div
       data-slot="organization-profile-field"
+      data-label-hidden={hideLabel || undefined}
       {...(focusKey ? getOrganizationFocusTargetProps(focusKey) : {})}
       className={cn(
         "grid min-w-0 content-start gap-1 self-start",
         focusKey && ORGANIZATION_FOCUS_TARGET_CLASSNAME
       )}
     >
-      <Label htmlFor={focusKey} className="text-muted-foreground text-xs">
+      <Label
+        htmlFor={focusKey}
+        className={cn("text-muted-foreground text-xs", hideLabel && "sr-only")}
+      >
         {label}
       </Label>
       {children}

@@ -98,6 +98,14 @@
   grid-column: 1;
 }
 
+.group > :global([data-label-hidden="true"]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.group > :global([data-label-hidden="true"]) > p {
+  grid-column: 1;
+}
+
 .icon {
   display: inline-flex;
   width: 24px;
