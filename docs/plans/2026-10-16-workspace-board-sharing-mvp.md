@@ -1149,3 +1149,8 @@ Scoped the six organization story/narrative editor toolbars to one row, removed 
 ### October 21 — Hide organization editor counters
 
 Used the existing countClassName override to hide the full word/character-count row in all six organization story/narrative editors. Other editor views unchanged. Browser verified all six count rows display:none with zero height; focused ESLint passes. Reusing in-flight graph refresh session 64618 (`/tmp/profile-toolbar-graphify-20261021.log`); no duplicate graph job. Development branch only.
+
+
+### October 21 — Remove public settings preview/share actions
+
+Removed the requested Preview map profile and Share buttons and their wrapper from PublicPageSettings. Public URL and map visibility controls remain. Existing focused settings test passes; authenticated browser confirms both actions absent and public URL input present. Reusing in-flight graph job 64618; log `/tmp/profile-toolbar-graphify-20261021.log`. Development branch only.

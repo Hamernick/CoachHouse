@@ -6,10 +6,8 @@ import CheckIcon from "lucide-react/dist/esm/icons/check"
 import GlobeIcon from "lucide-react/dist/esm/icons/globe"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ShareButton } from "@/components/shared/share-button"
 
 import styles from "../../../profile-edit-fields.module.css"
 import {
@@ -28,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { buildFindOrganizationHref } from "@/lib/find/routes"
 
 export function PublicPageSettings({
   company,
@@ -46,7 +43,6 @@ export function PublicPageSettings({
       ? company.publicSlug
       : ""
   const shouldCheckSlug = Boolean(explicitSlug || company.isPublic)
-  const publicSlug = company.publicSlug || slugifyLocal(company.name || "")
   const hasAddress = [
     company.addressStreet,
     company.addressCity,
@@ -340,28 +336,6 @@ export function PublicPageSettings({
               </p>
             )}
           </div>
-          {company.isPublic ? (
-            <div className="flex flex-col items-stretch gap-2 lg:items-end lg:justify-self-end">
-              <Button
-                asChild
-                size="sm"
-                variant="secondary"
-                className="w-full lg:w-auto"
-              >
-                <Link href={buildFindOrganizationHref(publicSlug)}>
-                  Preview map profile
-                </Link>
-              </Button>
-              <ShareButton
-                url={
-                  typeof window === "undefined"
-                    ? undefined
-                    : `${window.location.origin}${buildFindOrganizationHref(publicSlug)}`
-                }
-                title={company.name || company.publicSlug || "Organization"}
-              />
-            </div>
-          ) : null}
         </div>
       </div>
     </FormRow>
