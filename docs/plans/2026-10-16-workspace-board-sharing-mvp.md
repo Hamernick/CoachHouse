@@ -1009,3 +1009,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Removed the orange minimize control; retained red Close and green Maximize/Restore. Dots increased from12px to14px, reducing the visible desktop gap from12px to10px while preserving24px button targets and44px touch targets. Existing keyboard/tab collapse behavior remains available.
 - Authenticated preview verified exactly two controls and14px dots; screenshot `/tmp/workspace-red-green-controls-20261021.png`. All62particle UI tests, focused lint and whitespace pass. Appearance review remains user-owned; no baseline update. Graph refresh for the prior slice is still session22891; finish it before refreshing these changes, never start a duplicate.
+
+
+### October 21 — Bottom-anchored content windows
+
+- Content windows now sit8px above the relocated bottom tabs, using shared measured composer/navigation offsets on desktop and touch layouts. Removed the obsolete top-position overrides. Presence motion opens upward from bottom tabs and still supports a top organization trigger; sizing, draft retention, maximize and reduced-motion behavior remain intact.
+- All62particle UI/motion tests, focused ESLint and whitespace pass. Live geometry verifies panel bottom805/tab top813 (8px gap). Existing user editor stayed open during inspection. Screenshot `/tmp/workspace-bottom-window-20261021.png`; user appearance review pending. Prior Graphify job16071 remains in flight and must finish before the next update; no duplicates. Development branch only.

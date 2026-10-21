@@ -24,22 +24,23 @@ export function workspaceWindowTransition(collapsed: boolean) {
 }
 export const WORKSPACE_WINDOW_OPEN = { opacity: 1, x: 0, y: 0, scale: 1 }
 
-// Enter downward from the top navigation while keeping movement close to final bounds.
+// Open toward the window from its trigger, including the bottom navigation.
 export function resolveWorkspaceWindowOrigin(
   window: Rect,
   anchor: Rect | null
 ) {
   if (!anchor || window.width <= 0)
-    return { originX: 0.5, originY: 0, x: 0, y: -WORKSPACE_WINDOW_MOTION.travel }
+    return { originX: 0.5, originY: 1, x: 0, y: WORKSPACE_WINDOW_MOTION.travel }
   const anchorX = anchor.left + anchor.width / 2
+  const fromBottom = anchor.top + anchor.height / 2 >= window.top + window.height / 2
   return {
     originX: Math.max(
       0.08,
       Math.min(0.92, (anchorX - window.left) / window.width)
     ),
-    originY: 0,
+    originY: fromBottom ? 1 : 0,
     x: 0,
-    y: -WORKSPACE_WINDOW_MOTION.travel,
+    y: fromBottom ? WORKSPACE_WINDOW_MOTION.travel : -WORKSPACE_WINDOW_MOTION.travel,
   }
 }
 

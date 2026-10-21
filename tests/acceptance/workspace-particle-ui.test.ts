@@ -761,7 +761,7 @@ describe("interruptible content window motion", () => {
       expect(controls.stop).toHaveBeenCalledOnce()
     }
   })
-  it("enters from the right while bounding travel and the selected-tab scaling origin", () => {
+  it("opens upward from bottom tabs and downward from a top trigger", () => {
     const surface = { left: 200, top: 100, width: 920, height: 460 }
     const left = resolveWorkspaceWindowOrigin(surface, {
       left: 380,
@@ -778,7 +778,8 @@ describe("interruptible content window motion", () => {
     expect(left.x).toBe(0)
     expect(right.x).toBe(0)
     expect(left.originX).toBeLessThan(right.originX)
-    expect(left.y).toBeLessThanOrEqual(16)
+    expect(left).toMatchObject({ originY: 1, y: 12 })
+    expect(resolveWorkspaceWindowOrigin(surface, { left: 380, top: 50, width: 100, height: 32 })).toMatchObject({ originY: 0, y: -12 })
     expect(
       resolveWorkspaceWindowOrigin(surface, {
         left: -2000,
@@ -786,12 +787,12 @@ describe("interruptible content window motion", () => {
         width: 1,
         height: 1,
       })
-    ).toEqual({ originX: 0.08, originY: 0, x: 0, y: -12 })
+    ).toEqual({ originX: 0.08, originY: 1, x: 0, y: 12 })
     expect(resolveWorkspaceWindowOrigin(surface, null)).toEqual({
       originX: 0.5,
-      originY: 0,
+      originY: 1,
       x: 0,
-      y: -12,
+      y: 12,
     })
   })
   it("responds promptly and settles without overshoot from rest", () => {

@@ -1,4 +1,6 @@
 .dockHost {
+  --workspace-navigation-height: 42px;
+  --workspace-navigation-bottom: calc(6px + var(--workspace-composer-height, 58px));
   position: absolute;
   z-index: 20;
   inset: 0;
@@ -29,7 +31,7 @@
 .topNavigation {
   position: absolute;
   /* Composer already includes 8px of top padding; leave a 6px visible gap. */
-  bottom: calc(8px + var(--workspace-composer-height, 58px) - 2px);
+  bottom: var(--workspace-navigation-bottom);
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 24px);
@@ -74,6 +76,7 @@
 }
 .topTab::after { display: none; }
 @media (pointer: coarse) {
+  .dockHost { --workspace-navigation-height: 54px; }
   .topTabList { height: 44px !important; }
   .topTab { min-width: 44px; height: 44px; }
   .composerShell [data-workspace-composer-action] {
@@ -87,7 +90,7 @@
   left: 0;
   right: 0;
   margin-inline: auto;
-  top: 58px;
+  bottom: calc(var(--workspace-navigation-bottom) + var(--workspace-navigation-height) + 8px);
   pointer-events: auto;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -100,15 +103,6 @@
   .organizationTrigger { max-width: calc(100% - 180px); }
   .topNavigation {
     max-width: calc(100% - 16px);
-  }
-  .contentWindow { top: 108px; }
-}
-
-/* Keep the same 8px gap with the taller touch targets. */
-@media (pointer: coarse) {
-  .contentWindow { top: 70px; }
-  @container workspace-dock (max-width: 700px) {
-    .contentWindow { top: 120px; }
   }
 }
 
