@@ -73,3 +73,5 @@ export type {
 } from "./types"
 
 export { updateDirectoryTaskStatusAction } from "./task-actions"
+
+export { loadProjectTimelineAction, saveProjectTimelineDatesAction, saveProjectTimelineStatusAction } from "./actions"

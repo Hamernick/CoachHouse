@@ -1,451 +1,353 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { addDays, addWeeks, differenceInCalendarDays, format, startOfWeek, subWeeks } from "date-fns"
-
+import { useEffect, useMemo, useRef, useState } from "react"
+import { usePathname, useSearchParams } from "next/navigation"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import type { PlatformAdminDashboardLabProject } from "@/features/platform-admin-dashboard"
+import type { ProjectTimelineActions } from "../../lib/project-timeline-types"
 import {
-  FIXED_TODAY,
-  TimelineCanvas,
-  TimelineConfirmDialog,
-  TimelineEditDialog,
-  TimelineSidebar,
-  TimelineToolbar,
-  type TimelineConfirmDialogState,
-  type TimelineEditDialogState,
-  type TimelineViewMode,
-} from "./member-workspace-project-timeline-parts"
-import { withSaveFeedback } from "@/lib/with-save-feedback"
-
-function getViewStartForToday() {
-  return startOfWeek(addWeeks(FIXED_TODAY, -1), { weekStartsOn: 1 })
-}
-
-function getDaysToRender(viewMode: TimelineViewMode) {
-  if (viewMode === "Day") return 21
-  if (viewMode === "Week") return 60
-  if (viewMode === "Month") return 90
-  return 120
-}
-
-function getBaseCellWidth(viewMode: TimelineViewMode) {
-  if (viewMode === "Day") return 140
-  if (viewMode === "Week") return 60
-  if (viewMode === "Month") return 40
-  return 20
-}
-
-function formatDateOnly(date: Date) {
-  return date.toISOString().slice(0, 10)
-}
-
-function replaceProjectDuration(
-  projects: PlatformAdminDashboardLabProject[],
-  projectId: string,
-  newStart: Date,
-  newEnd: Date,
-) {
-  return projects.map((project) =>
-    project.id === projectId
-      ? { ...project, startDate: newStart, endDate: newEnd }
-      : project,
-  )
-}
-
-function shiftProjectStartWithTasks(
-  projects: PlatformAdminDashboardLabProject[],
-  projectId: string,
-  newStart: Date,
-) {
-  return projects.map((project) => {
-    if (project.id !== projectId || !project.startDate || !project.endDate) return project
-    const durationDays = differenceInCalendarDays(project.endDate, project.startDate) + 1
-    const newEnd = addDays(newStart, durationDays - 1)
-    const diff = differenceInCalendarDays(newStart, project.startDate)
-
-    return {
-      ...project,
-      startDate: newStart,
-      endDate: newEnd,
-      tasks:
-        project.tasks.length > 0
-          ? project.tasks.map((task) => ({
-              ...task,
-              startDate: addDays(task.startDate, diff),
-              endDate: addDays(task.endDate, diff),
-            }))
-          : project.tasks,
-    }
-  })
-}
+  calendarDay,
+  dateOnly,
+  DAY_MS,
+  formatTimelineDay,
+  localToday,
+  navigateTimeline,
+  shiftDay,
+  TIMELINE_MODES,
+  timelineCellWidth,
+  timelineDays,
+  type TimelineMode,
+} from "../../lib/project-timeline"
+import { ProjectTimelineToolbar } from "./project-timeline-toolbar"
+import { ProjectTimelineDateDialog } from "./project-timeline-date-dialog"
+import {
+  ProjectTimelineRow,
+  type ProjectTimelineRowData,
+} from "./project-timeline-row"
+import { useProjectTimeline } from "./use-project-timeline"
+import { cn } from "@/lib/utils"
 
 export function MemberWorkspaceProjectTimelineView({
-  projects: sourceProjects,
+  projects,
+  actions,
   updateProjectScheduleAction,
 }: {
   projects: PlatformAdminDashboardLabProject[]
+  actions?: ProjectTimelineActions
   updateProjectScheduleAction?: (
     projectId: string,
     startDate: string,
-    endDate: string,
+    endDate: string
   ) => Promise<{ ok: true; id: string } | { error: string }>
 }) {
-  const router = useRouter()
-  const [projects, setProjects] = useState(sourceProjects)
-  const [expandedProjects, setExpandedProjects] = useState<string[]>(sourceProjects.map((project) => project.id))
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [viewMode, setViewMode] = useState<TimelineViewMode>("Week")
-  const [zoom, setZoom] = useState(1)
-  const [editDialog, setEditDialog] = useState<TimelineEditDialogState>({
-    isOpen: false,
-    type: null,
-    projectId: null,
-    taskId: null,
-  })
-  const [editStartDate, setEditStartDate] = useState("")
-  const [editEndDate, setEditEndDate] = useState("")
-  const [viewStartDate, setViewStartDate] = useState(getViewStartForToday)
-  const [nameColWidth, setNameColWidth] = useState(280)
-  const [todayOffsetDays, setTodayOffsetDays] = useState<number | null>(null)
-  const [confirmDialog, setConfirmDialog] = useState<TimelineConfirmDialogState>({
-    isOpen: false,
-    message: "",
-    onConfirm: () => {},
-    onCancel: () => {},
-  })
-
-  const nameColRef = useRef<HTMLDivElement>(null)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const shouldAutoScrollToTodayRef = useRef(true)
-  const [, startScheduleTransition] = useTransition()
-  const canEditTimeline = Boolean(updateProjectScheduleAction)
-
+  const pathname = usePathname(),
+    params = useSearchParams()
+  const [today, setToday] = useState("")
   useEffect(() => {
-    setProjects(sourceProjects)
-    setExpandedProjects(sourceProjects.map((project) => project.id))
-  }, [sourceProjects])
-
-  const dates = useMemo(
-    () =>
-      Array.from({ length: getDaysToRender(viewMode) }).map((_, index) =>
-        addDays(viewStartDate, index),
-      ),
-    [viewMode, viewStartDate],
-  )
-
-  const cellWidth = Math.max(20, Math.round(getBaseCellWidth(viewMode) * zoom))
-  const timelineWidth = dates.length * cellWidth
-
-  useEffect(() => {
-    setZoom(1)
-  }, [viewMode])
-
-  useEffect(() => {
-    const element = nameColRef.current
-    if (!element) return
+    let timer: ReturnType<typeof setTimeout>
     const update = () => {
-      setNameColWidth(Math.round(element.getBoundingClientRect().width))
+      clearTimeout(timer)
+      const now = new Date()
+      setToday(localToday(now))
+      const midnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1
+      )
+      timer = setTimeout(update, midnight.getTime() - now.getTime() + 100)
     }
     update()
-    const observer = new ResizeObserver(update)
-    observer.observe(element)
-    return () => observer.disconnect()
+    window.addEventListener("focus", update)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("focus", update)
+    }
   }, [])
-
+  const requestedMode = params.get("timelineMode")
+  const mode: TimelineMode = TIMELINE_MODES.includes(
+    requestedMode as TimelineMode
+  )
+    ? (requestedMode as TimelineMode)
+    : "Week"
+  const requestedDate = params.get("timelineDate") ?? ""
+  const start =
+    calendarDay(requestedDate) !== null ? requestedDate : shiftDay(today, -7)
+  const names = params.get("timelineNames") !== "hide"
+  const rawZoom = Number(params.get("timelineZoom") ?? 1)
+  const zoom = Number.isFinite(rawZoom)
+    ? Math.min(2, Math.max(0.5, rawZoom))
+    : 1
+  const customSpan = Number(params.get("timelineSpan"))
+  const days =
+    customSpan >= 1 && customSpan <= 3660
+      ? Math.ceil(customSpan)
+      : timelineDays[mode]
+  const cellWidth = timelineCellWidth[mode] * zoom
+  const width = days * cellWidth
+  const expanded = (params.get("timelineExpanded") ?? "")
+    .split(",")
+    .filter((id) => projects.some((project) => project.id === id))
+  const controller = useProjectTimeline(
+    projects,
+    expanded,
+    actions,
+    updateProjectScheduleAction
+  )
+  const viewport = useRef<HTMLDivElement>(null)
+  const writeState = (values: Record<string, string>) => {
+    const next = new URLSearchParams(window.location.search)
+    for (const [key, value] of Object.entries(values))
+      value ? next.set(key, value) : next.delete(key)
+    if ((values.timelineDate || values.timelineMode) && !values.timelineSpan)
+      next.delete("timelineSpan")
+    window.history.pushState(null, "", `${pathname}?${next}`)
+  }
+  const rows = useMemo(
+    () =>
+      projects.flatMap<ProjectTimelineRowData>((project) => {
+        const schedule = controller.overrides[project.id]
+        const result: ProjectTimelineRowData[] = [
+          {
+            key: project.id,
+            project,
+            start: schedule?.startDate ?? dateOnly(project.startDate),
+            end: schedule?.endDate ?? dateOnly(project.endDate),
+            canEdit: Boolean(
+              (actions || updateProjectScheduleAction) &&
+              project.canEditSchedule !== false
+            ),
+            expanded: expanded.includes(project.id),
+          },
+        ]
+        if (!expanded.includes(project.id)) return result
+        const loaded = controller.cache[project.id]
+        const message = !actions
+          ? "Open the project to view its tasks."
+          : loaded?.loading || !loaded
+            ? "Loading tasks…"
+            : (loaded.error ?? (loaded.tasks.length ? "" : "No tasks yet."))
+        if (message)
+          result.push({
+            key: `${project.id}-message`,
+            project,
+            message,
+            retry: Boolean(loaded?.error),
+            start: "",
+            end: "",
+            canEdit: false,
+          })
+        else
+          for (const task of loaded.tasks)
+            result.push({
+              key: task.id,
+              project,
+              task,
+              start: task.startDate,
+              end: task.endDate,
+              canEdit: task.canEdit,
+            })
+        return result
+      }),
+    [
+      projects,
+      controller.overrides,
+      controller.cache,
+      actions,
+      updateProjectScheduleAction,
+      expanded,
+    ]
+  )
+  const virtual = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => viewport.current,
+    estimateSize: () => 48,
+    overscan: 8,
+    enabled: rows.length > 50,
+    scrollMargin: 48,
+    initialRect: { width: 1000, height: 560 },
+  })
+  const visible =
+    rows.length > 50
+      ? virtual
+          .getVirtualItems()
+          .map((item) => ({
+            row: rows[item.index],
+            start: item.start - 48,
+            key: item.key,
+          }))
+      : rows.map((row, index) => ({ row, start: index * 48, key: row.key }))
+  const origin = calendarDay(start),
+    now = calendarDay(today)
+  const offset = origin !== null && now !== null ? (now - origin) / DAY_MS : -1
+  const todayOffset = offset >= 0 && offset < days ? offset : null
   useEffect(() => {
-    const offset = differenceInCalendarDays(FIXED_TODAY, dates[0])
-    if (offset < 0 || offset >= dates.length) {
-      setTodayOffsetDays(null)
+    if (viewport.current) viewport.current.scrollLeft = 0
+  }, [start, mode])
+  const fit = () => {
+    const dates = rows
+      .flatMap((row) => [row.start, row.end])
+      .filter((value) => calendarDay(value) !== null)
+      .sort()
+    if (!dates.length) {
+      writeState({ timelineDate: shiftDay(today, -7) })
       return
     }
-    setTodayOffsetDays(offset)
-  }, [dates])
-
-  useEffect(() => {
-    if (!shouldAutoScrollToTodayRef.current || todayOffsetDays == null) return
-    const element = scrollContainerRef.current
-    if (!element) return
-
-    const sidebarWidth = isSidebarOpen ? nameColWidth : 0
-    const timelineViewportWidth = Math.max(0, element.clientWidth - sidebarWidth)
-    const dayX = todayOffsetDays * cellWidth
-    const target = Math.max(0, dayX - timelineViewportWidth / 2 + cellWidth / 2)
-
-    element.scrollTo({ left: target, behavior: "smooth" })
-    shouldAutoScrollToTodayRef.current = false
-  }, [cellWidth, isSidebarOpen, nameColWidth, todayOffsetDays])
-
-  const toggleProject = (projectId: string) => {
-    setExpandedProjects((current) =>
-      current.includes(projectId)
-        ? current.filter((value) => value !== projectId)
-        : [...current, projectId],
+    const span = Math.min(
+      3660,
+      (calendarDay(dates.at(-1)!)! - calendarDay(dates[0])!) / DAY_MS + 7
     )
-  }
-
-  const closeConfirmDialog = (confirmed: boolean) => {
-    if (confirmed) {
-      confirmDialog.onConfirm()
-    } else {
-      confirmDialog.onCancel()
-    }
-    setConfirmDialog({
-      isOpen: false,
-      message: "",
-      onConfirm: () => {},
-      onCancel: () => {},
+    const available = Math.max(
+      300,
+      (viewport.current?.clientWidth ?? 1000) - (names ? 288 : 0)
+    )
+    const fitMode =
+      TIMELINE_MODES.find(
+        (value) => timelineCellWidth[value] * span <= available * 2
+      ) ?? "Quarter"
+    writeState({
+      timelineDate: shiftDay(dates[0], -3),
+      timelineMode: fitMode,
+      timelineSpan: String(span),
+      timelineZoom: "0.5",
     })
   }
-
-  const showConfirmDialog = (message: string, onConfirm: () => void, onCancel: () => void = () => {}) => {
-    setConfirmDialog({
-      isOpen: true,
-      message,
-      onConfirm,
-      onCancel,
-    })
-  }
-
-  const commitProjectSchedule = (
-    nextProjects: PlatformAdminDashboardLabProject[],
-    projectId: string,
-    newStart: Date,
-    newEnd: Date,
-  ) => {
-    const previousProjects = projects
-    setProjects(nextProjects)
-
-    if (!updateProjectScheduleAction) {
-      return
-    }
-
-    startScheduleTransition(async () => {
-      const result = await withSaveFeedback(() => updateProjectScheduleAction(
-        projectId,
-        formatDateOnly(newStart),
-        formatDateOnly(newEnd),
-      ), { pending: "Saving dates…", success: "Project dates updated" })
-
-      if ("error" in result) {
-        setProjects(previousProjects)
-        return
-      }
-
-      router.refresh()
-    })
-  }
-
-  const updateProjectDuration = (projectId: string, newStart: Date, newEnd: Date) => {
-    commitProjectSchedule(
-      replaceProjectDuration(projects, projectId, newStart, newEnd),
-      projectId,
-      newStart,
-      newEnd,
+  if (!today)
+    return (
+      <div role="status" className="text-muted-foreground p-4 text-sm">
+        Loading timeline…
+      </div>
     )
-  }
-
-  const updateTaskDuration = (projectId: string, taskId: string, newStart: Date, newEnd: Date) => {
-    setProjects((current) =>
-      current.map((project) => {
-        if (project.id !== projectId) return project
-        return {
-          ...project,
-          tasks: project.tasks.map((task) =>
-            task.id === taskId ? { ...task, startDate: newStart, endDate: newEnd } : task,
-          ),
-        }
-      }),
-    )
-  }
-
-  const updateProjectStart = (projectId: string, newStart: Date, confirmed = false) => {
-    const project = projects.find((item) => item.id === projectId)
-    if (!project?.startDate || !project.endDate) return
-
-    const durationDays = differenceInCalendarDays(project.endDate, project.startDate) + 1
-    const newEnd = addDays(newStart, durationDays - 1)
-
-    if (project.tasks.length > 0 && !confirmed) {
-      showConfirmDialog(
-        "Move task dates together with the project?",
-        () => updateProjectStart(projectId, newStart, true),
-        () => updateProjectDuration(projectId, newStart, newEnd),
-      )
-      return
-    }
-
-    commitProjectSchedule(
-      shiftProjectStartWithTasks(projects, projectId, newStart),
-      projectId,
-      newStart,
-      newEnd,
-    )
-  }
-
-  const updateTaskStart = (projectId: string, taskId: string, newStart: Date) => {
-    setProjects((current) =>
-      current.map((project) => {
-        if (project.id !== projectId) return project
-        const task = project.tasks.find((item) => item.id === taskId)
-        if (!task) return project
-
-        const taskDuration = differenceInCalendarDays(task.endDate, task.startDate) + 1
-        const newEnd = addDays(newStart, taskDuration - 1)
-
-        if ((project.startDate && newStart < project.startDate) || (project.endDate && newEnd > project.endDate)) {
-          showConfirmDialog(
-            "This task is outside the project range. Expand project to fit?",
-            () => {
-              setProjects((next) =>
-                next.map((item) => {
-                  if (item.id !== project.id) return item
-                  return {
-                    ...item,
-                    startDate: !item.startDate || newStart < item.startDate ? newStart : item.startDate,
-                    endDate: !item.endDate || newEnd > item.endDate ? newEnd : item.endDate,
-                    tasks: item.tasks.map((entry) =>
-                      entry.id === taskId ? { ...entry, startDate: newStart, endDate: newEnd } : entry,
-                    ),
-                  }
-                }),
-              )
-            },
-          )
-          return project
-        }
-
-        return {
-          ...project,
-          tasks: project.tasks.map((entry) =>
-            entry.id === taskId ? { ...entry, startDate: newStart, endDate: newEnd } : entry,
-          ),
-        }
-      }),
-    )
-  }
-
-  const toggleTaskStatus = (projectId: string, taskId: string) => {
-    setProjects((current) =>
-      current.map((project) => {
-        if (project.id !== projectId) return project
-        return {
-          ...project,
-          tasks: project.tasks.map((task) =>
-            task.id === taskId
-              ? { ...task, status: task.status === "done" ? "todo" : "done" }
-              : task,
-          ),
-        }
-      }),
-    )
-  }
-
-  const openProjectEditor = (projectId: string) => {
-    const project = projects.find((item) => item.id === projectId)
-    if (!project) return
-    setEditStartDate(project.startDate ? format(project.startDate, "yyyy-MM-dd") : "")
-    setEditEndDate(project.endDate ? format(project.endDate, "yyyy-MM-dd") : "")
-    setEditDialog({ isOpen: true, type: "project", projectId, taskId: null })
-  }
-
-  const openTaskEditor = (projectId: string, taskId: string) => {
-    const project = projects.find((item) => item.id === projectId)
-    const task = project?.tasks.find((item) => item.id === taskId)
-    if (!project || !task) return
-    setEditStartDate(format(task.startDate, "yyyy-MM-dd"))
-    setEditEndDate(format(task.endDate, "yyyy-MM-dd"))
-    setEditDialog({ isOpen: true, type: "task", projectId, taskId })
-  }
-
-  const saveEditDialog = () => {
-    if (!editDialog.projectId || !editDialog.type) return
-    const newStart = new Date(`${editStartDate}T00:00:00.000Z`)
-    const newEnd = new Date(`${editEndDate}T00:00:00.000Z`)
-
-    if (editDialog.type === "project") {
-      updateProjectDuration(editDialog.projectId, newStart, newEnd)
-    }
-    if (editDialog.type === "task" && editDialog.taskId) {
-      updateTaskDuration(editDialog.projectId, editDialog.taskId, newStart, newEnd)
-    }
-
-    setEditDialog({ isOpen: false, type: null, projectId: null, taskId: null })
-  }
-
   return (
-    <div className="flex h-full flex-col">
-      <TimelineToolbar
-        isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen((current) => !current)}
-        onPrevious={() => setViewStartDate((date) => subWeeks(date, 1))}
-        onNext={() => setViewStartDate((date) => addWeeks(date, 1))}
-        onToday={() => {
-          shouldAutoScrollToTodayRef.current = true
-          setViewStartDate(getViewStartForToday())
-        }}
-        onZoomOut={() => setZoom((current) => Math.max(0.5, current - 0.25))}
-        onZoomIn={() => setZoom((current) => Math.min(2, current + 0.25))}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
+    <section
+      aria-label="Project timeline"
+      className="flex h-[min(72vh,800px)] min-h-96 min-w-0 flex-col"
+    >
+      <ProjectTimelineToolbar
+        start={start}
+        end={shiftDay(start, days - 1)}
+        mode={mode}
+        zoom={zoom}
+        sidebar={names}
+        onChange={writeState}
+        onNavigate={(direction) =>
+          writeState({ timelineDate: navigateTimeline(start, mode, direction) })
+        }
+        onToday={() => writeState({ timelineDate: shiftDay(today, -7) })}
+        onFit={fit}
+        onRefresh={controller.refresh}
       />
-
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto">
-        <div className="flex min-w-max">
-          {isSidebarOpen ? (
-            <TimelineSidebar
-              projects={projects}
-              expandedProjects={expandedProjects}
-              nameColRef={nameColRef}
-              canEdit={canEditTimeline}
-              onToggleProject={toggleProject}
-              onToggleTaskStatus={toggleTaskStatus}
-              onEditProject={openProjectEditor}
-              onEditTask={openTaskEditor}
-            />
-          ) : null}
-
-          <TimelineCanvas
-            projects={projects}
-            expandedProjects={expandedProjects}
-            dates={dates}
-            cellWidth={cellWidth}
-            timelineWidth={timelineWidth}
-            todayOffsetDays={todayOffsetDays}
-            canEdit={canEditTimeline}
-            onEditProject={openProjectEditor}
-            onEditTask={openTaskEditor}
-            onUpdateProject={updateProjectStart}
-            onUpdateProjectDuration={updateProjectDuration}
-            onUpdateTask={updateTaskStart}
-            onUpdateTaskDuration={updateTaskDuration}
-          />
+      <div
+        ref={viewport}
+        className="relative min-h-0 flex-1 overflow-auto overscroll-contain"
+        tabIndex={0}
+        aria-label="Scrollable timeline"
+      >
+        <div className="min-w-max">
+          <div className="bg-background sticky top-0 z-20 flex h-12 border-b">
+            {names && (
+              <div className="bg-background text-muted-foreground sticky left-0 z-30 flex w-44 shrink-0 items-center border-r px-3 text-xs sm:w-72">
+                Name
+              </div>
+            )}
+            <div className="relative flex shrink-0" style={{ width }}>
+              {Array.from({ length: days }, (_, index) => {
+                const day = shiftDay(start, index),
+                  date = new Date(calendarDay(day)!)
+                const show =
+                  mode === "Day" ||
+                  (mode === "Week" && index % 2 === 0) ||
+                  (mode === "Month" && date.getUTCDay() === 1) ||
+                  (mode === "Quarter" && date.getUTCDate() === 1)
+                return (
+                  <div
+                    key={day}
+                    className={cn(
+                      "border-border/40 text-muted-foreground flex shrink-0 items-center justify-center border-r text-[10px]",
+                      day === today &&
+                        "bg-primary/10 text-foreground font-semibold"
+                    )}
+                    style={{ width: cellWidth }}
+                    title={formatTimelineDay(day)}
+                  >
+                    {show
+                      ? formatTimelineDay(
+                          day,
+                          mode === "Quarter"
+                            ? { month: "short" }
+                            : mode === "Day"
+                              ? { weekday: "short", day: "numeric" }
+                              : { day: "numeric" }
+                        )
+                      : ""}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          <div
+            className="relative"
+            style={{
+              height:
+                rows.length > 50 ? virtual.getTotalSize() : rows.length * 48,
+            }}
+          >
+            {visible.map(({ row, start: top, key }) => (
+              <div
+                key={key}
+                className="absolute inset-x-0 top-0"
+                style={{ transform: `translateY(${top}px)` }}
+              >
+                <ProjectTimelineRow
+                  row={row}
+                  names={names}
+                  width={width}
+                  days={days}
+                  cellWidth={cellWidth}
+                  origin={start}
+                  todayOffset={todayOffset}
+                  pending={controller.pending.has(
+                    row.task?.id ?? row.project.id
+                  )}
+                  onToggle={() =>
+                    writeState({
+                      timelineExpanded: expanded.includes(row.project.id)
+                        ? expanded
+                            .filter((id) => id !== row.project.id)
+                            .join(",")
+                        : [...expanded, row.project.id].join(","),
+                    })
+                  }
+                  onRetry={() => void controller.load(row.project.id)}
+                  onStatus={() => {
+                    if (row.task) void controller.toggleStatus(row.task)
+                  }}
+                  onEdit={controller.setEditor}
+                  onChange={(editor) => void controller.drag(editor)}
+                  onReveal={(day) =>
+                    writeState({ timelineDate: shiftDay(day, -3) })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          {!rows.length && (
+            <p className="text-muted-foreground p-4 text-sm">
+              No projects match the current filters.
+            </p>
+          )}
         </div>
       </div>
-
-      <TimelineEditDialog
-        editDialog={editDialog}
-        editStartDate={editStartDate}
-        editEndDate={editEndDate}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditDialog({ isOpen: false, type: null, projectId: null, taskId: null })
-          }
-        }}
-        onChangeStartDate={setEditStartDate}
-        onChangeEndDate={setEditEndDate}
-        onSave={saveEditDialog}
-      />
-
-      <TimelineConfirmDialog
-        confirmDialog={confirmDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeConfirmDialog(false)
-          }
-        }}
-        onConfirm={() => closeConfirmDialog(true)}
-      />
-    </div>
+      {controller.editor && (
+        <ProjectTimelineDateDialog
+          key={`${controller.editor.taskId ?? controller.editor.projectId}:${controller.editor.startDate}:${controller.editor.endDate}`}
+          editor={controller.editor}
+          saving={controller.pending.has(
+            controller.editor.taskId ?? controller.editor.projectId
+          )}
+          onClose={() => controller.setEditor(null)}
+          onSave={controller.save}
+        />
+      )}
+    </section>
   )
 }

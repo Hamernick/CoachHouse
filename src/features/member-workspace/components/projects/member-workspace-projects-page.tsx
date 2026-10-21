@@ -58,6 +58,7 @@ import {
 } from "./member-workspace-project-view-options"
 
 type MemberWorkspaceProjectsPageProps = {
+  timelineActions?: import("../../lib/project-timeline-types").ProjectTimelineActions
   deleteProjectAction?: (projectId: string) => Promise<{ ok: true; id: string } | { error: string }>
   directory?: "organizations" | "projects"
   viewerUserId?: string
@@ -144,6 +145,14 @@ function parseDirectoryState(
     viewOptions: paramsToViewOptions(params),
     visibility: directory === "projects" ? "visible" : normalizeOrganizationKanbanVisibilityMode(params.get("visibility")),
   }
+}
+
+function chipsToTimelineParams(filters: FilterChip[], current: Iterable<[string, string]>) {
+  const params = chipsToParams(filters)
+  for (const [key, value] of current) {
+    if (key.startsWith("timeline")) params.set(key, value)
+  }
+  return params
 }
 
 export function MemberWorkspaceProjectsPage(
@@ -239,7 +248,7 @@ export function MemberWorkspaceProjectsPage(
     nextKanbanVisibilityMode?: OrganizationKanbanVisibilityMode
     nextViewOptions?: typeof viewOptions
   }) => {
-    const params = chipsToParams(nextFilters)
+    const params = chipsToTimelineParams(nextFilters, searchParams)
     applyOrganizationCoachFilterToParams(params, nextCoachFilter)
     if (defaultCoachFilter !== "all" && nextCoachFilter === "all") params.set("coach", "all")
     applyOrganizationKanbanVisibilityToParams(params, nextKanbanVisibilityMode)
@@ -247,9 +256,7 @@ export function MemberWorkspaceProjectsPage(
     if (directory === "projects") params.set("view", nextViewOptions.viewType)
     const nextQuery = params.toString()
     saveDirectoryQuery({ directory, viewerUserId }, nextQuery, nextCoachFilter)
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
-      scroll: false,
-    })
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }
 
   const handleFiltersChange = (nextFilters: FilterChip[]) => {
@@ -408,6 +415,7 @@ export function MemberWorkspaceProjectsPage(
           {!showPageEmpty && effectiveViewType === "timeline" ? (
             <MemberWorkspaceProjectTimelineView
               projects={filteredProjects}
+              actions={props.timelineActions}
               updateProjectScheduleAction={updateProjectScheduleAction}
             />
           ) : null}

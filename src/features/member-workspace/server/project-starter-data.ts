@@ -55,6 +55,7 @@ export function mapOrganizationProjectToViewModel(
 ): PlatformAdminDashboardLabProject {
   return {
     id: project.id,
+    canEditSchedule: project.created_source !== "system" || project.project_kind === "organization_admin",
     fiscalSponsorshipEnabled: projectFiscalSponsorshipEnabled(project.option_settings, project.guided_setup),
     recurrence: project.recurrence ?? "none",
     organizationId: project.org_id,
