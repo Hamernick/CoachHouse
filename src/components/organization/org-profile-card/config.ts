@@ -84,6 +84,9 @@ function normalizeTypography(source: OrgProfile): BrandTypographyConfig | null {
 }
 
 export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
+  const website =
+    source.publicUrl?.trim() ||
+    (source.locationType === "online" ? source.locationUrl ?? "" : "")
   const normalizedLocation = normalizeOrganizationLocationFields({
     street: source.addressStreet,
     city: source.addressCity,
@@ -113,11 +116,12 @@ export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
     addressPostal: normalizedLocation.postal,
     addressCountry: normalizedLocation.country,
     locationType: source.locationType === "online" ? "online" : "in_person",
-    locationUrl: source.locationUrl ?? "",
+    locationUrl:
+      source.locationType === "online" ? website : source.locationUrl ?? "",
     logoUrl: source.logoUrl ?? "",
     brandMarkUrl: source.brandMarkUrl ?? "",
     headerUrl: source.headerUrl ?? "",
-    publicUrl: source.publicUrl ?? "",
+    publicUrl: website,
     donateUrl: source.donateUrl ?? "",
     twitter: source.twitter ?? "",
     facebook: source.facebook ?? "",

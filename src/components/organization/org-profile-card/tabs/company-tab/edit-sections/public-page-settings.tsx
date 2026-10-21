@@ -11,19 +11,11 @@ import { Label } from "@/components/ui/label"
 import styles from "../../../profile-edit-fields.module.css"
 import {
   FormRow,
-  ProfileField,
 } from "@/components/organization/org-profile-card/shared"
 import { slugifyLocal } from "../../../utils"
 import type { CompanyEditProps } from "../types"
 import { RESERVED_SLUGS } from "../constants"
 import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 export function PublicPageSettings({
@@ -178,45 +170,6 @@ export function PublicPageSettings({
             </p>
           </div>
         </div>
-        <div className={styles.group}>
-          <ProfileField label="Access" focusKey="publicLocationType">
-            <Select
-              value={isOnlineOnly ? "online" : "in_person"}
-              onValueChange={(value) => {
-                if (value !== "online" && value !== "in_person") return
-                onUpdate({ locationType: value })
-                onDirty()
-              }}
-            >
-              <SelectTrigger id="publicLocationType" className="bg-background">
-                <SelectValue placeholder="Select access type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="in_person">Physical location</SelectItem>
-                <SelectItem value="online">Online only</SelectItem>
-              </SelectContent>
-            </Select>
-          </ProfileField>
-
-          {isOnlineOnly ? (
-            <ProfileField label="Web resource" focusKey="locationUrl">
-              <Input
-                id="locationUrl"
-                name="locationUrl"
-                value={company.locationUrl ?? ""}
-                onChange={(event) => {
-                  onUpdate({ locationUrl: event.currentTarget.value })
-                  onDirty()
-                }}
-                placeholder="https://example.org/get-help"
-                aria-invalid={Boolean(errors.locationUrl)}
-              />
-              {errors.locationUrl ? (
-                <p className="text-destructive text-xs">{errors.locationUrl}</p>
-              ) : null}
-            </ProfileField>
-          ) : null}
-        </div>
         {company.isPublic && !hasAddress && !isOnlineOnly ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
             <div className="flex items-start gap-2">
@@ -231,7 +184,7 @@ export function PublicPageSettings({
                 <p className="text-muted-foreground text-xs">
                   This profile can still be published now, but it will not
                   render a map marker until you add a public address in the
-                  Address section.
+                  Location section.
                 </p>
               </div>
             </div>
@@ -250,7 +203,7 @@ export function PublicPageSettings({
                 </p>
                 <p className="text-muted-foreground text-xs">
                   When you save this profile, Coach House geocodes the address
-                  from the Address section and falls back to broader locality
+                  from the Location section and falls back to broader locality
                   matching if the exact street lookup misses.
                 </p>
               </div>

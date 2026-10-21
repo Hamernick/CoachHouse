@@ -85,17 +85,23 @@ export function ContactPreview({ company }: CompanyViewProps) {
   )
 }
 
-export function AddressPreview({ addressLines }: CompanyViewProps) {
-  if (addressLines.length === 0) {
+export function AddressPreview({ company, addressLines }: CompanyViewProps) {
+  const isOnlineOnly = company.locationType === "online"
+  if (!isOnlineOnly && addressLines.length === 0) {
     return null
   }
 
   return (
-    <FormRow title="Address" layout="stacked" inset={false}>
+    <FormRow title="Location" layout="stacked" inset={false}>
       <div className={cn(styles.group, styles.readOnly)}>
-        <div className={cn(styles.row, styles.stacked)}>
-          <AddressDisplay lines={addressLines} />
-        </div>
+        <ProfileField label="Location type">
+          <FieldText text={isOnlineOnly ? "Web resource" : "Physical location"} />
+        </ProfileField>
+        {!isOnlineOnly ? (
+          <div className={cn(styles.row, styles.stacked)}>
+            <AddressDisplay lines={addressLines} />
+          </div>
+        ) : null}
       </div>
     </FormRow>
   )

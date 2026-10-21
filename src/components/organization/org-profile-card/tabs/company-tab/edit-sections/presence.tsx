@@ -37,6 +37,8 @@ export function PresenceSection({
   company,
   errors,
   onInputChange,
+  onUpdate,
+  onDirty,
 }: CompanyEditProps) {
   return (
     <FormRow
@@ -64,7 +66,15 @@ export function PresenceSection({
                 id={name}
                 name={name}
                 value={company[name] ?? ""}
-                onChange={onInputChange}
+                onChange={(event) => {
+                  if (name === "publicUrl" && company.locationType === "online") {
+                    const website = event.currentTarget.value
+                    onUpdate({ publicUrl: website, locationUrl: website })
+                    onDirty()
+                  } else {
+                    onInputChange(event)
+                  }
+                }}
                 aria-invalid={Boolean(errors[name])}
                 aria-describedby={
                   errors[name]

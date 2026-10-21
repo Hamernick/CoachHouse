@@ -1202,3 +1202,11 @@ Scoped the saved Identity formation summary to bg-white in light mode, preservin
 ### October 21 — Center saved profile rows
 
 Set align-content:center on saved grouped ProfileField rows to override the shared content-start alignment, vertically centering Contact labels/values within their minimum-height containers. Edit rows unchanged. Whitespace/pre-push checks cover scoped CSS edit. Existing browser tab was not showing saved Contact rows, so no fresh browser geometry claimed.
+
+
+### October 21 — Unified location choice and conditional address
+
+- Moved the former Access selector from Public Map Profile into the Address group, now titled Location with a Location type label. Physical location reveals address fields; Web resource hides them without clearing retained values. Removed the separate Web resource URL input. Saved Location uses the same type and hides retained physical address for online resources.
+- Website is now the online destination within this editor: normalization favors Website and exposes legacy-only location URLs there; switching online and editing Website keep locationUrl synchronized for the existing save action/public consumers. No schema migration or global public-profile behavior change.
+- 17 focused tests pass across field rendering/normalization, formation and public settings; scoped lint/whitespace pass. Authenticated browser verified online mode has no address fields, physical mode reveals existing address, switching back hides it, and Website shows the preferred saved website. Test-only draft discarded; no user values saved.
+- Prior graph refresh completed. Current cohesive refresh session 14849, `/tmp/organization-location-layout-graphify-20261021.log`. Development branch only.
