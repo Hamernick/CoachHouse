@@ -48,6 +48,7 @@ interface FilterCounts {
 }
 
 interface FilterPopoverProps {
+  applyOnChange?: boolean
   entityType?: "project" | "task"
   initialChips?: FilterChip[]
   onApply: (chips: FilterChip[]) => void
@@ -85,6 +86,7 @@ const DEFAULT_TAG_OPTIONS: FilterPopoverTagOption[] = [
 
 export function FilterPopover({
   entityType = "project",
+  applyOnChange = false,
   initialChips,
   onApply,
   onClear,
@@ -180,14 +182,19 @@ export function FilterPopover({
     return n
   }
 
-  const handleApply = () => {
+  const applySelection = (selection: FilterTemp) => {
     const chips: FilterChip[] = []
-    temp.status.forEach((v) => chips.push({ key: "Status", value: statusOptions.find((option) => option.id === v)?.label ?? capitalize(v) }))
-    temp.priority.forEach((v) => chips.push({ key: "Priority", value: priorityOptions.find((option) => option.id === v)?.label ?? capitalize(v) }))
-    temp.members.forEach((v) => chips.push({ key: "Member", value: v }))
-    temp.tags.forEach((v) => chips.push({ key: "Tag", value: v }))
+    selection.status.forEach((v) => chips.push({ key: "Status", value: statusOptions.find((option) => option.id === v)?.label ?? capitalize(v) }))
+    selection.priority.forEach((v) => chips.push({ key: "Priority", value: priorityOptions.find((option) => option.id === v)?.label ?? capitalize(v) }))
+    selection.members.forEach((v) => chips.push({ key: "Member", value: v }))
+    selection.tags.forEach((v) => chips.push({ key: "Tag", value: v }))
     onApply(chips)
-    setOpen(false)
+  }
+
+  const changeSelection = (category: keyof FilterTemp, value: string) => {
+    const next = { ...temp, [category]: toggleSet(temp[category], value) }
+    setTemp(next)
+    if (applyOnChange) applySelection(next)
   }
 
   const handleClear = () => {
@@ -243,7 +250,8 @@ export function FilterPopover({
                   <label key={opt.id} className="flex items-center gap-2 rounded-lg border p-2 hover:bg-accent cursor-pointer">
                     <Checkbox
                       checked={temp.priority.has(opt.id)}
-                      onCheckedChange={() => setTemp((t) => ({ ...t, priority: toggleSet(t.priority, opt.id) }))}
+                      aria-label={opt.label}
+                      onCheckedChange={() => changeSelection("priority", opt.id)}
                     />
                     <span className="text-sm flex-1">{opt.label}</span>
                     {counts?.priority && (
@@ -261,7 +269,8 @@ export function FilterPopover({
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
                     <Checkbox
                       checked={temp.status.has(opt.id)}
-                      onCheckedChange={() => setTemp((t) => ({ ...t, status: toggleSet(t.status, opt.id) }))}
+                      aria-label={opt.label}
+                      onCheckedChange={() => changeSelection("status", opt.id)}
                     />
                     <span className="text-sm flex-1">{opt.label}</span>
                     {counts?.status && (
@@ -278,12 +287,8 @@ export function FilterPopover({
                   <label key={m.id} className="flex items-center gap-2 rounded-lg border p-2 hover:bg-accent cursor-pointer">
                     <Checkbox
                       checked={temp.members.has(m.value ?? m.label)}
-                      onCheckedChange={() =>
-                        setTemp((t) => ({
-                          ...t,
-                          members: toggleSet(t.members, m.value ?? m.label),
-                        }))
-                      }
+                      aria-label={m.label}
+                      onCheckedChange={() => changeSelection("members", m.value ?? m.label)}
                     />
                     {m.avatar ? (
                       <Avatar className="size-6">
@@ -321,12 +326,8 @@ export function FilterPopover({
                       <label key={t.id} className="flex items-center gap-2 rounded-lg border p-2 hover:bg-accent cursor-pointer">
                         <Checkbox
                           checked={temp.tags.has(t.value ?? t.id)}
-                          onCheckedChange={() =>
-                            setTemp((s) => ({
-                              ...s,
-                              tags: toggleSet(s.tags, t.value ?? t.id),
-                            }))
-                          }
+                          aria-label={t.label}
+                          onCheckedChange={() => changeSelection("tags", t.value ?? t.id)}
                         />
                         <span className="text-sm flex-1">{t.label}</span>
                         {counts?.tags && (
@@ -344,8 +345,8 @@ export function FilterPopover({
               <button onClick={handleClear} className="text-sm text-primary hover:underline">
                 Clear
               </button>
-              <Button size="sm" className="h-8 rounded-lg" onClick={handleApply}>
-                Apply
+              <Button size="sm" className="h-8 rounded-lg" onClick={() => { if (!applyOnChange) applySelection(temp); setOpen(false) }}>
+                {applyOnChange ? "Done" : "Apply"}
               </Button>
             </div>
           </div>

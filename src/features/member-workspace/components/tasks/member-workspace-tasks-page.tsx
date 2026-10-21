@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react"
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh"
 import { useRouter, useSearchParams } from "next/navigation"
-import { matchesPersonalTaskRelation, type PersonalTaskRelation } from "@/lib/task-tracker"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { TaskRelationshipSelect, TaskPresentationControls } from "./task-presentation-controls"
+import { selectPersonalTaskGroups } from "../../lib/task-presentation"
 import { format } from "date-fns"
 import { Plus } from "@phosphor-icons/react/dist/ssr"
 
@@ -26,6 +26,7 @@ import {
 } from "@/features/platform-admin-dashboard"
 import { TaskProjectList } from "./task-project-list"
 import { TaskWeekBoard } from "./task-week-board"
+import { useTaskCalendarDay } from "./use-task-calendar-day"
 import { useTaskMutations, type TaskMutationActions } from "./use-task-mutations"
 import { readTaskViewState, writeTaskViewState, type TaskViewState } from "../../lib/task-view-state"
 import { toProjectGroup } from "../../lib/task-view-model"
@@ -43,19 +44,6 @@ type MemberWorkspaceTaskFilterCounts = {
   priority?: Record<string, number>
   tags?: Record<string, number>
   members?: Record<string, number>
-}
-
-function TaskRelationshipSelect({ value, onChange }: { value: PersonalTaskRelation; onChange: (value: PersonalTaskRelation) => void }) {
-  return (
-          <Select value={value} onValueChange={(value) => onChange(value as PersonalTaskRelation)}>
-            <SelectTrigger className="h-8 w-44" aria-label="Task relationship"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="owned">Assigned to me</SelectItem>
-              <SelectItem value="proposed">Proposed to me</SelectItem>
-              <SelectItem value="collaborating">Collaborating</SelectItem>
-            </SelectContent>
-          </Select>
-  )
 }
 
 export function MemberWorkspaceTasksPage({
@@ -97,11 +85,12 @@ export function MemberWorkspaceTasksPage({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const state = useMemo(() => readTaskViewState(new URLSearchParams(searchParams.toString())), [searchParams])
+  const today = useTaskCalendarDay()
+  const state = useMemo(() => readTaskViewState(new URLSearchParams(searchParams.toString()), today), [searchParams, today])
   const { filters, relation } = state
   const changeViewState = (patch: Partial<TaskViewState>) => {
     const current = new URLSearchParams(window.location.search)
-    const next = writeTaskViewState(current, { ...readTaskViewState(current), ...patch })
+    const next = writeTaskViewState(current, { ...readTaskViewState(current, today), ...patch })
     window.history.pushState(null, "", `${window.location.pathname}?${next.toString()}`)
   }
   const setFilters = (next: FilterChip[]) => changeViewState({ filters: next })
@@ -114,7 +103,8 @@ export function MemberWorkspaceTasksPage({
   const mutationPending = pendingTaskIds.size > 0
   useVisibleRefresh(router.refresh, !isTaskCreateOpen && !mutationPending)
 
-  const adaptedGroups = useMemo(() => groups.map(group => ({ ...group, tasks: group.tasks.filter(task => matchesPersonalTaskRelation(task, viewerUserId, relation)) })).filter(group => group.tasks.length).map(toProjectGroup), [groups, viewerUserId, relation])
+  const selectedGroups = useMemo(() => selectPersonalTaskGroups(groups, viewerUserId, state), [groups, viewerUserId, state])
+  const adaptedGroups = useMemo(() => selectedGroups.map(toProjectGroup), [selectedGroups])
   const allTasks = useMemo(
     () => adaptedGroups.flatMap((group) => group.tasks),
     [adaptedGroups],
@@ -257,7 +247,7 @@ export function MemberWorkspaceTasksPage({
   }
 
   const visibleIds = new Set(visibleGroups.flatMap(group => group.tasks.map(task => task.id)))
-  const visibleTaskGroups = groups.map(group => ({ ...group, tasks: group.tasks.filter(task => visibleIds.has(task.id)) })).filter(group => group.tasks.length)
+  const visibleTaskGroups = selectedGroups.map(group => ({ ...group, tasks: group.tasks.filter(task => visibleIds.has(task.id)) })).filter(group => group.tasks.length)
   const openTaskById = (id: string) => {
     const task = visibleGroups.flatMap(group => group.tasks).find(item => item.id === id)
     if (task) openEditTask(task)
@@ -297,6 +287,7 @@ export function MemberWorkspaceTasksPage({
           <TaskRelationshipSelect value={relation} onChange={(relation) => changeViewState({ relation })} />
           <FilterPopover
             entityType="task"
+            applyOnChange
             initialChips={filters}
             onApply={setFilters}
             onClear={() => setFilters([])}
@@ -304,6 +295,7 @@ export function MemberWorkspaceTasksPage({
             memberOptions={memberFilterOptions}
             tagOptions={tagFilterOptions}
           />
+          <TaskPresentationControls state={state} onChange={changeViewState} />
           <ChipOverflow
             chips={filters}
             onRemove={(key, value) =>
@@ -327,12 +319,12 @@ export function MemberWorkspaceTasksPage({
     <div className="flex flex-1 flex-col min-h-0 bg-background min-w-0">
       {header}
 
-      {!visibleGroups.length ? (
+      {state.view === "list" && !visibleGroups.length ? (
         <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground">
-          {filters.length > 0
+          {filters.length > 0 || state.completion !== "all"
             ? "No tasks match the current filters."
             : hasAnyOrgTasks
-              ? relation === "owned" ? "No tasks assigned to you yet." : "No tasks in this view."
+              ? relation.length === 1 && relation[0] === "owned" ? "No tasks assigned to you yet." : "No tasks in this view."
               : canOpenTaskCreate
                 ? scope === "platform-admin"
                   ? "No tasks available yet."
@@ -341,21 +333,21 @@ export function MemberWorkspaceTasksPage({
         </div>
       ) : (
         <div className="flex-1 min-h-0 min-w-0 space-y-4 overflow-y-auto px-4 py-4">
-          {state.view === "board" ? (
+          {state.view === "board" ? (today ? (
             <TaskWeekBoard tasks={visibleTaskGroups.flatMap(group => group.tasks)}
-              weekStart={state.week} showWeekend={state.weekend}
+              weekStart={state.week} today={today} showWeekend={state.weekend}
               onWeekChange={week => changeViewState({ week })}
               onWeekendChange={weekend => changeViewState({ weekend })}
               pendingTaskIds={pendingTaskIds} capabilities={capabilities}
               onToggleTask={toggleTask} onOpenTask={openTaskById} onScheduleTask={scheduleTask}
               onAddTask={canOpenTaskCreate ? context => openCreateTask({ ...context, projectId: projectOptions.some(project => project.id === context.projectId) ? context.projectId : undefined }) : undefined}
               onShowList={() => changeViewState({ view: "list" })} />
-          ) : (
+          ) : <p role="status" className="text-sm text-muted-foreground">Loading task calendar…</p>) : (
             <TaskProjectList groups={visibleTaskGroups} pendingTaskIds={pendingTaskIds} capabilities={capabilities}
               onToggleTask={toggleTask} onOpenTask={openTaskById}
               onAddTask={canOpenTaskCreate ? context => openCreateTask(context) : undefined}
               canAddTask={projectId => projectOptions.some(project => project.id === projectId)}
-              onMoveTask={moveTaskAction ? moveTask : undefined} />
+              onMoveTask={moveTaskAction && state.ordering === "manual" ? moveTask : undefined} />
           )}
         </div>
       )}

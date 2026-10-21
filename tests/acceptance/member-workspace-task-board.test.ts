@@ -91,7 +91,7 @@ describe("task board calendar arithmetic", () => {
 
 describe("task board permission-aware presentation", () => {
   const props: TaskWeekBoardProps = {
-    tasks: [], weekStart: "2026-10-19", showWeekend: false, pendingTaskIds: new Set(),
+    tasks: [], today: "2026-10-20", weekStart: "2026-10-19", showWeekend: false, pendingTaskIds: new Set(),
     onWeekChange: () => {}, onWeekendChange: () => {}, onToggleTask: () => {},
     onOpenTask: () => {}, onScheduleTask: async () => true,
     capabilities: (item) => ({ status: true, details: item.canUpdate, schedule: item.canUpdate }),
@@ -123,4 +123,23 @@ describe("task board permission-aware presentation", () => {
     expect(markup).toContain('aria-label="Add task to 19 Mon"')
     expect(markup).toContain("0 matching tasks")
   })
+})
+
+
+it("uses the supplied local day for current-day and overdue rendering, independent of server timezone", () => {
+  const previous = process.env.TZ
+  try {
+    for (const zone of ["UTC", "America/New_York", "Asia/Tokyo"]) {
+      process.env.TZ = zone
+      const markup = renderToStaticMarkup(createElement(TaskWeekBoard, {
+        tasks: [task("Due Sunday", "2026-10-18", "2026-10-18")],
+        today: "2026-10-18", weekStart: "2026-10-12", showWeekend: true,
+        pendingTaskIds: new Set<string>(), capabilities: () => ({ status: true, details: true, schedule: true }),
+        onWeekChange: () => {}, onWeekendChange: () => {}, onToggleTask: () => {}, onOpenTask: () => {}, onScheduleTask: async () => true,
+      }))
+      expect(markup).not.toContain("Overdue")
+      expect(markup).not.toContain("overdue · View list")
+      expect(markup).toMatch(/aria-label="18 Sun" class="[^"]*border-primary/)
+    }
+  } finally { if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous }
 })

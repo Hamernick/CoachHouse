@@ -1,150 +1,201 @@
 "use client"
 
-import { useState, type PointerEvent as ReactPointerEvent } from "react"
-import { addDays, differenceInCalendarDays, format } from "date-fns"
-
+import { useEffect, useRef, useState, type PointerEvent } from "react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import {
+  formatTimelineDay,
+  shiftDay,
+  timelineGeometry,
+} from "../../lib/project-timeline"
 
-export type MemberWorkspaceProjectTimelineBarItem = {
-  id: string
-  name: string
-  startDate: Date
-  endDate: Date
-  status?: "todo" | "in-progress" | "waiting" | "done"
-  progress?: number
+type Drag = {
+  pointer: number
+  x: number
+  type: "move" | "start" | "end"
+  delta: number
 }
-
 export function MemberWorkspaceProjectTimelineDraggableBar({
-  item,
-  variant,
-  viewStartDate,
+  name,
+  start,
+  end,
+  origin,
+  days,
   cellWidth,
-  onUpdateStart,
-  onUpdateDuration,
-  onDoubleClick,
-  disabled = false,
+  disabled,
+  task,
+  onEdit,
+  onChange,
+  onReveal,
 }: {
-  item: MemberWorkspaceProjectTimelineBarItem
-  variant: "project" | "task"
-  viewStartDate: Date
+  name: string
+  start: string
+  end: string
+  origin: string
+  days: number
   cellWidth: number
-  onUpdateStart: (id: string, newStart: Date) => void
-  onUpdateDuration?: (id: string, newStart: Date, newEnd: Date) => void
-  onDoubleClick?: () => void
-  disabled?: boolean
+  disabled: boolean
+  task?: boolean
+  onEdit: () => void
+  onChange: (start: string, end: string) => void
+  onReveal: (day: string) => void
 }) {
-  const durationDays = differenceInCalendarDays(item.endDate, item.startDate) + 1
-  const offsetDays = differenceInCalendarDays(item.startDate, viewStartDate)
-  const left = offsetDays * cellWidth
-  const width = durationDays * cellWidth
-
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragOffset, setDragOffset] = useState(0)
-  const [dragType, setDragType] = useState<"move" | "resize-left" | "resize-right" | null>(null)
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (disabled) {
-      return
-    }
-    event.preventDefault()
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const gesture = useRef<Drag | null>(null),
+    suppressClick = useRef(false)
+  useEffect(
+    () => () => {
+      gesture.current = null
+    },
+    []
+  )
+  const geometry = timelineGeometry(start, end, origin, days, cellWidth)
+  const pointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+    type: Drag["type"]
+  ) => {
+    if (disabled || event.button !== 0 || !event.isPrimary) return
     event.stopPropagation()
-    setIsDragging(true)
-
-    const rect = event.currentTarget.getBoundingClientRect()
-    const offsetX = event.clientX - rect.left
-    const nextDragType =
-      offsetX < 8 ? "resize-left" : offsetX > rect.width - 8 ? "resize-right" : "move"
-    setDragType(nextDragType)
-
-    const startX = event.clientX
-    document.body.style.cursor = nextDragType === "move" ? "grabbing" : "col-resize"
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      setDragOffset(moveEvent.clientX - startX)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    gesture.current = {
+      pointer: event.pointerId,
+      x: event.clientX,
+      type,
+      delta: 0,
     }
-
-    const handlePointerUp = (upEvent: PointerEvent) => {
-      const deltaX = upEvent.clientX - startX
-      const daysMoved = Math.round(deltaX / cellWidth)
-
-      if (daysMoved !== 0) {
-        if (nextDragType === "move") {
-          onUpdateStart(item.id, addDays(item.startDate, daysMoved))
-        } else if (nextDragType === "resize-left" && onUpdateDuration) {
-          const newStartDate = addDays(item.startDate, daysMoved)
-          if (newStartDate < item.endDate) {
-            onUpdateDuration(item.id, newStartDate, item.endDate)
-          }
-        } else if (nextDragType === "resize-right" && onUpdateDuration) {
-          const newEndDate = addDays(item.endDate, daysMoved)
-          if (newEndDate > item.startDate) {
-            onUpdateDuration(item.id, item.startDate, newEndDate)
-          }
-        }
-      }
-
-      setIsDragging(false)
-      setDragOffset(0)
-      setDragType(null)
-      document.body.style.cursor = ""
-      window.removeEventListener("pointermove", handlePointerMove)
-      window.removeEventListener("pointerup", handlePointerUp)
-    }
-
-    window.addEventListener("pointermove", handlePointerMove)
-    window.addEventListener("pointerup", handlePointerUp)
+    setDrag(gesture.current)
   }
-
-  let visualLeft = left
-  let visualWidth = width
-
-  if (isDragging && dragType) {
-    if (dragType === "move") {
-      visualLeft = left + dragOffset
-    } else if (dragType === "resize-right") {
-      visualWidth = Math.max(cellWidth, width + dragOffset)
-    } else if (dragType === "resize-left") {
-      visualLeft = left + dragOffset
-      visualWidth = Math.max(cellWidth, width - dragOffset)
+  const pointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!gesture.current || gesture.current.pointer !== event.pointerId) return
+    gesture.current = {
+      ...gesture.current,
+      delta: event.clientX - gesture.current.x,
     }
+    setDrag(gesture.current)
   }
-
-  const dateLabel = `${format(item.startDate, "d/M")} - ${format(item.endDate, "d/M")}`
-  const taskColors =
-    item.status === "done"
-      ? "bg-teal-500/15 border-teal-500/40 text-teal-600"
-      : item.status === "in-progress"
-        ? "bg-primary/10 border-primary/30 text-blue-800"
-        : "bg-primary/10 border-primary/30 text-primary"
-
+  const finish = (event: PointerEvent<HTMLButtonElement>, cancel = false) => {
+    const current = gesture.current
+    if (!current || current.pointer !== event.pointerId) return
+    gesture.current = null
+    setDrag(null)
+    suppressClick.current = Math.abs(event.clientX - current.x) > 4
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    if (cancel || disabled) return
+    const delta = Math.round((event.clientX - current.x) / cellWidth)
+    if (!delta) return
+    const nextStart = current.type === "end" ? start : shiftDay(start, delta)
+    const nextEnd = current.type === "start" ? end : shiftDay(end, delta)
+    if (nextStart && nextEnd && nextStart > nextEnd) return
+    onChange(nextStart, nextEnd)
+  }
+  const pointerHandlers = {
+    onPointerMove: pointerMove,
+    onPointerUp: (event: PointerEvent<HTMLButtonElement>) => finish(event),
+    onPointerCancel: (event: PointerEvent<HTMLButtonElement>) =>
+      finish(event, true),
+    onLostPointerCapture: () => {
+      gesture.current = null
+      setDrag(null)
+    },
+  }
+  if (!geometry)
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={disabled}
+        className="sticky left-2 my-1"
+        onClick={onEdit}
+      >
+        {disabled ? "No dates" : "Set dates"}
+      </Button>
+    )
+  if (geometry.outside)
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="sticky left-2 my-1"
+        onClick={() => onReveal(geometry.date)}
+      >
+        Show {formatTimelineDay(geometry.date)}
+      </Button>
+    )
+  const deltaDays = drag ? Math.round(drag.delta / cellWidth) : 0
+  const preview = drag
+    ? timelineGeometry(
+        drag.type === "end" ? start : shiftDay(start, deltaDays),
+        drag.type === "start" ? end : shiftDay(end, deltaDays),
+        origin,
+        days,
+        cellWidth
+      )
+    : geometry
+  const layout = preview && !preview.outside ? preview : geometry
+  const label = !start
+    ? `Due ${formatTimelineDay(end)}`
+    : !end
+      ? `Starts ${formatTimelineDay(start)}`
+      : `${formatTimelineDay(start)} – ${formatTimelineDay(end)}`
   return (
     <div
-      onPointerDown={handlePointerDown}
-      onDoubleClick={disabled ? undefined : onDoubleClick}
-      className={cn(
-        "absolute top-[12px] flex h-[30px] select-none items-center gap-2 overflow-hidden rounded-md border px-2",
-        disabled ? "cursor-default" : "group cursor-grab active:cursor-grabbing",
-        variant === "project" ? "border-border bg-muted text-foreground" : taskColors,
-        isDragging && "z-30 shadow-lg opacity-90",
-      )}
-      style={{
-        left: `${visualLeft}px`,
-        width: `${Math.max(visualWidth, 50)}px`,
-        transition: isDragging ? "none" : "left 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
-      }}
+      className={cn("absolute top-2 h-8 select-none", drag && "z-20")}
+      style={{ left: layout.left, width: Math.max(8, layout.width) }}
+      data-timeline-bar={name}
     >
-      {!disabled ? (
-        <>
-          <div className="absolute inset-y-0 left-0 w-2 cursor-col-resize rounded-l-md bg-white/30 opacity-0 group-hover:opacity-100" />
-          <div className="absolute inset-y-0 right-0 w-2 cursor-col-resize rounded-r-md bg-white/30 opacity-0 group-hover:opacity-100" />
-        </>
-      ) : null}
-
-      {variant === "task" ? <div className="h-4 w-0.5 shrink-0 rounded-full bg-current/50" /> : null}
-      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium tracking-[0.0923px]">
-        {dateLabel}: {item.name}
-      </span>
-      {variant === "task" ? <div className="ml-auto h-4 w-0.5 shrink-0 rounded-full bg-current/50" /> : null}
+      <Button
+        variant="secondary"
+        className={cn(
+          "h-full w-full justify-start overflow-hidden rounded-md border px-3",
+          task && "border-primary/30 bg-primary/10",
+          !disabled && "cursor-grab touch-none",
+          drag && "opacity-75"
+        )}
+        title={`${name}: ${label}`}
+        aria-label={`${disabled ? "View" : "Edit"} dates for ${name}: ${label}`}
+        disabled={disabled}
+        {...pointerHandlers}
+        onPointerDown={(event) => pointerDown(event, "move")}
+        onClick={() => {
+          if (suppressClick.current) {
+            suppressClick.current = false
+            return
+          }
+          onEdit()
+        }}
+      >
+        <span className="truncate text-xs">
+          {name} · {label}
+        </span>
+      </Button>
+      {!disabled &&
+        start &&
+        end &&
+        (["start", "end"] as const).map(
+          (edge) =>
+            (edge === "start"
+              ? !geometry.clippedStart
+              : !geometry.clippedEnd) && (
+              <Button
+                key={edge}
+                variant="ghost"
+                size="icon"
+                tabIndex={-1}
+                aria-label={`Resize ${edge} of ${name}`}
+                className={cn(
+                  "absolute top-0 h-8 w-2 cursor-col-resize touch-none rounded-sm p-0",
+                  edge === "start" ? "left-0" : "right-0"
+                )}
+                {...pointerHandlers}
+                onPointerDown={(event) => pointerDown(event, edge)}
+                onClick={() => {
+                  if (!suppressClick.current) onEdit()
+                  suppressClick.current = false
+                }}
+              />
+            )
+        )}
     </div>
   )
 }

@@ -12,11 +12,11 @@ const sampleTask = (id: string, title: string, overrides: Partial<MemberWorkspac
   organizationName: "Northside Collective", projectStatus: "active", projectPriority: "medium",
   projectTags: [], projectMembers: [], projectStartDate: "", projectEndDate: "", taskType: "task",
   status: "todo", startDate: "", endDate: "", canUpdate: true, assignee: people[0],
-  sortOrder: 0, updatedAt: "2026-10-20T12:00:00Z", workstreamName: "General", ...overrides,
+  createdAt: "2026-10-01T12:00:00Z", sortOrder: 0, updatedAt: "2026-10-20T12:00:00Z", workstreamName: "General", ...overrides,
 })
 const seed = [
   sampleTask("preview-task-1", "Confirm the community venue", { startDate: "2026-10-20", endDate: "2026-10-23", priority: "high", tagLabel: "Planning" }),
-  sampleTask("preview-task-2", "Review the program budget", { status: "waiting", startDate: "2026-10-21", endDate: "2026-10-23", sortOrder: 1 }),
+  sampleTask("preview-task-2", "Review the program budget", { createdAt: "2026-10-20T12:00:00Z", status: "waiting", startDate: "2026-10-21", endDate: "2026-10-23", sortOrder: 1 }),
   sampleTask("preview-task-3", "Prepare volunteer welcome notes", { endDate: "2026-10-22", sortOrder: 2 }),
   sampleTask("preview-task-4", "Confirm weekend volunteers", { startDate: "2026-10-24", sortOrder: 3 }),
   sampleTask("preview-task-5", "Review last week’s outreach", { startDate: "2026-10-16", endDate: "2026-10-19", sortOrder: 4 }),
@@ -33,14 +33,22 @@ function groupTasks(tasks: MemberWorkspaceTaskItem[]): MemberWorkspaceTaskGroup[
 }
 
 // This gated visual fixture uses sample records only. No server actions or database clients.
-export function TaskReviewPreview() {
+export function TaskReviewPreview({ renderImmediately = false }: { renderImmediately?: boolean }) {
   const [groups, setGroups] = useState(() => groupTasks(seed))
   const savedGroups = useRef(groups)
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(renderImmediately)
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("tasks-review-fixture")
       if (saved) { savedGroups.current = JSON.parse(saved); setGroups(savedGroups.current) }
+      else if (new URLSearchParams(window.location.search).has("filterPreview")) {
+        const tracker = { sourceId: "preview", collaboratorUserIds: [people[0].id], collaboratorNames: ["You"] }
+        savedGroups.current = groupTasks([...seed,
+          sampleTask("preview-proposed", "Proposed outreach task", { assignee: null, tracker: { ...tracker, assignmentStatus: "Proposed", proposedUserId: people[0].id } }),
+          sampleTask("preview-collaborating", "Collaborating on completed report", { status: "done", assignee: { id: "other", name: "Other", avatarUrl: null }, tracker }),
+        ])
+        setGroups(savedGroups.current)
+      }
     } catch { /* A stale sample draft can be discarded. */ }
     setReady(true)
   }, [])

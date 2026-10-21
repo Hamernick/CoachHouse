@@ -1,3 +1,4 @@
+import { loadProjectTimelineAction, saveProjectTimelineDatesAction, saveProjectTimelineStatusAction } from "@/features/member-workspace"
 import { defaultOrganizationCoachFilter, loadOrganizationCoachAssignmentData } from "@/features/organization-coach-assignments"
 import {
   clearMemberWorkspaceStarterDataAction,
@@ -61,6 +62,7 @@ export default async function OrganizationsPage() {
 
   return (
     <MemberWorkspaceProjectsPage
+      timelineActions={{ load: loadProjectTimelineAction, dates: saveProjectTimelineDatesAction, status: saveProjectTimelineStatusAction }}
       directory="organizations"
       viewerUserId={staff.userId}
       projects={assignedProjects}

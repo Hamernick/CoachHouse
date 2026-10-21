@@ -56,6 +56,8 @@ export type PlatformAdminDashboardLabOrganizationCoachAssignment = {
 }
 
 export type PlatformAdminDashboardLabProject = {
+  createdAt?: string
+  canEditSchedule?: boolean
   fiscalSponsorshipEnabled?: boolean
   recurrence?: "none" | "monthly"
   id: string

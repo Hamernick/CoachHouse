@@ -13,7 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Switch } from "@/components/ui/switch"
+import { CompletionSelect } from "../shared/completion-select"
 import { cn } from "@/lib/utils"
 import type { MemberWorkspaceProjectViewOptions } from "./member-workspace-project-view-options"
 
@@ -35,7 +35,8 @@ export function MemberWorkspaceProjectViewOptionsPopover({
   const orderingOptions = [
     { id: "manual", label: "Manual" },
     { id: "alphabetical", label: "Alphabetical" },
-    { id: "date", label: "Date" },
+    { id: "date", label: "Due date" },
+    { id: "added", label: "Date added" },
   ] as const
 
   const propertyOptions = [
@@ -104,12 +105,11 @@ export function MemberWorkspaceProjectViewOptionsPopover({
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm">Show closed projects</span>
-              <Switch
-                checked={options.showClosedProjects}
-                onCheckedChange={(checked) => onChange({ ...options, showClosedProjects: checked })}
-              />
+              <span className="text-sm">Completion</span>
+              <CompletionSelect value={options.showClosedProjects ? options.completion : "incomplete"} onChange={completion => onChange({ ...options, completion, showClosedProjects: true })} />
             </div>
+
+            {(options.ordering === "added" || options.ordering === "date") && <p className="text-xs text-muted-foreground">{options.ordering === "added" ? "Newest first" : "Earliest due first"}. Undated projects last.</p>}
 
             <div className="pt-2">
               <span className="text-sm font-medium">Card fields</span>

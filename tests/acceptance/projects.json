@@ -376,6 +376,7 @@
       "tests/acceptance/member-workspace-project-schedule-transitions.test.ts",
       "tests/acceptance/member-workspace-project-starter-data.test.ts",
       "tests/acceptance/member-workspace-project-task-reorder-handles.test.ts",
+      "tests/acceptance/member-workspace-project-timeline.test.ts",
       "tests/acceptance/member-workspace-save-feedback.test.ts",
       "tests/acceptance/member-workspace-task-actions.test.ts",
       "tests/acceptance/member-workspace-task-board.test.ts",
