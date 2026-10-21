@@ -23,12 +23,12 @@ export function useOrgProfileEditorDeepLinkFocus({
   tab: ProfileTab
 }) {
   useEffect(() => {
-    if (!focusKey?.trim() || tab !== "company" || !canEdit || editMode) return
+    if (!focusKey?.trim() || (tab !== "company" && tab !== "brand-kit") || !canEdit || editMode) return
     setEditMode(true)
   }, [canEdit, editMode, focusKey, setEditMode, tab])
 
   useOrganizationDeepLinkFocus({
-    enabled: tab === "company" && (!canEdit || editMode),
+    enabled: (tab === "company" || tab === "brand-kit") && (!canEdit || editMode),
     focusKey,
     requestId,
     rootRef,

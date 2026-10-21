@@ -134,7 +134,7 @@ export type OrgProgram = {
   wizard_snapshot?: Record<string, unknown> | null
 }
 
-export type ProfileTab = "company" | "programs" | "people" | "supporters"
+export type ProfileTab = "company" | "programs" | "people" | "supporters" | "brand-kit"
 
 export type SlugStatus = {
   available: boolean

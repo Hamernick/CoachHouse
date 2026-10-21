@@ -11,10 +11,6 @@ import { OrganizationNarrativeContent } from "@/components/organization/org-prof
 import type { CompanyViewProps } from "./types"
 import { stripHtml } from "@/lib/markdown/convert"
 import { cn } from "@/lib/utils"
-import {
-  hasWorkspaceBrandKitProfileContent,
-  WorkspaceBrandKitProfilePreview,
-} from "@/features/workspace-brand-kit"
 
 const FORMATION_STATUS_LABELS: Record<string, string> = {
   pre_501c3: "Pre-501(c)(3)",
@@ -170,25 +166,12 @@ export function StoryPreview({ company }: CompanyViewProps) {
   )
 }
 
-export function BrandKitPreview({ company }: CompanyViewProps) {
-  if (!hasWorkspaceBrandKitProfileContent(company)) {
-    return null
-  }
-
-  return (
-    <FormRow title="Brand Kit">
-      <WorkspaceBrandKitProfilePreview profile={company} />
-    </FormRow>
-  )
-}
-
 export function ViewModeSections(props: CompanyViewProps) {
   const sections = [
     { id: "identity", node: IdentityPreview(props) },
     { id: "contact", node: ContactPreview(props) },
     { id: "address", node: AddressPreview(props) },
     { id: "story", node: StoryPreview(props) },
-    { id: "brand-kit", node: BrandKitPreview(props) },
   ].filter((section) => Boolean(section.node))
 
   if (sections.length === 0) {

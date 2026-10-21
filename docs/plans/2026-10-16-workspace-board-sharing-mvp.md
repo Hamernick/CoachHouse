@@ -1078,3 +1078,10 @@ Removed the header bottom padding so spacing below the links is24px instead of48
 ### October 21 — Profile section title spacing
 
 Set shared FormRow vertical title/content gap to8px in stacked and split layouts, preserving desktop column spacing. Focused lint/whitespace pass; browser confirms8px for Identity/Contact/Address/About us. Screenshot `/tmp/workspace-profile-section-spacing-20261021.png`. Development branch only.
+
+
+### October 21 — Brand kit profile tab
+
+- Added Brand kit beside About/Activity and moved its existing editor/preview out of About. Retains shared company drafts, errors, dirty status, save/autosave handlers and header controls; empty view is explicit. No schema/data changes. Brand-focused editor requests select the new tab; URL tab parsing recognizes it.
+- Focused lint/whitespace pass;17 Brand kit/story tests pass (`/tmp/workspace-brand-tab-tests.log`). Typecheck still reports unrelated workspace catalog/calendar and test baseline failures, none in affected files (`/tmp/workspace-brand-tab-types.log`). Browser verified view/edit tab contents; no values changed or saved. Screenshot `/tmp/workspace-profile-brand-kit-tab-20261021.png`.
+- Graph refresh `/tmp/workspace-brand-tab-graphify-20261021.log`; previous section-spacing refresh completed. Development branch only.

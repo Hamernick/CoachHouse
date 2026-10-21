@@ -149,7 +149,7 @@ describe("workspace-brand-kit", () => {
     expect(invalid.success).toBe(false)
   })
 
-  it("integrates the inline editor and removes the visible boilerplate control", () => {
+  it("moves the existing editor into its own tab and removes the visible boilerplate control", () => {
     const root = process.cwd()
     const editMode = readFileSync(
       join(
@@ -187,7 +187,13 @@ describe("workspace-brand-kit", () => {
       "utf8"
     )
 
-    expect(editMode).toContain("<BrandKitSection")
+    const brandKitTab = readFileSync(
+      join(root, "src/components/organization/org-profile-card/tabs/brand-kit-tab.tsx"),
+      "utf8"
+    )
+    expect(editMode).not.toContain("<BrandKitSection")
+    expect(brandKitTab).toContain("<BrandKitSection")
+    expect(brandKitTab).toContain("<WorkspaceBrandKitProfilePreview")
     expect(profileEditor).toContain("WorkspaceBrandKitProfileStyle")
     expect(profileEditor).toContain("WorkspaceBrandKitProfileAssets")
     expect(profileEditor).toContain("WorkspaceBrandKitProfileVoice")

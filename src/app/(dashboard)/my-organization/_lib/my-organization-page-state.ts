@@ -42,6 +42,7 @@ export function resolveInitialWorkspaceDrawerData({
     "programs",
     "people",
     "supporters",
+    "brand-kit",
   ]
   const initialTab = allowedTabs.includes(tabParam as ProfileTab)
     ? (tabParam as ProfileTab)

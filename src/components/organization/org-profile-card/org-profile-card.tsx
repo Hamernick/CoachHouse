@@ -17,6 +17,7 @@ import { OrgProfileTabNavigation } from "./org-profile-tab-navigation"
 import { CompanyTab } from "./tabs/company-tab"
 import { PeopleTab } from "./tabs/people-tab"
 import { ProgramsTab } from "./tabs/programs-tab"
+import { BrandKitTab } from "./tabs/brand-kit-tab"
 import { SupportersTab } from "./tabs/supporters-tab"
 import type { OrgProfileCardProps, OrgProgram } from "./types"
 
@@ -64,7 +65,7 @@ export function OrgProfileEditor({
     initial,
     programs: programs as OrgProgram[],
     canEdit,
-    initialTab,
+    initialTab: initialFocus?.startsWith("brand") ? "brand-kit" : initialTab,
     initialProgramId,
     initialEditMode,
     navigationRequestId,
@@ -151,6 +152,22 @@ export function OrgProfileEditor({
                 canEdit={canEdit}
                 editMode={editMode}
                 onProgramEdit={handleProgramEdit}
+              />
+            </TabsContent>
+
+            <TabsContent
+              value="brand-kit"
+              id={`${tabsIdBase}-content-brand-kit`}
+              aria-labelledby={`${tabsIdBase}-trigger-brand-kit`}
+              className="p-6"
+            >
+              <BrandKitTab
+                company={company}
+                errors={errors}
+                editMode={editMode}
+                onUpdate={handleCompanyUpdate}
+                onDirty={markDirty}
+                onAutoSave={persistProfileUpdates}
               />
             </TabsContent>
 
