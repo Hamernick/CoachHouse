@@ -25,10 +25,6 @@ const { loadMemberWorkspacePersonOptionsForOrganizationsMock } = vi.hoisted(
   })
 )
 
-const { ensureStarterTasksForOrgMock } = vi.hoisted(() => ({
-  ensureStarterTasksForOrgMock: vi.fn(),
-}))
-
 const { loadFiscalSponsorshipProjectListStatusesMock } = vi.hoisted(() => ({
   loadFiscalSponsorshipProjectListStatusesMock: vi.fn(),
 }))
@@ -134,10 +130,6 @@ vi.mock("@/features/member-workspace/server/person-options", () => ({
     loadMemberWorkspacePersonOptionsForOrganizationsMock,
 }))
 
-vi.mock("@/features/member-workspace/server/task-persistence", () => ({
-  ensureStarterTasksForOrg: ensureStarterTasksForOrgMock,
-}))
-
 vi.mock(
   "@/features/member-workspace/server/fiscal-sponsorship-project-list-status",
   () => ({
@@ -148,6 +140,7 @@ vi.mock(
 
 import { loadMemberWorkspaceProjectsPage } from "@/features/member-workspace/server/project-loaders"
 import { loadMemberWorkspaceTasksPage } from "@/features/member-workspace/server/task-loaders"
+import { loadMemberWorkspaceProjectDetailPage } from "@/features/member-workspace/server/project-detail-loader"
 
 const missingProjectsTableError = {
   code: "PGRST205",
@@ -161,19 +154,6 @@ const missingTasksTableError = {
 }
 
 function createProjectsMissingTableSupabase() {
-  let projectCalls = 0
-
-  const projectCountQuery = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn(() =>
-      Promise.resolve({
-        count: null,
-        error: missingProjectsTableError,
-      })
-    ),
-  }
-
   const projectListQuery = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -190,8 +170,7 @@ function createProjectsMissingTableSupabase() {
   return {
     from: vi.fn((table: string) => {
       if (table === "organization_projects") {
-        projectCalls += 1
-        return projectCalls === 1 ? projectCountQuery : projectListQuery
+        return projectListQuery
       }
 
       throw new Error(`Unexpected table query: ${table}`)
@@ -268,10 +247,54 @@ describe("member workspace loaders", () => {
     loadAccessibleOrganizationsMock.mockReset()
     loadMemberWorkspacePersonOptionsForOrganizationsMock.mockReset()
     loadMemberWorkspacePersonOptionsForOrganizationsMock.mockResolvedValue([])
-    ensureStarterTasksForOrgMock.mockReset()
-    ensureStarterTasksForOrgMock.mockResolvedValue(undefined)
     loadFiscalSponsorshipProjectListStatusesMock.mockReset()
     loadFiscalSponsorshipProjectListStatusesMock.mockResolvedValue(new Map())
+  })
+
+  it("keeps new organization project, task, and missing-detail loads read-only", async () => {
+    const write = vi.fn(() => {
+      throw new Error("Page loads must not write starter data")
+    })
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: [], error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      insert: write,
+      upsert: write,
+      update: write,
+      delete: write,
+    }
+    const supabase = { from: vi.fn((_table: string) => query), rpc: write }
+    resolveMemberWorkspaceActorContextMock.mockResolvedValue({
+      supabase,
+      userId: "user-1",
+      activeOrg: { orgId: "org-1", role: "owner" },
+      isAdmin: false,
+      canEdit: true,
+    })
+    loadAccessibleOrganizationsMock.mockResolvedValue([
+      { orgId: "org-1", name: "Org One", role: "owner", publicSlug: "org-one" },
+    ])
+
+    // Repeat the visits to catch delayed/retry initialization after an empty load.
+    for (let visit = 0; visit < 2; visit += 1) {
+      await expect(loadMemberWorkspaceProjectsPage()).resolves.toMatchObject({
+        projects: [], storageMode: "empty", starterProjectCount: 0,
+      })
+      await expect(loadMemberWorkspaceTasksPage()).resolves.toMatchObject({
+        taskGroups: [], projectOptions: [], storageMode: "empty", starterTaskCount: 0,
+      })
+      await expect(loadMemberWorkspaceProjectDetailPage("missing-project"))
+        .resolves.toEqual({ state: "not-found" })
+    }
+
+    expect(write).not.toHaveBeenCalled()
+    expect(supabase.from).toHaveBeenCalledTimes(6)
+    expect(supabase.from.mock.calls.every(([table]) => table === "organization_projects"))
+      .toBe(true)
   })
 
   it("returns an empty projects state when member workspace project tables are missing", async () => {

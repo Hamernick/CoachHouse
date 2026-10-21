@@ -118,7 +118,7 @@ Narrow schedule writes preserve deadline, status, metadata and assignments. Card
 
 ### Migration and rollback
 
-`supabase/migrations/20261021010000_task_schedule_and_relative_order.sql` adds two service-only RPCs; **not applied to production**. Apply the reviewed migration before deploying schedule/order controls. No imports, backfills, task table changes, provider settings or mail actions. Schedule uses a task-row lock; relative order uses project locking and NOWAIT task locking to reject conflict rather than deadlock with the existing task-first editor.
+`supabase/migrations/20261021010000_task_schedule_and_relative_order.sql` adds two service-only RPCs; **applied and independently verified in production at2026-10-21T00:01:23Z**, following explicit user authorization. No imports, backfills, task table changes, provider settings or mail actions. Schedule uses a task-row lock; relative order uses project locking and NOWAIT task locking to reject conflict rather than deadlock with the existing task-first editor.
 
 Rollback: revert the application slice first, then drop only `public.schedule_organization_task_transition(uuid,uuid,uuid,uuid,date,date,date)` and `public.move_organization_task_transition(uuid,uuid,uuid,uuid,uuid,text,integer,integer,timestamptz,timestamptz)`. No stored tasks/assignments are deleted or restored. Already confirmed schedule/order changes remain ordinary task data.
 
@@ -131,8 +131,25 @@ Rollback: revert the application slice first, then drop only `public.schedule_or
 - [Review images](../qa/tasks-2026-10-20/) are macOS Chromium artifacts, not Ubuntu regression baselines. No existing stored baseline targets `/tasks`; the new fixture has screenshot attachments in the hosted interaction suite. Required Linux visual gate remains separate.
 - CUA timed out; standalone isolated Playwright tests provided hydrated verification. Initial Turbopack rejected external dependency symlinks; the isolated preview uses webpack. Its generated type files were regenerated after the failed startup. Existing3127 remained untouched.
 
-Preview: `http://localhost:3140/visual-regression/tasks?taskWeek=2026-10-19` (sample data only); real authenticated route: `http://localhost:3140/tasks`. Fixture is guarded by existing visual-route access and imports no production task actions. Actual scheduling/order on real data requires the unapplied migration. Dependencies/environment are ignored links to existing authorized local files; no credentials are committed.
+Preview: `http://localhost:3140/visual-regression/tasks?taskWeek=2026-10-19` (sample data only); real authenticated route: `http://localhost:3140/tasks`. Fixture is guarded by existing visual-route access and imports no production task actions. The required scheduling/order migration is now applied; authenticated product acceptance remains separate. Dependencies/environment are ignored links to existing authorized local files; no credentials are committed.
 
 ### Handoff
 
 Open [PR343](https://github.com/Hamernick/CoachHouse/pull/343), implementation `bbb46ab65ac730cec539e396a081434fe6becade`, pushed and remote tracked. Normal Node22 prepush passed in9.53s. All six browser scenarios passed across focused runs; drag test now waits for activated/target states rather than racing sensor measurement. Application TypeScript has zero diagnostics. Caleb owns hosted quality/review, migration authorization/application, merge/deployment and real authenticated staff acceptance. No production task changes or migration application occurred. Other lanes and SHIP40 preserved.
+
+
+### Authorized migration application — October20
+
+User requested “apply the migrations.” Applied only `20261021010000_task_schedule_and_relative_order.sql` to configured production project `vswzhuwjtgzrkxknrmxu` at2026-10-21T00:01:23Z (October20 local). Preflight verified absent migration/functions, expected dependency column types and roles. One guarded transaction created both functions and the exact migration-history row, with5s lock/20s statement limits. Two independent readbacks verify exact ledger SQL and function bodies, SECURITY DEFINER with empty search path, service_role execution and denial to PUBLIC/anon/authenticated; existing task/project RLS remains enabled. No task records, assignments, imports, backfills or mail were changed.
+
+SHA256: `a96bbde8490fd2e6af6ab434fab47b89e0ebd2c994837d5ffed0f6965e852b8a`. Private evidence: `~/.local/share/coach-house/tasks/2026-10-20-migration/migration-receipt.json`, with exact SQL, preflight and separate readbacks alongside it. Do not replay this migration. Rollback signatures above remain valid.
+
+PR343 is confirmed merged. Application deployment and real authenticated staff acceptance were not verified by this migration operation. Prior code verification remains valid; no runtime source changes or repeated suites. This migration receipt supersedes the unapplied/open-PR statements in the historical implementation handoff.
+
+
+### Preview-task diagnosis — October20
+
+Read-only production audit confirms34copies each of Review the sample project, Try adding a real project and Clear this preview when ready, all marked starter_seed, across34organizations (102tasks/102assignments). Latest creation2026-10-19T17:05:30Z; none created after the new Tasks migration. Current origin/main has identical starter template/persistence/loaders: organization page loading seeds a preview project when there are no ordinary projects or starter-state marker; Tasks/detail loading persists three sample tasks and assigns them to the triggering editor. Personal task loading does not exclude starter_seed. This existing demo initialization survived the Tasks patch. Recommended correction: stop implicit production seeding, then review untouched seed records for scoped cleanup while preserving edited/user-created work. No runtime change or live deletion authorized/performed by this diagnosis.
+
+
+October20 follow-up: user authorized removal/prevention after the diagnosis. [Preview cleanup checkpoint](2026-10-20-remove-workspace-preview-seeds.md) now owns that patch and its applied production correction; the diagnostic recommendation above is completed there.
