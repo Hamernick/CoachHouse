@@ -307,8 +307,7 @@ export function PublicPageSettings({
               </p>
             ) : (
               <p className="text-muted-foreground text-xs">
-                Lowercase letters, numbers, and dashes only. Avoid reserved
-                words like /admin.
+                Lowercase letters, numbers, and dashes only.
               </p>
             )}
           </div>

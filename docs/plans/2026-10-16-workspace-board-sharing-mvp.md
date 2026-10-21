@@ -1164,3 +1164,8 @@ Removed the highlighted “This will appear as a web resource” notice card and
 ### October 21 — Remove web resource helper text
 
 Removed the requested helper paragraph beneath Web resource; URL input, validation and persistence unchanged. Whitespace/pre-push checks cover the JSX-only deletion. Existing graph refresh session 64618 remains the maintenance job; no duplicate launched.
+
+
+### October 21 — Shorten public URL guidance
+
+Removed only “Avoid reserved words like /admin.” from PublicPageSettings helper copy. Retained lowercase/numbers/dashes guidance and all slug validation. Whitespace/pre-push checks cover this copy-only edit.
