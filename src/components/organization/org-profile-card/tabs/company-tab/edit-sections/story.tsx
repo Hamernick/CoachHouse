@@ -68,6 +68,7 @@ function StoryCoreDocumentField({
     <ProfileField label={field.label} focusKey={field.name}>
       <RichTextEditor
         className={styles.richText}
+        toolbarClassName={styles.richTextToolbar}
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })
@@ -103,6 +104,7 @@ function StoryNarrativeField({
     <ProfileField label={field.label} focusKey={field.name}>
       <RichTextEditor
         className={styles.richText}
+        toolbarClassName={styles.richTextToolbar}
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })

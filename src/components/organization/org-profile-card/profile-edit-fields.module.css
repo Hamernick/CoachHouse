@@ -117,6 +117,21 @@
   box-shadow: none;
 }
 
+.richTextToolbar {
+  flex-wrap: nowrap;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.richTextToolbar > span {
+  display: none;
+}
+
+.richTextToolbar > button {
+  flex-shrink: 0;
+}
+
 @container (max-width: 300px) {
   .group > :global([data-slot="organization-profile-field"]),
   .group > .row {
@@ -149,6 +164,11 @@
 }
 
 @media (pointer: coarse) {
+  .richTextToolbar > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .group :global([data-slot="input"]),
   .group :global([data-slot="select-trigger"]) {
     min-height: 44px;
