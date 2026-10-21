@@ -372,7 +372,7 @@ export function useOrgProfileEditorState({
 
   const currentTabLabel = useMemo(
     () =>
-      ORG_PROFILE_TABS.find((entry) => entry.value === tab)?.label ?? "About",
+      ORG_PROFILE_TABS.find((entry) => entry.value === tab)?.label ?? "Organization",
     [tab]
   )
   const publicLink =

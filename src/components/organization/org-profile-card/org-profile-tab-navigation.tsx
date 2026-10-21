@@ -1,7 +1,5 @@
 "use client"
 
-import type BuildingIcon from "lucide-react/dist/esm/icons/building-2"
-
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import type { ProfileTab } from "./types"
@@ -9,7 +7,6 @@ import type { ProfileTab } from "./types"
 export type OrgProfileTabOption = {
   value: ProfileTab
   label: string
-  icon: typeof BuildingIcon
 }
 
 type OrgProfileTabNavigationProps = {
@@ -37,7 +34,6 @@ export function OrgProfileTabNavigation({
             aria-controls={`${tabsIdBase}-content-${item.value}`}
             className="h-8 flex-none touch-manipulation rounded-full border-0 !bg-transparent px-3 py-0 text-foreground !shadow-none transition-colors duration-150 after:hidden hover:!bg-[color-mix(in_srgb,var(--foreground)_10%,var(--muted))] data-[state=active]:!bg-[color-mix(in_srgb,var(--foreground)_10%,var(--muted))] dark:text-foreground motion-reduce:transition-none [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-w-11"
           >
-            <item.icon className="h-4 w-4" aria-hidden />
             {item.label}
           </TabsTrigger>
         ))}

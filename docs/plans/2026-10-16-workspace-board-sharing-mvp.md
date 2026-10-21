@@ -1085,3 +1085,8 @@ Set shared FormRow vertical title/content gap to8px in stacked and split layouts
 - Added Brand kit beside About/Activity and moved its existing editor/preview out of About. Retains shared company drafts, errors, dirty status, save/autosave handlers and header controls; empty view is explicit. No schema/data changes. Brand-focused editor requests select the new tab; URL tab parsing recognizes it.
 - Focused lint/whitespace pass;17 Brand kit/story tests pass (`/tmp/workspace-brand-tab-tests.log`). Typecheck still reports unrelated workspace catalog/calendar and test baseline failures, none in affected files (`/tmp/workspace-brand-tab-types.log`). Browser verified view/edit tab contents; no values changed or saved. Screenshot `/tmp/workspace-profile-brand-kit-tab-20261021.png`.
 - Graph refresh `/tmp/workspace-brand-tab-graphify-20261021.log`; previous section-spacing refresh completed. Development branch only.
+
+
+### October 21 — Text-only organization tabs
+
+Renamed About to Organization and removed tab icons. Existing tab values/handlers retained. Focused lint/whitespace and browser label verification pass. Development branch only.
