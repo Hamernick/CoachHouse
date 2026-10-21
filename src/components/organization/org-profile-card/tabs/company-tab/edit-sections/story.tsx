@@ -65,27 +65,29 @@ function StoryCoreDocumentField({
   const error = errors[field.name] ?? ""
 
   return (
-    <ProfileField label={field.label} focusKey={field.name}>
-      <RichTextEditor
-        className={styles.richText}
-        toolbarClassName={styles.richTextToolbar}
-        countClassName="hidden"
-        value={value}
-        onChange={(nextValue) => {
-          onUpdate({ [field.name]: nextValue })
-          onDirty()
-        }}
-        ariaLabel={field.label}
-        placeholder={field.placeholder}
-        mode="compact"
-        minHeight={160}
-        maxHeight={360}
-        stableScrollbars
-        preserveImages
-        editorClassName="min-h-[160px]"
-      />
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
-    </ProfileField>
+    <div className={styles.group}>
+      <ProfileField label={field.label} focusKey={field.name}>
+        <RichTextEditor
+          className={styles.richText}
+          toolbarClassName={styles.richTextToolbar}
+          countClassName="hidden"
+          value={value}
+          onChange={(nextValue) => {
+            onUpdate({ [field.name]: nextValue })
+            onDirty()
+          }}
+          ariaLabel={field.label}
+          placeholder={field.placeholder}
+          mode="compact"
+          minHeight={160}
+          maxHeight={360}
+          stableScrollbars
+          preserveImages
+          editorClassName="min-h-[160px]"
+        />
+        {error ? <p className="text-destructive text-xs">{error}</p> : null}
+      </ProfileField>
+    </div>
   )
 }
 
@@ -102,27 +104,29 @@ function StoryNarrativeField({
   const error = errors[field.name] ?? ""
 
   return (
-    <ProfileField label={field.label} focusKey={field.name}>
-      <RichTextEditor
-        className={styles.richText}
-        toolbarClassName={styles.richTextToolbar}
-        countClassName="hidden"
-        value={value}
-        onChange={(nextValue) => {
-          onUpdate({ [field.name]: nextValue })
-          onDirty()
-        }}
-        ariaLabel={field.label}
-        placeholder={field.placeholder}
-        mode="compact"
-        minHeight={160}
-        maxHeight={360}
-        stableScrollbars
-        preserveImages
-        editorClassName="min-h-[160px]"
-      />
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
-    </ProfileField>
+    <div className={styles.group}>
+      <ProfileField label={field.label} focusKey={field.name}>
+        <RichTextEditor
+          className={styles.richText}
+          toolbarClassName={styles.richTextToolbar}
+          countClassName="hidden"
+          value={value}
+          onChange={(nextValue) => {
+            onUpdate({ [field.name]: nextValue })
+            onDirty()
+          }}
+          ariaLabel={field.label}
+          placeholder={field.placeholder}
+          mode="compact"
+          minHeight={160}
+          maxHeight={360}
+          stableScrollbars
+          preserveImages
+          editorClassName="min-h-[160px]"
+        />
+        {error ? <p className="text-destructive text-xs">{error}</p> : null}
+      </ProfileField>
+    </div>
   )
 }
 
@@ -139,7 +143,7 @@ export function StorySection({
       title="About us"
       description="What you do, why it matters, and how change happens."
     >
-      <div className={styles.group}>
+      <div className="grid min-w-0 gap-3">
         {STORY_FIELDS.map((field) => (
           <StoryCoreDocumentField
             key={field.name}

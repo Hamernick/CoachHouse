@@ -1230,3 +1230,8 @@ Set align-content:center on saved grouped ProfileField rows to override the shar
 ### October 21 — Align and compact header Public row
 
 Public label/info icon now align left and switch right across the header width. Reduced edit-header top padding from24px to8px and effective row-to-logo gap from16px to8px. Saved header spacing and control behavior unchanged. Browser verified left label/icon, switch flush right,8px top padding and9px to image (including border); scoped lint passes. Screenshot `/tmp/organization-public-row-20261021.png`. Existing graph refresh6287 remains the cohesive maintenance job.
+
+
+### October 21 — Separate story editor cards
+
+Split the combined About us edit group into six separate cards (Origin story, Need, Mission, Vision, Values, Theory of change), reusing the existing group surface and spacing with12px gaps. Editor controls, values, validation, deep-link targets and saved accordions unchanged. Browser verified each card contains one field with22px radius/1px border; focused lint passes. Existing graph refresh6287 reused; no duplicate job.
