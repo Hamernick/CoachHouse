@@ -49,10 +49,14 @@ export function OrgProfileHeaderBannerControls({
   onAdjustHeader,
   onRemoveHeader,
 }: OrgProfileHeaderBannerControlsProps) {
-  if (!canEdit || !editMode) return null
+  if (!canEdit) return null
 
   return (
-    <>
+    <div
+      aria-hidden={!editMode}
+      inert={!editMode ? true : undefined}
+      className={cn("transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
+    >
       <div className="absolute top-4 right-4 flex items-center gap-2">
         <input
           id={headerInputId}
@@ -142,7 +146,7 @@ export function OrgProfileHeaderBannerControls({
         {ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
         {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
       </div>
-    </>
+    </div>
   )
 }
 
@@ -169,10 +173,14 @@ export function OrgProfileHeaderLogoControls({
 }: OrgProfileHeaderLogoControlsProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerClassName = "relative size-7 rounded-full border-border/70 bg-card/95 p-0 shadow-none backdrop-blur-sm dark:bg-card/95 dark:hover:bg-muted after:absolute after:-inset-2"
-  if (!canEdit || !editMode) return null
+  if (!canEdit) return null
 
   return (
-    <div className="absolute right-1 bottom-1">
+    <div
+      aria-hidden={!editMode}
+      inert={!editMode ? true : undefined}
+      className={cn("absolute right-1 bottom-1 transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
+    >
       <input
         ref={inputRef}
         id={logoInputId}
@@ -275,8 +283,9 @@ export function OrgProfileHeaderActions({
   return (
     <WorkspaceWindowHeaderPortal>
       <div
+        key={editMode ? "edit" : "view"}
         className={cn(
-          "flex flex-wrap items-center justify-end gap-2",
+          "flex flex-wrap items-center justify-end gap-2 animate-in fade-in duration-150 motion-reduce:animate-none",
           !inWindowHeader && "pb-3"
         )}
       >

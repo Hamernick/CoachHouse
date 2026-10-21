@@ -1037,3 +1037,10 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Organization logo menu trigger now28px/circular with Lucide ImagePlus, overlaying the image bottom-right by4px. Empty-logo upload uses the same control, accessible label and native file input. Existing replace/remove menu behavior preserved.44px effective pointer target and theme-aware opaque background retained.
 - Focused ESLint and whitespace pass; live edit-mode geometry verified28x28 within the96px image. Screenshot `/tmp/workspace-logo-image-button-20261021.png`. No content edits/uploads/deletes. Icon usage: Lucide primary, Phosphor/Tabler/Simple Icons also in source; Iconoir installed but unused in src. Development branch only. Graph refresh log `/tmp/workspace-logo-button-graphify-20261021.log`.
+
+
+### October 21 — Stable profile view/edit transition
+
+- Removed the edit-only mt-24 override that added 48px between logo and title; both modes now retain mt-12. Banner/logo controls fade in/out over150ms while staying out of layout; hidden controls become inert/aria-hidden immediately. Header actions and company fields fade on mode replacement with reduced-motion overrides. No duplicated forms or delayed edit intent.
+- Authenticated edit → view → edit measured identical236px header height, title y290.5 and logo bottom265.5 in both modes. Save was disabled before testing; no draft changes discarded or saved. Screenshot `/tmp/workspace-profile-mode-transition-20261021.png`. Focused lint/whitespace pass; header/story test output `/tmp/workspace-profile-mode-tests.log`. Appearance review pending.
+- Graph refresh log `/tmp/workspace-profile-mode-graphify-20261021.log`. Same development branch; no deployment/database changes.

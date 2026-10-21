@@ -63,7 +63,11 @@ export function CompanyTab({
       setSlugStatus,
     }
 
-    return <EditModeSections {...editProps} />
+    return (
+      <div key="edit" className="animate-in fade-in duration-150 motion-reduce:animate-none">
+        <EditModeSections {...editProps} />
+      </div>
+    )
   }
 
   const viewProps: CompanyViewProps = {
@@ -71,5 +75,9 @@ export function CompanyTab({
     addressLines,
   }
 
-  return <ViewModeSections {...viewProps} />
+  return (
+    <div key="view" className="animate-in fade-in duration-150 motion-reduce:animate-none">
+      <ViewModeSections {...viewProps} />
+    </div>
+  )
 }
