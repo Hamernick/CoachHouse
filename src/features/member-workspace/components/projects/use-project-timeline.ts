@@ -198,6 +198,7 @@ export function useProjectTimeline(
     toggleStatus,
     load,
     refresh: () => {
+      setOverrides({})
       router.refresh()
       for (const id of expanded) void load(id)
     },

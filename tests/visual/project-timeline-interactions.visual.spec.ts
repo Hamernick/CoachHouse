@@ -12,6 +12,7 @@ for (const width of [1440, 390]) {
     await page.getByRole("button", { name: "Save dates", exact: true }).click()
     await expect(page.getByRole("dialog")).toBeHidden()
     await page.reload()
+    await page.getByRole("button", { name: "Refresh timeline", exact: true }).click()
     await page.getByRole("button", { name: "Set dates for Community program", exact: true }).click()
     await expect(page.getByLabel("Start date (optional)", { exact: true })).toHaveValue("2026-10-21")
     await page.getByRole("button", { name: "Cancel", exact: true }).click()
@@ -39,6 +40,8 @@ for (const width of [1440, 390]) {
 }
 
 test("drag and resize save dates and pointer cancellation writes nothing", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", error => errors.push(error.message))
   await page.goto(fixture)
   await page.evaluate(() => document.fonts.ready)
   const bar = page.getByRole("button", { name: /^Edit dates for Community program:/ })
@@ -58,12 +61,16 @@ test("drag and resize save dates and pointer cancellation writes nothing", async
   await page.getByRole("button", { name: "Set dates for Confirm the venue", exact: true }).click()
   await expect(page.getByLabel("Due date (optional)", { exact: true })).toHaveValue("2026-10-23")
   await page.getByRole("button", { name: "Cancel", exact: true }).click()
-  await bar.dispatchEvent("pointerdown", { pointerId: 9, isPrimary: true, button: 0, clientX: 500 })
-  await bar.dispatchEvent("pointermove", { pointerId: 9, isPrimary: true, clientX: 580 })
-  await bar.dispatchEvent("pointercancel", { pointerId: 9, isPrimary: true, clientX: 580 })
+  const cancelBox = await bar.boundingBox()
+  const cancelX = cancelBox!.x + cancelBox!.width / 2, cancelY = cancelBox!.y + cancelBox!.height / 2
+  await page.mouse.move(cancelX, cancelY); await page.mouse.down()
+  await page.mouse.move(cancelX + 80, cancelY, { steps: 8 })
+  await bar.dispatchEvent("pointercancel", { pointerId: 1, isPrimary: true, clientX: cancelX + 80, clientY: cancelY })
+  await page.mouse.up()
   await page.reload()
   await page.getByRole("button", { name: "Set dates for Community program", exact: true }).click()
   await expect(page.getByLabel("Start date (optional)", { exact: true })).toHaveValue("2026-10-22")
+  expect(errors).toEqual([])
 })
 
 test("rejected save retains draft; task load errors have retry", async ({ page }) => {
