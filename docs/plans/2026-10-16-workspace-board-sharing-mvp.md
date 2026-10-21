@@ -1044,3 +1044,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 - Removed the edit-only mt-24 override that added 48px between logo and title; both modes now retain mt-12. Banner/logo controls fade in/out over150ms while staying out of layout; hidden controls become inert/aria-hidden immediately. Header actions and company fields fade on mode replacement with reduced-motion overrides. No duplicated forms or delayed edit intent.
 - Authenticated edit → view → edit measured identical236px header height, title y290.5 and logo bottom265.5 in both modes. Save was disabled before testing; no draft changes discarded or saved. Screenshot `/tmp/workspace-profile-mode-transition-20261021.png`. Focused lint/whitespace pass; header/story test output `/tmp/workspace-profile-mode-tests.log`. Appearance review pending.
 - Graph refresh log `/tmp/workspace-profile-mode-graphify-20261021.log`. Same development branch; no deployment/database changes.
+
+
+### October 21 — Banner image control alignment
+
+- Banner dimensions hint now sits above its control in a bounded, right-aligned stack (8px gap). Banner upload/actions use the same28px circular ImagePlus style as the logo control, including44px effective touch targets, theme colors and loading/disabled behavior. Shared local style constant avoids divergence. Native file input and existing adjust/replace/remove actions preserved.
+- Focused lint/whitespace pass. Live light-mode preview verified hint bottom148/button top156 and28x28 control; screenshot `/tmp/workspace-banner-image-button-20261021.png`. No uploads or data changes. Same development branch. Graph refresh log `/tmp/workspace-banner-button-graphify-20261021.log`.

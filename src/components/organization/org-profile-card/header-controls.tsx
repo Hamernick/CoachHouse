@@ -10,7 +10,6 @@ import {
 } from "@/components/workspace/workspace-window-header-slots"
 import Link from "next/link"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
-import PencilLine from "lucide-react/dist/esm/icons/pencil-line"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +24,8 @@ import {
   ORG_BANNER_MIN_DIMENSIONS_LABEL,
   ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL,
 } from "@/lib/organization/banner-spec"
+
+const IMAGE_ACTION_BUTTON_CLASS = "relative size-7 rounded-full border-border/70 bg-card/95 p-0 shadow-none backdrop-blur-sm dark:bg-card/95 dark:hover:bg-muted after:absolute after:-inset-2"
 
 type OrgProfileHeaderBannerControlsProps = {
   canEdit: boolean
@@ -49,16 +50,23 @@ export function OrgProfileHeaderBannerControls({
   onAdjustHeader,
   onRemoveHeader,
 }: OrgProfileHeaderBannerControlsProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
   if (!canEdit) return null
 
   return (
     <div
       aria-hidden={!editMode}
       inert={!editMode ? true : undefined}
-      className={cn("transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
+      className={cn("absolute top-2 right-4 left-4 flex flex-col items-end gap-2 transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
     >
-      <div className="absolute top-4 right-4 flex items-center gap-2">
+      <div id={`${headerInputId}-hint`} className="border-border/60 bg-background/85 text-muted-foreground max-w-full text-right rounded-md border px-2 py-1 text-[10px] backdrop-blur-sm">
+        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
+        {ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
+        {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
+      </div>
+      <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           id={headerInputId}
           type="file"
           accept="image/*"
@@ -75,11 +83,13 @@ export function OrgProfileHeaderBannerControls({
             <DropdownMenuTrigger asChild>
               <Button
                 size="icon"
-                variant="secondary"
+                variant="outline"
+                className={IMAGE_ACTION_BUTTON_CLASS}
+                aria-describedby={`${headerInputId}-hint`}
                 disabled={headerBusy}
                 aria-label="Header image actions"
               >
-                <PencilLine className="h-4 w-4" aria-hidden />
+                <ImagePlus className="size-4" aria-hidden />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -127,25 +137,23 @@ export function OrgProfileHeaderBannerControls({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild size="sm" variant="secondary" disabled={headerBusy}>
-            <label htmlFor={headerInputId} className="cursor-pointer">
-              {isUploadingHeader ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
-                  Uploading…
-                </span>
-              ) : (
-                "Upload banner"
-              )}
-            </label>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={IMAGE_ACTION_BUTTON_CLASS}
+            disabled={headerBusy}
+            aria-label={isUploadingHeader ? "Uploading banner" : "Add banner image"}
+            aria-describedby={`${headerInputId}-hint`}
+            onClick={() => inputRef.current?.click()}
+          >
+            {isUploadingHeader
+              ? <Loader2 className="size-4 animate-spin" aria-hidden />
+              : <ImagePlus className="size-4" aria-hidden />}
           </Button>
         )}
       </div>
-      <div className="border-border/60 bg-background/85 text-muted-foreground absolute top-14 right-4 rounded-md border px-2 py-1 text-[10px] backdrop-blur-sm">
-        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
-        {ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
-        {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
-      </div>
+
     </div>
   )
 }
@@ -172,7 +180,6 @@ export function OrgProfileHeaderLogoControls({
   onRemoveLogo,
 }: OrgProfileHeaderLogoControlsProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const triggerClassName = "relative size-7 rounded-full border-border/70 bg-card/95 p-0 shadow-none backdrop-blur-sm dark:bg-card/95 dark:hover:bg-muted after:absolute after:-inset-2"
   if (!canEdit) return null
 
   return (
@@ -200,7 +207,7 @@ export function OrgProfileHeaderLogoControls({
             <Button
               size="icon"
               variant="outline"
-              className={triggerClassName}
+              className={IMAGE_ACTION_BUTTON_CLASS}
               disabled={logoBusy}
               aria-label="Logo image actions"
             >
@@ -242,7 +249,7 @@ export function OrgProfileHeaderLogoControls({
           type="button"
           size="icon"
           variant="outline"
-          className={triggerClassName}
+          className={IMAGE_ACTION_BUTTON_CLASS}
           disabled={logoBusy}
           aria-label={isUploadingLogo ? "Uploading logo" : "Add logo image"}
           onClick={() => inputRef.current?.click()}
