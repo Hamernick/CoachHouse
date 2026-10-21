@@ -335,13 +335,7 @@ describe("workspace board card frame", () => {
     expect(markup).toContain("10% lessons complete")
     expect(markup).toContain('aria-label="Lessons complete"')
     expect(markup).toContain('aria-valuenow="10"')
-    expect(markup).toContain(
-      'data-react-grab-anchor="WorkspaceAcceleratorCardProgressSummary"'
-    )
-    expect(markup).toContain('data-react-grab-surface-slot="progress-rail"')
-    expect(markup).toContain(
-      "Owns lesson completion and the separate organization readiness checklists."
-    )
+
     expect(markup).toContain("nodrag nopan")
     expect(source).not.toContain('from "lucide-react/dist/esm/icons/play"')
     expect(source).not.toContain("disabled={!currentStep}")

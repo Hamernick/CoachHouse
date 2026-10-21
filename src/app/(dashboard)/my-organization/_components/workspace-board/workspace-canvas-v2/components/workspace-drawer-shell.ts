@@ -1,16 +1,6 @@
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import styles from "./workspace-dock.module.css"
-
-export const DOCK_SHELL_OWNER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-canvas:dock-shell",
-  component: "WorkspaceCanvasOverlayDrawer",
-  source:
-    "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-overlay-drawer.tsx",
-  tokenSource:
-    "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock.module.css",
-  primitiveImport: "@/components/ui/drawer",
-})
 
 export const FLOATING_PANEL_CLASS = cn(
   styles.panel

@@ -3,7 +3,7 @@
 import Image from "next/image"
 import artwork from "../../assets/heroes/tools-brand-identity.webp"
 import { brandFontStack } from "../../lib/brand-fonts"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,12 +26,7 @@ export function FoundationSection({
     >
       <div
         className="relative mb-6 flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg text-center text-white"
-        {...brandIdentityOwner(
-          "foundation-section",
-          "FoundationSection",
-          "introduction",
-          "preview"
-        )}
+
       >
         <Image
           src={artwork}
@@ -99,13 +94,7 @@ export function FoundationSection({
         </Field>
         <fieldset
           className="min-w-0"
-          {...brandIdentityOwner(
-            "foundation-section",
-            "FoundationSection",
-            "actionables",
-            "fields",
-            "Three editable calls to action below Primary audience."
-          )}
+
         >
           <legend className="text-sm font-medium">Actionables</legend>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">
@@ -124,13 +113,7 @@ export function FoundationSection({
                   actionables[index] = event.target.value
                   updateDraft({ actionables })
                 }}
-                {...brandIdentityOwner(
-                  "foundation-section",
-                  "FoundationSection",
-                  `brand-actionable-${index + 1}`,
-                  "field",
-                  `Actionable ${index + 1}`
-                )}
+
               />
             ))}
           </div>
@@ -154,23 +137,11 @@ function Field({
   return (
     <div
       className={wide ? "min-w-0" : undefined}
-      {...brandIdentityOwner(
-        "foundation-section",
-        "FoundationSection",
-        htmlFor,
-        "field",
-        label
-      )}
+
     >
       <Label
         htmlFor={htmlFor}
-        {...brandIdentityOwner(
-          "foundation-section",
-          "FoundationSection",
-          htmlFor,
-          "label",
-          label
-        )}
+
       >
         {label}
       </Label>

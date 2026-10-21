@@ -5,7 +5,7 @@ import { memo } from "react"
 import { Handle, Position, type NodeProps } from "@xyflow/react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Button } from "@/components/ui/button"
 import {
   WorkspaceNodeFrameRoot,
@@ -31,15 +31,7 @@ export const DecisionStepNode = memo(function DecisionStepNode({
 }: NodeProps<ReactFlowNode<DecisionStepNodeData>>) {
   return (
     <WorkspaceNodeFrameRoot
-      {...getReactGrabOwnerProps({
-        ownerId: `documentation:decision-step:${data.id}`,
-        component: "DecisionStepNode",
-        source:
-          "src/features/documentation-decision-canvas/components/decision-step-node.tsx",
-        slot: "decision-step",
-        tokenSource:
-          "src/features/documentation-decision-canvas/components/decision-canvas.module.css",
-      })}
+
       className={cn(
         "border-border/60 bg-card pointer-events-auto w-[232px] rounded-2xl shadow-sm",
         data.active &&

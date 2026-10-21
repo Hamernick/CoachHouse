@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
+
 import { PlusIcon } from "./shapeshift-icons"
 
 export function ParticleAddControl({
@@ -25,7 +25,7 @@ export function ParticleAddControl({
       onClick={onAdd}
       aria-label={`Add ${title} to canvas`}
       title="Add to canvas"
-      {...getReactGrabInspectionProps("overlay")}
+
       className={cn(
         "nodrag nopan absolute top-0 right-3 size-8 rounded-full [@media(pointer:coarse)]:size-11",
         className

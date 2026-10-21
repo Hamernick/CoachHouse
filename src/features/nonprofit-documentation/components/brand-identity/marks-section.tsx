@@ -14,7 +14,7 @@ import {
   BrandIdentitySection,
   BrandIdentitySubsection,
 } from "./brand-identity-section"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 export function MarksSection({
   draft,
   assets,
@@ -140,21 +140,11 @@ export function MarksSection({
             disabled={disabled}
           />
           <div
-            {...brandIdentityOwner(
-              "marks-section",
-              "MarksSection",
-              "logo-guidance",
-              "field"
-            )}
+
           >
             <Label
               htmlFor="logo-guidance"
-              {...brandIdentityOwner(
-                "marks-section",
-                "MarksSection",
-                "logo-guidance",
-                "label"
-              )}
+
             >
               Usage guidance
             </Label>

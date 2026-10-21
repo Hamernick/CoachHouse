@@ -3,8 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 
-import { buildAppSidebarOwnerId } from "@/components/app-sidebar/react-grab"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { buildMainNavItemReactGrabProps, type NavMainItem } from "./item"
-
-const SOURCE = "src/components/nav-main/collapsed-group-menu.tsx"
+import { type NavMainItem } from "./item"
 
 export function CollapsedNavGroupMenu({
   item,
@@ -30,8 +26,6 @@ export function CollapsedNavGroupMenu({
   onPrefetch?: (href: string | null | undefined) => void
 }) {
   const [open, setOpen] = useState(false)
-  const reactGrabProps = buildMainNavItemReactGrabProps(item, SOURCE)
-
   function renderDestination(destination: NavMainItem) {
     if (!destination.href || destination.locked) {
       return <DropdownMenuItem key={destination.title} disabled>{destination.title}</DropdownMenuItem>
@@ -60,8 +54,8 @@ export function CollapsedNavGroupMenu({
             type="button"
             isActive={isActive}
             aria-label={`${item.title} menu`}
-            tooltip={{ ...reactGrabProps.tooltipProps, hidden: open }}
-            {...reactGrabProps.ownerProps}
+            tooltip={{ children: item.title, hidden: open }}
+
           >
             {item.icon ? <item.icon /> : null}
             <span className="sr-only">{item.title}</span>
@@ -73,14 +67,7 @@ export function CollapsedNavGroupMenu({
           sideOffset={8}
           className="w-56"
           aria-label={`${item.title} navigation`}
-          {...getReactGrabLinkedSurfaceProps({
-            ownerId: buildAppSidebarOwnerId("main", item.href ?? item.title),
-            component: "CollapsedNavGroupMenu",
-            source: SOURCE,
-            slot: "dropdown-menu-content",
-            surfaceKind: "content",
-            primitiveImport: "@/components/ui/dropdown-menu",
-          })}
+
         >
           {item.href ? (
             <>

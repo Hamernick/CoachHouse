@@ -41,12 +41,9 @@ export function ParticleDecisionEditor({
   onChange: (particle: DecisionParticle) => void
 }) {
   const id = useId()
-  const surface = useParticleSurface(
-    "ParticleDecisionEditor",
-    "particle-decision-editor.tsx"
-  )
+  const surface = useParticleSurface()
   return (
-    <div className="flex flex-col gap-5" {...surface("editor")}>
+    <div className="flex flex-col gap-5" {...surface()}>
       <ParticleDecisionCriteria
         particle={particle}
         disabled={disabled}
@@ -92,7 +89,7 @@ export function ParticleDecisionEditor({
           return (
             <div
               key={outcome.id}
-              {...surface(`outcome:${outcome.id}`)}
+              {...surface()}
               className={cn("flex flex-col gap-2", styles.collectionItem)}
             >
               <Field>
@@ -181,7 +178,7 @@ export function ParticleDecisionEditor({
           )
         })}
       </section>
-      <Field {...surface("selection")}>
+      <Field {...surface()}>
         <FieldLabel htmlFor={`${id}-result`}>Selected outcome</FieldLabel>
         <div className="flex items-center gap-2">
           <Select

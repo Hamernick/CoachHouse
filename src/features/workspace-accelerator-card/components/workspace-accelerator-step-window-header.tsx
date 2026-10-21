@@ -11,7 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import {
   WorkspaceWindowHeaderPortal,
   WORKSPACE_HEADER_BUTTON,
@@ -38,14 +38,7 @@ export function WorkspaceAcceleratorStepWindowHeader({
     }) === 0
       ? step.stepKind.charAt(0).toUpperCase() + step.stepKind.slice(1)
       : stepTitle
-  const owner = (slot: string) =>
-    getReactGrabOwnerProps({
-      ownerId: `workspace-accelerator-step:${step.id}:breadcrumb:${slot}`,
-      component: "WorkspaceAcceleratorStepWindowHeader",
-      source:
-        "src/features/workspace-accelerator-card/components/workspace-accelerator-step-window-header.tsx",
-      slot,
-    })
+
   return (
     <>
       <WorkspaceWindowHeaderPortal slot="title">
@@ -54,7 +47,7 @@ export function WorkspaceAcceleratorStepWindowHeader({
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Button
-                  {...owner("overview")}
+
                   variant="ghost"
                   className={WORKSPACE_HEADER_BUTTON}
                   onClick={onOverview}
@@ -67,7 +60,7 @@ export function WorkspaceAcceleratorStepWindowHeader({
             <BreadcrumbItem className="max-w-[min(100%,16rem)] min-w-0">
               <BreadcrumbLink asChild>
                 <Button
-                  {...owner("module")}
+
                   variant="ghost"
                   className={cn(WORKSPACE_HEADER_BUTTON, "max-w-full min-w-0")}
                   onClick={onModuleOverview}

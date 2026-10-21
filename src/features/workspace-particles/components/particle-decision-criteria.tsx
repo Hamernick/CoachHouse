@@ -31,10 +31,7 @@ export function ParticleDecisionCriteria({
   onChange: (particle: DecisionParticle) => void
 }) {
   const id = useId()
-  const surface = useParticleSurface(
-    "ParticleDecisionCriteria",
-    "particle-decision-criteria.tsx"
-  )
+  const surface = useParticleSurface()
   const [page, setPage] = useState(0)
   const criteria = decisionCriteriaOrder(particle.data.criteria)
   const pages = Math.max(1, Math.ceil(criteria.length / PAGE_SIZE))
@@ -42,7 +39,7 @@ export function ParticleDecisionCriteria({
   const start = currentPage * PAGE_SIZE
   return (
     <section
-      {...surface("criteria")}
+      {...surface()}
       aria-labelledby={`${id}-heading`}
       className="flex flex-col gap-3"
     >
@@ -90,7 +87,7 @@ export function ParticleDecisionCriteria({
         return (
           <div
             key={criterion.id}
-            {...surface(`criterion:${criterion.id}`)}
+            {...surface()}
             className={cn("flex flex-col gap-2", styles.collectionItem)}
           >
             <Field>

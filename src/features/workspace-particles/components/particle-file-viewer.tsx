@@ -38,10 +38,7 @@ export function ParticleFileViewer({
 }) {
   const reduced = useReducedMotion()
   const [container, setContainer] = useState<HTMLElement | null>(null)
-  const surface = useParticleSurface(
-    "ParticleFileViewer",
-    "particle-file-viewer.tsx"
-  )
+  const surface = useParticleSurface()
   useLayoutEffect(() => {
     if (open)
       setContainer(
@@ -73,7 +70,7 @@ export function ParticleFileViewer({
               }}
             >
               <motion.section
-                {...surface("viewer")}
+                {...surface()}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => event.stopPropagation()}
                 onDoubleClick={(event) => event.stopPropagation()}

@@ -550,7 +550,7 @@ describe("workspace accelerator checklist helpers", () => {
       })
     )
     const rowMatch = markup.match(
-      /data-react-grab-anchor="WorkspaceAcceleratorChecklistStepRow"[^>]*class="([^"]+)"/
+      /<div data-state="(?:open|closed)"[^>]*class="([^"]+)"/
     )
     const triggerMatch = markup.match(
       /<button type="button" aria-expanded="true"[^>]*class="([^"]+)"/
@@ -609,16 +609,7 @@ describe("workspace accelerator checklist helpers", () => {
       "onOpenModuleIdChange(expanded ? null : module.id)"
     )
     expect(source).toContain("onStepSelect(selectableStep)")
-    expect(markup).toContain(
-      'data-react-grab-anchor="WorkspaceAcceleratorChecklistStepRow"'
-    )
-    expect(markup).toContain(
-      'data-react-grab-owner-id="workspace-accelerator-checklist:m-1:video"'
-    )
-    expect(markup).toContain(
-      'data-react-grab-owner-source="src/features/workspace-accelerator-card/components/workspace-accelerator-card-checklist.tsx"'
-    )
-    expect(markup).toContain('data-react-grab-owner-slot="lesson-row"')
+
     expect(markup).toContain("Naming your NFP")
     expect(markup).toContain("Write your first draft")
     expect(markup).not.toContain(">review</span>")

@@ -114,7 +114,7 @@ export function AppShellCalendarAction({
   const tutorialCallout =
     tutorialCalendarButtonCallout ? (
       <WorkspaceTutorialCallout
-        reactGrabOwnerId="workspace-canvas-viewport-controls:calendar-callout"
+        calloutId="workspace-canvas-viewport-controls:calendar-callout"
         mode="indicator"
         title={tutorialCalendarButtonCallout.title}
         instruction={tutorialCalendarButtonCallout.instruction}

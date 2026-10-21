@@ -8,7 +8,7 @@ import CircleIcon from "lucide-react/dist/esm/icons/circle"
 import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Separator } from "@/components/ui/separator"
 import {
   type RoadmapCalendarEvent,
@@ -62,9 +62,6 @@ type RoadmapCalendarMonthAgendaPanelProps = {
   formatTimeRange: (event: RoadmapCalendarEvent) => string
   className?: string
 }
-
-const ROADMAP_CALENDAR_MONTH_AGENDA_PANEL_SOURCE =
-  "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx"
 
 export const RoadmapCalendarMonthAgendaPanel = memo(
   function RoadmapCalendarMonthAgendaPanel({
@@ -174,14 +171,7 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
 
         <div
           className="bg-background flex min-h-0 flex-col rounded-[24px] px-3 py-3"
-          {...getReactGrabOwnerProps({
-            ownerId: "roadmap-calendar-month-agenda:month-grid",
-            component: "RoadmapCalendarMonthAgendaPanel",
-            source:
-              "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx",
-            slot: "month-grid",
-            primitiveImport: "@/components/ui/calendar",
-          })}
+
         >
           <Calendar
             mode="single"

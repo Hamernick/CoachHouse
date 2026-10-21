@@ -2,15 +2,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import {
-  buildReactGrabDebugSurfaceRecord,
-  debugSurfaceClass,
-  type ReactGrabDebugSurfaceAttributes,
-} from "@/lib/react-grab-debug-surface"
 import { cn } from "@/lib/utils"
-
-const BUTTON_SOURCE = "src/components/ui/button.tsx"
-const BUTTON_IMPORT = "@/components/ui/button"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
@@ -52,24 +44,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     const resolvedClassName = cn(buttonVariants({ variant, size, className }))
-    const debugRecord =
-      !asChild
-        ? buildReactGrabDebugSurfaceRecord({
-            attributes: props as ReactGrabDebugSurfaceAttributes,
-            fallbackComponent: "Button",
-            fallbackSource: BUTTON_SOURCE,
-            defaultSlot: "button",
-            defaultSurfaceKind: "trigger",
-            className: resolvedClassName,
-            classAssemblyFile: BUTTON_SOURCE,
-            primitiveImport: BUTTON_IMPORT,
-          })
-        : null
-
     return (
       <Comp
         data-slot="button"
-        className={debugRecord ? debugSurfaceClass(debugRecord) : resolvedClassName}
+        className={resolvedClassName}
         ref={ref}
         {...props}
       />

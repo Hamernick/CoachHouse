@@ -16,10 +16,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover"
-import {
-  getReactGrabOwnerProps,
-  getReactGrabLinkedSurfaceProps,
-} from "@/components/dev/react-grab-surface"
+
 import { ParticleCreateActions } from "./particle-create-actions"
 import type { ParticleType } from "../types"
 import { particlePresetQuery } from "../lib/particle-presets"
@@ -27,10 +24,6 @@ import {
   particleComposerSearchQuery,
   parseParticleCreateCommand,
 } from "../lib/particle-command"
-
-const COMPOSER_SOURCE =
-  "src/features/workspace-particles/components/particle-composer.tsx"
-const COMPOSER_OWNER = "workspace-particle:composer"
 
 export function ParticleComposer({
   disabled,
@@ -75,12 +68,7 @@ export function ParticleComposer({
   return (
     <div
       className="nodrag nopan nowheel shrink-0 px-2.5 pt-2 pb-2"
-      {...getReactGrabOwnerProps({
-        ownerId: COMPOSER_OWNER,
-        component: "ParticleComposer",
-        source: COMPOSER_SOURCE,
-        tokenSource: "src/app/globals.css",
-      })}
+
     >
       <form
         onSubmit={(event) => {
@@ -110,14 +98,7 @@ export function ParticleComposer({
                   disabled={disabled || pending}
                   variant="ghost"
                   size="icon"
-                  {...getReactGrabOwnerProps({
-                    ownerId: `${COMPOSER_OWNER}:add`,
-                    component: "ParticleComposerAdd",
-                    source: COMPOSER_SOURCE,
-                    slot: "trigger",
-                    tokenSource: "src/app/globals.css",
-                    primitiveImport: "@/components/ui/button",
-                  })}
+
                   className="text-muted-foreground hover:text-foreground size-9 rounded-full transition-colors duration-150 motion-reduce:transition-none"
                 >
                   <PlusIcon className="size-4" aria-hidden />
@@ -128,13 +109,7 @@ export function ParticleComposer({
                 side="top"
                 sideOffset={12}
                 className="w-60 rounded-2xl p-0 motion-reduce:animate-none"
-                {...getReactGrabLinkedSurfaceProps({
-                  ownerId: `${COMPOSER_OWNER}:add`,
-                  component: "ParticleCreateActions",
-                  source: COMPOSER_SOURCE,
-                  surfaceKind: "content",
-                  primitiveImport: "@/components/ui/popover",
-                })}
+
               >
                 <ParticleCreateActions
                   disabled={disabled || pending}

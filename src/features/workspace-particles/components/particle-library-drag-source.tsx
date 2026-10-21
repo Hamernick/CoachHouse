@@ -13,7 +13,7 @@ export function ParticleLibraryDragSource({
   className,
   getPlacement,
   touchHandleClassName,
-  ...ownerProps
+  ...props
 }: {
   children: ReactNode
   getItem: () => ParticleLibraryDragItem
@@ -31,7 +31,7 @@ export function ParticleLibraryDragSource({
   }, disabled)
   return (
     <div
-      {...ownerProps}
+      {...props}
       className={className}
       draggable={false}
       data-draggable={!disabled}

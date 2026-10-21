@@ -305,11 +305,7 @@ describe("find-map feature", () => {
       'aria-label="Current forecast temperature: 100 degrees."'
     )
     expect(markup).toContain('role="status"')
-    expect(markup).toContain('data-react-grab-anchor="FindMapWeatherCard"')
-    expect(markup).toContain(
-      'data-react-grab-owner-id="find-map-weather-card:current-location"'
-    )
-    expect(markup).toContain('data-react-grab-surface-slot="temperature"')
+
     expect(markup).toContain("pointer-events-auto")
     expect(markup).toContain("size-10")
     expect(markup).toContain("sm:size-11")

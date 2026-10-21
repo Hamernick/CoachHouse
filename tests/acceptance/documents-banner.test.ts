@@ -87,9 +87,7 @@ describe("documents banner", () => {
     expect(markup).toContain("Documents")
     expect(markup).toContain("rounded-2xl")
     expect(markup).toContain("max-w-xl")
-    expect(markup).toContain(
-      'data-react-grab-owner-id="organization-documents:banner"'
-    )
+
     expect(markup).not.toContain("Library")
     expect(markup).not.toContain("Start chat")
   })

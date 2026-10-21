@@ -18,7 +18,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectI
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { loadWorkspacePageEditorAction } from "../server/actions"
 import { usePageEditor } from "../hooks/use-page-editor"
 import type { PageEditorData } from "../lib/page-editor"
@@ -95,7 +95,7 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
     try { await navigator.clipboard.writeText(new URL(publicPath, window.location.origin).href); setCopyNotice("Link copied.") }
     catch { setCopyNotice("Copy failed. Open the public page to copy its URL.") }
   }
-  return <section {...getReactGrabOwnerProps({ ownerId: `workspace-sharing:${state.pageId}:editor`, component: "WorkspaceSharePanel", source: "src/features/workspace-sharing/components/workspace-share-panel.tsx", slot: "editor" })}
+  return <section
     ref={region} tabIndex={-1} aria-label="Share page" className="nodrag nopan nowheel focus-ring flex min-h-0 min-w-0 flex-col" aria-busy={state.pending}>
     <SharePageHeader dirty={dirty} locked={locked} onBack={onBack} actions={<>
       {state.preview ? <>

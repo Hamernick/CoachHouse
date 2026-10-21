@@ -3,7 +3,7 @@
 import UndoIcon from "lucide-react/dist/esm/icons/undo-2"
 import RedoIcon from "lucide-react/dist/esm/icons/redo-2"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import type { useParticleHistoryControls } from "../hooks/use-particle-history-controls"
 
 export function ParticleHistoryActions({
@@ -31,14 +31,7 @@ export function ParticleHistoryActions({
             className="h-11 justify-start rounded-xl px-3"
             disabled={disabled || history.busy || !label}
             onClick={() => void history[direction]()}
-            {...getReactGrabOwnerProps({
-              ownerId: `workspace-particle:${direction}`,
-              component: "ParticleHistoryActions",
-              source:
-                "src/features/workspace-particles/components/particle-history-actions.tsx",
-              slot: "trigger",
-              primitiveImport: "@/components/ui/button",
-            })}
+
           >
             <Icon aria-hidden className="size-4" />
             {direction === "undo" ? "Undo" : "Redo"}

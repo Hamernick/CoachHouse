@@ -4,9 +4,8 @@ import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ChevronLeftIcon from "lucide-react/dist/esm/icons/chevron-left"
 import ChevronRightIcon from "lucide-react/dist/esm/icons/chevron-right"
 import XIcon from "lucide-react/dist/esm/icons/x"
-import { useLayoutEffect, useMemo, useState, type ReactNode } from "react"
+import { useLayoutEffect, useState, type ReactNode } from "react"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { ModuleRightRail } from "@/components/training/module-right-rail"
 import type { ModuleResource } from "@/components/training/types"
 import { Button } from "@/components/ui/button"
@@ -43,8 +42,6 @@ import { WorkspaceAcceleratorTutorialGuardTooltip } from "./workspace-accelerato
 import { useWorkspaceAcceleratorTutorialGuard } from "./use-workspace-accelerator-tutorial-guard"
 
 type WorkspaceAcceleratorStepNodeCardVariant = "node" | "embedded"
-const WORKSPACE_ACCELERATOR_STEP_NODE_CARD_SOURCE =
-  "src/features/workspace-accelerator-card/components/workspace-accelerator-step-node-card.tsx"
 
 export type WorkspaceAcceleratorStepNodeCardProps = {
   step: WorkspaceAcceleratorCardStep
@@ -103,7 +100,6 @@ function AcceleratorStepCloseButton({
   compact,
   moduleCompleted,
   onClose,
-  reactGrabOwnerProps,
   tutorialCallout,
   variant,
   inWindow = false,
@@ -112,7 +108,6 @@ function AcceleratorStepCloseButton({
   compact: boolean
   moduleCompleted: boolean
   onClose: () => void
-  reactGrabOwnerProps?: Record<string, string>
   tutorialCallout: WorkspaceAcceleratorTutorialCallout | null
   variant: WorkspaceAcceleratorStepNodeCardVariant
   inWindow?: boolean
@@ -122,7 +117,7 @@ function AcceleratorStepCloseButton({
       type="button"
       size={done ? "sm" : "icon"}
       variant="ghost"
-      {...reactGrabOwnerProps}
+
       className={cn(
         inWindow
           ? done
@@ -177,7 +172,7 @@ function AcceleratorStepCloseButton({
   return (
     <div className="relative inline-flex shrink-0">
       <WorkspaceTutorialCallout
-        reactGrabOwnerId="workspace-accelerator-step-node-card:close-module-callout"
+        calloutId="workspace-accelerator-step-node-card:close-module-callout"
         mode="indicator"
         indicatorOffsetY={-12}
       />
@@ -279,33 +274,13 @@ export function WorkspaceAcceleratorStepNodeCard({
     tutorialInteractionPolicy,
     action: "preview-close",
   })
-  const previousButtonOwnerDescriptor = {
-    ownerId: `workspace-accelerator-step-node-card:${step.id}:previous`,
-    component: "WorkspaceAcceleratorStepNodeCard",
-    source: WORKSPACE_ACCELERATOR_STEP_NODE_CARD_SOURCE,
-    slot: "previous-button",
-    variant,
-  } as const
-  const nextButtonOwnerDescriptor = {
-    ownerId: `workspace-accelerator-step-node-card:${step.id}:next`,
-    component: "WorkspaceAcceleratorStepNodeCard",
-    source: WORKSPACE_ACCELERATOR_STEP_NODE_CARD_SOURCE,
-    slot: "next-button",
-    variant,
-  } as const
-  const closeButtonOwnerDescriptor = {
-    ownerId: `workspace-accelerator-step-node-card:${step.id}:close`,
-    component: "WorkspaceAcceleratorStepNodeCard",
-    source: WORKSPACE_ACCELERATOR_STEP_NODE_CARD_SOURCE,
-    slot: "close-button",
-    variant,
-  } as const
+
   const navigationControls = (
     <>
       <WorkspaceAcceleratorTutorialGuardTooltip
         open={previewGuard.open && blockedControlId === "previous"}
         message={previewGuard.message}
-        ownerDescriptor={previousButtonOwnerDescriptor}
+
         side="top"
         align="end"
         sideOffset={8}
@@ -314,7 +289,7 @@ export function WorkspaceAcceleratorStepNodeCard({
           type="button"
           size="icon"
           variant="ghost"
-          {...getReactGrabOwnerProps(previousButtonOwnerDescriptor)}
+
           className={cn(
             inWindow
               ? "size-7 rounded-full [@media(pointer:coarse)]:size-11"
@@ -345,7 +320,7 @@ export function WorkspaceAcceleratorStepNodeCard({
       <WorkspaceAcceleratorTutorialGuardTooltip
         open={previewGuard.open && blockedControlId === "next"}
         message={previewGuard.message}
-        ownerDescriptor={nextButtonOwnerDescriptor}
+
         side="top"
         align="end"
         sideOffset={8}
@@ -354,7 +329,7 @@ export function WorkspaceAcceleratorStepNodeCard({
           type="button"
           size="icon"
           variant="ghost"
-          {...getReactGrabOwnerProps(nextButtonOwnerDescriptor)}
+
           className={cn(
             inWindow
               ? "size-7 rounded-full [@media(pointer:coarse)]:size-11"
@@ -385,7 +360,7 @@ export function WorkspaceAcceleratorStepNodeCard({
     <WorkspaceAcceleratorTutorialGuardTooltip
       open={previewGuard.open && blockedControlId === "close"}
       message={previewGuard.message}
-      ownerDescriptor={closeButtonOwnerDescriptor}
+
       side="top"
       align="end"
       sideOffset={8}
@@ -404,9 +379,7 @@ export function WorkspaceAcceleratorStepNodeCard({
             }
             handleBlockedPreviewAction("preview-close", "close")
           }}
-          reactGrabOwnerProps={getReactGrabOwnerProps(
-            closeButtonOwnerDescriptor
-          )}
+
           tutorialCallout={tutorialCallout}
           variant={variant}
         />

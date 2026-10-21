@@ -5,24 +5,8 @@ import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 
 import { useRegisterAppShellCalendarTutorial } from "@/components/app-shell/calendar-action-context"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Button } from "@/components/ui/button"
-
-const WORKSPACE_VIEWPORT_CONTROLS_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-viewport-controls-panel.tsx"
-
-function getViewportControlOwnerProps(
-  control: "zoom-out" | "zoom-in" | "recenter"
-) {
-  return getReactGrabOwnerProps({
-    ownerId: `workspace-canvas:viewport-${control}`,
-    component: "WorkspaceCanvasSurfaceV2ViewportControls",
-    source: WORKSPACE_VIEWPORT_CONTROLS_SOURCE,
-    slot: "trigger",
-    variant: control,
-    primitiveImport: "@/components/ui/button",
-  })
-}
 
 export function WorkspaceCanvasSurfaceV2ViewportControls({
   tutorialCalendarButtonCallout,
@@ -52,7 +36,7 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
           type="button"
           variant="ghost"
           size="icon"
-          {...getViewportControlOwnerProps("zoom-out")}
+
           className="relative h-8 w-11 touch-manipulation rounded-full after:absolute after:inset-x-0 after:-inset-y-1.5 md:w-8 md:after:hidden"
           onClick={onZoomOut}
           aria-label="Zoom out"
@@ -64,7 +48,7 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
           type="button"
           variant="ghost"
           size="icon"
-          {...getViewportControlOwnerProps("zoom-in")}
+
           className="relative h-8 w-11 touch-manipulation rounded-full after:absolute after:inset-x-0 after:-inset-y-1.5 md:w-8 md:after:hidden"
           onClick={onZoomIn}
           aria-label="Zoom in"
@@ -76,7 +60,7 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
           type="button"
           variant="ghost"
           size="icon"
-          {...getViewportControlOwnerProps("recenter")}
+
           className="relative h-8 w-11 touch-manipulation rounded-full after:absolute after:inset-x-0 after:-inset-y-1.5 md:w-8 md:after:hidden"
           onClick={onRecenterView}
           aria-label="Recenter view"

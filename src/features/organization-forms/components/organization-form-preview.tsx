@@ -3,7 +3,7 @@
 import { useCallback, useId, useRef, useState } from "react"
 import { motion, useReducedMotion } from "motion/react"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { WORKSPACE_SURFACE_MOTION } from "@/lib/workspace-canvas/surface-motion"
 import {
   validateFormAnswers,
@@ -81,14 +81,7 @@ export function OrganizationFormPreview({
           check()
         }
       }}
-      {...getReactGrabOwnerProps({
-        ownerId: `organization-form:preview:${id}`,
-        component: "OrganizationFormPreview",
-        source:
-          "src/features/organization-forms/components/organization-form-preview.tsx",
-        tokenSource:
-          "src/features/organization-forms/components/organization-form-preview.module.css",
-      })}
+
     >
       <p className="text-muted-foreground text-xs">
         Try your questions. Preview answers aren’t saved.

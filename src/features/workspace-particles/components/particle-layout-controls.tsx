@@ -4,7 +4,7 @@ import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { useEffect, useMemo } from "react"
 import { useStore } from "@xyflow/react"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import type { useParticleLayout } from "../hooks/use-particle-layout"
 import { createParticleGeometrySelector } from "../lib/particle-geometry-observer"
 
@@ -65,14 +65,7 @@ export function ParticleLayoutActions({
           className="h-11 justify-start rounded-xl px-3"
           disabled={action.disabled}
           onClick={action.onClick}
-          {...getReactGrabOwnerProps({
-            ownerId: `workspace-particle:${action.id}`,
-            component: "ParticleLayoutActions",
-            source:
-              "src/features/workspace-particles/components/particle-layout-controls.tsx",
-            slot: "trigger",
-            primitiveImport: "@/components/ui/button",
-          })}
+
         >
           {action.id === "layout-all" && layout.busy ? (
             <LoaderCircleIcon

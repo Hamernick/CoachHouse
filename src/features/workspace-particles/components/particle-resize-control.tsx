@@ -30,10 +30,7 @@ export function ParticleResizeControl({
   const [preview, setPreview] = useState<ParticleSize | null>(null)
   const update = useUpdateNodeInternals()
   const flowNode = useReactFlow().getNode(id)
-  const surface = useParticleSurface(
-    "ParticleResizeControl",
-    "particle-resize-control.tsx"
-  )
+  const surface = useParticleSurface()
   const allowed = supportedParticleSizes(data.particle)
   const presets = allowed.map((size) =>
     particleFamilyDimensions(data.particle, size)
@@ -112,7 +109,7 @@ export function ParticleResizeControl({
         }}
       >
         <span
-          {...surface("handle")}
+          {...surface()}
           aria-hidden
           className="text-muted-foreground flex size-11 items-center justify-center"
         >

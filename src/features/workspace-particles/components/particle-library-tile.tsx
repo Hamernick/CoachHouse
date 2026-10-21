@@ -1,7 +1,7 @@
 "use client"
 
 import { ParticleLibraryDragSource } from "./particle-library-drag-source"
-import { ReactGrabPreview } from "@/components/dev/react-grab-preview"
+import { InertPreview } from "@/components/shared/inert-preview"
 
 import { ParticleAddControl } from "./particle-add-control"
 import type { ReactNode } from "react"
@@ -9,7 +9,7 @@ import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ParticleMenuOverlay } from "./particle-menu-overlay"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { type ParticleDrag } from "../lib/particle-placement"
 
 export type ParticleLibraryTool = {
@@ -38,14 +38,7 @@ export function ParticleLibraryTile({
           ? "border-border flex items-center justify-between gap-3 rounded-2xl border border-dashed px-4 py-2"
           : "mb-3 break-inside-avoid"
       }
-      {...getReactGrabOwnerProps({
-        ownerId: `workspace-particle:library:${drag.id}`,
-        component: visible
-          ? "ParticleLibraryPlaceholder"
-          : "ParticleLibraryPreview",
-        source:
-          "src/features/workspace-particles/components/particle-library-tile.tsx",
-      })}
+
     >
       {!visible && (
         <ParticleLibraryDragSource
@@ -57,7 +50,7 @@ export function ParticleLibraryTile({
           })}
           className="relative data-[draggable=true]:cursor-grab"
         >
-          <ReactGrabPreview>{preview}</ReactGrabPreview>
+          <InertPreview>{preview}</InertPreview>
           <ParticleAddControl
             title={title}
             disabled={disabled}

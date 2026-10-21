@@ -3,7 +3,7 @@
 import type { RefObject } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import styles from "./workspace-dock.module.css"
 import type { WorkspaceDrawerTabsProps } from "./workspace-drawer-content-types"
 
@@ -24,13 +24,7 @@ export function WorkspaceCanvasOrganizationButton({
   return (
     <Button
       ref={triggerRef}
-      {...getReactGrabOwnerProps({
-        ownerId: "workspace-canvas:organization-profile",
-        component: "WorkspaceCanvasOrganizationButton",
-        source: "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-organization-button.tsx",
-        slot: "trigger",
-        primitiveImport: "@/components/ui/button",
-      })}
+
       type="button"
       variant="ghost"
       data-workspace-organization-trigger="true"

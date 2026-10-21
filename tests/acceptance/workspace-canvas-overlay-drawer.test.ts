@@ -180,7 +180,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).toContain('ownerId: "workspace-card-shortcut:data"')
     expect(source).toContain('component: "WorkspaceCardShortcutButton"')
     expect(source).toContain('variant: "data"')
-    expect(source).toContain('primitiveImport: "@/components/ui/button"')
+
     expect(source).toContain(
       "nodrag nopan text-foreground size-9 h-9 w-9 rounded-xl"
     )

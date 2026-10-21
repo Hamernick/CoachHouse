@@ -3,7 +3,7 @@
 import TargetIcon from "lucide-react/dist/esm/icons/target"
 import CheckSquareIcon from "lucide-react/dist/esm/icons/square-check"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { PARTICLE_CREATE_TYPES } from "../lib/particle-command"
 import { particleRegistry } from "../lib/particle-registry"
 import type { ParticleType } from "../types"
@@ -37,15 +37,7 @@ export function ParticleCreateActions({
             variant="ghost"
             disabled={disabled}
             className="h-11 justify-start gap-3 rounded-xl px-3 transition-colors duration-150 motion-reduce:transition-none"
-            {...getReactGrabOwnerProps({
-              ownerId: `workspace-particle:create-${type}`,
-              component: "ParticleCreateActions",
-              source:
-                "src/features/workspace-particles/components/particle-create-actions.tsx",
-              slot: "trigger",
-              tokenSource: "src/app/globals.css",
-              primitiveImport: "@/components/ui/button",
-            })}
+
             onClick={() => void onCreate(type, particleRegistry[type].label)}
           >
             <Icon aria-hidden />

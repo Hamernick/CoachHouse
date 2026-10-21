@@ -12,7 +12,7 @@ import {
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import WorkflowIcon from "lucide-react/dist/esm/icons/workflow"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import { buildDocumentationDecisionGraph } from "../lib"
 import type { DocumentationDecisionStep } from "../types"
@@ -154,13 +154,7 @@ function DecisionCanvas({
           collapse()
         }
       }}
-      {...getReactGrabOwnerProps({
-        ownerId: "documentation:decision-canvas",
-        component: "DocumentationDecisionCanvasPanel",
-        source:
-          "src/features/documentation-decision-canvas/components/documentation-decision-canvas-panel.tsx",
-        slot: "decision-canvas",
-      })}
+
     >
       <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5 pb-4 sm:px-6">
         <div className="flex items-center gap-3">

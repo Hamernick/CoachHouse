@@ -2,7 +2,7 @@ import { useParticleCloseGuard } from "@/features/workspace-particles/hooks/use-
 import { ParticleLibraryTile } from "@/features/workspace-particles/components/particle-library-tile"
 import { ParticleAddControl } from "@/features/workspace-particles/components/particle-add-control"
 import { ParticlePresetGallery } from "@/features/workspace-particles/components/particle-preset-gallery"
-import { ReactGrabPreview } from "@/components/dev/react-grab-preview"
+import { InertPreview } from "@/components/shared/inert-preview"
 import { WorkspaceWindowControls } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-window-controls"
 import { ParticleConnections } from "@/features/workspace-particles/components/particle-connections"
 import { Position, ReactFlowProvider, type EdgeProps } from "@xyflow/react"
@@ -341,7 +341,7 @@ describe("Particle presentation boundary", () => {
       html.indexOf('data-workspace-node-part="footer"')
     )
     expect(html).not.toContain("In progress")
-    expect(html).not.toContain('data-react-grab-owner-slot="type"')
+
     expect(html).toContain("ring-ring")
   })
 
@@ -1049,13 +1049,13 @@ describe("compact window controls and inspectable previews", () => {
   it("keeps previews inert during normal use", () => {
     const markup = renderToStaticMarkup(
       createElement(
-        ReactGrabPreview,
+        InertPreview,
         null,
         createElement("button", null, "Preview action")
       )
     )
     expect(markup).toContain('inert=""')
-    expect(markup).toContain('data-react-grab-granular="true"')
+
   })
   it("exposes only named close and restore controls", () => {
     const markup = renderToStaticMarkup(
@@ -1074,27 +1074,7 @@ describe("compact window controls and inspectable previews", () => {
     expect(markup).toContain('aria-label="Restore content window"')
     expect(markup).not.toContain('data-unsaved="true"')
   })
-  it("gives repeated previews unique ownership ids", () => {
-    const markup = renderToStaticMarkup(
-      createElement(
-        "div",
-        null,
-        createElement(ParticleHeader, {
-          title: "Repeated",
-          icon: null,
-        }),
-        createElement(ParticleHeader, {
-          title: "Repeated",
-          icon: null,
-        })
-      )
-    )
-    const ids = [...markup.matchAll(/data-react-grab-owner-id="([^"]+)"/g)].map(
-      (match) => match[1]
-    )
-    expect(ids.length).toBeGreaterThan(2)
-    expect(new Set(ids).size).toBe(ids.length)
-  })
+
 })
 
 describe("Particle library card layout", () => {
@@ -1205,9 +1185,7 @@ describe("Particle library card layout", () => {
     expect(html).not.toContain('draggable="true"')
   })
 
-
 })
-
 
 describe("custom Particle close guard", () => {
   function guardHarness(dirty = { current: true }, close = vi.fn(() => true), discardBlocked = false) {

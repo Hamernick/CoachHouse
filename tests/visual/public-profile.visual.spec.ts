@@ -1,3 +1,4 @@
+import { prepareVisualPage } from "./reviewed-platform-screenshot"
 import { expect, test, type Page } from "@playwright/test"
 
 async function hideDevelopmentOverlays(page: Page) {
@@ -12,7 +13,7 @@ async function hideDevelopmentOverlays(page: Page) {
 }
 
 test("centered public organization profile", async ({ page }) => {
-  await page.goto("/visual-regression/public-profile?react-grab=0")
+  await page.goto("/visual-regression/public-profile")
   await hideDevelopmentOverlays(page)
   const profile = page.locator("[data-public-profile-page]")
   await expect(profile).toBeVisible()
@@ -32,7 +33,7 @@ test("centered public organization profile", async ({ page }) => {
 
 test("public organization profile reflows on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto("/visual-regression/public-profile?react-grab=0")
+  await page.goto("/visual-regression/public-profile")
   await hideDevelopmentOverlays(page)
   const profile = page.locator("[data-public-profile-page]")
   await expect(profile).toBeVisible()
@@ -53,7 +54,7 @@ test("public organization profile reflows on mobile", async ({ page }) => {
 })
 
 test("centered public person impact profile", async ({ page }) => {
-  await page.goto("/visual-regression/public-profile?kind=person&react-grab=0")
+  await page.goto("/visual-regression/public-profile?kind=person")
   await hideDevelopmentOverlays(page)
   const profile = page.locator("[data-public-profile-page]")
   await expect(profile).toBeVisible()
@@ -73,7 +74,7 @@ test("centered public person impact profile", async ({ page }) => {
 
 test("public person impact profile reflows on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto("/visual-regression/public-profile?kind=person&react-grab=0")
+  await page.goto("/visual-regression/public-profile?kind=person")
   await hideDevelopmentOverlays(page)
   const profile = page.locator("[data-public-profile-page]")
   await expect(profile).toBeVisible()
@@ -86,4 +87,8 @@ test("public person impact profile reflows on mobile", async ({ page }) => {
     scale: "css",
     maxDiffPixelRatio: 0.02,
   })
+})
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
 })

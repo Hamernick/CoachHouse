@@ -1088,8 +1088,3 @@ html:has([data-public-home-flat-surfaces]) body *::after {
   --tw-inset-shadow: 0 0 #0000 !important;
   --tw-drop-shadow: drop-shadow(0 0 0 transparent) !important;
 }
-
-/* Let React Grab hit preview contents without activating their cover button. */
-html[data-react-grab-inspecting] [data-react-grab-preview-overlay] {
-  pointer-events: none;
-}

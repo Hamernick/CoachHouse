@@ -9,7 +9,7 @@ import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { WorkspaceSidebarSlot } from "@/components/workspace/workspace-sidebar-slot"
 import { WorkspaceSidebarActions } from "@/features/workspace-management/client"
 import { cn } from "@/lib/utils"
-import { buildMainNavItemReactGrabProps, type NavMainItem } from "./item"
+import { type NavMainItem } from "./item"
 
 export function NavMainWorkspaceItem({ item, isActive, namedWorkspaceSelected, showControls, onPrefetch, tourId }: {
   item: NavMainItem
@@ -20,16 +20,15 @@ export function NavMainWorkspaceItem({ item, isActive, namedWorkspaceSelected, s
   tourId?: string
 }) {
   const [open, setOpen] = useState(true)
-  const reactGrabProps = buildMainNavItemReactGrabProps(item)
   const homeActive = isActive && !namedWorkspaceSelected
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <SidebarMenuItem>
         <div className="flex min-w-0 items-center pr-11 md:pr-8 group-data-[collapsible=icon]:pr-0">
           <SidebarMenuButton
-            asChild tooltip={reactGrabProps.tooltipProps}
+            asChild tooltip={{ children: item.title }}
             className="w-auto max-w-full justify-start gap-0 font-medium text-sidebar-foreground/60 hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent group-has-data-[sidebar=menu-action]/menu-item:pr-0 group-data-[collapsible=icon]:justify-center"
-            {...reactGrabProps.ownerProps}
+
           >
             <Link data-workspace-navigation href="/workspace" prefetch title={item.title} data-tour={tourId} aria-current={homeActive ? "page" : undefined}
               onFocus={() => onPrefetch(item.href)} onPointerEnter={() => onPrefetch(item.href)}

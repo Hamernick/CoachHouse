@@ -82,10 +82,7 @@ export function ParticleCalendarEntryFields({
   onChange: (entry: CalendarEntry) => void
 }) {
   const id = useId()
-  const surface = useParticleSurface(
-    "ParticleCalendarEntryFields",
-    "particle-calendar-entry-fields.tsx"
-  )
+  const surface = useParticleSurface()
   const parsed = particleCalendarEntrySchema.safeParse(entry)
   const error = (field: string) =>
     parsed.success
@@ -95,7 +92,7 @@ export function ParticleCalendarEntryFields({
     !entry.activityId ||
     activities.some((activity) => activity.id === entry.activityId)
   return (
-    <FieldGroup {...surface(`entry:${entry.id}`)}>
+    <FieldGroup {...surface()}>
       <Field data-invalid={Boolean(error("title"))}>
         <FieldLabel htmlFor={`${id}-title`}>Entry title</FieldLabel>
         <Input

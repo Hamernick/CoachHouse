@@ -85,14 +85,12 @@ function clickBreadcrumb(node: ReactNode, slot: string): boolean {
       !isValidElement<{
         children?: ReactNode
         onClick?: () => void
-        "data-react-grab-owner-id"?: string
+        title?: string
       }>(child)
     )
       continue
     if (
-      child.props["data-react-grab-owner-id"]?.endsWith(
-        `:breadcrumb:${slot}`
-      ) &&
+      (slot === "overview" ? child.props.children === "Accelerator" : Boolean(child.props.title)) &&
       child.props.onClick
     ) {
       child.props.onClick()

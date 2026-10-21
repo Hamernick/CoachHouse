@@ -4,7 +4,7 @@ import XIcon from "lucide-react/dist/esm/icons/x"
 import Maximize2Icon from "lucide-react/dist/esm/icons/maximize-2"
 import Minimize2Icon from "lucide-react/dist/esm/icons/minimize-2"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { useWorkspaceWindowStatus } from "@/components/workspace/workspace-editor-status"
 import type { WorkspaceContentWindowState } from "./workspace-content-window"
 import styles from "./workspace-dock.module.css"
@@ -55,16 +55,7 @@ export function WorkspaceWindowControls({
           }
           title={title}
           onClick={action}
-          {...getReactGrabOwnerProps({
-            ownerId: `workspace-canvas:window-${id}`,
-            component: "WorkspaceWindowControls",
-            slot: id,
-            source:
-              "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-window-controls.tsx",
-            tokenSource:
-              "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock.module.css",
-            primitiveImport: "@/components/ui/button",
-          })}
+
         >
           <span className={styles.windowDot} aria-hidden="true">
             <Icon />

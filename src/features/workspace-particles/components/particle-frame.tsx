@@ -1,7 +1,5 @@
 "use client"
 
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
-
 import { useParticleSurface } from "./particle-surface"
 import type { ReactNode, ComponentProps } from "react"
 import { Progress } from "@/components/ui/progress"
@@ -26,11 +24,11 @@ export function ParticleFrame({
   className?: string
   onKeyDown?: ComponentProps<"article">["onKeyDown"]
 }) {
-  const surface = useParticleSurface("ParticleFrame", "particle-frame.tsx")
+  const surface = useParticleSurface()
   return (
     <WorkspaceNodeFrameRoot
-      {...surface("frame")}
-      {...getReactGrabInspectionProps("granular")}
+      {...surface()}
+
       className={cn(
         "group/particle text-card-foreground",
         WORKSPACE_PARTICLE_CHROME.root,
@@ -55,17 +53,17 @@ export function ParticleHeader({
   icon: ReactNode
   action?: ReactNode
 }) {
-  const surface = useParticleSurface("ParticleHeader", "particle-frame.tsx")
+  const surface = useParticleSurface()
   return (
     <WorkspaceNodeFrameHeader
-      {...surface("header")}
+      {...surface()}
       className={cn(
         WORKSPACE_PARTICLE_CHROME.header,
         "workspace-card-drag-handle cursor-grab active:cursor-grabbing"
       )}
     >
       <span
-        {...surface("icon")}
+        {...surface()}
         className="flex size-5 shrink-0 items-center justify-center"
         aria-hidden
       >
@@ -73,7 +71,7 @@ export function ParticleHeader({
       </span>
       <div className="min-w-0 flex-1">
         <h3
-          {...surface("title")}
+          {...surface()}
           className={WORKSPACE_PARTICLE_CHROME.title}
           title={title}
         >
@@ -114,18 +112,18 @@ export function ParticleProgress({
   value: number
   label: string
 }) {
-  const surface = useParticleSurface("ParticleProgress", "particle-frame.tsx")
+  const surface = useParticleSurface()
   const bounded = Math.max(0, Math.min(100, value))
   return (
     <div className="flex flex-col gap-2">
       <p
-        {...surface("progress-label")}
+        {...surface()}
         className="text-muted-foreground text-xs tabular-nums"
       >
         {label}
       </p>
       <Progress
-        {...surface("progress")}
+        {...surface()}
         value={bounded}
         aria-label={label}
         aria-valuenow={bounded}

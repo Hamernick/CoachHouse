@@ -67,10 +67,7 @@ function DocumentSurface({
   const [driveRefresh, setDriveRefresh] = useState(0)
   const drivePreviewUrl = particleDrivePreviewUrl(file)
   const preview = useParticleFileUrl(data.particle.workspaceId, file, expanded)
-  const surface = useParticleSurface(
-    "ParticleDocumentCard",
-    "particle-document-card.tsx"
-  )
+  const surface = useParticleSurface()
   const content = (full: boolean) =>
     drivePreviewUrl ? (
       full ? (
@@ -125,7 +122,7 @@ function DocumentSurface({
       <figure
         className="particle-file-figure"
         ref={preview.ref}
-        {...surface("document")}
+        {...surface()}
       >
         <div className="particle-file-preview nopan nowheel bg-muted/30 h-72 overflow-hidden rounded-[21px]">
           {preview.active && !expanded ? (
@@ -135,7 +132,7 @@ function DocumentSurface({
           )}
         </div>
         <figcaption
-          {...surface("title")}
+          {...surface()}
           className="truncate px-3 py-2 text-sm font-medium"
           title={data.particle.title}
         >

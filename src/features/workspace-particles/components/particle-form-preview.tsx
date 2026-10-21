@@ -5,13 +5,13 @@ import { FORM_QUESTION_LABELS, type FormDefinition } from "@/features/organizati
 import { useParticleSurface } from "./particle-surface"
 
 export function ParticleFormPreview({ definition }: { definition: FormDefinition }) {
-  const surface = useParticleSurface("ParticleFormPreview", "particle-form-preview.tsx")
+  const surface = useParticleSurface()
   const questions = definition.questions.slice(0, 3)
   return (
-    <div {...surface("preview")} className="flex min-w-0 flex-col gap-3">
+    <div {...surface()} className="flex min-w-0 flex-col gap-3">
       {questions.length === 0 ? (
         <Empty
-          {...surface("empty")}
+          {...surface()}
           title="Create a custom form"
           description="Add questions and choose how people answer."
           className="min-h-28 gap-2 border-0 bg-transparent px-2 py-4 shadow-none"

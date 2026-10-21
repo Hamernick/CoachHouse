@@ -1,3 +1,4 @@
+import { prepareVisualPage } from "./reviewed-platform-screenshot"
 import { expect, test } from "@playwright/test"
 import { mockPublicResourceDirectory } from "./fixtures/public-resource-directory"
 import type { FindResourceIndexItem } from "../../src/features/find-resource-index/types"
@@ -39,7 +40,7 @@ for (const width of [1280, 390]) {
     await page.route("**/api/public/resource-map/items/**", (route) =>
       route.fulfill({ json: { version: 1, resourceItem: shelter } })
     )
-    await page.goto("/resources?react-grab=0")
+    await page.goto("/resources")
     const search = page.getByRole("searchbox", {
       name: "Find organizations and resources",
     })
@@ -68,3 +69,7 @@ for (const width of [1280, 390]) {
     expect(errors).toEqual([])
   })
 }
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
+})

@@ -276,22 +276,6 @@ describe("roadmap calendar month agenda", () => {
     expect(dayButton).toContain("min-h-10 min-w-0")
   })
 
-  it("attributes the shared shadcn calendar root back to the roadmap month-grid owner", () => {
-    const agendaPanel = readSource(
-      "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx"
-    )
-
-    expect(agendaPanel).toContain("getReactGrabOwnerProps")
-    expect(agendaPanel).toContain(
-      'ownerId: "roadmap-calendar-month-agenda:month-grid"'
-    )
-    expect(agendaPanel).toContain(
-      'component: "RoadmapCalendarMonthAgendaPanel"'
-    )
-    expect(agendaPanel).toContain('slot: "month-grid"')
-    expect(agendaPanel).toContain('primitiveImport: "@/components/ui/calendar"')
-  })
-
   it("keeps one add-event menu visible in the month header", () => {
     const agendaPanel = readSource(
       "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx"

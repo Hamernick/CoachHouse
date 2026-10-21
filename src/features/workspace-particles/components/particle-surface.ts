@@ -1,8 +1,7 @@
 "use client"
 
-import { createContext, useContext, useId } from "react"
+import { createContext, useContext } from "react"
 import type { Particle } from "../types"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 
 export const ParticleSurfaceContext = createContext<Particle | null>(null)
 
@@ -18,19 +17,7 @@ export function particleInspectionProps(particle: Particle) {
   }
 }
 
-// useId separates repeated records, preset previews and live canvas instances.
-export function useParticleSurface(component: string, file: string) {
-  const scope = useId()
+export function useParticleSurface() {
   const particle = useContext(ParticleSurfaceContext)
-  const identity = particle ? particleInspectionProps(particle) : null
-  const prefix = identity ? `${identity["data-particle-kind"]}:${identity["data-particle-id"]}:` : ""
-  return (slot: string) => ({
-    ...identity,
-    ...getReactGrabOwnerProps({
-      ownerId: `workspace-particle:${prefix}${scope}:${slot}`,
-      component,
-      source: `src/features/workspace-particles/components/${file}`,
-      slot,
-    }),
-  })
+  return () => particle ? particleInspectionProps(particle) : {}
 }

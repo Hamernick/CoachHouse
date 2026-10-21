@@ -6,7 +6,7 @@ import { WORKSPACE_SURFACE_MOTION } from "@/lib/workspace-canvas/surface-motion"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import EyeIcon from "lucide-react/dist/esm/icons/eye"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Empty } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import {
@@ -76,14 +76,7 @@ export function OrganizationFormBuilder({
     <section
       aria-label="Form questions"
       className={styles.builder}
-      {...getReactGrabOwnerProps({
-        ownerId: `organization-form:builder:${id}`,
-        component: "OrganizationFormBuilder",
-        source:
-          "src/features/organization-forms/components/organization-form-builder.tsx",
-        tokenSource:
-          "src/features/organization-forms/components/organization-form-builder.module.css",
-      })}
+
     >
       <div className={styles.toolbar}>
         <Button

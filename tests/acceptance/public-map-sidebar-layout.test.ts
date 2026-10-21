@@ -231,9 +231,7 @@ describe("public map sidebar layout", () => {
     expect(filterRowClassName).toContain("mx-auto")
     expect(filterRowClassName).toContain("w-full")
     expect(filterRowClassName).toContain("max-w-3xl")
-    expect(markup).toContain(
-      'data-react-grab-anchor="PublicMapCategoryFilterButton"'
-    )
+
   })
 
   it("suppresses duplicate resource subtitles in the result list", () => {
@@ -525,7 +523,7 @@ describe("public map sidebar layout", () => {
     expect(markup).toContain("relative min-w-0 flex-1")
     expect(markup).toContain("rounded-full pl-8 text-base")
     expect(markup).not.toContain('aria-label="Filter resources by category"')
-    expect(markup).not.toContain('data-react-grab-owner-id="public-map-category-filter:all"')
+
     expect(
       markup.indexOf('data-public-map-sidebar-section="rail-status-header"')
     ).toBeLessThan(
@@ -720,7 +718,7 @@ describe("public map sidebar layout", () => {
     expect(markup).not.toContain("bg-sidebar-accent/90 shadow-sm")
     expect(markup).not.toContain("box-shadow")
     expect(markup).not.toContain("text-[#06c]")
-    expect(markup).not.toContain('data-react-grab-surface-slot="view-button"')
+
     expect(markup).not.toContain(
       "rounded-full border border-transparent bg-transparent"
     )
@@ -756,16 +754,16 @@ describe("public map sidebar layout", () => {
     )
     const organizationMetadataClassName = extractClassNameByAttribute(
       markup.slice(0, resourceCardIndex),
-      "data-react-grab-surface-slot",
-      "meta-row"
+      "data-public-map-list-metadata",
+      ""
     )
     const resourceMetadataClassName = extractClassNameByAttribute(
       markup.slice(resourceCardIndex),
-      "data-react-grab-surface-slot",
-      "meta-row"
+      "data-public-map-list-metadata",
+      ""
     )
     const resourceTitleSlotIndex = markup.indexOf(
-      'data-react-grab-surface-slot="title"',
+      'data-public-map-list-title=""',
       resourceCardIndex
     )
     const resourceNameIndex = markup.indexOf("Seed ", resourceTitleSlotIndex)
@@ -784,9 +782,6 @@ describe("public map sidebar layout", () => {
     expect(markup).not.toContain(">Seed preview<")
     expect(markup).not.toContain(">External data<")
     expect(markup).toContain('aria-label="Open details for Seed Food Access"')
-    expect(markup).toContain(
-      "Clicking the non-action parts of the card opens the resource detail panel."
-    )
     expect(markup).toContain("background-color:#2563eb")
     expect(markup).toContain('data-public-map-icon-mode="stroke"')
     expect(markup).not.toContain('data-public-map-filled-icon="true"')
@@ -2076,9 +2071,7 @@ describe("public map sidebar layout", () => {
     expect(configurationMarkup).not.toContain(">Try map again</button>")
     expect(runtimeMarkup).toContain('data-public-map-failure-state="runtime"')
     expect(runtimeMarkup).toContain(">Try map again</button>")
-    expect(runtimeMarkup).toContain(
-      'data-react-grab-owner-source="src/components/public/public-map-index/map-failure-state.tsx"'
-    )
+
     expect(runtimeMarkup).toContain('role="alert"')
   })
 
@@ -2229,7 +2222,6 @@ describe("public map sidebar layout", () => {
     expect(markup).not.toContain("Open source")
   })
 })
-
 
 it("keeps national categories enabled without displaying loaded-resource totals", () => {
   const markup = renderToStaticMarkup(React.createElement(PublicMapCategoryFilter, {

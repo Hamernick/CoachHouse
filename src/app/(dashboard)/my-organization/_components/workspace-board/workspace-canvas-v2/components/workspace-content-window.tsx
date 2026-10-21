@@ -1,7 +1,5 @@
 "use client"
 
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
-
 import { useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react"
 import { WorkspaceWindowHeaderProvider } from "@/components/workspace/workspace-window-header-slots"
 import { LayoutGroup, motion } from "motion/react"
@@ -10,7 +8,7 @@ import { useWorkspaceOrganizationTriggerSize } from "./use-workspace-organizatio
 import { WORKSPACE_WINDOW_MOTION } from "./workspace-content-window-motion"
 import { WorkspaceWindowControls } from "./workspace-window-controls"
 import { WorkspaceEditorStatusProvider } from "@/components/workspace/workspace-editor-status"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import type { WorkspaceContentWindowGeometry } from "./workspace-content-window-geometry"
 import styles from "./workspace-dock.module.css"
@@ -111,15 +109,7 @@ function WorkspaceContentWindowSurface({
         transition={{ layout: WORKSPACE_WINDOW_MOTION.spring }}
         onLayoutAnimationStart={onLayoutAnimationStart}
         onLayoutAnimationComplete={onLayoutAnimationComplete}
-        {...getReactGrabInspectionProps("granular")}
-        {...getReactGrabOwnerProps({
-          ownerId: "workspace-canvas:content-window",
-          component: "WorkspaceContentWindow",
-          source:
-            "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-content-window.tsx",
-          tokenSource:
-            "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock.module.css",
-        })}
+
         aria-labelledby={
           desktop || headerActions || headerSlots ? titleId : undefined
         }

@@ -13,6 +13,6 @@ describe("workspace Accelerator banner", () => {
     expect(markup).toContain("Choose a lesson below to begin.")
     expect(markup).toContain('aria-label="Dismiss Accelerator introduction"')
     expect(markup).toContain('type="button"')
-    expect(markup).toContain('data-react-grab-owner-id="workspace-accelerator:banner"')
+
   })
 })

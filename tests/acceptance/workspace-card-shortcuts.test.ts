@@ -300,31 +300,6 @@ describe("workspace card shortcuts", () => {
     )
   })
 
-  it("tags the shortcut trigger with stable react-grab ownership metadata", () => {
-    const markup = renderToStaticMarkup(
-      React.createElement(WorkspaceCardShortcutButton, {
-        item: {
-          id: "calendar",
-          title: "Calendar",
-          icon: Building2Icon,
-          visible: false,
-          selected: false,
-          comingSoon: false,
-          tutorialHighlighted: false,
-          tutorialCallout: null,
-          onPress: vi.fn(),
-        },
-      })
-    )
-
-    expect(markup).toContain(
-      'data-react-grab-owner-component="WorkspaceCardShortcutButton"'
-    )
-    expect(markup).toContain(
-      'data-react-grab-owner-source="src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/shortcuts/workspace-card-shortcut-button.tsx"'
-    )
-  })
-
   it("hides fundraising and communications from the live shortcut rail", () => {
     const items = buildWorkspaceCardShortcutItemModels({
       hiddenCardIds: [],

@@ -11,11 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import BookmarkIcon from "lucide-react/dist/esm/icons/bookmark"
 import { cn } from "@/lib/utils"
-import {
-  buildPublicMapOrganizationListCardOwnerId,
-  buildPublicMapOrganizationListCardOwnerProps,
-  buildPublicMapOrganizationListCardSurfaceProps,
-} from "./react-grab"
+
 import {
   PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME,
   PUBLIC_MAP_LIST_CARD_PERF_STYLE,
@@ -50,7 +46,7 @@ export function PublicMapResourceListCard({
           ? "Online resource"
           : [item.city, item.state].filter(Boolean).join(", ") || item.country || "Location available",
       ]
-  const ownerId = buildPublicMapOrganizationListCardOwnerId(selectableItemId)
+
   const markerColor = resolvePublicMapResourceCategoryColor(
     item.primaryResourceCategory
   )
@@ -64,12 +60,7 @@ export function PublicMapResourceListCard({
         "text-foreground relative w-full max-w-full min-w-0 overflow-hidden bg-transparent p-1",
         PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME
       )}
-      {...buildPublicMapOrganizationListCardOwnerProps({
-        ownerId,
-        slot: "card",
-        notes:
-          "Clicking the non-action parts of the card opens the resource detail panel.",
-      })}
+
     >
       <Button
         type="button"
@@ -85,24 +76,14 @@ export function PublicMapResourceListCard({
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           "px-3 py-2"
         )}
-        {...buildPublicMapOrganizationListCardSurfaceProps({
-          ownerId,
-          slot: "body",
-          surfaceKind: "content",
-          notes: "Primary content stack for the public map resource list card.",
-        })}
+
       >
         <div
           className={cn(
             "flex min-w-0 items-center",
             constrainedLayout ? "gap-3" : "gap-4"
           )}
-          {...buildPublicMapOrganizationListCardSurfaceProps({
-            ownerId,
-            slot: "identity-row",
-            notes:
-              "Top identity row containing the resource marker, title, and metadata.",
-          })}
+
         >
           <span
             className={cn(
@@ -110,12 +91,7 @@ export function PublicMapResourceListCard({
               constrainedLayout ? "size-11" : "size-12"
             )}
             style={{ backgroundColor: markerColor }}
-            {...buildPublicMapOrganizationListCardSurfaceProps({
-              ownerId,
-              slot: "avatar",
-              surfaceKind: "indicator",
-              notes: "Resource category marker surface.",
-            })}
+
           >
             <PublicMapResourceCategoryIcon
               category={item.primaryResourceCategory}
@@ -132,19 +108,13 @@ export function PublicMapResourceListCard({
             <p
               data-public-map-list-title=""
               className="text-foreground truncate text-base leading-snug font-semibold"
-              {...buildPublicMapOrganizationListCardSurfaceProps({
-                ownerId,
-                slot: "title",
-                notes: "Primary resource category text block.",
-              })}
+
             >
               <PublicMapHighlightedText query={query} text={item.title} />
             </p>
             <PublicMapListMetadataStrip
               itemKeyPrefix="resource"
               items={metadataItems}
-              notes="Inline metadata strip for the resource list card."
-              ownerId={ownerId}
               query={query}
             />
           </div>

@@ -3,7 +3,7 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Drawer, DrawerContent } from "@/components/ui/drawer"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import type { WorkspaceOverlayDrawerProps } from "./workspace-overlay-drawer-props"
 import { WORKSPACE_DATA_DRAWER_SNAP_POINTS } from "./workspace-canvas-overlay-drawer-state"
 import styles from "./workspace-dock.module.css"
@@ -44,14 +44,7 @@ export function WorkspaceDockHost({
   if (floating)
     return createPortal(
       <section
-        {...getReactGrabOwnerProps({
-          ownerId: "workspace-canvas:dock-shell",
-          component: "WorkspaceDockHost",
-          source:
-            "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock-host.tsx",
-          tokenSource:
-            "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock.module.css",
-        })}
+
         {...requestProps}
         aria-label="Workspace dock"
         className={styles.dockHost}

@@ -2,18 +2,9 @@
 
 import { useCallback, useState, type ReactNode } from "react"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
-
 import { useWorkspaceToolsController } from "../hooks/use-workspace-tools-controller"
 import type { WorkspaceToolsInput } from "../types"
 import { WorkspaceToolRow } from "./workspace-tool-row"
-
-const WORKSPACE_TOOLS_PANEL_OWNER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-tools:panel",
-  component: "WorkspaceToolsPanel",
-  source: "src/features/workspace-tools/components/workspace-tools-panel.tsx",
-  slot: "root",
-})
 
 type WorkspaceToolsPanelProps = {
   input: WorkspaceToolsInput
@@ -42,7 +33,7 @@ export function WorkspaceToolsPanel({ input }: WorkspaceToolsPanelProps) {
 
   return (
     <div
-      {...WORKSPACE_TOOLS_PANEL_OWNER_PROPS}
+
       className="mx-auto flex w-full max-w-none flex-col gap-6 px-2 pt-2 pb-4 sm:pb-6"
     >
       {installedTools.length > 0 ? (

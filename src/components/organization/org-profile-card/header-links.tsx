@@ -1,6 +1,5 @@
 "use client"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { PROVIDER_ICON } from "@/components/shared/provider-icons"
 import { Button } from "@/components/ui/button"
 import { normalizeExternalUrl } from "@/lib/organization/urls"
@@ -46,12 +45,7 @@ export function OrgProfileHeaderLinks({ company, centered = false }: { company: 
     <nav
       aria-label="Organization links"
       className={cn("mt-1 flex max-w-full flex-col", centered ? "items-center" : "-ml-1 items-start")}
-      {...getReactGrabOwnerProps({
-        ownerId: "organization-profile-links",
-        component: "OrgProfileHeaderLinks",
-        source: "src/components/organization/org-profile-card/header-links.tsx",
-        slot: "organization-profile-links",
-      })}
+
     >
       {[true, false].map((textRow) => {
         const rowLinks = links.filter((link) => link.text === textRow)

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import { Button } from "@/components/ui/button"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import type { DocumentationDecisionStep } from "../types"
 import { DecisionCanvasControls } from "./decision-canvas-controls"
@@ -31,14 +31,7 @@ export function DecisionCanvasFooter({
     <footer
       data-decision-footer
       className="flex flex-wrap items-center justify-between gap-3 p-3 sm:px-5"
-      {...getReactGrabLinkedSurfaceProps({
-        ownerId: "documentation:decision-canvas",
-        component: "DecisionCanvasFooter",
-        source:
-          "src/features/documentation-decision-canvas/components/decision-canvas-footer.tsx",
-        slot: "canvas-footer",
-        surfaceKind: "content",
-      })}
+
     >
       <div role="status" className="order-1 flex shrink-0 items-center gap-3">
         <span aria-hidden className="hidden gap-1 sm:flex">

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 import { RoadmapCalendarMonthAgendaPanel } from "@/components/roadmap/roadmap-calendar/components"
 import { ROADMAP_CALENDAR_EVENT_TYPE_ORDER } from "@/components/roadmap/roadmap-calendar/components/roadmap-calendar-event-style"
 import {
@@ -10,7 +9,7 @@ import {
   roadmapCalendarEventOccursOnDay,
   sortRoadmapCalendarEventsByStart,
 } from "@/components/roadmap/roadmap-calendar/helpers"
-import type { WorkspaceCanvasTutorialStepId } from "@/features/workspace-canvas-tutorial"
+
 import {
   formatCalendarDate,
   formatCalendarDateRange,
@@ -20,8 +19,6 @@ import {
 
 import { WORKSPACE_TUTORIAL_CALENDAR_POPOVER_WIDTH } from "./workspace-canvas-surface-v2-tutorial-presentation-state"
 
-const WORKSPACE_TUTORIAL_CALENDAR_PRESENTATION_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-calendar-presentation.tsx"
 const WORKSPACE_TUTORIAL_CALENDAR_INITIAL_MONTH = new Date(2026, 5, 1)
 const WORKSPACE_TUTORIAL_CALENDAR_SELECTED_DAY = 12
 
@@ -274,11 +271,7 @@ function buildWorkspaceTutorialCalendarEventDatesByType(
   return initial
 }
 
-export function WorkspaceTutorialCalendarPresentation({
-  tutorialStepId,
-}: {
-  tutorialStepId: WorkspaceCanvasTutorialStepId
-}) {
+export function WorkspaceTutorialCalendarPresentation() {
   const [month, setMonth] = useState(WORKSPACE_TUTORIAL_CALENDAR_INITIAL_MONTH)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
     createWorkspaceTutorialCalendarDate({
@@ -318,13 +311,7 @@ export function WorkspaceTutorialCalendarPresentation({
     >
       <div
         className="bg-background/95 w-[22rem] overflow-hidden rounded-[24px] border-0 p-0 shadow-none backdrop-blur-xl"
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: `workspace-canvas-tutorial-panel:${tutorialStepId}`,
-          component: "WorkspaceCanvasTutorialPanel",
-          source: WORKSPACE_TUTORIAL_CALENDAR_PRESENTATION_SOURCE,
-          slot: "presentation-calendar-popover",
-          surfaceKind: "content",
-        })}
+
       >
         <RoadmapCalendarMonthAgendaPanel
           month={month}

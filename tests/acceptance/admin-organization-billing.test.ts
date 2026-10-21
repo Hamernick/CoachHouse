@@ -54,9 +54,7 @@ describe("admin organization billing", () => {
     expect(markup).toContain("Change to Operations Support…")
     expect(markup).toContain("Refund $38.00")
     expect(markup).toContain("Open Stripe")
-    expect(markup).toContain(
-      'data-react-grab-owner-component="AdminOrganizationBillingPanel"'
-    )
+
   })
 
   it("shows a recovery path when no subscription is linked", () => {

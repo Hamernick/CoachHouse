@@ -2,12 +2,10 @@
 
 import type { MouseEvent } from "react"
 import DatabaseIcon from "lucide-react/dist/esm/icons/database"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Button } from "@/components/ui/button"
 import { DrawerTrigger } from "@/components/ui/drawer"
 import { cn } from "@/lib/utils"
-const WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/shortcuts/workspace-card-shortcut-button.tsx"
 
 export function WorkspaceDrawerTrigger({
   drawerExpanded,
@@ -24,15 +22,7 @@ export function WorkspaceDrawerTrigger({
         type="button"
         variant="ghost"
         size="icon"
-        {...getReactGrabOwnerProps({
-          ownerId: "workspace-card-shortcut:data",
-          component: "WorkspaceCardShortcutButton",
-          source: WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE,
-          slot: "trigger",
-          variant: "data",
-          tokenSource: "src/components/workspace/workspace-tutorial-theme.ts",
-          primitiveImport: "@/components/ui/button",
-        })}
+
         onClick={handleDataShortcutClick}
         className={cn(
           "nodrag nopan text-foreground size-9 h-9 w-9 rounded-xl",

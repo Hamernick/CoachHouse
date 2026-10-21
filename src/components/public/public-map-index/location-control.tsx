@@ -4,10 +4,7 @@ import LocateFixedIcon from "lucide-react/dist/esm/icons/locate-fixed"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
+
 import {
   Tooltip,
   TooltipContent,
@@ -22,13 +19,6 @@ import type {
   UserLocationFeedback,
   UserLocationStatus,
 } from "./user-location"
-
-const PUBLIC_MAP_LOCATION_CARD_SOURCE =
-  "src/components/public/public-map-index/location-control.tsx"
-const PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID =
-  "public-map-location-control:current-location"
-const PUBLIC_MAP_LOCATION_CARD_OWNER_ID =
-  "public-map-location-card:current-location"
 
 export type PublicMapLocationControlState = {
   active: boolean
@@ -92,15 +82,7 @@ export function PublicMapLocationControl({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              {...getReactGrabOwnerProps({
-                ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
-                component: "PublicMapLocationControl",
-                source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
-                slot: "trigger",
-                primitiveImport: "@/components/ui/button",
-                tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
-                notes: "Requests location access or recenters the map on the current location.",
-              })}
+
               type="button"
               variant={inline ? "ghost" : "outline"}
               size="icon"
@@ -119,24 +101,11 @@ export function PublicMapLocationControl({
               )}
               onClick={onControlClick}
             >
-              <LocateFixedIcon aria-hidden {...getReactGrabLinkedSurfaceProps({
-                ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
-                component: "PublicMapLocationControl",
-                source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
-                slot: "icon",
-                surfaceKind: "indicator",
-              })} />
+              <LocateFixedIcon aria-hidden  />
             </Button>
           </TooltipTrigger>
           <TooltipContent
-            {...getReactGrabLinkedSurfaceProps({
-              ownerId: PUBLIC_MAP_LOCATION_CONTROL_OWNER_ID,
-              component: "PublicMapLocationControl",
-              source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
-              slot: "tooltip",
-              surfaceKind: "content",
-              primitiveImport: "@/components/ui/tooltip",
-            })}
+
             side={inline ? "top" : "right"}
             sideOffset={8}
           >
@@ -148,15 +117,7 @@ export function PublicMapLocationControl({
       {controlOpen ? (
         <div className={inline ? "absolute top-full left-0 w-72 pt-2" : "absolute inset-0 flex items-center justify-center p-4"}>
           <Card
-            {...getReactGrabOwnerProps({
-              ownerId: PUBLIC_MAP_LOCATION_CARD_OWNER_ID,
-              component: "PublicMapLocationCard",
-              source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
-              slot: "card",
-              primitiveImport: "@/components/ui/card",
-              notes:
-                "Location consent and status card layered above the public map drawer.",
-            })}
+
             id="public-map-location-card"
             role="dialog"
             aria-modal="false"
@@ -166,13 +127,7 @@ export function PublicMapLocationControl({
             )}
           >
             <CardContent
-              {...getReactGrabLinkedSurfaceProps({
-                ownerId: PUBLIC_MAP_LOCATION_CARD_OWNER_ID,
-                component: "PublicMapLocationCard",
-                source: PUBLIC_MAP_LOCATION_CARD_SOURCE,
-                slot: "content",
-                surfaceKind: "content",
-              })}
+
               className="p-4"
             >
               {isConsentPrompt ? (

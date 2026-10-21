@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { updateProgramAction } from "@/actions/programs"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { publicSharingEnabled } from "@/lib/feature-flags"
@@ -59,13 +59,7 @@ export function ProgramVisibilitySwitch({
         aria-label={`Show ${title} on public profile`}
         title={!publicSharingEnabled && !checked ? "Public sharing is not enabled" : undefined}
         className="relative after:absolute after:-inset-y-3 after:-inset-x-1.5"
-        {...getReactGrabOwnerProps({
-          ownerId: `program-visibility:${programId}`,
-          component: "ProgramVisibilitySwitch",
-          source: "src/components/organization/org-profile-card/tabs/program-visibility-switch.tsx",
-          slot: "trigger",
-          primitiveImport: "@/components/ui/switch",
-        })}
+
       />
     </div>
   )

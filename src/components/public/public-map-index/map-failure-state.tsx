@@ -4,12 +4,8 @@ import MapPinOffIcon from "lucide-react/dist/esm/icons/map-pin-off"
 import RefreshCwIcon from "lucide-react/dist/esm/icons/refresh-cw"
 import SearchIcon from "lucide-react/dist/esm/icons/search"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-const PUBLIC_MAP_FAILURE_STATE_SOURCE =
-  "src/components/public/public-map-index/map-failure-state.tsx"
 
 export function PublicMapFailureState({
   className,
@@ -26,19 +22,7 @@ export function PublicMapFailureState({
 
   return (
     <section
-      {...getReactGrabOwnerProps({
-        ownerId: `public-map-failure-state:${reason}`,
-        component: "PublicMapFailureState",
-        source: PUBLIC_MAP_FAILURE_STATE_SOURCE,
-        slot: "root",
-        variant: reason,
-        canonicalOwnerSource: PUBLIC_MAP_FAILURE_STATE_SOURCE,
-        canonicalOwnerReason:
-          "The public map failure state owns map-specific recovery copy, actions, and presentation; the shared Alert primitive only owns reusable alert chrome.",
-        currentWrongOwnerSource: "src/components/ui/alert.tsx",
-        currentWrongOwnerReason:
-          "The captured Alert is a shared primitive and cannot safely own public-map-specific failure presentation.",
-      })}
+
       data-public-map-failure-state={reason}
       role="alert"
       aria-atomic="true"

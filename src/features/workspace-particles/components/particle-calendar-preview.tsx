@@ -63,10 +63,7 @@ export function ParticleCalendarPreview({
   particle,
   onOpen,
 }: ParticlePreviewProps) {
-  const surface = useParticleSurface(
-    "ParticleCalendarPreview",
-    "particle-calendar-preview.tsx"
-  )
+  const surface = useParticleSurface()
   if (particle.type !== "calendar") return null
   const limit = particlePreviewLimit(particle)
   const entries = calendarChronologicalOrder(particle.data.entries)
@@ -97,7 +94,7 @@ export function ParticleCalendarPreview({
             key={entry.id}
             type="button"
             variant="ghost"
-            {...surface(`entry:${entry.id}`)}
+            {...surface()}
             aria-label={`Open ${entry.title}, ${channels}, ${status}`}
             title={`${channels} · ${status}`}
             className="nodrag nopan h-auto min-h-11 justify-start gap-2 px-0 text-left text-xs whitespace-normal"

@@ -18,10 +18,7 @@ export function ModuleNotesParticleSource({
   title: string
   children: (action: ReactNode, preview: boolean) => ReactNode
 }) {
-  const surface = useParticleSurface(
-    "ModuleNotesParticleSource",
-    "module-notes-particle-source.tsx"
-  )
+  const surface = useParticleSurface()
   const controller = useContext(ParticleLibraryDragContext)
   const busy = useRef(false)
   const [adding, setAdding] = useState(false)
@@ -45,7 +42,7 @@ export function ModuleNotesParticleSource({
   }
   const action = enabled ? (
     <Button
-      {...surface("add")}
+      {...surface()}
       type="button"
       variant="ghost"
       size="icon"

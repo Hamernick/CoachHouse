@@ -37,13 +37,10 @@ export function ParticleMenuOverlay({
   const opened = useRef(onOpen)
   opened.current = onOpen
   useEffect(() => { if (open) opened.current?.() }, [open])
-  const surface = useParticleSurface(
-    "ParticleMenuOverlay",
-    "particle-menu-overlay.tsx"
-  )
+  const surface = useParticleSurface()
   return (
     <div
-      {...surface("overlay")}
+      {...surface()}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
@@ -60,7 +57,7 @@ export function ParticleMenuOverlay({
       >
         <DropdownMenuTrigger asChild>
           <Button
-            {...surface("trigger")}
+            {...surface()}
             type="button"
             variant="secondary"
             size="icon"
@@ -71,7 +68,7 @@ export function ParticleMenuOverlay({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          {...surface("menu")}
+          {...surface()}
           align="end"
           sideOffset={6}
           collisionPadding={12}

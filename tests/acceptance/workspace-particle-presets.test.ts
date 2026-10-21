@@ -503,7 +503,7 @@ it("offers a header plus without a status badge or automatic creation", () => {
   )
   expect(html).toContain('aria-label="Add Notes to canvas"')
   expect(html).not.toContain("Backlog")
-  expect(html).not.toContain('data-react-grab-owner-slot="type"')
+
   expect(onAdd).not.toHaveBeenCalled()
   expect(html.match(/data-particle-frame="true"/g)).toHaveLength(1)
   expect(html.match(/data-particle-stack-back/g)).toHaveLength(2)

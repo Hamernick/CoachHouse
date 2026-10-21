@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { particleConnectionMenuItems } from "../lib/connection-menu"
 import { withPendingParticleConnection } from "../lib/particle-flow-adapters"
 import type { ParticleConnection, ParticleGraph } from "../types"
@@ -51,14 +51,7 @@ export function ParticleConnectionMenu({
           variant="ghost"
           className="pointer-events-none fixed size-px min-h-0 p-0 opacity-0"
           style={{ left: state.x, top: state.y }}
-          {...getReactGrabOwnerProps({
-            ownerId: "workspace-particle:connection-menu",
-            component: "ParticleConnectionMenu",
-            source:
-              "src/features/workspace-particles/components/particle-connection-menu.tsx",
-            slot: "trigger",
-            primitiveImport: "@/components/ui/button",
-          })}
+
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent

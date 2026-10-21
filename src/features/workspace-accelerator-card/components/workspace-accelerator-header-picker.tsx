@@ -7,10 +7,7 @@ import {
   ACCELERATOR_PROGRESS_SEGMENT_VISUALS,
   resolveAcceleratorModuleProgressSegment,
 } from "@/components/accelerator/accelerator-progress-segments"
-import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
+
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -40,11 +37,6 @@ import {
 import { WorkspaceAcceleratorTutorialGuardTooltip } from "./workspace-accelerator-tutorial-guard-tooltip"
 import { resolveWorkspaceAcceleratorHeaderPickerScrollDistance } from "./workspace-accelerator-header-picker-overflow"
 import { useWorkspaceAcceleratorTutorialGuard } from "./use-workspace-accelerator-tutorial-guard"
-
-const WORKSPACE_ACCELERATOR_HEADER_PICKER_SOURCE =
-  "src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx"
-const WORKSPACE_TUTORIAL_THEME_SOURCE =
-  "src/components/workspace/workspace-tutorial-theme.ts"
 
 const WORKSPACE_ACCELERATOR_TUTORIAL_PICKER_TRIGGER_CLASSNAME = cn(
   "h-9 min-h-9 rounded-xl px-3",
@@ -166,43 +158,19 @@ export function WorkspaceAcceleratorHeaderPicker({
       "We'll go over this soon, I promise! :)",
     durationMs: tutorialInteractionPolicy?.blockedMessageDurationMs ?? 3000,
   })
-  const reactGrabOwnerId = "workspace-accelerator-header-picker:class-selection"
-  const reactGrabOwnerProps = getReactGrabOwnerProps({
-    ownerId: reactGrabOwnerId,
-    component: "WorkspaceAcceleratorHeaderPicker",
-    source: WORKSPACE_ACCELERATOR_HEADER_PICKER_SOURCE,
-    slot: "trigger",
-    variant: tutorialInteractionPolicy?.stepId ?? "default",
-    tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-    primitiveImport: "@/components/ui/select",
-  })
-  const reactGrabWrapperProps = getReactGrabLinkedSurfaceProps({
-    ownerId: reactGrabOwnerId,
-    component: "WorkspaceAcceleratorHeaderPicker",
-    source: WORKSPACE_ACCELERATOR_HEADER_PICKER_SOURCE,
-    slot: "wrapper",
-    surfaceKind: "root",
-    tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-    primitiveImport: "@/components/ui/select",
-  })
+  const calloutId = "workspace-accelerator-header-picker:class-selection"
 
   const triggerElement = (
     <WorkspaceAcceleratorTutorialGuardTooltip
       open={classSelectionGuard.open}
       message={classSelectionGuard.message}
-      ownerDescriptor={{
-        ownerId: reactGrabOwnerId,
-        component: "WorkspaceAcceleratorHeaderPicker",
-        source: WORKSPACE_ACCELERATOR_HEADER_PICKER_SOURCE,
-        slot: "tooltip-content",
-        variant: tutorialInteractionPolicy?.stepId ?? "default",
-      }}
+
       side="top"
       align="end"
       sideOffset={10}
     >
       <SelectTrigger
-        {...reactGrabOwnerProps}
+
         className={cn(
           "border-border/65 bg-background/80 relative h-8 min-h-8 gap-1.5 overflow-visible px-2 text-left text-sm",
           layout === "badge"
@@ -226,7 +194,7 @@ export function WorkspaceAcceleratorHeaderPicker({
       >
         {pickerHighlighted ? (
           <WorkspaceTutorialCallout
-            reactGrabOwnerId={`${reactGrabOwnerId}:callout`}
+            calloutId={`${calloutId}:callout`}
             mode="indicator"
             tooltipContentClassName={
               WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME
@@ -267,7 +235,7 @@ export function WorkspaceAcceleratorHeaderPicker({
 
   return (
     <div
-      {...reactGrabWrapperProps}
+
       className={cn(
         layout === "badge"
           ? "inline-flex min-w-0 max-w-[min(18rem,100%)] items-center [&_[data-slot=badge]]:max-w-full"
@@ -302,15 +270,7 @@ export function WorkspaceAcceleratorHeaderPicker({
         <SelectContent
           align="end"
           className="border-border/70 bg-popover text-popover-foreground"
-          {...getReactGrabLinkedSurfaceProps({
-            ownerId: reactGrabOwnerId,
-            component: "WorkspaceAcceleratorHeaderPicker",
-            source: WORKSPACE_ACCELERATOR_HEADER_PICKER_SOURCE,
-            slot: "content",
-            surfaceKind: "content",
-            tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-            primitiveImport: "@/components/ui/select",
-          })}
+
         >
           {lessonGroupOptions.map((option, optionIndex) => {
             const OptionIcon = getTrackIcon(option.label)

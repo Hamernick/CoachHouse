@@ -2,8 +2,6 @@
 
 import { particleInspectionProps } from "./particle-surface"
 
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
-
 import { WorkspaceConnectionHandle } from "@/components/workspace/workspace-connection-handle"
 
 import type { Node as ReactFlowNode } from "@xyflow/react"
@@ -11,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { protectWorkspaceControlDrag } from "@/lib/workspace-canvas/control-drag-boundary"
 import { memo, useEffect, useMemo, useState } from "react"
 import { Position, useUpdateNodeInternals, type NodeProps } from "@xyflow/react"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { PARTICLE_HANDLE_SIDES } from "../lib/particle-handle-geometry"
 import { particleHandleId } from "../lib/particle-handle-ids"
 import { getParticleHandles } from "../lib/particle-registry"
@@ -69,7 +67,7 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
   }, [id, particle, updateInternals])
   return (
     <ParticleMenuProvider value={menuState}><div
-      {...getReactGrabInspectionProps("granular")}
+
       className="group/particle-node workspace-card-drag-handle relative h-full cursor-grab active:cursor-grabbing"
       onMouseDownCapture={protectWorkspaceControlDrag}
       onTouchStartCapture={protectWorkspaceControlDrag}
@@ -81,12 +79,7 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
       }}
       data-particle-size={particle.size}
       {...particleInspectionProps(particle)}
-      {...getReactGrabOwnerProps({
-        ownerId: `particle:${particle.id}`,
-        component: "ParticleNode",
-        source: "src/features/workspace-particles/components/particle-node.tsx",
-        slot: "node",
-      })}
+
     >
       <ParticleCard data={data} selected={selected} />
       {selected && <ParticleResizeControl id={id} data={data} />}

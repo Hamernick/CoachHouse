@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useState } from "react"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -45,11 +45,7 @@ export function WorkspaceFileTable({
     <section
       aria-label={`${title} table`}
       className="flex min-h-0 min-w-0 flex-col gap-2"
-      {...getReactGrabOwnerProps({
-        ownerId: `workspace:file-table:${id}`,
-        component: "WorkspaceFileTable",
-        source: "src/components/workspace/workspace-file-table.tsx",
-      })}
+
     >
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-1">
         <span className="text-muted-foreground text-xs tabular-nums">

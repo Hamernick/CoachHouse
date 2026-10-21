@@ -6,10 +6,6 @@ import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import CircleDashedIcon from "lucide-react/dist/esm/icons/circle-dashed"
 
 import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -24,13 +20,6 @@ import type {
   MemberWorkspaceAdminOrganizationSetupItem,
   MemberWorkspaceAdminOrganizationSummary,
 } from "../../types"
-
-const ORGANIZATION_CARD_SOURCE =
-  "src/features/member-workspace/components/projects/member-workspace-project-organization-card.tsx"
-const ORGANIZATION_SETUP_OWNER_REASON =
-  "The organization card owns its setup progress trigger and the linked checklist preview; shared HoverCard primitives own only reusable overlay chrome."
-const USER_COMPLETENESS_OWNER_REASON =
-  "The organization card owns the user-completeness disclosure and each member's linked hover preview; shared HoverCard and Collapsible primitives own only reusable interaction behavior."
 
 function toTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
@@ -118,13 +107,11 @@ function OrganizationSetupItemList({
 
 function UserCompletenessMemberRows({
   members,
-  ownerId,
 }: {
   members: MemberWorkspaceAdminOrganizationSummary["members"]
-  ownerId: string
 }) {
   return members.map((member) => {
-    const memberOwnerId = `${ownerId}:member:${member.userId}`
+
     const missingFields = member.profileMissingFields ?? []
 
     return (
@@ -133,15 +120,7 @@ function UserCompletenessMemberRows({
           <button
             type="button"
             aria-label={`Preview completeness for ${member.name}`}
-            {...getReactGrabOwnerProps({
-              ownerId: memberOwnerId,
-              component: "MemberWorkspaceProjectOrganizationCard",
-              source: ORGANIZATION_CARD_SOURCE,
-              slot: "user-completeness-member",
-              canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-              canonicalOwnerReason: USER_COMPLETENESS_OWNER_REASON,
-              primitiveImport: "@/components/ui/hover-card",
-            })}
+
             className="bg-muted/35 hover:bg-muted/60 focus-visible:ring-ring/50 flex min-h-11 w-full cursor-pointer flex-col gap-1 rounded-md px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 motion-reduce:transition-none"
           >
             <span className="flex w-full items-center justify-between gap-3 text-xs">
@@ -167,17 +146,7 @@ function UserCompletenessMemberRows({
           align="start"
           side="left"
           className="w-72 max-w-[calc(100vw-2rem)] p-3"
-          {...getReactGrabLinkedSurfaceProps({
-            ownerId: memberOwnerId,
-            component: "MemberWorkspaceProjectOrganizationCard",
-            source: ORGANIZATION_CARD_SOURCE,
-            slot: "user-completeness-member-preview",
-            surfaceKind: "content",
-            canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-            canonicalOwnerReason: USER_COMPLETENESS_OWNER_REASON,
-            tokenSource: "src/app/globals.css",
-            primitiveImport: "@/components/ui/hover-card",
-          })}
+
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-foreground min-w-0 truncate text-sm font-semibold">
@@ -239,9 +208,9 @@ export function MemberWorkspaceProjectOrganizationCard({
   )
   const { completedItems, incompleteItems } =
     partitionMemberWorkspaceOrganizationSetupItems(organization.setupItems)
-  const setupOwnerId = `member-workspace-project-organization-card:setup:${organization.orgId}`
+
   const setupDescriptionId = `organization-setup-description-${organization.orgId}`
-  const userCompletenessOwnerId = `member-workspace-project-organization-card:user-completeness:${organization.orgId}`
+
   const setupDescription = organization.setupItems.length
     ? [
         incompleteItems.length
@@ -295,15 +264,7 @@ export function MemberWorkspaceProjectOrganizationCard({
             <button
               type="button"
               aria-describedby={setupDescriptionId}
-              {...getReactGrabOwnerProps({
-                ownerId: setupOwnerId,
-                component: "MemberWorkspaceProjectOrganizationCard",
-                source: ORGANIZATION_CARD_SOURCE,
-                slot: "setup-progress",
-                canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-                canonicalOwnerReason: ORGANIZATION_SETUP_OWNER_REASON,
-                primitiveImport: "@/components/ui/hover-card",
-              })}
+
               className="focus-visible:ring-ring flex w-full cursor-pointer flex-col gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             >
               <span className="flex items-center justify-between gap-3 text-xs">
@@ -337,17 +298,7 @@ export function MemberWorkspaceProjectOrganizationCard({
             align="start"
             side="left"
             className="w-80 max-w-[calc(100vw-2rem)] p-0"
-            {...getReactGrabLinkedSurfaceProps({
-              ownerId: setupOwnerId,
-              component: "MemberWorkspaceProjectOrganizationCard",
-              source: ORGANIZATION_CARD_SOURCE,
-              slot: "setup-checklist",
-              surfaceKind: "content",
-              canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-              canonicalOwnerReason: ORGANIZATION_SETUP_OWNER_REASON,
-              tokenSource: "src/app/globals.css",
-              primitiveImport: "@/components/ui/hover-card",
-            })}
+
           >
             <div className="border-border flex flex-col gap-1 border-b p-3">
               <div className="flex items-center justify-between gap-3">
@@ -398,15 +349,7 @@ export function MemberWorkspaceProjectOrganizationCard({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              {...getReactGrabOwnerProps({
-                ownerId: userCompletenessOwnerId,
-                component: "MemberWorkspaceProjectOrganizationCard",
-                source: ORGANIZATION_CARD_SOURCE,
-                slot: "user-completeness-trigger",
-                canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-                canonicalOwnerReason: USER_COMPLETENESS_OWNER_REASON,
-                primitiveImport: "@/components/ui/collapsible",
-              })}
+
               className="group hover:bg-muted/50 focus-visible:ring-ring/50 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 text-left transition-[background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] outline-none focus-visible:ring-2 motion-reduce:transition-none"
             >
               <span className="text-muted-foreground text-xs font-medium">
@@ -427,22 +370,12 @@ export function MemberWorkspaceProjectOrganizationCard({
           <CollapsibleContent
             forceMount
             className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1 overflow-hidden data-[state=closed]:hidden data-[state=open]:duration-200 motion-reduce:data-[state=open]:animate-none"
-            {...getReactGrabLinkedSurfaceProps({
-              ownerId: userCompletenessOwnerId,
-              component: "MemberWorkspaceProjectOrganizationCard",
-              source: ORGANIZATION_CARD_SOURCE,
-              slot: "user-completeness-details",
-              surfaceKind: "content",
-              canonicalOwnerSource: ORGANIZATION_CARD_SOURCE,
-              canonicalOwnerReason: USER_COMPLETENESS_OWNER_REASON,
-              tokenSource: "src/app/globals.css",
-              primitiveImport: "@/components/ui/collapsible",
-            })}
+
           >
             <div className="flex flex-col gap-2 px-2 pt-1 pb-1">
               <UserCompletenessMemberRows
                 members={membersWithCompleteness}
-                ownerId={userCompletenessOwnerId}
+
               />
             </div>
           </CollapsibleContent>

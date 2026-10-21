@@ -8,14 +8,14 @@ import { useParticleSurface } from "./particle-surface"
  * A frame load can be a Google sign-in/access page, not proof of file access. */
 export function ParticleDrivePreview({ url, name }: { url: string; name: string }) {
   const [state, setState] = useState<"loading" | "ready" | "slow" | "error">("loading")
-  const surface = useParticleSurface("ParticleDrivePreview", "particle-drive-preview.tsx")
+  const surface = useParticleSurface()
   useEffect(() => {
     if (state !== "loading") return
     const timer = setTimeout(() => setState("slow"), 12_000)
     return () => clearTimeout(timer)
   }, [state])
   return (
-    <div {...surface("preview")} className="relative flex h-full min-h-64 flex-col">
+    <div {...surface()} className="relative flex h-full min-h-64 flex-col">
       <iframe
         src={url}
         title={`Google Drive preview: ${name}`}

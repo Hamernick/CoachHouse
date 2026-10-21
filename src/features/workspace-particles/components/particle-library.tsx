@@ -1,7 +1,5 @@
 "use client"
 
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Empty } from "@/components/ui/empty"
@@ -133,7 +131,7 @@ export function ParticleLibrary({
       inert={editingPreset}
       aria-label="Particles"
       aria-busy={pending}
-      {...getReactGrabInspectionProps("granular")}
+
     >
       {!canEdit ? (
         <p className="text-muted-foreground text-xs">View only</p>

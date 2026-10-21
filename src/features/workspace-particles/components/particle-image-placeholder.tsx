@@ -27,10 +27,7 @@ export function ParticleImagePlaceholder({
   const [pending, setPending] = useState(false)
   const [hovering, setHovering] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const surface = useParticleSurface(
-    "ParticleImagePlaceholder",
-    "particle-image-placeholder.tsx"
-  )
+  const surface = useParticleSurface()
   const enabled =
     controls &&
     data.editable &&
@@ -72,9 +69,9 @@ export function ParticleImagePlaceholder({
     <ParticleFrame selected={selected} className="gap-0 rounded-[22px] p-0">
       {controls && <ParticleActionMenu data={data} selected={selected} />}
       {editorFields && <div className="min-w-0 p-3">{editorFields}</div>}
-      <figure {...surface("placeholder")} className="particle-file-figure workspace-card-drag-handle cursor-grab active:cursor-grabbing">
+      <figure {...surface()} className="particle-file-figure workspace-card-drag-handle cursor-grab active:cursor-grabbing">
         <div
-          {...surface("drop-target")}
+          {...surface()}
           className="particle-file-preview bg-muted/40 text-muted-foreground border-border/60 data-[over=true]:border-ring data-[over=true]:bg-accent relative overflow-hidden rounded-[21px] border border-dashed"
           data-over={hovering}
           style={{ aspectRatio: "16 / 9" }}
@@ -103,7 +100,7 @@ export function ParticleImagePlaceholder({
         >
           {controls ? (
             <Button
-              {...surface("choose-image")}
+              {...surface()}
               type="button"
               variant="ghost"
               disabled={!enabled || pending}
@@ -120,7 +117,7 @@ export function ParticleImagePlaceholder({
             </div>
           )}
           <input
-            {...surface("file-input")}
+            {...surface()}
             ref={input}
             type="file"
             accept={PARTICLE_IMAGE_ACCEPT}
@@ -135,7 +132,7 @@ export function ParticleImagePlaceholder({
           />
         </div>
         <figcaption
-          {...surface("title")}
+          {...surface()}
           className="truncate px-3 text-sm font-medium"
           style={{
             height: PARTICLE_IMAGE_CAPTION_HEIGHT,
@@ -148,7 +145,7 @@ export function ParticleImagePlaceholder({
       </figure>
       {error && (
         <span
-          {...surface("error")}
+          {...surface()}
           role="status"
           className="bg-background absolute right-2 bottom-10 left-2 rounded-lg p-2 text-xs"
         >

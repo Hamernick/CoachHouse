@@ -28,8 +28,7 @@ export function useParticleLibraryDragSource(
       controller.enabled === false ||
       disabled ||
       !event.isPrimary ||
-      event.button !== 0 ||
-      document.documentElement.hasAttribute("data-react-grab-inspecting")
+      event.button !== 0
     )
       return
     const target = event.target

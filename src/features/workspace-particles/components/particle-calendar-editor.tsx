@@ -36,10 +36,7 @@ export function ParticleCalendarEditor({
   activities?: readonly CalendarActivity[]
   entryRequest?: CalendarEntryRequest
 }) {
-  const surface = useParticleSurface(
-    "ParticleCalendarEditor",
-    "particle-calendar-editor.tsx"
-  )
+  const surface = useParticleSurface()
   const entries = calendarPlanningOrder(particle.data.entries)
   const [selectedId, setSelectedId] = useState<string | null>(
     entryRequest?.id ?? null
@@ -76,7 +73,7 @@ export function ParticleCalendarEditor({
   }
   return (
     <div
-      {...surface("calendar-editor")}
+      {...surface()}
       className="flex min-w-0 flex-col gap-4"
     >
       <div className="flex items-center justify-between gap-2">
@@ -91,7 +88,7 @@ export function ParticleCalendarEditor({
           variant="outline"
           className="min-h-11 rounded-xl"
           disabled={disabled || entries.length >= 250}
-          {...surface("add-entry")}
+          {...surface()}
           onClick={() => {
             const entry = createCalendarEntry(
               crypto.randomUUID(),
@@ -126,7 +123,7 @@ export function ParticleCalendarEditor({
                   type="button"
                   variant="ghost"
                   aria-pressed={entry.id === selectedId}
-                  {...surface(`entry:${entry.id}`)}
+                  {...surface()}
                   onClick={() => select(entry.id)}
                   className={cn(
                     "flex h-auto min-h-11 w-full justify-between gap-3 rounded-none px-3 py-2 text-left whitespace-normal",
@@ -229,9 +226,7 @@ export function ParticleCalendarEditor({
                         ? selectedIndex === 0
                         : selectedIndex === entries.length - 1)
                     }
-                    {...surface(
-                      direction === -1 ? "move-entry-up" : "move-entry-down"
-                    )}
+                    {...surface()}
                     onClick={() => {
                       onChange(
                         moveCalendarEntry(particle, selected.id, direction)
@@ -255,7 +250,7 @@ export function ParticleCalendarEditor({
                   className="size-11"
                   disabled={disabled}
                   aria-label="Remove entry"
-                  {...surface("remove-entry")}
+                  {...surface()}
                   onClick={() => {
                     setRemoved(selected)
                     onChange({

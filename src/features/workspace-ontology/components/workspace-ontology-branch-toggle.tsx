@@ -3,26 +3,10 @@
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import ListTreeIcon from "lucide-react/dist/esm/icons/list-tree"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import type { WorkspaceOntologyRootControl } from "../types"
-
-const WORKSPACE_ONTOLOGY_BRANCH_TOGGLE_SOURCE =
-  "src/features/workspace-ontology/components/workspace-ontology-branch-toggle.tsx"
-
-const WORKSPACE_ONTOLOGY_BRANCH_TOGGLE_REACT_GRAB_PROPS =
-  getReactGrabOwnerProps({
-    ownerId: "workspace-ontology:branch-toggle",
-    component: "WorkspaceOntologyBranchToggle",
-    source: WORKSPACE_ONTOLOGY_BRANCH_TOGGLE_SOURCE,
-    slot: "trigger",
-    canonicalOwnerSource: WORKSPACE_ONTOLOGY_BRANCH_TOGGLE_SOURCE,
-    canonicalOwnerReason:
-      "The ontology feature owns branch-toggle behavior and floating canvas chrome.",
-    primitiveImport: "@/components/ui/button",
-  })
 
 export function resolveWorkspaceOntologyBranchTogglePresentation(
   control: Pick<
@@ -94,7 +78,7 @@ export function WorkspaceOntologyBranchToggle({
     control.completedCount >= control.descendantCount
   return (
     <Button
-      {...WORKSPACE_ONTOLOGY_BRANCH_TOGGLE_REACT_GRAB_PROPS}
+
       type="button"
       variant="outline"
       size="sm"

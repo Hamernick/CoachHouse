@@ -41,11 +41,7 @@ import { WorkspaceDrawerHeader } from "./workspace-canvas-overlay-drawer-header"
 import { useWorkspaceComposerHeight } from "./use-workspace-composer-height"
 import { WorkspaceDrawerComposer } from "./workspace-drawer-composer"
 import { WorkspaceDrawerTrigger } from "./workspace-canvas-overlay-drawer-trigger"
-import {
-  DOCK_SHELL_OWNER_PROPS,
-  FLOATING_PANEL_CLASS,
-  drawerClassName,
-} from "./workspace-drawer-shell"
+import { FLOATING_PANEL_CLASS, drawerClassName } from "./workspace-drawer-shell"
 import { useWorkspaceDrawerControls } from "./use-workspace-drawer-controls"
 import { useWorkspaceContentWindow } from "./use-workspace-content-window"
 import { useWorkspaceDrawerNavigation } from "./use-workspace-drawer-navigation"
@@ -259,7 +255,6 @@ export const WorkspaceCanvasOverlayDrawer = memo(
           setActiveSnapPoint: handleActiveSnapPointChange,
         }}
         legacyContentProps={{
-          ...DOCK_SHELL_OWNER_PROPS,
           style: { height: canvasHeight, width: canvasWidth },
           "data-workspace-canvas-drawer-fullscreen": drawerFullscreen
             ? "true"

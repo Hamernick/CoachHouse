@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
+
 import { useDocumentPreviewUrl } from "../hooks/use-document-preview-url"
 import type { LibraryItem } from "./documents-library-items"
 import { DocumentPdfViewer } from "./document-pdf-viewer"
@@ -108,13 +108,7 @@ export function DocumentPreviewDialog({
       }}
     >
       <DialogContent
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: "organization-documents:banner",
-          component: "DocumentPreviewDialog",
-          source:
-            "src/components/organization/org-profile-card/tabs/documents-tab/components/document-preview-dialog.tsx",
-          surfaceKind: "portal",
-        })}
+
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl"
         onCloseAutoFocus={(event) => {
           event.preventDefault()

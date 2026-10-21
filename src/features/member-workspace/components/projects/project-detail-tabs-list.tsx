@@ -3,15 +3,8 @@
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getReactGrabOwnerProps, getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
-import { TabsList, TabsTrigger } from "@/features/platform-admin-dashboard"
 
-const owner = {
-  ownerId: "project-detail-tabs",
-  component: "ProjectDetailTabsList",
-  source: "src/features/member-workspace/components/projects/project-detail-tabs-list.tsx",
-  tokenSource: "src/app/globals.css",
-}
+import { TabsList, TabsTrigger } from "@/features/platform-admin-dashboard"
 
 export function ProjectDetailTabsList({ fiscalEnabled, canAdd, adding, onAddFiscal, hasPrograms = false }: {
   hasPrograms?: boolean
@@ -31,7 +24,7 @@ export function ProjectDetailTabsList({ fiscalEnabled, canAdd, adding, onAddFisc
     { value: "assets", label: "Assets & Files" },
   ]
   return (
-    <div {...getReactGrabOwnerProps(owner)} className="border-border flex min-w-0 items-start border-b">
+    <div  className="border-border flex min-w-0 items-start border-b">
       <div className="min-w-0 flex-1">
         <TabsList className="flex w-full min-w-0 flex-wrap gap-x-1 gap-y-0 overflow-visible border-0 px-0">
           {tabs.map((tab) => (
@@ -49,7 +42,7 @@ export function ProjectDetailTabsList({ fiscalEnabled, canAdd, adding, onAddFisc
               <PlusIcon />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" {...getReactGrabLinkedSurfaceProps({ ...owner, surfaceKind: "content" })}>
+          <DropdownMenuContent align="end" >
             <DropdownMenuGroup>
               <DropdownMenuItem disabled={fiscalEnabled || adding} onSelect={onAddFiscal}>
                 Fiscal Sponsorship{fiscalEnabled ? " (added)" : ""}

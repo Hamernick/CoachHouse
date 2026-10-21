@@ -2,9 +2,7 @@
 
 import { particleInspectionProps } from "./particle-surface"
 
-import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
-
-import { ReactGrabPreview } from "@/components/dev/react-grab-preview"
+import { InertPreview } from "@/components/shared/inert-preview"
 
 import { ParticleLibraryDragSource } from "./particle-library-drag-source"
 import { ParticleLibraryCardStack } from "./particle-library-card-stack"
@@ -27,7 +25,6 @@ import {
   filterParticlePresets,
   type ParticlePreset,
 } from "../lib/particle-presets"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 
 export function ParticlePresetGallery({
   query,
@@ -151,15 +148,10 @@ export function ParticlePresetGallery({
                       "relative h-full data-[draggable=true]:cursor-grab",
                       PARTICLE_LIBRARY_CARD_SHAPE
                     )}
-                    {...getReactGrabOwnerProps({
-                      ownerId: `workspace-particle:preset:${preset.id}`,
-                      component: "ParticlePresetGallery",
-                      source:
-                        "src/features/workspace-particles/components/particle-preset-gallery.tsx",
-                    })}
+
                   >
                     {inlineNotes || inlineEvent ? card : (
-                      <ReactGrabPreview>{card}</ReactGrabPreview>
+                      <InertPreview>{card}</InertPreview>
                     )}
                     {!inlineNotes && !inlineEvent && (
                       <Button
@@ -176,7 +168,7 @@ export function ParticlePresetGallery({
                           ? void placement.add(preset)
                           : onSelect(preset)
                       }
-                      {...getReactGrabInspectionProps("overlay")}
+
                       className="hover:bg-accent/10 dark:hover:bg-accent/10 absolute inset-0 h-full w-full rounded-[inherit] bg-transparent"
                       aria-label={
                         preset.id === "image"

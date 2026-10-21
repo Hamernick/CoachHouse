@@ -31,10 +31,7 @@ export function ParticleChecklist({
   onOpen,
   onNotesDraftChange,
 }: ParticlePreviewProps) {
-  const surface = useParticleSurface(
-    "ParticleChecklist",
-    "particle-preview.tsx"
-  )
+  const surface = useParticleSurface()
   if (particle.type !== "activity" && particle.type !== "workflow") return null
   if (particle.type === "activity" && particle.data.widget)
     return (
@@ -61,7 +58,7 @@ export function ParticleChecklist({
           .map((step) => (
             <label
               key={step.id}
-              {...surface(`step:${step.id}`)}
+              {...surface()}
               className="nodrag nopan flex min-h-9 cursor-pointer items-center gap-2 text-xs"
             >
               <Checkbox
@@ -124,7 +121,7 @@ function ObjectivePreview({ particle }: ParticlePreviewProps) {
 }
 
 function DecisionPreview({ particle, onEdit, editable }: ParticlePreviewProps) {
-  const surface = useParticleSurface("DecisionPreview", "particle-preview.tsx")
+  const surface = useParticleSurface()
   if (particle.type !== "decision") return null
   const progress = getParticleProgress(particle)
   const limit = particlePreviewLimit(particle)
@@ -139,7 +136,7 @@ function DecisionPreview({ particle, onEdit, editable }: ParticlePreviewProps) {
           .map((criterion) => (
             <label
               key={criterion.id}
-              {...surface(`criterion:${criterion.id}`)}
+              {...surface()}
               className="nodrag nopan flex min-h-9 cursor-pointer items-center gap-2 text-xs"
             >
               <Checkbox
@@ -168,7 +165,7 @@ function DecisionPreview({ particle, onEdit, editable }: ParticlePreviewProps) {
           <Button
             type="button"
             key={outcome.id}
-            {...surface(`outcome:${outcome.id}`)}
+            {...surface()}
             variant={
               outcome.id === particle.data.selectedOutcome
                 ? "secondary"

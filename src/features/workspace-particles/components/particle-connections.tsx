@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { particleConnectionSchema } from "../lib/particle-schema"
 import { PARTICLE_RELATIONSHIP_LABELS } from "../lib/connection-editing"
 import type { Particle, ParticleConnection, ParticleGraph } from "../types"
@@ -47,15 +47,7 @@ export function ParticleConnections({
       (item.id !== particle.id || relationship === "feedback")
   )
   const decision = particle.type === "decision" ? particle : null
-  const owner = (action: string) =>
-    getReactGrabOwnerProps({
-      ownerId: `workspace-particle:connection-${action}`,
-      component: "ParticleConnections",
-      source:
-        "src/features/workspace-particles/components/particle-connections.tsx",
-      slot: "trigger",
-      primitiveImport: "@/components/ui/button",
-    })
+
   return (
     <section
       aria-labelledby={`${id}-title`}
@@ -112,7 +104,7 @@ export function ParticleConnections({
                     disabled={!editable || Boolean(hidden)}
                     aria-label={`Insert Activity between ${source?.title} and ${target?.title}`}
                     onClick={() => void actions.insert(edge.id, edge.revision)}
-                    {...owner("insert")}
+
                   >
                     Insert Activity
                   </Button>
@@ -126,7 +118,7 @@ export function ParticleConnections({
                   onClick={() =>
                     void actions.disconnect(edge.id, edge.revision)
                   }
-                  {...owner("remove")}
+
                 >
                   Disconnect
                 </Button>
@@ -251,7 +243,7 @@ export function ParticleConnections({
               !target ||
               (relationship === "decision_outcome" && !outcome)
             }
-            {...owner("add")}
+
           >
             Connect Particles
           </Button>

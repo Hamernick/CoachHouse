@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { ParticleCard } from "./particle-card"
 import { ParticleEditorHeader, PARTICLE_EDITOR_HEADER_ACTION } from "./particle-editor-header"
 import { ParticleDraftBackButton } from "./particle-draft-back-button"
@@ -260,12 +260,7 @@ export function ParticlePresetEditor({
       }}
       className={cn("nodrag nopan nowheel", styles.editor)}
       aria-label={`Configure ${preset.label}`}
-      {...getReactGrabOwnerProps({
-        ownerId: "workspace-particle:preset-editor",
-        component: "ParticlePresetEditor",
-        source:
-          "src/features/workspace-particles/components/particle-preset-editor.tsx",
-      })}
+
     >
       <ParticleEditorHeader title={preset.label} leading={
         <ParticleDraftBackButton dirty={dirty} pending={busy} onBack={onBack} />

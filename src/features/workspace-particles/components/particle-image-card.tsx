@@ -58,10 +58,7 @@ function ParticleImageSurface({
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [preview, setPreview] = useState(false)
-  const surface = useParticleSurface(
-    "ParticleImageCard",
-    "particle-image-card.tsx"
-  )
+  const surface = useParticleSurface()
   useEffect(() => {
     if (!host.current || typeof IntersectionObserver === "undefined") {
       setVisible(true)
@@ -124,7 +121,7 @@ function ParticleImageSurface({
           onPreview={() => setPreview(true)}
         />
       )}
-      <figure className="particle-file-figure" ref={host} {...surface("image")}>
+      <figure className="particle-file-figure" ref={host} {...surface()}>
         <div
           className="particle-file-preview bg-muted relative overflow-hidden rounded-[21px]"
           style={{
@@ -172,7 +169,7 @@ function ParticleImageSurface({
           )}
         </div>
         <figcaption
-          {...surface("title")}
+          {...surface()}
           className="truncate px-3 text-sm font-medium"
           style={{
             height: PARTICLE_IMAGE_CAPTION_HEIGHT,
