@@ -25,7 +25,13 @@
 }
 
 .organizationTrigger {
+  z-index: 1;
   max-width: min(208px, calc((100% - 360px) / 2 - 16px));
+}
+
+.organizationTrigger[data-morph-open="true"] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .topNavigation {
@@ -100,7 +106,7 @@
 }
 
 .organizationSidebar {
-  top: 58px;
+  top: 8px;
   bottom: auto;
   left: 8px;
   right: auto;

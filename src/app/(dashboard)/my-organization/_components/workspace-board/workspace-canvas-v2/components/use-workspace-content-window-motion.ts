@@ -82,7 +82,7 @@ export function useWorkspaceContentWindowMotion({
       lastGeometry?.height !== geometry?.height)
   )
     setLastGeometry(geometry)
-  const present = !collapsed || (desktop && !reducedMotion && !exitFinished)
+  const present = !collapsed || (!sidebar && desktop && !reducedMotion && !exitFinished)
   const paintedGeometry =
     collapsed && present ? (lastGeometry ?? geometry) : geometry
 
@@ -97,6 +97,15 @@ export function useWorkspaceContentWindowMotion({
   )
 
   useLayoutEffect(() => {
+    // Sidebar dimensions morph via layout projection, including the collapsed
+    // button-sized shell. Do not run a second translate/scale presence animation.
+    if (sidebar) {
+      driver.set(WORKSPACE_WINDOW_OPEN)
+      wasHidden.current = collapsed
+      setExitFinished(collapsed)
+      settled.current = false
+      return
+    }
     if (!desktop || reducedMotion) {
       resetActivity()
       driver.set(WORKSPACE_WINDOW_OPEN)
@@ -126,9 +135,9 @@ export function useWorkspaceContentWindowMotion({
     }
     const closed = {
       opacity: 0,
-      scale: sidebar ? 1 : WORKSPACE_WINDOW_MOTION.closedScale,
-      x: sidebar ? -24 : origin.current.x,
-      y: sidebar ? 0 : origin.current.y,
+      scale: WORKSPACE_WINDOW_MOTION.closedScale,
+      x: origin.current.x,
+      y: origin.current.y,
     }
     if (!collapsed && wasHidden.current) driver.set(closed)
     settled.current = false

@@ -1,5 +1,6 @@
 "use client"
 
+import type { RefObject } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
@@ -12,14 +13,17 @@ export function WorkspaceCanvasOrganizationButton({
   drawerCollapsed,
   bodyOverride,
   handleTabChange,
-}: Pick<WorkspaceDrawerTabsProps, "organizationEditorData" | "tab" | "drawerCollapsed" | "bodyOverride" | "handleTabChange">) {
+  triggerRef,
+}: { triggerRef?: RefObject<HTMLButtonElement | null> } & Pick<WorkspaceDrawerTabsProps, "organizationEditorData" | "tab" | "drawerCollapsed" | "bodyOverride" | "handleTabChange">) {
   const profile = organizationEditorData.initialProfile
   const name = profile.name?.trim() || "Organization"
   const initials = name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()
   const selected = tab === "organization" && !bodyOverride
+  const expanded = selected && !drawerCollapsed
 
   return (
     <Button
+      ref={triggerRef}
       {...getReactGrabOwnerProps({
         ownerId: "workspace-canvas:organization-profile",
         component: "WorkspaceCanvasOrganizationButton",
@@ -33,7 +37,10 @@ export function WorkspaceCanvasOrganizationButton({
       data-setup-guide-tab="organization"
       data-state={selected ? "active" : "inactive"}
       aria-label={`Open organization: ${name}`}
-      aria-expanded={selected && !drawerCollapsed}
+      aria-expanded={expanded}
+      aria-hidden={expanded || undefined}
+      tabIndex={expanded ? -1 : undefined}
+      data-morph-open={expanded}
       title={name}
       onClick={() => handleTabChange("organization")}
       className={`${styles.organizationTrigger} nodrag nopan pointer-events-auto absolute top-2 left-2 h-[42px] w-fit justify-start gap-2 rounded-xl border border-border/70 bg-card/95 py-1 pr-2 pl-1 text-left shadow-none backdrop-blur-xl transition-[background-color,box-shadow] hover:bg-muted focus-visible:ring-2 after:absolute after:-inset-1.5 md:after:hidden motion-reduce:transition-none`}

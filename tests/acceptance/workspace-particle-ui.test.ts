@@ -532,7 +532,7 @@ describe("responsive content window geometry", () => {
 
   it("sizes each destination independently and lets Accelerator use tall screens", () => {
     const canvas = { canvasWidth: 1440, canvasHeight: 1400, dockHeight: 100, maximized: false }
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization" })).toEqual({ width: 440, height: 1334 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization" })).toEqual({ width: 440, height: 1384 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "people" })).toEqual({ width: 960, height: 560 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "tools" })).toEqual({ width: 560, height: 360 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "documents" })).toEqual({ width: 760, height: 560 })
@@ -541,8 +541,8 @@ describe("responsive content window geometry", () => {
     for (const tab of ["organization", "people", "tools", "documents", "accelerator"] as const) {
       const narrow = resolveWorkspaceContentWindowGeometry({ ...canvas, tab, canvasWidth: 390, canvasHeight: 700 })!
       expect(narrow.width).toBeLessThanOrEqual(374)
-      expect(narrow.height).toBeLessThanOrEqual(tab === "organization" ? 526 : 464)
-      expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab, maximized: true })).toEqual({ width: 1424, height: tab === "organization" ? 1226 : 1214 })
+      expect(narrow.height).toBeLessThanOrEqual(tab === "organization" ? 576 : 464)
+      expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab, maximized: true })).toEqual({ width: 1424, height: tab === "organization" ? 1276 : 1214 })
     }
   })
 

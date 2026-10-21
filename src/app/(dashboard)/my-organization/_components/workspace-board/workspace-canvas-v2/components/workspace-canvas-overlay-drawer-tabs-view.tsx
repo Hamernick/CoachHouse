@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Tabs } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { WorkspaceCanvasOrganizationButton } from "./workspace-canvas-organization-button"
@@ -12,6 +12,7 @@ import type { WorkspaceDrawerTabsProps } from "./workspace-drawer-content-types"
 // One Tabs provider and content tree in both responsive presentations.
 export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
   const { tab, handleTabChange, drawerCollapsed } = props
+  const organizationTriggerRef = useRef<HTMLButtonElement>(null)
   const [hasExpanded, setHasExpanded] = useState(!drawerCollapsed)
   if (!drawerCollapsed && !hasExpanded) setHasExpanded(true)
   const showSelectedTab = !drawerCollapsed || hasExpanded
@@ -50,7 +51,7 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
           : "overflow-hidden"
       )}
     >
-      {props.composerMode ? <WorkspaceCanvasOrganizationButton {...props} /> : null}
+      {props.composerMode ? <WorkspaceCanvasOrganizationButton {...props} triggerRef={organizationTriggerRef} /> : null}
       {props.composerMode ? <WorkspaceCanvasTopTabs {...props} /> : <WorkspaceDrawerNavigation
         {...props}
         tabIndicator={{
@@ -62,6 +63,7 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
         }
       />}
       <WorkspaceContentWindow
+        organizationTriggerRef={organizationTriggerRef}
         headerSlots={
           Boolean(visibleBody) ||
           ["organization", "people", "documents", "accelerator", "particles"].includes(tab)

@@ -1022,3 +1022,12 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 - Reused the retained drawer/editor and motion surface for organization-only sidebar presentation: 440px wide, 8px from the canvas left edge, below the profile trigger. Other destinations retain bottom-anchored centered windows. Existing close/maximize, draft guards, header actions, reduced motion and canvas interaction remain connected. Narrow/maximized layouts reserve the bottom dock footprint.
 - Authenticated preview verified the profile opens at canvas x+8/y+58, 440px wide with no horizontal overflow; screenshot `/tmp/workspace-organization-sidebar-20261021.png`. Dock/particle UI suites: 63 passed; focused lint and whitespace pass. Appearance review remains user-owned; visual baselines await approval. No saved content or database changes.
 - Prior Graphify job98580 completed. Current refresh: session49362, `/tmp/workspace-organization-sidebar-graphify-20261021.log`; reuse until completion. Development branch only, no merge/deployment.
+
+
+### October 21 — Organization trigger/sidebar morph
+
+- Organization now grows from the actual profile-button bounds into the full-height sidebar at canvas top/left8px, then shrinks back. Trigger photo/name are hidden while expanded; the retained profile displays the single visible identity. Existing Motion layout projection/spring handles reversible resizing, with direct-child correction, live reduced-motion handling and focus transfer/return. Editors and draft guards stay mounted.
+- Authenticated browser verified matching compact bounds (201.875x42), intermediate grow/shrink transforms, final440x850 sidebar at canvas x+8/y+8, and focus returning to trigger / entering Close. Screenshot `/tmp/workspace-organization-morph-20261021.png`. Focused dock/particle suites:63 passed; scoped lint/whitespace pass. Appearance review pending.
+- Prior graph session49362 completed. Current slice refresh log `/tmp/workspace-org-morph-graphify-20261021.log`; finish any running refresh before another. Same development branch; no production data changes/deployment.
+
+- Typecheck still reports the existing workspace catalog/calendar and unrelated test errors, none in this slice (`/tmp/workspace-org-morph-types.log`). Graph refresh session73332 is in flight; reuse it.

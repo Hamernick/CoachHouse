@@ -2,10 +2,11 @@
 
 import { getReactGrabInspectionProps } from "@/components/dev/react-grab-surface"
 
-import { useId, useState, type ReactNode } from "react"
+import { useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react"
 import { WorkspaceWindowHeaderProvider } from "@/components/workspace/workspace-window-header-slots"
 import { LayoutGroup, motion } from "motion/react"
 import { useWorkspaceContentWindowMotion } from "./use-workspace-content-window-motion"
+import { useWorkspaceOrganizationTriggerSize } from "./use-workspace-organization-trigger-size"
 import { WORKSPACE_WINDOW_MOTION } from "./workspace-content-window-motion"
 import { WorkspaceWindowControls } from "./workspace-window-controls"
 import { WorkspaceEditorStatusProvider } from "@/components/workspace/workspace-editor-status"
@@ -33,6 +34,7 @@ function WorkspaceContentWindowSurface({
   headerActions,
   headerSlots = false,
   maxWidth,
+  organizationTriggerRef,
 }: {
   children?: ReactNode | ((present: boolean) => ReactNode)
   windowState?: WorkspaceContentWindowState
@@ -41,6 +43,7 @@ function WorkspaceContentWindowSurface({
   headerSlots?: boolean
   headerActions?: ReactNode
   maxWidth?: number
+  organizationTriggerRef?: RefObject<HTMLButtonElement | null>
 }) {
   const titleId = useId()
   const [actionsTarget, setActionsTarget] = useState<HTMLDivElement | null>(
@@ -63,6 +66,8 @@ function WorkspaceContentWindowSurface({
         }
       : availableGeometry
   const desktop = Boolean(geometry)
+  const sidebar = desktop && windowState?.presentation === "sidebar"
+  const triggerSize = useWorkspaceOrganizationTriggerSize(organizationTriggerRef)
   const {
     controls,
     surfaceRef,
@@ -76,9 +81,21 @@ function WorkspaceContentWindowSurface({
     geometry,
     collapsed,
     getAnchorRect: windowState?.getAnchorRect,
-    sidebar: windowState?.presentation === "sidebar",
+    sidebar,
   })
-  const layoutEnabled = desktop && !reducedMotion && present && !collapsed
+  const layoutEnabled = desktop && !reducedMotion && (sidebar || (present && !collapsed))
+  useLayoutEffect(() => {
+    if (!sidebar || collapsed) return
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === organizationTriggerRef?.current)
+        surfaceRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [sidebar, collapsed, organizationTriggerRef, surfaceRef])
+  const sidebarContentStyle = sidebar ? {
+    width: geometry?.width,
+    visibility: collapsed ? "hidden" as const : undefined,
+  } : undefined
   return (
     <WorkspaceWindowHeaderProvider
       enabled={headerSlots}
@@ -108,29 +125,30 @@ function WorkspaceContentWindowSurface({
         }
         aria-hidden={collapsed}
         inert={collapsed ? true : undefined}
-        hidden={desktop && !present}
+        hidden={desktop && !present && !sidebar}
         data-workspace-content-window={desktop ? "true" : undefined}
         data-workspace-presentation={windowState?.presentation ?? "window"}
         className={cn(
           "flex min-h-0 flex-1 flex-col overflow-hidden",
           styles.contentSurface,
           desktop && styles.contentWindow,
-          desktop && windowState?.presentation === "sidebar" && styles.organizationSidebar,
-          desktop && !present && "hidden"
+          sidebar && styles.organizationSidebar,
+          desktop && !present && !sidebar && "hidden"
         )}
         style={
           paintedGeometry
             ? {
                 willChange,
-                width: paintedGeometry.width,
-                height: paintedGeometry.height,
-                borderRadius: 20,
+                width: sidebar && collapsed ? triggerSize.width : paintedGeometry.width,
+                height: sidebar && collapsed ? triggerSize.height : paintedGeometry.height,
+                borderRadius: sidebar && collapsed ? 12 : 20,
                 pointerEvents: collapsed ? "none" : "auto",
               }
             : undefined
         }
       >
         <motion.header
+          style={sidebarContentStyle}
           layout={layoutEnabled ? "position" : false}
           hidden={!desktop && !headerActions && !headerSlots}
           className={cn(
@@ -153,6 +171,7 @@ function WorkspaceContentWindowSurface({
           )}
         </motion.header>
         <motion.div
+          style={sidebarContentStyle}
           layout={layoutEnabled ? "position" : false}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >

@@ -22,11 +22,11 @@ export function resolveWorkspaceContentWindowGeometry({
     dockHeight < 0
   )
     return null
-  // Organization is a canvas-local sidebar below its profile trigger.
+  // Organization is a canvas-local sidebar that expands from its profile trigger.
   if (tab === "organization") {
     // On narrower canvases the centered dock intersects the sidebar width.
     const bottom = maximized || canvasWidth < 1424 ? dockHeight + 16 : 8
-    const height = canvasHeight - 58 - bottom
+    const height = canvasHeight - 8 - bottom
     if (canvasWidth <= 16 || height <= 0) return null
     return {
       width: maximized ? canvasWidth - 16 : Math.min(440, canvasWidth - 16),
