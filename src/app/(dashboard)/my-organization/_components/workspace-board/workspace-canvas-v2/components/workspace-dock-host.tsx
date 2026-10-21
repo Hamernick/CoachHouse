@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentProps, ReactNode } from "react"
+import type { ComponentProps, CSSProperties, ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Drawer, DrawerContent } from "@/components/ui/drawer"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
@@ -12,6 +12,7 @@ import styles from "./workspace-dock.module.css"
 // Only workspaces without the Particle composer retain the legacy sheet.
 export function WorkspaceDockHost({
   floating,
+  composerHeight = 58,
   container,
   children,
   onMinimize,
@@ -21,6 +22,7 @@ export function WorkspaceDockHost({
   legacyTrigger,
 }: {
   floating: boolean
+  composerHeight?: number
   container: HTMLElement | null
   children: ReactNode
   onMinimize: () => void
@@ -53,6 +55,7 @@ export function WorkspaceDockHost({
         {...requestProps}
         aria-label="Workspace dock"
         className={styles.dockHost}
+        style={{ "--workspace-composer-height": `${composerHeight}px` } as CSSProperties}
         onKeyDown={(event) => {
           if (
             event.key !== "Escape" ||

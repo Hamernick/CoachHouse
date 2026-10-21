@@ -147,7 +147,8 @@ export const WorkspaceCanvasOverlayDrawer = memo(
 
     const { tabIndicator, tabsHeaderRef, tabsListRef } =
       useWorkspaceDataDrawerTabIndicator({ tab, expanded: drawerExpanded })
-    const dockHeight = particleComposer ? composerHeight : chrome.total + composerHeight
+    // Reserve the tabs (up to 54px on touch screens) and their 6px gap too.
+    const dockHeight = particleComposer ? composerHeight + 60 : chrome.total + composerHeight
     const windowState = useWorkspaceContentWindow({
       enabled: Boolean(particleComposer),
       tab: particleInspector ? undefined : tab,
@@ -247,6 +248,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     return (
       <WorkspaceDockHost
         floating={Boolean(particleComposer)}
+        composerHeight={composerHeight}
         container={canvasContainer}
         onMinimize={windowState.onMinimize}
         request={request}

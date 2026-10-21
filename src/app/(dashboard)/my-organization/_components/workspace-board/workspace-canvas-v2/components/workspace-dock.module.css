@@ -28,10 +28,10 @@
 
 .topNavigation {
   position: absolute;
-  top: 8px;
+  bottom: calc(8px + var(--workspace-composer-height, 58px) + 6px);
   left: 50%;
   transform: translateX(-50%);
-  max-width: calc(100% - 360px);
+  max-width: calc(100% - 24px);
   pointer-events: auto;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -98,7 +98,6 @@
 @container workspace-dock (max-width: 700px) {
   .organizationTrigger { max-width: calc(100% - 180px); }
   .topNavigation {
-    top: 58px;
     max-width: calc(100% - 16px);
   }
   .contentWindow { top: 108px; }
