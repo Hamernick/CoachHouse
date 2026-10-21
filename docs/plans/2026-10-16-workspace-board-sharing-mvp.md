@@ -1159,3 +1159,8 @@ Removed the requested Preview map profile and Share buttons and their wrapper fr
 ### October 21 — Remove online resource notice
 
 Removed the highlighted “This will appear as a web resource” notice card and unused Globe icon. Access selector and URL fields unchanged. Focused lint passes; browser confirms notice absent and access selector present. Graph maintenance remains in-flight session 64618, `/tmp/profile-toolbar-graphify-20261021.log`; no duplicate job started. Development branch only.
+
+
+### October 21 — Remove web resource helper text
+
+Removed the requested helper paragraph beneath Web resource; URL input, validation and persistence unchanged. Whitespace/pre-push checks cover the JSX-only deletion. Existing graph refresh session 64618 remains the maintenance job; no duplicate launched.

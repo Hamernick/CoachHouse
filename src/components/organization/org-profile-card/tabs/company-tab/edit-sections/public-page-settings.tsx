@@ -214,10 +214,6 @@ export function PublicPageSettings({
               {errors.locationUrl ? (
                 <p className="text-destructive text-xs">{errors.locationUrl}</p>
               ) : null}
-              <p className="text-muted-foreground text-xs">
-                Add the link people should visit if this organization is a web
-                resource.
-              </p>
             </ProfileField>
           ) : null}
         </div>
