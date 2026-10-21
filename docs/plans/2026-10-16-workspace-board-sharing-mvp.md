@@ -1003,3 +1003,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Moved the existing People/Documents/Tools/Accelerator pill to bottom center above the composer, using its existing ResizeObserver height and a 6px shell gap. Reserved the navigation footprint in window geometry so expanded windows cannot cover it. Organization trigger, window placement, retained content and tab animation remain unchanged.
 - Live preview verified position, Tools opening, and active-tab toggle-close. 63 existing dock/particle UI tests, focused ESLint and whitespace pass. Screenshot `/tmp/workspace-bottom-tabs-20261021.png`; user appearance review remains next, no baseline updates yet. Graph refresh session22891/log `/tmp/workspace-bottom-tabs-graphify-20261021.log` (reuse, do not duplicate). Same development branch; no production data changes or deployment.
+
+
+### October 21 — Two window controls
+
+- Removed the orange minimize control; retained red Close and green Maximize/Restore. Dots increased from12px to14px, reducing the visible desktop gap from12px to10px while preserving24px button targets and44px touch targets. Existing keyboard/tab collapse behavior remains available.
+- Authenticated preview verified exactly two controls and14px dots; screenshot `/tmp/workspace-red-green-controls-20261021.png`. All62particle UI tests, focused lint and whitespace pass. Appearance review remains user-owned; no baseline update. Graph refresh for the prior slice is still session22891; finish it before refreshing these changes, never start a duplicate.

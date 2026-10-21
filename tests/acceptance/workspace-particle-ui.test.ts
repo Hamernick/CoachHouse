@@ -638,7 +638,7 @@ describe("responsive content window geometry", () => {
       )
       expect(markup.match(/Retained draft/g)).toHaveLength(1)
       expect(markup).toContain('aria-label="Close content window"')
-      expect(markup).toContain('aria-label="Minimize content window"')
+      expect(markup).not.toContain('aria-label="Minimize content window"')
       expect(markup).toContain('aria-label="Maximize content window"')
       if (collapsed) expect(markup).toContain('inert=""')
       else expect(markup).not.toContain('inert=""')
@@ -1056,7 +1056,7 @@ describe("compact window controls and inspectable previews", () => {
     expect(markup).toContain('inert=""')
     expect(markup).toContain('data-react-grab-granular="true"')
   })
-  it("exposes named close, minimize, and restore controls", () => {
+  it("exposes only named close and restore controls", () => {
     const markup = renderToStaticMarkup(
       createElement(WorkspaceWindowControls, {
         windowState: {
@@ -1069,7 +1069,7 @@ describe("compact window controls and inspectable previews", () => {
       })
     )
     expect(markup).toContain('aria-label="Close content window"')
-    expect(markup).toContain('aria-label="Minimize content window"')
+    expect(markup).not.toContain('aria-label="Minimize content window"')
     expect(markup).toContain('aria-label="Restore content window"')
     expect(markup).not.toContain('data-unsaved="true"')
   })

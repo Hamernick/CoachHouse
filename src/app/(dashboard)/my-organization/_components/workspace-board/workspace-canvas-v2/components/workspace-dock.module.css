@@ -181,17 +181,14 @@
   display: grid;
   place-items: center;
   position: relative;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
   color: #252525;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 .windowControl[data-window-action="close"] .windowDot {
   background: #ff5f57;
-}
-.windowControl[data-window-action="minimize"] .windowDot {
-  background: #febc2e;
 }
 .windowControl[data-window-action="maximize"] .windowDot {
   background: #28c840;

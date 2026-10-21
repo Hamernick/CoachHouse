@@ -1,7 +1,6 @@
 "use client"
 
 import XIcon from "lucide-react/dist/esm/icons/x"
-import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import Maximize2Icon from "lucide-react/dist/esm/icons/maximize-2"
 import Minimize2Icon from "lucide-react/dist/esm/icons/minimize-2"
 import { Button } from "@/components/ui/button"
@@ -23,13 +22,6 @@ export function WorkspaceWindowControls({
       title: status.text ? `Close — ${status.text}` : "Close",
       action: windowState?.onClose,
       Icon: XIcon,
-    },
-    {
-      id: "minimize",
-      label: "Minimize content window",
-      title: "Minimize",
-      action: windowState?.onMinimize,
-      Icon: MinusIcon,
     },
     {
       id: "maximize",
