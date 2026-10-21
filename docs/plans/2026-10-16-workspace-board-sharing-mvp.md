@@ -1235,3 +1235,8 @@ Public label/info icon now align left and switch right across the header width. 
 ### October 21 — Separate story editor cards
 
 Split the combined About us edit group into six separate cards (Origin story, Need, Mission, Vision, Values, Theory of change), reusing the existing group surface and spacing with12px gaps. Editor controls, values, validation, deep-link targets and saved accordions unchanged. Browser verified each card contains one field with22px radius/1px border; focused lint passes. Existing graph refresh6287 reused; no duplicate job.
+
+
+### October 21 — Public row matches form width
+
+Moved horizontal header padding to the name/links and donation content so the Public row spans the same width as Identity. Logo remains centered. Browser verified exact matching bounds: left266/right682/width416px for both Public row and Identity. Focused lint/whitespace pass. Existing graph refresh6287 reused.

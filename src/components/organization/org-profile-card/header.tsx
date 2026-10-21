@@ -90,7 +90,7 @@ export function OrgProfileHeader({
 
   return (
     <div className={cn(
-      "bg-background relative flex flex-col items-center gap-4 px-6 text-center",
+      "bg-background relative flex flex-col items-center gap-4 text-center",
       visibilityControl ? "pt-2" : "pt-6"
     )}>
       {visibilityControl}
@@ -128,7 +128,7 @@ export function OrgProfileHeader({
         />
       </div>
 
-      <div className="flex w-full min-w-0 flex-col items-center">
+      <div className="flex w-full min-w-0 flex-col items-center px-6">
         <h2 className="text-2xl font-semibold tracking-tight">
           {name || "Organization"}
         </h2>
@@ -138,7 +138,7 @@ export function OrgProfileHeader({
         {links}
       </div>
 
-      {donationAction ? <div className="empty:hidden">{donationAction}</div> : null}
+      {donationAction ? <div className="px-6 empty:hidden">{donationAction}</div> : null}
     </div>
   )
 }
