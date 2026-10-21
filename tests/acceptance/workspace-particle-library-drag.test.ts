@@ -1,4 +1,4 @@
-import { createElement, useContext } from "react"
+import { createElement, useContext, type ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { animate } from "motion/react"
@@ -146,13 +146,12 @@ function dragHarness(
     controller = useContext(ParticleLibraryDragContext)
     return null
   }
-  renderToStaticMarkup(
-    createElement(ParticleLibraryDragProvider, {
-      canvas,
-      onPlace,
-      children: createElement(Harness),
-    })
-  )
+  const providerProps: ComponentProps<typeof ParticleLibraryDragProvider> = {
+    canvas,
+    onPlace,
+    children: createElement(Harness),
+  }
+  renderToStaticMarkup(createElement(ParticleLibraryDragProvider, providerProps))
   if (!controller) throw new Error("Missing drag controller")
   const actions: ParticleLibraryDragController = controller
   const item = {
@@ -246,11 +245,12 @@ describe("Reusable Particle library card stack", () => {
   it.each([true, false])(
     "preserves one real preview and optional decorative back cards: %s",
     (enabled) => {
+      const stackProps: ComponentProps<typeof ParticleLibraryCardStack> = {
+        enabled,
+        children: () => createElement("button", null, "Real preview"),
+      }
       const html = renderToStaticMarkup(
-        createElement(ParticleLibraryCardStack, {
-          enabled,
-          children: () => createElement("button", null, "Real preview"),
-        })
+        createElement(ParticleLibraryCardStack, stackProps)
       )
       expect(html.match(/Real preview/g)).toHaveLength(1)
       expect(html.match(/data-particle-stack-back/g) ?? []).toHaveLength(

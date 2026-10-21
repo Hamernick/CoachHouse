@@ -65,6 +65,16 @@ function loadAcceleratorSteps(
   ).then(buildWorkspaceAcceleratorCardSteps)
 }
 
+function loadWorkspaceProfileContext(
+  input: Parameters<typeof loadMyOrganizationProfileContext>[0]
+) {
+  return measureServerStep(
+    "workspace.content.load_profile_context",
+    () => loadMyOrganizationProfileContext(input),
+    { thresholdMs: 750 }
+  )
+}
+
 export default async function MyOrganizationPage({
   searchParams,
 }: {
@@ -80,11 +90,7 @@ export default async function MyOrganizationPage({
   const { orgId, role } = activeOrg
   const isAdmin = profileAudience.isAdmin
   const { orgRow, profile, initialProfile, roadmapSections } =
-    await measureServerStep(
-      "workspace.content.load_profile_context",
-      () => loadMyOrganizationProfileContext({ supabase, orgId }),
-      { thresholdMs: 750 }
-    )
+    await loadWorkspaceProfileContext({ supabase, orgId })
   const { userMeta, needsInitialOnboarding } = getOnboarding(requestContext, {
     profile,
     publicSlug: orgRow?.public_slug ?? null,
