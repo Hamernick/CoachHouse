@@ -165,15 +165,6 @@
   }
 }
 
-.singleGroup {
-  gap: 4px;
-  padding: 12px;
-}
-
-.singleGroup > :not(:first-child)::before {
-  content: none;
-}
-
 @media (pointer: coarse) {
   .richTextToolbar > button {
     min-width: 44px;

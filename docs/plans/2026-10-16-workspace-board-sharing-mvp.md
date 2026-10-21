@@ -1218,3 +1218,10 @@ Set align-content:center on saved grouped ProfileField rows to override the shar
 - Added compact shared shadcn Switch/Label/Button/Popover composition with information icon: mouse hover opens, click pins/toggles, touch/keyboard click supported, Escape/outside dismiss. Text retains the existing map link. Hover does not move keyboard focus into the popup.
 - Two focused header/settings tests and scoped lint/whitespace pass. Browser verified exactly the relocated switch above logo (bottom215px vs logo237px), click-open explanation/map link and Escape dismissal; switch itself not toggled, no data saved. Screenshot `/tmp/organization-public-switch-20261021.png`. No workspace-header baseline exists.
 - Previous graph job completed. Current refresh log `/tmp/organization-public-switch-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Onboarding-style public URL below organization name
+
+- Extracted PublicUrlField with the existing debounced availability/reserved-slug checks and draft callbacks; placed it directly between name and tagline in Identity. Reused onboarding OrganizationStep's compound prefix/input styling and compact available check icon. Hidden accessible label, error association and public-page deep-link target preserved. Removed old URL group and unused singleGroup CSS; physical map notices remain separate.
+- 19 focused tests across URL/header, formation and edit fields pass; scoped lint/whitespace pass. Browser verified exactly one URL input, name569px/URL630px/tagline709px, 414px row and live Available status. Screenshot `/tmp/organization-url-under-name-20261021.png`. No user data changed/saved. No existing workspace visual baseline covers this field.
+- Previous graph refresh complete. New cohesive refresh log `/tmp/organization-url-identity-graphify-20261021.log`. Development branch only.

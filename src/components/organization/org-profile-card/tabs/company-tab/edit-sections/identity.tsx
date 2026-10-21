@@ -17,6 +17,7 @@ import {
   ProfileField,
 } from "@/components/organization/org-profile-card/shared"
 import type { CompanyEditProps } from "../types"
+import { PublicUrlField } from "./public-url-field"
 
 export function IdentitySection({
   company,
@@ -24,6 +25,8 @@ export function IdentitySection({
   onInputChange,
   onUpdate,
   onDirty,
+  slugStatus,
+  setSlugStatus,
 }: CompanyEditProps) {
   return (
     <FormRow
@@ -46,6 +49,14 @@ export function IdentitySection({
             <p className="text-destructive text-xs">{errors.name}</p>
           ) : null}
         </ProfileField>
+        <PublicUrlField
+          company={company}
+          errors={errors}
+          onUpdate={onUpdate}
+          onDirty={onDirty}
+          slugStatus={slugStatus}
+          setSlugStatus={setSlugStatus}
+        />
         <ProfileField label="Tagline" focusKey="tagline" hideLabel>
           <Input
             id="tagline"

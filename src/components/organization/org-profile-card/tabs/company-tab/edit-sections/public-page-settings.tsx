@@ -1,37 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import CheckIcon from "lucide-react/dist/esm/icons/check"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
-
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-
-import styles from "../../../profile-edit-fields.module.css"
-import {
-  FormRow,
-} from "@/components/organization/org-profile-card/shared"
-import { slugifyLocal } from "../../../utils"
+import { FormRow } from "@/components/organization/org-profile-card/shared"
 import type { CompanyEditProps } from "../types"
-import { RESERVED_SLUGS } from "../constants"
-import { cn } from "@/lib/utils"
 
-export function PublicPageSettings({
-  company,
-  errors,
-  onUpdate,
-  onDirty,
-  slugStatus,
-  setSlugStatus,
-}: CompanyEditProps) {
-  const [isChecking, setIsChecking] = useState(false)
-  const lastCheckRef = useRef(0)
-  const explicitSlug =
-    typeof company.publicSlug === "string" &&
-    company.publicSlug.trim().length > 0
-      ? company.publicSlug
-      : ""
-  const shouldCheckSlug = Boolean(explicitSlug || company.isPublic)
+export function PublicPageSettings({ company }: CompanyEditProps) {
   const hasAddress = [
     company.addressStreet,
     company.addressCity,
@@ -41,101 +14,11 @@ export function PublicPageSettings({
     company.address,
   ].some((value) => typeof value === "string" && value.trim().length > 0)
   const isOnlineOnly = company.locationType === "online"
-  const slugCandidate = useMemo(() => {
-    const raw = explicitSlug || (company.isPublic ? company.name || "" : "")
-    return slugifyLocal(raw)
-  }, [company.isPublic, company.name, explicitSlug])
 
-  useEffect(() => {
-    if (!shouldCheckSlug) {
-      setIsChecking(false)
-      setSlugStatus(null)
-      return
-    }
-    if (!slugCandidate) {
-      setIsChecking(false)
-      setSlugStatus({
-        available: false,
-        message: "Enter a public URL",
-        slug: "",
-      })
-      return
-    }
-    if (RESERVED_SLUGS.has(slugCandidate)) {
-      setIsChecking(false)
-      setSlugStatus({
-        available: false,
-        message: "Reserved URL",
-        slug: slugCandidate,
-      })
-      return
-    }
-
-    const currentCheck = lastCheckRef.current + 1
-    lastCheckRef.current = currentCheck
-    const controller = new AbortController()
-    const timeout = window.setTimeout(async () => {
-      setIsChecking(true)
-      try {
-        const res = await fetch(
-          `/api/public/organizations/slug-available?slug=${encodeURIComponent(slugCandidate)}`,
-          {
-            signal: controller.signal,
-          }
-        )
-        const data = await res.json().catch(() => ({}))
-        if (lastCheckRef.current !== currentCheck) return
-        if (typeof data.available === "boolean") {
-          setSlugStatus({
-            available: data.available,
-            message: data.available ? "Available" : data.error || "Taken",
-            slug: slugCandidate,
-          })
-        } else {
-          setSlugStatus({
-            available: false,
-            message: data.error || "Not available",
-            slug: slugCandidate,
-          })
-        }
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return
-        setSlugStatus({
-          available: false,
-          message: "Unable to check",
-          slug: slugCandidate,
-        })
-      } finally {
-        if (lastCheckRef.current === currentCheck) {
-          setIsChecking(false)
-        }
-      }
-    }, 450)
-
-    return () => {
-      window.clearTimeout(timeout)
-      controller.abort()
-    }
-  }, [shouldCheckSlug, slugCandidate, setSlugStatus])
-
-  const statusMessage = useMemo(() => {
-    if (errors.publicSlug) return { tone: "error", message: errors.publicSlug }
-    if (isChecking) return { tone: "muted", message: "Checking..." }
-    if (!slugStatus?.message) return null
-    return {
-      tone: slugStatus.available ? "success" : "error",
-      message: slugStatus.message,
-    }
-  }, [errors.publicSlug, isChecking, slugStatus])
+  if (!company.isPublic || isOnlineOnly) return null
 
   return (
-    <FormRow
-      layout="stacked"
-      inset={false}
-      title="Public Map Profile"
-      focusKey="public-page"
-      description="Publish your organization on the Coach House map index."
-    >
+    <FormRow layout="stacked" inset={false} title="Public Map Profile">
       <div className="grid gap-4">
         {company.isPublic && !hasAddress && !isOnlineOnly ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
@@ -177,61 +60,6 @@ export function PublicPageSettings({
             </div>
           </div>
         ) : null}
-        <div className="grid gap-3">
-          <div className={cn(styles.group, styles.singleGroup)}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label htmlFor="publicSlug">Public URL</Label>
-            </div>
-            <div
-              className={cn(
-                "flex min-w-0 items-center gap-2 rounded-lg",
-                Boolean(errors.publicSlug) && "border-destructive/70"
-              )}
-            >
-              <span className="text-muted-foreground shrink-0 text-sm">
-                coachhouse.app/
-              </span>
-              <Input
-                id="publicSlug"
-                name="publicSlug"
-                value={company.publicSlug ?? ""}
-                onChange={(event) => {
-                  const value = event.currentTarget.value
-                  const normalized = slugifyLocal(value)
-                  onUpdate({ publicSlug: normalized })
-                  setSlugStatus(null)
-                  onDirty()
-                }}
-                placeholder={slugifyLocal(company.name || "")}
-                aria-invalid={Boolean(errors.publicSlug)}
-                className="h-9 min-w-0 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
-              {statusMessage?.tone === "success" ? (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                  <CheckIcon className="h-3 w-3" aria-hidden />
-                  {statusMessage.message}
-                </span>
-              ) : statusMessage?.tone === "muted" ? (
-                <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-1 text-[11px] font-medium">
-                  {statusMessage.message}
-                </span>
-              ) : null}
-            </div>
-            {statusMessage?.tone === "error" ? (
-              <p
-                className="text-destructive text-xs"
-                role="status"
-                aria-live="polite"
-              >
-                {statusMessage.message}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                Lowercase letters, numbers, and dashes only.
-              </p>
-            )}
-          </div>
-        </div>
       </div>
     </FormRow>
   )
