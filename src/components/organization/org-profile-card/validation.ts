@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { getApprovedFormationEinError } from "@/lib/organization/formation-status"
 
 import {
   ORG_PROFILE_ROADMAP_TEXT_MAX_LENGTH,
@@ -36,11 +37,7 @@ export const organizationProfileSchema = z.object({
   name: organizationProfileNameSchema,
   tagline: z.string().max(160).optional().or(z.literal("")),
   description: z.string().max(5000).optional().or(z.literal("")),
-  ein: z
-    .string()
-    .regex(/^[0-9]{2}-?[0-9]{7}$/i, "EIN must be 9 digits (e.g., 12-3456789)")
-    .optional()
-    .or(z.literal("")),
+  ein: z.string().trim().optional(),
   formationStatus: z.enum(["pre_501c3", "in_progress", "approved"]).optional(),
   rep: z.string().max(120).optional().or(z.literal("")),
   email: z.string().email("Must be a valid email").optional().or(z.literal("")),
@@ -97,4 +94,7 @@ export const organizationProfileSchema = z.object({
     .optional()
     .or(z.literal("")),
   isPublic: z.boolean().optional(),
+}).superRefine((profile, context) => {
+  const error = getApprovedFormationEinError(profile.formationStatus, profile.ein)
+  if (error) context.addIssue({ code: "custom", path: ["ein"], message: error })
 })

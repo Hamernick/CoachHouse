@@ -12,30 +12,15 @@ import type { CompanyViewProps } from "./types"
 import { stripHtml } from "@/lib/markdown/convert"
 import { cn } from "@/lib/utils"
 
-const FORMATION_STATUS_LABELS: Record<string, string> = {
-  pre_501c3: "Pre-501(c)(3)",
-  in_progress: "In progress",
-  approved: "Approved",
-}
+import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
+import { resolveFormationStatusOption } from "@/lib/organization/formation-status"
 
 export function IdentityPreview({ company }: CompanyViewProps) {
-  const formationLabel =
-    typeof company.formationStatus === "string"
-      ? FORMATION_STATUS_LABELS[company.formationStatus]
-      : ""
+  const formationStatus = resolveFormationStatusOption(company.formationStatus)
   const hasDescription =
     typeof company.description === "string" &&
     company.description.trim().length > 0
-  const hasEin =
-    typeof company.ein === "string" && company.ein.trim().length > 0
-  const showFormation =
-    Boolean(formationLabel) &&
-    (hasDescription ||
-      hasEin ||
-      company.formationStatus === "approved" ||
-      company.formationStatus === "pre_501c3")
-
-  if (!(hasDescription || hasEin || showFormation)) {
+  if (!(hasDescription || formationStatus)) {
     return null
   }
 
@@ -47,14 +32,12 @@ export function IdentityPreview({ company }: CompanyViewProps) {
             <FieldText text={company.description} multiline />
           </ProfileField>
         ) : null}
-        {hasEin ? (
-          <ProfileField label="EIN">
-            <FieldText text={company.ein} />
-          </ProfileField>
-        ) : null}
-        {showFormation ? (
+        {formationStatus ? (
           <ProfileField label="Formation status">
-            <FieldText text={formationLabel} />
+            <OrganizationFormationStatusSummary
+              formationStatus={formationStatus}
+              ein={company.ein}
+            />
           </ProfileField>
         ) : null}
       </div>

@@ -69,51 +69,57 @@ export function IdentitySection({
             <p className="text-destructive text-xs">{errors.description}</p>
           ) : null}
         </ProfileField>
-        <ProfileField label="EIN" focusKey="ein">
-          <Input
-            id="ein"
-            name="ein"
-            value={company.ein ?? ""}
-            onChange={onInputChange}
-            aria-invalid={Boolean(errors.ein)}
-            placeholder="12-3456789"
-          />
-          {errors.ein ? (
-            <p className="text-destructive text-xs">{errors.ein}</p>
-          ) : null}
-          <p className="text-muted-foreground text-xs">Format: 12-3456789</p>
-        </ProfileField>
-        <ProfileField label="Formation status" focusKey="formationStatus">
-          <Select
-            value={company.formationStatus || "in_progress"}
-            onValueChange={(value) => {
-              if (
-                value !== "pre_501c3" &&
-                value !== "in_progress" &&
-                value !== "approved"
-              )
-                return
-              onUpdate({ formationStatus: value })
-              onDirty()
-            }}
-          >
-            <SelectTrigger
-              id="formationStatus"
-              data-tour="org-formation-status"
-              className="bg-background"
+        <div className="grid gap-4 md:col-span-2">
+          <ProfileField label="Formation status" focusKey="formationStatus">
+            <Select
+              value={company.formationStatus || "in_progress"}
+              onValueChange={(value) => {
+                if (
+                  value !== "pre_501c3" &&
+                  value !== "in_progress" &&
+                  value !== "approved"
+                )
+                  return
+                onUpdate({ formationStatus: value })
+                onDirty()
+              }}
             >
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pre_501c3">Pre-501(c)(3)</SelectItem>
-              <SelectItem value="in_progress">In progress</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-muted-foreground text-xs">
-            Used to tailor your formation checklist and map listing steps.
-          </p>
-        </ProfileField>
+              <SelectTrigger
+                id="formationStatus"
+                data-tour="org-formation-status"
+                className="bg-background"
+              >
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pre_501c3">Pre-501(c)(3)</SelectItem>
+                <SelectItem value="in_progress">In progress</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-xs">
+              Used to tailor your formation checklist and map listing steps.
+            </p>
+          </ProfileField>
+          {company.formationStatus === "approved" ? (
+            <ProfileField label="EIN" focusKey="ein">
+              <Input
+                id="ein"
+                name="ein"
+                required
+                aria-describedby={errors.ein ? "ein-hint ein-error" : "ein-hint"}
+                value={company.ein ?? ""}
+                onChange={onInputChange}
+                aria-invalid={Boolean(errors.ein)}
+                placeholder="12-3456789"
+              />
+              {errors.ein ? (
+                <p id="ein-error" role="alert" className="text-destructive text-xs">{errors.ein}</p>
+              ) : null}
+              <p id="ein-hint" className="text-muted-foreground text-xs">Format: 12-3456789</p>
+            </ProfileField>
+          ) : null}
+        </div>
       </div>
     </FormRow>
   )

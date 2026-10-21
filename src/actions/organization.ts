@@ -33,6 +33,7 @@ import {
   canEditOrganization,
   resolveActiveOrganization,
 } from "@/lib/organization/active-org"
+import { getApprovedFormationEinError } from "@/lib/organization/formation-status"
 import { validateOrganizationProfilePersistencePatch } from "@/lib/organization/profile-persistence-validation"
 import {
   ORG_MEDIA_BUCKET,
@@ -116,6 +117,10 @@ export async function updateOrganizationProfileAction(
     payload = { ...payload, name: payload.name.trim() }
   }
 
+  if (typeof payload.ein === "string") {
+    payload = { ...payload, ein: payload.ein.trim() }
+  }
+
   // Load existing profile to merge
   const { data: orgRow, error: orgErr } = await supabase
     .from("organizations")
@@ -140,6 +145,16 @@ export async function updateOrganizationProfileAction(
   if (expectedReview && expectedReview.updatedAt !== orgRow?.updated_at) return { error: "This organization was updated elsewhere. Reload before publishing." }
 
   const current = (orgRow?.profile ?? {}) as Record<string, unknown>
+  // Only formation/EIN writes enforce this rule; unrelated partial saves must
+  // remain usable for legacy approved profiles that have not supplied an EIN.
+  if (Object.hasOwn(payload, "formationStatus") || Object.hasOwn(payload, "ein")) {
+    const formationStatus = Object.hasOwn(payload, "formationStatus")
+      ? payload.formationStatus
+      : current.formationStatus
+    const ein = Object.hasOwn(payload, "ein") ? payload.ein : (orgRow?.ein ?? current.ein)
+    const einError = getApprovedFormationEinError(formationStatus, ein)
+    if (einError) return { error: einError, field: "ein" }
+  }
   const previousLogoUrl =
     typeof current["logoUrl"] === "string"
       ? (current["logoUrl"] as string)

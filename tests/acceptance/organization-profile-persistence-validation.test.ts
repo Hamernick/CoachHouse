@@ -28,13 +28,13 @@ vi.mock("@/lib/organization/active-org", () => ({
   canEditOrganization: authMocks.canEditOrganization,
 }))
 
-function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string } = {}) {
+function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string; ein?: string } = {}) {
   let updatedRow: Record<string, unknown> | null = null
   const selectQuery = {
     eq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({
       data: {
-        ein: null,
+        ein: options.ein ?? null,
         profile: existingProfile,
         location_lat: null,
         location_lng: null,
@@ -151,6 +151,7 @@ describe("organization profile persistence validation", () => {
       await updateOrganizationProfileAction({
         name: `  ${"R".repeat(120)}  `,
         formationStatus: "approved",
+        ein: "12-3456789",
       })
     ).toMatchObject({ ok: true })
     expect(save.getUpdatedProfile()).toMatchObject({
@@ -158,6 +159,41 @@ describe("organization profile persistence validation", () => {
       name: "R".repeat(120),
       formationStatus: "approved",
     })
+  })
+
+  it.each([undefined, "", "123", "letters"])("rejects approval without a valid EIN: %s", async (ein) => {
+    const save = prepareOrganizationSave({ formationStatus: "in_progress" })
+    const result = await updateOrganizationProfileAction({ formationStatus: "approved", ein })
+    expect(result).toMatchObject({ field: "ein", error: expect.any(String) })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("accepts approval with the stored canonical EIN", async () => {
+    const save = prepareOrganizationSave({}, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "approved" })).toMatchObject({ ok: true })
+    expect(save.getUpdatedProfile()).toMatchObject({ formationStatus: "approved" })
+  })
+
+  it("accepts a legacy profile EIN when the canonical column is empty", async () => {
+    prepareOrganizationSave({ ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "approved" })).toMatchObject({ ok: true })
+  })
+
+  it("rejects clearing an approved organization's EIN", async () => {
+    const save = prepareOrganizationSave({ formationStatus: "approved" }, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ ein: "" })).toMatchObject({ field: "ein" })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("preserves unrelated saves for legacy approved profiles without an EIN", async () => {
+    prepareOrganizationSave({ formationStatus: "approved" })
+    expect(await updateOrganizationProfileAction({ tagline: "Updated tagline" })).toMatchObject({ ok: true })
+  })
+
+  it("allows switching away from approval without deleting a stored EIN", async () => {
+    const save = prepareOrganizationSave({ formationStatus: "approved", ein: "12-3456789" }, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "in_progress" })).toMatchObject({ ok: true })
+    expect(save.getUpdatedProfile()).toMatchObject({ formationStatus: "in_progress", ein: "12-3456789" })
   })
 
   it("accepts the complete Brand Kit and MVV persistence contract", () => {

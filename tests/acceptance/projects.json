@@ -390,6 +390,7 @@
       "tests/acceptance/onboarding-steps.test.ts",
       "tests/acceptance/onboarding.test.ts",
       "tests/acceptance/org-documents-upload-limit.test.ts",
+      "tests/acceptance/org-profile-formation.test.ts",
       "tests/acceptance/org-profile-story-contract.test.ts",
       "tests/acceptance/organization-coach-assignments.test.ts",
       "tests/acceptance/organization-document-access.test.ts",

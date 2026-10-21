@@ -209,10 +209,9 @@ export function useOrgProfileEditorState({
         const nextErrors = mapOrgProfileFieldErrors(
           parsed.error.flatten().fieldErrors
         )
-        const firstError = Object.values(nextErrors).find(
-          (value) => value.trim().length > 0
-        )
+        const firstError = Object.values(nextErrors).find((value) => value.trim())
         setErrors(nextErrors)
+        if (nextErrors.ein) setTab("company")
         toast.error(firstError ?? "Please fix the highlighted fields.")
         return
       }
@@ -336,7 +335,7 @@ export function useOrgProfileEditorState({
       if (returnHref) router.push(returnHref)
       else router.refresh()
     })
-  }, [company, canEdit, slugStatus, router])
+  }, [company, canEdit, slugStatus, router, setTab])
 
   const handleProgramEdit = useCallback(
     (program: OrgProgram) => {

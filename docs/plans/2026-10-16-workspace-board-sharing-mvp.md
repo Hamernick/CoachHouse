@@ -1095,3 +1095,11 @@ Renamed About to Organization and removed tab icons. Existing tab values/handler
 ### October 21 — Public profile link
 
 Renamed the header link to View Public Profile, added a trailing Lucide up-right arrow and target=_blank with noopener/noreferrer plus screen-reader new-tab description. Focused lint/whitespace pass; authenticated DOM confirms target/rel/icon. Screenshot `/tmp/workspace-public-profile-link-20261021.png`. Graph refresh queued in session12114 after job56607 covers these small follow-ups; no duplicate job. Development branch only.
+
+
+### October 21 — Formation status summary and approved EIN
+
+- Reused OrganizationFormationStatusSummary in identity view; approved EIN appears beneath its title. Edit mode keeps the status select, followed by EIN only for Approved. Hiding EIN retains saved values. Approved saves require9 digits (optional hyphen), with inline error and return to Organization tab when necessary.
+- Shared validation also protects the authenticated profile action when formation/EIN is written, using current saved EIN for partial updates. Unrelated partial autosaves remain allowed for legacy approved profiles without EIN. No database migration or data mutation.
+-38 focused UI/server tests pass (`/tmp/workspace-formation-final-tests.log`); existing story regression passed in the earlier focused run. Scoped lint/whitespace pass. Typecheck retains unrelated baseline errors in workspace catalog/calendar and tests, none in changed files (`/tmp/workspace-formation-types.log`). Browser verified the saved pre-501 summary; conditional approved layout and rejected saves tested without changing live data. Screenshot `/tmp/workspace-formation-summary-20261021.png`.
+- Prior queued graph refresh completed; current log `/tmp/workspace-formation-graphify-20261021.log`. Development branch only.
