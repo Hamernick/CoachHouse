@@ -1108,3 +1108,8 @@ Renamed the header link to View Public Profile, added a trailing Lucide up-right
 ### October 21 — Profile field layout and shadows
 
 Made Identity an explicit single-column grid and removed the formation group’s two-column span, which was creating an implicit extra column in the narrow panel. Scoped shadow-none to profile inputs/textareas/select triggers, retaining focus rings and global primitives. Focused lint/whitespace and browser computed styles pass; screenshot `/tmp/workspace-profile-input-layout-20261021.png`. Development branch only.
+
+
+### October 21 — Address helper copy
+
+Removed the state-code/geocoding helper text beneath the state selector. Selection/storage behavior unchanged. Focused lint/whitespace pass; development branch only.

@@ -104,10 +104,6 @@ export function AddressSection({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FieldHelperText>
-                      U.S. addresses save the state as a short code like IL so
-                      public map labels and geocoding stay consistent.
-                    </FieldHelperText>
                   </>
                 ) : (
                   <Input
