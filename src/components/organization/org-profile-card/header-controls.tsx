@@ -1,5 +1,7 @@
 "use client"
 
+import { useRef } from "react"
+import ImagePlus from "lucide-react/dist/esm/icons/image-plus"
 import { cn } from "@/lib/utils"
 import {
   WorkspaceWindowHeaderPortal,
@@ -165,11 +167,14 @@ export function OrgProfileHeaderLogoControls({
   onUploadLogo,
   onRemoveLogo,
 }: OrgProfileHeaderLogoControlsProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const triggerClassName = "relative size-7 rounded-full border-border/70 bg-card/95 p-0 shadow-none backdrop-blur-sm dark:bg-card/95 dark:hover:bg-muted after:absolute after:-inset-2"
   if (!canEdit || !editMode) return null
 
   return (
-    <div className="flex items-center">
+    <div className="absolute right-1 bottom-1">
       <input
+        ref={inputRef}
         id={logoInputId}
         type="file"
         accept="image/*"
@@ -187,10 +192,11 @@ export function OrgProfileHeaderLogoControls({
             <Button
               size="icon"
               variant="outline"
+              className={triggerClassName}
               disabled={logoBusy}
               aria-label="Logo image actions"
             >
-              <PencilLine className="h-4 w-4" aria-hidden />
+              <ImagePlus className="size-4" aria-hidden />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -224,17 +230,18 @@ export function OrgProfileHeaderLogoControls({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button asChild size="sm" variant="outline" disabled={logoBusy}>
-          <label htmlFor={logoInputId} className="cursor-pointer">
-            {isUploadingLogo ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
-                Uploading…
-              </span>
-            ) : (
-              "Upload"
-            )}
-          </label>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className={triggerClassName}
+          disabled={logoBusy}
+          aria-label={isUploadingLogo ? "Uploading logo" : "Add logo image"}
+          onClick={() => inputRef.current?.click()}
+        >
+          {isUploadingLogo
+            ? <Loader2 className="size-4 animate-spin" aria-hidden />
+            : <ImagePlus className="size-4" aria-hidden />}
         </Button>
       )}
     </div>

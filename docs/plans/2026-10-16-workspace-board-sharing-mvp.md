@@ -1031,3 +1031,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 - Prior graph session49362 completed. Current slice refresh log `/tmp/workspace-org-morph-graphify-20261021.log`; finish any running refresh before another. Same development branch; no production data changes/deployment.
 
 - Typecheck still reports the existing workspace catalog/calendar and unrelated test errors, none in this slice (`/tmp/workspace-org-morph-types.log`). Graph refresh session73332 is in flight; reuse it.
+
+
+### October 21 — Compact logo image action
+
+- Organization logo menu trigger now28px/circular with Lucide ImagePlus, overlaying the image bottom-right by4px. Empty-logo upload uses the same control, accessible label and native file input. Existing replace/remove menu behavior preserved.44px effective pointer target and theme-aware opaque background retained.
+- Focused ESLint and whitespace pass; live edit-mode geometry verified28x28 within the96px image. Screenshot `/tmp/workspace-logo-image-button-20261021.png`. No content edits/uploads/deletes. Icon usage: Lucide primary, Phosphor/Tabler/Simple Icons also in source; Iconoir installed but unused in src. Development branch only. Graph refresh log `/tmp/workspace-logo-button-graphify-20261021.log`.

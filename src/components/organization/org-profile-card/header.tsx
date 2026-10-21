@@ -299,7 +299,7 @@ export function OrgProfileHeader({
           <div
             {...getOrganizationFocusTargetProps("logoUrl")}
             className={cn(
-              "flex items-end gap-3",
+              "relative h-24 w-24",
               ORGANIZATION_FOCUS_TARGET_CLASSNAME
             )}
           >
