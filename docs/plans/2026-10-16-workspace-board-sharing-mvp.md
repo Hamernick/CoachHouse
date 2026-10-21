@@ -1068,3 +1068,8 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Moved profile card styling onto an inner wrapper so About/Activity sit separately above it, centered with a12px gap. Restyled existing shadcn tabs to match dock pill colors, borders,32px controls and rounded selection/hover states; coarse pointers retain44px controls. Controlled selection, keyboard semantics and dirty guards unchanged.
 - Focused ESLint/whitespace and authenticated preview pass. Screenshot `/tmp/workspace-profile-pill-tabs-20261021.png`. Graph refresh `/tmp/workspace-profile-pill-tabs-graphify-20261021.log`. Development branch only; no data changes.
+
+
+### October 21 — Profile links spacing
+
+Removed the header bottom padding so spacing below the links is24px instead of48px; content section padding still supplies the gap. Focused lint/whitespace and preview verified. Graph refresh follows the existing pill-tabs job; development branch only.

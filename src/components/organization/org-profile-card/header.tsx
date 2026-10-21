@@ -87,7 +87,7 @@ export function OrgProfileHeader({
   const hasLogo = Boolean(logoUrl)
 
   return (
-    <div className="bg-background relative flex flex-col items-center gap-4 p-6 text-center">
+    <div className="bg-background relative flex flex-col items-center gap-4 px-6 pt-6 text-center">
       <div
         {...getOrganizationFocusTargetProps("logoUrl")}
         className={cn(
