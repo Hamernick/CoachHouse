@@ -71,6 +71,7 @@ function mapTaskAssignmentRowsToItems(
           id: task.id,
           sortOrder: task.sort_order,
           updatedAt: task.updated_at,
+        createdAt: task.created_at,
           capabilities: { status: true, details: canUpdate && task.created_source !== "system", schedule: canUpdate && task.created_source !== "system", order: canUpdate && task.created_source !== "system" },
           tracker: readTaskTrackerDetails(task.tracker_metadata),
           projectId: task.project_id,
@@ -123,6 +124,7 @@ type AdminTaskQueryRow = Pick<
   | "workstream_name"
   | "sort_order"
   | "updated_at"
+  | "created_at"
   | "created_source"
   | "created_by"
   | "tracker_metadata"
@@ -155,6 +157,7 @@ function mapAdminTaskRowsToItems(
         id: task.id,
         sortOrder: task.sort_order,
         updatedAt: task.updated_at,
+        createdAt: task.created_at,
         tracker: readTaskTrackerDetails(task.tracker_metadata),
         organizationName: organizationNames.get(task.org_id),
         projectId: task.project_id,
@@ -219,7 +222,7 @@ export async function loadMemberWorkspaceTasksPage(actorScope: "workspace" | "pl
       actor.supabase
         .from("organization_tasks")
         .select(
-          "id, org_id, project_id, tracker_metadata, title, description, task_type, status, start_date, end_date, priority, tag_label, workstream_name, sort_order, updated_at, created_source, created_by, organization_projects(id, name, client_name, status, priority, tags, member_labels, type_label, duration_label, start_date, end_date)"
+          "id, org_id, project_id, tracker_metadata, title, description, task_type, status, start_date, end_date, priority, tag_label, workstream_name, sort_order, updated_at, created_at, created_source, created_by, organization_projects(id, name, client_name, status, priority, tags, member_labels, type_label, duration_label, start_date, end_date)"
         )
         .or(personalFilter)
         .order("start_date", { ascending: true })

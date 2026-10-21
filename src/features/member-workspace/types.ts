@@ -97,6 +97,7 @@ export type MemberWorkspaceMoveTaskInput = {
 
 export type MemberWorkspaceTaskItem = {
   sortOrder?: number
+  createdAt?: string
   updatedAt?: string
   capabilities?: MemberWorkspaceTaskCapabilities
   tracker?: TaskTrackerDetails

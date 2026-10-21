@@ -68,6 +68,7 @@ export function mapOrganizationProjectToViewModel(
     description: project.description ?? undefined,
     taskCount: project.task_count,
     progress: project.progress,
+    createdAt: project.created_at,
     startDate: parseDateOnly(project.start_date),
     endDate: parseDateOnly(project.end_date),
     status: project.status as PlatformAdminDashboardLabProject["status"],

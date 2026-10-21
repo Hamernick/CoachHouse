@@ -204,10 +204,7 @@ export function MemberWorkspaceProjectsPage(
     defaultCoachFilter
   )
   const [viewOptions, setViewOptions] = useState({ ...DEFAULT_VIEW_OPTIONS, ...(directory === "projects" ? { viewType: "board" as const } : {}) })
-  const [kanbanVisibilityMode, setKanbanVisibilityMode] =
-    useState<OrganizationKanbanVisibilityMode>(
-      ORGANIZATION_KANBAN_VISIBILITY_VISIBLE
-    )
+  const [kanbanVisibilityMode, setKanbanVisibilityMode] = useState<OrganizationKanbanVisibilityMode>(ORGANIZATION_KANBAN_VISIBILITY_VISIBLE)
   const [isProjectWizardOpen, setIsProjectWizardOpen] = useState(false)
   const [editingProject, setEditingProject] =
     useState<PlatformAdminDashboardLabProject | null>(null)
@@ -256,7 +253,7 @@ export function MemberWorkspaceProjectsPage(
     if (directory === "projects") params.set("view", nextViewOptions.viewType)
     const nextQuery = params.toString()
     saveDirectoryQuery({ directory, viewerUserId }, nextQuery, nextCoachFilter)
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+    window.history.replaceState(null, "", nextQuery ? `${pathname}?${nextQuery}` : pathname)
   }
 
   const handleFiltersChange = (nextFilters: FilterChip[]) => {
@@ -284,11 +281,14 @@ export function MemberWorkspaceProjectsPage(
   }
 
   const handleClearAllFilters = () => {
+    const nextViewOptions = { ...viewOptions, completion: "all" as const, showClosedProjects: true }
+    setViewOptions(nextViewOptions)
     setFilters([])
     setCoachFilter(ORGANIZATION_COACH_FILTER_ALL)
     setKanbanVisibilityMode(ORGANIZATION_KANBAN_VISIBILITY_VISIBLE)
     replaceSearchState({
       nextFilters: [],
+      nextViewOptions,
       nextCoachFilter: ORGANIZATION_COACH_FILTER_ALL,
       nextKanbanVisibilityMode: ORGANIZATION_KANBAN_VISIBILITY_VISIBLE,
     })
@@ -348,7 +348,7 @@ export function MemberWorkspaceProjectsPage(
     [directory, filters, kanbanVisibleProjects, viewOptions]
   )
   const hasActiveFilters =
-    filters.length > 0 ||
+    viewOptions.completion !== "all" || !viewOptions.showClosedProjects || filters.length > 0 ||
     coachFilter !== ORGANIZATION_COACH_FILTER_ALL ||
     kanbanVisibilityMode === ORGANIZATION_KANBAN_VISIBILITY_HIDDEN
   const showHiddenOrganizationsEmpty =

@@ -42,3 +42,18 @@ Open [PR345](https://github.com/Hamernick/CoachHouse/pull/345), implementation0b
 ### Preview housekeeping
 
 User-authorized cleanup retired ports3000,3127,3132,3140; this timeline remains at3141. Protected3008and its cache were untouched.62inactive worktree `.next` directories (85.89GiB) removed after per-path process/ignore/symlink/tracked-file checks; source/dependencies preserved. Exact receipt and verification are in the October20runlog cleanup entry. Prior preview links3127/3140are now intentionally offline.
+
+### Task and project filter follow-up — October20
+
+User clarified that Assigned to me / Proposed to me / Collaborating is the multi-select. The actual task owner is `member-workspace-tasks-page.tsx`; shared Select/Checkbox primitives are unchanged. Relationship selections use OR semantics with no duplicate tasks; an empty selection stays empty and legacy single-choice URLs still work. Completion and date ordering are presentation state, persisted in the URL. Task groups and List/Board share the same filtered records; manual move controls disappear during date sorting.
+
+Task and project checkbox filters now apply immediately while their popovers stay open. Tasks exposes completion/order under Display; Projects exposes them under View. Both support All / Completed / Not completed, earliest due first and newest added first. Ordinary task/project loaders carry actual `created_at`; missing/invalid dates sort last and ties retain source order. Existing fiscal review RPCs omit dates, so those restricted task records stay undated; no access expansion or migration. Cancelled projects count as not completed; legacy `closed=hide` still excludes completed/cancelled until the completion control is changed. Clearing the project empty-state filters resets completion too.
+
+Validation:
+- 56 cases pass across `member-workspace-task-view-state`, `member-workspace-task-filters` and `member-workspace-project-filters`: combined relationships/deduplication, empty/legacy URL state, completion after mutation, independent date sorting, stable ties and missing dates.
+- Eleven distinct Chromium cases pass: five new task/project filter journeys across desktop/mobile, plus all six existing task journeys for editing, completion, scheduling/rejection, creation, drag, manual ordering and reload. Initial cold compilation/hydration timeouts and an ambiguous test locator were corrected in the runner; the final cases wait for hydrated controls and scope the ordering menu.
+- Application TypeScript passes (`pnpm exec tsc --noEmit -p .tmp/tasks-tsconfig.json`), changed-file ESLint and structure/routes/features/boundaries/thresholds/React Grab/raw-button checks pass. No database contract changed, so the prior SQL/RLS evidence is reused.
+- Graphify refreshed: 21,865 nodes / 62,766 edges; final changed-file hashes match its manifest. No allowlisted semantic documentation changed.
+- Review captures: [task display](../qa/task-project-filters-2026-10-20/tasks-desktop.png), [project filters desktop](../qa/task-project-filters-2026-10-20/projects-desktop.png), [project filters mobile](../qa/task-project-filters-2026-10-20/projects-mobile.png). No existing screenshot baseline targets these controls. Captures remain macOS review evidence; Linux visual gates remain hosted.
+
+Review `/tasks` and `/projects` on localhost3141. Sample-only fixtures: `/visual-regression/tasks?taskWeek=2026-10-19&filterPreview=1` and `/visual-regression/project-directory?view=list`; no fixture data enters real organizations. Port3008 remains untouched. Same branch/PR345; required hosted quality, Caleb's review, merge/deployment and authenticated live acceptance remain pending.
