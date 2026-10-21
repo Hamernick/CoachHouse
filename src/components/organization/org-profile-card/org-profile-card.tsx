@@ -110,14 +110,12 @@ export function OrgProfileEditor({
           name={company.name || "Organization"}
           tagline={company.tagline || "—"}
           logoUrl={company.logoUrl ?? ""}
-          headerUrl={company.headerUrl ?? ""}
           editMode={editMode}
           isSaving={isPending}
           canEdit={canEdit}
-          links={<OrgProfileHeaderLinks company={company} />}
+          links={<OrgProfileHeaderLinks company={company} centered />}
           donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
           onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
-          onHeaderChange={(url) => persistProfileUpdates({ headerUrl: url })}
         />
 
         <div className="p-0">

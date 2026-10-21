@@ -1056,3 +1056,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Moved existing profile navigation above the banner by lifting its controlled shadcn Tabs provider to the card root. Kept the same tab IDs, selected state, navigation/dirty guard handler and content; gap0 preserves the banner/header spacing.
 - Scoped lint/whitespace pass and authenticated preview confirms horizontal About/Activity tabs at the card top in edit mode. Screenshot `/tmp/workspace-profile-tabs-above-banner-20261021.png`. No saved content changes. Graph log `/tmp/workspace-profile-tabs-graphify-20261021.log`; development branch only.
+
+
+### October 21 — Centered profile without banner
+
+- Removed the banner display/upload/crop controls from the profile editor header. Centered the existing logo, organization name, tagline, links and donation action in a compact vertical layout; tabs remain above. Logo editing and its fade remain intact; persisted banner data and public profile rendering are untouched. Static canvas cards retain their existing link alignment.
+- Scoped ESLint and whitespace checks pass. Authenticated dark-mode preview confirms centered identity without a banner; screenshot `/tmp/workspace-centered-profile-20261021.png`. Graph refresh log `/tmp/workspace-centered-profile-graphify-20261021.log`. Development branch only.

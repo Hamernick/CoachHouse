@@ -21,7 +21,7 @@ const linkFields = [
   { key: "github", label: "GitHub", icon: null, text: false },
 ] as const
 
-export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
+export function OrgProfileHeaderLinks({ company, centered = false }: { company: OrgProfile; centered?: boolean }) {
   const links = linkFields.flatMap((field) => {
     const normalized = normalizeExternalUrl(company[field.key])
     if (!normalized) return []
@@ -45,7 +45,7 @@ export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
   return (
     <nav
       aria-label="Organization links"
-      className="-ml-1 mt-1 flex flex-col items-start"
+      className={cn("mt-1 flex max-w-full flex-col", centered ? "items-center" : "-ml-1 items-start")}
       {...getReactGrabOwnerProps({
         ownerId: "organization-profile-links",
         component: "OrgProfileHeaderLinks",
@@ -57,7 +57,7 @@ export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
         const rowLinks = links.filter((link) => link.text === textRow)
         if (rowLinks.length === 0) return null
         return (
-          <div key={String(textRow)} className="flex max-w-full flex-wrap items-center gap-x-0.5">
+          <div key={String(textRow)} className={cn("flex max-w-full flex-wrap items-center gap-x-0.5", centered && "justify-center")}>
             {rowLinks.map(({ key, label, icon: Icon, text, textLabel, href }) => (
               <Button
                 key={key}
