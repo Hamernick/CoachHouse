@@ -1197,3 +1197,8 @@ Removed name and tagline from saved Identity because the header already displays
 ### October 21 — White formation summary in light mode
 
 Scoped the saved Identity formation summary to bg-white in light mode, preserving dark:bg-primary/5. Other uses of the shared summary unchanged. Updated the existing formation assertion; 11 focused tests pass. Existing graph refresh remains session 85473.
+
+
+### October 21 — Center saved profile rows
+
+Set align-content:center on saved grouped ProfileField rows to override the shared content-start alignment, vertically centering Contact labels/values within their minimum-height containers. Edit rows unchanged. Whitespace/pre-push checks cover scoped CSS edit. Existing browser tab was not showing saved Contact rows, so no fresh browser geometry claimed.

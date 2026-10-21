@@ -125,6 +125,10 @@
   box-shadow: none;
 }
 
+.readOnly > :global([data-slot="organization-profile-field"]) {
+  align-content: center;
+}
+
 .readOnly > :global([data-slot="organization-profile-field"]) > :not(label) {
   min-width: 0;
   overflow-wrap: anywhere;
