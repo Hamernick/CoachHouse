@@ -1073,3 +1073,8 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 ### October 21 — Profile links spacing
 
 Removed the header bottom padding so spacing below the links is24px instead of48px; content section padding still supplies the gap. Focused lint/whitespace and preview verified. Graph refresh follows the existing pill-tabs job; development branch only.
+
+
+### October 21 — Profile section title spacing
+
+Set shared FormRow vertical title/content gap to8px in stacked and split layouts, preserving desktop column spacing. Focused lint/whitespace pass; browser confirms8px for Identity/Contact/Address/About us. Screenshot `/tmp/workspace-profile-section-spacing-20261021.png`. Development branch only.

@@ -127,8 +127,8 @@ export function FormRow({
   const insetClass = inset ? "px-6 md:px-0" : "px-0"
   const rowClass =
     layout === "stacked"
-      ? "grid gap-4"
-      : "grid gap-4 md:grid-cols-[minmax(180px,240px)_minmax(0,1fr)] md:items-start md:gap-6"
+      ? "grid gap-2"
+      : "grid gap-x-4 gap-y-2 md:grid-cols-[minmax(180px,240px)_minmax(0,1fr)] md:items-start md:gap-x-6"
 
   return (
     <div
