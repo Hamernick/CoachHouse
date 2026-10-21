@@ -1210,3 +1210,11 @@ Set align-content:center on saved grouped ProfileField rows to override the shar
 - Website is now the online destination within this editor: normalization favors Website and exposes legacy-only location URLs there; switching online and editing Website keep locationUrl synchronized for the existing save action/public consumers. No schema migration or global public-profile behavior change.
 - 17 focused tests pass across field rendering/normalization, formation and public settings; scoped lint/whitespace pass. Authenticated browser verified online mode has no address fields, physical mode reveals existing address, switching back hides it, and Website shows the preferred saved website. Test-only draft discarded; no user values saved.
 - Prior graph refresh completed. Current cohesive refresh session 14849, `/tmp/organization-location-layout-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Public switch above logo with information popover
+
+- Moved Public visibility control into the edit header above the logo, retaining existing company draft, dirty tracking and Save/Cancel behavior. Disabled during save and hidden outside permitted edit mode. Removed old inline switch wrapper/helper paragraph from PublicPageSettings and its unused CSS. Public URL and validation remain below.
+- Added compact shared shadcn Switch/Label/Button/Popover composition with information icon: mouse hover opens, click pins/toggles, touch/keyboard click supported, Escape/outside dismiss. Text retains the existing map link. Hover does not move keyboard focus into the popup.
+- Two focused header/settings tests and scoped lint/whitespace pass. Browser verified exactly the relocated switch above logo (bottom215px vs logo237px), click-open explanation/map link and Escape dismissal; switch itself not toggled, no data saved. Screenshot `/tmp/organization-public-switch-20261021.png`. No workspace-header baseline exists.
+- Previous graph job completed. Current refresh log `/tmp/organization-public-switch-graphify-20261021.log`. Development branch only.

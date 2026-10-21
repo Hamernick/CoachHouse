@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
@@ -15,7 +14,6 @@ import {
 import { slugifyLocal } from "../../../utils"
 import type { CompanyEditProps } from "../types"
 import { RESERVED_SLUGS } from "../constants"
-import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 export function PublicPageSettings({
@@ -139,37 +137,6 @@ export function PublicPageSettings({
       description="Publish your organization on the Coach House map index."
     >
       <div className="grid gap-4">
-        <div className={styles.setting}>
-          <Switch
-            id="publicPageEnabled"
-            checked={Boolean(company.isPublic)}
-            onCheckedChange={(value) => {
-              onUpdate({ isPublic: Boolean(value) })
-              onDirty()
-            }}
-            aria-label="Make organization visible on map"
-          />
-          <div className="space-y-1">
-            <Label
-              htmlFor="publicPageEnabled"
-              className="text-muted-foreground text-xs"
-            >
-              Public
-            </Label>
-            <p className="text-muted-foreground text-xs">
-              When enabled, your organization is discoverable on{" "}
-              <Link
-                href="/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-inherit underline underline-offset-2"
-              >
-                our map
-              </Link>
-              .
-            </p>
-          </div>
-        </div>
         {company.isPublic && !hasAddress && !isOnlineOnly ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
             <div className="flex items-start gap-2">

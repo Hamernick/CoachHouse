@@ -26,6 +26,7 @@ type OrgProfileHeaderProps = {
   canEdit: boolean
   links?: ReactNode
   donationAction?: ReactNode
+  visibilityControl?: ReactNode
   onLogoChange: (url: string | null) => Promise<void>
 }
 
@@ -38,6 +39,7 @@ export function OrgProfileHeader({
   canEdit,
   links,
   donationAction,
+  visibilityControl,
   onLogoChange,
 }: OrgProfileHeaderProps) {
   const logoInputId = useId()
@@ -88,6 +90,7 @@ export function OrgProfileHeader({
 
   return (
     <div className="bg-background relative flex flex-col items-center gap-4 px-6 pt-6 text-center">
+      {visibilityControl}
       <div
         {...getOrganizationFocusTargetProps("logoUrl")}
         className={cn(

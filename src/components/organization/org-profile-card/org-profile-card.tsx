@@ -8,6 +8,7 @@ import { ProgramWizardLazy } from "@/components/programs/program-wizard-lazy"
 import { ORG_PROFILE_TABS } from "./config"
 import { OrgProfileDiscardDialog } from "./org-profile-discard-dialog"
 import { OrgProfileHeader } from "./header"
+import { OrgProfileHeaderVisibility } from "./header-visibility"
 import { OrgProfileHeaderActions } from "./header-controls"
 import { OrgProfileDonationLink } from "./org-profile-donation-link"
 import { OrgProfileHeaderLinks } from "./header-links"
@@ -115,6 +116,16 @@ export function OrgProfileEditor({
             editMode={editMode}
             isSaving={isPending}
             canEdit={canEdit}
+            visibilityControl={editMode && canEdit ? (
+              <OrgProfileHeaderVisibility
+                isPublic={Boolean(company.isPublic)}
+                disabled={isPending}
+                onCheckedChange={(isPublic) => {
+                  handleCompanyUpdate({ isPublic })
+                  markDirty()
+                }}
+              />
+            ) : null}
             links={<OrgProfileHeaderLinks company={company} centered />}
             donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
             onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}

@@ -174,16 +174,6 @@
   content: none;
 }
 
-.setting {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--muted) 60%, var(--background));
-}
-
 @media (pointer: coarse) {
   .richTextToolbar > button {
     min-width: 44px;
