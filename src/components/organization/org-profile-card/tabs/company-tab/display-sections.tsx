@@ -11,6 +11,13 @@ import { OrganizationNarrativeContent } from "@/components/organization/org-prof
 import type { CompanyViewProps } from "./types"
 import { stripHtml } from "@/lib/markdown/convert"
 import { cn } from "@/lib/utils"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import styles from "../../profile-edit-fields.module.css"
 
 import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
 import { resolveFormationStatusOption } from "@/lib/organization/formation-status"
@@ -20,20 +27,32 @@ export function IdentityPreview({ company }: CompanyViewProps) {
   const hasDescription =
     typeof company.description === "string" &&
     company.description.trim().length > 0
-  if (!(hasDescription || formationStatus)) {
+  if (
+    !(company.name?.trim() || company.tagline?.trim() || hasDescription || formationStatus)
+  ) {
     return null
   }
 
   return (
-    <FormRow title="Identity">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+    <FormRow title="Identity" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
+        {company.name?.trim() ? (
+          <ProfileField label="Organization name" hideLabel>
+            <FieldText text={company.name} />
+          </ProfileField>
+        ) : null}
+        {company.tagline?.trim() ? (
+          <ProfileField label="Tagline" hideLabel>
+            <FieldText text={company.tagline} />
+          </ProfileField>
+        ) : null}
         {hasDescription ? (
-          <ProfileField label="Description">
+          <ProfileField label="Description" className={styles.stacked}>
             <FieldText text={company.description} multiline />
           </ProfileField>
         ) : null}
         {formationStatus ? (
-          <ProfileField label="Formation status">
+          <ProfileField label="Formation status" className={styles.stacked}>
             <OrganizationFormationStatusSummary
               formationStatus={formationStatus}
               ein={company.ein}
@@ -55,8 +74,8 @@ export function ContactPreview({ company }: CompanyViewProps) {
   }
 
   return (
-    <FormRow title="Contact">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+    <FormRow title="Contact" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
         {typeof company.rep === "string" && company.rep.trim() ? (
           <ProfileField label="Representative">
             <FieldText text={company.rep} />
@@ -83,68 +102,61 @@ export function AddressPreview({ addressLines }: CompanyViewProps) {
   }
 
   return (
-    <FormRow title="Address">
-      <AddressDisplay lines={addressLines} />
+    <FormRow title="Address" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
+        <div className={cn(styles.row, styles.stacked)}>
+          <AddressDisplay lines={addressLines} />
+        </div>
+      </div>
     </FormRow>
   )
 }
 
 export function StoryPreview({ company }: CompanyViewProps) {
-  const originStory =
-    typeof company.originStory === "string"
-      ? stripHtml(company.originStory)
-      : ""
-  const vision = typeof company.vision === "string" ? company.vision : ""
-  const need = typeof company.need === "string" ? stripHtml(company.need) : ""
-  const mission = typeof company.mission === "string" ? company.mission : ""
-  const values = typeof company.values === "string" ? company.values : ""
-  const theoryOfChange =
-    typeof company.theoryOfChange === "string"
-      ? stripHtml(company.theoryOfChange)
-      : ""
+  const fields = [
+    { key: "originStory", label: "Origin story", value: company.originStory },
+    { key: "need", label: "Need", value: company.need },
+    { key: "mission", label: "Mission", value: company.mission },
+    { key: "vision", label: "Vision", value: company.vision },
+    { key: "values", label: "Values", value: company.values },
+    {
+      key: "theoryOfChange",
+      label: "Theory of change",
+      value: company.theoryOfChange,
+    },
+  ].filter(
+    (field): field is typeof field & { value: string } =>
+      typeof field.value === "string" &&
+      (stripHtml(field.value).trim().length > 0 || /<img\b/i.test(field.value))
+  )
 
-  if (
-    ![originStory, vision, need, mission, values, theoryOfChange].some(
-      (value) => value.trim().length > 0
-    )
-  ) {
-    return null
-  }
+  if (fields.length === 0) return null
 
   return (
-    <FormRow title="About us">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
-        {originStory.trim().length > 0 ? (
-          <ProfileField label="Origin story">
-            <FieldText text={originStory} multiline />
-          </ProfileField>
-        ) : null}
-        {need.trim().length > 0 ? (
-          <ProfileField label="Need">
-            <FieldText text={need} multiline />
-          </ProfileField>
-        ) : null}
-        {mission.trim().length > 0 ? (
-          <ProfileField label="Mission">
-            <OrganizationNarrativeContent value={mission} />
-          </ProfileField>
-        ) : null}
-        {vision.trim().length > 0 ? (
-          <ProfileField label="Vision">
-            <OrganizationNarrativeContent value={vision} />
-          </ProfileField>
-        ) : null}
-        {values.trim().length > 0 ? (
-          <ProfileField label="Values">
-            <OrganizationNarrativeContent value={values} />
-          </ProfileField>
-        ) : null}
-        {theoryOfChange.trim().length > 0 ? (
-          <ProfileField label="Theory of change">
-            <FieldText text={theoryOfChange} multiline />
-          </ProfileField>
-        ) : null}
-      </div>
+    <FormRow title="About us" layout="stacked" inset={false}>
+      <Accordion
+        type="single"
+        collapsible
+        className={cn(styles.group, styles.storyAccordion)}
+      >
+        {fields.map((field) => (
+          <AccordionItem
+            key={field.key}
+            value={field.key}
+            className="border-border/60"
+          >
+            <AccordionTrigger className="text-muted-foreground min-h-11 px-4 py-3 text-sm font-medium hover:no-underline">
+              {field.label}
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <OrganizationNarrativeContent
+                value={field.value}
+                className="overflow-x-auto"
+              />
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </FormRow>
   )
 }
@@ -168,26 +180,10 @@ export function ViewModeSections(props: CompanyViewProps) {
     )
   }
 
-  const hasIdentity = sections.some((section) => section.id === "identity")
-
   return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-4xl",
-        hasIdentity ? "divide-border/60 divide-y" : "space-y-6"
-      )}
-    >
-      {sections.map((section, index) => (
-        <div
-          key={section.id}
-          className={cn(
-            "py-6",
-            index === 0 && "pt-0",
-            index === sections.length - 1 && "pb-0"
-          )}
-        >
-          {section.node}
-        </div>
+    <div className={styles.sections}>
+      {sections.map((section) => (
+        <div key={section.id}>{section.node}</div>
       ))}
     </div>
   )

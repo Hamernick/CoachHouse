@@ -125,6 +125,15 @@
   box-shadow: none;
 }
 
+.readOnly > :global([data-slot="organization-profile-field"]) > :not(label) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.storyAccordion > :not(:first-child)::before {
+  content: none;
+}
+
 .richTextToolbar {
   flex-wrap: nowrap;
   gap: 2px;

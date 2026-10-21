@@ -1179,3 +1179,11 @@ Removed the requested “Used to tailor your formation checklist and map listing
 ### October 21 — Full-width identity name and tagline
 
 Organization name and Tagline now use placeholder labels and occupy the full grouped row. Added opt-in hidden accessible labels to ProfileField; other labels remain unchanged. Scoped grouped-field styles keep validation messages full-width. Browser verified both inputs at 390px within 414px rows, matching accessible label associations, and 1px visually hidden labels. Focused lint passes. Existing graph refresh session 64618 remains in flight; no duplicate job. No user values changed.
+
+
+### October 21 — Saved profile grouped layout and story accordions
+
+- Saved Identity, Contact and Address now reuse the edit view's grouped surfaces, spacing and stacked section layout. Identity shows full-width name/tagline rows and retains the approved formation/EIN summary. Long contact values wrap. Removed old section dividers and split columns. No data or persistence changes.
+- About us uses existing shadcn single/collapsible accordion primitives styled like the public profile for all six populated story fields, including Mission, Vision and Values. Existing sanitized narrative renderer preserves rich content; empty entries stay omitted. Public profile remains unchanged.
+- 20 focused formation/story tests pass (story rerun after updating old label-markup assertion); focused lint/whitespace pass. Authenticated localhost preview verified 414px groups inside 416px content with no horizontal overflow, Mission expansion and Vision opening/Mission closing. Screenshot `/tmp/organization-saved-layout-20261021.png`. No user edits saved. No existing visual baseline covers this workspace saved panel; public-profile baselines are unchanged.
+- Prior Graphify job completed successfully. New cohesive-slice refresh session 85473, log `/tmp/organization-saved-layout-graphify-20261021.log`. Development branch only.

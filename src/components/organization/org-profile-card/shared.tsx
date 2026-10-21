@@ -23,11 +23,13 @@ export function ProfileField({
   children,
   focusKey,
   hideLabel = false,
+  className,
 }: {
   label: ReactNode
   children: ReactNode
   focusKey?: string
   hideLabel?: boolean
+  className?: string
 }) {
   const childArray = Children.toArray(children).filter((child) => {
     if (child == null) return false
@@ -44,7 +46,8 @@ export function ProfileField({
       {...(focusKey ? getOrganizationFocusTargetProps(focusKey) : {})}
       className={cn(
         "grid min-w-0 content-start gap-1 self-start",
-        focusKey && ORGANIZATION_FOCUS_TARGET_CLASSNAME
+        focusKey && ORGANIZATION_FOCUS_TARGET_CLASSNAME,
+        className
       )}
     >
       <Label
