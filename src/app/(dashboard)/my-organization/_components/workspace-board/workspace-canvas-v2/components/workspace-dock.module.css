@@ -28,7 +28,8 @@
 
 .topNavigation {
   position: absolute;
-  bottom: calc(8px + var(--workspace-composer-height, 58px) + 6px);
+  /* Composer already includes 8px of top padding; leave a 6px visible gap. */
+  bottom: calc(8px + var(--workspace-composer-height, 58px) - 2px);
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 24px);
