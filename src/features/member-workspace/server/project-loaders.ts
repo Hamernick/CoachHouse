@@ -22,7 +22,6 @@ import {
   filterOrganizationsForActor,
 } from "./member-workspace-actor-permissions"
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
-import { ensureStarterProjectsForOrg } from "./project-persistence"
 import { organizationProjectSelectFields } from "./project-select"
 import { resolveMemberWorkspaceStorageMode } from "./starter-data"
 import {
@@ -215,18 +214,10 @@ export async function loadMemberWorkspaceProjectsPage({
         },
       ]
     : [{ orgId: actor.activeOrg.orgId, name: "Active organization" }]
-  const [, assigneeOptions] = await Promise.all([
-    ensureStarterProjectsForOrg({
-      canEdit: actor.canEdit,
-      orgId: actor.activeOrg.orgId,
-      userId: actor.userId,
-      supabase: actor.supabase,
-    }),
-    loadMemberWorkspacePersonOptionsForOrganizations({
-      orgIds: [actor.activeOrg.orgId],
-      supabase: actor.supabase,
-    }),
-  ])
+  const assigneeOptions = await loadMemberWorkspacePersonOptionsForOrganizations({
+    orgIds: [actor.activeOrg.orgId],
+    supabase: actor.supabase,
+  })
 
   const { data: projects, error } = await actor.supabase
     .from("organization_projects")

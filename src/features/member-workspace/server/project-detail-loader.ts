@@ -19,13 +19,11 @@ import {
   mapAdminOrganizationSummaryToProjectRecord,
 } from "./admin-organization-overview"
 import { buildMemberWorkspaceProjectDetails } from "./project-detail-view-model"
-import { ensureStarterProjectsForOrg } from "./project-persistence"
 import { organizationProjectSelectFields } from "./project-select"
 import { loadProjectOverviewDocument } from "./project-overview-documents"
 import { loadOrganizationProjectActivityResult } from "./project-activity"
 import { type OrganizationProjectRecord } from "./project-starter-data"
 import { loadMemberWorkspaceCurrentUser, loadMemberWorkspacePersonOptionsForOrganizations } from "./person-options"
-import { ensureStarterTasksForOrg } from "./task-persistence"
 import { loadTaskAssigneeMap } from "./task-assignees"
 import {
   isMissingOrganizationProjectsTableError,
@@ -596,20 +594,6 @@ export async function loadMemberWorkspaceProjectDetailPage(
       projectId,
     })
   }
-
-  await ensureStarterProjectsForOrg({
-    canEdit: actor.canEdit,
-    orgId: actor.activeOrg.orgId,
-    userId: actor.userId,
-    supabase: actor.supabase,
-  })
-
-  await ensureStarterTasksForOrg({
-    canEdit: actor.canEdit,
-    orgId: actor.activeOrg.orgId,
-    userId: actor.userId,
-    supabase: actor.supabase,
-  })
 
   const { data: projectRow, error: projectError } = await actor.supabase
     .from("organization_projects")

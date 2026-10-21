@@ -8,7 +8,6 @@ import { actorCanAccessOrganization, actorCanAccessOrganizations } from "./membe
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
 import { loadMemberWorkspacePersonOptionsForOrganizations } from "./person-options"
 import { loadTaskAssigneeMap, type TaskAssigneeProfile } from "./task-assignees"
-import { ensureStarterTasksForOrg } from "./task-persistence"
 import { loadTaskProjectScope } from "./task-project-scope"
 import {
   mapTaskRowsToGroups,
@@ -315,13 +314,7 @@ export async function loadMemberWorkspaceTasksPage(actorScope: "workspace" | "pl
     }
   }
 
-  const [, assigneeOptions, taskProjectScope] = await Promise.all([
-    ensureStarterTasksForOrg({
-      canEdit: actor.canEdit,
-      orgId: actor.activeOrg.orgId,
-      userId: actor.userId,
-      supabase: actor.supabase,
-    }),
+  const [assigneeOptions, taskProjectScope] = await Promise.all([
     loadMemberWorkspacePersonOptionsForOrganizations({
       orgIds: [actor.activeOrg.orgId],
       supabase: actor.supabase,

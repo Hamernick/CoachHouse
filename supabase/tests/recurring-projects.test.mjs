@@ -134,6 +134,9 @@ try {
   runSql("supabase/migrations/20261021010000_task_schedule_and_relative_order.sql")
   runSql("supabase/tests/task-planning.assertions.sql")
   await verifyTaskPlanningConcurrency({ postgresDirectory, port, socketDirectory })
+  runSql("supabase/tests/workspace-preview-seeds.bootstrap.sql")
+  runSql("supabase/migrations/20261021020000_disable_workspace_preview_seeds.sql")
+  runSql("supabase/tests/workspace-preview-seeds.assertions.sql")
   console.log("[recurring-projects] Month-end recurrence, idempotency, rollback, task copies, optional fields, assignment notifications, and RLS passed.")
 } finally {
   if (started) {

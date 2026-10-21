@@ -84,7 +84,7 @@ describe("member workspace project deletion transitions", () => {
     const deletionSource = source
       .split("export async function deleteMemberWorkspaceProjectAction")[1]
       .split(
-        "export async function resetMemberWorkspaceStarterProjectsAction"
+        "export async function clearMemberWorkspaceStarterDataAction"
       )[0]
     expect(deletionSource).toContain("transitionOrganizationProjectDeletion")
     expect(deletionSource).toContain("expectedUpdatedAt:")
