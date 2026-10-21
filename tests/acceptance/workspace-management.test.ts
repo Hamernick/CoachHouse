@@ -1,3 +1,4 @@
+import { hasWorkspaceUnsavedChanges, isCurrentWorkspace } from "@/features/workspace-management/lib/navigation"
 import { createElement, type ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -271,4 +272,28 @@ it("does not mount an editable canvas when the last workspace is deleted", () =>
     ...props, seed: { ...props.seed, workspaceCatalog: [{ id: null, name: "Build" }] },
   }))
   expect(started).toContain('data-live-canvas="true"')
+})
+
+
+describe("workspace client navigation", () => {
+  it("allows clean navigation and reuses every mounted editor's draft guard", () => {
+    const target = new EventTarget()
+    expect(hasWorkspaceUnsavedChanges(target)).toBe(false)
+    const noteGuard = (event: Event) => event.preventDefault()
+    const profileGuard = (event: Event) => event.preventDefault()
+    target.addEventListener("beforeunload", noteGuard)
+    target.addEventListener("beforeunload", profileGuard)
+    expect(hasWorkspaceUnsavedChanges(target)).toBe(true)
+    target.removeEventListener("beforeunload", noteGuard)
+    expect(hasWorkspaceUnsavedChanges(target)).toBe(true)
+    target.removeEventListener("beforeunload", profileGuard)
+    expect(hasWorkspaceUnsavedChanges(target)).toBe(false)
+  })
+  it("recognizes the active canvas without closing its currently open panel", () => {
+    expect(isCurrentWorkspace(`/workspace?workspace=${A}`, `http://localhost/workspace?workspace=${A}&drawer=accelerator`)).toBe(true)
+    expect(isCurrentWorkspace("/workspace", "http://localhost/workspace?drawer=documents")).toBe(true)
+    expect(isCurrentWorkspace(`/workspace?workspace=${B}`, `http://localhost/workspace?workspace=${A}`)).toBe(false)
+    expect(isCurrentWorkspace("/workspace", `http://localhost/workspace?workspace=${A}`)).toBe(false)
+    expect(isCurrentWorkspace("/workspace", "http://localhost/people")).toBe(false)
+  })
 })

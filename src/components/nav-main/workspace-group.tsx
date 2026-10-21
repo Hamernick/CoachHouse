@@ -31,15 +31,9 @@ export function NavMainWorkspaceItem({ item, isActive, namedWorkspaceSelected, s
             className="w-auto max-w-full justify-start gap-0 font-medium text-sidebar-foreground/60 hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent group-has-data-[sidebar=menu-action]/menu-item:pr-0 group-data-[collapsible=icon]:justify-center"
             {...reactGrabProps.ownerProps}
           >
-            <Link href="/workspace" prefetch title={item.title} data-tour={tourId} aria-current={homeActive ? "page" : undefined}
+            <Link data-workspace-navigation href="/workspace" prefetch title={item.title} data-tour={tourId} aria-current={homeActive ? "page" : undefined}
               onFocus={() => onPrefetch(item.href)} onPointerEnter={() => onPrefetch(item.href)}
-              onClick={(event) => {
-                if (!namedWorkspaceSelected || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-                event.preventDefault()
-                // Preserve the editors' existing native unsaved-change guards.
-                // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-                window.location.assign("/workspace")
-              }}
+
             >
               {item.icon ? <item.icon className="hidden size-4 shrink-0 group-data-[collapsible=icon]:block" /> : null}
               <span className="min-w-0 truncate leading-snug whitespace-nowrap group-data-[collapsible=icon]:hidden">{item.title}</span>

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import { CollapsibleContent } from "@/components/ui/collapsible"
 import { SidebarMenuAction, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar"
@@ -23,8 +24,7 @@ export function WorkspaceSidebarActions({ children }: { children?: ReactNode }) 
     {scope.workspaces.length > 0 ? <SidebarMenuSub className="mr-0">
       {scope.workspaces.map((workspace) => <SidebarMenuSubItem key={workspace.id ?? "main"} className="group/workspace relative">
         <SidebarMenuSubButton asChild isActive={workspace.id === scope.currentId} className="pr-8">
-          {/* A document navigation honors existing editor beforeunload guards. */}
-          <a href={workspace.id ? `/workspace?workspace=${workspace.id}` : "/workspace"} aria-current={workspace.id === scope.currentId ? "page" : undefined}><span>{workspace.name}</span></a>
+          <Link data-workspace-navigation href={workspace.id ? `/workspace?workspace=${workspace.id}` : "/workspace"} aria-current={workspace.id === scope.currentId ? "page" : undefined}><span>{workspace.name}</span></Link>
         </SidebarMenuSubButton>
         {scope.canEdit ? <WorkspaceActionsMenu workspace={workspace} onAction={(kind, returnFocus) => {
           if (kind === "access") context?.setAccessRequest({ orgId: scope.orgId, workspace, returnFocus })
@@ -37,18 +37,14 @@ export function WorkspaceSidebarActions({ children }: { children?: ReactNode }) 
     {dialog?.kind === "edit" ? <WorkspaceNameDialog key={`${scope.orgId}:${dialog.workspace?.id ?? "create"}`} orgId={scope.orgId} workspace={dialog.workspace} returnFocus={dialog.returnFocus} onClose={() => setDialog(null)} onSaved={(workspaces, id, created) => {
       context?.setScope({ ...scope, workspaces })
       setDialog(null)
-      // A new canvas must honor editor beforeunload guards before unmounting.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      if (created && id) window.location.assign(`/workspace?workspace=${id}`)
+      if (created && id) context?.navigate(`/workspace?workspace=${id}`)
     }} /> : null}
     {dialog?.kind === "delete" && dialog.workspace ? <WorkspaceDeleteDialog
       orgId={scope.orgId} workspace={dialog.workspace} returnFocus={dialog.returnFocus}
       onClose={() => setDialog(null)} onDeleted={(workspaces) => {
         context?.setScope({ ...scope, workspaces })
         setDialog(null)
-        // Leave a removed canvas through the existing unsaved-draft browser guard.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        if (dialog.workspace?.id === scope.currentId) window.location.assign("/workspace")
+        if (dialog.workspace?.id === scope.currentId) context?.navigate("/workspace")
       }}
     /> : null}
   </>

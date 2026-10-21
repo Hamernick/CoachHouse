@@ -988,3 +988,11 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 - Notes and drawer-event tests pass (56 Notes plus 11 route/event tests). Broader overlay suite has four pre-existing source-string failures in untouched collapse/tab, People styling, and Shift-selection code; combined result 77 passed / 4 failed. Focused lint and import boundaries pass. Typecheck still reports unrelated existing failures, none in touched files. Logs `/tmp/notes-lesson-window-{tests,types,boundaries}-20261020.log`.
 - Previous search-placement Graphify job and intermediate lesson-link/window refreshes completed. Final refresh recorded below. Local only; no migration or deployment.
 - Final follow-up validation: 15 Accelerator panel/runtime tests pass; final changed-file lint and whitespace checks pass. Final graph refresh is running in exec session `73294`, log `/tmp/notes-lesson-window-final-graphify-20261020.log`; check completion before another refresh.
+
+
+### October 21 — Stable workspace sidebar navigation
+
+- Replaced full-document workspace links and create/delete redirects with Next client navigation. The layout-owned catalog stays mounted through canvas loading/remounts; leaving `/workspace` clears it. Active-workspace clicks preserve the open panel. Creating a canvas updates the list before navigation; deleting the default canvas can refresh in place.
+- A cancelable probe consults the existing editors' beforeunload guards, then uses the established shadcn discard-dialog style. Cancel preserves drafts and the selected workspace; modified clicks retain normal link behavior. Server authorization and persistence are unchanged.
+- Focused workspace-management + shell-navigation suites: 27 passed. Focused ESLint, import boundaries, interaction locks and whitespace pass. Authenticated Finance → Accelerator switch verified selected link, persistent sidebar menu IDs, and all four workspace entries. No test workspaces or saved content were created/deleted. Screenshot: `/tmp/workspace-sidebar-stable-20261021.png`. Raw browser instrumentation was denied by saved policy; verification used ordinary UI navigation only.
+- Same development branch and preview3008. Typecheck: `/tmp/workspace-sidebar-types.log`; graph refresh: `/tmp/workspace-sidebar-graphify-20261021.log`. No main merge, deployment, database migration or Drive upload.

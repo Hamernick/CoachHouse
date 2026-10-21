@@ -38,8 +38,10 @@ never fall back to the main board. Existing data is never moved during creation.
 viewport preferences and cursor rooms include the selected ID; Particle graph
 workspaceId remains the organization/source authorization boundary. Notes and
 Calendar read all organization canvases; note edits resolve the saved canvas and
-calendar links retain its ID. Navigation uses a document transition to honor the
-existing editors' beforeunload draft guards. Panel tab transitions remain retained.
+calendar links retain its ID. Navigation uses client transitions and retains the shell-owned catalog while the
+canvas changes. A cancelable beforeunload probe reuses mounted editor draft guards
+and opens the app discard dialog before switching. Modified clicks retain normal
+new-tab behavior. Leaving the workspace route clears the retained catalog.
 
 Validation: workspace-management.test.ts covers permissions, naming, idempotency,
 rename conflicts, original/sibling preservation and concurrent board writes.
