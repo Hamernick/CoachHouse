@@ -1144,3 +1144,8 @@ Removed the requested billing explanation card and unused info icon from PublicP
 ### October 21 — Single-row organization editor toolbars
 
 Scoped the six organization story/narrative editor toolbars to one row, removed divider/spacer spans, and tightened padding/gaps. Existing controls remain; narrow layouts scroll horizontally and coarse pointers retain 44px targets. Browser DOM verified all six toolbars at 390px wide/40px tall with no overflow and all buttons sharing one row. Focused ESLint passes. No content edited or saved. Graph refresh: `/tmp/profile-toolbar-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Hide organization editor counters
+
+Used the existing countClassName override to hide the full word/character-count row in all six organization story/narrative editors. Other editor views unchanged. Browser verified all six count rows display:none with zero height; focused ESLint passes. Reusing in-flight graph refresh session 64618 (`/tmp/profile-toolbar-graphify-20261021.log`); no duplicate graph job. Development branch only.

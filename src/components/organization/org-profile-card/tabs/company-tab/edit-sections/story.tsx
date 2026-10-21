@@ -69,6 +69,7 @@ function StoryCoreDocumentField({
       <RichTextEditor
         className={styles.richText}
         toolbarClassName={styles.richTextToolbar}
+        countClassName="hidden"
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })
@@ -105,6 +106,7 @@ function StoryNarrativeField({
       <RichTextEditor
         className={styles.richText}
         toolbarClassName={styles.richTextToolbar}
+        countClassName="hidden"
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })
