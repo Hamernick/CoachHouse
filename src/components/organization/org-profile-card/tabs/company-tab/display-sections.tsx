@@ -27,25 +27,13 @@ export function IdentityPreview({ company }: CompanyViewProps) {
   const hasDescription =
     typeof company.description === "string" &&
     company.description.trim().length > 0
-  if (
-    !(company.name?.trim() || company.tagline?.trim() || hasDescription || formationStatus)
-  ) {
+  if (!(hasDescription || formationStatus)) {
     return null
   }
 
   return (
     <FormRow title="Identity" layout="stacked" inset={false}>
       <div className={cn(styles.group, styles.readOnly)}>
-        {company.name?.trim() ? (
-          <ProfileField label="Organization name" hideLabel>
-            <FieldText text={company.name} />
-          </ProfileField>
-        ) : null}
-        {company.tagline?.trim() ? (
-          <ProfileField label="Tagline" hideLabel>
-            <FieldText text={company.tagline} />
-          </ProfileField>
-        ) : null}
         {hasDescription ? (
           <ProfileField label="Description" className={styles.stacked}>
             <FieldText text={company.description} multiline />

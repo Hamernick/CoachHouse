@@ -1187,3 +1187,8 @@ Organization name and Tagline now use placeholder labels and occupy the full gro
 - About us uses existing shadcn single/collapsible accordion primitives styled like the public profile for all six populated story fields, including Mission, Vision and Values. Existing sanitized narrative renderer preserves rich content; empty entries stay omitted. Public profile remains unchanged.
 - 20 focused formation/story tests pass (story rerun after updating old label-markup assertion); focused lint/whitespace pass. Authenticated localhost preview verified 414px groups inside 416px content with no horizontal overflow, Mission expansion and Vision opening/Mission closing. Screenshot `/tmp/organization-saved-layout-20261021.png`. No user edits saved. No existing visual baseline covers this workspace saved panel; public-profile baselines are unchanged.
 - Prior Graphify job completed successfully. New cohesive-slice refresh session 85473, log `/tmp/organization-saved-layout-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Remove duplicate saved identity rows
+
+Removed name and tagline from saved Identity because the header already displays them. Restored Identity's empty-section condition to description/formation status only. Edit inputs and header unchanged. Pre-push lint/whitespace checks cover this removal. Graph refresh remains the existing cohesive-slice job 85473; no duplicate launched.
