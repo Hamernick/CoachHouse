@@ -19,7 +19,7 @@ const STORY_FIELDS = [
   },
   {
     name: "need",
-    label: "Our need",
+    label: "Need Statement",
     placeholder:
       "Students in our district lack access to labs, internships, and career exposure.",
   },

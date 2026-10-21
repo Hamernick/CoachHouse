@@ -1240,3 +1240,8 @@ Split the combined About us edit group into six separate cards (Origin story, Ne
 ### October 21 — Public row matches form width
 
 Moved horizontal header padding to the name/links and donation content so the Public row spans the same width as Identity. Logo remains centered. Browser verified exact matching bounds: left266/right682/width416px for both Public row and Identity. Focused lint/whitespace pass. Existing graph refresh6287 reused.
+
+
+### October 21 — Need Statement editor label
+
+Renamed the requested story editor label from Our need to Need Statement. Field identity, value and persistence unchanged. Whitespace/pre-push checks cover copy-only change.
