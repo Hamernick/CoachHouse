@@ -1154,3 +1154,8 @@ Used the existing countClassName override to hide the full word/character-count 
 ### October 21 — Remove public settings preview/share actions
 
 Removed the requested Preview map profile and Share buttons and their wrapper from PublicPageSettings. Public URL and map visibility controls remain. Existing focused settings test passes; authenticated browser confirms both actions absent and public URL input present. Reusing in-flight graph job 64618; log `/tmp/profile-toolbar-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Remove online resource notice
+
+Removed the highlighted “This will appear as a web resource” notice card and unused Globe icon. Access selector and URL fields unchanged. Focused lint passes; browser confirms notice absent and access selector present. Graph maintenance remains in-flight session 64618, `/tmp/profile-toolbar-graphify-20261021.log`; no duplicate job started. Development branch only.

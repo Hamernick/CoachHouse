@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
-import GlobeIcon from "lucide-react/dist/esm/icons/globe"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 
 import { Input } from "@/components/ui/input"
@@ -257,25 +256,6 @@ export function PublicPageSettings({
                   When you save this profile, Coach House geocodes the address
                   from the Address section and falls back to broader locality
                   matching if the exact street lookup misses.
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        {company.isPublic && isOnlineOnly ? (
-          <div className="border-primary/30 bg-primary/5 rounded-xl border p-3">
-            <div className="flex items-start gap-2">
-              <GlobeIcon
-                className="text-primary mt-0.5 h-4 w-4 shrink-0"
-                aria-hidden
-              />
-              <div className="space-y-1">
-                <p className="text-foreground text-sm font-medium">
-                  This will appear as a web resource
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  Online-only organizations stay visible in Find with a web
-                  resource badge instead of a map marker.
                 </p>
               </div>
             </div>
