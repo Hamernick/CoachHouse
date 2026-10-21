@@ -1,5 +1,15 @@
 # Open Work Index
 
+## Particle MVP continuation — 2026-10-19
+
+**Development-branch preservation — October20:** Caleb authorized committing the accumulated redesign and pushing only `feat/particle-system-20261009`, with `origin/feat/particle-system-20261009` as upstream. This existing checkout remains the active development source for the newer chat. Preserve that branch; do not merge main or deploy as part of preservation. Verify live Git status/remote SHA rather than relying on historical local-only/dirty descriptions below. Continue committing and pushing usable development checkpoints.
+
+Latest user correction: MVP/W1–W8 checklist is paused context, not an execution assignment. Only follow new user requests. Current requested canvas inset is locally implemented/reviewable; see the user-directed canvas outer inset checkpoint in the existing MVP plan.
+
+Latest preview recovery: Node22.13.0 restarted only this lane on port3008, listener54213/exec session68456; exact checkout verified. Unauthenticated workspace redirects to login; authenticated W1 baseline remains next. See the context-recovery checkpoint in the existing MVP plan. Public sharing/forms stay paused behind W1–W8; source remains local and dirty.
+
+Current user-directed sequence: [Workspace board and branded sharing MVP](../plans/2026-10-16-workspace-board-sharing-mvp.md#priority-override--october19-workspace-behavior-before-feature-completion), existing dirty `coach-house-platform-particle-system-20261009`, `feat/particle-system-20261009`, port3008/PID54213. Share menu/window now connects selection/order, preview, explicit Publish/Update, Copy and Private; exact unconfirmed retries and dirty protection included. Latest72affected interaction/action tests, scoped types/lint, boundaries/ownership/manifest/diff pass; earlier SQL/source/render receipts retained. All three reviewed sharing migrations applied to Production October19; independent readback confirms exact history/function sources, forced RLS and service-only RPCs. Fiscal20261016200000 preserved. Latest user order: core workspace interaction/layout/behavior first (W1–W8), then sharing review/OG/media/Forms→Sheets. [Desktop resume handoff](</Users/calebhamernick/Desktop/Coach House Workspace MVP - Resume Plan.md>) maps all36steps and28supporting references. People deferred. Plan holds exact SQL links/recovery and known feature-guard failure. No live journey, release, PR or remote-backup claim.
+
 Internal rapid-UI closure updated 2026-10-12; other entries retain their recorded reconciliation dates. Read after `AGENTS.md`, `docs/RUNLOG.md`, and its latest monthly entries. Previously recorded release base (October 5): `origin/main` `c8b411df`; refresh before starting release work.
 
 Maintain one active entry per lane or preservation hold. Update entries in place:

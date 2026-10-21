@@ -1,5 +1,11 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import {
+  WorkspaceWindowHeaderPortal,
+  useWorkspaceWindowHeader,
+  WORKSPACE_HEADER_BUTTON,
+} from "@/components/workspace/workspace-window-header-slots"
 import Link from "next/link"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import PencilLine from "lucide-react/dist/esm/icons/pencil-line"
@@ -45,7 +51,7 @@ export function OrgProfileHeaderBannerControls({
 
   return (
     <>
-      <div className="absolute right-4 top-4 flex items-center gap-2">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
         <input
           id={headerInputId}
           type="file"
@@ -78,11 +84,19 @@ export function OrgProfileHeaderBannerControls({
                 Adjust banner
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild disabled={headerBusy} className="cursor-pointer">
-                <label htmlFor={headerInputId} className="flex w-full cursor-pointer items-center gap-2">
+              <DropdownMenuItem
+                asChild
+                disabled={headerBusy}
+                className="cursor-pointer"
+              >
+                <label
+                  htmlFor={headerInputId}
+                  className="flex w-full cursor-pointer items-center gap-2"
+                >
                   {isUploadingHeader ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                      <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                      Uploading…
                     </>
                   ) : (
                     "Replace banner"
@@ -91,8 +105,9 @@ export function OrgProfileHeaderBannerControls({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled className="opacity-100">
-                <span className="text-xs text-muted-foreground">
-                  Banner: {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px ({ORG_BANNER_ASPECT_LABEL})
+                <span className="text-muted-foreground text-xs">
+                  Banner: {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
+                  {ORG_BANNER_ASPECT_LABEL})
                 </span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -110,7 +125,8 @@ export function OrgProfileHeaderBannerControls({
             <label htmlFor={headerInputId} className="cursor-pointer">
               {isUploadingHeader ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                  <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                  Uploading…
                 </span>
               ) : (
                 "Upload banner"
@@ -119,8 +135,9 @@ export function OrgProfileHeaderBannerControls({
           </Button>
         )}
       </div>
-      <div className="absolute right-4 top-14 rounded-md border border-border/60 bg-background/85 px-2 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
-        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px ({ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
+      <div className="border-border/60 bg-background/85 text-muted-foreground absolute top-14 right-4 rounded-md border px-2 py-1 text-[10px] backdrop-blur-sm">
+        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
+        {ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
         {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
       </div>
     </>
@@ -177,11 +194,19 @@ export function OrgProfileHeaderLogoControls({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem asChild disabled={logoBusy} className="cursor-pointer">
-              <label htmlFor={logoInputId} className="flex w-full cursor-pointer items-center gap-2">
+            <DropdownMenuItem
+              asChild
+              disabled={logoBusy}
+              className="cursor-pointer"
+            >
+              <label
+                htmlFor={logoInputId}
+                className="flex w-full cursor-pointer items-center gap-2"
+              >
                 {isUploadingLogo ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                    <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                    Uploading…
                   </>
                 ) : (
                   "Replace logo"
@@ -203,7 +228,8 @@ export function OrgProfileHeaderLogoControls({
           <label htmlFor={logoInputId} className="cursor-pointer">
             {isUploadingLogo ? (
               <span className="inline-flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                Uploading…
               </span>
             ) : (
               "Upload"
@@ -236,31 +262,60 @@ export function OrgProfileHeaderActions({
   onCancelEdit,
   onSave,
 }: OrgProfileHeaderActionsProps) {
+  const inWindowHeader = useWorkspaceWindowHeader()
   if (!canEdit && (!publicLink || editMode)) return null
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 pb-3">
-      {publicLink && !editMode ? (
-        <Button asChild size="sm" variant="secondary">
-          <Link href={publicLink}>View map profile</Link>
-        </Button>
-      ) : null}
-      {canEdit ? (
-        editMode ? (
-          <>
-            <Button size="sm" variant="ghost" onClick={onCancelEdit} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={onSave} disabled={isSaving || !isDirty}>
-              {isSaving ? "Saving…" : "Save changes"}
-            </Button>
-          </>
-        ) : (
-          <Button size="sm" onClick={onEnterEdit} data-tour="org-profile-edit">
-            Edit
+    <WorkspaceWindowHeaderPortal>
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-end gap-2",
+          !inWindowHeader && "pb-3"
+        )}
+      >
+        {publicLink && !editMode ? (
+          <Button
+            asChild
+            size="sm"
+            className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+            variant="secondary"
+          >
+            <Link href={publicLink}>View map profile</Link>
           </Button>
-        )
-      ) : null}
-    </div>
+        ) : null}
+        {canEdit ? (
+          editMode ? (
+            <>
+              <Button
+                size="sm"
+                className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+                variant="ghost"
+                onClick={onCancelEdit}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+                onClick={onSave}
+                disabled={isSaving || !isDirty}
+              >
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+              onClick={onEnterEdit}
+              data-tour="org-profile-edit"
+            >
+              Edit
+            </Button>
+          )
+        ) : null}
+      </div>
+    </WorkspaceWindowHeaderPortal>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useLayoutEffect, useRef, useState, type ComponentProps } from "react"
+import { WorkspaceWindowHeaderScope } from "@/components/workspace/workspace-window-header-slots"
 import { MediaActivityProvider } from "@/components/media/media-activity"
 import { cn } from "@/lib/utils"
 import { TabsContent } from "@/components/ui/tabs"
@@ -48,13 +49,18 @@ export function WorkspaceRetainedPanel({
       forceMount
       hidden={!painted}
       aria-hidden={!active}
+      aria-label={props["aria-label"] ?? value.charAt(0).toUpperCase() + value.slice(1)}
       className={cn(props.className, !painted && "hidden")}
       inert={!active ? true : undefined}
       onScroll={(event) => {
         if (active) scrollTop.current = event.currentTarget.scrollTop
       }}
     >
-      <MediaActivityProvider active={active}>{children}</MediaActivityProvider>
+      <WorkspaceWindowHeaderScope active={active}>
+        <MediaActivityProvider active={active}>
+          {children}
+        </MediaActivityProvider>
+      </WorkspaceWindowHeaderScope>
     </TabsContent>
   )
 }

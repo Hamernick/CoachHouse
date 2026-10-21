@@ -1,5 +1,6 @@
 import { RichTextPasteMenu } from "./rich-text-paste-menu"
 import type { Editor } from "@tiptap/react"
+import { useEditorState } from "@tiptap/react"
 import type { ComponentType, ReactNode } from "react"
 import AlignCenter from "lucide-react/dist/esm/icons/align-center"
 import AlignLeft from "lucide-react/dist/esm/icons/align-left"
@@ -37,6 +38,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type RichTextToolbarProps = {
+  basic?: boolean
   editor: Editor
   compact: boolean
   enableImages: boolean
@@ -45,6 +47,7 @@ type RichTextToolbarProps = {
   toolbarActions?: ReactNode
   toolbarTrailingActions?: ReactNode
   toolbarClassName?: string
+  subscribeToState?: boolean
 }
 
 function ToolbarButton({
@@ -68,6 +71,7 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={isActive}
       title={label}
       className={cn(
         "h-7 w-7 p-0 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8",
@@ -123,6 +127,7 @@ const TEXT_STYLE_LABELS: Record<string, string> = {
 }
 
 export function RichTextToolbar({
+  basic = false,
   editor,
   compact,
   enableImages,
@@ -131,7 +136,27 @@ export function RichTextToolbar({
   toolbarActions,
   toolbarTrailingActions,
   toolbarClassName,
+  subscribeToState = false,
 }: RichTextToolbarProps) {
+  // Subscribe only the toolbar to relevant formatting/history changes. A file
+  // session must not rerender the complete editor/window on each transaction.
+  useEditorState({
+    editor,
+    selector: ({ editor: current }) => !subscribeToState ? null : ({
+      bold: current.isActive("bold"),
+      italic: current.isActive("italic"),
+      underline: current.isActive("underline"),
+      heading: current.getAttributes("heading").level,
+      center: current.isActive({ textAlign: "center" }),
+      right: current.isActive({ textAlign: "right" }),
+      bullet: current.isActive("bulletList"),
+      ordered: current.isActive("orderedList"),
+      quote: current.isActive("blockquote"),
+      table: current.isActive("table"),
+      undo: current.can().undo(),
+      redo: current.can().redo(),
+    }),
+  })
   const textStyle = editor.isActive("heading", { level: 1 })
     ? "heading-1"
     : editor.isActive("heading", { level: 2 })
@@ -157,7 +182,7 @@ export function RichTextToolbar({
         toolbarClassName,
       )}
     >
-      <RichTextPasteMenu editor={editor} />
+      {!basic && <RichTextPasteMenu editor={editor} />}
       {toolbarActions ? <div className="flex items-center gap-1">{toolbarActions}</div> : null}
       <DropdownMenu>
         <ToolbarMenuTrigger icon={TypeIcon} label="Text style" valueLabel={textStyleLabel} />

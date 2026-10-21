@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 
 import type { PublicProfileView } from "@/features/public-profiles"
 
-function publicOrigin() {
+export function publicOrigin() {
   const configured =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||

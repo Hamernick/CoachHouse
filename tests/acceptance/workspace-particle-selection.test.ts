@@ -1,6 +1,7 @@
 import { createWorkspaceParticleConnectionHandlers } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-particle-connection-handlers"
 import { particleFlowStateChanges } from "@/features/workspace-particles/lib/particle-flow-changes"
 import { nativeWorkspaceDragEvent } from "@/lib/workspace-canvas/drag-events"
+import { protectWorkspaceControlDrag } from "@/lib/workspace-canvas/control-drag-boundary"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { applyNodeChanges, type Node } from "@xyflow/react"
 import { createParticlePositionPersistence } from "@/features/workspace-particles/lib/position-persistence"
@@ -12,6 +13,37 @@ import { particle, ID } from "./fixtures/particle-fixtures"
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
+})
+
+describe("Canvas drag control boundary", () => {
+  it.each(["surface", "control", "nodrag", "portal"])(
+    "preserves %s interaction without preventing click or focus defaults",
+    (kind) => {
+      class Target extends EventTarget {
+        tokens = new Set<string>()
+        classList = { add: vi.fn((token: string) => this.tokens.add(token)) }
+        closest(selector: string) {
+          if (selector === ".nodrag")
+            return kind === "nodrag" || this.tokens.has("nodrag") ? this : null
+          return kind === "surface" ? null : this
+        }
+      }
+      vi.stubGlobal("Element", Target)
+      const event = {
+        target: new Target(),
+        currentTarget: { contains: () => kind !== "portal" },
+        stopPropagation: vi.fn(),
+        preventDefault: vi.fn(),
+      }
+      protectWorkspaceControlDrag(event)
+      expect(event.target.classList.add).toHaveBeenCalledTimes(
+        kind === "control" ? 1 : 0
+      )
+      expect(event.target.tokens.has("nodrag")).toBe(kind === "control")
+      expect(event.stopPropagation).not.toHaveBeenCalled()
+      expect(event.preventDefault).not.toHaveBeenCalled()
+    }
+  )
 })
 
 function writer() {
@@ -151,6 +183,38 @@ const node = (id: string): Node => ({
 })
 
 describe("Particle canvas selection adapter", () => {
+  it.each(["canvas", "particle", "input", "dialog", "legacy"])(
+    "scopes history shortcuts correctly for %s focus",
+    (focus) => {
+      class Target {
+        closest(selector: string) {
+          if (selector === ".react-flow__node")
+            return focus === "particle" || focus === "legacy" ? this : null
+          return focus === "input" || focus === "dialog" ? this : null
+        }
+        getAttribute() {
+          return focus === "legacy" ? "legacy" : ID(1)
+        }
+      }
+      vi.stubGlobal("Element", Target)
+      const { particles, events, legacy } = handlers()
+      const onKeyDown = vi.fn(() => true)
+      particles.history = { onKeyDown }
+      const event = {
+        target: new Target(),
+        key: "z",
+        ctrlKey: true,
+      } as unknown as Parameters<typeof events.onKeyDownCapture>[0]
+      events.onKeyDownCapture(event)
+      expect(onKeyDown).toHaveBeenCalledTimes(
+        focus === "canvas" || focus === "particle" ? 1 : 0
+      )
+      expect(legacy.onKeyDownCapture).toHaveBeenCalledTimes(
+        focus === "legacy" ? 1 : 0
+      )
+    }
+  )
+
   it.each(["shiftKey", "metaKey", "ctrlKey"])(
     "leaves %s additive toggling to React Flow without opening another inspector",
     (modifier) => {
@@ -265,21 +329,17 @@ describe("Particle canvas selection adapter", () => {
     expect(legacy.onKeyDownCapture).not.toHaveBeenCalled()
   })
 
-  it("supports desktop marquee while retaining touch and tutorial panning", () => {
-    expect(resolveWorkspaceCanvasSelection(false, false)).toEqual({
-      selectionOnDrag: true,
-      panOnDrag: [1, 2],
+  it("pans by default and requires Shift for marquee selection", () => {
+    expect(resolveWorkspaceCanvasSelection(false)).toEqual({
+      selectionOnDrag: false,
+      panOnDrag: true,
+      selectionKeyCode: "Shift",
     })
-    for (const [touch, tutorial] of [
-      [true, false],
-      [false, true],
-      [true, true],
-    ]) {
-      expect(resolveWorkspaceCanvasSelection(touch, tutorial)).toEqual({
-        selectionOnDrag: false,
-        panOnDrag: true,
-      })
-    }
+    expect(resolveWorkspaceCanvasSelection(true)).toEqual({
+      selectionOnDrag: false,
+      panOnDrag: true,
+      selectionKeyCode: null,
+    })
   })
 })
 

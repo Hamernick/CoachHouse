@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState, type RefObject } from "react"
+import { useCallback, useMemo, useRef, useState, type RefObject } from "react"
 import type { Connection, Edge, ReactFlowInstance } from "@xyflow/react"
 import { toast } from "@/lib/toast"
 import {
@@ -35,10 +35,6 @@ export function useParticleConnections(input: Input) {
     connection: ParticleConnection
   } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [undo, setUndo] = useState<{
-    revision: number
-    operations: ParticleOperation[]
-  } | null>(null)
   const valid = useCallback((connection: Connection | Edge) => {
     const { session, blocked } = latest.current
     const graph = session.getCurrentGraph()
@@ -116,10 +112,6 @@ export function useParticleConnections(input: Input) {
           !receipt.graph.particles.some((item) => item.id === selected)
         )
           latest.current.session.select(null)
-        setUndo({
-          revision: receipt.graph.revision,
-          operations: receipt.inverse,
-        })
         setMessage(success)
         return true
       } catch {
@@ -254,34 +246,26 @@ export function useParticleConnections(input: Input) {
       }, "Activity inserted. Existing positions were preserved."),
     [perform]
   )
-  const undoChange = useCallback(async () => {
-    if (!undo) return false
-    const applied = await perform(
-      (graph) =>
-        graph.revision === undo.revision
-          ? { ok: true, value: undo.operations }
-          : {
-              ok: false,
-              code: "conflict",
-              error:
-                "The plan changed. This connection edit can no longer be undone.",
-            },
-      "Connection change undone."
-    )
-    if (applied) setUndo(null)
-    return applied
-  }, [perform, undo])
-  return {
-    preview:
-      preview && preview.workspaceId === input.session.graph?.workspaceId
-        ? preview.connection
-        : null,
-    valid,
-    connect,
-    disconnect,
-    insert,
-    undoChange,
-    message,
-    canUndo: Boolean(undo && input.session.graph?.revision === undo.revision),
-  }
+  return useMemo(
+    () => ({
+      preview:
+        preview && preview.workspaceId === input.session.graph?.workspaceId
+          ? preview.connection
+          : null,
+      valid,
+      connect,
+      disconnect,
+      insert,
+      message,
+    }),
+    [
+      preview,
+      input.session.graph?.workspaceId,
+      valid,
+      connect,
+      disconnect,
+      insert,
+      message,
+    ]
+  )
 }

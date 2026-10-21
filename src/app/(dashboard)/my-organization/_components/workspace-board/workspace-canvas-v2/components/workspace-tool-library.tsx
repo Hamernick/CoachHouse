@@ -1,5 +1,9 @@
 "use client"
 
+import BuildingIcon from "lucide-react/dist/esm/icons/building-2"
+import ActivityIcon from "lucide-react/dist/esm/icons/list-checks"
+import HeartHandshakeIcon from "lucide-react/dist/esm/icons/heart-handshake"
+
 import type {
   ParticleLibraryTool,
   WorkspaceToolId,
@@ -35,6 +39,14 @@ export function buildWorkspaceToolLibrary({
 }): ParticleLibraryTool[] {
   return TOOLS.map((entry) => ({
     ...entry,
+    icon:
+      entry.id === "organization-overview" ? (
+        <BuildingIcon />
+      ) : entry.id === "programs" ? (
+        <ActivityIcon />
+      ) : (
+        <HeartHandshakeIcon />
+      ),
     visible: !hiddenIds.includes(entry.id),
     // Same renderer and data as the canvas. The library's inert wrapper owns
     // interaction; never replay a canvas action request in a preview.

@@ -165,7 +165,7 @@ export function WorkspaceBoardCanvasBody({
           allowEditing={allowEditing}
           workspaceDataDrawerCanEdit={workspaceDataDrawerCanEdit}
           presentationMode={seed.presentationMode}
-          workspaceRoomName={`org:${seed.orgId}:workspace`}
+          workspaceRoomName={`org:${seed.orgId}:workspace${boardState.workspaceCanvasId ? `:${boardState.workspaceCanvasId}` : ""}`}
           layoutFitRequestKey={layoutFitRequestKey}
           acceleratorFocusRequestKey={acceleratorFocusRequestKey}
           tutorialRestartRequestKey={tutorialRestartRequestKey}

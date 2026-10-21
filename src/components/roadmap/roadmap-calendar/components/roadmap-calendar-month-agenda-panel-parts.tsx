@@ -209,7 +209,7 @@ export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
     </span>
   )
 
-  if (!canManageCalendar) {
+  if (!canManageCalendar && !event.source) {
     return <div className="rounded-xl px-1 py-2">{content}</div>
   }
 
@@ -219,7 +219,7 @@ export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
       variant="ghost"
       className="hover:bg-muted/35 h-auto w-full justify-start rounded-xl px-1 py-2 whitespace-normal"
       onClick={() => onEditEvent(event)}
-      aria-label={`Edit ${event.title}`}
+      aria-label={event.source ? `Open ${event.title} on canvas` : `Edit ${event.title}`}
     >
       {content}
     </Button>

@@ -135,6 +135,7 @@ export function AppShellCalendarAction({
       compactHeaderControls
       initialView={calendarView}
       onViewChange={setCalendarView}
+      onOpenParticle={() => handleCalendarOpenChange(false)}
     />
   ) : null
 

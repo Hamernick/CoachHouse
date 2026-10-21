@@ -188,6 +188,8 @@ export function applyWorkspaceTutorialActivationToSeed<
   }
 ) {
   if (initialOnboardingRequired) return workspaceSeed
+  // Account onboarding must not replace an independently authored named canvas.
+  if (workspaceSeed.boardState.workspaceCanvasId && !workspaceTutorialRequested) return workspaceSeed
 
   if (workspaceOnboardingCompletedAt) {
     if (hasCompletedWorkspaceTutorial(workspaceSeed.boardState)) {

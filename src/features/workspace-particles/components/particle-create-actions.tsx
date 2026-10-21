@@ -2,7 +2,6 @@
 
 import TargetIcon from "lucide-react/dist/esm/icons/target"
 import CheckSquareIcon from "lucide-react/dist/esm/icons/square-check"
-import ListOrderedIcon from "lucide-react/dist/esm/icons/list-ordered"
 import { Button } from "@/components/ui/button"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { PARTICLE_CREATE_TYPES } from "../lib/particle-command"
@@ -12,7 +11,6 @@ import type { ParticleType } from "../types"
 const ICONS = {
   objective: TargetIcon,
   activity: CheckSquareIcon,
-  workflow: ListOrderedIcon,
 }
 export function ParticleCreateActions({
   disabled,

@@ -301,7 +301,7 @@ export function WorkspaceAcceleratorHeaderPicker({
         {trigger}
         <SelectContent
           align="end"
-          className="border-border/70 bg-muted/95 text-foreground"
+          className="border-border/70 bg-popover text-popover-foreground"
           {...getReactGrabLinkedSurfaceProps({
             ownerId: reactGrabOwnerId,
             component: "WorkspaceAcceleratorHeaderPicker",
@@ -327,6 +327,7 @@ export function WorkspaceAcceleratorHeaderPicker({
                 key={option.key}
                 value={option.key}
                 className={cn(
+                  "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
                   tutorialInteractionPolicy &&
                     !isWorkspaceAcceleratorTutorialPinnedClassGroup({
                       tutorialInteractionPolicy,

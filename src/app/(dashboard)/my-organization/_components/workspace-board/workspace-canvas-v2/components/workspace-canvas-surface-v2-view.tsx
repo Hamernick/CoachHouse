@@ -20,12 +20,9 @@ import {
 import { WorkspaceReactFlowErrorBootstrap } from "@/components/workspace/workspace-reactflow-error-bootstrap"
 import {
   useParticleFlow,
+  useParticleCalendarTarget,
   ParticleGeometryObserver,
 } from "@/features/workspace-particles/client"
-import {
-  applyWorkspaceParticleBatchAction,
-  loadWorkspaceParticleGraphAction,
-} from "../../../../_lib/workspace-particle-actions"
 import { WorkspaceCardShortcutRail } from "../shortcuts/workspace-card-shortcut-rail"
 import { WorkspaceCanvasErrorBoundary } from "../runtime/workspace-canvas-error-boundary"
 import {
@@ -35,24 +32,24 @@ import {
 import { WorkspaceCanvasEdgeContextMenu } from "./workspace-canvas-edge-context-menu"
 import { WorkspaceCanvasSurfaceV2ViewportControls } from "./workspace-canvas-surface-v2-viewport-controls-panel"
 import { useWorkspaceCanvasSurfaceGestureGuards } from "./workspace-canvas-surface-v2-gesture-effect"
-import { WorkspaceCanvasOverlayDrawerContainerProvider } from "./workspace-canvas-overlay-drawer-container"
-import { WorkspaceCanvasOverlayDrawer } from "./workspace-canvas-overlay-drawer"
+import { WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
+import { WorkspaceParticleDock } from "./workspace-particle-dock"
 import { WorkspaceCanvasSurfaceV2MobileShortcutOverlay } from "./workspace-canvas-surface-v2-mobile-shortcut-overlay"
 import {
   hasWorkspaceCanvasPersonDragPayload,
   readWorkspaceCanvasPersonDragPayload,
 } from "./workspace-canvas-people-dnd"
-import {
-  WorkspaceParticleInspectorSlot,
-  WorkspaceParticleLibrarySlot,
-  WorkspaceParticleComposerSlot,
-  WorkspaceParticleCreateSlot,
-} from "./workspace-particle-dock-content"
 import { useWorkspaceParticleLibrary } from "./use-workspace-particle-library"
-import { useWorkspaceCanvasSelection } from "./use-workspace-canvas-selection"
+import { resolveWorkspaceCanvasSelection } from "./use-workspace-canvas-selection"
 import { useWorkspaceParticleConnectionLayer } from "./use-workspace-particle-connection-layer"
-import { createWorkspaceParticleFlowHandlers } from "./workspace-particle-flow-handlers"
+import { useWorkspaceParticleFlowHandlers } from "./workspace-particle-flow-handlers"
 import type { WorkspaceCanvasSurfaceV2ViewProps } from "./workspace-canvas-surface-v2-view-types"
+
+const MULTI_SELECTION_KEYS = ["Shift", "Meta", "Control"]
+const CONNECTION_LINE_STYLE = {
+  stroke: "var(--muted-foreground)",
+  strokeWidth: 2,
+}
 
 const WORKSPACE_CANVAS_V2_PRO_OPTIONS = Object.freeze({ hideAttribution: true })
 
@@ -80,7 +77,7 @@ function useWorkspaceTutorialRestartAccountMenuAction({
 }
 
 export function WorkspaceCanvasSurfaceV2View({
-  particleGraph,
+  particleSession,
   libraryCardData,
   hiddenToolIds,
   onPlaceWorkspaceTool,
@@ -139,13 +136,19 @@ export function WorkspaceCanvasSurfaceV2View({
   onDisconnectToTarget,
   onDisconnectAll,
 }: WorkspaceCanvasSurfaceV2ViewProps) {
+  const visibleToolKey = nodes
+    .filter((node) => !node.hidden)
+    .map((node) => node.id)
+    .join("\0")
+  const visibleToolIds = useMemo(
+    () => (visibleToolKey ? visibleToolKey.split("\0") : []),
+    [visibleToolKey]
+  )
   const particles = useParticleFlow({
     workspaceId: uiPreferencesScope.orgId,
-    stored: particleGraph,
-    visibleToolIds: nodes.filter((node) => !node.hidden).map((node) => node.id),
+    session: particleSession,
+    visibleToolIds,
     canEdit: allowEditing && !tutorialActive,
-    transport: applyWorkspaceParticleBatchAction,
-    load: loadWorkspaceParticleGraphAction,
   })
   const particleConnections = useWorkspaceParticleConnectionLayer(
     particles,
@@ -168,7 +171,10 @@ export function WorkspaceCanvasSurfaceV2View({
     tutorialActive,
   })
   const guideParams = useSearchParams()
-  const guideStack = guideParams.get("guide") === "1" && ["identity", "identity-edit"].includes(guideParams.get("guideStep") ?? "")
+  useParticleCalendarTarget(guideParams.get("particle"), particles.graph, particles.sourceRevision, uiPreferencesScope.orgId, particles.select)
+  const guideStack =
+    guideParams.get("guide") === "1" &&
+    ["identity", "identity-edit"].includes(guideParams.get("guideStep") ?? "")
 
   const [surfaceContainer, setSurfaceContainer] =
     useState<HTMLDivElement | null>(null)
@@ -176,7 +182,7 @@ export function WorkspaceCanvasSurfaceV2View({
     useState<HTMLDivElement | null>(null)
   const nodeTypes = useMemo(() => WORKSPACE_CANVAS_V2_NODE_TYPES, [])
   const edgeTypes = useMemo(() => WORKSPACE_CANVAS_V2_EDGE_TYPES, [])
-  const selectionGestures = useWorkspaceCanvasSelection(tutorialActive)
+  const selectionGestures = resolveWorkspaceCanvasSelection(tutorialActive)
   const nodesSelectable = !tutorialActive
   const selectNodesOnDrag =
     !tutorialActive && (allowEditing || peopleCanvasInteractionEnabled)
@@ -249,6 +255,30 @@ export function WorkspaceCanvasSurfaceV2View({
     ]
   )
 
+  const peopleCanvasActions = useMemo(
+    () => ({
+      add: handleAddWorkspacePeopleToCanvas,
+      remove: onRemoveWorkspacePersonFromCanvas,
+    }),
+    [handleAddWorkspacePeopleToCanvas, onRemoveWorkspacePersonFromCanvas]
+  )
+  const flowNodes = useMemo(
+    () => [...library.nodes, ...particles.nodes],
+    [library.nodes, particles.nodes]
+  )
+  const flowEdges = useMemo(
+    () => [...edges, ...particles.edges],
+    [edges, particles.edges]
+  )
+  const flowHandlers = useWorkspaceParticleFlowHandlers(particles, {
+    onNodesChange,
+    onNodeClick,
+    onKeyDownCapture,
+    onNodeDragStop,
+    onSelectionDragStop,
+    onInit,
+  })
+
   useRegisterAppShellAccountMenuAction(tutorialRestartAccountMenuAction)
 
   useWorkspaceCanvasSurfaceGestureGuards({ surfaceContainer })
@@ -257,39 +287,25 @@ export function WorkspaceCanvasSurfaceV2View({
     <WorkspaceCanvasErrorBoundary>
       <div
         ref={setSurfaceContainer}
-        className="workspace-layout-surface group/workspace-canvas-surface relative min-h-[min(820px,calc(100svh-9.5rem))] w-full max-w-full min-w-0 flex-1 overflow-hidden bg-[#f5f5f5] dark:bg-zinc-800"
+        className="workspace-layout-surface group/workspace-canvas-surface relative min-h-[min(820px,calc(100svh-9.5rem))] w-full max-w-full min-w-0 flex-1 overflow-hidden bg-zinc-50 dark:bg-zinc-800"
         data-layout-animating={layoutAnimating ? "true" : undefined}
       >
-        <WorkspaceCanvasOverlayDrawerContainerProvider
+        <WorkspaceParticleCanvasProviders
+          workspaceId={uiPreferencesScope.orgId}
+          canPlaceParticles={
+            allowEditing && !tutorialActive && particles.editable
+          }
+          onPlaceParticle={library.placeDragged}
           container={flowFrameContainer}
           onOpenDataDrawer={onOpenWorkspaceDataDrawer}
         >
           <WorkspaceCardShortcutRail
             items={shortcutItems}
             dataAction={
-              <WorkspaceCanvasOverlayDrawer
-                particleSelectionId={particles.selectedId}
-                particleSelectionKey={particles.selectionRequest}
-                particleInspector={
-                  particles.selected ? (
-                    <WorkspaceParticleInspectorSlot session={particles} />
-                  ) : null
-                }
-                onCloseParticleInspector={() =>
-                  particles.select(null, { restoreFocus: false })
-                }
-                particleLibrary={
-                  <WorkspaceParticleLibrarySlot
-                    session={particles}
-                    tools={library.tools}
-                    canEdit={workspaceDataDrawerCanEdit}
-                  />
-                }
-                particleComposer={
-                  !tutorialActive ? (
-                    <WorkspaceParticleComposerSlot session={particles} />
-                  ) : null
-                }
+              <WorkspaceParticleDock
+                particles={particles.controls}
+                tools={library.tools}
+                tutorialActive={tutorialActive}
                 people={workspaceDataDrawerPeople}
                 placedPersonIds={placedWorkspacePersonIds}
                 viewerId={workspaceDataDrawerViewerId}
@@ -305,19 +321,11 @@ export function WorkspaceCanvasSurfaceV2View({
                 request={workspaceDataDrawerRequest}
                 canEdit={workspaceDataDrawerCanEdit}
                 uiPreferencesScope={uiPreferencesScope}
-                peopleCanvasActions={{
-                  add: handleAddWorkspacePeopleToCanvas,
-                  remove: onRemoveWorkspacePersonFromCanvas,
-                }}
+                peopleCanvasActions={peopleCanvasActions}
               />
             }
           />
           <WorkspaceCanvasSurfaceV2ViewportControls
-            particleActions={
-              !tutorialActive ? (
-                <WorkspaceParticleCreateSlot session={particles} />
-              ) : null
-            }
             tutorialCalendarButtonCallout={
               tutorialCalendarButtonCallout ?? null
             }
@@ -335,8 +343,8 @@ export function WorkspaceCanvasSurfaceV2View({
               <WorkspaceReactFlowErrorBootstrap onError={onError}>
                 {(handleReactFlowError) => (
                   <ReactFlow<Node>
-                    nodes={[...library.nodes, ...particles.nodes]}
-                    edges={[...edges, ...particles.edges]}
+                    nodes={flowNodes}
+                    edges={flowEdges}
                     nodeTypes={nodeTypes}
                     edgeTypes={edgeTypes}
                     nodesDraggable={nodesDraggable}
@@ -344,31 +352,21 @@ export function WorkspaceCanvasSurfaceV2View({
                     nodeDragThreshold={4}
                     connectionRadius={32}
                     connectionLineType={ConnectionLineType.SmoothStep}
-                    connectionLineStyle={{
-                      stroke: "var(--muted-foreground)",
-                      strokeWidth: 2,
-                    }}
+                    connectionLineStyle={CONNECTION_LINE_STYLE}
                     elementsSelectable={nodesSelectable}
-                    selectionKeyCode="Shift"
-                    multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+                    multiSelectionKeyCode={MULTI_SELECTION_KEYS}
                     selectionMode={SelectionMode.Partial}
                     {...selectionGestures}
                     panActivationKeyCode="Space"
                     selectNodesOnDrag={selectNodesOnDrag}
-                    {...createWorkspaceParticleFlowHandlers(particles, {
-                      onNodesChange,
-                      onNodeClick,
-                      onKeyDownCapture,
-                      onNodeDragStop,
-                      onSelectionDragStop,
-                      onInit,
-                    })}
+                    {...flowHandlers}
                     onNodeDoubleClick={onNodeDoubleClick}
                     onMoveStart={onMoveStart}
                     onMoveEnd={onMoveEnd}
                     {...particleConnections.handlers}
                     onDragOver={handleCanvasDragOver}
                     onDrop={handleCanvasDrop}
+                    onPaste={library.paste}
                     zoomOnPinch
                     zoomOnScroll
                     zoomOnDoubleClick={false}
@@ -426,7 +424,7 @@ export function WorkspaceCanvasSurfaceV2View({
               items={shortcutItems}
             />
           ) : null}
-        </WorkspaceCanvasOverlayDrawerContainerProvider>
+        </WorkspaceParticleCanvasProviders>
       </div>
     </WorkspaceCanvasErrorBoundary>
   )

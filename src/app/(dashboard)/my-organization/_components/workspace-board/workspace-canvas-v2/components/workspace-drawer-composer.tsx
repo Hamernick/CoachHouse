@@ -1,5 +1,7 @@
 "use client"
 
+import styles from "./workspace-dock.module.css"
+
 import { useRef, type ReactNode, type Ref, type SetStateAction } from "react"
 import {
   WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT,
@@ -23,7 +25,7 @@ export function WorkspaceDrawerComposer({
   return (
     <div
       ref={composerRef}
-      className="shrink-0"
+      className={desktop ? styles.composerShell : "shrink-0"}
       onFocusCapture={(event) => {
         if (desktop) return
         if (!(event.target instanceof HTMLTextAreaElement)) return

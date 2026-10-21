@@ -51,6 +51,16 @@ export function readReactGrabElementMetadata(
     }
   }
 
+  const particle = typeof element.closest === "function"
+    ? element.closest("[data-particle-kind][data-particle-id]")
+    : null
+  const particleNotes = particle ? [
+    `Particle type: ${readElementAttribute(particle, "data-particle-kind")}`,
+    `Particle title: ${readElementAttribute(particle, "data-particle-title")}`,
+    `Particle id: ${readElementAttribute(particle, "data-particle-id")}`,
+    `Storage type: ${readElementAttribute(particle, "data-particle-storage-type")}`,
+  ].join("\n") : null
+
   const slot =
     normalizeOptionalString(
       readElementAttribute(element, "data-react-grab-surface-slot") ??
@@ -94,9 +104,7 @@ export function readReactGrabElementMetadata(
     primitiveImport: normalizeOptionalString(
       readElementAttribute(element, "data-react-grab-primitive-import"),
     ),
-    notes: normalizeOptionalString(
-      readElementAttribute(element, "data-react-grab-notes"),
-    ),
+    notes: [readElementAttribute(element, "data-react-grab-notes"), particleNotes].filter(Boolean).join("\n") || null,
     className: readElementAttribute(element, "class") ?? "",
   }
 }

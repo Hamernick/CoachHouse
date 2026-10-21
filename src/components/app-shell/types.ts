@@ -8,6 +8,7 @@ export type AppShellProps = {
   children: ReactNode
   breadcrumbs?: ReactNode
   sidebarHeaderContent?: ReactNode
+  accountMenuContent?: ReactNode
   sidebarTree: SidebarClass[]
   user?: {
     name: string | null

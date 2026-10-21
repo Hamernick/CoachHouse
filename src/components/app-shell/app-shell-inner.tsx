@@ -95,6 +95,7 @@ export function AppShellInner({
   children,
   breadcrumbs,
   sidebarHeaderContent,
+  accountMenuContent,
   sidebarTree,
   user,
   isAdmin,
@@ -208,11 +209,13 @@ export function AppShellInner({
   const isPublicMapSurface = derivedContext === "public" && useFullBleedContent
   const showMobileNavigation =
     shouldShowMobileNavigation(pathname) && (!onboardingLocked || hasRightRail)
-  const contentPadding = "pb-0 md:pb-4"
+  const contentPadding = isWorkspaceHomeRoute ? "pb-0 md:pb-1" : "pb-0 md:pb-4"
   const contentHorizontalPadding = cn(
     "px-0",
     !isPublicMapSurface && isCoachingRoute && "px-[var(--shell-content-pad)]",
-    "md:pl-[var(--shell-outer-gutter)] md:pr-0"
+    isWorkspaceHomeRoute
+      ? "md:px-1"
+      : "md:pl-[var(--shell-outer-gutter)] md:pr-0"
   )
   const onboardingRedirectTarget = resolveAppShellOnboardingRedirectTarget({
     onboardingLocked,
@@ -262,10 +265,11 @@ export function AppShellInner({
             "text-foreground h-svh min-h-0 overflow-hidden bg-[var(--shell-bg)]",
             "[--shell-bg:var(--background)] [--shell-panel:var(--background)] [--shell-rail:var(--background)]",
             "[--shell-border:var(--border)] [--shell-card:var(--background)]",
-            "[--shell-content-pad:1rem] [--shell-gutter:1.25rem] [--shell-rail-gap:1rem] [--shell-rail-item-padding:0.5rem] [--shell-rail-padding:0.75rem] [--shell-right-rail-pad:0.75rem] sm:[--shell-content-pad:1.25rem] lg:[--shell-content-pad:1.5rem]",
+            "[--shell-content-pad:1rem] [--shell-gutter:1.25rem] [--shell-rail-gap:1rem] [--shell-rail-item-padding:0.5rem] [--shell-rail-padding:0.5rem] [--shell-right-rail-pad:0.75rem] sm:[--shell-content-pad:1.25rem] lg:[--shell-content-pad:1.5rem]",
             "[--shell-right-rail-width:var(--sidebar-width)]",
             "[--sidebar-border:var(--border)] [--sidebar-foreground:var(--foreground)] [--sidebar:var(--background)]",
             isWorkspaceHomeRoute && "[--shell-right-rail-width:17rem]",
+            isWorkspaceHomeRoute && "[--shell-content-radius:24px]",
             isAcceleratorContext &&
               "[--shell-right-rail-pad:0rem] [--shell-right-rail-width:26rem]",
             isModulePage &&
@@ -301,6 +305,7 @@ export function AppShellInner({
               </AppShellSidebarHeader>
               <AppShellSidebarNavigation>
                 <SidebarBody
+                  accountMenuContent={accountMenuContent}
                   isAdmin={isAdmin}
                   platformAccessLevel={platformAccessLevel}
                   isTester={isTester}
@@ -348,7 +353,7 @@ export function AppShellInner({
                     "flex min-h-0 min-w-0 flex-1 gap-0",
                     contentPadding,
                     contentHorizontalPadding,
-                    (!hasRightRail || !rightOpen) &&
+                    !isWorkspaceHomeRoute && (!hasRightRail || !rightOpen) &&
                       "md:pr-[var(--shell-gutter)]"
                   )}
                 >

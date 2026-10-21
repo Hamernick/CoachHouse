@@ -1,3 +1,9 @@
+import { useParticleCloseGuard } from "@/features/workspace-particles/hooks/use-particle-close-guard"
+import { ParticleLibraryTile } from "@/features/workspace-particles/components/particle-library-tile"
+import { ParticleAddControl } from "@/features/workspace-particles/components/particle-add-control"
+import { ParticlePresetGallery } from "@/features/workspace-particles/components/particle-preset-gallery"
+import { ReactGrabPreview } from "@/components/dev/react-grab-preview"
+import { WorkspaceWindowControls } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-window-controls"
 import { ParticleConnections } from "@/features/workspace-particles/components/particle-connections"
 import { Position, ReactFlowProvider, type EdgeProps } from "@xyflow/react"
 import {
@@ -15,7 +21,12 @@ import {
   workspaceReducedMotionServerSnapshot,
 } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-content-window-motion"
 import { spring } from "motion"
-import { createElement } from "react"
+import {
+  Children,
+  createElement,
+  isValidElement,
+  type ReactNode,
+} from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import {
@@ -29,7 +40,10 @@ import { ParticleComposer } from "@/features/workspace-particles/components/part
 import { ParticleCreateActions } from "@/features/workspace-particles/components/particle-create-actions"
 import { ParticleInspector } from "@/features/workspace-particles/components/particle-inspector"
 import { parseParticleCreateCommand } from "@/features/workspace-particles/lib/particle-command"
-import { replaceParticleSteps } from "@/features/workspace-particles/lib/particle-editing"
+import {
+  particleInspectorMaxWidth,
+  replaceParticleSteps,
+} from "@/features/workspace-particles/lib/particle-editing"
 import { particleConnectionsToFlow } from "@/features/workspace-particles/lib/particle-flow-adapters"
 import { particleSchema } from "@/features/workspace-particles/lib/particle-schema"
 import { graph, particle, edge, ID } from "./fixtures/particle-fixtures"
@@ -41,6 +55,7 @@ import {
   getWorkspaceDrawerPath,
 } from "@/lib/workspace/routes"
 import { requestWorkspaceDrawerNavigation } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-drawer-navigation"
+import { useWorkspaceDrawerNavigation } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/use-workspace-drawer-navigation"
 
 import { resolveWorkspaceContentWindowGeometry } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-content-window-geometry"
 import { useWorkspaceContentWindow } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/use-workspace-content-window"
@@ -58,6 +73,72 @@ const libraryProps = {
 }
 
 describe("Particle library and guarded navigation", () => {
+  it.each(["people", "documents", "particles", "tools", "accelerator"])(
+    "selects %s synchronously before reopening a closed window",
+    (destination) => {
+      const updates: unknown[] = []
+      let navigate: (value: string) => void = () => {
+        throw new Error("Navigation not mounted")
+      }
+      function NavigationHarness() {
+        navigate = useWorkspaceDrawerNavigation({
+          tab: "organization",
+          activeSnapPoint: "68px",
+          setTab: (value) => {
+            updates.push(["tab", value])
+          },
+          onSnap: (value) => {
+            updates.push(["snap", value])
+          },
+          uiPreferencesScope: { orgId: "navigation-test", viewerId: "viewer" },
+          retainOnParticleClear: () => {},
+        }).handleTabChange
+        return null
+      }
+      renderToStaticMarkup(createElement(NavigationHarness))
+      navigate(destination)
+      expect(updates).toEqual([
+        ["tab", destination],
+        ["snap", 0.48],
+      ])
+    }
+  )
+
+  it("toggles the selected panel closed and restores it on the next click", () => {
+    for (const snapPoint of [0.48, "68px"] as const) {
+      const onSnap = vi.fn()
+      let navigation: ReturnType<typeof useWorkspaceDrawerNavigation> | undefined
+      function Harness() {
+        navigation = useWorkspaceDrawerNavigation({ tab: "tools", activeSnapPoint: snapPoint, setTab: vi.fn(), onSnap,
+          uiPreferencesScope: { orgId: "test", viewerId: "viewer" }, retainOnParticleClear: vi.fn() })
+        return null
+      }
+      renderToStaticMarkup(createElement(Harness))
+      navigation!.handleTabOpen("tools", true)
+      expect(onSnap).toHaveBeenCalledWith(snapPoint === "68px" ? 0.48 : "68px")
+    }
+  })
+  it("defers the complete destination until the custom discard dialog accepts", () => {
+    const onSnap = vi.fn(), setTab = vi.fn(), retain = vi.fn()
+    let resume: (() => void) | undefined
+    let navigation: ReturnType<typeof useWorkspaceDrawerNavigation> | undefined
+    function Harness() {
+      navigation = useWorkspaceDrawerNavigation({ tab: "tools", activeSnapPoint: 0.48, setTab, onSnap,
+        uiPreferencesScope: { orgId: "test", viewerId: "viewer" }, retainOnParticleClear: retain, particleSelectionId: "editing",
+        onCloseParticleInspector: (accepted) => { resume = accepted; return false } })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    navigation!.handleTabChange("documents")
+    expect(setTab).not.toHaveBeenCalled()
+    expect(onSnap).not.toHaveBeenCalled()
+    expect(retain).not.toHaveBeenCalled()
+    resume!()
+    expect(setTab).toHaveBeenCalledWith("documents")
+    expect(onSnap).toHaveBeenCalledWith(0.48)
+    expect(retain).toHaveBeenCalledOnce()
+  })
+
   it("does not mount an unseen or collapsed module before it is opened", () => {
     let renders = 0
     function ModuleDraft() {
@@ -142,7 +223,7 @@ describe("Particle library and guarded navigation", () => {
     expect(records).toEqual([calendar, activity])
   })
 
-  it("lists every supported type without duplicate creation controls", () => {
+  it("lists available records including legacy types without duplicate creation controls", () => {
     const types = [
       "objective",
       "activity",
@@ -156,6 +237,7 @@ describe("Particle library and guarded navigation", () => {
     const records = types.map((type, index) => ({
       ...particle(index + 1, type),
       title: `Record ${type}`,
+      canvasHidden: true,
     }))
     const html = renderToStaticMarkup(
       createElement(ParticleLibrary, { ...libraryProps, particles: records })
@@ -174,7 +256,7 @@ describe("Particle library and guarded navigation", () => {
         ...libraryProps,
         canEdit: false,
         editable: false,
-        particles: [particle(1)],
+        particles: [{ ...particle(1), canvasHidden: true }],
       })
     )
     expect(html).toContain("View only")
@@ -213,8 +295,8 @@ describe("Particle presentation boundary", () => {
     expect(html).toContain('aria-label="Add Particle"')
     expect(html).toContain("Objective")
     expect(html).toContain("Activity")
-    expect(html).toContain("Workflow")
-    expect(html.match(/disabled=""/g)).toHaveLength(3)
+    expect(html).not.toContain("Workflow")
+    expect(html.match(/disabled=""/g)).toHaveLength(2)
   })
 
   it("keeps command errors and retry visible and announces pending saves", () => {
@@ -246,8 +328,6 @@ describe("Particle presentation boundary", () => {
         { selected: true },
         createElement(ParticleHeader, {
           title: "Community gathering",
-          label: "Activity",
-          status: "in_progress",
           icon: null,
         }),
         createElement(ParticleBody, null, "Checklist"),
@@ -260,7 +340,8 @@ describe("Particle presentation boundary", () => {
     expect(html.indexOf('data-workspace-node-part="body"')).toBeLessThan(
       html.indexOf('data-workspace-node-part="footer"')
     )
-    expect(html).toContain("In progress")
+    expect(html).not.toContain("In progress")
+    expect(html).not.toContain('data-react-grab-owner-slot="type"')
     expect(html).toContain("ring-ring")
   })
 
@@ -332,8 +413,25 @@ describe("Particle presentation boundary", () => {
     expect(html).toContain("Target")
     expect(html).toContain("Description")
     expect(html).toContain("Save changes")
+    expect(html).toContain("min-h-36")
     expect(html).not.toContain("Node details")
     expect(html).not.toContain("Next steps")
+  })
+
+  it("omits generic status controls from every Particle inspector", () => {
+    for (const type of ["objective", "activity", "calendar", "people", "decision", "metric", "workflow", "finance"] as const) {
+      const html = renderToStaticMarkup(createElement(ParticleInspector, {
+        particle: particle(1, type),
+        editable: true,
+        pending: false,
+        onSave: async () => true,
+        onClose: () => {},
+        onDirtyChange: () => {},
+      }))
+      expect(html).not.toContain("Backlog")
+      expect(html).not.toMatch(/>Status<|id="[^"]*-status"/)
+      expect(html).toContain("Save changes")
+    }
   })
 
   it("only interprets declared creation commands and bounds titles", () => {
@@ -386,41 +484,97 @@ describe("Particle presentation boundary", () => {
 })
 
 describe("responsive content window geometry", () => {
-  it("uses canvas space, including composer growth, to select presentation", () => {
+  it("uses compact widths for simple editors and roomier widths for structured records", () => {
+    for (const type of ["objective", "people", "metric", "finance"] as const)
+      expect(particleInspectorMaxWidth(particle(1, type))).toBe(560)
+    for (const type of [
+      "activity",
+      "calendar",
+      "decision",
+      "workflow",
+    ] as const)
+      expect(particleInspectorMaxWidth(particle(1, type))).toBe(720)
+    const activity = particle(1, "activity")
+    if (activity.type !== "activity")
+      throw new Error("Invalid activity fixture")
+    expect(
+      particleInspectorMaxWidth({
+        ...activity,
+        data: { ...activity.data, widget: { kind: "color", hex: "#abcdef" } },
+      })
+    ).toBe(560)
+  })
+
+  it("centers capped windows, respects small canvases and allows maximizing", () => {
+    for (const [availableWidth, maximized, expectedWidth] of [
+      [920, false, 560],
+      [288, false, 288],
+      [1168, true, 1168],
+    ] as const) {
+      const markup = renderToStaticMarkup(
+        createElement(WorkspaceContentWindow, {
+          title: "Objective",
+          collapsed: false,
+          maxWidth: 560,
+          windowState: {
+            geometry: { width: availableWidth, height: 460 },
+            maximized,
+            onClose() {},
+            onMinimize() {},
+            onToggleMaximize() {},
+          },
+        })
+      )
+      expect(markup).toContain(`width:${expectedWidth}px`)
+      expect(markup).not.toContain("margin-left:")
+    }
+  })
+
+  it("sizes each destination independently and lets Accelerator use tall screens", () => {
+    const canvas = { canvasWidth: 1440, canvasHeight: 1400, dockHeight: 100, maximized: false }
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization" })).toEqual({ width: 768, height: 560 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "people" })).toEqual({ width: 960, height: 560 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "tools" })).toEqual({ width: 560, height: 360 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "documents" })).toEqual({ width: 760, height: 560 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "accelerator" })).toEqual({ width: 1040, height: 1000 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, canvasWidth: 650, tab: "accelerator" })).toEqual({ width: 520, height: 1164 })
+    for (const tab of ["organization", "people", "tools", "documents", "accelerator"] as const) {
+      const narrow = resolveWorkspaceContentWindowGeometry({ ...canvas, tab, canvasWidth: 390, canvasHeight: 700 })!
+      expect(narrow.width).toBeLessThanOrEqual(374)
+      expect(narrow.height).toBeLessThanOrEqual(464)
+      expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab, maximized: true })).toEqual({ width: 1424, height: 1214 })
+    }
+  })
+
+  it("keeps narrow and short canvases in the same window presentation", () => {
+    for (const canvasWidth of [320, 390, 899, 1200]) {
+      for (const canvasHeight of [360, 483, 900]) {
+        for (const dockHeight of [100, 150]) {
+          const geometry = resolveWorkspaceContentWindowGeometry({
+            canvasWidth,
+            canvasHeight,
+            dockHeight,
+            maximized: false,
+          })
+          expect(geometry).not.toBeNull()
+          expect(geometry!.width).toBeLessThanOrEqual(canvasWidth - 16)
+          expect(geometry!.height).toBeGreaterThan(0)
+          expect(geometry!.height + dockHeight + (canvasWidth <= 700 ? 120 : 70) + 16).toBeLessThanOrEqual(
+            canvasHeight
+          )
+        }
+      }
+    }
     expect(
       resolveWorkspaceContentWindowGeometry({
-        canvasWidth: 899,
+        canvasWidth: 0,
         canvasHeight: 900,
-        dockHeight: 116,
-        maximized: false,
-      })
-    ).toBeNull()
-    expect(
-      resolveWorkspaceContentWindowGeometry({
-        canvasWidth: 1200,
-        canvasHeight: 483,
-        dockHeight: 116,
-        maximized: false,
-      })
-    ).toBeNull()
-    expect(
-      resolveWorkspaceContentWindowGeometry({
-        canvasWidth: 1200,
-        canvasHeight: 484,
-        dockHeight: 116,
-        maximized: false,
-      })
-    ).toEqual({ width: 920, height: 320 })
-    expect(
-      resolveWorkspaceContentWindowGeometry({
-        canvasWidth: 1200,
-        canvasHeight: 484,
-        dockHeight: 150,
+        dockHeight: 100,
         maximized: false,
       })
     ).toBeNull()
   })
-  it("keeps normal and maximized windows inside the canvas with all three gaps", () => {
+  it("keeps normal and maximized top panels inside the canvas with composer clearance", () => {
     for (const canvasWidth of [900, 1024, 1600]) {
       for (const dockHeight of [116, 158, 210]) {
         const normal = resolveWorkspaceContentWindowGeometry({
@@ -435,10 +589,10 @@ describe("responsive content window geometry", () => {
           dockHeight,
           maximized: true,
         })!
-        expect(normal.width).toBeLessThanOrEqual(canvasWidth - 48)
+        expect(normal.width).toBeLessThanOrEqual(canvasWidth - 16)
         expect(normal.height).toBeLessThanOrEqual(maximized.height)
-        expect(maximized.width).toBe(canvasWidth - 32)
-        expect(900 - (16 + dockHeight + 16 + maximized.height)).toBe(16)
+        expect(maximized.width).toBe(canvasWidth - 16)
+        expect(900 - (70 + dockHeight + 8 + maximized.height)).toBe(8)
       }
     }
   })
@@ -607,7 +761,7 @@ describe("interruptible content window motion", () => {
       expect(controls.stop).toHaveBeenCalledOnce()
     }
   })
-  it("anchors motion toward the selected tab and bounds travel and scaling origin", () => {
+  it("enters from the right while bounding travel and the selected-tab scaling origin", () => {
     const surface = { left: 200, top: 100, width: 920, height: 460 }
     const left = resolveWorkspaceWindowOrigin(surface, {
       left: 380,
@@ -632,12 +786,12 @@ describe("interruptible content window motion", () => {
         width: 1,
         height: 1,
       })
-    ).toEqual({ originX: 0.08, originY: 1, x: 0, y: 12 })
+    ).toEqual({ originX: 0.08, originY: 0, x: 0, y: -12 })
     expect(resolveWorkspaceWindowOrigin(surface, null)).toEqual({
       originX: 0.5,
-      originY: 1,
+      originY: 0,
       x: 0,
-      y: 12,
+      y: -12,
     })
   })
   it("responds promptly and settles without overshoot from rest", () => {
@@ -813,7 +967,7 @@ describe("Particle connection inspector", () => {
       expect(html.includes("In drawer")).toBe(visibleToolIds.length === 0)
     }
   })
-  it("renders named connections with explicit insertion, disconnection and undo controls", () => {
+  it("renders named connections with insertion and disconnection; history lives in canvas controls", () => {
     const input = graph(undefined, [edge(10, 1, 2)])
     const html = renderToStaticMarkup(
       createElement(ParticleConnections, {
@@ -826,7 +980,7 @@ describe("Particle connection inspector", () => {
     expect(html).toContain("Connections")
     expect(html).toContain("Insert Activity between")
     expect(html).toContain("Disconnect")
-    expect(html).toContain("Undo connection change")
+    expect(html).not.toContain("Undo connection change")
     expect(html).toContain("Relationship")
     expect(html).toContain("Connect to")
     expect(html).toContain('role="status"')
@@ -888,4 +1042,210 @@ it("keeps the same connection id and line presentation through optimistic confir
   // A failed attempt is removed explicitly, not persisted as a decorative edge.
   expect(particleConnectionsToFlow(initial, [], [], null)).toEqual([])
   expect(initial.connections).toEqual([])
+})
+
+describe("compact window controls and inspectable previews", () => {
+  it("keeps previews inert during normal use", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        ReactGrabPreview,
+        null,
+        createElement("button", null, "Preview action")
+      )
+    )
+    expect(markup).toContain('inert=""')
+    expect(markup).toContain('data-react-grab-granular="true"')
+  })
+  it("exposes named close, minimize, and restore controls", () => {
+    const markup = renderToStaticMarkup(
+      createElement(WorkspaceWindowControls, {
+        windowState: {
+          geometry: null,
+          maximized: true,
+          onClose: vi.fn(),
+          onMinimize: vi.fn(),
+          onToggleMaximize: vi.fn(),
+        },
+      })
+    )
+    expect(markup).toContain('aria-label="Close content window"')
+    expect(markup).toContain('aria-label="Minimize content window"')
+    expect(markup).toContain('aria-label="Restore content window"')
+    expect(markup).not.toContain('data-unsaved="true"')
+  })
+  it("gives repeated previews unique ownership ids", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ParticleHeader, {
+          title: "Repeated",
+          icon: null,
+        }),
+        createElement(ParticleHeader, {
+          title: "Repeated",
+          icon: null,
+        })
+      )
+    )
+    const ids = [...markup.matchAll(/data-react-grab-owner-id="([^"]+)"/g)].map(
+      (match) => match[1]
+    )
+    expect(ids.length).toBeGreaterThan(2)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+})
+
+describe("Particle library card layout", () => {
+  it(
+    "preserves drag/add and full card previews",
+    () => {
+      const html = renderToStaticMarkup(
+        createElement(ParticleLibraryTile, {
+          id: ID(1),
+          title: "Organization",
+          subtitle: "Profile",
+          visible: false,
+          preview: createElement("p", null, "Heavy preview sentinel"),
+          drag: {
+            kind: "tool",
+            workspaceId: ID(999),
+            id: "organization-overview",
+          },
+          onPlace: () => {},
+          disabled: false,
+        })
+      )
+      expect(html).toContain('data-draggable="true"')
+      expect(html).toContain('aria-label="Add Organization to canvas"')
+      expect(html).not.toContain("Profile")
+      expect(html).toContain("Heavy preview sentinel")
+      expect(html).toContain("break-inside-avoid")
+    }
+  )
+
+  it.each([
+    ["organization-overview", "Organization"],
+    ["programs", "Activities"],
+    ["fiscal-sponsorship", "Fiscal Sponsorship"],
+  ] as const)(
+    "keeps %s add actionable without the duplicate masonry row",
+    (id, title) => {
+      const onPlace = vi.fn()
+      const tile = ParticleLibraryTile({
+        id,
+        title,
+        subtitle: "Duplicate metadata sentinel",
+        visible: false,
+        preview: createElement("p", null, "Real preview"),
+        drag: { kind: "tool", workspaceId: ID(999), id },
+        onPlace,
+        disabled: false,
+      })
+      const source = Children.toArray(tile.props.children).find((child) =>
+        isValidElement<{ children?: ReactNode }>(child)
+      )
+      if (!isValidElement<{ children?: ReactNode }>(source))
+        throw new Error("Missing drag source")
+      const control = Children.toArray(source.props.children).find(
+        (child) => isValidElement(child) && child.type === ParticleAddControl
+      )
+      if (!isValidElement<{ onAdd: () => void }>(control))
+        throw new Error("Missing Add control")
+      control.props.onAdd()
+      expect(onPlace).toHaveBeenCalledExactlyOnceWith(true)
+      const html = renderToStaticMarkup(tile)
+      expect(html).not.toContain("Duplicate metadata sentinel")
+      expect(html).toContain(`aria-label="Add ${title} to canvas"`)
+      expect(html).not.toContain("On canvas")
+    }
+  )
+
+  it(
+    "preserves preset configure/add and image placement",
+    () => {
+      const html = renderToStaticMarkup(
+        createElement(ParticlePresetGallery, {
+          query: "",
+          disabled: false,
+          workspaceId: ID(999),
+          onSelect: () => {},
+          onAdd: async () => true,
+        })
+      )
+      expect(html).toContain('aria-label="Add image placeholder"')
+      expect(html).toContain('aria-label="Add Image to canvas"')
+      expect(html).toContain('aria-label="Configure ')
+      expect(html).toContain('data-particle-library-stack="true"')
+      expect(html.match(/data-particle-stack-back/g) ?? []).toHaveLength(
+        24
+      )
+    }
+  )
+
+  it("retains disabled on-canvas placeholders", () => {
+    const html = renderToStaticMarkup(
+      createElement(ParticleLibraryTile, {
+        id: ID(1),
+        title: "Existing",
+        subtitle: "Activity",
+        visible: true,
+        preview: createElement("p", null, "Hidden preview sentinel"),
+        drag: { kind: "particle", workspaceId: ID(999), id: ID(1) },
+        onPlace: () => {},
+        disabled: true,
+      })
+    )
+    expect(html).toContain("On canvas")
+    expect(html).toContain("border-dashed")
+    expect(html).toContain('aria-label="Remove Existing from canvas"')
+    expect(html).toContain('disabled=""')
+    expect(html).not.toContain("Hidden preview sentinel")
+    expect(html).not.toContain('draggable="true"')
+  })
+
+
+})
+
+
+describe("custom Particle close guard", () => {
+  function guardHarness(dirty = { current: true }, close = vi.fn(() => true), discardBlocked = false) {
+    let guard: ReturnType<typeof useParticleCloseGuard> | undefined
+    function Harness() {
+      guard = useParticleCloseGuard({ dirty, close, selectionId: "draft", discardBlocked })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    return { guard: guard!, dirty, close }
+  }
+  it("keeps edits and navigation untouched when canceled", () => {
+    const { guard, dirty, close } = guardHarness()
+    const resume = vi.fn()
+    expect(guard.request(resume)).toBe(false)
+    guard.cancel()
+    guard.discard()
+    expect(dirty.current).toBe(true)
+    expect(close).not.toHaveBeenCalled()
+    expect(resume).not.toHaveBeenCalled()
+  })
+  it("discards only after confirmation and resumes the original action once", () => {
+    const { guard, dirty, close } = guardHarness()
+    const resume = vi.fn()
+    expect(guard.request(resume)).toBe(false)
+    expect(close).not.toHaveBeenCalled()
+    guard.discard()
+    guard.discard()
+    expect(dirty.current).toBe(false)
+    expect(close).toHaveBeenCalledOnce()
+    expect(resume).toHaveBeenCalledOnce()
+  })
+  it("closes a clean editor immediately and preserves existing share guards", () => {
+    const clean = guardHarness({ current: false })
+    expect(clean.guard.request()).toBe(true)
+    expect(clean.close).toHaveBeenCalledWith(true)
+    const blocked = guardHarness({ current: true }, vi.fn(() => false), true)
+    expect(blocked.guard.request()).toBe(false)
+    blocked.guard.discard()
+    expect(blocked.dirty.current).toBe(true)
+  })
 })

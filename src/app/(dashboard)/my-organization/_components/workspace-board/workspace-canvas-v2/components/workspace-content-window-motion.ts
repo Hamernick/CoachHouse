@@ -24,23 +24,22 @@ export function workspaceWindowTransition(collapsed: boolean) {
 }
 export const WORKSPACE_WINDOW_OPEN = { opacity: 1, x: 0, y: 0, scale: 1 }
 
-// The tab establishes origin, not a sideways flight path. Keep the separate
-// window close to its final bounds so text remains readable during entry.
+// Enter downward from the top navigation while keeping movement close to final bounds.
 export function resolveWorkspaceWindowOrigin(
   window: Rect,
   anchor: Rect | null
 ) {
   if (!anchor || window.width <= 0)
-    return { originX: 0.5, originY: 1, x: 0, y: WORKSPACE_WINDOW_MOTION.travel }
+    return { originX: 0.5, originY: 0, x: 0, y: -WORKSPACE_WINDOW_MOTION.travel }
   const anchorX = anchor.left + anchor.width / 2
   return {
     originX: Math.max(
       0.08,
       Math.min(0.92, (anchorX - window.left) / window.width)
     ),
-    originY: 1,
+    originY: 0,
     x: 0,
-    y: WORKSPACE_WINDOW_MOTION.travel,
+    y: -WORKSPACE_WINDOW_MOTION.travel,
   }
 }
 

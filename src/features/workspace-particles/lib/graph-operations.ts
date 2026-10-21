@@ -1,3 +1,4 @@
+import { getParticleNotes } from "./particle-notes"
 import { isWorkspaceToolId } from "./workspace-tool-contract"
 import type {
   Particle,
@@ -177,7 +178,7 @@ export function applyPreparedParticleBatch(
   for (const operation of batch.operations) {
     switch (operation.kind) {
       case "put_particle": {
-        const item = operation.particle
+        let item = operation.particle
         const existing = particles.get(item.id)
         if (item.workspaceId !== current.workspaceId)
           return {
@@ -203,6 +204,14 @@ export function applyPreparedParticleBatch(
             code: "locked",
             error: "Unlock the Particle before moving or resizing it.",
           }
+        const note = getParticleNotes(item)
+        const previousNote = existing && getParticleNotes(existing)
+        if (item.type === "activity" && note?.kind === "workspace") {
+          const changed = previousNote?.kind !== "workspace" || note.content !== previousNote.content || note.html !== previousNote.html
+          item = { ...item, data: { ...item.data, widget: { kind: "notes", source: {
+            ...note, contentEditedAt: changed ? now : previousNote.contentEditedAt ?? existing?.updatedAt ?? now,
+          } } } }
+        }
         particles.set(item.id, {
           ...item,
           revision,
@@ -255,8 +264,12 @@ export function applyPreparedParticleBatch(
               code: "locked",
               error: "Unlock selected Particles before moving them.",
             }
+          const note = getParticleNotes(existing)
+          const stationaryNote = existing.type === "activity" && note?.kind === "workspace"
+            ? { ...existing, data: { ...existing.data, widget: { kind: "notes" as const, source: { ...note, contentEditedAt: note.contentEditedAt ?? existing.updatedAt } } } }
+            : existing
           particles.set(move.id, {
-            ...existing,
+            ...stationaryNote,
             position: move.position,
             positionMode: operation.mode,
             revision,

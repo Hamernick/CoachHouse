@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   ParticleConnectionMenu,
   type ParticleConnectionMenuState,
@@ -16,16 +16,34 @@ export function useWorkspaceParticleConnectionLayer(
   const [menu, setMenu] = useState<
     (ParticleConnectionMenuState & { workspaceId: string }) | null
   >(null)
+  const { ids, connections, select, graph } = particles
+  const { onConnect, isValidConnection, onEdgeDoubleClick, onEdgeContextMenu } =
+    legacy
+  const workspaceId = graph?.workspaceId
+  const handlers = useMemo(
+    () =>
+      createWorkspaceParticleConnectionHandlers(
+        { ids, connections, select },
+        { onConnect, isValidConnection, onEdgeDoubleClick, onEdgeContextMenu },
+        (id, x, y) => {
+          closeLegacyMenu()
+          if (workspaceId) setMenu({ id, x, y, workspaceId })
+        }
+      ),
+    [
+      ids,
+      connections,
+      select,
+      onConnect,
+      isValidConnection,
+      onEdgeDoubleClick,
+      onEdgeContextMenu,
+      closeLegacyMenu,
+      workspaceId,
+    ]
+  )
   return {
-    handlers: createWorkspaceParticleConnectionHandlers(
-      particles,
-      legacy,
-      (id, x, y) => {
-        closeLegacyMenu()
-        if (particles.graph)
-          setMenu({ id, x, y, workspaceId: particles.graph.workspaceId })
-      }
-    ),
+    handlers,
     menu: (
       <ParticleConnectionMenu
         preview={particles.connections.preview}

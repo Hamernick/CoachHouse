@@ -24,7 +24,7 @@ export type WorkspaceDrawerTabsProps = {
   drawerCollapsed: boolean
   contentPresent?: boolean
   handleAcceleratorRequestHandled: (requestId: number) => void
-  handleTabOpen: (tab: WorkspaceCanvasDrawerTab) => void
+  handleTabOpen: (tab: WorkspaceCanvasDrawerTab, toggleCurrent?: boolean) => void
   handleTabChange: (value: string) => void
   peopleCanvasActions: WorkspacePeopleCanvasActions
   organizationEditorData: WorkspaceOrganizationEditorData
@@ -41,6 +41,8 @@ export type WorkspaceDrawerTabsProps = {
   viewerId: string
   endAction?: ReactNode
   bodyOverride?: ReactNode
+  particleInspectorTitle?: string
+  particleInspectorMaxWidth?: number
   particleLibrary?: ReactNode
   windowState?: WorkspaceContentWindowState
   composerMode?: boolean

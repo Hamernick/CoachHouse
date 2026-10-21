@@ -80,7 +80,7 @@ export function OrganizationLaunchPanel({ input, hasAccess }: {
       ref={cardRef}
       data-setup-guide-target="launch"
       style={{ boxShadow: "none" }}
-      className="mx-auto w-full max-w-[420px] shrink-0 gap-0 overflow-hidden rounded-[22px] border-border/70 py-0 shadow-none"
+      className="w-full min-w-0 shrink-0 gap-0 overflow-hidden rounded-[22px] border-border/70 py-0 shadow-none"
       {...getReactGrabOwnerProps({
         ownerId: "organization-launch", component: "OrganizationLaunchPanel",
         source: "src/features/organization-launch/components/organization-launch-panel.tsx", slot: "root",

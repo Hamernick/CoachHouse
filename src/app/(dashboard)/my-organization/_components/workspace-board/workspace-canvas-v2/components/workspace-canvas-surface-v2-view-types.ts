@@ -1,6 +1,6 @@
 import type { WorkspaceSelectionDragHandler } from "@/lib/workspace-canvas/drag-events"
 import type { WorkspaceBoardNodeData } from "../../workspace-board-node-types"
-import type { WorkspaceToolId } from "@/features/workspace-particles/client"
+import type { WorkspaceToolId, ParticleSession } from "@/features/workspace-particles/client"
 import type { PlaceWorkspaceTool } from "../../workspace-board-tool-placement"
 import type { KeyboardEventHandler } from "react"
 import type {
@@ -29,7 +29,7 @@ import type {
 import type { WorkspaceCanvasNode } from "./workspace-canvas-surface-v2-helpers"
 
 export type WorkspaceCanvasSurfaceV2ViewProps = {
-  particleGraph?: unknown
+  particleSession: ParticleSession
   libraryCardData: Record<WorkspaceToolId, WorkspaceBoardNodeData>
   hiddenToolIds: readonly string[]
   onPlaceWorkspaceTool: PlaceWorkspaceTool

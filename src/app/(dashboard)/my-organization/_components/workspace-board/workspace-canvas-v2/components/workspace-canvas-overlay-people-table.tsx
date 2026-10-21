@@ -26,7 +26,10 @@ import {
   buildWorkspacePeopleColumnSizeVars,
   measureWorkspacePeopleColumnWidth,
 } from "./workspace-canvas-overlay-people-table-sizing"
-import { WorkspacePeopleTableFill, workspacePeopleColumnStyle } from "./workspace-canvas-people-table-fill"
+import {
+  WorkspacePeopleTableFill,
+  workspacePeopleColumnStyle,
+} from "./workspace-canvas-people-table-fill"
 import { WorkspacePeopleTableLayout } from "./workspace-canvas-people-table-layout"
 import { WorkspacePeopleDrawerTableToolbar } from "./workspace-canvas-overlay-people-table-toolbar"
 
@@ -59,12 +62,14 @@ export const WorkspacePeopleDrawerTable = memo(
   }
 )
 
-type WorkspacePeopleDrawerTableContentProps = WorkspacePeopleDrawerTableProps & {
-  onEditPerson: (person: OrgPersonWithImage) => void
-}
+type WorkspacePeopleDrawerTableContentProps =
+  WorkspacePeopleDrawerTableProps & {
+    onEditPerson: (person: OrgPersonWithImage) => void
+  }
 
 function WorkspacePeopleDrawerTableContent({
   segmentControls,
+  addControls,
   controls,
   emptyMessage = "No people match these filters.",
   people,
@@ -256,6 +261,7 @@ function WorkspacePeopleDrawerTableContent({
       <div className="bg-background flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
         <WorkspacePeopleDrawerTableToolbar
           segmentControls={segmentControls}
+          addControls={addControls}
           controls={controls}
           peopleCount={people.length}
           selectedCount={selectedCount}
@@ -288,11 +294,11 @@ function WorkspacePeopleDrawerTableContent({
           <>
             <div
               ref={tableScrollRef}
-              className="block min-h-0 max-w-full flex-1 overflow-auto overscroll-contain touch-pan-x touch-pan-y will-change-auto [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-visible"
+              className="block min-h-0 max-w-full flex-1 touch-pan-x touch-pan-y overflow-auto overscroll-contain will-change-auto [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-visible"
             >
               <Table
                 aria-label={label}
-                className="flex min-h-full w-full flex-col border-collapse"
+                className="flex min-h-full w-full border-collapse flex-col"
                 style={{
                   minWidth: "calc(var(--workspace-people-table-width) * 1px)",
                 }}
@@ -308,7 +314,10 @@ function WorkspacePeopleDrawerTableContent({
                           key={header.id}
                           data-workspace-people-column={header.column.id}
                           style={{
-                            ...workspacePeopleColumnStyle(header.column.id, header.column.getCanResize()),
+                            ...workspacePeopleColumnStyle(
+                              header.column.id,
+                              header.column.getCanResize()
+                            ),
                             ...(header.column.id === "person"
                               ? {
                                   left: "calc(var(--col-select-size) * 1px)",
@@ -371,7 +380,10 @@ function WorkspacePeopleDrawerTableContent({
                   onRowHeightChange={handleRowSizeChange}
                   onRowHeightReset={handleRowSizeReset}
                 />
-                <WorkspacePeopleTableFill table={table} rowHeight={defaultRowHeight} />
+                <WorkspacePeopleTableFill
+                  table={table}
+                  rowHeight={defaultRowHeight}
+                />
               </Table>
             </div>
             <PeopleTablePagination

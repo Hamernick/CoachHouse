@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { setReactGrabInspectionActive } from "./react-grab-preview"
 import reactGrabPackage from "react-grab/package.json"
 
 import {
@@ -45,6 +46,8 @@ function registerReactGrabSemanticPlugin({
   const plugin: ReactGrabPlugin = {
     name: REACT_GRAB_PLUGIN_NAME,
     hooks: {
+      onActivate: () => setReactGrabInspectionActive(true),
+      onDeactivate: () => setReactGrabInspectionActive(false),
       onElementSelect: createReactGrabSemanticSelectionHandler({
         copyElement: api.copyElement,
         onResolved: traceSelections
@@ -60,6 +63,7 @@ function registerReactGrabSemanticPlugin({
 
   api.unregisterPlugin(REACT_GRAB_PLUGIN_NAME)
   api.registerPlugin(plugin)
+  setReactGrabInspectionActive(api.isActive?.() ?? false)
 }
 
 function ensureScript({
@@ -97,7 +101,7 @@ function ensureScript({
       script.dataset.loaded = "1"
       onLoad?.()
     },
-    { once: true },
+    { once: true }
   )
 
   document.head.appendChild(script)
@@ -133,7 +137,8 @@ export function ReactGrabLoader() {
         : null
     const autoLocalDevLoad =
       process.env.NODE_ENV === "development" || isLocalHost
-    const allowNonDevRuntime = process.env.NODE_ENV === "development" || isLocalHost
+    const allowNonDevRuntime =
+      process.env.NODE_ENV === "development" || isLocalHost
 
     if (urlEnable) {
       window.localStorage.setItem(storageKey, "1")
@@ -189,7 +194,7 @@ export function ReactGrabLoader() {
         })
         if (!shouldLoadOpenCode) {
           const existingOpenCodeScript = document.getElementById(
-            REACT_GRAB_OPENCODE_ID,
+            REACT_GRAB_OPENCODE_ID
           )
           existingOpenCodeScript?.remove()
           return
@@ -204,6 +209,7 @@ export function ReactGrabLoader() {
     return () => {
       window.removeEventListener("react-grab:init", handleInit)
       window.__REACT_GRAB__?.unregisterPlugin(REACT_GRAB_PLUGIN_NAME)
+      setReactGrabInspectionActive(false)
     }
   }, [])
 

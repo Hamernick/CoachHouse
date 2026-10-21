@@ -64,6 +64,20 @@ function DialogOverlay({
   )
 }
 
+// Unstyled content for canvas-contained Motion surfaces. Keep interaction-lock
+// cleanup in the shared primitive rather than importing Radix in feature code.
+function DialogSurface(
+  props: React.ComponentProps<typeof DialogPrimitive.Content>
+) {
+  React.useEffect(
+    () => () => {
+      scheduleInteractionLockGuard()
+    },
+    []
+  )
+  return <DialogPrimitive.Content data-slot="dialog-content" {...props} />
+}
+
 function DialogContent({
   className,
   children,
@@ -164,6 +178,7 @@ export {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogSurface,
   DialogDescription,
   DialogFooter,
   DialogHeader,

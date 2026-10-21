@@ -27,7 +27,7 @@ export function WorkspaceAcceleratorBanner({ onDismiss, dismissButtonRef }: {
   return (
     <section
       {...WORKSPACE_ACCELERATOR_BANNER_OWNER_PROPS}
-      className="border-border/70 bg-muted/30 col-span-full mx-auto flex w-full max-w-[420px] items-start gap-3 rounded-xl border p-4 @min-[900px]/accelerator-overview:max-w-none"
+      className="border-border/70 bg-muted/30 col-span-full flex w-full min-w-0 items-start gap-3 rounded-xl border p-4"
     >
       <span className="bg-background text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70">
         <GraduationCapIcon className="size-4" aria-hidden="true" />

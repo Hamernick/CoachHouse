@@ -7,6 +7,7 @@ import { type NodeProps } from "@xyflow/react"
 import { useWorkspaceNodeInternalsSync } from "@/lib/workspace-canvas/node-internals-sync"
 import { ParticleRemoveControl } from "@/features/workspace-particles/client"
 import { cn } from "@/lib/utils"
+import { protectWorkspaceControlDrag } from "@/lib/workspace-canvas/control-drag-boundary"
 import { WorkspaceOntologyBranchToggle } from "@/features/workspace-ontology"
 
 import { resolveWorkspaceCardHeightModeClassName } from "./workspace-board-layout-config"
@@ -58,13 +59,13 @@ export const WorkspaceBoardNode = memo(function WorkspaceBoardNode({
     <div
       ref={nodeRef}
       className={cn(
-        "group/particle relative min-h-0 w-full min-w-0",
+        "group/particle workspace-card-drag-handle relative min-h-0 w-full min-w-0 cursor-grab active:cursor-grabbing",
         resolveWorkspaceCardHeightModeClassName(data.cardId)
       )}
+      onMouseDownCapture={protectWorkspaceControlDrag}
+      onTouchStartCapture={protectWorkspaceControlDrag}
     >
-      <div
-        className="relative min-h-0 w-full min-w-0"
-      >
+      <div className="relative min-h-0 w-full min-w-0">
         {data.onReturnToLibrary && (
           <ParticleRemoveControl
             title={WORKSPACE_CARD_META[data.cardId].title}

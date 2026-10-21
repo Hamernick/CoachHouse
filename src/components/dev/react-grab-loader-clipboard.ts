@@ -137,6 +137,6 @@ export async function buildReactGrabClipboardOutput({
       ownerMetadata.currentWrongOwnerReason,
     finalClassName,
     chainValues,
-    notes: debugRecord?.notes ?? selectedSurfaceMetadata.notes ?? null,
+    notes: uniqueStrings([debugRecord?.notes, selectedSurfaceMetadata.notes, ownerMetadata.notes]).join("\n") || null,
   })
 }

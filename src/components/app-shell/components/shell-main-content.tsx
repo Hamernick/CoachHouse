@@ -41,7 +41,7 @@ export function ShellMainContent({
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--shell-bg)] shadow-none has-[[data-onboarding-page]]:bg-[#f5f5f5] dark:has-[[data-onboarding-page]]:bg-[var(--shell-bg)]",
-          "rounded-none border-0 md:rounded-[28px] md:border md:border-[color:var(--shell-border)]"
+          "rounded-none border-0 md:rounded-[var(--shell-content-radius,28px)] md:border md:border-[color:var(--shell-border)]"
         )}
       >
         <ScrollFadeEffect

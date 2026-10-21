@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 
 import { CoachSchedulingCard } from "@/components/coaching/coach-scheduling-card"
 import { CoachSchedulingSidebarItem } from "@/components/coaching/coach-scheduling-sidebar-item"
@@ -105,6 +105,7 @@ export function AppSidebar({
 }
 
 type SidebarBodyProps = {
+  accountMenuContent?: ReactNode
   isAdmin: boolean
   platformAccessLevel?: PlatformAccessLevel | null
   isTester: boolean
@@ -135,6 +136,7 @@ type SidebarBodyProps = {
 }
 
 export function SidebarBody({
+  accountMenuContent,
   isAdmin,
   platformAccessLevel = null,
   isTester,
@@ -222,6 +224,7 @@ export function SidebarBody({
         )}
         {hasUser ? (
           <NavUser
+            accountMenuContent={accountMenuContent}
             user={user}
             isAdmin={isAdmin}
             isTester={isTester}

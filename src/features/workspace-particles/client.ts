@@ -1,4 +1,18 @@
 export * from "./lib"
+export { useNoteDocuments } from "./hooks/use-note-documents"
+export { ParticleNoteDocumentDialog } from "./components/particle-note-document-dialog"
+export { ModuleNotesFields } from "./components/particle-module-notes-editor"
+export { ModuleNotesParticleSource } from "./components/module-notes-particle-source"
+export {
+  ParticleFrame,
+  ParticleHeader,
+  ParticleBody,
+} from "./components/particle-frame"
+export { particleInspectorMaxWidth } from "./lib/particle-editing"
+export { ParticleDocumentLibrarySource } from "./components/particle-document-library-source"
+export type { ParticleLibraryDocument } from "./lib/particle-library-document"
+export { resolveLibraryImageParticle } from "./lib/particle-library-document"
+export { ParticleHistoryActions } from "./components/particle-history-actions"
 export {
   ParticleNode,
   ParticleRemoveControl,
@@ -9,6 +23,7 @@ export {
   ParticleCreateActions,
 } from "./components"
 export { useParticleFlow } from "./hooks/use-particle-flow"
+export { useParticleCalendarTarget } from "./hooks/use-particle-calendar-target"
 export type {
   Particle,
   ParticleType,
@@ -37,3 +52,12 @@ export {
   ParticleConnectionMenu,
   type ParticleConnectionMenuState,
 } from "./components/particle-connection-menu"
+
+
+export { ParticleLibraryDragProvider } from "./components/particle-library-drag-provider"
+export type { ParticleLibraryDragRequest } from "./components/particle-library-drag-context"
+
+export { useParticleSession, type ParticleSession } from "./hooks/use-particle-session"
+export { usePersonPlacements } from "./hooks/use-person-placements"
+
+export { ParticleDiscardDialog } from "./components/particle-discard-dialog"

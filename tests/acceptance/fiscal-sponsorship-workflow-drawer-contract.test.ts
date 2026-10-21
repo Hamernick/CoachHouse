@@ -25,7 +25,7 @@ describe("fiscal sponsorship workspace drawer contract", () => {
     expect(workspaceCardSummary).toContain("FiscalSponsorshipWorkflowDrawer")
     expect(workspaceCardSummary).toContain("FiscalSponsorshipApplicationDrawer")
     expect(workspaceCardSummary).toContain("FISCAL_SPONSORSHIP_HANDBOOK_HREF")
-    expect(workspaceCardSummary).toContain("Open workflow")
+    expect(workspaceCardSummary).toContain("FiscalSponsorshipStartDialog")
     expect(workspaceCardSummary).not.toContain("FiscalSponsorshipStepDrawer")
     expect(workspaceCardSummary).not.toContain("Project workbench")
     expect(workspaceCardSummary).not.toContain("Open flow")

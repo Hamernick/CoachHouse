@@ -1,8 +1,12 @@
 "use server"
 
+import { selectWorkspaceState, workspaceIdSchema } from "@/features/workspace-management"
+
 import { revalidatePath } from "next/cache"
 import {
   readParticleGraph,
+  particleCalendarChanged,
+  assertParticleSourceReferenceAccess,
   type ParticleCommit,
   type ParticleGraph,
   type ParticleResult,
@@ -12,6 +16,7 @@ import {
   prepareAuthorizedParticleMutation,
 } from "@/features/workspace-particles"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { resolveCalendarAccess } from "@/actions/roadmap-calendar-helpers"
 import { buildDefaultBoardState } from "../_components/workspace-board/workspace-board-layout"
 import {
   canEditWorkspaceLayout,
@@ -19,9 +24,10 @@ import {
 } from "./workspace-actions-support"
 import { persistWorkspaceBoardState } from "./workspace-board-state-write"
 
-export async function loadWorkspaceParticleGraphAction(): Promise<
+export async function loadWorkspaceParticleGraphAction(workspaceCanvasId?: string): Promise<
   ParticleResult<ParticleGraph>
 > {
+  if (workspaceCanvasId !== undefined && !workspaceIdSchema.safeParse(workspaceCanvasId).success) return { ok: false, code: "invalid", error: "Invalid workspace." }
   const actor = await resolveActor()
   if ("error" in actor) return { ok: false, code: "scope", error: actor.error }
   const { data, error } = await actor.supabase
@@ -35,7 +41,9 @@ export async function loadWorkspaceParticleGraphAction(): Promise<
       code: "unavailable",
       error: "Unable to load Particles. Try again.",
     }
-  const state = data?.state
+  let state
+  try { state = selectWorkspaceState(data?.state, workspaceCanvasId) }
+  catch { return { ok: false, code: "scope", error: "Workspace not found." } }
   return readParticleGraph(
     state && typeof state === "object" && !Array.isArray(state)
       ? state.particleGraph
@@ -45,8 +53,10 @@ export async function loadWorkspaceParticleGraphAction(): Promise<
 }
 
 export async function applyWorkspaceParticleBatchAction(
-  input: unknown
+  input: unknown,
+  workspaceCanvasId?: string
 ): Promise<ParticleResult<ParticleCommit>> {
+  if (workspaceCanvasId !== undefined && !workspaceIdSchema.safeParse(workspaceCanvasId).success) return { ok: false, code: "invalid", error: "Invalid workspace." }
   const actor = await resolveActor()
   if ("error" in actor) return { ok: false, code: "scope", error: actor.error }
   const canEdit = await canEditWorkspaceLayout({
@@ -69,13 +79,28 @@ export async function applyWorkspaceParticleBatchAction(
   }
   try {
     let commit: ParticleCommit | undefined
+    let calendarAccess: ReturnType<typeof resolveCalendarAccess> | undefined
     const result = await persistWorkspaceBoardState({
       supabase,
       orgId: actor.activeOrg.orgId,
+      workspaceCanvasId,
       userId: actor.user.id,
       buildState: (persisted) => persisted ?? buildDefaultBoardState(),
-      updateParticleGraph: (stored) => {
+      updateParticleGraph: async (stored) => {
         commit = mutation.value(stored)
+        const previous = readParticleGraph(stored, actor.activeOrg.orgId)
+        if (!previous.ok) throw new ParticleMutationError(previous.code, previous.error)
+        if (!commit.replayed) await assertParticleSourceReferenceAccess({
+          supabase: actor.supabase,
+          previous: previous.value,
+          next: commit.graph,
+        })
+        if (particleCalendarChanged(previous.value, commit.graph)) {
+          calendarAccess ??= resolveCalendarAccess(actor.supabase, actor.user.id)
+          const access = await calendarAccess
+          if (access.orgId !== actor.activeOrg.orgId || !access.canManageCalendar)
+            throw new ParticleMutationError("scope", "You do not have permission to manage this calendar.")
+        }
         return commit.graph
       },
     })

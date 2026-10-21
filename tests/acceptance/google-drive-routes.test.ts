@@ -3,6 +3,7 @@ import { NextRequest } from "next/server"
 
 const mocks = vi.hoisted(() => ({
   attachGoogleDriveDocuments: vi.fn(),
+  completeGoogleDriveConnection: vi.fn(),
   createGoogleDrivePickerToken: vi.fn(),
   getGoogleDriveConnection: vi.fn(),
   loggerInfo: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/features/google-drive", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/google-drive")>()),
   attachGoogleDriveDocuments: mocks.attachGoogleDriveDocuments,
+  completeGoogleDriveConnection: mocks.completeGoogleDriveConnection,
   createGoogleDrivePickerToken: mocks.createGoogleDrivePickerToken,
   getGoogleDriveConnection: mocks.getGoogleDriveConnection,
   requireGoogleDriveContext: mocks.requireGoogleDriveContext,
@@ -172,6 +174,21 @@ describe("Google Drive route contracts", () => {
       orgId: "org-1",
       fileIds: ["drive-file-one", "drive-file-two"],
     })
+  })
+
+  it.each([
+    ["/workspace/documents", "/workspace?drawer=documents&googleDrive=connected"],
+    ["/organization/documents", "/organization/documents?googleDrive=connected"],
+    ["/workspace?drawer=tools", "/workspace?drawer=tools&googleDrive=connected"],
+  ])("returns a successful connection to its originating surface: %s", async (returnPath, expected) => {
+    mocks.completeGoogleDriveConnection.mockResolvedValue(returnPath)
+    const { GET } = await import("@/app/api/integrations/google-drive/callback/route")
+    const request = new NextRequest("https://coachhouse.app/api/integrations/google-drive/callback?state=state&code=code")
+    const response = await GET(request)
+    expect(response.headers.get("location")).toBe(`https://coachhouse.app${expected}`)
+    expect(response.headers.get("cache-control")).toBe("no-store")
+    expect(mocks.requireGoogleDriveContext).toHaveBeenCalledWith(request, expect.anything(), true)
+    expect(mocks.completeGoogleDriveConnection).toHaveBeenCalledWith({ userId: user.id, orgId: organization.orgId, state: "state", code: "code" })
   })
 
   it("reduces denied callbacks to a fixed Documents error redirect", async () => {

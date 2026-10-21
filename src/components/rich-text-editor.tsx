@@ -1,7 +1,7 @@
 "use client"
 
 import { EditorContent, useEditor } from "@tiptap/react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 import { cn } from "@/lib/utils"
@@ -17,6 +17,8 @@ import { useLinkPreviews } from "@/components/rich-text-editor/hooks/use-link-pr
 import type { RichTextEditorProps } from "@/components/rich-text-editor/types"
 
 export function RichTextEditor({
+  basicToolbar = false,
+  hideLinkPreviews = false,
   value,
   onChange,
   ariaLabel,
@@ -42,12 +44,38 @@ export function RichTextEditor({
   headerClassName,
   countClassName,
   contentClassName,
+  session,
 }: RichTextEditorProps) {
   const applyingRef = useRef(false)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const placeholderRef = useRef(placeholder)
+  const sessionRef = useRef(session)
+  sessionRef.current = session
   const [counts, setCounts] = useState({ words: 0, chars: 0 })
   const [links, setLinks] = useState<string[]>([])
+  const metadataTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshMetadata = useCallback((instance: import("@tiptap/core").Editor) => {
+    if (instance.isDestroyed) return
+    setCounts({
+      words: instance.storage.characterCount?.words?.() ?? 0,
+      chars: instance.storage.characterCount?.characters?.() ?? 0,
+    })
+    const next = extractLinks(instance.getJSON())
+    setLinks((current) =>
+      current.length === next.length && current.every((url, index) => url === next[index])
+        ? current
+        : next
+    )
+    syncPlaceholderState(instance)
+  }, [])
+  const scheduleMetadata = useCallback((instance: import("@tiptap/core").Editor) => {
+    if (metadataTimer.current) clearTimeout(metadataTimer.current)
+    if (sessionRef.current && !sessionRef.current.active) return
+    metadataTimer.current = setTimeout(() => {
+      metadataTimer.current = null
+      refreshMetadata(instance)
+    }, 300)
+  }, [refreshMetadata])
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const placeholderRef = useRef(placeholder)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [toolbarTarget, setToolbarTarget] = useState<HTMLElement | null>(null)
   const isReadOnly = Boolean(readOnly)
@@ -74,17 +102,33 @@ export function RichTextEditor({
     placeholderRef.current = placeholder
   }, [placeholder])
 
+  if (
+    session?.history === "collaborative" &&
+    !session.extensions?.some((extension) => extension.name === "collaboration")
+  ) {
+    throw new Error("A collaborative file session requires a collaboration extension.")
+  }
+
   const editor = useEditor({
     editable: !isReadOnly,
-    extensions: buildRichTextExtensions({
+    extensions: [...buildRichTextExtensions({
       placeholderRef,
       isReadOnly,
       enableImages: enableImages || preserveImages,
       onImageUpload,
-    }),
-    content: value,
-    onUpdate: ({ editor }) => {
+      fileSession: Boolean(session),
+      collaborativeHistory: session?.history === "collaborative",
+    }), ...(session?.extensions ?? [])],
+    content: session?.history === "collaborative" ? undefined : session?.initialContent ?? value,
+    ...(session ? { shouldRerenderOnTransaction: false } : {}),
+    onUpdate: ({ editor, transaction }) => {
       if (applyingRef.current) return
+      const currentSession = sessionRef.current
+      if (currentSession) {
+        currentSession.onUpdate(editor, transaction)
+        scheduleMetadata(editor)
+        return
+      }
       onChange(editor.getHTML())
       setCounts({
         words: editor.storage.characterCount?.words?.() ?? 0,
@@ -129,7 +173,27 @@ export function RichTextEditor({
     },
     immediatelyRender: false,
   })
-  const linkMeta = useLinkPreviews(links)
+  const linkMeta = useLinkPreviews(links, {
+    active: !hideLinkPreviews && (session?.active ?? true),
+    bounded: Boolean(session),
+  })
+
+  const onSessionReady = session?.onReady
+  useEffect(() => {
+    if (!editor || !onSessionReady) return
+    onSessionReady(editor)
+    return () => onSessionReady(null)
+  }, [editor, onSessionReady])
+
+  const sessionActive = session?.active
+  useEffect(() => {
+    if (sessionActive === undefined || !editor) return
+    if (sessionActive) scheduleMetadata(editor)
+    return () => {
+      if (metadataTimer.current) clearTimeout(metadataTimer.current)
+      metadataTimer.current = null
+    }
+  }, [editor, sessionActive, scheduleMetadata])
 
   useEffect(() => {
     if (!editor) return
@@ -146,7 +210,7 @@ export function RichTextEditor({
   }, [toolbarPortalId])
 
   useEffect(() => {
-    if (!editor || typeof value !== "string") return
+    if (!editor || sessionRef.current || typeof value !== "string") return
     const current = editor.getHTML()
     if (current !== value) {
       applyingRef.current = true
@@ -209,6 +273,7 @@ export function RichTextEditor({
   const toolbar = isReadOnly ? null : (
     <RichTextToolbar
       editor={editor}
+      basic={basicToolbar}
       compact={compact}
       enableImages={enableImages}
       uploadingImage={uploadingImage}
@@ -216,6 +281,7 @@ export function RichTextEditor({
       toolbarActions={toolbarActions}
       toolbarTrailingActions={toolbarTrailingActions}
       toolbarClassName={toolbarClassName}
+      subscribeToState={Boolean(session)}
     />
   )
 
@@ -276,7 +342,7 @@ export function RichTextEditor({
           <div className={cn("flex min-h-0 flex-1 flex-col", contentClassName)}>
             <EditorContent editor={editor} />
           </div>
-          {links.length > 0 ? (
+          {!hideLinkPreviews && links.length > 0 ? (
             <div className="bg-muted/20 flex flex-wrap items-center gap-2 rounded-b-md border-t px-3 py-2">
               {links.map((href) => (
                 <LinkPreviewCard key={href} href={href} meta={linkMeta[href]} />

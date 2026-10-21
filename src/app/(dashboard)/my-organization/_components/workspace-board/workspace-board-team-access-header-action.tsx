@@ -13,6 +13,7 @@ import { WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME } from "@/components/works
 import { cn } from "@/lib/utils"
 
 import { useWorkspaceBoardOrganizationAccessState } from "./workspace-board-organization-access-state"
+import { WorkspaceSidebarInviteBridge } from "./workspace-sidebar-invite-bridge"
 import { WorkspaceBoardTeamAccessHoverCard } from "./workspace-board-team-access-hover-card"
 import {
   buildWorkspaceAccessPeople,
@@ -164,7 +165,7 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
       type="button"
       variant="ghost"
       size="sm"
-      className="border-border/65 bg-card hover:bg-muted/20 mr-2 h-9 max-w-[13rem] min-w-0 rounded-full border px-2 py-1 text-left transition-colors"
+      className="border-border/65 bg-card hover:bg-muted/20 mr-2 h-9 max-w-[13rem] min-w-0 rounded-full border py-1 pr-2 pl-1 text-left transition-colors"
       aria-label={`Team access. ${summaryText}. ${realtimeLabel}.`}
     >
       <span className="flex min-w-0 items-center">
@@ -278,8 +279,11 @@ export function WorkspaceBoardTeamAccessHeaderAction(
   props: WorkspaceBoardTeamAccessHeaderActionProps
 ) {
   return (
-    <HeaderActionsPortal slot="right">
-      <WorkspaceBoardTeamAccessHeaderActionContent {...props} />
-    </HeaderActionsPortal>
+    <>
+      <HeaderActionsPortal slot="right">
+        <WorkspaceBoardTeamAccessHeaderActionContent {...props} />
+      </HeaderActionsPortal>
+      <WorkspaceSidebarInviteBridge {...props} />
+    </>
   )
 }

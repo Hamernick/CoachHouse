@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import {
   useCallback,
   useEffect,
@@ -61,6 +63,7 @@ export function useOrgProfileEditorState({
   const [savedCompany, setSavedCompany] = useState<OrgProfile>(
     () => normalizedInitial
   )
+  const latestCompanyRef = useRef(company)
   const initialProfileRef = useRef(normalizedInitial)
   useEffect(() => {
     if (initialProfileRef.current === normalizedInitial || dirty) return
@@ -74,13 +77,18 @@ export function useOrgProfileEditorState({
   const [errors, setErrors] = useState<OrgProfileErrors>({})
   const [editProgram, setEditProgram] = useState<OrgProgram | null>(null)
   const [editOpen, setEditOpen] = useState(false)
-  const hasUnsavedChanges = dirty
+  useWorkspaceEditorStatus({
+    label: "Organization",
+    dirty,
+    pending: dirty && isPending,
+  })
   const [slugStatus, setSlugStatus] = useState<SlugStatus>(null)
   const openedProgramRequestRef = useRef<string | null>(null)
 
   useEffect(() => {
     savedCompanyRef.current = savedCompany
-  }, [savedCompany])
+    latestCompanyRef.current = company
+  }, [savedCompany, company])
 
   useEffect(() => {
     if (canEdit && initialEditMode) setEditMode(true)
@@ -113,7 +121,7 @@ export function useOrgProfileEditorState({
 
   useOrgProfileUnsavedGuards({
     canEdit,
-    hasUnsavedChanges,
+    hasUnsavedChanges: dirty,
     pendingNavigationRef,
     setConfirmDiscardOpen,
   })
@@ -314,10 +322,16 @@ export function useOrgProfileEditorState({
       const savedCompany = narrativeRevisions
         ? { ...company, narrativeRevisions }
         : company
+      setSavedCompany(savedCompany)
+      if (
+        JSON.stringify(latestCompanyRef.current) !== JSON.stringify(company)
+      ) {
+        toast.info("Earlier changes saved. Your newer edits are still unsaved.")
+        return
+      }
       setEditMode(false)
       setDirty(false)
       setCompany(savedCompany)
-      setSavedCompany(savedCompany)
       const returnHref = getOrganizationLaunchReturnHref(window.location.search)
       if (returnHref) router.push(returnHref)
       else router.refresh()
@@ -334,13 +348,13 @@ export function useOrgProfileEditorState({
   )
 
   const handleCancelEdit = useCallback(() => {
-    if (!hasUnsavedChanges) {
+    if (!dirty) {
       discardChanges()
       return
     }
     pendingNavigationRef.current = null
     setConfirmDiscardOpen(true)
-  }, [hasUnsavedChanges, discardChanges])
+  }, [dirty, discardChanges])
 
   const handleDiscardConfirm = useCallback(() => {
     const nextUrl = pendingNavigationRef.current

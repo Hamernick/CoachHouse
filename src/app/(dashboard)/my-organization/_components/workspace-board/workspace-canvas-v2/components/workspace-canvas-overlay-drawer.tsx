@@ -1,5 +1,8 @@
 "use client"
-import { useWorkspaceDrawerGuide, useWorkspaceDrawerGuideState } from "./use-workspace-drawer-guide"
+import {
+  useWorkspaceDrawerGuide,
+  useWorkspaceDrawerGuideState,
+} from "./use-workspace-drawer-guide"
 import type { WorkspaceOverlayDrawerProps } from "./workspace-overlay-drawer-props"
 
 import {
@@ -11,7 +14,7 @@ import {
   type SetStateAction,
 } from "react"
 
-import { Drawer, DrawerContent } from "@/components/ui/drawer"
+import { WorkspaceDockHost } from "./workspace-dock-host"
 import { cn } from "@/lib/utils"
 
 import { useWorkspaceDrawerCanvasSize } from "./use-workspace-drawer-canvas-height"
@@ -21,10 +24,8 @@ import {
   isWorkspaceDataDrawerFullscreenSnapPoint as isDrawerFullscreen,
   resolveWorkspaceDataDrawerSnapPoint,
   resolveWorkspaceDataDrawerRequestSnapPoint,
-  resolveWorkspaceFloatingDrawerHeight,
   resolveWorkspaceDataDrawerViewportHeight,
   WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT,
-  WORKSPACE_DATA_DRAWER_SNAP_POINTS,
 } from "./workspace-canvas-overlay-drawer-state"
 import {
   type WorkspaceCanvasDrawerTab,
@@ -42,9 +43,7 @@ import { WorkspaceDrawerComposer } from "./workspace-drawer-composer"
 import { WorkspaceDrawerTrigger } from "./workspace-canvas-overlay-drawer-trigger"
 import {
   DOCK_SHELL_OWNER_PROPS,
-  DOCK_FOCUS_HANDLERS,
   FLOATING_PANEL_CLASS,
-  floatingShellStyle,
   drawerClassName,
 } from "./workspace-drawer-shell"
 import { useWorkspaceDrawerControls } from "./use-workspace-drawer-controls"
@@ -68,13 +67,15 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     uiPreferencesScope,
     peopleCanvasActions,
     particleInspector,
+    particleInspectorTitle,
+    particleInspectorMaxWidth,
     particleLibrary,
     particleComposer,
     particleSelectionId,
     particleSelectionKey,
     onCloseParticleInspector,
   }: WorkspaceOverlayDrawerProps) {
-    const { composerRef, composerHeight, composerPeek, composerSnaps, chrome } =
+    const { composerRef, composerHeight, composerPeek, chrome } =
       useWorkspaceComposerHeight()
     const canvasContainer = useWorkspaceCanvasOverlayDrawerContainer()
     const { height: canvasHeight, width: canvasWidth } =
@@ -85,23 +86,20 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const [open, setOpen] = useState(true)
     const [activeSnapPoint, setActiveSnapPoint] = useState<
       number | string | null
-    >(() => guideState?.snapPoint ?? resolveWorkspaceDataDrawerRequestSnapPoint(request))
+    >(
+      () =>
+        guideState?.snapPoint ??
+        resolveWorkspaceDataDrawerRequestSnapPoint(request)
+    )
     const [tab, setTab] = useState<WorkspaceCanvasDrawerTab>(
       guideState?.tab ?? request?.tab ?? "organization"
     )
     const handledRequestIdRef = useRef(0)
     const handledAcceleratorRequestIdRef = useRef(0)
     const [acceptedRequest, setAcceptedRequest] = useState(request ?? null)
-    const drawerContentMounted = Boolean(canvasContainer)
     const drawerCollapsed = open && isDrawerCollapsed(activeSnapPoint)
     const drawerExpanded = open && !isDrawerCollapsed(activeSnapPoint)
     const drawerFullscreen = open && isDrawerFullscreen(activeSnapPoint)
-    const floatingHeight = resolveWorkspaceFloatingDrawerHeight(
-      canvasHeight,
-      activeSnapPoint,
-      composerHeight,
-      chrome.total
-    )
     const dataShortcutLabel = drawerExpanded
       ? "Collapse workspace data"
       : "Open workspace data"
@@ -149,9 +147,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
 
     const { tabIndicator, tabsHeaderRef, tabsListRef } =
       useWorkspaceDataDrawerTabIndicator({ tab, expanded: drawerExpanded })
-    const dockHeight = chrome.total + composerHeight
+    const dockHeight = particleComposer ? composerHeight : chrome.total + composerHeight
     const windowState = useWorkspaceContentWindow({
       enabled: Boolean(particleComposer),
+      tab: particleInspector ? undefined : tab,
       canvasWidth,
       canvasHeight,
       dockHeight,
@@ -163,7 +162,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     const desktop = Boolean(windowState.geometry)
     useLayoutEffect(() => {
       setPreferencesReady(true)
-      const scopeKey = JSON.stringify([uiPreferencesScope.orgId, uiPreferencesScope.viewerId])
+      const scopeKey = JSON.stringify([
+        uiPreferencesScope.orgId,
+        uiPreferencesScope.viewerId,
+      ])
       if (restoredPreferencesScopeRef.current === scopeKey) return
       restoredPreferencesScopeRef.current = scopeKey
       if (request || guideState) return
@@ -199,15 +201,25 @@ export const WorkspaceCanvasOverlayDrawer = memo(
       leaveParticle,
     ])
 
-    useWorkspaceDrawerGuide({ state: guideState, setOpen, setTab, setSnap: setActiveSnapPoint })
+    useWorkspaceDrawerGuide({
+      state: guideState,
+      setOpen,
+      setTab,
+      setSnap: setActiveSnapPoint,
+    })
 
-    const handleAddPeopleToCanvas = useCallback((personIds: string[]) => {
-      const added = peopleCanvasActions.add(personIds)
-      if (added > 0 && drawerFullscreen) {
-        handleActiveSnapPointChange(WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT)
-      }
-      return added
-    }, [drawerFullscreen, handleActiveSnapPointChange, peopleCanvasActions])
+    const handleAddPeopleToCanvas = useCallback(
+      (personIds: string[]) => {
+        const added = peopleCanvasActions.add(personIds)
+        if (added > 0 && drawerFullscreen) {
+          handleActiveSnapPointChange(
+            WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT
+          )
+        }
+        return added
+      },
+      [drawerFullscreen, handleActiveSnapPointChange, peopleCanvasActions]
+    )
 
     const { handleOpenChange, handleDataShortcutClick } =
       useWorkspaceDrawerControls({
@@ -229,157 +241,106 @@ export const WorkspaceCanvasOverlayDrawer = memo(
         ? acceptedRequest
         : null
 
-    // Mount Vaul with the restored snap and a measurable canvas, never the
-    // temporary collapsed/zero-height startup geometry.
+    // Restore preferences before mounting the retained content tree.
     if (!preferencesReady || canvasHeight <= 0 || canvasWidth <= 0) return null
 
     return (
-      <Drawer
-        open={canvasContainer ? open : false}
-        onOpenChange={handleOpenChange}
-        activeSnapPoint={
-          desktop
-            ? 1
-            : particleComposer && drawerCollapsed
-              ? composerPeek
-              : activeSnapPoint
+      <WorkspaceDockHost
+        floating={Boolean(particleComposer)}
+        container={canvasContainer}
+        onMinimize={windowState.onMinimize}
+        request={request}
+        legacyRootProps={{
+          open: canvasContainer ? open : false,
+          onOpenChange: handleOpenChange,
+          activeSnapPoint,
+          setActiveSnapPoint: handleActiveSnapPointChange,
+        }}
+        legacyContentProps={{
+          ...DOCK_SHELL_OWNER_PROPS,
+          style: { height: canvasHeight, width: canvasWidth },
+          "data-workspace-canvas-drawer-fullscreen": drawerFullscreen
+            ? "true"
+            : undefined,
+          className: drawerClassName(drawerFullscreen),
+        }}
+        legacyTrigger={
+          <WorkspaceDrawerTrigger
+            drawerExpanded={drawerExpanded}
+            dataShortcutLabel={dataShortcutLabel}
+            handleDataShortcutClick={handleDataShortcutClick}
+          />
         }
-        direction="bottom"
-        container={canvasContainer ?? undefined}
-        disablePreventScroll
-        dismissible={false}
-        fadeFromIndex={2}
-        handleOnly
-        modal={false}
-        noBodyStyles
-        repositionInputs={false}
-        setActiveSnapPoint={handleActiveSnapPointChange}
-        snapPoints={
-          particleComposer
-            ? composerSnaps
-            : [...WORKSPACE_DATA_DRAWER_SNAP_POINTS]
-        }
-        snapToSequentialPoint
-        shouldScaleBackground={false}
       >
-        <WorkspaceDrawerTrigger
-          drawerExpanded={drawerExpanded}
-          dataShortcutLabel={dataShortcutLabel}
-          handleDataShortcutClick={handleDataShortcutClick}
-        />
-
-        {drawerContentMounted ? (
-          <DrawerContent
-            {...DOCK_SHELL_OWNER_PROPS}
-            data-workspace-presentation={desktop ? "window" : "drawer"}
-            onEscapeKeyDown={
-              desktop
-                ? (event) => {
-                    if (!event.defaultPrevented) {
-                      event.preventDefault()
-                      windowState.onMinimize()
-                    }
-                  }
-                : undefined
-            }
-            {...(particleComposer ? DOCK_FOCUS_HANDLERS : {})}
-            data-workspace-canvas-overlay-drawer="true"
-            data-workspace-data-drawer-request-step={
-              request?.acceleratorStepId ?? undefined
-            }
-            data-workspace-data-drawer-request-module={
-              request?.acceleratorModuleId ?? undefined
-            }
-            data-workspace-data-drawer-request-roadmap-section={
-              request?.roadmapSectionSlug ?? undefined
-            }
-            showHandle={false}
-            style={
-              particleComposer
-                ? {
-                    ...floatingShellStyle(canvasHeight),
-                    ...(desktop ? { height: dockHeight } : {}),
-                  }
-                : { height: canvasHeight, width: canvasWidth }
-            }
-            data-workspace-canvas-drawer-fullscreen={
-              !desktop && drawerFullscreen ? "true" : undefined
-            }
-            overlayClassName="pointer-events-none absolute inset-0 !z-10 bg-background/10 backdrop-blur-[1px]"
-            className={drawerClassName(
-              Boolean(particleComposer),
-              !desktop && drawerFullscreen
+        <div className={particleComposer ? FLOATING_PANEL_CLASS : "contents"}>
+          {!particleComposer ? (
+            <WorkspaceDrawerHeader
+              compact
+              onCollapse={handleActiveSnapPointChange}
+            />
+          ) : null}
+          <div
+            data-workspace-data-drawer-content-viewport="true"
+            className={cn(
+              particleComposer ? "contents" : "flex min-h-0 flex-none flex-col",
+              desktop || drawerCollapsed
+                ? "overflow-visible"
+                : "overflow-hidden"
             )}
+            style={{
+              height: particleComposer
+                ? `${dockHeight - chrome.header - 2}px`
+                : resolveWorkspaceDataDrawerViewportHeight(activeSnapPoint),
+            }}
           >
-            <div
-              className={particleComposer ? FLOATING_PANEL_CLASS : "contents"}
-            >
-              <WorkspaceDrawerHeader
+            <WorkspaceDrawerTabs
+              key={`${uiPreferencesScope.orgId}:${uiPreferencesScope.viewerId}`}
+              windowState={windowState}
+              composerMode={Boolean(particleComposer)}
+              bodyOverride={particleInspector}
+              particleInspectorTitle={particleInspectorTitle}
+              particleInspectorMaxWidth={particleInspectorMaxWidth}
+              particleLibrary={particleLibrary}
+              acceleratorHasAccess={acceleratorHasAccess}
+              acceleratorInput={acceleratorInput}
+              acceleratorPaywallHref={acceleratorPaywallHref}
+              acceleratorRoadmapSections={acceleratorRoadmapSections}
+              canEdit={canEdit}
+              documentsTab={documentsTab}
+              drawerCollapsed={drawerCollapsed}
+              handleAcceleratorRequestHandled={handleAcceleratorRequestHandled}
+              handleTabOpen={handleTabOpen}
+              handleTabChange={handleTabChange}
+              peopleCanvasActions={{
+                ...peopleCanvasActions,
+                add: handleAddPeopleToCanvas,
+              }}
+              organizationEditorData={organizationEditorData}
+              financeInput={financeInput}
+              pendingAcceleratorRequest={pendingAcceleratorRequest}
+              people={people}
+              placedPersonIds={placedPersonIds}
+              request={acceptedRequest}
+              tab={tab}
+              tabIndicator={tabIndicator}
+              tabsHeaderRef={tabsHeaderRef}
+              tabsListRef={tabsListRef}
+              uiPreferencesScope={uiPreferencesScope}
+              viewerId={viewerId}
+            />
+            {particleComposer ? (
+              <WorkspaceDrawerComposer
                 desktop={desktop}
-                compact={!particleComposer}
-                onCollapse={handleActiveSnapPointChange}
-              />
-              <div
-                data-workspace-data-drawer-content-viewport="true"
-                className={cn(
-                  "flex min-h-0 flex-none flex-col",
-                  desktop || drawerCollapsed
-                    ? "overflow-visible"
-                    : "overflow-hidden"
-                )}
-                style={{
-                  height: particleComposer
-                    ? `${(desktop ? dockHeight : floatingHeight) - chrome.header - 2}px`
-                    : resolveWorkspaceDataDrawerViewportHeight(activeSnapPoint),
-                }}
+                composerRef={composerRef}
+                activeSnapPoint={activeSnapPoint}
+                onSnapChange={handleActiveSnapPointChange}
               >
-                <WorkspaceDrawerTabs
-                  key={`${uiPreferencesScope.orgId}:${uiPreferencesScope.viewerId}`}
-                  windowState={windowState}
-                  composerMode={Boolean(particleComposer)}
-                  bodyOverride={particleInspector}
-                  particleLibrary={particleLibrary}
-                  acceleratorHasAccess={acceleratorHasAccess}
-                  acceleratorInput={acceleratorInput}
-                  acceleratorPaywallHref={acceleratorPaywallHref}
-                  acceleratorRoadmapSections={acceleratorRoadmapSections}
-                  canEdit={canEdit}
-                  documentsTab={documentsTab}
-                  drawerCollapsed={drawerCollapsed}
-                  handleAcceleratorRequestHandled={
-                    handleAcceleratorRequestHandled
-                  }
-                  handleTabOpen={handleTabOpen}
-                  handleTabChange={handleTabChange}
-                  peopleCanvasActions={{ ...peopleCanvasActions, add: handleAddPeopleToCanvas }}
-                  organizationEditorData={organizationEditorData}
-                  financeInput={financeInput}
-                  pendingAcceleratorRequest={pendingAcceleratorRequest}
-                  people={people}
-                  placedPersonIds={placedPersonIds}
-                  request={acceptedRequest}
-                  tab={tab}
-                  tabIndicator={tabIndicator}
-                  tabsHeaderRef={tabsHeaderRef}
-                  tabsListRef={tabsListRef}
-                  uiPreferencesScope={uiPreferencesScope}
-                  viewerId={viewerId}
-                />
-                {particleComposer ? (
-                  <WorkspaceDrawerComposer
-                    desktop={desktop}
-                    composerRef={composerRef}
-                    activeSnapPoint={activeSnapPoint}
-                    onSnapChange={handleActiveSnapPointChange}
-                  >
-                    {particleComposer}
-                  </WorkspaceDrawerComposer>
-                ) : null}
-              </div>
-            </div>
-          </DrawerContent>
-        ) : null}
-      </Drawer>
+                {particleComposer}
+              </WorkspaceDrawerComposer>
+            ) : null}
+          </div>
+        </div>
+      </WorkspaceDockHost>
     )
   }
 )

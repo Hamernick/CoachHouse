@@ -1,3 +1,4 @@
+import { PARTICLE_SIZE_NAMES, PARTICLE_SIZE_SUPPORT } from "./particle-size"
 import { particleWidgetSchema } from "./particle-widget-schema"
 import { z } from "zod"
 import {
@@ -54,7 +55,7 @@ const checklist = z
   )
 const observation = z.strictObject({ at: instant, value: z.number().finite() })
 const outcome = z.strictObject({ id: key, label: title })
-const calendarEntry = z
+export const particleCalendarEntrySchema = z
   .strictObject({
     id: particleIdSchema,
     title,
@@ -77,6 +78,7 @@ const calendarEntry = z
     (entry) => entry.status !== "published" || entry.publishedAt !== null,
     {
       message: "Published content requires an actual publish timestamp.",
+      path: ["publishedAt"],
     }
   )
 export const particleDataSchemas = {
@@ -94,7 +96,7 @@ export const particleDataSchemas = {
   }),
   calendar: z.strictObject({
     entries: z
-      .array(calendarEntry)
+      .array(particleCalendarEntrySchema)
       .max(250)
       .refine(
         (entries) =>
@@ -103,6 +105,7 @@ export const particleDataSchemas = {
       ),
   }),
   people: z.strictObject({
+    presentation: z.literal("person").optional(),
     personIds: z
       .array(particleIdSchema)
       .max(250)
@@ -111,7 +114,10 @@ export const particleDataSchemas = {
         "Person references must be unique."
       ),
     segment: z.string().max(240),
-  }),
+  }).refine(
+    (data) => data.presentation !== "person" || data.personIds.length === 1,
+    "A person placement must reference exactly one person."
+  ),
   decision: z
     .strictObject({
       criteria: checklist,
@@ -160,6 +166,7 @@ const base = {
   canvasHidden: z.boolean().optional(),
   revision: particleRevisionSchema,
   width: z.number().finite().min(240).max(960).optional(),
+  size: z.enum(PARTICLE_SIZE_NAMES).optional(),
   createdAt: instant,
   updatedAt: instant,
 }
@@ -167,41 +174,49 @@ export const particleSchema = z.discriminatedUnion("type", [
   z.strictObject({
     ...base,
     type: z.literal("objective"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.objective.supportedSizes).optional(),
     data: particleDataSchemas.objective,
   }),
   z.strictObject({
     ...base,
     type: z.literal("activity"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.activity.supportedSizes).optional(),
     data: particleDataSchemas.activity,
   }),
   z.strictObject({
     ...base,
     type: z.literal("calendar"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.calendar.supportedSizes).optional(),
     data: particleDataSchemas.calendar,
   }),
   z.strictObject({
     ...base,
     type: z.literal("people"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.people.supportedSizes).optional(),
     data: particleDataSchemas.people,
   }),
   z.strictObject({
     ...base,
     type: z.literal("decision"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.decision.supportedSizes).optional(),
     data: particleDataSchemas.decision,
   }),
   z.strictObject({
     ...base,
     type: z.literal("metric"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.metric.supportedSizes).optional(),
     data: particleDataSchemas.metric,
   }),
   z.strictObject({
     ...base,
     type: z.literal("workflow"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.workflow.supportedSizes).optional(),
     data: particleDataSchemas.workflow,
   }),
   z.strictObject({
     ...base,
     type: z.literal("finance"),
+    size: z.enum(PARTICLE_SIZE_SUPPORT.finance.supportedSizes).optional(),
     data: particleDataSchemas.finance,
   }),
 ])

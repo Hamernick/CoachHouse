@@ -8,15 +8,15 @@ import {
   resolveReactGrabSemanticTarget,
 } from "@/components/dev/react-grab-loader"
 import { debugSurfaceClass } from "@/components/dev/react-grab-debug-surface"
+import { readReactGrabElementMetadata } from "@/components/dev/react-grab-loader-metadata"
 import { resolveReactGrabSelectedSurfaceElement } from "@/components/dev/react-grab-loader-resolution"
 
-const explicitReactGrabSurfaceSelector =
-  [
-    "[data-react-grab-surface-component]",
-    "[data-react-grab-surface-source]",
-    "[data-react-grab-surface-slot]",
-    "[data-react-grab-surface-kind]",
-  ].join(", ")
+const explicitReactGrabSurfaceSelector = [
+  "[data-react-grab-surface-component]",
+  "[data-react-grab-surface-source]",
+  "[data-react-grab-surface-slot]",
+  "[data-react-grab-surface-kind]",
+].join(", ")
 const explicitReactGrabOwnerOrLinkSelector =
   "[data-react-grab-link-id], [data-react-grab-owner-id]"
 
@@ -26,7 +26,7 @@ function createMockElement(
     tagName?: string
     closestMap?: Record<string, Element | null>
     queryMap?: Record<string, Element | null>
-  } = {},
+  } = {}
 ) {
   const tagName = options.tagName ?? "div"
   const closestMap = options.closestMap ?? {}
@@ -48,9 +48,56 @@ afterEach(() => {
 })
 
 describe("react grab loader", () => {
+  it("retains the selected leaf while reporting its specific particle identity", async () => {
+    const form = createMockElement({
+      "data-particle-kind": "form", "data-particle-id": "form-123",
+      "data-particle-title": "Volunteer intake", "data-particle-storage-type": "activity",
+    })
+    const input = createMockElement({
+      "data-slot": "input", "class": "rounded-full",
+      "data-react-grab-owner-source": "src/components/ui/input.tsx",
+      "data-react-grab-notes": "Question label",
+    }, { closestMap: { "[data-particle-kind][data-particle-id]": form } })
+    const metadata = readReactGrabElementMetadata(input)
+    expect(metadata.source).toBe("src/components/ui/input.tsx")
+    expect(metadata.className).toBe("rounded-full")
+    expect(metadata.notes).toBe("Question label\nParticle type: form\nParticle title: Volunteer intake\nParticle id: form-123\nStorage type: activity")
+    expect(readReactGrabElementMetadata(createMockElement()).notes).toBeNull()
+    vi.stubGlobal("window", { __REACT_GRAB_SURFACES__: {} })
+    const transform = createReactGrabClipboardTransformer({
+      api: {
+        getSource: vi.fn().mockResolvedValue({ file: "src/components/ui/input.tsx", componentName: "Input" }),
+        getStackContext: vi.fn().mockResolvedValue(["Input"]),
+        getDisplayName: vi.fn().mockReturnValue("Input"),
+      },
+      getSelectionContext: () => null,
+    })
+    const output = await transform("<input />", [input])
+    expect(output).toContain("Particle type: form")
+    expect(output).toContain("Particle id: form-123")
+    expect(output).toContain("assembly: src/components/ui/input.tsx")
+  })
+  it("keeps a granular Particle leaf instead of selecting its library ancestor", () => {
+    const ancestor = createMockElement({
+      "data-react-grab-owner-id": "library",
+    })
+    const leaf = createMockElement(
+      {},
+      {
+        closestMap: {
+          '[data-react-grab-granular="true"]': ancestor,
+          [explicitReactGrabOwnerOrLinkSelector]: ancestor,
+          [explicitReactGrabSurfaceSelector]: ancestor,
+        },
+      }
+    )
+    expect(resolveReactGrabSelectedSurfaceElement(leaf)).toBe(leaf)
+    expect(resolveReactGrabSemanticTarget(leaf)).toBe(leaf)
+  })
+
   it("loads the browser runtime matching the installed package", () => {
     expect(buildReactGrabRuntimeSrc()).toBe(
-      `https://unpkg.com/react-grab@${reactGrabPackage.version}/dist/index.global.js`,
+      `https://unpkg.com/react-grab@${reactGrabPackage.version}/dist/index.global.js`
     )
   })
 
@@ -96,12 +143,16 @@ describe("react grab loader", () => {
     const linkedSurface = createMockElement({
       "data-react-grab-link-id": "picker-owner",
     })
-    const element = createMockElement({}, {
-      closestMap: {
-        "[data-react-grab-anchor]": null,
-        "[data-react-grab-link-id], [data-react-grab-owner-id]": linkedSurface,
-      },
-    })
+    const element = createMockElement(
+      {},
+      {
+        closestMap: {
+          "[data-react-grab-anchor]": null,
+          "[data-react-grab-link-id], [data-react-grab-owner-id]":
+            linkedSurface,
+        },
+      }
+    )
     const originalDocument = globalThis.document
 
     globalThis.document = {
@@ -124,9 +175,10 @@ describe("react grab loader", () => {
       {},
       {
         queryMap: {
-          "[data-react-grab-link-id], [data-react-grab-owner-id]": linkedSurface,
+          "[data-react-grab-link-id], [data-react-grab-owner-id]":
+            linkedSurface,
         },
-      },
+      }
     )
     const originalDocument = globalThis.document
 
@@ -155,9 +207,10 @@ describe("react grab loader", () => {
           "[data-react-grab-link-id], [data-react-grab-owner-id]": null,
         },
         queryMap: {
-          "[data-react-grab-link-id], [data-react-grab-owner-id]": linkedSurface,
+          "[data-react-grab-link-id], [data-react-grab-owner-id]":
+            linkedSurface,
         },
-      },
+      }
     )
 
     expect(resolveReactGrabSemanticTarget(wrapper)).toBeNull()
@@ -181,7 +234,7 @@ describe("react grab loader", () => {
           [explicitReactGrabSurfaceSelector]: linkedSurface,
           [explicitReactGrabOwnerOrLinkSelector]: linkedSurface,
         },
-      },
+      }
     )
     const originalDocument = globalThis.document
 
@@ -214,11 +267,11 @@ describe("react grab loader", () => {
           [explicitReactGrabSurfaceSelector]: linkedSurface,
           [explicitReactGrabOwnerOrLinkSelector]: linkedSurface,
         },
-      },
+      }
     )
 
     expect(resolveReactGrabSelectedSurfaceElement(primitiveChild)).toBe(
-      linkedSurface,
+      linkedSurface
     )
   })
 
@@ -235,10 +288,12 @@ describe("react grab loader", () => {
           [explicitReactGrabSurfaceSelector]: null,
           [explicitReactGrabOwnerOrLinkSelector]: owner,
         },
-      },
+      }
     )
 
-    expect(resolveReactGrabSelectedSurfaceElement(genericSlot)).toBe(genericSlot)
+    expect(resolveReactGrabSelectedSurfaceElement(genericSlot)).toBe(
+      genericSlot
+    )
   })
 
   it("builds resolved clipboard output for a primitive-owned surface", async () => {
@@ -253,7 +308,7 @@ describe("react grab loader", () => {
         "data-react-grab-owner-source": "src/components/ui/button.tsx",
         "data-react-grab-owner-slot": "button",
       },
-      { tagName: "button" },
+      { tagName: "button" }
     )
 
     debugSurfaceClass({
@@ -298,13 +353,15 @@ describe("react grab loader", () => {
 
     const output = await transform("<button />", [button])
 
-    expect(output).toContain("[SURFACE]\nname: Button\nslot: button\nkind: trigger")
     expect(output).toContain(
-      "[FILES]\nsurface: src/components/ui/button.tsx:45 (@/components/ui/button)",
+      "[SURFACE]\nname: Button\nslot: button\nkind: trigger"
+    )
+    expect(output).toContain(
+      "[FILES]\nsurface: src/components/ui/button.tsx:45 (@/components/ui/button)"
     )
     expect(output).toContain("[OWNER]\nstatus: resolved")
     expect(output).toContain("primary: src/components/ui/button.tsx")
-    expect(output).toContain("[CLASS]\n\"inline-flex rounded-md\"")
+    expect(output).toContain('[CLASS]\n"inline-flex rounded-md"')
   })
 
   it("reports misbuilt surfaces when explicit wrong-owner metadata exists", async () => {
@@ -317,7 +374,7 @@ describe("react grab loader", () => {
         "data-react-grab-owner-source":
           "src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx",
       },
-      { tagName: "button" },
+      { tagName: "button" }
     )
 
     const tooltip = createMockElement({
@@ -340,8 +397,10 @@ describe("react grab loader", () => {
       classAssemblyFile: "src/components/ui/tooltip.tsx",
       primitiveImport: "@/components/ui/tooltip",
       tokenSource: "src/components/workspace/workspace-tutorial-theme.ts",
-      canonicalOwnerFile: "src/components/workspace/workspace-tutorial-theme.ts",
-      canonicalOwnerReason: "Shared tutorial token file owns the surface styling.",
+      canonicalOwnerFile:
+        "src/components/workspace/workspace-tutorial-theme.ts",
+      canonicalOwnerReason:
+        "Shared tutorial token file owns the surface styling.",
       currentWrongOwnerFile:
         "src/features/workspace-accelerator-card/components/workspace-accelerator-tutorial-guard-tooltip.tsx",
       currentWrongOwnerReason:
@@ -359,11 +418,13 @@ describe("react grab loader", () => {
           importSource: "@/components/ui/tooltip",
           componentName: "TooltipContent",
         }),
-        getStackContext: vi.fn().mockResolvedValue([
-          "WorkspaceAcceleratorTutorialGuardTooltip",
-          "Tooltip",
-          "TooltipContent",
-        ]),
+        getStackContext: vi
+          .fn()
+          .mockResolvedValue([
+            "WorkspaceAcceleratorTutorialGuardTooltip",
+            "Tooltip",
+            "TooltipContent",
+          ]),
         getDisplayName: vi.fn().mockReturnValue("TooltipContent"),
       },
       getSelectionContext: () => ({
@@ -386,10 +447,10 @@ describe("react grab loader", () => {
 
     expect(output).toContain("[OWNER]\nstatus: misbuilt")
     expect(output).toContain(
-      "wrong: src/features/workspace-accelerator-card/components/workspace-accelerator-tutorial-guard-tooltip.tsx",
+      "wrong: src/features/workspace-accelerator-card/components/workspace-accelerator-tutorial-guard-tooltip.tsx"
     )
     expect(output).toContain(
-      "primary: src/components/workspace/workspace-tutorial-theme.ts",
+      "primary: src/components/workspace/workspace-tutorial-theme.ts"
     )
   })
 
@@ -424,7 +485,7 @@ describe("react grab loader", () => {
 
     expect(output).toContain("[OWNER]\nstatus: unresolved")
     expect(output).toContain("primary: unknown")
-    expect(output).toContain("[CLASS]\n\"foo bar\"")
+    expect(output).toContain('[CLASS]\n"foo bar"')
   })
 
   it("keeps a generic clicked wrapper distinct instead of collapsing it to the owner trigger debug record", async () => {
@@ -442,14 +503,14 @@ describe("react grab loader", () => {
           "src/components/workspace/workspace-tutorial-theme.ts",
         "data-react-grab-primitive-import": "@/components/ui/select",
       },
-      { tagName: "button" },
+      { tagName: "button" }
     )
     const wrapper = createMockElement(
       {
         class: "first:pt-4 px-4 pb-4 pt-0",
         "data-slot": "card-content",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
 
     debugSurfaceClass({
@@ -482,18 +543,19 @@ describe("react grab loader", () => {
           }
 
           return {
-            file:
-              "src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx",
+            file: "src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx",
             line: 160,
             importSource:
               "@/features/workspace-accelerator-card/components/workspace-accelerator-header-picker",
             componentName: "WorkspaceAcceleratorHeaderPicker",
           }
         }),
-        getStackContext: vi.fn().mockResolvedValue([
-          "CardContent",
-          "WorkspaceAcceleratorHeaderPicker",
-        ]),
+        getStackContext: vi
+          .fn()
+          .mockResolvedValue([
+            "CardContent",
+            "WorkspaceAcceleratorHeaderPicker",
+          ]),
         getDisplayName: vi.fn().mockReturnValue("CardContent"),
       },
       getSelectionContext: () => ({
@@ -515,12 +577,16 @@ describe("react grab loader", () => {
     const output = await transform("<div />", [owner])
 
     expect(output).toContain(
-      "[FILES]\nsurface: src/components/ui/card.tsx:109 (@/components/ui/card)",
+      "[FILES]\nsurface: src/components/ui/card.tsx:109 (@/components/ui/card)"
     )
-    expect(output).toContain("semantic: src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx")
+    expect(output).toContain(
+      "semantic: src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx"
+    )
     expect(output).toContain("assembly: src/components/ui/card.tsx")
-    expect(output).not.toContain("token: src/components/workspace/workspace-tutorial-theme.ts")
-    expect(output).toContain("[CLASS]\n\"first:pt-4 px-4 pb-4 pt-0\"")
+    expect(output).not.toContain(
+      "token: src/components/workspace/workspace-tutorial-theme.ts"
+    )
+    expect(output).toContain('[CLASS]\n"first:pt-4 px-4 pb-4 pt-0"')
     expect(output).not.toContain("bg-foreground text-background")
   })
 
@@ -530,21 +596,22 @@ describe("react grab loader", () => {
     const owner = createMockElement(
       {
         "data-react-grab-anchor": "MemberWorkspaceProjectCard",
-        "data-react-grab-owner-id": "member-workspace-project-card:list:project-1",
+        "data-react-grab-owner-id":
+          "member-workspace-project-card:list:project-1",
         "data-react-grab-owner-component": "MemberWorkspaceProjectCard",
         "data-react-grab-owner-source": ownerSource,
         "data-react-grab-canonical-owner-source": ownerSource,
         "data-react-grab-canonical-owner-reason":
           "Project card owns its semantic sub-surfaces.",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
     const primitiveWrapper = createMockElement(
       {
         class: "first:pt-4 px-4",
         "data-slot": "card-content",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
 
     const transform = createReactGrabClipboardTransformer({
@@ -568,10 +635,9 @@ describe("react grab loader", () => {
             componentName: "MemberWorkspaceProjectCard",
           }
         }),
-        getStackContext: vi.fn().mockResolvedValue([
-          "CardContent",
-          "MemberWorkspaceProjectCard",
-        ]),
+        getStackContext: vi
+          .fn()
+          .mockResolvedValue(["CardContent", "MemberWorkspaceProjectCard"]),
         getDisplayName: vi.fn().mockReturnValue("CardContent"),
       },
       getSelectionContext: () => ({
@@ -591,12 +657,14 @@ describe("react grab loader", () => {
 
     const output = await transform("<div />", [owner])
 
-    expect(output).toContain("[SURFACE]\nname: card-content\nslot: card-content\nkind: content")
+    expect(output).toContain(
+      "[SURFACE]\nname: card-content\nslot: card-content\nkind: content"
+    )
     expect(output).toContain("[OWNER]\nstatus: resolved")
     expect(output).toContain("id: member-workspace-project-card:list:project-1")
     expect(output).toContain(`primary: ${ownerSource}`)
     expect(output).toContain("other: src/components/ui/card.tsx")
-    expect(output).toContain("[CLASS]\n\"first:pt-4 px-4\"")
+    expect(output).toContain('[CLASS]\n"first:pt-4 px-4"')
   })
 
   it("serializes explicit tutorial panel wrapper surfaces as distinct layout containers", async () => {
@@ -611,7 +679,7 @@ describe("react grab loader", () => {
           "src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
         "data-react-grab-owner-slot": "card",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
     const wrapper = createMockElement(
       {
@@ -624,7 +692,7 @@ describe("react grab loader", () => {
         "data-react-grab-surface-slot": "body-grid",
         "data-react-grab-surface-kind": "root",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
     debugSurfaceClass({
       ownerId: "workspace-canvas-tutorial-panel:accelerator-first-module",
@@ -657,14 +725,13 @@ describe("react grab loader", () => {
         registerPlugin: vi.fn(),
         unregisterPlugin: vi.fn(),
         getSource: vi.fn().mockResolvedValue({
-          file:
-            "src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
+          file: "src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
           line: 493,
           componentName: "WorkspaceCanvasTutorialPanel",
         }),
-        getStackContext: vi.fn().mockResolvedValue([
-          "WorkspaceCanvasTutorialPanel",
-        ]),
+        getStackContext: vi
+          .fn()
+          .mockResolvedValue(["WorkspaceCanvasTutorialPanel"]),
         getDisplayName: vi.fn().mockReturnValue("WorkspaceCanvasTutorialPanel"),
       },
       getSelectionContext: () => ({
@@ -688,15 +755,17 @@ describe("react grab loader", () => {
     const output = await transform("<div />", [owner])
 
     expect(output).toContain(
-      "[SURFACE]\nname: WorkspaceCanvasTutorialPanel\nslot: body-grid\nkind: root",
+      "[SURFACE]\nname: WorkspaceCanvasTutorialPanel\nslot: body-grid\nkind: root"
     )
     expect(output).toContain(
-      "[FILES]\nsurface: src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
+      "[FILES]\nsurface: src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx"
     )
     expect(output).toContain(
-      "assembly: src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
+      "assembly: src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx"
     )
-    expect(output).toContain("[CLASS]\n\"relative grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)]\"")
+    expect(output).toContain(
+      '[CLASS]\n"relative grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)]"'
+    )
     expect(output).not.toContain("bg-card/95 flex min-h-0 min-w-0")
   })
 
@@ -712,7 +781,7 @@ describe("react grab loader", () => {
           "src/features/workspace-canvas-tutorial/components/workspace-canvas-tutorial-panel.tsx",
         "data-react-grab-owner-slot": "card",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
     const shell = createMockElement(
       {
@@ -725,7 +794,7 @@ describe("react grab loader", () => {
         "data-react-grab-surface-slot": "presentation-accelerator-card-shell",
         "data-react-grab-surface-kind": "content",
       },
-      { tagName: "div" },
+      { tagName: "div" }
     )
 
     debugSurfaceClass({
@@ -758,14 +827,15 @@ describe("react grab loader", () => {
         registerPlugin: vi.fn(),
         unregisterPlugin: vi.fn(),
         getSource: vi.fn().mockResolvedValue({
-          file:
-            "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx",
+          file: "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx",
           componentName: "WorkspaceCanvasTutorialPanel",
         }),
-        getStackContext: vi.fn().mockResolvedValue([
-          "WorkspaceTutorialPresentationFrame",
-          "WorkspaceCanvasTutorialPanel",
-        ]),
+        getStackContext: vi
+          .fn()
+          .mockResolvedValue([
+            "WorkspaceTutorialPresentationFrame",
+            "WorkspaceCanvasTutorialPanel",
+          ]),
         getDisplayName: vi.fn().mockReturnValue("WorkspaceCanvasTutorialPanel"),
       },
       getSelectionContext: () => ({
@@ -788,15 +858,15 @@ describe("react grab loader", () => {
     const output = await transform("<div />", [owner])
 
     expect(output).toContain(
-      "[SURFACE]\nname: WorkspaceCanvasTutorialPanel\nslot: presentation-accelerator-card-shell\nkind: content",
+      "[SURFACE]\nname: WorkspaceCanvasTutorialPanel\nslot: presentation-accelerator-card-shell\nkind: content"
     )
     expect(output).toContain(
-      "[FILES]\nsurface: src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx (@/components/ui/card)",
+      "[FILES]\nsurface: src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx (@/components/ui/card)"
     )
     expect(output).toContain(
-      "assembly: src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx",
+      "assembly: src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx"
     )
-    expect(output).toContain("[CLASS]\n\"mx-auto\"")
-    expect(output).not.toContain("[CLASS]\n\"outer-card\"")
+    expect(output).toContain('[CLASS]\n"mx-auto"')
+    expect(output).not.toContain('[CLASS]\n"outer-card"')
   })
 })

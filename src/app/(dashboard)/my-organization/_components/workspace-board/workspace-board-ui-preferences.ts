@@ -4,6 +4,7 @@ import {
 } from "@/lib/workspace/routes"
 
 export type WorkspaceBoardUiPreferenceScope = {
+  workspaceCanvasId?: string
   orgId: string
   viewerId: string
 }
@@ -79,12 +80,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function buildWorkspaceBoardUiPreferencesStorageKey({
   orgId,
   viewerId,
+  workspaceCanvasId,
 }: WorkspaceBoardUiPreferenceScope) {
   return [
     WORKSPACE_BOARD_UI_PREFERENCES_KEY_PREFIX,
     `v${WORKSPACE_BOARD_UI_PREFERENCES_VERSION}`,
     normalizeStorageKeyPart(orgId),
     normalizeStorageKeyPart(viewerId),
+    ...(workspaceCanvasId ? [normalizeStorageKeyPart(workspaceCanvasId)] : []),
   ].join(":")
 }
 

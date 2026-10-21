@@ -1,32 +1,20 @@
 "use client"
 
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { useStore } from "@xyflow/react"
 import { Button } from "@/components/ui/button"
 import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import type { useParticleLayout } from "../hooks/use-particle-layout"
+import { createParticleGeometrySelector } from "../lib/particle-geometry-observer"
 
 export function ParticleGeometryObserver({
   onChange,
 }: {
   onChange: () => void
 }) {
-  const key = useStore((state) => {
-    // React Flow owns each drag frame. Routing only needs gesture boundaries.
-    if (Array.from(state.nodeLookup.values()).some((node) => node.dragging))
-      return "dragging"
-    return JSON.stringify(
-      Array.from(state.nodeLookup.values(), (node) => [
-        node.id,
-        node.hidden,
-        node.dragging,
-        node.internals.positionAbsolute,
-        node.measured,
-        node.internals.handleBounds,
-      ])
-    )
-  })
+  const selectGeometry = useMemo(() => createParticleGeometrySelector(), [])
+  const key = useStore(selectGeometry)
   useEffect(() => onChange(), [key, onChange])
   return null
 }
@@ -52,16 +40,6 @@ export function ParticleLayoutActions({
       disabled: disabled || layout.busy,
       onClick: () => void layout.run(true),
     },
-    ...(layout.canUndo
-      ? [
-          {
-            id: "layout-undo",
-            label: "Undo layout",
-            disabled: disabled || layout.busy,
-            onClick: () => void layout.undoLayout(),
-          },
-        ]
-      : []),
     ...(layout.busy
       ? [
           {

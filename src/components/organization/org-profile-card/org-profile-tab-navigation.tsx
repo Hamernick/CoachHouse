@@ -29,7 +29,7 @@ export function OrgProfileTabNavigation({
       <TabsList
         data-tour="org-profile-tabs"
         variant="line"
-        className="text-muted-foreground h-10 w-fit max-w-full group-data-[orientation=horizontal]/tabs:h-10 items-end justify-start gap-1 rounded-none bg-transparent p-0"
+        className="text-muted-foreground h-10 w-fit max-w-full data-[orientation=horizontal]:h-10 items-end justify-start gap-1 rounded-none bg-transparent p-0"
       >
         {tabs.map((item) => (
           <TabsTrigger
@@ -37,7 +37,7 @@ export function OrgProfileTabNavigation({
             value={item.value}
             id={`${tabsIdBase}-trigger-${item.value}`}
             aria-controls={`${tabsIdBase}-content-${item.value}`}
-            className="text-muted-foreground focus-visible:ring-ring data-[state=active]:text-foreground after:bg-primary relative inline-flex h-10 flex-none items-center justify-center gap-2 rounded-none border-0 bg-transparent px-2 pt-1 pb-2 text-sm font-medium whitespace-nowrap shadow-none transition-all duration-200 group-data-[orientation=horizontal]/tabs:after:bottom-[-1px] after:z-10 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=active]:font-semibold data-[state=active]:shadow-none group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:!bg-transparent"
+            className="text-muted-foreground focus-visible:ring-ring data-[state=active]:text-foreground after:bg-primary relative inline-flex h-10 flex-none items-center justify-center gap-2 rounded-none border-0 bg-transparent px-2 pt-1 pb-2 text-sm font-medium whitespace-nowrap shadow-none transition-all duration-200 data-[orientation=horizontal]:after:bottom-[-1px] after:z-10 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=active]:font-semibold data-[state=active]:shadow-none group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:!bg-transparent"
           >
             <item.icon className="h-4 w-4" aria-hidden />
             {item.label}

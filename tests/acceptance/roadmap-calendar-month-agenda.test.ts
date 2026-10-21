@@ -248,9 +248,6 @@ describe("roadmap calendar month agenda", () => {
     )
     expect(calendarAction).toContain("useAppShellCalendarActionRegistration")
     expect(viewportControls).toContain("useRegisterAppShellCalendarTutorial")
-    expect(viewportControls).toContain(
-      "WorkspaceCanvasSurfaceV2HelpOverlay integrated"
-    )
     expect(viewportControls).not.toContain('<HeaderActionsPortal slot="right">')
     expect(viewportControls).not.toContain("PopoverAnchor")
     expect(headerActionSlotIndex).toBeGreaterThan(-1)

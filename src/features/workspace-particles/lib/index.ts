@@ -59,3 +59,19 @@ export {
   type WorkspaceToolId,
   type ParticleDrag,
 } from "./particle-placement"
+export {
+  getParticleNotes,
+  moduleNotesParticle,
+  workspaceNoteDocuments,
+  noteDocumentSchema,
+  type NoteDocument,
+} from "./particle-notes"
+export { workspaceParticleCalendarEvents, particleCalendarChanged, particleCalendarEventsInRange } from "./particle-event-calendar"
+export { publicParticleContentSchema, projectParticlePublicContent, canManageParticlePublication, type PublicParticleContent } from "./particle-public-content"
+export {
+  isPersonPlacement,
+  personPlacements,
+  planPersonPlacements,
+  planLocalPersonPlacementRecovery,
+  type PersonPlacement,
+} from "./person-placement"

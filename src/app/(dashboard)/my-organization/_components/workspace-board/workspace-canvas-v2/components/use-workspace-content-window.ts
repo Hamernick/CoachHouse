@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, type RefObject, type SetStateAction } from "react"
+import type { WorkspaceCanvasDrawerTab } from "./workspace-canvas-overlay-drawer-tabs"
 import { resolveWorkspaceContentWindowGeometry } from "./workspace-content-window-geometry"
 import {
   isWorkspaceDataDrawerFullscreenSnapPoint,
@@ -11,6 +12,7 @@ import {
 
 export function useWorkspaceContentWindow({
   enabled,
+  tab,
   canvasWidth,
   canvasHeight,
   dockHeight,
@@ -20,12 +22,13 @@ export function useWorkspaceContentWindow({
   tabsListRef,
 }: {
   enabled: boolean
+  tab?: WorkspaceCanvasDrawerTab
   canvasWidth: number
   canvasHeight: number
   dockHeight: number
   activeSnapPoint: number | string | null
   onSnap: (snap: SetStateAction<number | string | null>) => void
-  leaveParticle: () => boolean
+  leaveParticle: (onAccepted?: () => void) => boolean
   tabsListRef: RefObject<HTMLDivElement | null>
 }) {
   const maximized = isWorkspaceDataDrawerFullscreenSnapPoint(activeSnapPoint)
@@ -35,6 +38,7 @@ export function useWorkspaceContentWindow({
         canvasHeight,
         dockHeight,
         maximized,
+        tab,
       })
     : null
   const getAnchorRect = useCallback(() => {
@@ -44,7 +48,10 @@ export function useWorkspaceContentWindow({
       list?.parentElement?.querySelector<HTMLElement>(
         "[data-workspace-data-drawer-fullscreen-trigger]"
       )
-    return anchor?.getBoundingClientRect() ?? null
+    const organization = document.querySelector<HTMLElement>(
+      '[data-workspace-organization-trigger][data-state="active"]'
+    )
+    return (anchor ?? organization)?.getBoundingClientRect() ?? null
   }, [tabsListRef])
   const onMinimize = () => {
     onSnap(WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT)
@@ -58,7 +65,15 @@ export function useWorkspaceContentWindow({
         list?.parentElement?.querySelector<HTMLButtonElement>(
           "[data-workspace-data-drawer-fullscreen-trigger]"
         )
-      target?.focus({ preventScroll: true })
+      const organization = document.querySelector<HTMLButtonElement>(
+        '[data-workspace-organization-trigger][data-state="active"]'
+      )
+      const returnTarget = target ?? organization ?? document.querySelector<HTMLButtonElement>(
+        '[data-workspace-composer-action][aria-label="Add Particle"]'
+      ) ?? Array.from(
+        document.querySelectorAll<HTMLButtonElement>('[data-sidebar="trigger"]')
+      ).find((button) => button.getBoundingClientRect().width > 0)
+      returnTarget?.focus({ preventScroll: true })
     })
   }
   return {
@@ -67,7 +82,7 @@ export function useWorkspaceContentWindow({
     maximized,
     onMinimize,
     onClose: () => {
-      if (leaveParticle()) onMinimize()
+      if (leaveParticle(onMinimize)) onMinimize()
     },
     onToggleMaximize: () =>
       onSnap(

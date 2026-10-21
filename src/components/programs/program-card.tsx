@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/item"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { WORKSPACE_PARTICLE_CHROME } from "@/components/workspace/workspace-particle-chrome"
 
 export type ProgramCardProps = {
   title: string
@@ -35,6 +36,7 @@ export type ProgramCardProps = {
   patternId?: string
   variant?: "list" | "medium" | "full"
   contentFill?: boolean
+  surface?: "default" | "workspace"
   className?: string
 }
 
@@ -58,6 +60,7 @@ export function ProgramCard({
   patternId,
   variant = "medium",
   contentFill = true,
+  surface = "default",
   className,
 }: ProgramCardProps) {
   const heroImageUrl = bannerImageUrl || imageUrl
@@ -90,6 +93,7 @@ export function ProgramCard({
   ]
 
   const visibleChips = chips.slice(0, 3)
+  const compact = surface === "workspace"
   const extraChipCount = Math.max(0, chips.length - visibleChips.length)
 
   if (variant === "list") {
@@ -162,8 +166,9 @@ export function ProgramCard({
     )
   }
 
-  const cardSizeClasses =
-    variant === "full"
+  const cardSizeClasses = compact
+    ? "max-w-none min-h-0 rounded-[25px]"
+    : variant === "full"
       ? "max-w-none min-h-[560px]"
       : "max-w-[380px] min-h-[480px]"
 
@@ -219,12 +224,18 @@ export function ProgramCard({
 
       <CardContent
         className={cn(
-          "bg-background flex flex-col gap-3 px-4 pt-3 pb-4",
-          contentFill && "flex-1"
+          "bg-background flex flex-col",
+          compact ? "gap-2 p-3" : "gap-3 px-4 pt-3 pb-4",
+          contentFill && !compact && "flex-1"
         )}
       >
         <div className="space-y-1">
-          <h3 className="line-clamp-2 text-lg leading-6 font-semibold">
+          <h3
+            className={cn(
+              "line-clamp-2 font-semibold",
+              compact ? "text-sm leading-5" : "text-lg leading-6"
+            )}
+          >
             {title}
           </h3>
           {org || location ? (
@@ -263,10 +274,15 @@ export function ProgramCard({
           </div>
         ) : null}
 
-        <Separator />
+        {!compact || visibleChips.length > 0 ? <Separator /> : null}
 
-        <div className="mt-2 space-y-1.5">
-          <div className="flex items-baseline justify-between text-sm">
+        <div className={cn("flex flex-col gap-1.5", !compact && "mt-2")}>
+          <div
+            className={cn(
+              "flex items-baseline justify-between",
+              compact ? "flex-wrap gap-x-2 gap-y-1 text-xs" : "text-sm"
+            )}
+          >
             <span className="font-medium">Fundraising Progress</span>
             <span className="text-muted-foreground tabular-nums">
               {money(raised)} / {money(goal)}
@@ -278,9 +294,18 @@ export function ProgramCard({
         </div>
       </CardContent>
 
-      <CardFooter className="bg-background flex justify-end px-4 pt-0 pb-4">
+      <CardFooter
+        className={cn(
+          "bg-background flex justify-end",
+          compact ? "px-3 pt-0 pb-2" : "px-4 pt-0 pb-4"
+        )}
+      >
         {ctaHref ? (
-          <Button size="sm" asChild>
+          <Button
+            size="sm"
+            className={compact ? WORKSPACE_PARTICLE_CHROME.action : undefined}
+            asChild
+          >
             <a
               href={ctaHref}
               target={ctaTarget}
@@ -290,7 +315,12 @@ export function ProgramCard({
             </a>
           </Button>
         ) : (
-          <Button size="sm" onClick={onCtaClick} disabled={!onCtaClick}>
+          <Button
+            size="sm"
+            className={compact ? WORKSPACE_PARTICLE_CHROME.action : undefined}
+            onClick={onCtaClick}
+            disabled={!onCtaClick}
+          >
             {ctaLabel}
           </Button>
         )}

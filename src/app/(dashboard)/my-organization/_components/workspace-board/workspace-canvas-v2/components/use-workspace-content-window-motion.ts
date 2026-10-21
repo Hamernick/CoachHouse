@@ -60,11 +60,11 @@ export function useWorkspaceContentWindowMotion({
   const surfaceRef = useRef<HTMLElement>(null)
   const wasHidden = useRef(true)
   const settled = useRef(false)
-  const origin = useRef({
+  const origin = useRef<ReturnType<typeof resolveWorkspaceWindowOrigin>>({
     originX: 0.5,
-    originY: 1,
+    originY: 0,
     x: 0,
-    y: WORKSPACE_WINDOW_MOTION.travel,
+    y: -WORKSPACE_WINDOW_MOTION.travel,
   })
   const [exitFinished, setExitFinished] = useState(collapsed)
   const [previousCollapsed, setPreviousCollapsed] = useState(collapsed)

@@ -1,3 +1,4 @@
+import { summarizeWorkspaceEditors } from "@/components/workspace/workspace-editor-status"
 import { saveProgramBeforeClose } from "@/components/programs/program-wizard/save-before-close"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -316,5 +317,60 @@ describe("program draft close", () => {
     })
     expect(result).toEqual({ status: "changed" })
     expect(close).not.toHaveBeenCalled()
+  })
+})
+
+describe("content window edit indicator", () => {
+  it("starts quiet and does not claim unreported content is saved", () => {
+    expect(summarizeWorkspaceEditors([])).toEqual({
+      outstanding: false,
+      state: "clean",
+      text: "",
+    })
+  })
+  it("keeps the indicator after one of several editors saves", () => {
+    const reports = [
+      { label: "Organization", dirty: false },
+      { label: "Activity", dirty: true },
+    ]
+    expect(summarizeWorkspaceEditors(reports)).toEqual({
+      outstanding: true,
+      state: "dirty",
+      text: "Unsaved changes: Activity",
+    })
+  })
+  it("keeps acknowledged and newer edits distinct through saving", () => {
+    expect(
+      summarizeWorkspaceEditors([
+        { label: "Activity", dirty: true, pending: true },
+      ]).state
+    ).toBe("saving")
+    expect(
+      summarizeWorkspaceEditors([
+        { label: "Activity", dirty: true, pending: false },
+      ]).state
+    ).toBe("dirty")
+    expect(
+      summarizeWorkspaceEditors([
+        { label: "Activity", dirty: false, pending: false },
+      ]).outstanding
+    ).toBe(false)
+  })
+  it("prioritizes a failed save over another editor still saving", () => {
+    const status = summarizeWorkspaceEditors([
+      { label: "Organization", dirty: true, error: true },
+      { label: "Activity", dirty: true, pending: true },
+    ])
+    expect(status.state).toBe("error")
+    expect(status.text).toBe("Changes need attention: Organization, Activity")
+  })
+  it("tracks an unmodified preset awaiting explicit add without claiming it was saved", () => {
+    expect(
+      summarizeWorkspaceEditors([{ label: "Event", dirty: false, draft: true }])
+    ).toEqual({
+      outstanding: true,
+      state: "draft",
+      text: "Not yet added: Event",
+    })
   })
 })

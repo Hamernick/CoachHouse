@@ -33,6 +33,7 @@ import {
   buildMainNavItemReactGrabProps,
   type NavMainItem,
 } from "./nav-main/item"
+import { NavMainWorkspaceItem } from "./nav-main/workspace-group"
 import { PrototypeTreeEntry } from "./nav-main/prototype-tree-entry"
 import { PrototypeTreeFolder } from "./nav-main/prototype-tree-folder"
 
@@ -307,6 +308,12 @@ export function NavMain({
                   tourId={tourId}
                 />
               )
+            }
+
+            if (item.href === "/workspace") {
+              return <NavMainWorkspaceItem key={item.title} item={item} isActive={isActive}
+                namedWorkspaceSelected={searchParams.has("workspace")} showControls={pathname === "/workspace"}
+                onPrefetch={prefetchHref} tourId={tourId} />
             }
 
             return (

@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -19,7 +20,6 @@ import { captureParticleScene } from "../lib/layout-measurements"
 import { particleLayoutBatch, type ParticleLayout } from "../lib/graph-layout"
 import { particleSceneKey } from "../lib/layout-scene"
 import { runParticleWorker } from "../lib/layout-worker-client"
-import type { ParticleOperation } from "../types"
 import type { useParticleSession } from "./use-particle-session"
 
 type Phase = "idle" | "measuring" | "calculating" | "saving" | "animating"
@@ -48,10 +48,6 @@ export function useParticleLayout({
     0
   )
   const [routes, setRoutes] = useState<ParticleLayout["routes"]>([])
-  const [undo, setUndo] = useState<{
-    revision: number
-    operations: ParticleOperation[]
-  } | null>(null)
   const routeCache = useRef<{
     key: string
     routes: ParticleLayout["routes"]
@@ -216,7 +212,6 @@ export function useParticleLayout({
         throw new Error(
           "Layout was not confirmed. Check the save status before trying again."
         )
-      setUndo({ revision: receipt.graph.revision, operations: receipt.inverse })
       setPhase("animating")
       const starts = new Map(
         instance.getNodes().map((node) => [node.id, node.position])
@@ -288,44 +283,17 @@ export function useParticleLayout({
     }
   }, [])
 
-  const undoLayout = useCallback(async () => {
-    const input = latest.current
-    if (!undo || !input.session.editable || active.current) return
-    if (input.dirty.current) {
-      setMessage(
-        "Save or discard the open Particle edits before undoing layout."
-      )
-      return
-    }
-    if (!(await input.flush())) return
-    const graph = input.session.getCurrentGraph()
-    if (!graph || graph.revision !== undo.revision) {
-      setUndo(null)
-      setMessage("The plan changed. This layout can no longer be undone.")
-      return
-    }
-    const receipt = await input.session.commitBatch({
-      id: crypto.randomUUID(),
-      workspaceId: graph.workspaceId,
-      baseRevision: graph.revision,
-      requireExactRevision: true,
-      operations: undo.operations,
-    })
-    if (receipt) {
-      setUndo(null)
-      setMessage("Layout undone.")
-    }
-  }, [undo])
-  return {
-    measureAll: needsMeasurements || phase !== "idle",
-    busy: phase !== "idle",
-    phase,
-    message,
-    routes,
-    run,
-    cancel,
-    geometryChanged,
-    undoLayout,
-    canUndo: Boolean(undo && undo.revision === session.graph?.revision),
-  }
+  return useMemo(
+    () => ({
+      measureAll: needsMeasurements || phase !== "idle",
+      busy: phase !== "idle",
+      phase,
+      message,
+      routes,
+      run,
+      cancel,
+      geometryChanged,
+    }),
+    [needsMeasurements, phase, message, routes, run, cancel, geometryChanged]
+  )
 }

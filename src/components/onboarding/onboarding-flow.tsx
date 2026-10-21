@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import * as React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
@@ -57,48 +59,19 @@ export function OnboardingFlow({
   isInline,
   mode = "full",
   draftScope: accountDraftScope,
-  defaultEmail,
-  defaultOrgName,
-  defaultOrgSlug,
-  defaultFormationStatus,
-  defaultIntentFocus,
-  defaultRoleInterest,
-  defaultFirstName,
-  defaultLastName,
-  defaultPersonHandle,
-  defaultPhone,
-  defaultPublicEmail,
-  defaultTitle,
-  defaultLinkedin,
-  defaultAvatarUrl,
-  defaultOptInUpdates,
-  defaultNewsletterOptIn,
   defaultBuilderPlanTier = "free",
   onSubmit,
   visibleStepIds,
+  ...defaults
 }: OnboardingFlowProps) {
   const draftScope = accountDraftScope ? `${accountDraftScope}:${mode}` : null
-  const effectiveVisibleStepIds = useEffectiveOnboardingStepIds(mode, visibleStepIds)
+  const effectiveVisibleStepIds = useEffectiveOnboardingStepIds(
+    mode,
+    visibleStepIds
+  )
   const intentFocusOverride: IntentFocus | null =
     mode === "workspace_setup" || mode === "post_signup_access" ? "build" : null
-  const onboardingDefaults = useOnboardingDefaults({
-    defaultEmail,
-    defaultOrgName,
-    defaultOrgSlug,
-    defaultFormationStatus,
-    defaultIntentFocus,
-    defaultRoleInterest,
-    defaultFirstName,
-    defaultLastName,
-    defaultPersonHandle,
-    defaultPhone,
-    defaultPublicEmail,
-    defaultTitle,
-    defaultLinkedin,
-    defaultAvatarUrl,
-    defaultOptInUpdates,
-    defaultNewsletterOptIn,
-  })
+  const onboardingDefaults = useOnboardingDefaults(defaults)
   const {
     initialOrgName,
     initialOrgSlug,
@@ -152,6 +125,20 @@ export function OnboardingFlow({
     initialPersonHandle,
     initialValues: buildAccountValuesFromDefaults(onboardingDefaults),
   })
+  useWorkspaceEditorStatus({
+    label: "Organization setup",
+    dirty:
+      open &&
+      (orgNameValue !== initialOrgName ||
+        slugValue !== initialOrgSlug ||
+        formationStatus !== initialFormationStatus ||
+        intentFocus !== (intentFocusOverride ?? initialIntentFocus) ||
+        roleInterest !== initialRoleInterest ||
+        JSON.stringify(accountValues) !==
+          JSON.stringify(buildAccountValuesFromDefaults(onboardingDefaults))),
+    pending: open && submitting,
+    error: open && Boolean(serverError),
+  })
   const latestOrganizationValuesRef = useRef({
     orgName: initialOrgName,
     orgSlug: initialOrgSlug,
@@ -179,7 +166,10 @@ export function OnboardingFlow({
       formRef,
       step,
       steps,
-      formationStatus, intentFocus, roleInterest, slugEdited,
+      formationStatus,
+      intentFocus,
+      roleInterest,
+      slugEdited,
       avatar: avatarPreview,
       extra,
     })
@@ -339,7 +329,12 @@ export function OnboardingFlow({
     setSlugEdited,
     setSlugValue,
   })
-  const submitAction = useOnboardingSubmission({ onSubmit, draftScope, setSubmitting, setServerError })
+  const submitAction = useOnboardingSubmission({
+    onSubmit,
+    draftScope,
+    setSubmitting,
+    setServerError,
+  })
 
   return (
     <OnboardingDialogContent

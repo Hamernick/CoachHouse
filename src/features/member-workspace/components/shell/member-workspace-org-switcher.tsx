@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ChevronsUpDownIcon from "lucide-react/dist/esm/icons/chevrons-up-down"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Command,
   CommandEmpty,
@@ -50,6 +51,7 @@ function getOrganizationInitials(name: string) {
 }
 
 type MemberWorkspaceOrgSwitcherProps = {
+  presentation?: "sidebar" | "account-menu"
   activeOrganization: MemberWorkspaceAccessibleOrganization
   organizations: MemberWorkspaceAccessibleOrganization[]
   setActiveOrganizationAction: (
@@ -135,24 +137,20 @@ function OrganizationList({
 }
 
 export function MemberWorkspaceOrgSwitcher({
+  presentation = "sidebar",
   activeOrganization,
   organizations,
   setActiveOrganizationAction,
 }: MemberWorkspaceOrgSwitcherProps) {
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const subtitle = useMemo(() => {
-    if (organizations.length <= 1) {
-      return formatRole(activeOrganization.role)
-    }
-    return `${organizations.length} organizations`
-  }, [activeOrganization.role, organizations.length])
-
   const handleSelect = (organization: MemberWorkspaceAccessibleOrganization) => {
     if (organization.orgId === activeOrganization.orgId) {
       setOpen(false)
+      if (presentation === "account-menu") triggerRef.current?.focus()
       return
     }
 
@@ -170,14 +168,15 @@ export function MemberWorkspaceOrgSwitcher({
 
   const trigger = (
     <Button
+      ref={triggerRef}
       type="button"
       variant="ghost"
       aria-label="Switch organization"
-      className="h-auto w-full justify-between gap-2 rounded-xl border border-transparent bg-transparent px-1 py-2 text-left md:py-px has-[>svg]:px-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:has-[>svg]:px-0"
+      className="h-auto w-full justify-between gap-2 rounded-xl border border-transparent bg-transparent px-1 py-2 text-left md:py-1 has-[>svg]:px-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:has-[>svg]:px-0"
       disabled={isPending}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:min-w-auto group-data-[collapsible=icon]:gap-0">
-        <Avatar className="size-9 rounded-xl border border-transparent md:self-start group-data-[collapsible=icon]:size-10">
+        <Avatar className="size-9 rounded-xl border border-transparent group-data-[collapsible=icon]:size-10">
           <AvatarImage alt={activeOrganization.name} src={activeOrganization.imageUrl ?? undefined} />
           <AvatarFallback className="rounded-xl text-[11px] font-semibold">
             {getOrganizationInitials(activeOrganization.name)}
@@ -187,12 +186,26 @@ export function MemberWorkspaceOrgSwitcher({
           <p className="line-clamp-2 whitespace-normal break-words text-sm font-semibold text-foreground" title={activeOrganization.name}>
             {activeOrganization.name}
           </p>
-          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
       <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden />
     </Button>
   )
+
+  if (presentation === "account-menu") {
+    return (
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>{trigger}</CollapsibleTrigger>
+        <CollapsibleContent className="pt-2" inert={isPending || undefined}>
+          <OrganizationList
+            activeOrganization={activeOrganization}
+            organizations={organizations}
+            onSelect={handleSelect}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+    )
+  }
 
   if (isMobile) {
     return (

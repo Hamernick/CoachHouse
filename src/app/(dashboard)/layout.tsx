@@ -28,7 +28,7 @@ export default async function DashboardLayout({
     <>
       <FrameEscape />
       <AppShell
-        sidebarHeaderContent={
+        accountMenuContent={
           <MemberWorkspaceSidebarHeader state={state.memberWorkspaceHeader} />
         }
         sidebarTree={state.sidebarTree}

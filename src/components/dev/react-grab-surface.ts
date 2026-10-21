@@ -32,7 +32,7 @@ export type ReactGrabLinkedSurfaceDescriptor = {
 
 function withOptionalStringProps(
   base: Record<string, string>,
-  optional: Record<string, string | undefined>,
+  optional: Record<string, string | undefined>
 ) {
   const next = { ...base }
 
@@ -44,9 +44,7 @@ function withOptionalStringProps(
   return next
 }
 
-export function getReactGrabOwnerProps(
-  descriptor: ReactGrabOwnerDescriptor,
-) {
+export function getReactGrabOwnerProps(descriptor: ReactGrabOwnerDescriptor) {
   return withOptionalStringProps(
     {
       "data-react-grab-anchor": descriptor.component,
@@ -68,12 +66,12 @@ export function getReactGrabOwnerProps(
       "data-react-grab-token-source": descriptor.tokenSource,
       "data-react-grab-primitive-import": descriptor.primitiveImport,
       "data-react-grab-notes": descriptor.notes,
-    },
+    }
   )
 }
 
 export function getReactGrabLinkedSurfaceProps(
-  descriptor: ReactGrabLinkedSurfaceDescriptor,
+  descriptor: ReactGrabLinkedSurfaceDescriptor
 ) {
   return withOptionalStringProps(
     {
@@ -93,6 +91,18 @@ export function getReactGrabLinkedSurfaceProps(
       "data-react-grab-token-source": descriptor.tokenSource,
       "data-react-grab-primitive-import": descriptor.primitiveImport,
       "data-react-grab-notes": descriptor.notes,
-    },
+    }
   )
+}
+
+// Inspection policy is separate from ownership: leaves remain selectable while
+// their normal runtime behavior stays under their original component's control.
+export function getReactGrabInspectionProps(
+  mode: "granular" | "preview" | "overlay"
+) {
+  if (mode === "overlay") return { "data-react-grab-preview-overlay": "true" }
+  return {
+    "data-react-grab-granular": "true",
+    ...(mode === "preview" ? { "data-react-grab-preview": "true" } : {}),
+  }
 }

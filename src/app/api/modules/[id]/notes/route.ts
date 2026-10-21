@@ -6,6 +6,7 @@ import type { Json } from "@/lib/supabase/schema/json"
 
 type NotesPayload = {
   content: string
+  editedAt: string
   format: "markdown"
 }
 
@@ -15,6 +16,7 @@ function parsePayload(value: unknown): NotesPayload | null {
   if (!content) return null
   return {
     content,
+    editedAt: new Date().toISOString(),
     format: "markdown",
   }
 }

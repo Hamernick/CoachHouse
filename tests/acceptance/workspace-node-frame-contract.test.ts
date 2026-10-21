@@ -61,7 +61,8 @@ describe("workspace node frame contract", () => {
     expect(nodeCardShell).toContain(
       'contentSurface === "plain" || !footer ? "pb-3" : "pb-0"'
     )
-    expect(nodeCardShell).not.toContain('"px-0 pb-0"')
+    expect(nodeCardShell).toContain("WORKSPACE_PARTICLE_CHROME.root")
+    expect(nodeCardShell).toContain("WORKSPACE_PARTICLE_CHROME.body")
   })
 
   it("contains visual content without clipping React Flow handles", () => {

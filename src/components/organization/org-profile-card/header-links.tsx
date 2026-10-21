@@ -73,7 +73,7 @@ export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
               >
                 <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}>
                   <span className="inline-flex max-w-full items-center justify-center gap-1.5">
-                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] bg-white text-neutral-700">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] bg-white text-neutral-700 dark:bg-muted dark:text-foreground">
                       {text ? (
                         <Icon className="size-4" aria-hidden="true" />
                       ) : <OrganizationSocialBrandIcon platform={key} />}

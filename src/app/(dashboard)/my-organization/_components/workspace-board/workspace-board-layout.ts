@@ -346,7 +346,7 @@ export function normalizeWorkspaceBoardState(
   const forwardCompatibleInput = resolveWorkspaceBoardForwardCompatibleInput({
     connections: record.connections,
     forwardCompatibility: record.forwardCompatibility,
-    hiddenCardIds: record.hiddenCardIds,
+    hiddenCardIds: record.hiddenCardIds ?? (record.workspaceCanvasId && record.visibility?.allCardsHiddenExplicitly ? WORKSPACE_CARD_IDS : undefined),
     nodes: record.nodes,
   })
   const normalizedAccelerator = normalizeWorkspaceAcceleratorState(
@@ -365,6 +365,7 @@ export function normalizeWorkspaceBoardState(
 
   return {
     version: 1,
+    ...(typeof record.workspaceCanvasId === "string" ? { workspaceCanvasId: record.workspaceCanvasId } : {}),
     ...(particleGraph !== undefined ? { particleGraph } : {}),
     ...(legacyParticles !== undefined ? { particles: legacyParticles } : {}),
     preset,

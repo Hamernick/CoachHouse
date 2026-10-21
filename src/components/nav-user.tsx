@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useRef, useState, useTransition, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import MoreVerticalIcon from "lucide-react/dist/esm/icons/more-vertical"
@@ -35,6 +35,7 @@ const AccountSettingsDialog = dynamic(
 )
 
 type NavUserProps = {
+  accountMenuContent?: ReactNode
   showUpgrade?: boolean
   planLabel?: string
   user: {
@@ -52,6 +53,7 @@ type NavUserProps = {
 }
 
 export function NavUser({
+  accountMenuContent,
   showUpgrade = false,
   planLabel,
   user,
@@ -154,6 +156,7 @@ export function NavUser({
         </SidebarMenu>
 
         <NavUserMenuContent
+          accountMenuContent={accountMenuContent}
           open={menuOpen}
           menuRef={menuRef}
           menuStyle={menuStyle}

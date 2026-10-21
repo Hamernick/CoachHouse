@@ -70,9 +70,10 @@ export function AuthenticatedFindShell({
       <FrameEscape />
       <AppShell
         breadcrumbs={<AppBreadcrumbs segments={segments} />}
-        sidebarHeaderContent={
+        accountMenuContent={
           state.memberWorkspaceHeader ? (
             <MemberWorkspaceOrgSwitcher
+              presentation="account-menu"
               activeOrganization={
                 state.memberWorkspaceHeader.activeOrganization
               }

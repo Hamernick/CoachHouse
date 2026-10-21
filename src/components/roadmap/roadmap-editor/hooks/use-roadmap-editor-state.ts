@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import {
   useCallback,
   useEffect,
@@ -44,6 +46,21 @@ import type {
   UseRoadmapEditorStateResult,
 } from "./use-roadmap-editor-state-types"
 
+function useRoadmapWindowStatus(
+  sections: RoadmapSection[],
+  drafts: Record<string, RoadmapDraft>,
+  savingId: string | null
+) {
+  useWorkspaceEditorStatus({
+    label: "Roadmap",
+    dirty: sections.some(
+      (section) =>
+        drafts[section.id] && isRoadmapDraftDirty(section, drafts[section.id])
+    ),
+    pending: Boolean(savingId),
+  })
+}
+
 export function useRoadmapEditorState({
   sourceScope,
   sections: initialSections,
@@ -54,19 +71,14 @@ export function useRoadmapEditorState({
   onDirtyChange,
   onRegisterDiscard,
 }: UseRoadmapEditorStateArgs): UseRoadmapEditorStateResult {
-  const storageKey = useMemo(
-    () =>
-      sourceScope
-        ? `roadmap-draft:${sourceScope.userId}:${sourceScope.organizationId}`
-        : `roadmap-draft:${publicSlug ?? "private"}`,
-    [publicSlug, sourceScope]
+  const storageKey = sourceScope
+    ? `roadmap-draft:${sourceScope.userId}:${sourceScope.organizationId}`
+    : `roadmap-draft:${publicSlug ?? "private"}`
+  const initialActiveId = initialSections.some(
+    (section) => section.id === initialSectionId
   )
-  const initialActiveId = useMemo(() => {
-    if (!initialSectionId) return ""
-    return initialSections.some((section) => section.id === initialSectionId)
-      ? initialSectionId
-      : ""
-  }, [initialSections, initialSectionId])
+    ? (initialSectionId ?? "")
+    : ""
   const [sections, setSections] = useState<RoadmapSection[]>(
     () => initialSections
   )
@@ -78,6 +90,7 @@ export function useRoadmapEditorState({
   )
   const [savingId, setSavingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  useRoadmapWindowStatus(sections, drafts, savingId)
   const [isHydrated, setIsHydrated] = useState(false)
   const sectionsRef = useRef(sections)
   const draftsRef = useRef(drafts)
@@ -94,15 +107,9 @@ export function useRoadmapEditorState({
 
   useEffect(() => {
     sectionsRef.current = sections
-  }, [sections])
-
-  useEffect(() => {
     draftsRef.current = drafts
-  }, [drafts])
-
-  useEffect(() => {
     activeIdRef.current = activeId
-  }, [activeId])
+  }, [sections, drafts, activeId])
 
   useEffect(() => {
     setSections(initialSections)
@@ -269,9 +276,14 @@ export function useRoadmapEditorState({
       setActiveId(next.id)
       if (navigationMode === "embedded") return
       if (typeof window === "undefined") return
-      const returnTo = new URLSearchParams(window.location.search).get("returnTo")
-      const nextHref = returnTo ? withEditorReturnTo(getSectionHref(next.slug), returnTo) : getSectionHref(next.slug)
-      if (`${window.location.pathname}${window.location.search}` === nextHref) return
+      const returnTo = new URLSearchParams(window.location.search).get(
+        "returnTo"
+      )
+      const nextHref = returnTo
+        ? withEditorReturnTo(getSectionHref(next.slug), returnTo)
+        : getSectionHref(next.slug)
+      if (`${window.location.pathname}${window.location.search}` === nextHref)
+        return
       window.history.replaceState(window.history.state, "", nextHref)
     },
     [flushActiveSectionDraft, getSectionHref, navigationMode]

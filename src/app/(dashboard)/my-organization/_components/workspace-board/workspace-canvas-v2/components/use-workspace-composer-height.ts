@@ -12,21 +12,19 @@ import {
 export function useWorkspaceComposerHeight() {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const [height, setHeight] = useState(58)
-  const [chrome, setChrome] = useState({ header: 24, total: 58 })
+  const [chrome, setChrome] = useState({ header: 8, total: 10 })
   useLayoutEffect(() => {
     if (!element) return
     const measure = () => {
       setHeight(Math.ceil(element.getBoundingClientRect().height))
       const style = getComputedStyle(element)
       const header =
-        parseFloat(style.getPropertyValue("--workspace-dock-header-height")) ||
-        24
-      const tabs =
-        parseFloat(style.getPropertyValue("--workspace-dock-tabs-height")) || 32
+        parseFloat(style.getPropertyValue("--workspace-dock-padding-top")) ||
+        8
       setChrome((current) =>
-        current.header === header && current.total === header + tabs + 2
+        current.header === header && current.total === header + 2
           ? current
-          : { header, total: header + tabs + 2 }
+          : { header, total: header + 2 }
       )
     }
     measure()

@@ -27,11 +27,14 @@ function readSource(relativePath: string) {
         "workspace-canvas-overlay-drawer-trigger.tsx",
         "use-workspace-drawer-navigation.ts",
         "workspace-drawer-shell.ts",
+        "workspace-dock-host.tsx",
         "workspace-overlay-drawer-props.ts",
         "use-workspace-drawer-controls.ts",
       ]
     : relativePath.endsWith("/workspace-canvas-overlay-drawer-tabs-view.tsx")
       ? ["workspace-drawer-navigation-view.tsx", "workspace-drawer-content.tsx"]
+      : relativePath.endsWith("/workspace-canvas-surface-v2-view.tsx")
+        ? ["workspace-particle-dock.tsx"]
       : []
   return [
     source,
@@ -110,7 +113,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).not.toContain('from "@/components/ui/toggle"')
     expect(source).toContain("useWorkspaceCanvasOverlayDrawerContainer")
     expect(source).toContain('direction="bottom"')
-    expect(source).toContain("container={canvasContainer ?? undefined}")
+    expect(source).toContain("container={container}")
     expect(source).toContain("disablePreventScroll")
     expect(source).toContain("dismissible={false}")
     expect(source).toContain("fadeFromIndex={2}")
@@ -119,10 +122,8 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).toContain("...WORKSPACE_DATA_DRAWER_SNAP_POINTS")
     expect(source).toContain("snapToSequentialPoint")
     expect(source).toContain("shouldScaleBackground={false}")
-    expect(source.replace(/\s+/g, " ")).toContain(
-      "particleComposer && drawerCollapsed ? composerPeek : activeSnapPoint"
-    )
-    expect(source).toContain("setActiveSnapPoint={handleActiveSnapPointChange}")
+    expect(source).toContain("floating={Boolean(particleComposer)}")
+    expect(source).toContain("setActiveSnapPoint: handleActiveSnapPointChange")
     expect(source).toContain("readWorkspaceBoardUiPreferences")
     expect(source).toContain("patchWorkspaceBoardUiPreferences")
     expect(source).toContain("dataDrawerSnapPoint: storedSnapPoint")
@@ -171,7 +172,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(stateSource).toContain(
       "const WORKSPACE_DATA_DRAWER_DEFAULT_SNAP_POINT ="
     )
-    expect(source).toContain('data-workspace-canvas-overlay-drawer="true"')
+    expect(source).toContain('"data-workspace-canvas-overlay-drawer": "true"')
     expect(source).toContain(
       'overlayClassName="pointer-events-none absolute inset-0 !z-10'
     )
@@ -221,7 +222,6 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).toContain(
       "bg-background !z-40 backdrop-blur-none data-[vaul-drawer-direction=bottom]:rounded-t-none data-[vaul-drawer-direction=bottom]:border-t-0"
     )
-    expect(source).not.toContain("container={container")
     expect(source).not.toContain("w-[min(38rem,calc(100%-1rem))]")
     expect(source).not.toContain(
       "absolute right-0 bottom-0 left-0 !z-20 mx-auto"
@@ -248,21 +248,20 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).not.toContain("setOpen(false)")
     expect(source).toContain("const [open, setOpen] = useState(true)")
     expect(source).toContain(
-      "const drawerContentMounted = Boolean(canvasContainer)"
+      "if (!container) return null"
     )
-    expect(source).toContain(
+    expect(source.replace(/\s+/g, " ")).toContain(
       "() => guideState?.snapPoint ?? resolveWorkspaceDataDrawerRequestSnapPoint(request)"
     )
     expect(source).toContain('guideState?.tab ?? request?.tab ?? "organization"')
     expect(source).toContain("if (request || guideState) return")
     expect(source).toContain("if (restoredPreferencesScopeRef.current === scopeKey) return")
-    expect(source).toContain("state: guideState, setOpen, setTab, setSnap: setActiveSnapPoint")
-    expect(source).toContain("const drawerContentMounted =")
+    expect(source.replace(/\s+/g, " ")).toContain("state: guideState, setOpen, setTab, setSnap: setActiveSnapPoint")
     expect(source).not.toContain("setHasOpened")
     expect(source).not.toContain("rightRailSettled")
     expect(source).not.toContain("useRightRailPresence()")
     expect(source).not.toContain("useAppShellRightRailControls()")
-    expect(source).toContain("open={canvasContainer ? open : false}")
+    expect(source).toContain("open: canvasContainer ? open : false")
     expect(source).toContain(
       "handleActiveSnapPointChange(WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT)"
     )
@@ -321,7 +320,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).toContain('"Restore data drawer height"')
     expect(source).toContain('"Expand data drawer to full canvas height"')
     expect(source).toContain("WORKSPACE_DATA_DRAWER_FULL_SNAP_POINT")
-    expect(source).toContain("data-workspace-canvas-drawer-fullscreen={")
+    expect(source).toContain("data-workspace-canvas-drawer-fullscreen")
     expect(source).not.toContain("WorkspaceDrawerExpandControl")
     expect(source).not.toContain(
       'data-workspace-data-drawer-fullscreen-trigger="true"'
@@ -358,7 +357,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).not.toContain(
       "activeSnapPoint !== WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT"
     )
-    expect(source).toContain("{drawerContentMounted ? (")
+    expect(source).toContain("if (!container) return null")
     expect(source).not.toContain("drawerCollapsed ? null : (")
     expect(tabsViewSource).toContain('data-workspace-data-drawer-body="true"')
     expect(tabsViewSource).toContain(
@@ -454,11 +453,9 @@ describe("workspace canvas overlay drawer", () => {
       "export const WorkspaceCanvasOverlayDrawer = memo("
     )
     expect(drawerSource).toContain("function WorkspaceCanvasOverlayDrawer({")
-    expect(drawerSource).toContain(
-      "const [, startTabTransition] = useTransition()"
-    )
+    expect(drawerSource).not.toContain("startTabTransition")
     expect(drawerSource).toContain("const handleTabChange = useCallback(")
-    expect(drawerSource).toContain("startTabTransition(() => {")
+    expect(drawerSource).toContain("setTab(next.tab)\n      onSnap(next.snapPoint)")
     expect(source).toContain('value={showSelectedTab ? tab : ""}')
     expect(source).toContain("onValueChange={handleTabChange}")
     expect(drawerSource).toContain("onSnap(next.snapPoint)")
@@ -682,7 +679,7 @@ describe("workspace canvas overlay drawer", () => {
     ).toBeNull()
 
     expect(drawerSource).toContain(
-      "data-workspace-data-drawer-request-roadmap-section="
+      "data-workspace-data-drawer-request-roadmap-section"
     )
     expect(tabsViewSource).not.toContain(
       '<WorkspaceDrawerTabTrigger value="roadmap">'
@@ -835,7 +832,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(pageSource).not.toContain("showLegacyEditor")
     expect(profileHeaderControlsSource).toContain("View map profile")
     expect(profileHeaderControlsSource).toContain(
-      'className="flex flex-wrap items-center justify-end gap-2 pb-3"'
+      '<WorkspaceWindowHeaderPortal>'
     )
     expect(profileHeaderControlsSource).not.toContain(
       'className="absolute top-6 left-1/2 flex -translate-x-1/2 gap-2"'
@@ -895,7 +892,7 @@ describe("workspace canvas overlay drawer", () => {
     )
 
     expect(tabsViewSource).toContain(
-      'import { DocumentsTab } from "@/components/organization/org-profile-card/tabs/documents-tab"'
+      'import("@/components/organization/org-profile-card/tabs/documents-tab")'
     )
     expect(source).toContain("DocumentsTabData")
     expect(source).toContain("viewerId: string")
@@ -1114,7 +1111,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source).not.toContain("filteredAvailablePeople")
     expect(source).not.toContain("People available for")
     expect(source.match(/<WorkspacePeopleDrawerTable/g) ?? []).toHaveLength(1)
-    expect(source).toContain(
+    expect(source.replace(/\s+/g, " ")).toContain(
       "const [peopleCategoryFilter, setPeopleCategoryFilter] = useState<"
     )
     expect(peopleFilteringSource).toContain(
@@ -1493,7 +1490,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(tableSource).toContain("personIds.forEach(onAdd)")
     expect(tableSource).toContain("onRemoveFromSegment={(personIds) => personIds.forEach(onRemove)}")
     expect(tableSource).toContain("personIds.forEach(onRemove)")
-    expect(tableSource).toContain('className="flex min-h-full w-full flex-col border-collapse"')
+    expect(tableSource).toContain('className="flex min-h-full w-full border-collapse flex-col"')
     expect(tableSource).toContain("const columnSizeVars = useMemo(")
     expect(tableSizingSource).toContain(
       "sizeVars[`--header-${header.id}-size`]"
@@ -1634,7 +1631,7 @@ describe("workspace canvas overlay drawer", () => {
       "export function WorkspacePeopleDrawerTableToolbar"
     )
     expect(tableToolbarSource).toContain(
-      'className="text-foreground hover:text-foreground h-8 w-auto shrink-0 gap-1.5 rounded-xl px-2.5"'
+      "inWindowHeader && WORKSPACE_HEADER_BUTTON"
     )
     expect(tableToolbarSource).not.toContain(
       "text-muted-foreground hover:text-foreground dark:text-foreground/80"
@@ -1662,10 +1659,10 @@ describe("workspace canvas overlay drawer", () => {
       "bg-background flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden"
     )
     expect(tableSource).toContain(
-      "block min-h-0 max-w-full flex-1 overflow-auto overscroll-contain touch-pan-x touch-pan-y will-change-auto"
+      "block min-h-0 max-w-full flex-1 touch-pan-x touch-pan-y overflow-auto overscroll-contain will-change-auto"
     )
     expect(tableSource.indexOf("hidden min-h-0 max-w-full flex-1")).toBeLessThan(
-      tableSource.indexOf('className="flex min-h-full w-full flex-col border-collapse"')
+      tableSource.indexOf('className="flex min-h-full w-full border-collapse flex-col"')
     )
     expect(tableSizingSource).toContain(
       "export const WORKSPACE_PEOPLE_DEFAULT_ROW_HEIGHTS"
@@ -2115,14 +2112,15 @@ describe("workspace canvas overlay drawer", () => {
     expect(viewSource).toContain("elementsSelectable={nodesSelectable}")
     expect(viewSource).toContain('selectionKeyCode="Shift"')
     expect(viewSource).toContain(
-      'multiSelectionKeyCode={["Shift", "Meta", "Control"]}'
+      "multiSelectionKeyCode={MULTI_SELECTION_KEYS}"
     )
+    expect(viewSource).toContain('const MULTI_SELECTION_KEYS = ["Shift", "Meta", "Control"]')
     expect(viewSource).toContain("selectionMode={SelectionMode.Partial}")
     expect(viewSource).toContain("{...selectionGestures}")
     expect(viewSource).toContain('panActivationKeyCode="Space"')
     expect(viewSource).toContain("selectNodesOnDrag={selectNodesOnDrag}")
     expect(viewSource).toContain(
-      "createWorkspaceParticleFlowHandlers(particles"
+      "useWorkspaceParticleFlowHandlers(particles"
     )
     const particleHandlers = readSource(
       "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-particle-flow-handlers.ts"
@@ -2157,7 +2155,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(viewSource).not.toContain("centeredIndex * horizontalOffset")
     expect(viewSource).not.toContain("centeredIndex * verticalOffset")
     expect(viewSource).toContain("onAddWorkspacePeopleToCanvas({")
-    expect(viewSource).toContain("peopleCanvasActions={{")
+    expect(viewSource).toContain("peopleCanvasActions={peopleCanvasActions}")
     expect(viewSource).toContain("add: handleAddWorkspacePeopleToCanvas")
     expect(viewSource).toContain("remove: onRemoveWorkspacePersonFromCanvas")
     expect(surfaceSource).toContain(
@@ -2190,7 +2188,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(supportSource).not.toContain("setRailContainer")
     expect(supportSource).not.toContain("container: railContainer")
     expect(viewSource).toContain(
-      "WorkspaceCanvasOverlayDrawerContainerProvider"
+      "WorkspaceParticleCanvasProviders"
     )
     expect(viewSource).toContain("container={flowFrameContainer}")
     expect(viewSource).toContain("setFlowFrameContainer")

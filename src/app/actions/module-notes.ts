@@ -8,6 +8,7 @@ import { trackUserJourneyMilestone } from "@/lib/user-journey"
 export type ModuleNotesPayload = {
   content: string
   format: "markdown"
+  editedAt?: string
 }
 
 type ModuleNotesResult = { ok: true; notes: ModuleNotesPayload | null } | { error: string }
@@ -67,7 +68,7 @@ export async function saveModuleNotesAction(
   if (!user) return { error: "Not authenticated." }
 
   const trimmed = content.trim()
-  const notesPayload: ModuleNotesPayload | null = trimmed.length > 0 ? { content: trimmed, format: "markdown" } : null
+  const notesPayload: ModuleNotesPayload | null = trimmed.length > 0 ? { content: trimmed, format: "markdown", editedAt: new Date().toISOString() } : null
 
   const { error: upsertError } = await supabase
     .from("module_progress")

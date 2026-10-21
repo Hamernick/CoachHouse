@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { createPortal } from "react-dom"
-import type { CSSProperties, RefObject } from "react"
+import type { CSSProperties, ReactNode, RefObject } from "react"
 
 import CircleUserIcon from "lucide-react/dist/esm/icons/circle-user"
 import CreditCardIcon from "lucide-react/dist/esm/icons/credit-card"
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import type { AccountSettingsTabKey } from "@/components/account-settings/types"
 
 type NavUserMenuContentProps = {
+  accountMenuContent?: ReactNode
   showUpgrade?: boolean
   planLabel?: string
   open: boolean
@@ -38,6 +39,7 @@ type NavUserMenuContentProps = {
 }
 
 export function NavUserMenuContent({
+  accountMenuContent,
   showUpgrade = false,
   planLabel,
   open,
@@ -87,6 +89,7 @@ export function NavUserMenuContent({
         </div>
       </div>
       <div className="bg-border/60 my-2 h-px" />
+      {accountMenuContent ? <div className="mb-2">{accountMenuContent}</div> : null}
       {showUpgrade ? (
         <UpgradeButton className="mb-1" onClick={() => { onCloseMenu(); onOpenUpgrade() }} />
       ) : null}

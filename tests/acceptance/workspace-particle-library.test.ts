@@ -29,6 +29,42 @@ import {
 } from "./fixtures/particle-fixtures"
 
 describe("Particle library placement", () => {
+  it("omits a redundant empty Activity only when its preset is available", () => {
+    const blank = { ...particle(1), canvasHidden: true }
+    const props = {
+      workspaceId: WORKSPACE, particles: [blank], editable: true, canEdit: true,
+      pending: false, error: null, onCreate: async () => true, onAddPreset: async () => true,
+      onRetry: () => {}, onPlace: () => {},
+    }
+    const render = (extra = {}) => renderToStaticMarkup(createElement(ParticleLibrary, { ...props, ...extra }))
+    expect(render()).not.toContain(`workspace-particle:library:${blank.id}`)
+    expect(render()).toContain('aria-label="Add Activity to canvas"')
+    for (const extra of [
+      { connectedParticleIds: [blank.id] },
+      { onAddPreset: undefined },
+      { particles: [{ ...blank, title: "My activity" }] },
+      { particles: [{ ...blank, description: "Keep these details" }] },
+      { particles: [{ ...blank, locked: true }] },
+    ]) expect(render(extra)).toContain(`workspace-particle:library:${blank.id}`)
+    expect(blank.canvasHidden).toBe(true)
+  })
+  it("flows presets and existing Activity cards through one shared library list", () => {
+    const activity = { ...particle(1, "activity"), canvasHidden: true, title: "Existing activity" }
+    const props = {
+      workspaceId: WORKSPACE, particles: [activity], editable: true, canEdit: true,
+      pending: false, error: null, onCreate: async () => true, onAddPreset: async () => true,
+      onRetry: () => {}, onPlace: () => {},
+    }
+    const html = renderToStaticMarkup(createElement(ParticleLibrary, props))
+    expect(html.match(/aria-label="Available Particles"/g)).toHaveLength(1)
+    expect(html).toContain("columns-[280px]")
+    expect(html).not.toContain('aria-label="Particle presets"')
+    expect(html).toContain('aria-label="Add Form to canvas"')
+    expect(html).toContain('aria-label="Add Existing activity to canvas"')
+    const filtered = renderToStaticMarkup(createElement(ParticleLibrary, { ...props, externalQuery: "Existing activity" }))
+    expect(filtered).toContain('aria-label="Add Existing activity to canvas"')
+    expect(filtered).not.toContain("No matches")
+  })
   it("keeps deliberate Organization removal through unrelated legacy visibility edits", () => {
     const initial = buildDefaultBoardState("balanced")
     const hidden = placeWorkspaceTool(initial, "organization-overview", false)
@@ -187,6 +223,45 @@ describe("Particle library placement", () => {
 })
 
 describe("Particle preview gallery", () => {
+  it("shows no duplicate tool, false empty message or blank list when all sources are placed", () => {
+    const props = {
+      particles: [particle(1)], editable: true, canEdit: true, pending: false,
+      error: null, onCreate: async () => true, onRetry: () => {},
+      tools: [{
+        id: "organization-overview", title: "Placed organization", subtitle: "Organization",
+        visible: true, drag: { kind: "tool" as const, workspaceId: WORKSPACE, id: "organization-overview" as const },
+        onPlace: () => {},
+        preview: createElement(() => { throw new Error("Placed tool preview mounted") }),
+      }],
+    }
+    const html = renderToStaticMarkup(createElement(ParticleLibrary, {
+      ...props, workspaceId: WORKSPACE, onAddPreset: async () => true,
+    }))
+    expect(html).not.toContain("Placed organization")
+    expect(html).not.toContain('aria-label="Particles on canvas"')
+    expect(html).not.toContain("No Particles yet")
+    expect(html).not.toContain("No available Particles")
+    expect(html).toContain('aria-label="Add Form to canvas"')
+    const allPlaced = renderToStaticMarkup(createElement(ParticleLibrary, props))
+    expect(allPlaced).toContain("No available Particles")
+    const filtered = renderToStaticMarkup(createElement(ParticleLibrary, {
+      ...props, workspaceId: WORKSPACE, onAddPreset: async () => true,
+      externalQuery: "Placed organization",
+    }))
+    expect(filtered).toContain("No matches")
+  })
+
+  it("returns a removed card to available sources without replacing its identity", () => {
+    const saved = particle(1, "workflow")
+    const hidden = placeParticle(saved, false)
+    const html = renderToStaticMarkup(createElement(ParticleLibrary, {
+      particles: [hidden], editable: true, canEdit: true, pending: false,
+      error: null, onCreate: async () => true, onRetry: () => {}, onPlace: () => {},
+    }))
+    expect(html).toContain(`aria-label="Add ${saved.title} to canvas"`)
+    expect(placeParticle(hidden, true)).toEqual({ ...saved, canvasHidden: false })
+  })
+
   it("renders actual checklist content in rounded previews, without editor links", () => {
     const record = particle(1, "activity")
     if (record.type !== "activity") throw new Error("fixture")
@@ -209,16 +284,17 @@ describe("Particle preview gallery", () => {
     )
     expect(html).toContain("Book venue")
     expect(html).toContain("1 of 1 complete")
-    expect(html).toContain("columns-[320px]")
+    expect(html).toContain("columns-[280px]")
+    expect(html).not.toContain("columns-[320px]")
     expect(html).toContain("rounded-[28px]")
     expect(html).not.toContain("On canvas")
     expect(html).toContain('aria-label="Add Community dinner to canvas"')
     expect(html).not.toContain('aria-label="Open Community dinner"')
-    expect(html).toContain('type="search"')
+    expect(html).not.toContain('type="search"')
     expect(html).toContain("inert=")
   })
 
-  it("places minimal on-canvas placeholders after available previews without mounting their contents", () => {
+  it("omits placed cards from the library while keeping available previews", () => {
     const placed = particle(1, "activity")
     if (placed.type !== "activity") throw new Error("fixture")
     placed.title = "Placed activity"
@@ -242,12 +318,11 @@ describe("Particle preview gallery", () => {
         onPlace: () => {},
       })
     )
-    expect(html.indexOf("Available objective")).toBeLessThan(
-      html.indexOf("Placed activity")
-    )
+    expect(html).toContain("Available objective")
+    expect(html).not.toContain("Placed activity")
     expect(html).not.toContain("Must not appear")
-    expect(html).toContain("border-dashed")
-    expect(html).toContain("On canvas")
+    expect(html).not.toContain('aria-label="Particles on canvas"')
+    expect(html).not.toContain("On canvas")
     expect(html).not.toContain('aria-label="Add Particle"')
     const placeholder = renderToStaticMarkup(
       createElement(ParticleLibraryTile, {

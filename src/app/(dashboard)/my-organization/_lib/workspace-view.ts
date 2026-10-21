@@ -1,3 +1,6 @@
+import { notFound, redirect } from "next/navigation"
+import { selectWorkspaceState, summarizeWorkspaces } from "@/features/workspace-management"
+
 import type { createSupabaseServerClient } from "@/lib/supabase"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import type { OrganizationMemberRole } from "@/lib/organization/active-org"
@@ -49,6 +52,7 @@ type BuildWorkspaceViewSeedInput<
 > = {
   supabase: SupabaseServerClient
   orgId: string
+  workspaceCanvasId?: string
   role: OrganizationMemberRole
   canEdit: boolean
   isPlatformAdmin?: boolean
@@ -87,6 +91,7 @@ export async function buildWorkspaceViewSeed<
 >({
   supabase,
   orgId,
+  workspaceCanvasId,
   role,
   canEdit, isPlatformAdmin = false,
   hasAcceleratorAccess,
@@ -284,7 +289,12 @@ export async function buildWorkspaceViewSeed<
     )
   }
 
-  const persistedBoardState = readWorkspaceBoardStateValue(boardResult.data?.state)
+  const workspaceCatalog = summarizeWorkspaces(boardResult.data?.state)
+  if (workspaceCanvasId && !workspaceCatalog.some((workspace) => workspace.id === workspaceCanvasId)) notFound()
+  if (!workspaceCanvasId && workspaceCatalog.length > 0 && !workspaceCatalog.some((workspace) => workspace.id === null)) {
+    redirect(`/workspace?workspace=${workspaceCatalog[0].id}`)
+  }
+  const persistedBoardState = readWorkspaceBoardStateValue(workspaceCatalog.length === 0 ? {} : selectWorkspaceState(boardResult.data?.state, workspaceCanvasId))
   const collaborationInvites = readWorkspaceCollaborationInvitesFromRows(workspaceInvitesResult.data)
   const communicationPosts = readWorkspaceCommunicationPostsFromRows(workspaceCommunicationsResult.data)
   const communicationChannelRows = workspaceCommunicationsChannelsResult.data ?? []
@@ -352,6 +362,7 @@ export async function buildWorkspaceViewSeed<
   })
 
   return {
+    workspaceCatalog,
     orgId,
     viewerId: viewer.id,
     viewerName: memberSeed.viewerName,

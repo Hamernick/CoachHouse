@@ -29,7 +29,12 @@ export async function GET(request: NextRequest) {
       state,
       code,
     })
-    const returnUrl = new URL(returnPath, destination.origin)
+    // Retain the already-allowlisted OAuth intent path in storage; return a
+    // workspace-originated connection to its Documents window on the canvas.
+    const returnUrl = new URL(
+      returnPath === "/workspace/documents" ? "/workspace?drawer=documents" : returnPath,
+      destination.origin
+    )
     destination.pathname = returnUrl.pathname
     destination.search = returnUrl.search
     destination.searchParams.set("googleDrive", "connected")

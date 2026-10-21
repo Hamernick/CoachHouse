@@ -3,10 +3,12 @@
 export type ReactGrabPlugin = {
   name: string
   hooks?: {
+    onActivate?: () => void
+    onDeactivate?: () => void
     onElementSelect?: (element: Element) => boolean | void | Promise<boolean>
     transformCopyContent?: (
       content: string,
-      elements: Element[],
+      elements: Element[]
     ) => string | Promise<string>
   }
 }
@@ -27,6 +29,7 @@ export type ReactGrabStackFrame = {
 }
 
 export type ReactGrabApi = {
+  isActive?: () => boolean
   copyElement: (elements: Element | Element[]) => Promise<boolean>
   registerPlugin: (plugin: ReactGrabPlugin) => void
   unregisterPlugin: (name: string) => void
@@ -41,7 +44,11 @@ export type ReactGrabResolutionTrace = {
   resolvedOwnerId: string | null
   resolvedOwnerComponent: string | null
   resolvedOwnerSource: string | null
-  resolutionMode: "direct-anchor" | "linked-surface" | "legacy-fallback" | "none"
+  resolutionMode:
+    | "direct-anchor"
+    | "linked-surface"
+    | "legacy-fallback"
+    | "none"
 }
 
 export type ReactGrabElementMetadata = {

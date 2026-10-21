@@ -1,131 +1,97 @@
 "use client"
 
-import TargetIcon from "lucide-react/dist/esm/icons/target"
-import ListChecksIcon from "lucide-react/dist/esm/icons/list-checks"
-import CalendarDaysIcon from "lucide-react/dist/esm/icons/calendar-days"
-import UsersIcon from "lucide-react/dist/esm/icons/users"
-import GitBranchIcon from "lucide-react/dist/esm/icons/git-branch"
-import ChartNoAxesCombinedIcon from "lucide-react/dist/esm/icons/chart-no-axes-combined"
-import WalletIcon from "lucide-react/dist/esm/icons/wallet"
-import MoreHorizontalIcon from "lucide-react/dist/esm/icons/ellipsis"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { ParticleRemoveControl } from "./particle-library-tile"
-import { cn } from "@/lib/utils"
-import { particleRegistry } from "../lib/particle-registry"
-import {
-  ParticleFrame,
-  ParticleHeader,
-  ParticleBody,
-  ParticleFooter,
-} from "./particle-frame"
+import type { ComponentProps, ReactNode } from "react"
+import { particleIcon } from "./particle-preset-icons"
+import { ParticleActionMenu } from "./particle-action-menu"
+import { ParticleDocumentCard } from "./particle-document-card"
+import { getParticleDocument } from "../lib/particle-file"
+import { ParticleImageCard } from "./particle-image-card"
+import { ParticleImagePlaceholder } from "./particle-image-placeholder"
+import { getParticleImage, isImagePlaceholder } from "../lib/particle-image"
+import { ParticleFrame, ParticleHeader, ParticleBody } from "./particle-frame"
 import { PARTICLE_PREVIEWS } from "./particle-preview"
+import { Button } from "@/components/ui/button"
+import { ParticleSurfaceContext } from "./particle-surface"
+import { ParticleFormHeader } from "./particle-form-header"
+import { ParticleEventCard } from "./particle-event-card"
 
 import type { ParticleNodeData } from "./particle-node"
 
-const ICONS = {
-  objective: TargetIcon,
-  activity: ListChecksIcon,
-  calendar: CalendarDaysIcon,
-  people: UsersIcon,
-  decision: GitBranchIcon,
-  metric: ChartNoAxesCombinedIcon,
-  workflow: ListChecksIcon,
-  finance: WalletIcon,
+export function ParticleCard(props: ComponentProps<typeof ParticleCardContent>) {
+  return <ParticleSurfaceContext.Provider value={props.data.particle}><ParticleCardContent {...props} /></ParticleSurfaceContext.Provider>
 }
 
-export function ParticleCard({
+function ParticleCardContent({
   data,
   selected = false,
   controls = true,
+  headerAction,
+  onNotesDraftChange,
+  editorFields,
 }: {
   data: ParticleNodeData
+  /** Preset configuration shares the card surface; never shown on canvas. */
+  editorFields?: ReactNode
   selected?: boolean
   controls?: boolean
+  headerAction?: ReactNode
+  onNotesDraftChange?: (content: string) => void
 }) {
   const { particle, editable, onOpen, onEdit } = data
-  const definition = particleRegistry[particle.type]
-  const Icon = ICONS[particle.type]
-  const Preview = PARTICLE_PREVIEWS[particle.type]
-  const open = () => onOpen(particle.id)
-  return (
-    <ParticleFrame selected={selected}>
-      {controls && data.onRemove && (
-        <ParticleRemoveControl
-          title={particle.title}
-          disabled={!editable}
-          onRemove={() => data.onRemove?.(particle.id)}
-        />
-      )}
-      <ParticleHeader
-        title={particle.title}
-        label={definition.label}
-        status={particle.status}
-        icon={<Icon className="size-4" />}
+  if (particle.type === "activity" && particle.data.widget?.kind === "event")
+    return (
+      <ParticleEventCard editorFields={editorFields} title={particle.title} event={particle.data.widget} selected={selected}>
+        {controls && <ParticleActionMenu data={data} selected={selected}/>}
+      </ParticleEventCard>
+    )
+  if (isImagePlaceholder(particle))
+    return (
+      <ParticleImagePlaceholder
+        editorFields={editorFields}
+        data={data}
+        selected={selected}
+        controls={controls}
       />
+    )
+  if (getParticleDocument(particle))
+    return (
+      <ParticleDocumentCard
+        data={data}
+        selected={selected}
+        controls={controls}
+      />
+    )
+  if (getParticleImage(particle))
+    return (
+      <ParticleImageCard data={data} selected={selected} controls={controls} />
+    )
+  const Icon = particleIcon(particle)
+  const Preview = PARTICLE_PREVIEWS[particle.type]
+  const open = (calendarEntryId?: string) =>
+    onOpen(particle.id, { calendarEntryId })
+  const form = particle.type === "activity" && particle.data.widget?.kind === "form" ? particle.data.widget : null
+  return (
+    <ParticleFrame selected={selected} className="bg-muted">
+      {controls && <ParticleActionMenu data={data} selected={selected} />}
+      {form ? <ParticleFormHeader
+        count={form.definition.questions.length}
+        title={editorFields ? "Form" : particle.title}
+        actions={headerAction ?? <Button type="button" variant="ghost" size="sm" className="nodrag nopan h-7 rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11" onClick={() => open()}>{editable ? "Edit" : "View"}</Button>}
+      /> : <ParticleHeader
+        title={particle.title}
+        action={headerAction}
+        icon={<Icon className="size-4" />}
+      />}
       <ParticleBody>
-        <Preview
+        {editorFields}
+        {!(form && editorFields) && <Preview
           particle={particle}
           editable={editable}
           onEdit={onEdit}
           onOpen={open}
-        />
+          onNotesDraftChange={onNotesDraftChange}
+        />}
       </ParticleBody>
-      <ParticleFooter>
-        <span className="text-muted-foreground">
-          {particle.locked ? "Position locked" : definition.label}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="nodrag nopan min-h-11 px-2 transition-none md:min-h-8"
-          onClick={open}
-        >
-          Open {particle.type === "objective" ? "objective" : "details"}
-        </Button>
-      </ParticleFooter>
-      {controls && (
-        <div
-          className={cn(
-            "nodrag nopan absolute -top-5 -right-2 pt-2 opacity-0 transition-opacity duration-100 group-focus-within/particle:pointer-events-auto group-focus-within/particle:opacity-100 group-hover/particle:pointer-events-auto group-hover/particle:opacity-100 has-[[data-state=open]]:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
-            selected && "pointer-events-auto opacity-100"
-          )}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label={`Actions for ${particle.title}`}
-                size="icon"
-                variant="outline"
-                className="size-11 rounded-full transition-none md:size-8"
-              >
-                <MoreHorizontalIcon aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="nodrag nopan">
-              <DropdownMenuGroup>
-                <DropdownMenuItem onSelect={open}>
-                  Edit details
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={!editable}
-                  onSelect={() =>
-                    onEdit({ ...particle, locked: !particle.locked })
-                  }
-                >
-                  {particle.locked ? "Unlock position" : "Lock position"}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
     </ParticleFrame>
   )
 }

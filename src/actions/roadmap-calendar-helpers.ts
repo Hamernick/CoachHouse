@@ -30,7 +30,7 @@ export const CALENDAR_TABLES = {
 } as const
 
 export type CalendarListResult =
-  | { ok: true; events: RoadmapCalendarEvent[]; canManageCalendar: boolean }
+  | { ok: true; orgId: string; events: RoadmapCalendarEvent[]; canManageCalendar: boolean }
   | { error: string }
 
 export type CalendarWriteResult =

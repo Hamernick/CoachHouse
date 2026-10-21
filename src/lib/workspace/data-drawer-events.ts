@@ -1,6 +1,34 @@
 import { withEditorReturnTo } from "./editor-navigation"
 import { getWorkspaceDrawerPath, getWorkspaceRoadmapDrawerPath } from "./routes"
 
+const WORKSPACE_ACCELERATOR_DRAWER_REQUEST_EVENT = "coach-house:workspace-accelerator-drawer-request"
+
+export function requestWorkspaceAcceleratorDrawer(moduleId: string): boolean {
+  if (typeof window === "undefined" || !moduleId.trim()) return false
+  const event = new CustomEvent(WORKSPACE_ACCELERATOR_DRAWER_REQUEST_EVENT, {
+    cancelable: true, detail: { moduleId: moduleId.trim() },
+  })
+  window.dispatchEvent(event)
+  if (event.defaultPrevented) {
+    const destination = new URL(window.location.href)
+    destination.searchParams.set("drawer", "accelerator")
+    destination.searchParams.set("module", moduleId.trim())
+    for (const key of ["step", "group", "guide", "focus"]) destination.searchParams.delete(key)
+    window.history.pushState(null, "", `${destination.pathname}${destination.search}`)
+  }
+  return event.defaultPrevented
+}
+
+export function listenForWorkspaceAcceleratorDrawerRequests(listener: (moduleId: string) => boolean) {
+  if (typeof window === "undefined") return () => {}
+  const handleRequest: EventListener = (event) => {
+    if (!(event instanceof CustomEvent) || typeof event.detail?.moduleId !== "string" || !event.detail.moduleId.trim()) return
+    if (listener(event.detail.moduleId.trim())) event.preventDefault()
+  }
+  window.addEventListener(WORKSPACE_ACCELERATOR_DRAWER_REQUEST_EVENT, handleRequest)
+  return () => window.removeEventListener(WORKSPACE_ACCELERATOR_DRAWER_REQUEST_EVENT, handleRequest)
+}
+
 export type WorkspaceRoadmapDrawerRequest = {
   tab: "roadmap"
   roadmapSectionSlug: string

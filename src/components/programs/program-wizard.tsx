@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import {
   useCallback,
   useEffect,
@@ -91,6 +93,17 @@ export function ProgramWizard({
   const closingRef = useRef(false)
   const savedPayloadRef = useRef<UpdateProgramPayload>({})
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  useWorkspaceEditorStatus({
+    label: "Activity",
+    dirty:
+      isOpen &&
+      hydratedRef.current &&
+      (mode === "create"
+        ? editedRef.current
+        : JSON.stringify(serializePayload(form)) !==
+          JSON.stringify(savedPayloadRef.current)),
+    pending: isOpen && (isPending || isAutoSaving),
+  })
   const saveProgram = useCallback(
     (payload: UpdateProgramPayload) => {
       const run = async () => {

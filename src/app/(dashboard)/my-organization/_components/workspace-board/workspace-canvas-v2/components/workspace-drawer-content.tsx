@@ -1,17 +1,68 @@
 "use client"
 import { useState } from "react"
-import { DocumentsTab } from "@/components/organization/org-profile-card/tabs/documents-tab"
-import { WorkspaceToolsPanel } from "@/features/workspace-tools"
+import dynamic from "next/dynamic"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { WorkspaceCanvasOverlayAcceleratorPanel } from "./workspace-canvas-overlay-accelerator-panel"
-import { WorkspaceCanvasOverlayOrganizationPanel } from "./workspace-canvas-overlay-organization-panel"
-import { WorkspacePeopleDrawerPanel } from "./workspace-canvas-overlay-people-panel"
-import { WorkspaceCanvasOverlayRoadmapPanel } from "./workspace-canvas-overlay-roadmap-panel"
 import {
   WorkspaceRetainedPanel,
   useRetainedDrawerRequest,
 } from "./workspace-retained-panel"
 import type { WorkspaceDrawerTabsProps } from "./workspace-drawer-content-types"
+
+// Unvisited retained panels never mount, so these boundaries load only when opened.
+// Keep each definition stable so a visited editor retains its draft and identity.
+function PanelLoading() {
+  return (
+    <div role="status" className="space-y-3 p-4">
+      <span className="sr-only">Loading workspace content…</span>
+      <Skeleton className="h-8 w-1/2 rounded-lg" />
+      <Skeleton className="h-40 w-full rounded-2xl" />
+    </div>
+  )
+}
+
+const DocumentsTab = dynamic(
+  () =>
+    import("@/components/organization/org-profile-card/tabs/documents-tab").then(
+      (module) => module.DocumentsTab
+    ),
+  { loading: PanelLoading }
+)
+const WorkspaceToolsPanel = dynamic(
+  () =>
+    import("@/features/workspace-tools").then(
+      (module) => module.WorkspaceToolsPanel
+    ),
+  { loading: PanelLoading }
+)
+const WorkspaceCanvasOverlayAcceleratorPanel = dynamic(
+  () =>
+    import("./workspace-canvas-overlay-accelerator-panel").then(
+      (module) => module.WorkspaceCanvasOverlayAcceleratorPanel
+    ),
+  { loading: PanelLoading }
+)
+const WorkspaceCanvasOverlayOrganizationPanel = dynamic(
+  () =>
+    import("./workspace-canvas-overlay-organization-panel").then(
+      (module) => module.WorkspaceCanvasOverlayOrganizationPanel
+    ),
+  { loading: PanelLoading }
+)
+const WorkspacePeopleDrawerPanel = dynamic(
+  () =>
+    import("./workspace-canvas-overlay-people-panel").then(
+      (module) => module.WorkspacePeopleDrawerPanel
+    ),
+  { loading: PanelLoading }
+)
+const WorkspaceCanvasOverlayRoadmapPanel = dynamic(
+  () =>
+    import("./workspace-canvas-overlay-roadmap-panel").then(
+      (module) => module.WorkspaceCanvasOverlayRoadmapPanel
+    ),
+  { loading: PanelLoading }
+)
 
 export function WorkspaceDrawerContent({
   acceleratorHasAccess,
@@ -88,7 +139,7 @@ export function WorkspaceDrawerContent({
           present={contentPresent && !bodyOverride}
           value="organization"
           data-organization-scroll-viewport="true"
-          className="mx-auto min-h-0 w-full max-w-none min-w-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain data-[state=inactive]:hidden md:px-8"
+          className="mx-auto min-h-0 w-full max-w-none min-w-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
         >
           <WorkspaceCanvasOverlayOrganizationPanel
             key={uiPreferencesScope.orgId}
@@ -101,7 +152,7 @@ export function WorkspaceDrawerContent({
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
           value="accelerator"
-          className="mx-auto flex min-h-0 w-full max-w-7xl min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden md:px-8"
+          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
         >
           <div
             ref={setDrawerContainer}
@@ -116,7 +167,9 @@ export function WorkspaceDrawerContent({
               ...organizationEditorData.initialProfile,
               ...organizationEditorData.organizationLocation,
               programCount: organizationEditorData.programs.length,
-              programs: organizationEditorData.programs.map(({ id, title, description }) => ({ id, title, description })),
+              programs: organizationEditorData.programs.map(
+                ({ id, title, description }) => ({ id, title, description })
+              ),
               canEdit: organizationEditorData.canEdit,
             }}
             drawerContainer={drawerContainer}
@@ -132,7 +185,7 @@ export function WorkspaceDrawerContent({
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
           value="roadmap"
-          className="mx-auto flex min-h-0 w-full max-w-7xl min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden md:px-8"
+          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
         >
           <WorkspaceCanvasOverlayRoadmapPanel
             sourceScope={{
@@ -168,9 +221,9 @@ export function WorkspaceDrawerContent({
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
           value="documents"
-          className="mx-auto flex min-h-0 w-full max-w-7xl min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain data-[state=inactive]:hidden md:px-8"
+          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
         >
-          <div className="box-border min-h-full w-full max-w-full min-w-0 p-2 sm:p-3">
+          <div className="box-border min-h-full w-full max-w-full min-w-0 p-2 sm:py-3">
             <DocumentsTab
               focusRequestId={documentsRequest?.id}
               userId={viewerId}
@@ -196,7 +249,7 @@ export function WorkspaceDrawerContent({
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
           value="tools"
-          className="mx-auto flex min-h-0 w-full max-w-7xl min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain data-[state=inactive]:hidden md:px-8"
+          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
         >
           <WorkspaceToolsPanel
             input={{

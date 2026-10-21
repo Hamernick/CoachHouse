@@ -1,5 +1,20 @@
 "use server"
 
+import {
+  loadFiscalWorkspaceApplications as loadFiscalWorkspaceApplicationsImpl,
+  startFiscalWorkspaceApplication as startFiscalWorkspaceApplicationImpl,
+} from "./server/workspace-applications"
+
+export async function loadFiscalWorkspaceApplications() {
+  return loadFiscalWorkspaceApplicationsImpl()
+}
+
+export async function startFiscalWorkspaceApplication(
+  input: Parameters<typeof startFiscalWorkspaceApplicationImpl>[0]
+) {
+  return startFiscalWorkspaceApplicationImpl(input)
+}
+
 import { handleGuestFiscalRecovery as guestRecovery, guestFiscalRecoveryAvailable } from "./server/guest-recovery"
 export async function handleGuestFiscalRecovery(request: Request) { return guestRecovery(request) }
 export async function loadGuestFiscalRecoveryAvailability() { return guestFiscalRecoveryAvailable() }

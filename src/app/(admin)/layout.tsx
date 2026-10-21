@@ -26,7 +26,7 @@ export default async function AdminLayout({
   return (
     <AppShell
       breadcrumbs={breadcrumbs}
-      sidebarHeaderContent={
+      accountMenuContent={
         <MemberWorkspaceSidebarHeader state={state.memberWorkspaceHeader} />
       }
       sidebarTree={state.sidebarTree}

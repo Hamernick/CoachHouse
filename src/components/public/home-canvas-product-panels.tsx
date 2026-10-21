@@ -19,7 +19,6 @@ import {
   HomeWorkspacePreview,
 } from "@/components/public/home-page-product-previews"
 import { Button } from "@/components/ui/button"
-import type { FiscalSponsorshipProgramOption } from "@/features/fiscal-sponsorship"
 
 const FiscalSponsorshipWorkspaceCardSurface = dynamic(
   () =>
@@ -41,20 +40,6 @@ const BUILD_CAPABILITIES = [
   { icon: FileTextIcon, label: "Programs and tasks" },
   { icon: UsersIcon, label: "Team access" },
 ] as const
-
-const PUBLIC_FISCAL_SPONSORSHIP_PROGRAMS: FiscalSponsorshipProgramOption[] = [
-  {
-    id: "public-fiscal-preview",
-    title: "Neighborhood Food and Family Resource Nights",
-    description:
-      "Recurring neighborhood events connecting families with food and local support.",
-    objectKind: "Service",
-    focusArea: "Food access and family resource navigation",
-    location: "Chicago, IL",
-    goalCents: 3_200_000,
-    raisedCents: 1_200_000,
-  },
-]
 
 export function HomeCanvasMapHeroPanel({
   mapboxToken,
@@ -290,8 +275,6 @@ export function HomeCanvasFundPanel() {
             <FiscalSponsorshipWorkspaceCardSurface
               className="mx-auto max-w-full"
               openFlowHref="/home-canvas?section=signup&intent=fund"
-              programs={PUBLIC_FISCAL_SPONSORSHIP_PROGRAMS}
-              selectedProgramId="public-fiscal-preview"
             />
           </div>
         </div>

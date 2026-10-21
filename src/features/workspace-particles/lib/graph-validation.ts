@@ -36,6 +36,13 @@ export function validateParticleGraph(graph: ParticleGraph): string | null {
   )
   if (particles.size !== graph.particles.length)
     return "Particle IDs must be unique."
+  const placedPeople = graph.particles.flatMap((particle) =>
+    particle.type === "people" && particle.data.presentation === "person"
+      ? particle.data.personIds
+      : []
+  )
+  if (new Set(placedPeople).size !== placedPeople.length)
+    return "This person already has a board placement. Refresh before adding them again."
   if (
     new Set(graph.connections.map((edge) => edge.id)).size !==
     graph.connections.length

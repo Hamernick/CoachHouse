@@ -1,5 +1,7 @@
 # Particle infrastructure — execution plan
 
+> **MVP continuation — 2026-10-16:** Follow the [consolidated 36-step workspace board and sharing plan](2026-10-16-workspace-board-sharing-mvp.md) for current scope, decisions and resume instructions. This document is retained as historical/technical reference; its older next-step order does not override the new plan.
+
 Status: infrastructure implemented; focused checks and code-graph refresh complete. Scope selected by Caleb: build infrastructure before UI.
 
 References: [Particle PRD](2026-10-09-coach-house-particle-system-prd.md), [Workspace Engine PRD](2026-10-09-workspace-interaction-generative-ui-prd.md).
@@ -234,3 +236,31 @@ New modules: `src/components/workspace/workspace-connection-handle.tsx` and its 
 5. Verify directional reversal, vertical moves, unequal dimensions, absent measurements, tool links, preserved decision outcomes, and actual renderer integration. Browser drag/reload review remains pending under the existing browser denial.
 
 Implemented in the current isolated lane. No schema migration or new persistence source. Existing legacy-to-legacy automatic side selection is retained.
+
+## 2026-10-13 — General Particle Undo/Redo
+
+The next history milestone is implemented; see [Particle history plan and checkpoint](2026-10-13-particle-history.md). Confirmed graph operations now share one bounded session history, replacing isolated layout/connection undo. Covers creation, saved edits/checklists/decisions, placement, group moves, layout, links and insertion/deletion. Existing inverse receipts, exact revisions and retry IDs remain authoritative. External graph revisions invalidate history; unsaved Particle drafts and active canvas operations block history writes.
+
+Review: use Undo/Redo in Workspace canvas help, or Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z with canvas focus. Check move → edit → undo twice → redo twice, and a connection change. Native editor undo remains separate. 313 distinct focused tests and scoped static/guard checks pass; authenticated visual/gesture review is still pending. Next core milestone: remaining specialized Particle editors, then image/form/sharing/generative integration work from the broader PRDs. Performance profiling is deferred at the user's request.
+
+## 2026-10-13 — Content Calendar editor
+
+User deferred generative UI. [Calendar editor checkpoint](2026-10-13-particle-calendar-editor.md) adds nested-entry editing and specific-entry canvas selection, chronology/planning-order separation, local-time-to-UTC inputs, channels/content/status/publication fields, Activity links, add/reorder/remove/restore, and existing save/history integration. Existing Objective/checklist fields and selection were extracted into smaller modules without changing their behavior.
+
+326 focused tests and scoped types/lint/guards passed; a final 60-test calendar/UI rerun passed after the focus adjustment. User review requested on port 3008; appearance and authenticated browser round trips remain unverified under the existing browser-access boundary. Next: People, Decision, Metric and Finance editors; image/form/sharing/tool work remains open. Generative UI and the deferred performance measurement plan are not active in this slice.
+
+## 2026-10-13 — Decision editor
+
+[Decision editor checkpoint](2026-10-13-particle-decision-editor.md) adds paginated criteria editing, compact interactive canvas criteria, stable outcome labels/order, explicit result selection/clearing and connected-outcome removal protection. Existing inspector save, graph validation, branch highlighting and general history remain authoritative. No migration or new persistence source. Existing criterion resource bindings are preserved, not edited by this slice.
+
+336 focused regression tests passed; final Decision/UI rerun passed 58 tests with one added control test (337 distinct across runs). Scoped types/lint and relevant guards passed. User visual/authenticated review remains pending at localhost:3008. Next: People, Metric and Finance editors, followed by remaining microcontrols/media/forms/sharing. Generative UI and profiling remain deferred.
+
+## 2026-10-13 — Scope correction and one corner menu
+
+Latest user direction supersedes specialized-editor sequencing above: Decision behavior seems fine, but its UI is rejected as oversized. Skip People/Metric/Finance expansion. Forms are prototype UI only for now; skip the final interaction-review phase. Generative UI and profiling remain deferred.
+
+[Action menu checkpoint](2026-10-13-particle-action-menu.md): one overlapping corner button replaces separate remove, overflow and generic footer actions on domain Particles. Edit, Duplicate, Size, Lock/Unlock and Remove from canvas reuse current persistence/history. Existing workspace tools share the corner shell for their supported return-to-library action. 101 focused tests plus scoped types/lint/guards passed. No new database or source integrations. Next: media/documents, sharing, unified tools and committed-operation collaboration.
+
+## 2026-10-13 — Image cards
+
+[Image checkpoint](2026-10-13-particle-images.md) implements the user's reference: rounded image, title below, no date, shared top-right menu. Choose images from the library, drop files onto the canvas or paste with canvas focus. Existing private Documents upload/read endpoints provide file identity and access; Particle saves/history reuse existing operations. Includes full preview, alt text, replacement, lazy signed URL resolution and prepared-reference retry. Nine new tests; 362 focused tests across 19 suites passed. No new table/backend, public sharing or final interaction review. Further document/media capabilities, sharing, unified tools and committed-operation collaboration remain open; forms are prototype-only and individual editor expansion stays skipped.

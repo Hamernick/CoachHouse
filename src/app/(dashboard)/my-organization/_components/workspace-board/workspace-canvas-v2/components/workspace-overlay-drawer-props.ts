@@ -25,9 +25,11 @@ export type WorkspaceOverlayDrawerProps = {
   uiPreferencesScope: WorkspaceBoardUiPreferenceScope
   peopleCanvasActions: WorkspacePeopleCanvasActions
   particleInspector?: ReactNode
+  particleInspectorTitle?: string
+  particleInspectorMaxWidth?: number
   particleLibrary?: ReactNode
   particleComposer?: ReactNode
   particleSelectionId?: string | null
   particleSelectionKey?: number
-  onCloseParticleInspector?: () => boolean
+  onCloseParticleInspector?: (onAccepted?: () => void) => boolean
 }

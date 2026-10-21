@@ -129,7 +129,7 @@ export function WorkspaceAcceleratorDrawerHeaderControls({
   return (
     <div
       data-workspace-accelerator-drawer-header-controls="true"
-      className="flex w-full min-w-0 flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6"
+      className="flex w-full min-w-0 flex-col gap-3 py-3 @min-[520px]/accelerator-lessons:flex-row @min-[520px]/accelerator-lessons:items-end @min-[520px]/accelerator-lessons:justify-between @min-[520px]/accelerator-lessons:gap-6"
     >
       <WorkspaceAcceleratorCardProgressSummary
         progressPercent={filteredProgressPercent}
@@ -138,10 +138,10 @@ export function WorkspaceAcceleratorDrawerHeaderControls({
           tutorialCallout?.focus === "progress" ? tutorialCallout : null
         }
         showMilestoneTooltips={showMilestoneTooltips}
-        className="min-w-0 sm:max-w-lg sm:flex-1"
+        className="min-w-0 @min-[520px]/accelerator-lessons:max-w-lg @min-[520px]/accelerator-lessons:flex-1"
       />
       {showPicker ? (
-        <div className="flex min-w-0 max-w-full items-center justify-end gap-2 sm:max-w-[70%] sm:self-end">
+        <div className="flex min-w-0 max-w-full items-center justify-end gap-2 @min-[520px]/accelerator-lessons:max-w-[70%] @min-[520px]/accelerator-lessons:self-end">
           <RoadmapNavigatorDropdown sections={roadmapSections} basePath={roadmapBasePath} returnTo={roadmapReturnTo} />
           <WorkspaceAcceleratorCardInlinePicker
             lessonGroupOptions={lessonGroupOptions}

@@ -1,3 +1,5 @@
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+import { assignmentValuesEqual } from "./utils"
 import { useMemo } from "react"
 import { usePathname } from "next/navigation"
 
@@ -105,6 +107,12 @@ function AssignmentFormInner({
     initialValues,
     moduleId,
     onSubmit,
+  })
+  useWorkspaceEditorStatus({
+    label: "Accelerator homework",
+    dirty: !assignmentValuesEqual(values, initialValues),
+    pending: pending || autoSaving,
+    error: Boolean(errorMessage),
   })
   const hasMeta = Boolean(
     showStatusBadge || helperText || errorMessage || statusNote || autoSaving

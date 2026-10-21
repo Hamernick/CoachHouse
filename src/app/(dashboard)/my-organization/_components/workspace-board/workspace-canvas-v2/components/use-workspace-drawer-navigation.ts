@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useTransition,
   type Dispatch,
   type SetStateAction,
 } from "react"
@@ -11,7 +10,8 @@ import {
   type WorkspaceBoardUiPreferenceScope,
 } from "../../workspace-board-ui-preferences"
 import type { WorkspaceCanvasDrawerTab } from "./workspace-canvas-overlay-drawer-tabs"
-import { requestWorkspaceDrawerNavigation } from "./workspace-drawer-navigation"
+import { isWorkspaceDataDrawerCollapsedSnapPoint, WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT } from "./workspace-canvas-overlay-drawer-state"
+import { resolveWorkspaceDrawerNavigation } from "./workspace-drawer-navigation"
 
 export function useWorkspaceDrawerNavigation({
   tab,
@@ -28,41 +28,43 @@ export function useWorkspaceDrawerNavigation({
   setTab: Dispatch<SetStateAction<WorkspaceCanvasDrawerTab>>
   onSnap: (snap: number | string | null) => void
   uiPreferencesScope: WorkspaceBoardUiPreferenceScope
-  onCloseParticleInspector?: () => boolean
+  onCloseParticleInspector?: (onAccepted?: () => void) => boolean
   particleSelectionId?: string | null
   retainOnParticleClear: () => void
 }) {
-  const [, startTabTransition] = useTransition()
-  const leaveParticle = useCallback(() => {
-    if (onCloseParticleInspector?.() === false) return false
+  const leaveParticle = useCallback((onAccepted?: () => void) => {
+    const resume = () => {
+      if (particleSelectionId) retainOnParticleClear()
+      onAccepted?.()
+    }
+    if (onCloseParticleInspector?.(resume) === false) return false
     if (particleSelectionId) retainOnParticleClear()
     return true
   }, [onCloseParticleInspector, particleSelectionId, retainOnParticleClear])
   const handleTabChange = useCallback(
     (value: string) => {
       const current = { tab, snapPoint: activeSnapPoint }
-      const next = requestWorkspaceDrawerNavigation(
-        current,
-        value,
-        leaveParticle
-      )
+      const next = resolveWorkspaceDrawerNavigation(current, value, true)
       if (next === current) return
-      patchWorkspaceBoardUiPreferences(uiPreferencesScope, {
-        dataDrawerTab: next.tab,
-      })
-      startTabTransition(() => {
+      const commit = () => {
+        patchWorkspaceBoardUiPreferences(uiPreferencesScope, { dataDrawerTab: next.tab })
         setTab(next.tab)
-      })
-      onSnap(next.snapPoint)
+        onSnap(next.snapPoint)
+      }
+      if (leaveParticle(commit)) commit()
     },
     [tab, activeSnapPoint, leaveParticle, onSnap, setTab, uiPreferencesScope]
   )
   const handleTabOpen = useCallback(
-    (value: WorkspaceCanvasDrawerTab) => {
-      // Radix handles a changed value. Clicking the already selected tab restores it.
-      if (value === tab) handleTabChange(value)
+    (value: WorkspaceCanvasDrawerTab, toggleCurrent = false) => {
+      // Radix handles other destinations. The current visible panel toggles;
+      // retained panel drafts stay mounted while collapsed.
+      if (value !== tab) return
+      if (toggleCurrent && !particleSelectionId && !isWorkspaceDataDrawerCollapsedSnapPoint(activeSnapPoint)) {
+        onSnap(WORKSPACE_DATA_DRAWER_COLLAPSED_SNAP_POINT)
+      } else handleTabChange(value)
     },
-    [tab, handleTabChange]
+    [tab, handleTabChange, particleSelectionId, activeSnapPoint, onSnap]
   )
   return { handleTabChange, handleTabOpen, leaveParticle }
 }

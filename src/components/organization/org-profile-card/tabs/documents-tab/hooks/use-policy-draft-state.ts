@@ -1,3 +1,4 @@
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
 import { useState } from "react"
 
 import { toast } from "@/lib/toast"
@@ -8,11 +9,27 @@ import { createEmptyPolicyDraft, toPolicyDraft } from "./policy-draft-helpers"
 
 export function usePolicyDraftState() {
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false)
-  const [policyDraft, setPolicyDraft] = useState<PolicyDraft>(createEmptyPolicyDraft())
-  const [policyDocumentPending, setPolicyDocumentPending] = useState<File | null>(null)
-  const [policyDocumentRemoveRequested, setPolicyDocumentRemoveRequested] = useState(false)
+  const [policyDraft, setPolicyDraft] = useState<PolicyDraft>(
+    createEmptyPolicyDraft()
+  )
+  const [baseline, setBaseline] = useState<PolicyDraft>(
+    createEmptyPolicyDraft()
+  )
+  const [policyDocumentPending, setPolicyDocumentPending] =
+    useState<File | null>(null)
+  const [policyDocumentRemoveRequested, setPolicyDocumentRemoveRequested] =
+    useState(false)
   const [policyDocumentBusy, setPolicyDocumentBusy] = useState(false)
 
+  useWorkspaceEditorStatus({
+    label: "Document policy",
+    dirty:
+      policyDialogOpen &&
+      (JSON.stringify(policyDraft) !== JSON.stringify(baseline) ||
+        Boolean(policyDocumentPending) ||
+        policyDocumentRemoveRequested),
+    pending: policyDialogOpen && policyDocumentBusy,
+  })
   const resetPolicyDocumentMutations = () => {
     setPolicyDocumentPending(null)
     setPolicyDocumentRemoveRequested(false)
@@ -70,12 +87,14 @@ export function usePolicyDraftState() {
 
   const openNewPolicyDialog = () => {
     setPolicyDraft(createEmptyPolicyDraft())
+    setBaseline(createEmptyPolicyDraft())
     resetPolicyDocumentMutations()
     setPolicyDialogOpen(true)
   }
 
   const openEditPolicyDialog = (policy: DocumentsPolicyEntry) => {
     setPolicyDraft(toPolicyDraft(policy))
+    setBaseline(toPolicyDraft(policy))
     resetPolicyDocumentMutations()
     setPolicyDialogOpen(true)
   }

@@ -23,7 +23,10 @@ import {
 import { ParticleCreateActions } from "./particle-create-actions"
 import type { ParticleType } from "../types"
 import { particlePresetQuery } from "../lib/particle-presets"
-import { parseParticleCreateCommand } from "../lib/particle-command"
+import {
+  particleComposerSearchQuery,
+  parseParticleCreateCommand,
+} from "../lib/particle-command"
 
 const COMPOSER_SOURCE =
   "src/features/workspace-particles/components/particle-composer.tsx"
@@ -52,7 +55,7 @@ export function ParticleComposer({
   const [hint, setHint] = useState<string | null>(null)
   const submit = async () => {
     if (disabled || pending || !input.trim()) return
-    const query = particlePresetQuery(input)
+    const query = particleComposerSearchQuery(input)
     if (onBrowse && query !== null) {
       onBrowse(query)
       return
@@ -66,6 +69,7 @@ export function ParticleComposer({
     if (await onCreate(type, title)) {
       setInput("")
       setHint(null)
+      onBrowse?.("", false)
     }
   }
   return (
@@ -84,12 +88,14 @@ export function ParticleComposer({
           void submit()
         }}
       >
-        <InputGroup className="border-border/60 bg-muted/60 focus-within:border-ring flex items-end gap-1 rounded-[24px] border p-1 transition-colors duration-150 motion-reduce:transition-none">
+        <InputGroup className="border-border/60 bg-card/95 backdrop-blur-xl focus-within-visible:border-ring flex items-end gap-1 rounded-[24px] border p-1 transition-colors duration-150 motion-reduce:transition-none">
           <InputGroupAddon>
             <Popover
               open={menuOpen}
               onOpenChange={(open) => {
                 if (open && onBrowse) {
+                  setInput("")
+                  setHint(null)
                   onBrowse("")
                   return
                 }
@@ -141,8 +147,8 @@ export function ParticleComposer({
             </Popover>
           </InputGroupAddon>
           <InputGroupTextarea
-            aria-label="Particle command"
-            placeholder="Add to the plan…"
+            aria-label="Search Particles or enter a command"
+            placeholder="Search Particles or add to the plan…"
             aria-describedby={feedbackId}
             aria-invalid={Boolean(error || hint)}
             value={input}
@@ -153,12 +159,13 @@ export function ParticleComposer({
               const value = event.target.value
               setInput(value)
               setHint(null)
-              const query = particlePresetQuery(value)
-              if (query !== null)
-                onBrowse?.(
-                  query,
-                  particlePresetQuery(input) === null || query === ""
-                )
+              const query = particleComposerSearchQuery(value)
+              const slashQuery = particlePresetQuery(value)
+              onBrowse?.(
+                query ?? "",
+                slashQuery !== null &&
+                  (particlePresetQuery(input) === null || slashQuery === "")
+              )
             }}
             onKeyDown={(event) => {
               if (
@@ -176,7 +183,13 @@ export function ParticleComposer({
               data-workspace-composer-action="true"
               type="submit"
               disabled={disabled || pending || !input.trim()}
-              aria-label={pending ? "Saving Particle" : "Run command"}
+              aria-label={
+                pending
+                  ? "Saving Particle"
+                  : onBrowse && particleComposerSearchQuery(input) !== null
+                    ? "Search Particles"
+                    : "Run command"
+              }
               size="icon"
               className="size-9 rounded-full shadow-none transition-[background-color,opacity] duration-150 motion-reduce:transition-none"
             >
@@ -210,7 +223,7 @@ export function ParticleComposer({
               ? "Saving…"
               : saved
                 ? "Saved"
-                : "Type /commands to browse Particles, or create objective, create activity, or create workflow followed by a title. Enter to submit; Shift + Enter for a new line.")}
+                : "Type to filter Particles. Enter opens the results. Use /commands to browse all, or create objective, create activity, or create workflow followed by a title. Shift + Enter adds a new line.")}
         </span>
         {error ? (
           <Button

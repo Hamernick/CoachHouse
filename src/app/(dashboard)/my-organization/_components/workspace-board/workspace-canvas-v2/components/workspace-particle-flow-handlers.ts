@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 import type { useParticleFlow } from "@/features/workspace-particles/client"
 import type { WorkspaceCanvasSurfaceV2ViewProps } from "./workspace-canvas-surface-v2-view-types"
@@ -17,6 +18,7 @@ export function createWorkspaceParticleFlowHandlers(
     ReturnType<typeof useParticleFlow>,
     "ids" | "onNodesChange" | "select" | "selectedId" | "move"
   > & {
+    history?: Pick<ReturnType<typeof useParticleFlow>["history"], "onKeyDown">
     flow: { current: Pick<ReactFlowInstance, "getNodes" | "setNodes"> | null }
   },
   legacy: Handlers
@@ -64,6 +66,11 @@ export function createWorkspaceParticleFlowHandlers(
         return
       if (target instanceof Element) {
         const id = target.closest(".react-flow__node")?.getAttribute("data-id")
+        if (
+          (!id || particles.ids.has(id)) &&
+          particles.history?.onKeyDown(event)
+        )
+          return
         if (event.key === "Enter" && id && particles.ids.has(id)) {
           event.preventDefault()
           event.stopPropagation()
@@ -111,4 +118,65 @@ export function createWorkspaceParticleFlowHandlers(
       legacy.onInit(instance)
     },
   }
+}
+
+/** Keep React Flow callbacks stable while controlled positions change. */
+export function useWorkspaceParticleFlowHandlers(
+  particles: Parameters<typeof createWorkspaceParticleFlowHandlers>[0],
+  legacy: Handlers
+) {
+  const {
+    ids,
+    onNodesChange: particleChanges,
+    select,
+    selectedId,
+    move,
+    flow,
+    history,
+  } = particles
+  const {
+    onNodesChange,
+    onNodeClick,
+    onKeyDownCapture,
+    onNodeDragStop,
+    onSelectionDragStop,
+    onInit,
+  } = legacy
+  return useMemo(
+    () =>
+      createWorkspaceParticleFlowHandlers(
+        {
+          ids,
+          onNodesChange: particleChanges,
+          select,
+          selectedId,
+          move,
+          flow,
+          history,
+        },
+        {
+          onNodesChange,
+          onNodeClick,
+          onKeyDownCapture,
+          onNodeDragStop,
+          onSelectionDragStop,
+          onInit,
+        }
+      ),
+    [
+      ids,
+      particleChanges,
+      select,
+      selectedId,
+      move,
+      flow,
+      history,
+      onNodesChange,
+      onNodeClick,
+      onKeyDownCapture,
+      onNodeDragStop,
+      onSelectionDragStop,
+      onInit,
+    ]
+  )
 }

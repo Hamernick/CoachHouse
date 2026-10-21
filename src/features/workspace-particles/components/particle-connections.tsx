@@ -255,18 +255,7 @@ export function ParticleConnections({
           >
             Connect Particles
           </Button>
-          {actions.canUndo ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 rounded-xl"
-              disabled={!editable}
-              onClick={() => void actions.undoChange()}
-              {...owner("undo")}
-            >
-              Undo connection change
-            </Button>
-          ) : null}
+
         </div>
         <p role="status" className="text-muted-foreground text-xs">
           {actions.message}

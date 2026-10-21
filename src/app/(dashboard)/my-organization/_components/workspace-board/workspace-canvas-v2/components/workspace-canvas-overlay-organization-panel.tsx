@@ -26,7 +26,7 @@ const MyOrganizationEditorView = dynamic<
     ),
   {
     loading: () => (
-      <div className="flex h-full min-h-0 flex-col gap-3 p-2 sm:p-3">
+      <div className="flex h-full min-h-0 flex-col gap-3 p-2 sm:py-3">
         <Skeleton className="h-36 w-full shrink-0 rounded-2xl" />
         <Skeleton className="min-h-60 flex-1 rounded-2xl" />
       </div>

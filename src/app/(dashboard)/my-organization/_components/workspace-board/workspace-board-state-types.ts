@@ -66,6 +66,7 @@ export type WorkspaceBoardForwardCompatibilityState = {
 }
 
 export type WorkspaceBoardState = {
+  workspaceCanvasId?: string
   /** Opaque on the board boundary; decode through workspace-particles before use. */
   particleGraph?: Json
   /** Preserved read-only payload from the older Particle placement feature. */

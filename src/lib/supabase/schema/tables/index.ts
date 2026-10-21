@@ -1,3 +1,4 @@
+import type { DocumentCollaborationRoomsTable, DocumentCollaborationUpdatesTable, DocumentFileVersionsTable, DocumentVersionOperationsTable } from "./document_collaboration"
 import type { CoachingCreditGrantsTable } from "./coaching_credit_grants"
 import type { OrganizationDocumentFilesTable } from "./organization_document_files"
 import type { GoogleCalendarConnectionsTable, GoogleCalendarOauthIntentsTable } from "./google_calendar_connections"
@@ -88,6 +89,8 @@ import type { PlatformAdminProjectWorkstreamStatesTable } from "./platform_admin
 import type { PlatformAdminWorkstreamCategoriesTable } from "./platform_admin_workstream_categories"
 import type { PlatformStaffMembersTable } from "./platform_staff_members"
 import type { OrganizationWorkspaceBoardsTable } from "./organization_workspace_boards"
+import type { OrganizationWorkspacePagesTable } from "./organization_workspace_pages"
+import type { OrganizationWorkspaceCalendarRevisionsTable } from "./organization_workspace_calendar_revisions"
 import type { OrganizationWorkspaceCommunicationChannelsTable } from "./organization_workspace_communication_channels"
 import type { OrganizationWorkspaceCommunicationDeliveriesTable } from "./organization_workspace_communication_deliveries"
 import type { OrganizationWorkspaceCommunicationsTable } from "./organization_workspace_communications"
@@ -214,6 +217,8 @@ export type { PlatformAdminProjectWorkstreamStatesTable } from "./platform_admin
 export type { PlatformAdminWorkstreamCategoriesTable } from "./platform_admin_workstream_categories"
 export type { PlatformStaffMembersTable } from "./platform_staff_members"
 export type { OrganizationWorkspaceBoardsTable } from "./organization_workspace_boards"
+export type { OrganizationWorkspacePagesTable } from "./organization_workspace_pages"
+export type { OrganizationWorkspaceCalendarRevisionsTable } from "./organization_workspace_calendar_revisions"
 export type { OrganizationWorkspaceCommunicationChannelsTable } from "./organization_workspace_communication_channels"
 export type { OrganizationWorkspaceCommunicationDeliveriesTable } from "./organization_workspace_communication_deliveries"
 export type { OrganizationWorkspaceCommunicationsTable } from "./organization_workspace_communications"
@@ -341,6 +346,8 @@ export type PublicTables = {
   platform_admin_workstream_categories: PlatformAdminWorkstreamCategoriesTable
   platform_staff_members: PlatformStaffMembersTable
   organization_workspace_boards: OrganizationWorkspaceBoardsTable
+  organization_workspace_pages: OrganizationWorkspacePagesTable
+  organization_workspace_calendar_revisions: OrganizationWorkspaceCalendarRevisionsTable
   organization_workspace_communication_channels: OrganizationWorkspaceCommunicationChannelsTable
   organization_workspace_communication_deliveries: OrganizationWorkspaceCommunicationDeliveriesTable
   organization_workspace_communications: OrganizationWorkspaceCommunicationsTable
@@ -379,6 +386,10 @@ export type PublicTables = {
   platform_email_link_clicks: PlatformEmailLinkClicksTable
   platform_legal_acceptances: PlatformLegalAcceptancesTable
   google_drive_oauth_intents: GoogleDriveOauthIntentsTable
+  document_version_operations: DocumentVersionOperationsTable
+  document_file_versions: DocumentFileVersionsTable
+  document_collaboration_rooms: DocumentCollaborationRoomsTable
+  document_collaboration_updates: DocumentCollaborationUpdatesTable
   organization_document_files: OrganizationDocumentFilesTable
   google_calendar_oauth_intents: GoogleCalendarOauthIntentsTable
   google_calendar_connections: GoogleCalendarConnectionsTable

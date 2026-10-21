@@ -17,45 +17,39 @@ import {
 import type { ParticleNodeData } from "../components/particle-node"
 import { useParticleConnections } from "./use-particle-connections"
 import { useParticleLayout } from "./use-particle-layout"
+import { useParticleHistoryControls } from "./use-particle-history-controls"
+import { useParticleCloseGuard } from "./use-particle-close-guard"
+import { useParticleSelection } from "./use-particle-selection"
+import { useParticleResize } from "./use-particle-resize"
+import {
+  reconcileParticleNode,
+  visibleParticleIds,
+  particleResizeChanges,
+} from "../lib/particle-node-state"
+import { useParticleCardActions } from "./use-particle-card-actions"
+import { useParticleCreate } from "./use-particle-create"
+import { useParticleImageUpload } from "./use-particle-image-upload"
 import { particleFlowStateChanges } from "../lib/particle-flow-changes"
-import { particleRegistry } from "../lib/particle-registry"
 import { particleConnectionsToFlow } from "../lib/particle-flow-adapters"
 import { placeParticle } from "../lib/particle-placement"
 import { createParticlePositionPersistence } from "../lib/position-persistence"
 import type {
   Particle,
-  ParticleGraph,
-  ParticleResult,
   ParticlePosition,
-  ParticleType,
 } from "../types"
-import {
-  useParticleSession,
-  type ParticleTransport,
-} from "./use-particle-session"
+import type { ParticleSession } from "./use-particle-session"
 
 export function useParticleFlow({
   workspaceId,
-  stored,
+  session,
   canEdit,
-  transport,
-  load,
   visibleToolIds = [],
 }: {
   workspaceId: string
-  stored: unknown
+  session: ParticleSession
   canEdit: boolean
   visibleToolIds?: readonly string[]
-  transport: ParticleTransport
-  load: () => Promise<ParticleResult<ParticleGraph>>
 }) {
-  const session = useParticleSession({
-    workspaceId,
-    stored,
-    canEdit,
-    transport,
-    load,
-  })
   const {
     select: selectParticle,
     selectedId,
@@ -93,10 +87,15 @@ export function useParticleFlow({
   )
   useEffect(() => () => positions.cancel(), [positions])
   const dirty = useRef(false)
+  const [resizeBusy, setResizeBusy] = useState(false)
+  const flushBeforeLayout = useCallback(
+    () => (resizeBusy ? Promise.resolve(false) : positions.flush()),
+    [resizeBusy, positions]
+  )
   const layout = useParticleLayout({
     session,
     flow,
-    flush: positions.flush,
+    flush: flushBeforeLayout,
     dirty,
     setNodes,
   })
@@ -105,58 +104,71 @@ export function useParticleFlow({
     flow,
     flush: positions.flush,
     dirty,
-    blocked: layout.busy,
+    blocked: layout.busy || resizeBusy,
     visibleToolIds,
   })
-  const editable = sessionEditable && !layout.busy
+  const history = useParticleHistoryControls({
+    session,
+    flush: positions.flush,
+    dirty,
+    blocked: layout.busy || resizeBusy,
+  })
+  const editable = sessionEditable && !layout.busy && !history.busy
+  const images = useParticleImageUpload({
+    session,
+    dirty,
+    blocked: layout.busy || history.busy || resizeBusy,
+    flush: positions.flush,
+    flow,
+  })
+  const cardAction = useParticleCardActions({
+    session,
+    flush: positions.flush,
+    dirty,
+    blocked: layout.busy || history.busy,
+  })
+  const resize = useParticleResize({
+    session,
+    dirty,
+    blocked: layout.busy || history.busy,
+    setNodes,
+    action: cardAction,
+  })
+  const isResizing = resize.isActive
+  useEffect(() => setResizeBusy(resize.busy), [resize.busy])
+  const resizeControls = useMemo(
+    () => ({
+      begin: resize.begin,
+      preview: resize.preview,
+      finish: resize.finish,
+    }),
+    [resize.begin, resize.preview, resize.finish]
+  )
   const movable =
     canEdit &&
     Boolean(graph) &&
     !session.error &&
     !layout.busy &&
+    !history.busy &&
     (!pending || positions.isSaving())
   const setDirty = useCallback((value: boolean) => {
     dirty.current = value
   }, [])
-  const select = useCallback(
-    (
-      id: string | null,
-      options?: { restoreFocus?: boolean; preserveSelection?: boolean }
-    ) => {
-      if (id !== null && !graph?.particles.some((item) => item.id === id))
-        return false
-      if (id === null && selectedId === null) return true
-      if (
-        dirty.current &&
-        id !== selectedId &&
-        !window.confirm("Discard unsaved Particle changes?")
-      )
-        return false
-      selectParticle(id)
-      if (id)
-        setNodes((current) =>
-          current.map((node) => {
-            const selected =
-              node.id === id ||
-              Boolean(options?.preserveSelection && node.selected)
-            return node.selected === selected
-              ? node
-              : { ...node, selected: Boolean(selected) }
-          })
-        )
-      if (id === null && selectedId && options?.restoreFocus !== false) {
-        window.requestAnimationFrame(() => {
-          document
-            .querySelector<HTMLElement>(
-              `.react-flow__node[data-id="${selectedId}"]`
-            )
-            ?.focus({ preventScroll: true })
-        })
-      }
-      return true
-    },
-    [selectParticle, selectedId, graph]
-  )
+  const getSelectedIds = useCallback(() => flow.current?.getNodes().filter((node) => node.selected).map((node) => node.id) ?? [], [])
+  const { select, calendarEntryRequest, inspectorView, shareParticleIds } = useParticleSelection({
+    graph,
+    selectedId,
+    selectParticle,
+    setNodes,
+    dirty,
+    getSelectedIds,
+  })
+  const closeGuard = useParticleCloseGuard({
+    dirty,
+    close: (restoreFocus) => select(null, { restoreFocus }),
+    selectionId: selectedId,
+    discardBlocked: inspectorView === "share",
+  })
   const edit = useCallback(
     (particle: Particle) => {
       void editParticle(particle)
@@ -184,7 +196,9 @@ export function useParticleFlow({
             y: canvas.top + 80,
           })
       }
-      return editParticle(placeParticle(current, visible, placement))
+      return editParticle(placeParticle(current, visible, placement), {
+        optimistic: true,
+      })
     },
     [
       editable,
@@ -202,35 +216,28 @@ export function useParticleFlow({
         .filter((particle) => !particle.canvasHidden)
         .map((particle) => {
           const old = previous.find((node) => node.id === particle.id)
-          return {
-            id: particle.id,
-            type: "workspace-particle",
-            ariaLabel: `${particleRegistry[particle.type].label}: ${particle.title}`,
-            position:
-              old &&
-              (old.dragging ||
-                pending ||
-                layout.busy ||
-                positions.has(particle.id))
-                ? old.position
-                : particle.position,
-            measured: old?.measured,
-            dragging: old?.dragging,
-            selected: old?.selected ?? particle.id === selectedId,
+          return reconcileParticleNode({
+            old,
+            particle,
+            selectedId,
+            movable,
+            resizing: isResizing(particle.id),
+            keepPosition: Boolean(
+              old?.dragging ||
+              pending ||
+              layout.busy ||
+              positions.has(particle.id)
+            ),
             data: {
               particle,
-              editable: editable,
+              editable,
               onOpen: select,
               onEdit: edit,
-              onRemove: (id: string) => void setPlacement(id, false),
+              onAction: cardAction,
+              onUploadImage: images.uploadToPlaceholder,
+              resize: resizeControls,
             },
-            style: {
-              width: particle.width ?? particleRegistry[particle.type].width,
-            },
-            dragHandle: ".workspace-card-drag-handle",
-            draggable: movable && !particle.locked,
-            connectable: editable,
-          }
+          })
         })
     )
   }, [
@@ -244,18 +251,23 @@ export function useParticleFlow({
     positions,
     positionVersion,
     layout.busy,
-    setPlacement,
+    cardAction,
+    resizeControls,
+    images.uploadToPlaceholder,
+    isResizing,
   ])
-  const ids = useMemo(() => new Set(nodes.map((node) => node.id)), [nodes])
+  const records = useMemo(
+    () => new Map(graph?.particles.map((particle) => [particle.id, particle])),
+    [graph]
+  )
+  const ids = useMemo(() => visibleParticleIds(graph), [graph])
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const records = new Map(
-        graph?.particles.map((particle) => [particle.id, particle])
-      )
       const stateChanges = particleFlowStateChanges(changes)
       const accepted = stateChanges.filter((change) => {
         if (change.type === "remove") return false
         if (change.type !== "position") return true
+        if (isResizing(change.id)) return false
         const particle = records.get(change.id)
         if (!movable || !particle || particle.locked) return false
         if (change.dragging !== undefined)
@@ -264,7 +276,10 @@ export function useParticleFlow({
         return true
       })
       setNodes((current) =>
-        applyNodeChanges<Node<ParticleNodeData>>(accepted, current)
+        applyNodeChanges<Node<ParticleNodeData>>(
+          particleResizeChanges(accepted, records),
+          current
+        )
       )
       // Native arrow-key movement emits final position changes without drag-stop.
       if (
@@ -274,7 +289,7 @@ export function useParticleFlow({
       )
         positions.schedule()
     },
-    [movable, graph, positions]
+    [movable, records, positions, isResizing]
   )
   const move = useCallback(
     async (moved: Node[]) => {
@@ -290,58 +305,67 @@ export function useParticleFlow({
     },
     [movable, graph, positions]
   )
-  const create = useCallback(
-    (type: ParticleType, title: string, prepared?: Particle) => {
-      if (dirty.current && !window.confirm("Discard unsaved Particle changes?"))
-        return Promise.resolve(false)
-      const canvas = document
-        .querySelector("[data-workspace-canvas-flow-frame]")
-        ?.getBoundingClientRect()
-      const position =
-        canvas && flow.current
-          ? flow.current.screenToFlowPosition({
-              x: canvas.left + canvas.width / 2 - 140,
-              y: canvas.top + Math.min(canvas.height * 0.2, 150),
-            })
-          : { x: 100, y: 100 }
-      const count = graph?.particles.length ?? 0
-      return add(
-        type,
-        title,
-        {
-          x: position.x + (count % 4) * 28,
-          y: position.y + (count % 4) * 28,
-        },
-        prepared
-      )
-    },
-    [add, graph]
-  )
-  return {
-    ...session,
-    visibleToolIds,
-    libraryQuery,
-    setLibraryQuery,
-    editable,
-    layout,
-    connections,
-    select,
-    setDirty,
-    setPlacement,
-    nodes,
-    edges: graph
-      ? particleConnectionsToFlow(
-          graph,
-          layout.routes,
-          visibleToolIds,
-          connections.preview
-        )
-      : [],
-    ids,
-    onNodesChange,
-    move,
-    create,
+  const create = useParticleCreate({
+    add,
+    count: graph?.particles.length ?? 0,
+    dirty,
     flow,
-    selected: graph?.particles.find((item) => item.id === selectedId) ?? null,
-  }
+  })
+  // Canvas positions change every frame; controls only need domain/edit state.
+  const controls = useMemo(
+    () => ({
+      ...session,
+      images,
+      visibleToolIds,
+      libraryQuery,
+      setLibraryQuery,
+      editable,
+      layout,
+      connections,
+      history,
+      calendarEntryRequest,
+      closeGuard,
+      inspectorView,
+      shareParticleIds,
+      select,
+      setDirty,
+      setPlacement,
+      create,
+      flow,
+      selected: graph?.particles.find((item) => item.id === selectedId) ?? null,
+    }),
+    [
+      session,
+      images,
+      visibleToolIds,
+      libraryQuery,
+      editable,
+      layout,
+      connections,
+      history,
+      calendarEntryRequest,
+      closeGuard,
+      inspectorView,
+      shareParticleIds,
+      select,
+      setDirty,
+      setPlacement,
+      create,
+      graph,
+      selectedId,
+    ]
+  )
+  const edges = useMemo(
+    () =>
+      graph
+        ? particleConnectionsToFlow(
+            graph,
+            layout.routes,
+            visibleToolIds,
+            connections.preview
+          )
+        : [],
+    [graph, layout.routes, visibleToolIds, connections.preview]
+  )
+  return { ...controls, controls, nodes, edges, ids, onNodesChange, move }
 }

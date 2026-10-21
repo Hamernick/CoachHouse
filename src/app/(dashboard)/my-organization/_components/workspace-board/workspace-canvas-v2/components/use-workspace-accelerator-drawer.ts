@@ -11,7 +11,8 @@ import {
 
 import { markModuleCompleteAction } from "@/app/actions/module-progress"
 import type { WorkspaceAcceleratorCardInput } from "@/features/workspace-accelerator-card"
-import { listenForWorkspaceRoadmapDrawerRequests } from "@/lib/workspace/data-drawer-events"
+import { isWorkspaceAcceleratorControllerStepVisible } from "@/features/workspace-accelerator-card"
+import { listenForWorkspaceAcceleratorDrawerRequests, listenForWorkspaceRoadmapDrawerRequests } from "@/lib/workspace/data-drawer-events"
 import { getWorkspaceAcceleratorPaywallPath } from "@/lib/workspace/routes"
 
 import { resolveWorkspaceAcceleratorReadinessSummary } from "../../workspace-board-accelerator-card-helpers"
@@ -125,6 +126,14 @@ export function useWorkspaceAcceleratorDrawer({
       }),
     [open]
   )
+  useEffect(() => {
+    return listenForWorkspaceAcceleratorDrawerRequests((moduleId) => {
+      const step = seed.acceleratorTimeline?.find((item) => item.moduleId === moduleId && isWorkspaceAcceleratorControllerStepVisible(item))
+      if (!step) return false
+      open({ tab: "accelerator", acceleratorModuleId: moduleId, acceleratorStepId: step.id })
+      return true
+    })
+  }, [open, seed.acceleratorTimeline])
   useEffect(() => {
     const restoreFromUrl = () => {
       const next = resolveWorkspaceDataDrawerRequest(window.location.href)

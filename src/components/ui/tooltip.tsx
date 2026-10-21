@@ -47,9 +47,10 @@ function TooltipTrigger({
 function TooltipContent({
   className,
   sideOffset = 0,
+  showArrow = true,
   children,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: React.ComponentProps<typeof TooltipPrimitive.Content> & { showArrow?: boolean }) {
   const reactGrabAttributes = props as ReactGrabDebugSurfaceAttributes
   const resolvedClassName = cn(
     "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-balance text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 motion-reduce:animate-none",
@@ -77,10 +78,12 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow
-          data-slot="tooltip-arrow"
-          className={TOOLTIP_ARROW_CLASSNAME}
-        />
+        {showArrow ? (
+          <TooltipPrimitive.Arrow
+            data-slot="tooltip-arrow"
+            className={TOOLTIP_ARROW_CLASSNAME}
+          />
+        ) : null}
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

@@ -1,3 +1,4 @@
+import type { FormDefinition } from "@/features/organization-forms"
 import type { Particle, ParticleType } from "../types"
 import { createParticle, particleRegistry } from "./particle-registry"
 import { particleSchema } from "./particle-schema"
@@ -14,6 +15,8 @@ export type PresetFields = {
   options: string
   hex: string
   expression: string
+  location: string
+  guests: string
 }
 export type PresetField = {
   key: keyof PresetFields
@@ -37,7 +40,22 @@ const core: readonly ParticleType[] = [
   "workflow",
   "finance",
 ]
-export const PARTICLE_PRESETS: readonly ParticlePreset[] = [
+const presetDefinitions: readonly ParticlePreset[] = [
+  { id: "form", label: "Form", hint: "Build a private form draft", type: "activity", fields: [] },
+  {
+    id: "notes",
+    label: "Notes",
+    hint: "Capture notes saved in Documents",
+    type: "activity",
+    fields: [{ key: "body", label: "Notes", input: "textarea" }],
+  },
+  {
+    id: "image",
+    label: "Image",
+    hint: "Drop a photo or picture into an empty image card",
+    type: "activity",
+    fields: [],
+  },
   ...core.map((type) => ({
     id: type,
     label: particleRegistry[type].label,
@@ -56,6 +74,8 @@ export const PARTICLE_PRESETS: readonly ParticlePreset[] = [
         label: "Starts at (your local time)",
         input: "datetime-local",
       },
+      { key: "location", label: "Place" },
+      { key: "guests", label: "People (comma-separated names)" },
     ],
   },
   {
@@ -116,6 +136,12 @@ export const PARTICLE_PRESETS: readonly ParticlePreset[] = [
     fields: [{ key: "expression", label: "Expression" }],
   },
 ]
+// Restrict creation only. Persisted widgets, schemas and renderers remain supported.
+const retiredCreationPresets = new Set(["timer", "workflow", "split", "sum", "list", "message", "color"])
+export const PARTICLE_PRESETS: readonly ParticlePreset[] = presetDefinitions.filter(
+  (preset) => !retiredCreationPresets.has(preset.id)
+)
+
 export const DEFAULT_PRESET_FIELDS: PresetFields = {
   when: "",
   body: "",
@@ -127,6 +153,8 @@ export const DEFAULT_PRESET_FIELDS: PresetFields = {
   options: "Yes\nNot yet",
   hex: "#34a853",
   expression: "",
+  location: "",
+  guests: "",
 }
 export function particlePresetQuery(text: string): string | null {
   const value = text.trimStart()
@@ -151,6 +179,7 @@ export function buildParticlePreset(
     title: string
     description: string
     fields: PresetFields
+    form?: FormDefinition
   }
 ): Particle {
   const base = {
@@ -158,7 +187,27 @@ export function buildParticlePreset(
     title: input.title.trim(),
     description: input.description,
   }
+  if (preset.id === "form" && base.type === "activity")
+    return particleSchema.parse({ ...base, size: "large", data: { ...base.data, widget: { kind: "form", definition: input.form ?? { questions: [] } } } })
+  if (preset.id === "image" && base.type === "activity")
+    return particleSchema.parse({
+      ...base,
+      size: "large",
+      data: { ...base.data, widget: { kind: "image_placeholder" } },
+    })
   const f = input.fields
+  if (preset.id === "notes" && base.type === "activity")
+    return particleSchema.parse({
+      ...base,
+      size: "large",
+      data: {
+        ...base.data,
+        widget: {
+          kind: "notes",
+          source: { kind: "workspace", content: f.body },
+        },
+      },
+    })
   const lines = (value: string) =>
     value
       .split("\n")
@@ -193,10 +242,13 @@ export function buildParticlePreset(
                 ? {
                     kind: "event" as const,
                     startsAt: f.when ? new Date(f.when).toISOString() : null,
+                    ...(f.location.trim() ? { location: f.location.trim() } : {}),
+                    ...(f.guests.trim() ? { attendees: [...new Set(f.guests.split(",").map(name => name.trim()).filter(Boolean))] } : {}),
                   }
                 : undefined
     result = {
       ...base,
+      ...(preset.id === "event" ? { size: "large" as const } : {}),
       data: {
         ...base.data,
         template: preset.id === "event" ? "event" : "task",

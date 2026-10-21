@@ -110,7 +110,7 @@ describe("organization switching", () => {
     expect(switcherSource).toContain("Workspace, Admin, and Documents")
     expect(switcherSource).toContain("window.location.reload()")
     expect(switcherSource).not.toContain("router.refresh()")
-    expect(workspaceViewSource).toContain("key={seed.orgId}")
+    expect(workspaceViewSource).toContain('key={`${seed.orgId}:${seed.boardState.workspaceCanvasId ?? "main"}`}')
     expect(actionSource).toContain('revalidatePath("/admin")')
     expect(actionSource).toContain('revalidatePath("/workspace")')
     expect(actionSource).toContain('revalidatePath("/organization/documents")')

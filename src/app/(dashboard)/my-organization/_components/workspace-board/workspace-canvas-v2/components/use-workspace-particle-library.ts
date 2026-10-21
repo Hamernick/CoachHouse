@@ -1,11 +1,13 @@
 "use client"
 
-import { useMemo, type DragEvent } from "react"
+import { useMemo, type DragEvent, type ClipboardEvent } from "react"
 import {
   PARTICLE_DRAG_MIME,
   readParticleDrag,
   workspaceToolIdSchema,
   type useParticleFlow,
+  type ParticleLibraryDragRequest,
+  resolveLibraryImageParticle,
 } from "@/features/workspace-particles/client"
 import type { WorkspaceCanvasSurfaceV2ViewProps } from "./workspace-canvas-surface-v2-view-types"
 import { buildWorkspaceToolLibrary } from "./workspace-tool-library"
@@ -83,13 +85,59 @@ export function useWorkspaceParticleLibrary({
   return {
     tools,
     nodes: libraryNodes,
+    async placeDragged(
+      request: ParticleLibraryDragRequest,
+      screenPosition: { x: number; y: number }
+    ) {
+      if (!canPlace || !particles.editable || !particles.flow.current)
+        return false
+      const position =
+        particles.flow.current.screenToFlowPosition(screenPosition)
+      if (request.kind === "preset") {
+        if (request.particle.workspaceId !== workspaceId) return false
+        const prepared = await resolveLibraryImageParticle(request.particle)
+        return particles.controls.create(
+          prepared.type,
+          prepared.title,
+          prepared,
+          { position, inspect: false }
+        )
+      }
+      if (request.drag.workspaceId !== workspaceId) return false
+      if (request.drag.kind === "tool") {
+        onPlaceWorkspaceTool(request.drag.id, true, position)
+        return true
+      }
+      return particles.setPlacement(request.drag.id, true, position)
+    },
     dragOver(event: DragEvent<HTMLDivElement>) {
+      if (event.dataTransfer.types.includes("Files")) {
+        event.preventDefault()
+        event.dataTransfer.dropEffect =
+          canPlace && particles.editable && !particles.images.pending
+            ? "copy"
+            : "none"
+        return true
+      }
       if (!event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) return false
       event.preventDefault()
       event.dataTransfer.dropEffect = canPlace ? "move" : "none"
       return true
     },
     drop(event: DragEvent<HTMLDivElement>) {
+      if (event.dataTransfer.files.length) {
+        event.preventDefault()
+        event.stopPropagation()
+        if (canPlace && particles.editable && particles.flow.current)
+          void particles.images.upload(
+            Array.from(event.dataTransfer.files),
+            particles.flow.current.screenToFlowPosition({
+              x: event.clientX,
+              y: event.clientY,
+            })
+          )
+        return true
+      }
       if (!event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) return false
       event.preventDefault()
       event.stopPropagation()
@@ -107,6 +155,19 @@ export function useWorkspaceParticleLibrary({
         onPlaceWorkspaceTool(payload.id, true, position)
       else void particles.setPlacement(payload.id, true, position)
       return true
+    },
+    paste(event: ClipboardEvent<HTMLDivElement>) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest(
+          "input, textarea, [contenteditable=true], [role=textbox]"
+        )
+      )
+        return
+      const files = Array.from(event.clipboardData.files)
+      if (!files.length) return
+      event.preventDefault()
+      if (canPlace && particles.editable) void particles.images.upload(files)
     },
   }
 }

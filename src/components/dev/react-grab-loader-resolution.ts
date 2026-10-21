@@ -29,13 +29,12 @@ export type {
 
 const REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR =
   "[data-react-grab-link-id], [data-react-grab-owner-id]"
-const REACT_GRAB_EXPLICIT_SURFACE_SELECTOR =
-  [
-    "[data-react-grab-surface-component]",
-    "[data-react-grab-surface-source]",
-    "[data-react-grab-surface-slot]",
-    "[data-react-grab-surface-kind]",
-  ].join(", ")
+const REACT_GRAB_EXPLICIT_SURFACE_SELECTOR = [
+  "[data-react-grab-surface-component]",
+  "[data-react-grab-surface-source]",
+  "[data-react-grab-surface-slot]",
+  "[data-react-grab-surface-kind]",
+].join(", ")
 const REACT_GRAB_SLOT_SELECTOR = "[data-slot]"
 
 function querySurfaceElement(element: Element | null, selector: string) {
@@ -50,14 +49,21 @@ function closestSurfaceElement(element: Element | null, selector: string) {
     : null
 }
 
+function isGranularSelection(element: Element) {
+  return Boolean(
+    closestSurfaceElement(element, '[data-react-grab-granular="true"]')
+  )
+}
+
 export function resolveReactGrabSelectedSurfaceElement(element: Element) {
+  if (isGranularSelection(element)) return element
   if (hasExplicitReactGrabMetadata(element)) {
     return element
   }
 
   const explicitSurface = closestSurfaceElement(
     element,
-    REACT_GRAB_EXPLICIT_SURFACE_SELECTOR,
+    REACT_GRAB_EXPLICIT_SURFACE_SELECTOR
   )
   if (explicitSurface) {
     return explicitSurface
@@ -68,7 +74,10 @@ export function resolveReactGrabSelectedSurfaceElement(element: Element) {
   }
 
   return (
-    closestSurfaceElement(element, REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR) ??
+    closestSurfaceElement(
+      element,
+      REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR
+    ) ??
     querySurfaceElement(element, REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR) ??
     querySurfaceElement(element, REACT_GRAB_SLOT_SELECTOR) ??
     element
@@ -78,7 +87,7 @@ export function resolveReactGrabSelectedSurfaceElement(element: Element) {
 export function buildReactGrabResolutionTrace(
   element: Element,
   target: Element | null,
-  resolutionMode: ReactGrabResolutionTrace["resolutionMode"],
+  resolutionMode: ReactGrabResolutionTrace["resolutionMode"]
 ): ReactGrabResolutionTrace {
   return {
     selectedTag:
@@ -96,22 +105,32 @@ export function buildReactGrabResolutionTrace(
   }
 }
 
-export function resolveReactGrabSemanticTarget(element: Element): Element | null {
+export function resolveReactGrabSemanticTarget(
+  element: Element
+): Element | null {
+  if (isGranularSelection(element)) return element
   const directAnchor = element.closest("[data-react-grab-anchor]")
   if (directAnchor) return directAnchor
 
   const selectedSlot = readElementAttribute(element, "data-slot")
   const explicitSurface = closestSurfaceElement(
     element,
-    REACT_GRAB_EXPLICIT_SURFACE_SELECTOR,
+    REACT_GRAB_EXPLICIT_SURFACE_SELECTOR
   )
-  if (selectedSlot && !hasExplicitReactGrabMetadata(element) && !explicitSurface) {
+  if (
+    selectedSlot &&
+    !hasExplicitReactGrabMetadata(element) &&
+    !explicitSurface
+  ) {
     return null
   }
 
   const linkedSurface =
     explicitSurface ??
-    closestSurfaceElement(element, REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR) ??
+    closestSurfaceElement(
+      element,
+      REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR
+    ) ??
     querySurfaceElement(element, REACT_GRAB_EXPLICIT_OWNER_OR_LINK_SELECTOR)
   const ownerId =
     readElementAttribute(linkedSurface, "data-react-grab-owner-id") ??
@@ -119,6 +138,6 @@ export function resolveReactGrabSemanticTarget(element: Element): Element | null
   if (!ownerId) return null
 
   return document.querySelector(
-    `[data-react-grab-anchor][data-react-grab-owner-id="${ownerId}"]`,
+    `[data-react-grab-anchor][data-react-grab-owner-id="${ownerId}"]`
   )
 }
