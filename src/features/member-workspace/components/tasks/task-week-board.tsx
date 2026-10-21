@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import type { MemberWorkspaceTaskItem } from "../../types"
 import {
-  addCalendarDays, calendarDay, formatCalendarDay, isTaskOverdue,
+  addCalendarDays, formatCalendarDay, isTaskOverdue,
   partitionTaskBoard, weekStartForDay,
 } from "../../lib/task-board"
 
@@ -20,6 +20,7 @@ export type TaskBoardCapabilities = { status: boolean; details: boolean; schedul
 export type TaskWeekBoardProps = {
   tasks: MemberWorkspaceTaskItem[]
   weekStart: string
+  today: string
   showWeekend: boolean
   onWeekChange: (weekStart: string) => void
   onWeekendChange: (show: boolean) => void
@@ -35,7 +36,7 @@ export type TaskWeekBoardProps = {
 export function TaskWeekBoard(props: TaskWeekBoardProps) {
   const { tasks, showWeekend, onWeekChange, onWeekendChange, onAddTask } = props
   const monday = weekStartForDay(props.weekStart)
-  const today = calendarDay()
+  const today = props.today
   const [dragging, setDragging] = useState<MemberWorkspaceTaskItem | null>(null)
   const board = partitionTaskBoard(tasks, monday, showWeekend, today)
   const sensors = useSensors(
@@ -103,7 +104,7 @@ export function TaskWeekBoard(props: TaskWeekBoardProps) {
           </details>
         )}
         <DragOverlay dropAnimation={null}>
-          {dragging && <div className="w-72 rounded-2xl border bg-card p-4 shadow-md"><p className="mb-2 truncate text-xs text-muted-foreground">{dragging.projectName}</p><p className="text-sm font-medium">{dragging.title}</p></div>}
+          {dragging && <div className="w-72 select-none rounded-2xl border bg-card p-4 shadow-md"><p className="mb-2 truncate text-xs text-muted-foreground">{dragging.projectName}</p><p className="text-sm font-medium">{dragging.title}</p></div>}
         </DragOverlay>
       </DndContext>
     </section>
@@ -141,7 +142,7 @@ function TaskCard({ task, today, pending, capabilities, onToggle, onOpen, onSche
   const done = task.status === "done"
   const checkboxId = useId()
   return (
-    <article ref={setNodeRef} aria-label={task.title} aria-busy={pending} className={cn("space-y-3 rounded-2xl border bg-card p-3", done && "opacity-70", isDragging && "opacity-40 ring-2 ring-primary")}>
+    <article ref={setNodeRef} inert={isDragging || undefined} aria-label={task.title} aria-busy={pending} className={cn("space-y-3 rounded-2xl border bg-card p-3", done && "opacity-70", isDragging && "select-none opacity-40 ring-2 ring-primary")}>
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-xs text-muted-foreground" title={`${task.projectName} · ${task.organizationName ?? task.projectClient ?? "Organization"}`}>{task.projectName} · {task.organizationName ?? task.projectClient ?? "Organization"}</p>
         {capabilities.schedule && <Button ref={setActivatorNodeRef} variant="ghost" size="icon" className="size-11 shrink-0 cursor-grab touch-none sm:size-9" disabled={pending} {...attributes} {...listeners} tabIndex={-1} aria-label={`Drag ${task.title} to another day`}><DotsSixVertical aria-hidden /></Button>}

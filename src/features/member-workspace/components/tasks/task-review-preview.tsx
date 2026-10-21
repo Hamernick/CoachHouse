@@ -33,10 +33,10 @@ function groupTasks(tasks: MemberWorkspaceTaskItem[]): MemberWorkspaceTaskGroup[
 }
 
 // This gated visual fixture uses sample records only. No server actions or database clients.
-export function TaskReviewPreview() {
+export function TaskReviewPreview({ renderImmediately = false }: { renderImmediately?: boolean }) {
   const [groups, setGroups] = useState(() => groupTasks(seed))
   const savedGroups = useRef(groups)
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(renderImmediately)
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("tasks-review-fixture")

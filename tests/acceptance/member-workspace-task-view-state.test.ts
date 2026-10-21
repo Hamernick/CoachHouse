@@ -14,7 +14,7 @@ describe("task URL state", () => {
   })
   it("falls back from invalid URLs without introducing fixture member assumptions", () => {
     const params = new URLSearchParams({ taskView: "timeline", taskRelation: "everyone", taskWeek: "2026-02-30", taskFilters: JSON.stringify([{ key: "Member", value: "Current member" }, { key: "admin", value: "all" }, { key: "Tag", value: "Safe" }]) })
-    expect(readTaskViewState(params, new Date(2026, 9, 20))).toEqual({ view: "list", relation: ["owned"], completion: "all", ordering: "manual", week: "2026-10-19", weekend: false, filters: [{ key: "Tag", value: "Safe" }] })
+    expect(readTaskViewState(params, "2026-10-20")).toEqual({ view: "list", relation: ["owned"], completion: "all", ordering: "manual", week: "2026-10-19", weekend: false, filters: [{ key: "Tag", value: "Safe" }] })
     params.set("taskFilters", "not json")
     expect(readTaskViewState(params).filters).toEqual([])
   })
@@ -86,4 +86,15 @@ it("updates completion visibility after a task is checked without changing its p
   expect(selectPersonalTaskGroups(groups, "me", incomplete)[0].tasks.map(task => task.id)).toEqual(["a"])
   expect(selectPersonalTaskGroups(patchTaskGroups(groups, "a", { status: "done" }), "me", incomplete)).toEqual([])
   expect(selectPersonalTaskGroups(groups, "me", { ...initial, completion: "completed" })[0].tasks.map(task => task.id)).toEqual(["b"])
+})
+
+
+it("has no clock-dependent week before the browser supplies its calendar day", () => {
+  const params = new URLSearchParams("taskView=board")
+  expect(readTaskViewState(params).week).toBe("")
+  expect(writeTaskViewState(params, readTaskViewState(params)).has("taskWeek")).toBe(false)
+  expect(readTaskViewState(params, "2026-10-18").week).toBe("2026-10-12")
+  expect(readTaskViewState(params, "2026-10-19").week).toBe("2026-10-19")
+  params.set("taskWeek", "2026-10-05")
+  expect(readTaskViewState(params, "2026-10-19").week).toBe("2026-10-05")
 })

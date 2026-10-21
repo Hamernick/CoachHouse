@@ -57,3 +57,14 @@ Validation:
 - Review captures: [task display](../qa/task-project-filters-2026-10-20/tasks-desktop.png), [project filters desktop](../qa/task-project-filters-2026-10-20/projects-desktop.png), [project filters mobile](../qa/task-project-filters-2026-10-20/projects-mobile.png). No existing screenshot baseline targets these controls. Captures remain macOS review evidence; Linux visual gates remain hosted.
 
 Review `/tasks` and `/projects` on localhost3141. Sample-only fixtures: `/visual-regression/tasks?taskWeek=2026-10-19&filterPreview=1` and `/visual-regression/project-directory?view=list`; no fixture data enters real organizations. Port3008 remains untouched. Same branch/PR345; required hosted quality, Caleb's review, merge/deployment and authenticated live acceptance remain pending.
+
+### PR343 review corrections — October20
+
+All three supplied findings confirmed in the inherited code. PR343 is already merged, so corrections continue in open PR345 on the same lane/3141:
+- Dragged source cards are inert and non-selectable while the overlay represents the task. Drop and cancellation restore controls; no duplicate keyboard interaction remains available during drag.
+- `readTaskViewState` no longer reads the system clock. One client calendar-day hook supplies both the default week and board today/overdue state. SSR and initial hydration render the same calendar loading state; local dates appear after mount. Midnight, focus and visibility refresh the shared local day; explicit URL weeks remain selected until navigation/Today changes them.
+- Board mode renders even with zero matching tasks, retaining week navigation, weekends and contextual creation. The standalone empty message applies only to List.
+
+26 focused calendar/view-state/board cases pass, plus four browser regressions for inert drag/drop and focus exclusion, cancellation, empty filtered-board creation/reload, and real SSR hydration in New York on Sunday evening while UTC is Monday. The midnight/focus case verifies Today/current-day state and no hydration diagnostics. Cold fixture hydration initially exceeded generic five-second assertions; browser checks now wait explicitly for restored task controls. Application TypeScript, changed-file lint, structure and route checks pass. Prior unaffected authorization/SQL evidence is reused; no migration or live mutation. Graphify refreshed (21,868 nodes / 62,777 edges).
+
+The access-gated fixture supports `ssr=1` to exercise the actual task page during SSR. [Empty-board review](../qa/tasks-review-2026-10-20/empty-board.png) is macOS evidence; no existing visual baseline targets this state. Required hosted checks, Caleb review, merge/deployment and live acceptance remain pending.

@@ -26,6 +26,7 @@ import {
 } from "@/features/platform-admin-dashboard"
 import { TaskProjectList } from "./task-project-list"
 import { TaskWeekBoard } from "./task-week-board"
+import { useTaskCalendarDay } from "./use-task-calendar-day"
 import { useTaskMutations, type TaskMutationActions } from "./use-task-mutations"
 import { readTaskViewState, writeTaskViewState, type TaskViewState } from "../../lib/task-view-state"
 import { toProjectGroup } from "../../lib/task-view-model"
@@ -84,11 +85,12 @@ export function MemberWorkspaceTasksPage({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const state = useMemo(() => readTaskViewState(new URLSearchParams(searchParams.toString())), [searchParams])
+  const today = useTaskCalendarDay()
+  const state = useMemo(() => readTaskViewState(new URLSearchParams(searchParams.toString()), today), [searchParams, today])
   const { filters, relation } = state
   const changeViewState = (patch: Partial<TaskViewState>) => {
     const current = new URLSearchParams(window.location.search)
-    const next = writeTaskViewState(current, { ...readTaskViewState(current), ...patch })
+    const next = writeTaskViewState(current, { ...readTaskViewState(current, today), ...patch })
     window.history.pushState(null, "", `${window.location.pathname}?${next.toString()}`)
   }
   const setFilters = (next: FilterChip[]) => changeViewState({ filters: next })
@@ -317,7 +319,7 @@ export function MemberWorkspaceTasksPage({
     <div className="flex flex-1 flex-col min-h-0 bg-background min-w-0">
       {header}
 
-      {!visibleGroups.length ? (
+      {state.view === "list" && !visibleGroups.length ? (
         <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground">
           {filters.length > 0 || state.completion !== "all"
             ? "No tasks match the current filters."
@@ -331,16 +333,16 @@ export function MemberWorkspaceTasksPage({
         </div>
       ) : (
         <div className="flex-1 min-h-0 min-w-0 space-y-4 overflow-y-auto px-4 py-4">
-          {state.view === "board" ? (
+          {state.view === "board" ? (today ? (
             <TaskWeekBoard tasks={visibleTaskGroups.flatMap(group => group.tasks)}
-              weekStart={state.week} showWeekend={state.weekend}
+              weekStart={state.week} today={today} showWeekend={state.weekend}
               onWeekChange={week => changeViewState({ week })}
               onWeekendChange={weekend => changeViewState({ weekend })}
               pendingTaskIds={pendingTaskIds} capabilities={capabilities}
               onToggleTask={toggleTask} onOpenTask={openTaskById} onScheduleTask={scheduleTask}
               onAddTask={canOpenTaskCreate ? context => openCreateTask({ ...context, projectId: projectOptions.some(project => project.id === context.projectId) ? context.projectId : undefined }) : undefined}
               onShowList={() => changeViewState({ view: "list" })} />
-          ) : (
+          ) : <p role="status" className="text-sm text-muted-foreground">Loading task calendar…</p>) : (
             <TaskProjectList groups={visibleTaskGroups} pendingTaskIds={pendingTaskIds} capabilities={capabilities}
               onToggleTask={toggleTask} onOpenTask={openTaskById}
               onAddTask={canOpenTaskCreate ? context => openCreateTask(context) : undefined}
