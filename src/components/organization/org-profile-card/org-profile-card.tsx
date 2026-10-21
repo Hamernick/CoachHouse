@@ -100,76 +100,78 @@ export function OrgProfileEditor({
       <Tabs
         value={tab}
         onValueChange={handleTabChange}
-        className="border-border/60 bg-background w-full gap-0 overflow-hidden rounded-[22px] border pb-6"
+        className="w-full min-w-0 gap-3"
       >
         <OrgProfileTabNavigation
           tabs={ORG_PROFILE_TABS}
           tabsIdBase={tabsIdBase}
         />
-        <OrgProfileHeader
-          name={company.name || "Organization"}
-          tagline={company.tagline || "—"}
-          logoUrl={company.logoUrl ?? ""}
-          editMode={editMode}
-          isSaving={isPending}
-          canEdit={canEdit}
-          links={<OrgProfileHeaderLinks company={company} centered />}
-          donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
-          onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
-        />
+        <div className="border-border/60 bg-background w-full min-w-0 overflow-hidden rounded-[22px] border pb-6">
+          <OrgProfileHeader
+            name={company.name || "Organization"}
+            tagline={company.tagline || "—"}
+            logoUrl={company.logoUrl ?? ""}
+            editMode={editMode}
+            isSaving={isPending}
+            canEdit={canEdit}
+            links={<OrgProfileHeaderLinks company={company} centered />}
+            donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
+            onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
+          />
 
-        <div className="p-0">
-          <TabsContent
-            value="company"
-            id={`${tabsIdBase}-content-company`}
-            aria-labelledby={`${tabsIdBase}-trigger-company`}
-            className="grid gap-8 p-6"
-          >
-            <CompanyTab
-              company={company}
-              errors={errors}
-              editMode={editMode}
-              onInputChange={handleInputChange}
-              onUpdate={handleCompanyUpdate}
-              onDirty={markDirty}
-              onAutoSave={persistProfileUpdates}
-              slugStatus={slugStatus}
-              setSlugStatus={setSlugStatus}
-            />
-          </TabsContent>
+          <div className="p-0">
+            <TabsContent
+              value="company"
+              id={`${tabsIdBase}-content-company`}
+              aria-labelledby={`${tabsIdBase}-trigger-company`}
+              className="grid gap-8 p-6"
+            >
+              <CompanyTab
+                company={company}
+                errors={errors}
+                editMode={editMode}
+                onInputChange={handleInputChange}
+                onUpdate={handleCompanyUpdate}
+                onDirty={markDirty}
+                onAutoSave={persistProfileUpdates}
+                slugStatus={slugStatus}
+                setSlugStatus={setSlugStatus}
+              />
+            </TabsContent>
 
-          <TabsContent
-            value="programs"
-            id={`${tabsIdBase}-content-programs`}
-            aria-labelledby={`${tabsIdBase}-trigger-programs`}
-            className="grid gap-8 p-6"
-          >
-            <ProgramsTab
-              programs={programs as OrgProgram[]}
-              companyName={company.name}
-              canEdit={canEdit}
-              editMode={editMode}
-              onProgramEdit={handleProgramEdit}
-            />
-          </TabsContent>
+            <TabsContent
+              value="programs"
+              id={`${tabsIdBase}-content-programs`}
+              aria-labelledby={`${tabsIdBase}-trigger-programs`}
+              className="grid gap-8 p-6"
+            >
+              <ProgramsTab
+                programs={programs as OrgProgram[]}
+                companyName={company.name}
+                canEdit={canEdit}
+                editMode={editMode}
+                onProgramEdit={handleProgramEdit}
+              />
+            </TabsContent>
 
-          <TabsContent
-            value="people"
-            id={`${tabsIdBase}-content-people`}
-            aria-labelledby={`${tabsIdBase}-trigger-people`}
-            className="grid gap-8 p-6"
-          >
-            <PeopleTab editMode={editMode} people={people} />
-          </TabsContent>
+            <TabsContent
+              value="people"
+              id={`${tabsIdBase}-content-people`}
+              aria-labelledby={`${tabsIdBase}-trigger-people`}
+              className="grid gap-8 p-6"
+            >
+              <PeopleTab editMode={editMode} people={people} />
+            </TabsContent>
 
-          <TabsContent
-            value="supporters"
-            id={`${tabsIdBase}-content-supporters`}
-            aria-labelledby={`${tabsIdBase}-trigger-supporters`}
-            className="grid gap-8 p-6"
-          >
-            <SupportersTab editMode={editMode} people={people} />
-          </TabsContent>
+            <TabsContent
+              value="supporters"
+              id={`${tabsIdBase}-content-supporters`}
+              aria-labelledby={`${tabsIdBase}-trigger-supporters`}
+              className="grid gap-8 p-6"
+            >
+              <SupportersTab editMode={editMode} people={people} />
+            </TabsContent>
+          </div>
         </div>
       </Tabs>
 

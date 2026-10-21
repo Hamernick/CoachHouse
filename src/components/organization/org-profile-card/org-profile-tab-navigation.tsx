@@ -23,13 +23,11 @@ export function OrgProfileTabNavigation({
 }: OrgProfileTabNavigationProps) {
   return (
     <div
-      data-org-profile-tabs-separator="true"
-      className="flex w-full border-b px-6"
+      className="mx-auto w-fit max-w-full rounded-full border border-border bg-[color-mix(in_srgb,var(--muted)_88%,var(--card))] p-1"
     >
       <TabsList
         data-tour="org-profile-tabs"
-        variant="line"
-        className="text-muted-foreground h-10 w-fit max-w-full data-[orientation=horizontal]:h-10 items-end justify-start gap-1 rounded-none bg-transparent p-0"
+        className="h-8 max-w-full justify-start gap-1.5 overflow-x-auto overscroll-x-contain rounded-full bg-transparent p-0 [scrollbar-width:none] data-[orientation=horizontal]:h-8 [&::-webkit-scrollbar]:hidden [@media(pointer:coarse)]:data-[orientation=horizontal]:h-11"
       >
         {tabs.map((item) => (
           <TabsTrigger
@@ -37,7 +35,7 @@ export function OrgProfileTabNavigation({
             value={item.value}
             id={`${tabsIdBase}-trigger-${item.value}`}
             aria-controls={`${tabsIdBase}-content-${item.value}`}
-            className="text-muted-foreground focus-visible:ring-ring data-[state=active]:text-foreground after:bg-primary relative inline-flex h-10 flex-none items-center justify-center gap-2 rounded-none border-0 bg-transparent px-2 pt-1 pb-2 text-sm font-medium whitespace-nowrap shadow-none transition-all duration-200 data-[orientation=horizontal]:after:bottom-[-1px] after:z-10 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=active]:font-semibold data-[state=active]:shadow-none group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none dark:data-[state=active]:!bg-transparent"
+            className="h-8 flex-none touch-manipulation rounded-full border-0 !bg-transparent px-3 py-0 text-foreground !shadow-none transition-colors duration-150 after:hidden hover:!bg-[color-mix(in_srgb,var(--foreground)_10%,var(--muted))] data-[state=active]:!bg-[color-mix(in_srgb,var(--foreground)_10%,var(--muted))] dark:text-foreground motion-reduce:transition-none [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-w-11"
           >
             <item.icon className="h-4 w-4" aria-hidden />
             {item.label}

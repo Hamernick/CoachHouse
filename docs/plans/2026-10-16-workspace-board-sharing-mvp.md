@@ -1062,3 +1062,9 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Removed the banner display/upload/crop controls from the profile editor header. Centered the existing logo, organization name, tagline, links and donation action in a compact vertical layout; tabs remain above. Logo editing and its fade remain intact; persisted banner data and public profile rendering are untouched. Static canvas cards retain their existing link alignment.
 - Scoped ESLint and whitespace checks pass. Authenticated dark-mode preview confirms centered identity without a banner; screenshot `/tmp/workspace-centered-profile-20261021.png`. Graph refresh log `/tmp/workspace-centered-profile-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Detached profile pill navigation
+
+- Moved profile card styling onto an inner wrapper so About/Activity sit separately above it, centered with a12px gap. Restyled existing shadcn tabs to match dock pill colors, borders,32px controls and rounded selection/hover states; coarse pointers retain44px controls. Controlled selection, keyboard semantics and dirty guards unchanged.
+- Focused ESLint/whitespace and authenticated preview pass. Screenshot `/tmp/workspace-profile-pill-tabs-20261021.png`. Graph refresh `/tmp/workspace-profile-pill-tabs-graphify-20261021.log`. Development branch only; no data changes.
