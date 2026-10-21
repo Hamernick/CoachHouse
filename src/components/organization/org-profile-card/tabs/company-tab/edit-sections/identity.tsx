@@ -28,7 +28,7 @@ export function IdentitySection({
       title="Identity"
       description="Basic details that represent your organization."
     >
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <ProfileField label="Organization name" focusKey="name">
           <Input
             id="name"
@@ -69,7 +69,7 @@ export function IdentitySection({
             <p className="text-destructive text-xs">{errors.description}</p>
           ) : null}
         </ProfileField>
-        <div className="grid gap-4 md:col-span-2">
+        <div className="grid min-w-0 gap-4">
           <ProfileField label="Formation status" focusKey="formationStatus">
             <Select
               value={company.formationStatus || "in_progress"}

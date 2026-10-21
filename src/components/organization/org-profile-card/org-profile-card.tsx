@@ -87,7 +87,7 @@ export function OrgProfileEditor({
   const tabsIdBase = "org-profile-tabs"
 
   return (
-    <div ref={editorRootRef}>
+    <div ref={editorRootRef} className="[&_[data-slot=input]]:shadow-none [&_[data-slot=textarea]]:shadow-none [&_[data-slot=select-trigger]]:shadow-none">
       <OrgProfileHeaderActions
         publicLink={publicLink}
         editMode={editMode}

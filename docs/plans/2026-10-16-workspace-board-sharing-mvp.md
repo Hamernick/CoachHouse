@@ -1103,3 +1103,8 @@ Renamed the header link to View Public Profile, added a trailing Lucide up-right
 - Shared validation also protects the authenticated profile action when formation/EIN is written, using current saved EIN for partial updates. Unrelated partial autosaves remain allowed for legacy approved profiles without EIN. No database migration or data mutation.
 -38 focused UI/server tests pass (`/tmp/workspace-formation-final-tests.log`); existing story regression passed in the earlier focused run. Scoped lint/whitespace pass. Typecheck retains unrelated baseline errors in workspace catalog/calendar and tests, none in changed files (`/tmp/workspace-formation-types.log`). Browser verified the saved pre-501 summary; conditional approved layout and rejected saves tested without changing live data. Screenshot `/tmp/workspace-formation-summary-20261021.png`.
 - Prior queued graph refresh completed; current log `/tmp/workspace-formation-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Profile field layout and shadows
+
+Made Identity an explicit single-column grid and removed the formation group’s two-column span, which was creating an implicit extra column in the narrow panel. Scoped shadow-none to profile inputs/textareas/select triggers, retaining focus rings and global primitives. Focused lint/whitespace and browser computed styles pass; screenshot `/tmp/workspace-profile-input-layout-20261021.png`. Development branch only.
