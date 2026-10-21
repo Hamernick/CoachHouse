@@ -17,12 +17,6 @@ import {
   actorCanAccessOrganizations,
 } from "./member-workspace-actor-permissions"
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
-import { loadOrganizationProjectStarterIdMap } from "./project-persistence"
-import { buildStarterOrganizationProjects } from "./project-starter-data"
-import {
-  buildStarterOrganizationTaskAssignees,
-  buildStarterOrganizationTasks,
-} from "./task-starter-data"
 import { MEMBER_WORKSPACE_STARTER_VERSION } from "./starter-data"
 import { normalizeMemberWorkspaceCreateProjectInput } from "./project-create-input"
 import { ensureMemberWorkspaceFeatureAccess } from "./access"
@@ -38,10 +32,6 @@ import {
   transitionOrganizationProjectStatus,
   transitionOrganizationProjectUpdate,
 } from "./project-transition-support"
-
-export type MemberWorkspaceResetStarterProjectsResult =
-  | { ok: true }
-  | { error: string }
 
 export type MemberWorkspaceClearStarterDataResult =
   | { ok: true }
@@ -446,114 +436,6 @@ export async function deleteMemberWorkspaceProjectAction(
   revalidatePath(`/organizations/${normalizedProjectId}`)
   revalidatePath(`/projects/${normalizedProjectId}`)
   return { ok: true, id: normalizedProjectId }
-}
-
-export async function resetMemberWorkspaceStarterProjectsAction(): Promise<MemberWorkspaceResetStarterProjectsResult> {
-  const actor = await resolveMemberWorkspaceActorContext()
-  const featureAccess = ensureMemberWorkspaceFeatureAccess(actor)
-  if (featureAccess) return featureAccess
-
-  if (actorCanAccessOrganizations(actor) || !actor.canEdit) {
-    return { error: "Only organization editors can reset starter data." }
-  }
-
-  const { error: deleteTasksError } = await actor.supabase
-    .from("organization_tasks")
-    .delete()
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("created_source", "starter_seed")
-
-  if (deleteTasksError) {
-    return { error: "Unable to clear starter tasks." }
-  }
-
-  const { error: deleteError } = await actor.supabase
-    .from("organization_projects")
-    .delete()
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("created_source", "starter_seed")
-
-  if (deleteError) {
-    return { error: "Unable to clear starter projects." }
-  }
-
-  const starterProjects = buildStarterOrganizationProjects({
-    orgId: actor.activeOrg.orgId,
-    actorId: actor.userId,
-  })
-
-  const { error: insertError } = await actor.supabase
-    .from("organization_projects")
-    .upsert(starterProjects, { onConflict: "org_id,starter_seed_key" })
-
-  if (insertError) {
-    return { error: "Unable to restore starter projects." }
-  }
-
-  const projectIdByStarterKey = await loadOrganizationProjectStarterIdMap({
-    orgId: actor.activeOrg.orgId,
-    supabase: actor.supabase,
-  })
-
-  const starterTasks = buildStarterOrganizationTasks({
-    orgId: actor.activeOrg.orgId,
-    actorId: actor.userId,
-    projectIdByStarterKey,
-  })
-
-  const { data: upsertedTasks, error: starterTasksError } = await actor.supabase
-    .from("organization_tasks")
-    .upsert(starterTasks, { onConflict: "org_id,starter_seed_key" })
-    .select("id, starter_seed_key")
-    .returns<Array<{ id: string; starter_seed_key: string | null }>>()
-
-  if (starterTasksError) {
-    return { error: "Unable to restore starter tasks." }
-  }
-
-  const taskIdByStarterKey = new Map<string, string>()
-  for (const row of upsertedTasks ?? []) {
-    if (!row.starter_seed_key) continue
-    taskIdByStarterKey.set(row.starter_seed_key, row.id)
-  }
-
-  const starterTaskAssignees = buildStarterOrganizationTaskAssignees({
-    orgId: actor.activeOrg.orgId,
-    actorId: actor.userId,
-    assigneeUserId: actor.userId,
-    taskIdByStarterKey,
-  })
-
-  const { error: starterTaskAssigneesError } = await actor.supabase
-    .from("organization_task_assignees")
-    .upsert(starterTaskAssignees, { onConflict: "task_id,user_id" })
-
-  if (starterTaskAssigneesError) {
-    return { error: "Unable to restore starter task assignments." }
-  }
-
-  const { error: starterStateError } = await actor.supabase
-    .from("organization_workspace_starter_state")
-    .upsert(
-      {
-        org_id: actor.activeOrg.orgId,
-        seed_version: MEMBER_WORKSPACE_STARTER_VERSION,
-        seeded_at: new Date().toISOString(),
-        last_reset_at: new Date().toISOString(),
-        updated_by: actor.userId,
-      },
-      { onConflict: "org_id" }
-    )
-
-  if (starterStateError) {
-    return { error: "Unable to update starter state." }
-  }
-
-  revalidatePath("/organizations")
-  revalidatePath("/admin/dashboard")
-  revalidatePath("/projects")
-  revalidatePath("/tasks")
-  return { ok: true }
 }
 
 export async function clearMemberWorkspaceStarterDataAction(): Promise<MemberWorkspaceClearStarterDataResult> {
