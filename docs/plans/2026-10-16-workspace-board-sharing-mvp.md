@@ -1169,3 +1169,8 @@ Removed the requested helper paragraph beneath Web resource; URL input, validati
 ### October 21 — Shorten public URL guidance
 
 Removed only “Avoid reserved words like /admin.” from PublicPageSettings helper copy. Retained lowercase/numbers/dashes guidance and all slug validation. Whitespace/pre-push checks cover this copy-only edit.
+
+
+### October 21 — Remove formation status helper copy
+
+Removed the requested “Used to tailor your formation checklist and map listing steps.” paragraph from IdentitySection. Formation selector and conditional EIN field/validation unchanged. Whitespace/pre-push checks cover this copy-only edit.

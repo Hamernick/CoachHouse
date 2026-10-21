@@ -100,9 +100,6 @@ export function IdentitySection({
               <SelectItem value="approved">Approved</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground text-xs">
-            Used to tailor your formation checklist and map listing steps.
-          </p>
         </ProfileField>
         {company.formationStatus === "approved" ? (
           <ProfileField label="EIN" focusKey="ein">
