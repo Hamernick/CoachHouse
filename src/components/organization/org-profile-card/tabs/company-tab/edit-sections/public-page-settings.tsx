@@ -12,7 +12,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ShareButton } from "@/components/shared/share-button"
 
-import { FormRow } from "@/components/organization/org-profile-card/shared"
+import styles from "../../../profile-edit-fields.module.css"
+import {
+  FormRow,
+  ProfileField,
+} from "@/components/organization/org-profile-card/shared"
 import { slugifyLocal } from "../../../utils"
 import type { CompanyEditProps } from "../types"
 import { RESERVED_SLUGS } from "../constants"
@@ -142,12 +146,14 @@ export function PublicPageSettings({
 
   return (
     <FormRow
+      layout="stacked"
+      inset={false}
       title="Public Map Profile"
       focusKey="public-page"
       description="Publish your organization on the Coach House map index."
     >
       <div className="grid gap-4">
-        <div className="border-border/60 bg-muted/30 flex items-start gap-3 rounded-lg border p-3">
+        <div className={styles.setting}>
           <Switch
             id="publicPageEnabled"
             checked={Boolean(company.isPublic)}
@@ -197,9 +203,8 @@ export function PublicPageSettings({
             </p>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
-          <div className="grid gap-1">
-            <Label htmlFor="publicLocationType">How people access you</Label>
+        <div className={styles.group}>
+          <ProfileField label="Access" focusKey="publicLocationType">
             <Select
               value={isOnlineOnly ? "online" : "in_person"}
               onValueChange={(value) => {
@@ -216,11 +221,10 @@ export function PublicPageSettings({
                 <SelectItem value="online">Online only</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </ProfileField>
 
           {isOnlineOnly ? (
-            <div className="grid gap-1">
-              <Label htmlFor="locationUrl">Web resource link</Label>
+            <ProfileField label="Web resource" focusKey="locationUrl">
               <Input
                 id="locationUrl"
                 name="locationUrl"
@@ -239,7 +243,7 @@ export function PublicPageSettings({
                 Add the link people should visit if this organization is a web
                 resource.
               </p>
-            </div>
+            </ProfileField>
           ) : null}
         </div>
         {company.isPublic && !hasAddress && !isOnlineOnly ? (
@@ -301,14 +305,14 @@ export function PublicPageSettings({
             </div>
           </div>
         ) : null}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="grid gap-1">
+        <div className="grid gap-3">
+          <div className={cn(styles.group, styles.singleGroup)}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Label htmlFor="publicSlug">Public URL</Label>
             </div>
             <div
               className={cn(
-                "border-border/70 bg-background flex items-center gap-2 rounded-xl border px-3 py-1.5",
+                "flex min-w-0 items-center gap-2 rounded-lg",
                 Boolean(errors.publicSlug) && "border-destructive/70"
               )}
             >

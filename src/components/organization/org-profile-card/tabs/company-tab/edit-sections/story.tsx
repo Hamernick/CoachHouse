@@ -1,5 +1,7 @@
 "use client"
 
+import styles from "../../../profile-edit-fields.module.css"
+
 import { RichTextEditor } from "@/components/rich-text-editor"
 
 import {
@@ -65,6 +67,7 @@ function StoryCoreDocumentField({
   return (
     <ProfileField label={field.label} focusKey={field.name}>
       <RichTextEditor
+        className={styles.richText}
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })
@@ -99,6 +102,7 @@ function StoryNarrativeField({
   return (
     <ProfileField label={field.label} focusKey={field.name}>
       <RichTextEditor
+        className={styles.richText}
         value={value}
         onChange={(nextValue) => {
           onUpdate({ [field.name]: nextValue })
@@ -126,10 +130,12 @@ export function StorySection({
 }: CompanyEditProps) {
   return (
     <FormRow
+      layout="stacked"
+      inset={false}
       title="About us"
       description="What you do, why it matters, and how change happens."
     >
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={styles.group}>
         {STORY_FIELDS.map((field) => (
           <StoryCoreDocumentField
             key={field.name}

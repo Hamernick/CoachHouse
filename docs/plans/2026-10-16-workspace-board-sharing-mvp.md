@@ -1113,3 +1113,11 @@ Made Identity an explicit single-column grid and removed the formation group’s
 ### October 21 — Address helper copy
 
 Removed the state-code/geocoding helper text beneath the state selector. Selection/storage behavior unchanged. Focused lint/whitespace pass; development branch only.
+
+
+### October 21 — Grouped profile edit forms
+
+- Restyled Organization edit sections to compact rounded groups with inset dividers, inline labels and flat controls. Identity/contact/address/presence/social fields share scoped CSS; multiline description/story fields stack labels over their editors. Public profile controls use matching group styling. Removed redundant section separators/address fieldset nesting; preserved all values, callbacks, status/EIN dependency, URL behavior and save guards. Social rows reuse existing brand icons and now associate labels/errors with input IDs. No new add/remove-contact behavior or schema changes.
+- Theme tokens support light/dark; narrow containers stack labels, coarse pointers retain44px controls, focus outlines remain inset. Browser verified grouped Identity and computed social row geometry. Screenshot `/tmp/workspace-grouped-profile-fields-20261021.png`. Lower-section scroll automation did not move the preview; their field mappings/rendering were checked through focused tests and DOM. No user values changed or saved.
+-28 focused tests pass across formation, stories, public settings, deep links and field mappings. Scoped lint/whitespace pass. Typecheck retains unrelated baseline errors with none in changed files (`/tmp/workspace-grouped-fields-types.log`). Test logs `/tmp/workspace-grouped-fields-tests.log` and `/tmp/workspace-grouped-field-mappings-tests.log`.
+- Graph refresh `/tmp/workspace-grouped-fields-graphify-20261021.log`; development branch only.
