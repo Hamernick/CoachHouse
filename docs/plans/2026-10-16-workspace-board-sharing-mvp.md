@@ -1126,3 +1126,8 @@ Removed the state-code/geocoding helper text beneath the state selector. Selecti
 ### October 21 — Unframed organization profile
 
 Removed the inner profile card border, background, rounding and clipping. Removed redundant 24px horizontal padding from profile tab content, preserving outer sidebar gutters and vertical spacing. Forms gain 50px of usable width (padding plus border). Controlled tabs, editing and saving unchanged. Focused ESLint/whitespace pass; authenticated preview visually verified without modifying data. Screenshot `/tmp/workspace-profile-unframed-20261021.png`. Graph refresh `/tmp/workspace-profile-unframed-graphify-20261021.log`; development branch only.
+
+
+### October 21 — Remove profile billing notice
+
+Removed the requested billing explanation card and unused info icon from PublicPageSettings. Map visibility controls and billing behavior unchanged. Updated the existing focused rendering regression for the intentional copy removal. Graph refresh log: `/tmp/workspace-profile-notice-graphify-20261021.log`. Development branch only.

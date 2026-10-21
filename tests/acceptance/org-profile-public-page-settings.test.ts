@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import { PublicPageSettings } from "@/components/organization/org-profile-card/tabs/company-tab/edit-sections/public-page-settings"
 
 describe("organization public page settings", () => {
-  it("clarifies that disabling the public map profile does not cancel billing", () => {
+  it("renders public map controls without the removed billing notice", () => {
     const markup = renderToStaticMarkup(
       React.createElement(PublicPageSettings, {
         company: {
@@ -24,10 +24,9 @@ describe("organization public page settings", () => {
       }),
     )
 
-    expect(markup).toContain(
-      "Turning this off only hides the public map profile.",
-    )
-    expect(markup).toContain("It does not cancel Stripe billing")
-    expect(markup).toContain('href="/billing"')
+    expect(markup).toContain('aria-label="Make organization visible on map"')
+    expect(markup).toContain("our map")
+    expect(markup).not.toContain("Turning this off only hides")
+    expect(markup).not.toContain('href="/billing"')
   })
 })
