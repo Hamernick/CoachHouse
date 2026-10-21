@@ -1015,3 +1015,10 @@ Matching rollback files are present. Reader/writer rollbacks disable their new f
 
 - Content windows now sit8px above the relocated bottom tabs, using shared measured composer/navigation offsets on desktop and touch layouts. Removed the obsolete top-position overrides. Presence motion opens upward from bottom tabs and still supports a top organization trigger; sizing, draft retention, maximize and reduced-motion behavior remain intact.
 - All62particle UI/motion tests, focused ESLint and whitespace pass. Live geometry verifies panel bottom805/tab top813 (8px gap). Existing user editor stayed open during inspection. Screenshot `/tmp/workspace-bottom-window-20261021.png`; user appearance review pending. Prior Graphify job16071 remains in flight and must finish before the next update; no duplicates. Development branch only.
+
+
+### October 21 — Organization profile left sidebar
+
+- Reused the retained drawer/editor and motion surface for organization-only sidebar presentation: 440px wide, 8px from the canvas left edge, below the profile trigger. Other destinations retain bottom-anchored centered windows. Existing close/maximize, draft guards, header actions, reduced motion and canvas interaction remain connected. Narrow/maximized layouts reserve the bottom dock footprint.
+- Authenticated preview verified the profile opens at canvas x+8/y+58, 440px wide with no horizontal overflow; screenshot `/tmp/workspace-organization-sidebar-20261021.png`. Dock/particle UI suites: 63 passed; focused lint and whitespace pass. Appearance review remains user-owned; visual baselines await approval. No saved content or database changes.
+- Prior Graphify job98580 completed. Current refresh: session49362, `/tmp/workspace-organization-sidebar-graphify-20261021.log`; reuse until completion. Development branch only, no merge/deployment.

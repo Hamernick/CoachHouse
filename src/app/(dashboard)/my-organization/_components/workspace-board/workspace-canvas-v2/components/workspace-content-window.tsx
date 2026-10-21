@@ -16,6 +16,7 @@ import styles from "./workspace-dock.module.css"
 
 export type WorkspaceContentWindowState = {
   geometry: WorkspaceContentWindowGeometry | null
+  presentation?: "window" | "sidebar"
   maximized: boolean
   getAnchorRect?: () => DOMRect | null
   onClose: () => void
@@ -75,6 +76,7 @@ function WorkspaceContentWindowSurface({
     geometry,
     collapsed,
     getAnchorRect: windowState?.getAnchorRect,
+    sidebar: windowState?.presentation === "sidebar",
   })
   const layoutEnabled = desktop && !reducedMotion && present && !collapsed
   return (
@@ -108,10 +110,12 @@ function WorkspaceContentWindowSurface({
         inert={collapsed ? true : undefined}
         hidden={desktop && !present}
         data-workspace-content-window={desktop ? "true" : undefined}
+        data-workspace-presentation={windowState?.presentation ?? "window"}
         className={cn(
           "flex min-h-0 flex-1 flex-col overflow-hidden",
           styles.contentSurface,
           desktop && styles.contentWindow,
+          desktop && windowState?.presentation === "sidebar" && styles.organizationSidebar,
           desktop && !present && "hidden"
         )}
         style={

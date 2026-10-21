@@ -99,6 +99,14 @@
   box-shadow: none;
 }
 
+.organizationSidebar {
+  top: 58px;
+  bottom: auto;
+  left: 8px;
+  right: auto;
+  margin-inline: 0;
+}
+
 @container workspace-dock (max-width: 700px) {
   .organizationTrigger { max-width: calc(100% - 180px); }
   .topNavigation {

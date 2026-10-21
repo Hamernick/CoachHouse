@@ -78,6 +78,7 @@ export function useWorkspaceContentWindow({
   }
   return {
     geometry,
+    presentation: tab === "organization" ? "sidebar" as const : "window" as const,
     getAnchorRect,
     maximized,
     onMinimize,

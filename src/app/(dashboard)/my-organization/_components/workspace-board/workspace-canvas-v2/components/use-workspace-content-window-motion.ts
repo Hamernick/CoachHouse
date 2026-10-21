@@ -25,9 +25,11 @@ export function useWorkspaceContentWindowMotion({
   geometry,
   collapsed,
   getAnchorRect,
+  sidebar = false,
 }: {
   geometry?: WorkspaceContentWindowGeometry | null
   collapsed: boolean
+  sidebar?: boolean
   getAnchorRect?: () => DOMRect | null
 }) {
   const controls = useAnimationControls()
@@ -124,9 +126,9 @@ export function useWorkspaceContentWindowMotion({
     }
     const closed = {
       opacity: 0,
-      scale: WORKSPACE_WINDOW_MOTION.closedScale,
-      x: origin.current.x,
-      y: origin.current.y,
+      scale: sidebar ? 1 : WORKSPACE_WINDOW_MOTION.closedScale,
+      x: sidebar ? -24 : origin.current.x,
+      y: sidebar ? 0 : origin.current.y,
     }
     if (!collapsed && wasHidden.current) driver.set(closed)
     settled.current = false
@@ -152,6 +154,7 @@ export function useWorkspaceContentWindowMotion({
     driver,
     exitFinished,
     getAnchorRect,
+    sidebar,
     reducedMotion,
     markActive,
     resetActivity,

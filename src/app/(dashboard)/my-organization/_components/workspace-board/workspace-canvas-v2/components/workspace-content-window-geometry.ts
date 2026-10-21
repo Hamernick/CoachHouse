@@ -22,6 +22,17 @@ export function resolveWorkspaceContentWindowGeometry({
     dockHeight < 0
   )
     return null
+  // Organization is a canvas-local sidebar below its profile trigger.
+  if (tab === "organization") {
+    // On narrower canvases the centered dock intersects the sidebar width.
+    const bottom = maximized || canvasWidth < 1424 ? dockHeight + 16 : 8
+    const height = canvasHeight - 58 - bottom
+    if (canvasWidth <= 16 || height <= 0) return null
+    return {
+      width: maximized ? canvasWidth - 16 : Math.min(440, canvasWidth - 16),
+      height,
+    }
+  }
   // Reserve the taller touch-navigation rows in workspace-dock.module.css.
   // Mouse layouts start 12px higher; both retain composer and edge clearance.
   const top = canvasWidth <= 700 ? 120 : 70
@@ -33,13 +44,11 @@ export function resolveWorkspaceContentWindowGeometry({
   const acceleratorStacked = availableWidth < 658
   const size = tab === "tools"
     ? { width: 560, height: 360 }
-    : tab === "organization"
-      ? { width: 768, height: 560 }
-      : tab === "documents"
-        ? { width: 760, height: 560 }
-        : tab === "accelerator"
-          ? { width: acceleratorStacked ? 520 : 1040, height: acceleratorStacked ? 1200 : 1000 }
-          : { width: 960, height: 560 }
+    : tab === "documents"
+      ? { width: 760, height: 560 }
+      : tab === "accelerator"
+        ? { width: acceleratorStacked ? 520 : 1040, height: acceleratorStacked ? 1200 : 1000 }
+        : { width: 960, height: 560 }
   return {
     width: maximized ? availableWidth : Math.min(size.width, availableWidth),
     height: maximized ? availableHeight : Math.min(size.height, availableHeight),
