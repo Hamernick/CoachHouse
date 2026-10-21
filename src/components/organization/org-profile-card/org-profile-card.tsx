@@ -107,7 +107,7 @@ export function OrgProfileEditor({
           tabs={ORG_PROFILE_TABS}
           tabsIdBase={tabsIdBase}
         />
-        <div className="border-border/60 bg-background w-full min-w-0 overflow-hidden rounded-[22px] border pb-6">
+        <div className="w-full min-w-0 pb-6">
           <OrgProfileHeader
             name={company.name || "Organization"}
             tagline={company.tagline || "—"}
@@ -125,7 +125,7 @@ export function OrgProfileEditor({
               value="company"
               id={`${tabsIdBase}-content-company`}
               aria-labelledby={`${tabsIdBase}-trigger-company`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <CompanyTab
                 company={company}
@@ -144,7 +144,7 @@ export function OrgProfileEditor({
               value="programs"
               id={`${tabsIdBase}-content-programs`}
               aria-labelledby={`${tabsIdBase}-trigger-programs`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <ProgramsTab
                 programs={programs as OrgProgram[]}
@@ -159,7 +159,7 @@ export function OrgProfileEditor({
               value="brand-kit"
               id={`${tabsIdBase}-content-brand-kit`}
               aria-labelledby={`${tabsIdBase}-trigger-brand-kit`}
-              className="p-6"
+              className="min-w-0 py-6"
             >
               <BrandKitTab
                 company={company}
@@ -175,7 +175,7 @@ export function OrgProfileEditor({
               value="people"
               id={`${tabsIdBase}-content-people`}
               aria-labelledby={`${tabsIdBase}-trigger-people`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <PeopleTab editMode={editMode} people={people} />
             </TabsContent>
@@ -184,7 +184,7 @@ export function OrgProfileEditor({
               value="supporters"
               id={`${tabsIdBase}-content-supporters`}
               aria-labelledby={`${tabsIdBase}-trigger-supporters`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <SupportersTab editMode={editMode} people={people} />
             </TabsContent>

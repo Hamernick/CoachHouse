@@ -1121,3 +1121,8 @@ Removed the state-code/geocoding helper text beneath the state selector. Selecti
 - Theme tokens support light/dark; narrow containers stack labels, coarse pointers retain44px controls, focus outlines remain inset. Browser verified grouped Identity and computed social row geometry. Screenshot `/tmp/workspace-grouped-profile-fields-20261021.png`. Lower-section scroll automation did not move the preview; their field mappings/rendering were checked through focused tests and DOM. No user values changed or saved.
 -28 focused tests pass across formation, stories, public settings, deep links and field mappings. Scoped lint/whitespace pass. Typecheck retains unrelated baseline errors with none in changed files (`/tmp/workspace-grouped-fields-types.log`). Test logs `/tmp/workspace-grouped-fields-tests.log` and `/tmp/workspace-grouped-field-mappings-tests.log`.
 - Graph refresh `/tmp/workspace-grouped-fields-graphify-20261021.log`; development branch only.
+
+
+### October 21 — Unframed organization profile
+
+Removed the inner profile card border, background, rounding and clipping. Removed redundant 24px horizontal padding from profile tab content, preserving outer sidebar gutters and vertical spacing. Forms gain 50px of usable width (padding plus border). Controlled tabs, editing and saving unchanged. Focused ESLint/whitespace pass; authenticated preview visually verified without modifying data. Screenshot `/tmp/workspace-profile-unframed-20261021.png`. Graph refresh `/tmp/workspace-profile-unframed-graphify-20261021.log`; development branch only.
