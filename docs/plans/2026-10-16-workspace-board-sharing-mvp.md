@@ -1225,3 +1225,8 @@ Set align-content:center on saved grouped ProfileField rows to override the shar
 - Extracted PublicUrlField with the existing debounced availability/reserved-slug checks and draft callbacks; placed it directly between name and tagline in Identity. Reused onboarding OrganizationStep's compound prefix/input styling and compact available check icon. Hidden accessible label, error association and public-page deep-link target preserved. Removed old URL group and unused singleGroup CSS; physical map notices remain separate.
 - 19 focused tests across URL/header, formation and edit fields pass; scoped lint/whitespace pass. Browser verified exactly one URL input, name569px/URL630px/tagline709px, 414px row and live Available status. Screenshot `/tmp/organization-url-under-name-20261021.png`. No user data changed/saved. No existing workspace visual baseline covers this field.
 - Previous graph refresh complete. New cohesive refresh log `/tmp/organization-url-identity-graphify-20261021.log`. Development branch only.
+
+
+### October 21 — Align and compact header Public row
+
+Public label/info icon now align left and switch right across the header width. Reduced edit-header top padding from24px to8px and effective row-to-logo gap from16px to8px. Saved header spacing and control behavior unchanged. Browser verified left label/icon, switch flush right,8px top padding and9px to image (including border); scoped lint passes. Screenshot `/tmp/organization-public-row-20261021.png`. Existing graph refresh6287 remains the cohesive maintenance job.

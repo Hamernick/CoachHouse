@@ -36,14 +36,7 @@ export function OrgProfileHeaderVisibility({
   }
 
   return (
-    <div className="flex items-center justify-center gap-2">
-      <Switch
-        id={switchId}
-        checked={isPublic}
-        disabled={disabled}
-        onCheckedChange={onCheckedChange}
-        aria-label="Make organization visible on map"
-      />
+    <div className="-mb-2 flex w-full items-center gap-1 text-left">
       <Label htmlFor={switchId} className="text-muted-foreground text-xs">Public</Label>
       <Popover open={open} onOpenChange={(nextOpen) => {
         clearCloseTimer()
@@ -87,6 +80,14 @@ export function OrgProfileHeaderVisibility({
           </Link>.
         </PopoverContent>
       </Popover>
+      <Switch
+        id={switchId}
+        checked={isPublic}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+        aria-label="Make organization visible on map"
+        className="ml-auto"
+      />
     </div>
   )
 }
