@@ -38,3 +38,7 @@ Final commands/results, PR and remaining gates are recorded below when complete.
 ### Delivery
 
 Open [PR345](https://github.com/Hamernick/CoachHouse/pull/345), implementation0ba71027. Normal Node22pre-push checks passed in7.71s, including all22changed TypeScript files; staged secret scan found no leaks. Manual Refresh clears local project-date overlays before fetching current server state. No migration or production write. Hosted quality/review, user UI acceptance, merge, deployment and live verification remain open. Local Graphify AST refresh completed; changed index documentation extracted by the repository-required semantic helper and merged separately.
+
+### Preview housekeeping
+
+User-authorized cleanup retired ports3000,3127,3132,3140; this timeline remains at3141. Protected3008and its cache were untouched.62inactive worktree `.next` directories (85.89GiB) removed after per-path process/ignore/symlink/tracked-file checks; source/dependencies preserved. Exact receipt and verification are in the October20runlog cleanup entry. Prior preview links3127/3140are now intentionally offline.
