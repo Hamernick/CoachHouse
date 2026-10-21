@@ -1192,3 +1192,8 @@ Organization name and Tagline now use placeholder labels and occupy the full gro
 ### October 21 — Remove duplicate saved identity rows
 
 Removed name and tagline from saved Identity because the header already displays them. Restored Identity's empty-section condition to description/formation status only. Edit inputs and header unchanged. Pre-push lint/whitespace checks cover this removal. Graph refresh remains the existing cohesive-slice job 85473; no duplicate launched.
+
+
+### October 21 — White formation summary in light mode
+
+Scoped the saved Identity formation summary to bg-white in light mode, preserving dark:bg-primary/5. Other uses of the shared summary unchanged. Updated the existing formation assertion; 11 focused tests pass. Existing graph refresh remains session 85473.

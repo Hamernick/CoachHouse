@@ -44,6 +44,7 @@ export function IdentityPreview({ company }: CompanyViewProps) {
             <OrganizationFormationStatusSummary
               formationStatus={formationStatus}
               ein={company.ein}
+              className="bg-white dark:bg-primary/5"
             />
           </ProfileField>
         ) : null}

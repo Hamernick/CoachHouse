@@ -49,7 +49,7 @@ describe("organization formation and EIN", () => {
     const html = renderToStaticMarkup(createElement(IdentityPreview, {
       company: { formationStatus: "approved", ein: "12-3456789" }, addressLines: [],
     }))
-    expect(html).toContain("border-primary/60 bg-primary/5")
+    expect(html).toContain("border-primary/60 bg-white dark:bg-primary/5")
     expect(html.indexOf("Approved")).toBeLessThan(html.indexOf("EIN: 12-3456789"))
     expect(html.indexOf("EIN: 12-3456789")).toBeLessThan(html.indexOf("We have a determination letter."))
     expect(html.match(/12-3456789/g)).toHaveLength(1)
