@@ -1,3 +1,4 @@
+import type { CoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { OrganizationNarrativeRevisions } from "@/lib/roadmap"
 
@@ -77,6 +78,7 @@ export type OrgProfile = {
   brandTypography?: BrandTypographyConfig | null
   publicSlug?: string | null
   isPublic?: boolean | null
+  coreDocumentPublication?: CoreDocumentPublication
   narrativeRevisions?: OrganizationNarrativeRevisions
 }
 

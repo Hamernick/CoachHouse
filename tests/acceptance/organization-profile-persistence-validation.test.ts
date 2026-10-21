@@ -9,6 +9,9 @@ import {
   organizationProfilePersistencePatchSchema,
   validateOrganizationProfilePersistencePatch,
 } from "@/lib/organization/profile-persistence-validation"
+import { resolveCoreDocumentPublication, prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
+import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
+import { resolvePublicOrganizationProfileNarratives, resolveOrganizationCoreDocuments, updateRoadmapSection } from "@/lib/roadmap"
 import { resolveOrganizationNarrativePlainText } from "@/lib/roadmap"
 
 import { resetTestMocks, revalidatePathMock, revalidateTagMock } from "./test-utils"
@@ -90,6 +93,64 @@ describe("organization profile persistence validation", () => {
     authMocks.requireServerSession.mockReset()
     authMocks.resolveActiveOrganization.mockReset()
     authMocks.canEditOrganization.mockReset()
+  })
+
+  it.each(Object.entries(ORGANIZATION_CORE_DOCUMENT_SECTION_IDS))(
+    "saves the %s switch through canonical document status without losing content",
+    async (key, id) => {
+      const initial = updateRoadmapSection({ unrelated: "preserved" }, id, { content: "<p>Story</p>", status: "complete" }).nextProfile
+      const state = resolveCoreDocumentPublication(initial)
+      const save = prepareOrganizationSave(initial)
+      const result = await updateOrganizationProfileAction({ coreDocumentPublication: {
+        [key]: { lastUpdated: state[key as keyof typeof state].lastUpdated, status: "in_progress" },
+      } })
+      expect(result).toMatchObject({ ok: true, coreDocumentPublication: { [key]: { status: "in_progress" } } })
+      const stored = save.getUpdatedProfile()
+      expect(stored).toMatchObject({ unrelated: "preserved" })
+      expect(stored).not.toHaveProperty("coreDocumentPublication")
+      expect(resolveOrganizationCoreDocuments(stored)[key as keyof typeof state]).toBe("<p>Story</p>")
+      const publicKey = key === "need" ? "needStatement" : key
+      const visible = resolvePublicOrganizationProfileNarratives(stored)
+      expect(visible[publicKey as keyof typeof visible]).toBe("")
+      const next = resolveCoreDocumentPublication(stored)
+      const republish = prepareOrganizationSave(stored!)
+      expect(await updateOrganizationProfileAction({ coreDocumentPublication: {
+        [key]: { lastUpdated: next[key as keyof typeof next].lastUpdated, status: "complete" },
+      } })).toMatchObject({ ok: true })
+      expect(resolvePublicOrganizationProfileNarratives(republish.getUpdatedProfile())[publicKey as keyof typeof visible]).toBe("<p>Story</p>")
+    }
+  )
+
+  it("rejects a stale switch without overwriting another editor's document", async () => {
+    const initial = updateRoadmapSection({}, "origin_story", { content: "Newer story", status: "complete" }).nextProfile
+    const save = prepareOrganizationSave(initial)
+    expect(await updateOrganizationProfileAction({ coreDocumentPublication: {
+      originStory: { lastUpdated: null, status: "in_progress" },
+    } })).toMatchObject({ conflict: "originStory" })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("rejects invalid publication states and revisions", () => {
+    for (const entry of [{ status: "public", lastUpdated: null }, { status: "complete" }, { status: "complete", lastUpdated: 42 }]) {
+      expect(validateOrganizationProfilePersistencePatch({ coreDocumentPublication: { mission: entry } })).toMatchObject({ success: false, field: "coreDocumentPublication" })
+    }
+  })
+
+  it("preserves newer document status and text when saving an unrelated profile edit", async () => {
+    const original = updateRoadmapSection({}, "mission_vision_values", { content: "<p>Original</p>", status: "complete" }).nextProfile
+    const company = { name: "Before", mission: "<p>Original</p>", coreDocumentPublication: resolveCoreDocumentPublication(original) }
+    const newer = updateRoadmapSection(original, "mission_vision_values", { content: "<p>Newer draft</p>", status: "in_progress" }).nextProfile
+    const save = prepareOrganizationSave(newer)
+    expect(await updateOrganizationProfileAction(prepareCoreDocumentProfileSave({ ...company, name: "After" }, company))).toMatchObject({ ok: true })
+    expect(resolveCoreDocumentPublication(save.getUpdatedProfile()).mission.status).toBe("in_progress")
+    expect(resolveOrganizationCoreDocuments(save.getUpdatedProfile()).mission).toBe("<p>Newer draft</p>")
+  })
+
+  it("requires organization edit permission for publication switches", async () => {
+    const save = prepareOrganizationSave({})
+    authMocks.canEditOrganization.mockReturnValue(false)
+    expect(await updateOrganizationProfileAction({ coreDocumentPublication: { mission: { status: "complete", lastUpdated: null } } })).toEqual({ error: "Forbidden" })
+    expect(save.getUpdatedProfile()).toBeNull()
   })
 
   it.each([true, false])("immediately expires public reads after saving visibility %s", async (isPublic) => {

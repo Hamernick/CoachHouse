@@ -2,6 +2,8 @@
 
 import styles from "../../../profile-edit-fields.module.css"
 
+import { Switch } from "@/components/ui/switch"
+import { resolveCoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import { RichTextEditor } from "@/components/rich-text-editor"
 
 import {
@@ -59,53 +61,32 @@ function StoryCoreDocumentField({
   onUpdate,
   onDirty,
 }: Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty"> & {
-  field: (typeof STORY_FIELDS)[number] | typeof THEORY_FIELD
+  field: (typeof STORY_FIELDS)[number] | typeof THEORY_FIELD | (typeof NARRATIVE_FIELDS)[number]
 }) {
   const value = company[field.name] ?? ""
   const error = errors[field.name] ?? ""
 
   return (
     <div className={styles.group}>
-      <ProfileField label={field.label} focusKey={field.name}>
-        <RichTextEditor
-          className={styles.richText}
-          toolbarClassName={styles.richTextToolbar}
-          countClassName="hidden"
-          value={value}
-          onChange={(nextValue) => {
-            onUpdate({ [field.name]: nextValue })
-            onDirty()
-          }}
-          ariaLabel={field.label}
-          placeholder={field.placeholder}
-          mode="compact"
-          minHeight={160}
-          maxHeight={360}
-          stableScrollbars
-          preserveImages
-          editorClassName="min-h-[160px]"
-        />
-        {error ? <p className="text-destructive text-xs">{error}</p> : null}
-      </ProfileField>
-    </div>
-  )
-}
-
-function StoryNarrativeField({
-  company,
-  errors,
-  field,
-  onUpdate,
-  onDirty,
-}: Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty"> & {
-  field: (typeof NARRATIVE_FIELDS)[number]
-}) {
-  const value = company[field.name] ?? ""
-  const error = errors[field.name] ?? ""
-
-  return (
-    <div className={styles.group}>
-      <ProfileField label={field.label} focusKey={field.name}>
+      <ProfileField
+        label={field.label}
+        focusKey={field.name}
+        labelAction={
+          <Switch
+            className="relative shadow-none after:absolute after:-inset-x-1.5 after:top-1/2 after:h-11 after:-translate-y-1/2"
+            aria-label={`Show ${field.label} on public profile`}
+            checked={company.coreDocumentPublication?.[field.name]?.status === "complete"}
+            onCheckedChange={(checked) => {
+              const publication = company.coreDocumentPublication ?? resolveCoreDocumentPublication({})
+              onUpdate({ coreDocumentPublication: {
+                ...publication,
+                [field.name]: { ...publication[field.name], status: checked ? "complete" : "in_progress" },
+              } })
+              onDirty()
+            }}
+          />
+        }
+      >
         <RichTextEditor
           className={styles.richText}
           toolbarClassName={styles.richTextToolbar}
@@ -155,7 +136,7 @@ export function StorySection({
           />
         ))}
         {NARRATIVE_FIELDS.map((field) => (
-          <StoryNarrativeField
+          <StoryCoreDocumentField
             key={field.name}
             company={company}
             errors={errors}

@@ -86,7 +86,8 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
   if (!sectionId || !PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS.has(sectionId)) {
     return
   }
-  revalidateTag("public-map-organizations", "max")
+  revalidateTag("public-map-organizations", { expire: 0 })
+  revalidateTag("public-profiles", { expire: 0 })
   revalidatePath("/map")
   revalidatePath("/resources")
 }

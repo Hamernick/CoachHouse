@@ -1,3 +1,4 @@
+import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
 import { z } from "zod"
 
 export const ORG_PROFILE_ROADMAP_TEXT_MAX_LENGTH = 20_000
@@ -74,6 +75,14 @@ export const organizationProfilePersistencePatchSchema = z
       .optional(),
     vision: organizationProfileNarrativeSchema("Vision").nullable().optional(),
     values: organizationProfileNarrativeSchema("Values").nullable().optional(),
+    coreDocumentPublication: z.object(Object.fromEntries(
+      Object.keys(ORGANIZATION_CORE_DOCUMENT_SECTION_IDS).map((key) => [key,
+        z.object({
+          status: z.enum(["not_started", "in_progress", "complete"]).optional(),
+          lastUpdated: z.string().nullable(),
+        }).strict().optional(),
+      ])
+    )).strict().optional(),
     narrativeRevisions: z
       .object({
         mission: narrativeRevisionSchema,

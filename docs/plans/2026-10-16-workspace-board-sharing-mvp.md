@@ -1245,3 +1245,12 @@ Moved horizontal header padding to the name/links and donation content so the Pu
 ### October 21 — Need Statement editor label
 
 Renamed the requested story editor label from Our need to Need Statement. Field identity, value and persistence unchanged. Whitespace/pre-push checks cover copy-only change.
+
+
+### October 21 — Per-section core document publication switches
+
+Added a shadcn switch opposite each of the six story-card titles. Switches participate in existing profile Save/Cancel and use canonical roadmap status: Public/complete on, Draft/in_progress and Not started off; switching off saves Draft. No independent stored visibility flag or migration. Both editors hydrate the same status, public reads exclude controlled drafts (including old published snapshots), and public caches expire after publication changes. Untouched legacy public content retains visibility and resolves to Public in both editors.
+
+Profile saves send only changed core-document content/status with section revisions; stale edits are rejected and unrelated saves preserve newer document edits. Existing organization authorization and optimistic database write checks remain in place. Browser checked six accessible switches, aligned title/switch centerlines, dirty Save state, and Cancel/discard without saving live data. No account or production changes. No existing workspace visual baseline covers this panel.
+
+Verification: 105 focused tests across nine suites passed (publication, server validation/auth/concurrency, profile story, roadmap status/actions, MVV, Drive sources, and homework); scoped lint, whitespace and threshold checks passed. Full TypeScript check remains blocked by existing workspace-management, workspace-particle-calendar and unrelated test fixture errors; no diagnostics in changed files. Log: `/tmp/core-publication-types-20261021.log`. Graphify refresh session94373, log `/tmp/core-document-publication-graphify-20261021.log`; expected existing parser warnings in three workspace tests. Development branch only; production release/acceptance remains separate.

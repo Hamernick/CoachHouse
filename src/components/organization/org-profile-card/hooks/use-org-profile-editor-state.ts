@@ -14,6 +14,8 @@ import {
 import { useRouter } from "next/navigation"
 import { getOrganizationLaunchReturnHref } from "@/lib/workspace/editor-navigation"
 
+import { prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
+
 import { updateOrganizationProfileAction } from "@/actions/organization"
 import { toast } from "@/lib/toast"
 import { normalizeCompanyProfile, ORG_PROFILE_TABS } from "../config"
@@ -303,7 +305,8 @@ export function useOrgProfileEditorState({
 
       let res: Awaited<ReturnType<typeof updateOrganizationProfileAction>>
       try {
-        res = await updateOrganizationProfileAction(company)
+        const payload = prepareCoreDocumentProfileSave(company, savedCompanyRef.current)
+        res = await updateOrganizationProfileAction(payload)
       } catch {
         toast.error(
           "The organization could not save. Your edits are still available; retry or refresh."
@@ -315,12 +318,12 @@ export function useOrgProfileEditorState({
         return
       }
       toast.success("Organization updated")
-      const narrativeRevisions = (
-        res as { narrativeRevisions?: OrgProfile["narrativeRevisions"] }
-      ).narrativeRevisions
-      const savedCompany = narrativeRevisions
-        ? { ...company, narrativeRevisions }
-        : company
+      const narrativeRevisions = "narrativeRevisions" in res ? res.narrativeRevisions : undefined
+      const savedCompany = {
+        ...company,
+        ...(narrativeRevisions ? { narrativeRevisions } : {}),
+        ...("coreDocumentPublication" in res ? { coreDocumentPublication: res.coreDocumentPublication } : {}),
+      }
       setSavedCompany(savedCompany)
       if (
         JSON.stringify(latestCompanyRef.current) !== JSON.stringify(company)

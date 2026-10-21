@@ -23,11 +23,13 @@ export function ProfileField({
   children,
   focusKey,
   hideLabel = false,
+  labelAction,
   className,
 }: {
   label: ReactNode
   children: ReactNode
   focusKey?: string
+  labelAction?: ReactNode
   hideLabel?: boolean
   className?: string
 }) {
@@ -50,12 +52,21 @@ export function ProfileField({
         className
       )}
     >
-      <Label
-        htmlFor={focusKey}
-        className={cn("text-muted-foreground text-xs", hideLabel && "sr-only")}
-      >
-        {label}
-      </Label>
+      {labelAction ? (
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <Label htmlFor={focusKey} className="text-muted-foreground text-[13px] font-normal">
+            {label}
+          </Label>
+          {labelAction}
+        </div>
+      ) : (
+        <Label
+          htmlFor={focusKey}
+          className={cn("text-muted-foreground text-xs", hideLabel && "sr-only")}
+        >
+          {label}
+        </Label>
+      )}
       {children}
     </div>
   )

@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
+import { resolveCoreDocumentPublication, prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
+import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
+
 import { describe, expect, it } from "vitest"
 
 import {
@@ -17,6 +20,39 @@ function readSource(relativePath: string) {
 }
 
 describe("Core Documents publication", () => {
+  it.each(Object.entries(ORGANIZATION_CORE_DOCUMENT_SECTION_IDS))(
+    "shares the same publication status for %s in both editors",
+    (key, id) => {
+      let profile: Record<string, unknown> = {}
+      for (const status of ["complete", "in_progress", "not_started", "complete"] as const) {
+        profile = updateRoadmapSection(profile, id, { content: "<p>Keep this content</p>", status }).nextProfile
+        const state = resolveCoreDocumentPublication(profile)
+        expect(state[key as keyof typeof state].status).toBe(status)
+        const publicKey = key === "need" ? "needStatement" : key
+        const visible = resolvePublicOrganizationProfileNarratives(profile)
+        expect(visible[publicKey as keyof typeof visible]).toBe(status === "complete" ? "<p>Keep this content</p>" : "")
+        expect(resolveOrganizationCoreDocuments(profile)[key as keyof typeof state]).toBe("<p>Keep this content</p>")
+      }
+    }
+  )
+
+  it("does not send unchanged content or publication settings during unrelated saves", () => {
+    const saved = { name: "Before", mission: "<p>Original</p>", coreDocumentPublication: resolveCoreDocumentPublication({ mission: "Original" }) }
+    const patch = prepareCoreDocumentProfileSave({ ...saved, name: "After" }, saved)
+    expect(patch).not.toHaveProperty("mission")
+    expect(patch.coreDocumentPublication).toEqual({})
+    const changed = prepareCoreDocumentProfileSave({ ...saved, coreDocumentPublication: {
+      ...saved.coreDocumentPublication,
+      mission: { ...saved.coreDocumentPublication.mission, status: "in_progress" },
+    } }, saved)
+    expect(changed.coreDocumentPublication).toEqual({ mission: { status: "in_progress", lastUpdated: null } })
+  })
+
+  it.each([null, "2026-10-21T12:00:00Z"])("never serves stale or legacy content for a controlled draft (%s)", (lastUpdated) => {
+    const profile = { need: "Old legacy copy", roadmap: { sections: [{ id: "need", content: "Draft", publishedContent: "Old public copy", status: "in_progress", publicProfileStatusControlled: true, lastUpdated }] } }
+    expect(resolvePublicOrganizationProfileNarratives(profile).needStatement).toBe("")
+  })
+
   it("keeps untouched legacy public-profile narratives visible", () => {
     expect(
       resolvePublicOrganizationProfileNarratives({
@@ -105,7 +141,7 @@ describe("Core Documents publication", () => {
     })
   })
 
-  it("preserves the previous public version while a replacement is drafted", () => {
+  it("hides the previous public version when switched to Draft", () => {
     const initiallyPublic = updateRoadmapSection({}, "need", {
       content: "<p>Current public need</p>",
       status: "complete",
@@ -115,11 +151,11 @@ describe("Core Documents publication", () => {
       status: "in_progress",
     })
 
-    expect(drafting.section.publishedContent).toBe("<p>Current public need</p>")
+    expect(drafting.section.publishedContent).toBeUndefined()
     expect(
       resolvePublicOrganizationProfileNarratives(drafting.nextProfile)
         .needStatement
-    ).toBe("<p>Current public need</p>")
+    ).toBe("")
 
     const republished = updateRoadmapSection(drafting.nextProfile, "need", {
       status: "complete",
@@ -131,7 +167,7 @@ describe("Core Documents publication", () => {
     ).toBe("<p>Private replacement</p>")
   })
 
-  it("keeps legacy public content stable when publication controls activate", () => {
+  it("hides legacy public content when explicitly switched to Draft", () => {
     const drafting = updateRoadmapSection(
       { need: "Legacy public need" },
       "need",
@@ -142,14 +178,14 @@ describe("Core Documents publication", () => {
     )
 
     expect(drafting.section.publicProfileStatusControlled).toBe(true)
-    expect(drafting.section.publishedContent).toBe("Legacy public need")
+    expect(drafting.section.publishedContent).toBeUndefined()
     expect(
       resolvePublicOrganizationProfileNarratives(drafting.nextProfile)
         .needStatement
-    ).toBe("<p>Legacy public need</p>")
+    ).toBe("")
   })
 
-  it("activates draft privacy when a legacy document is edited", () => {
+  it("preserves legacy public visibility on a content-only edit", () => {
     const edited = updateRoadmapSection(
       {
         roadmap: {
@@ -168,12 +204,11 @@ describe("Core Documents publication", () => {
     )
 
     expect(edited.section.publicProfileStatusControlled).toBe(true)
-    expect(edited.section.publishedContent).toBe(
-      "<p>Current public mission</p>"
-    )
+    expect(edited.section.publishedContent).toBeUndefined()
+    expect(edited.section.status).toBe("complete")
     expect(
       resolvePublicOrganizationProfileNarratives(edited.nextProfile).mission
-    ).toBe("<p>Current public mission</p>")
+    ).toBe("<p>Private replacement</p>")
   })
 
   it("routes all six profile and homework narratives through Core Documents", () => {
@@ -305,7 +340,7 @@ describe("Core Documents publication", () => {
     expect(editorShell).toContain(
       "status={controlsPublicProfile ? activeSection.status : status}"
     )
-    expect(action).toContain('revalidateTag("public-map-organizations", "max")')
+    expect(action).toContain('revalidateTag("public-map-organizations", { expire: 0 })')
     expect(action).toContain('revalidatePath("/map")')
     expect(publicMapQuery).toContain(
       "resolvePublicOrganizationProfileNarratives(profile)"

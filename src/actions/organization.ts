@@ -3,6 +3,8 @@
 
 import { revalidatePath, revalidateTag } from "next/cache"
 
+import { resolveCoreDocumentPublication, type CoreDocumentPublicationPatch } from "@/lib/roadmap/core-document-publication"
+import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS, updateRoadmapSection } from "@/lib/roadmap"
 import { requireServerSession } from "@/lib/auth"
 import { geocodeOrganizationLocation } from "@/lib/geocoding/geocode"
 import { buildOrganizationAddress } from "@/lib/geocoding/organization-address"
@@ -93,6 +95,7 @@ type OrgProfilePayload = {
   brandTypography?: BrandTypographyConfig | null
   publicSlug?: string | null
   isPublic?: boolean | null
+  coreDocumentPublication?: CoreDocumentPublicationPatch
   narrativeRevisions?: OrganizationNarrativeRevisions
 }
 
@@ -154,6 +157,13 @@ export async function updateOrganizationProfileAction(
     const ein = Object.hasOwn(payload, "ein") ? payload.ein : (orgRow?.ein ?? current.ein)
     const einError = getApprovedFormationEinError(formationStatus, ein)
     if (einError) return { error: einError, field: "ein" }
+  }
+  const currentPublication = resolveCoreDocumentPublication(current)
+  for (const key of Object.keys(currentPublication) as Array<keyof typeof currentPublication>) {
+    const expected = payload.coreDocumentPublication?.[key]
+    if (expected && expected.lastUpdated !== currentPublication[key].lastUpdated) {
+      return { error: "This core document was updated elsewhere. Reload before saving.", conflict: key }
+    }
   }
   const previousLogoUrl =
     typeof current["logoUrl"] === "string"
@@ -228,7 +238,7 @@ export async function updateOrganizationProfileAction(
   ])
 
   for (const [k, v] of Object.entries(payload)) {
-    if (k === "narrativeRevisions") continue
+    if (k === "narrativeRevisions" || k === "coreDocumentPublication") continue
     if (k === "mission" || k === "vision" || k === "values") continue
     if (k === "need" || k === "originStory" || k === "theoryOfChange") continue
     // Store EIN in both the column and profile for now (column is canonical)
@@ -269,6 +279,12 @@ export async function updateOrganizationProfileAction(
 
   next = updateOrganizationNarratives(next, narrativeUpdates).nextProfile
   next = updateOrganizationCoreDocuments(next, coreDocumentUpdates).nextProfile
+  for (const key of Object.keys(currentPublication) as Array<keyof typeof currentPublication>) {
+    const status = payload.coreDocumentPublication?.[key]?.status
+    if (status) {
+      next = updateRoadmapSection(next, ORGANIZATION_CORE_DOCUMENT_SECTION_IDS[key], { status }).nextProfile
+    }
+  }
 
   const addressMapping: Array<[keyof OrgProfilePayload, string]> = [
     ["addressStreet", "address_street"],
@@ -454,6 +470,7 @@ export async function updateOrganizationProfileAction(
   })
   return {
     ok: true,
+    coreDocumentPublication: resolveCoreDocumentPublication(next),
     narrativeRevisions: resolveOrganizationNarrativeRevisions(next),
     location: { latitude: locationLat, longitude: locationLng },
   }
@@ -482,6 +499,7 @@ function revalidateOrganizationViews({
   isPublic: boolean
 }) {
   revalidatePath("/workspace")
+  revalidatePath("/workspace/roadmap", "layout")
   revalidatePath("/my-organization")
   revalidatePath("/organization")
   revalidatePath("/map")

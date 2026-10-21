@@ -1,3 +1,4 @@
+import { resolveCoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import type { ModuleCardStatus } from "@/lib/accelerator/progress"
 import { normalizeOrganizationLocationFields } from "@/lib/location/organization-location"
 import {
@@ -243,6 +244,7 @@ export function buildInitialOrganizationProfile({
     brandTypography: readTypographyConfig(profile["brandTypography"]),
     publicSlug: String(organization?.public_slug ?? ""),
     isPublic: Boolean(organization?.is_public ?? false),
+    coreDocumentPublication: resolveCoreDocumentPublication(profile),
     narrativeRevisions: resolveOrganizationNarrativeRevisions(profile),
   }
 }
