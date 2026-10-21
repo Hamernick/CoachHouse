@@ -26,6 +26,11 @@ Rollback: the application removal can be reverted independently while the guard 
 
 -27focused loader/action/deletion cases pass, including repeated Projects/Tasks/missing-detail loads by an editor with writes forbidden. Real creation/deletion contracts remain covered. Acceptance manifest updated after removing two obsolete seed-helper tests.
 -Disposable PostgreSQL recurrence/task-planning suite passes with new preview guard checks: repeated authenticated inserts and conflicting upserts produce no rows, service writes also cannot seed, existing edited rows remain intact, real task creation/editRPCs and system inserts work, direct unauthorized writes stay denied, assignments/notifications andRLS remain intact. Initial test assumptions about direct task writes were corrected to use the existing service-onlyRPC contracts; no application rights were widened.
--Scoped ESLint, structure, import boundaries, acceptance manifest, staged secret scan and diff checks pass. Graphify refreshed once after the cohesive code slice:21,738nodes/62,366edges. Application TypeScript/push results follow in the final handoff.
+-Scoped ESLint, structure, import boundaries, acceptance manifest, staged secret scan and diff checks pass. Graphify refreshed once after the cohesive code slice:21,738nodes/62,366edges. Application TypeScript passes after generating the fresh checkout’s Next ambient/route types (the initial check lacked generated image declarations).
 
 Application changes await open-PR review/merge/deployment. The production cleanup and recreation prevention are already active; authenticated UI acceptance remains with Caleb.
+
+
+## PR handoff
+
+Open [PR344](https://github.com/Hamernick/CoachHouse/pull/344), implementation1112faf2 pushed; normalNode22prepush7.97s and staged secret scan pass. Production write returned2026-10-21T00:42:36Z; independent verification completed00:43:11Z. Source/application checks are complete; hosted quality/review, merge/web deployment and user appearance acceptance remain Caleb-owned. The cleanup/recreation guard is already live. No CI polling, merge or deployment performed.
