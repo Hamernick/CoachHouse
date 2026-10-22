@@ -2,6 +2,8 @@
 
 ## Particle MVP continuation — 2026-10-19
 
+**October22 AI planning checkpoint:** [Workspace AI, Accelerator graphs and credits](../plans/2026-10-22-workspace-ai-plan.md) and its rewritten prompt define the new planning-only slice on the existing development branch. Covers shadcn chatbot template reuse, metered document assistance, optimized curriculum graphs, objectives and resource matching. No runtime/production changes; implementation starts only on the user's next instruction. Brand Identity migration remains separately pending approval.
+
 **Development-branch preservation — October20:** Caleb authorized committing the accumulated redesign and pushing only `feat/particle-system-20261009`, with `origin/feat/particle-system-20261009` as upstream. This existing checkout remains the active development source for the newer chat. Preserve that branch; do not merge main or deploy as part of preservation. Verify live Git status/remote SHA rather than relying on historical local-only/dirty descriptions below. Continue committing and pushing usable development checkpoints.
 
 Latest user correction: MVP/W1–W8 checklist is paused context, not an execution assignment. Only follow new user requests. Current requested canvas inset is locally implemented/reviewable; see the user-directed canvas outer inset checkpoint in the existing MVP plan.
