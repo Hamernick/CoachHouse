@@ -1,6 +1,6 @@
 # Open Work Index
 
-Current user-selected lane: **Public prototype retirement**, open [PR351](https://github.com/Hamernick/CoachHouse/pull/351). [Canonical checkpoint](../plans/2026-10-22-retire-public-prototypes.md); production preview http://localhost:3144/login. Locally validated, including the authenticated return-path review correction (101 focused cases); hosted review and release remain pending.
+Latest completed lane: **Public prototype retirement and prelaunch follow-ups**. PR348–351 are merged and deployed; Caleb confirmed PR351 production deployment. [Authoritative completion receipt and original-list count](../plans/2026-10-22-retire-public-prototypes.md#completion-count-and-original-list-mapping). Five selected scoped tasks shipped; two full original requirements closed by this chat (O124-01, O132-01). Broader B115/B039 work remains partial; no all-chats total asserted.
 
 Previous coaching lane: **Coaching invitation titles and booking conflicts**. PR346 merged as bbfe4ae4; broker00010-p6r serves100% with availabilityVersion2, migration20261022010000 applied/verified. All8upcoming invitation titles updated and independently read back with guest notifications requested. [Canonical evidence and first-event verification limit](../plans/2026-10-21-coaching-calendar-repair.md#october22-existing-invitation-titles-completed). Follow-up fix/coaching-title-verification-20261022 handles completed Meet creation metadata in the operator. App/live conflict acceptance remains separate; other worktrees/SHIP40preserved.
 
@@ -32,19 +32,10 @@ Maintain one entry per lane or preservation hold. Replace obsolete next actions 
 | Formation verification — merged332; appearance open | Original05 B043 / LIVE-06: merged332implements Caleb's blue Verified (approved501(c)(3)status+EIN) and green Fundable rules, no third badge.89focused cases pass; no formation-class verification prerequisite. | Caleb reviews the existing public EIN and workspace readiness controls. Fundable qualification stays unchanged; no stored grants or production data changes. |
 | Map evidence/data holds — after the above sequence | Run05D renderer307 and Run05C renderer304 are merged. Run05E reviewed publication is complete: recorded4,573eligible listings/4,448marker locations;491source evidence holds remain. Separate four05Ccoordinate edits are unapplied. [Map evidence](../plans/2026-10-16-checklist-continuation.md#map-data-and-evidence). | Resume original05E plus private audit README/LATEST for current service/location evidence; do not replay published cohorts. Four05Ccorrections require fresh authoritative checks and exact data approval. Completed publication needs no renderer release. Recorded importer pagination and shared-URL assignment defects are merged in332with30tests;491holds/fourcoordinate edits remain unapplied. |
 
-## Public prototype retirement — October22
+## Completed October 22 — prelaunch, canvas and route cleanup
 
-Approved cleanup includes HomeCanvas, Home, Legacy Home, tester login and the old marketplace. `fix/retire-public-prototypes-20261022` follows merged PR350; canonical sign-in and redirects preserve auth/bookmark state. [Checkpoint](../plans/2026-10-22-retire-public-prototypes.md) owns source scope, tests, production preview 3144 and [PR351](https://github.com/Hamernick/CoachHouse/pull/351) receipt. No production/data/provider action; other lanes andSHIP40preserved.
+PR348–351 are merged and deployed, including the safe existing-session login redirect. PR351 production completion is confirmed by Caleb; PR350 was observed Ready. [Canonical receipt, source mapping and remaining scope](../plans/2026-10-22-retire-public-prototypes.md). Do not reopen these tasks from older open-PR notes. Shared SHIP40 and unrelated lanes are unchanged.
 
-## Social sharing Edge deployment repair — October22
-
-PR348/349merged; Caleb reports both deployments failed because root sharing-image code imported Node filesystem modules into Edge functions. Fresh `fix/social-image-edge-runtime-20261022` from `443a6576` replaces the generator with the identical static PNG. [PR350](https://github.com/Hamernick/CoachHouse/pull/350) merged as `f00bca9d`; deployment not verified here. Full production build/three Edge bundle audits/HTTP checks/31tests pass. [Canonical checkpoint](../plans/2026-10-22-social-image-edge-runtime.md) owns evidence and recovery. Other work/SHIP40preserved; hosted release remains Caleb-owned.
-
-## Public-map canvas typing — October22
-
-User-selected workstream01 defect repair, isolated `fix/map-canvas-types-20261022` from merged main `c63052e5`. [Canonical checkpoint](../plans/2026-10-22-map-canvas-types.md). Reproduced83canvas errors resolve to0 under the same app compilation scope;73focused tests pass before/after and60native-browser render cases are pixel-identical. [PR349](https://github.com/Hamernick/CoachHouse/pull/349) merged per Caleb, source `de0905d5` pushed/remote verified; normal pre-push and secret scan pass. Hosted gates/release remain Caleb-owned. Other lanes and SHIP40 preserved.
-
-Previous [PR348](https://github.com/Hamernick/CoachHouse/pull/348) is merged/closed per Caleb; preserve preview3142 and [prelaunch evidence](../plans/2026-10-22-prelaunch-polish.md). This lane repairs its recorded pre-existing canvas type errors.
 
 ## Other remaining acceptance and preservation work
 

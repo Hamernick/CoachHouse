@@ -1,5 +1,9 @@
 # Social image Edge deployment repair — October 22, 2026
 
+## Current release status — October 22
+
+Merged and deployed in the production release confirmed by Caleb at PR351 / `4ca66f42`. [Authoritative release receipt and source-list count](2026-10-22-retire-public-prototypes.md#current-status--october-22-merged-and-deployed). Earlier handoff and failed-deployment notes below are historical; do not reopen completed work.
+
 ## Scope and cause
 
 Caleb supplied failed Vercel logs for merged PR348 and the following PR349 deployment. The first identifies main `c63052e`: compilation, TypeScript and static generation pass, but deployment rejects the `accelerator` Edge function for `node:fs/promises` and `node:path`. Root `opengraph-image.tsx` imported those Node APIs to load the logo, and Next includes root image metadata in Edge page bundles. The prior local development and scoped tests did not exercise this production boundary. The map typing patch does not cause or repair this import defect.
