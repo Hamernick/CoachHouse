@@ -15,7 +15,7 @@ import { buildPublicProfileMetadata } from "@/lib/public-profile-metadata"
 import type { PublicProfileView } from "@/features/public-profiles"
 
 const defaultImage = {
-  url: "https://coachhouse.app/opengraph-image",
+  url: "https://coachhouse.app/opengraph-image.png",
   width: 1200,
   height: 630,
   alt: "Coach House — The platform for nonprofits",
@@ -33,7 +33,7 @@ function resolvePage(metadata: typeof defaults): ResolvedMetadata {
     }).then(metadata => process.stdout.write(JSON.stringify(metadata)))
   `], {
     input: JSON.stringify([
-      [defaults, { openGraph: [{ ...defaultImage, url: "/opengraph-image?generated" }] }],
+      [defaults, { openGraph: [{ ...defaultImage, url: "/opengraph-image.png?generated" }] }],
       [null, null],
       [metadata, null],
     ]),

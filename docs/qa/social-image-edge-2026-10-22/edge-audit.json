@@ -1,0 +1,17 @@
+[
+  {
+    "entry": "/(accelerator)/accelerator/page",
+    "files": 49,
+    "unsupported": []
+  },
+  {
+    "entry": "/(public)/home/page",
+    "files": 43,
+    "unsupported": []
+  },
+  {
+    "entry": "/(public)/legacy-home/page",
+    "files": 46,
+    "unsupported": []
+  }
+]
