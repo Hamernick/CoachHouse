@@ -30,9 +30,19 @@ do $$ declare expected timestamptz; receipt jsonb; original jsonb; begin
     raise exception 'Receipt failure did not abort save'; exception when raise_exception then if sqlerrm<>'fixture_receipt_failure' then raise; end if; end;
   execute 'drop trigger fixture_ai_receipt_failure on public.workspace_ai_document_applications';
   perform public.assert_ai((select profile=original from public.organizations where user_id='00000000-0000-0000-0000-000000000001'),'receipt failure rolls back document write');
-  receipt:=public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected,null,
-    '{"vision":"Reviewed draft","untouched":"Retained"}','{"id":"vision","lastUpdated":"version1","isPublic":false,"status":"in_progress"}',repeat('a',64));
+  begin perform public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected,'reviewed-source',
+    '{"vision":"Unreviewed"}','{"id":"vision","lastUpdated":"version1","isPublic":false,"status":"in_progress"}',repeat('a',64));
+    raise exception 'Unreviewed rebase allowed'; exception when raise_exception then if sqlerrm<>'Invalid AI document application' then raise; end if; end;
+  begin perform public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected,'reviewed-source',
+    '{"vision":"Wrong review"}','{"id":"vision","lastUpdated":"version1","isPublic":false,"status":"in_progress"}',repeat('a',64),'different-source');
+    raise exception 'Mismatched review allowed'; exception when raise_exception then if sqlerrm<>'Invalid AI document application' then raise; end if; end;
+  begin perform public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected-interval '1 second','reviewed-source',
+    '{"vision":"Racing review"}','{"id":"vision","lastUpdated":"version1","isPublic":false,"status":"in_progress"}',repeat('a',64),'reviewed-source');
+    raise exception 'Reviewed rebase ignored CAS'; exception when serialization_failure then null; end;
+  receipt:=public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected,'reviewed-source',
+    '{"vision":"Reviewed draft","untouched":"Retained"}','{"id":"vision","lastUpdated":"version1","isPublic":false,"status":"in_progress"}',repeat('a',64),'reviewed-source');
   perform public.assert_ai(not (receipt->>'replayed')::boolean,'first application writes once');
+  perform public.assert_ai(receipt->'application'->>'reviewed_revision'='reviewed-source','receipt records explicit review baseline');
   perform public.assert_ai((select profile->>'vision'='Reviewed draft' and profile->>'untouched'='Retained' from public.organizations where user_id='00000000-0000-0000-0000-000000000001'),'profile and receipt persist together');
   receipt:=public.commit_workspace_ai_document('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',expected,null,
     '{"vision":"Replay must not overwrite"}','{"id":"vision","lastUpdated":"version2","isPublic":false,"status":"in_progress"}',repeat('b',64));

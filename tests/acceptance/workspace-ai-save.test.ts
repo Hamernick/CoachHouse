@@ -62,4 +62,31 @@ describe("AI saves through the canonical roadmap action",()=>{
     expect(await saveRoadmapSectionAction(input)).toEqual({error:"Forbidden"})
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
+  it("requires explicit review of the exact newer revision before rebasing an unapplied AI draft",async()=>{
+    const revision="2026-10-22T12:00:00.000Z"
+    profile={roadmap:{sections:[{id:"vision",content:"<p>Newer collaborator version</p>",lastUpdated:revision}]}}
+    expect(await saveRoadmapSectionAction({...input,expectedLastUpdated:revision})).toMatchObject({code:"conflict",currentSection:{lastUpdated:revision}})
+    expect(await saveRoadmapSectionAction({...input,expectedLastUpdated:revision,reviewedAiRevision:baseline})).toMatchObject({code:"conflict"})
+    const result=await saveRoadmapSectionAction({...input,expectedLastUpdated:revision,reviewedAiRevision:revision})
+    expect(result).toMatchObject({section:{content:input.content,isPublic:false,status:"in_progress"},aiApplication:{run_id:id(3)}})
+    expect(mocks.rpc.mock.calls.find(call=>call[0]==="commit_workspace_ai_document")?.[1].p_reviewed_revision).toBe(revision)
+  })
+  it("rejects another intervening edit after review",async()=>{
+    profile={roadmap:{sections:[{id:"vision",content:"<p>Even newer</p>",lastUpdated:"2099-01-01T00:00:00Z"}]}}
+    const reviewed="2026-10-22T12:00:00.000Z"
+    expect(await saveRoadmapSectionAction({...input,expectedLastUpdated:reviewed,reviewedAiRevision:reviewed})).toMatchObject({code:"conflict",currentSection:{content:"<p>Even newer</p>"}})
+    expect(mocks.rpc.mock.calls.filter(call=>call[0]==="commit_workspace_ai_document")).toHaveLength(0)
+  })
+  it("returns the current section after an atomic organization CAS race",async()=>{
+    const original=mocks.rpc.getMockImplementation()!
+    mocks.rpc.mockImplementation(async(name,args)=>{
+      if (name === "commit_workspace_ai_document") {
+        profile={roadmap:{sections:[{id:"vision",content:"<p>Racing collaborator</p>",lastUpdated:"2099-01-01T00:00:00Z"}]}}
+        return {data:null,error:{code:"40001"}}
+      }
+      return original(name,args)
+    })
+    expect(await saveRoadmapSectionAction(input)).toMatchObject({code:"conflict",currentSection:{content:"<p>Racing collaborator</p>"}})
+  })
+
 })

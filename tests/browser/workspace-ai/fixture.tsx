@@ -1,3 +1,4 @@
+import { RoadmapConflictReview } from "../../../src/components/roadmap/roadmap-editor/components/roadmap-conflict-review"
 import { StrictMode, useEffect, useMemo, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { Toaster } from "sonner"
@@ -30,6 +31,7 @@ function DocumentEditor({ section, sourceScope }: { section: RoadmapSection; sou
           onClick={editor.handleSave}>{editor.savingId ? "Saving document…" : "Save document"}</Button>
       </div>
     </div>
+    {editor.activeDraft ? <RoadmapConflictReview conflict={editor.saveConflict} draft={editor.activeDraft} onResolve={editor.resolveSaveConflict} /> : null}
     <RichTextEditor value={editor.activeDraft?.content ?? ""}
       onChange={content => editor.handleDraftChange({ content })} ariaLabel="Mission document"
       basicToolbar hideLinkPreviews minHeight={220} className="rounded-2xl border border-border/60" />

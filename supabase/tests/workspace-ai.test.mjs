@@ -73,6 +73,7 @@ try {
   runSql("supabase/migrations/20261022121000_workspace_ai_read_and_recovery.sql")
   runSql("supabase/migrations/20261022123000_workspace_ai_durable_recovery.sql")
   runSql("supabase/migrations/20261022130000_workspace_ai_document_application.sql")
+  runSql("supabase/migrations/20261022140000_workspace_ai_document_review.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`

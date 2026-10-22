@@ -100,6 +100,7 @@ export function useRoadmapEditorState({
   const [isPending, startTransition] = useTransition()
   useRoadmapWindowStatus(sections, drafts, savingId)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [loadedStorageKey,setLoadedStorageKey]=useState<string | null>(null)
   const sectionsRef = useRef(sections)
   const draftsRef = useRef(drafts)
   const activeIdRef = useRef(activeId)
@@ -122,6 +123,7 @@ export function useRoadmapEditorState({
   useEffect(() => {
     setSections(initialSections)
     setDrafts(() => loadRoadmapDraftsFromStorage(storageKey, initialSections))
+    setLoadedStorageKey(storageKey)
     setActiveId((prev) => prev || initialSections[0]?.id || "")
   }, [initialSections, storageKey])
 
@@ -197,7 +199,7 @@ export function useRoadmapEditorState({
     return () => observer.disconnect()
   }, [headerTitle, headerSubtitle])
 
-  const saveSectionById = useRoadmapSave({sourceScope,canEdit,isPending,savingId,sectionsRef,draftsRef,
+  const {saveSectionById,conflicts,resolveConflict} = useRoadmapSave({sourceScope,canEdit,isPending,savingId,sectionsRef,draftsRef,
     setSections,setDrafts,setSavingId,setAiApplication,startTransition})
 
   const flushActiveSectionDraft = useCallback(() => {
@@ -250,6 +252,7 @@ export function useRoadmapEditorState({
   }, [activeDraft, activeSection])
 
   useRoadmapEditorDraftPersistence({
+    hydrated:loadedStorageKey === storageKey,
     sections,
     drafts,
     setDrafts,
@@ -274,8 +277,8 @@ export function useRoadmapEditorState({
   )
 
   const applyAiProposal = useCallback((proposal: AiDocumentProposal) => applyRoadmapAiProposal({
-    proposal,sourceScope,canEdit,busy: Boolean(savingId) || isPending,sectionsRef,draftsRef,activeIdRef,setDrafts,
-  }),[canEdit,isPending,savingId,sourceScope])
+    proposal,sourceScope,canEdit,busy: Boolean(savingId) || isPending || Boolean(conflicts[activeIdRef.current]),sectionsRef,draftsRef,activeIdRef,setDrafts,
+  }),[canEdit,isPending,savingId,sourceScope,conflicts])
 
   const handleSave = useCallback(() => {
     if (!canEdit) return
@@ -284,7 +287,7 @@ export function useRoadmapEditorState({
   }, [activeSection, canEdit, saveSectionById])
 
   useRoadmapEditorAutosave({
-    canEdit,
+    canEdit:canEdit && loadedStorageKey === storageKey,
     activeSection,
     activeDraft,
     isDirty,
@@ -315,7 +318,7 @@ export function useRoadmapEditorState({
     headerIconSize,
     headerTextRef,
     status,
-    statusSelectDisabled: isPending || Boolean(savingId) || Boolean(activeDraft?.requiresPrivateSave),
+    statusSelectDisabled: Boolean(conflicts[activeId]) || isPending || Boolean(savingId) || Boolean(activeDraft?.requiresPrivateSave),
     isHydrated,
     isCalendarSection,
     isBudgetSection,
@@ -329,5 +332,7 @@ export function useRoadmapEditorState({
     handleStatusChange,
     applyAiProposal,
     aiApplication,
+    saveConflict:conflicts[activeId] ?? null,
+    resolveSaveConflict:(choice)=>resolveConflict(activeId,choice),
   }
 }

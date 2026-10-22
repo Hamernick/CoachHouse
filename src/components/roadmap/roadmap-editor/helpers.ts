@@ -170,7 +170,7 @@ export function loadRoadmapDraftsFromStorage(
 
     sections.forEach((section) => {
       const draft = parsed.drafts[section.id]
-      if (!draft || (serverIsNewer && !draft.aiRunId)) return
+      if (!draft || (serverIsNewer && !draft.aiRunId && draft.lastUpdated === undefined)) return
       if (!draft.aiRunId && hasSavedSectionValue(section) && isBlankStoredDraft(draft)) return
       next[section.id] = {
         ...next[section.id],
@@ -184,6 +184,8 @@ export function loadRoadmapDraftsFromStorage(
         imageUrl: draft.imageUrl ?? next[section.id].imageUrl,
         requiresPrivateSave: draft.requiresPrivateSave === true,
         aiRunId: typeof draft.aiRunId === "string" ? draft.aiRunId : undefined,
+        reviewedAiRevision:typeof draft.reviewedAiRevision === "string" ? draft.reviewedAiRevision : undefined,
+        lastUpdated:typeof draft.lastUpdated === "string" || draft.lastUpdated === null ? draft.lastUpdated : next[section.id].lastUpdated,
       }
     })
   } catch {
@@ -221,6 +223,8 @@ export function persistRoadmapDraftsToStorage({
       imageUrl: draft.imageUrl,
       requiresPrivateSave: draft.requiresPrivateSave === true,
       aiRunId:draft.aiRunId,
+      reviewedAiRevision:draft.reviewedAiRevision,
+      lastUpdated:draft.lastUpdated,
     }
   })
 

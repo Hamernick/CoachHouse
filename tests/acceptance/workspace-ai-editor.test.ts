@@ -81,4 +81,16 @@ describe("AI draft application into the existing core editor",() => {
     expect(restored.content).toBe(input.proposal.content)
     expect(restored.aiRunId).toBe(input.proposal.id)
   })
+  it("preserves an ordinary unsaved draft and its original baseline across a newer server revision",()=>{
+    const values=new Map<string,string>()
+    vi.stubGlobal("window",{localStorage:{getItem:(key:string)=>values.get(key) ?? null,setItem:(key:string,value:string)=>values.set(key,value)}})
+    const input=fixture()
+    const draft=input.draftsRef.current[input.activeIdRef.current]
+    draft.content="<p>My unsaved work</p>"
+    persistRoadmapDraftsToStorage({storageKey:"test-org",sections:input.sectionsRef.current,drafts:input.draftsRef.current})
+    const restored=loadRoadmapDraftsFromStorage("test-org",[{...input.sectionsRef.current[0],content:"<p>Collaborator</p>",lastUpdated:"2099-01-01T00:00:00Z"}])[draft.id]
+    expect(restored.content).toBe(draft.content)
+    expect(restored.lastUpdated).toBe(draft.lastUpdated)
+  })
+
 })

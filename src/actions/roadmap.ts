@@ -40,6 +40,7 @@ import { createNotification } from "@/lib/notifications"
 
 type SaveInput = {
   aiRunId?: string
+  reviewedAiRevision?: string
   driveFileId?: string | null
   targetOrganizationId?: string
   expectedOrganizationId?: string
@@ -64,6 +65,7 @@ type SaveResult =
       error: string
       code?: "conflict" | "scope_changed"
       currentSection?: RoadmapSection
+      aiApplication?: AiDocumentApplication
     }
 type DeleteResult = { ok: true } | { error: string }
 
@@ -97,6 +99,7 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
 
 export async function saveRoadmapSectionAction({
   aiRunId,
+  reviewedAiRevision,
   driveFileId,
   targetOrganizationId,
   expectedOrganizationId,
@@ -186,11 +189,13 @@ export async function saveRoadmapSectionAction({
       !expectedOrganizationId || !expectedUserId || expectedLastUpdated === undefined)
       return { error: "Reopen this core document before saving an AI draft." }
     try {
-      const receipt = await readAiDocumentApplication({ id:aiRunId,organizationId:orgId,userId:user.id,
-        sectionId:previousSection.id,revision:expectedLastUpdated })
+      const checked = await readAiDocumentApplication({ id:aiRunId,organizationId:orgId,userId:user.id,
+        sectionId:previousSection.id,revision:expectedLastUpdated,reviewedRevision:reviewedAiRevision })
+      const receipt=checked.application
+      if (checked.stale) return { error:"The document changed. Review your draft before saving.",code:"conflict",currentSection:previousSection }
       if (receipt) {
         if (receipt.saved_revision !== previousSection.lastUpdated)
-          return { error:"This proposal was already saved, and the document has changed since. Review your current draft.",code:"conflict",currentSection:previousSection }
+          return { error:"This proposal was already saved, and the document has changed since. Review your current draft.",code:"conflict",currentSection:previousSection,aiApplication:receipt }
         return { section:previousSection,aiApplication:receipt,aiReplay:true }
       }
     } catch (cause) { return { error:cause instanceof Error ? cause.message : "Unable to verify the AI proposal." } }
@@ -281,10 +286,17 @@ export async function saveRoadmapSectionAction({
     userId: orgId,
   })
 
+  const readSaveConflict = async (): Promise<SaveResult> => {
+    const {data} = await supabase.from("organizations").select("profile").eq("user_id",orgId).maybeSingle<{profile:Json | null}>()
+    return {error:"This document changed. Review the saved version before saving.",code:"conflict",
+      currentSection:data ? resolveRoadmapSections((data.profile ?? {}) as Record<string,unknown>).find(entry=>entry.id===normalizedSectionId) : undefined}
+  }
+
   if (orgRow && aiRunId) {
     try {
       const committed = await commitAiDocumentApplication({ id:aiRunId,organizationId:orgId,userId:user.id,
-        organizationRevision:orgRow.updated_at,sourceRevision:expectedLastUpdated ?? null,profile:nextProfile,section })
+        organizationRevision:orgRow.updated_at,sourceRevision:expectedLastUpdated ?? null,reviewedRevision:reviewedAiRevision,profile:nextProfile,section })
+      if ("conflict" in committed) return readSaveConflict()
       if (committed.replayed) return { error:"This proposal was already saved. Retry to recover the saved version." }
       aiApplication=committed.application
     } catch (cause) { return { error:cause instanceof Error ? cause.message : "Unable to save this AI draft." } }
@@ -299,10 +311,7 @@ export async function saveRoadmapSectionAction({
 
     if (updateError) return { error: updateError.message }
     if (!updatedRow) {
-      return {
-        error: "This organization was updated elsewhere. Reload before saving.",
-        code: "conflict",
-      }
+      return readSaveConflict()
     }
   } else {
     const { error: insertError } = await supabase.from("organizations").insert({

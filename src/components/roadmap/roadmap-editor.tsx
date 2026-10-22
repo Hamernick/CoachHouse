@@ -1,5 +1,6 @@
 "use client"
 
+import { RoadmapConflictReview } from "./roadmap-editor/components/roadmap-conflict-review"
 import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
 import { useMemo } from "react"
 import { useAiDocumentBridge } from "@/features/workspace-ai/client"
@@ -38,6 +39,8 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     handleStatusChange,
     applyAiProposal,
     aiApplication,
+    saveConflict,
+    resolveSaveConflict,
   } = useRoadmapEditorState(props)
 
   const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
@@ -54,6 +57,8 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
   const SectionIcon = ROADMAP_SECTION_ICONS[activeSection.id] ?? SparklesIcon
 
   return (
+    <>
+    <RoadmapConflictReview key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`} conflict={saveConflict} draft={activeDraft} onResolve={resolveSaveConflict} />
     <RoadmapEditorShell
       key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`}
       sourceScope={props.sourceScope}
@@ -85,5 +90,6 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
       savingId={savingId}
       sectionIcon={SectionIcon}
     />
+    </>
   )
 }

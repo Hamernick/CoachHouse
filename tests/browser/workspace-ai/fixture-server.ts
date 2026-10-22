@@ -78,7 +78,10 @@ export function fixtureServer(): Plugin {
           if (run?.application?.saved_revision === section.lastUpdated) {
             json({ section, aiApplication: run.application, aiReplay: true }); return
           }
-          if (body.expectedLastUpdated !== section.lastUpdated) { json({ error: "This document changed. Reopen it before saving." }); return }
+          if (run?.application || body.expectedLastUpdated !== section.lastUpdated ||
+            (run && run.target.revision !== body.expectedLastUpdated && body.reviewedAiRevision !== body.expectedLastUpdated)) {
+            json({error:"This document changed. Review before saving.",code:"conflict",currentSection:section,aiApplication:run?.application}); return
+          }
           saves++
           section = { ...section, content: body.content, lastUpdated: new Date().toISOString(),
             status: body.status ?? section.status, isPublic: body.isPublic ?? (body.status === "complete" ? true : section.isPublic) }
