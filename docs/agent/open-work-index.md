@@ -30,6 +30,10 @@ Maintain one entry per lane or preservation hold. Replace obsolete next actions 
 | Formation verification — merged332; appearance open | Original05 B043 / LIVE-06: merged332implements Caleb's blue Verified (approved501(c)(3)status+EIN) and green Fundable rules, no third badge.89focused cases pass; no formation-class verification prerequisite. | Caleb reviews the existing public EIN and workspace readiness controls. Fundable qualification stays unchanged; no stored grants or production data changes. |
 | Map evidence/data holds — after the above sequence | Run05D renderer307 and Run05C renderer304 are merged. Run05E reviewed publication is complete: recorded4,573eligible listings/4,448marker locations;491source evidence holds remain. Separate four05Ccoordinate edits are unapplied. [Map evidence](../plans/2026-10-16-checklist-continuation.md#map-data-and-evidence). | Resume original05E plus private audit README/LATEST for current service/location evidence; do not replay published cohorts. Four05Ccorrections require fresh authoritative checks and exact data approval. Completed publication needs no renderer release. Recorded importer pagination and shared-URL assignment defects are merged in332with30tests;491holds/fourcoordinate edits remain unapplied. |
 
+## Prelaunch polish — October22
+
+User-selected B115 five-item patch, isolated `fix/prelaunch-polish-20261022`, base40a1cf92, preview3142. [Authoritative checkpoint](../plans/2026-10-22-prelaunch-polish.md). Metadata/social image,404,Build sitemap and preview noindex implemented;31focused cases and HTTP/browser checks pass.83type diagnostics remain in unchanged map code. [PR348](https://github.com/Hamernick/CoachHouse/pull/348) open; source `cc4475a3` pushed and verified. Hosted gates/release/user acceptance remain separate. Other lanes and SHIP40 preserved.
+
 ## Other remaining acceptance and preservation work
 
 These entries do not change the selected sequence or authorize cleanup/replay.
