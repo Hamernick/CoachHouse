@@ -1,9 +1,11 @@
+import { buildCoachingCalendarTitle } from "./calendar-title"
 import { renderMinimalEmail } from "@/lib/email/minimal-template"
 import { COACHING_JOINT_COACH_LABEL, COACHING_PATH, getValidGoogleCalendarEventUrl, getValidGoogleMeetUrl } from "./index"
 
 export type CoachingBookingEmailInput = {
   audience: "attendee" | "coach"
   siteUrl: string
+  attendeeName?: string | null
   attendeeEmail: string | null
   startsAt: string
   endsAt: string
@@ -33,7 +35,7 @@ export function buildCoachingBookingEmail(input: CoachingBookingEmailInput) {
       title: coach ? "New coaching meeting booked" : "Your coaching meeting is confirmed",
       intro: coach ? "A Coach House coaching meeting has been confirmed." : "Your Coach House coaching meeting has been booked.",
       details: [
-        { label: "Meeting", value: `Coach House meeting with ${COACHING_JOINT_COACH_LABEL}` },
+        { label: "Meeting", value: buildCoachingCalendarTitle(input.attendeeName) },
         { label: "When", value: when },
         { label: "Timezone", value: input.timezone },
         ...(coach && input.attendeeEmail ? [{ label: "Attendee", value: input.attendeeEmail }] : []),

@@ -21,6 +21,7 @@ type PaidCheckoutBooking = {
   google_meet_url: string | null
   calendar_pending_action?: string | null
   stripe_checkout_session_id: string | null
+  cancel_reason?: string | null
 }
 
 function shouldTryNextStripeRuntime(error: unknown) {
@@ -78,7 +79,7 @@ export async function confirmPaidCoachingCheckoutReturn({
   const { data: booking, error } = await admin
     .from("coaching_bookings")
     .select(
-      "id, org_id, user_id, coach_id, status, price_tier, starts_at, ends_at, timezone, attendee_notes, google_event_id, google_meet_url, stripe_checkout_session_id, calendar_pending_action"
+      "id, org_id, user_id, coach_id, status, price_tier, starts_at, ends_at, timezone, attendee_notes, google_event_id, google_meet_url, stripe_checkout_session_id, calendar_pending_action, cancel_reason"
     )
     .eq("id", bookingId)
     .maybeSingle<PaidCheckoutBooking>()
@@ -92,6 +93,9 @@ export async function confirmPaidCoachingCheckoutReturn({
   if (!booking || booking.user_id !== userId || booking.org_id !== orgId) {
     return { confirmed: false }
   }
+  if (booking.status === "canceled") {
+    return { confirmed: false, slotUnavailable: booking.cancel_reason?.startsWith("That slot was just taken") === true }
+  }
   if (
     booking.status === "confirmed" &&
     booking.google_event_id &&
@@ -100,12 +104,12 @@ export async function confirmPaidCoachingCheckoutReturn({
     return { confirmed: true }
   }
   if (booking.status === "confirmed") {
-    await confirmCoachingBooking({
+    const current = await confirmCoachingBooking({
       admin,
       booking,
       attendeeEmail: userEmail,
     })
-    return { confirmed: true }
+    return { confirmed: current.status === "confirmed", slotUnavailable: current.status === "canceled" && current.cancel_reason?.startsWith("That slot was just taken") === true }
   }
   if (
     booking.status !== "pending_payment" ||
@@ -129,7 +133,7 @@ export async function confirmPaidCoachingCheckoutReturn({
     booking,
     checkoutId: session.id,
   })
-  await confirmCoachingBooking({
+  const confirmed = await confirmCoachingBooking({
     admin,
     booking,
     attendeeEmail: userEmail,
@@ -142,5 +146,5 @@ export async function confirmPaidCoachingCheckoutReturn({
       typeof session.customer === "string" ? session.customer : null,
   })
 
-  return { confirmed: true }
+  return { confirmed: confirmed.status === "confirmed", slotUnavailable: confirmed.status === "canceled" && confirmed.cancel_reason?.startsWith("That slot was just taken") === true }
 }

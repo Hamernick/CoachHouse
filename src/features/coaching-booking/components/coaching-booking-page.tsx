@@ -52,12 +52,13 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
   }
 
   if (checkout === "success" && bookingId) {
-    await confirmPaidCoachingCheckoutReturn({
+    const result = await confirmPaidCoachingCheckoutReturn({
       bookingId,
       userId: context.user.id,
       orgId: context.activeOrg.orgId,
       userEmail: context.user.email ?? null,
     })
+    if (result.slotUnavailable) redirect(`${COACHING_PATH}?checkout=unavailable`)
     redirect(COACHING_PATH)
   }
 
@@ -68,5 +69,7 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
     userEmail: context.user.email ?? null,
   })
 
-  return <CoachingBookingFlow initialData={data} />
+  return <CoachingBookingFlow initialData={data} bookingNotice={checkout === "unavailable"
+    ? "That time is no longer available. Your purchased coaching credit is ready to use. Choose another time."
+    : undefined} />
 }

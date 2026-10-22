@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { env } from "@/lib/env"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase"
 import {
+  buildCoachingCalendarTitle,
+  loadCoachingClientName,
+  getGoogleCoachingParticipantEmail,
   COACHING_JOINT_COACH_IDS,
   COACHING_JOINT_COACH_LABEL,
   COACHING_JOINT_PRIMARY_COACH_ID,
@@ -12,8 +15,7 @@ import {
   formatIcsDate,
   getValidGoogleCalendarEventUrl,
   getValidGoogleMeetUrl,
-} from "../../../../../../features/coaching-booking/lib"
-import { getGoogleCoachingParticipantEmail } from "../../../../../../features/coaching-booking/server/google-calendar"
+} from "@/features/coaching-booking"
 
 const CANONICAL_SITE_URL = "https://coachhouse.app"
 const ICS_LINE_LIMIT = 75
@@ -168,10 +170,11 @@ export async function GET(
 
   const { data: booking, error } = await supabase
     .from("coaching_bookings")
-    .select("id, starts_at, ends_at, timezone, attendee_notes, google_meet_url, google_event_html_link")
+    .select("id, user_id, starts_at, ends_at, timezone, attendee_notes, google_meet_url, google_event_html_link")
     .eq("id", id)
     .maybeSingle<{
       id: string
+      user_id: string
       starts_at: string
       ends_at: string
       timezone: string
@@ -187,6 +190,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  const clientName = await loadCoachingClientName({ supabase, userId: booking.user_id })
   const googleMeetUrl = getValidGoogleMeetUrl(booking.google_meet_url)
   const googleEventHtmlLink = getValidGoogleCalendarEventUrl(booking.google_event_html_link)
   const siteUrl = resolveSiteUrl(request)
@@ -217,7 +221,7 @@ export async function GET(
     `DTSTAMP:${formatIcsDate(new Date().toISOString())}`,
     `DTSTART:${formatIcsDate(booking.starts_at)}`,
     `DTEND:${formatIcsDate(booking.ends_at)}`,
-    `SUMMARY:${escapeIcsText(`Coach House Advisory Meeting with ${COACHING_JOINT_COACH_LABEL}`)}`,
+    `SUMMARY:${escapeIcsText(buildCoachingCalendarTitle(clientName))}`,
     `DESCRIPTION:${escapeIcsText(description)}`,
     "STATUS:CONFIRMED",
     "TRANSP:OPAQUE",
