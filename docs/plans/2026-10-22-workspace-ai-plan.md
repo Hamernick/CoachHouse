@@ -356,4 +356,8 @@ These do not block completing this plan. They block committing corresponding com
 
 Completed source inspection and three independent research reviews: architecture/template fit; credit economics; optimized curriculum/objectives/opportunity UX. All six user images inspected. Current rates and API/template docs checked on 2026-10-22. No runtime tests or live-account audits are claimed for this documentation-only task.
 
+Planning checkpoint `4ac8e089687259bd314365603a056a7606798e8d` was pushed to the existing development branch; independent `git ls-remote` matched and the checkout was clean. `git diff --check`, relative-link/fence checks, curriculum totals, six cost/credit examples and mixed-month arithmetic passed. Normal Node22 pre-push supply-chain, file-size and lint stages passed. Later independent follow-up review calls hit model capacity; the initial three research reports completed and the final synthesis was reviewed locally.
+
+Graphify AST refresh completed; the changed canonical index received a separate semantic refresh. Final local graph:22,712 nodes/66,723 edges. Three pre-existing test parser warnings and unrelated historical semantic backlog remain; neither is an application-test result. Recovery log: `/tmp/workspace-ai-plan-graphify-20261022.log`. Plans/runlogs are excluded by the existing Graphify scope. No runtime source changed.
+
 Next implementation step: phase 0, then a metered selected-core-document vertical slice. Preserve the existing branch and current application; do not resume unrelated old checklists, apply the pending Brand Identity migration or clear user boards from this planning handoff.
