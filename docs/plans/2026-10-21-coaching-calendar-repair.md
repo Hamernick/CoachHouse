@@ -136,8 +136,8 @@ data-preserving trigger is a separate reviewed schema action, never auto-retry.
   conflict notice as role=status; zero browser errors. All nonlocal network was
   blocked and the disposable server stopped. This proves browser interaction,
   not production auth/provider/SSR or appearance acceptance. No baseline changed.
-- Ignored artifacts: `.tmp/coaching-browser/result.json`, `recovered.png`. Rerun:
-  `python3 /Users/calebhamernick/.codex/skills/webapp-testing/scripts/with_server.py --server "python3 -m http.server 43187 --bind 127.0.0.1 --directory .tmp/coaching-browser" --port 43187 -- node .tmp/coaching-browser/check.mjs` with Node22 PATH.
+- Private artifacts: `~/.local/share/coach-house/coaching-calendar/2026-10-21/browser/result.json`, `recovered.png`. Generated bundles were moved outside the repository after the first push hook correctly rejected vendor code inside the temporary browser harness. Rerun:
+  `python3 /Users/calebhamernick/.codex/skills/webapp-testing/scripts/with_server.py --server "python3 -m http.server 43187 --bind 127.0.0.1 --directory /Users/calebhamernick/.local/share/coach-house/coaching-calendar/2026-10-21/browser" --port 43187 -- node .tmp/coaching-browser/check.mjs` with Node22 PATH.
 - Application types final pass: `pnpm exec tsc --noEmit -p .tmp/coaching-tsconfig.json`.
 - Hosted checks/review/merge/deploy, production migration, real incident cause,
   exact provider title-preview eligibility and recipient acceptance remain open.
