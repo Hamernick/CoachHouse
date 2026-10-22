@@ -1,3 +1,4 @@
+import type { ObjectivePlans, PlanDraft } from "./plan-types"
 import type { WorkspaceObjectiveCollection, WorkspaceObjectiveStatus } from "./types"
 
 export type ObjectiveScope = { userId: string; organizationId: string }
@@ -10,7 +11,7 @@ export type ObjectiveStep = {
   order: number
   updatedAt: string
 }
-export type ObjectiveIslandData = WorkspaceObjectiveCollection & { steps: ObjectiveStep[] }
+export type ObjectiveIslandData = WorkspaceObjectiveCollection & { steps: ObjectiveStep[]; planning?: ObjectivePlans }
 export type ObjectiveEdit = {
   id: string
   expectedUpdatedAt: string
@@ -20,6 +21,7 @@ export type ObjectiveEdit = {
 }
 export type ObjectiveMutationResult = { ok: true } | { ok: false; error: string }
 export type ObjectiveIslandTransport = {
+  savePlan?: (scope: ObjectiveScope, input: PlanDraft) => Promise<ObjectiveMutationResult>
   load: (scope: ObjectiveScope) => Promise<{ ok: true; data: ObjectiveIslandData } | { ok: false; error: string }>
   create: (scope: ObjectiveScope, title: string) => Promise<ObjectiveMutationResult>
   edit: (scope: ObjectiveScope, input: ObjectiveEdit) => Promise<ObjectiveMutationResult>

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,8 +11,8 @@ import type { WorkspaceObjectiveRecord } from "../types"
 import { ObjectiveEditForm } from "./objective-edit-form"
 
 const labels = { todo: "To do", in_progress: "In progress", blocked: "Blocked", done: "Done", archived: "Archived" }
-export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdit, onStep }: {
-  objective: WorkspaceObjectiveRecord; steps: ObjectiveStep[]; editable: boolean; pending: boolean
+export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdit, onStep, children, checklistSteps = steps }: {
+  children?: ReactNode; checklistSteps?: ObjectiveStep[]; objective: WorkspaceObjectiveRecord; steps: ObjectiveStep[]; editable: boolean; pending: boolean
   onEdit: (input: ObjectiveEdit) => Promise<boolean>; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -41,15 +41,16 @@ export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdi
         <CardContent className="px-3 pb-3">
           {editing ? <ObjectiveEditForm objective={objective} pending={pending} onSave={onEdit} onCancel={() => setEditing(false)} /> : <div className="flex flex-col gap-3">
             {objective.description && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{objective.description}</p>}
-            {steps.length > 0 && <ul className="flex flex-col gap-1" aria-label={`${objective.title} steps`}>
-              {steps.map(step => <li key={step.id} className="flex min-h-11 items-center gap-3">
+            {checklistSteps.length > 0 && <ul className="flex flex-col gap-1" aria-label={`${objective.title} steps`}>
+              {checklistSteps.map(step => <li key={step.id} className="flex min-h-11 items-center gap-3">
                 <Checkbox id={`objective-step-${step.id}`} checked={step.status === "done"} disabled={!canEdit || !step.editable || pending}
                   onCheckedChange={checked => onStep(step, checked === true)} className="rounded-full" />
                 <label htmlFor={`objective-step-${step.id}`} className={cn("min-w-0 flex-1 break-words text-sm", step.status === "done" && "text-muted-foreground line-through")}>{step.title}</label>
                 {step.status === "blocked" && <span className="text-xs text-muted-foreground">Blocked</span>}
               </li>)}
             </ul>}
-            {!steps.length && !objective.description && <p className="text-sm text-muted-foreground">No steps yet.</p>}
+            {children}
+            {!children && !steps.length && !objective.description && <p className="text-sm text-muted-foreground">No steps yet.</p>}
           </div>}
         </CardContent>
       </CollapsibleContent>

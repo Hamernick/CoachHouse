@@ -6,3 +6,8 @@ export async function loadObjectiveIslandAction(scope: ObjectiveScope) { return 
 export async function createIslandObjectiveAction(scope: ObjectiveScope, title: string) { return createIslandObjective(scope, title) }
 export async function editIslandObjectiveAction(scope: ObjectiveScope, input: ObjectiveEdit) { return editIslandObjective(scope, input) }
 export async function setIslandStepAction(scope: ObjectiveScope, input: Parameters<typeof setIslandStep>[1]) { return setIslandStep(scope, input) }
+
+export async function saveObjectivePlanAction(scope: ObjectiveScope, input: import("./plan-types").PlanDraft) {
+  const { saveObjectivePlan } = await import("./server/plan-actions")
+  return saveObjectivePlan(scope, input)
+}

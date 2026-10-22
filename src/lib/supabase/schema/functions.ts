@@ -3,7 +3,9 @@ import type { ResourceMapPublicItemsView } from "./views"
 import type { AiCreditFunctions } from "./ai-functions"
 import type { DocumentFunctions } from "./document-functions"
 
-export type PublicFunctions = AiCreditFunctions & DocumentFunctions & {
+import type { ObjectivePlanFunctions } from "./objective-plan-functions"
+
+export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectivePlanFunctions & {
   save_organization_profile_with_brand_kit: {
     Args: { p_org_id: string; p_expected_updated_at: string; p_expected_brand_revision: string | null; p_identity: Json; p_profile_patch: Json }
     Returns: boolean

@@ -33,7 +33,7 @@ import { WorkspaceCanvasEdgeContextMenu } from "./workspace-canvas-edge-context-
 import { WorkspaceCanvasSurfaceV2ViewportControls } from "./workspace-canvas-surface-v2-viewport-controls-panel"
 import { useWorkspaceCanvasSurfaceGestureGuards } from "./workspace-canvas-surface-v2-gesture-effect"
 import { WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
-import { ObjectivesIsland } from "@/features/workspace-objectives/client"
+import { ObjectivesIsland, ObjectivePlanNode, ObjectivePlanViewport, useObjectiveCanvas, guardObjectivePlanInteractions } from "@/features/workspace-objectives/client"
 import { WorkspaceParticleDock } from "./workspace-particle-dock"
 import { WorkspaceCanvasSurfaceV2MobileShortcutOverlay } from "./workspace-canvas-surface-v2-mobile-shortcut-overlay"
 import {
@@ -181,7 +181,7 @@ export function WorkspaceCanvasSurfaceV2View({
     useState<HTMLDivElement | null>(null)
   const [flowFrameContainer, setFlowFrameContainer] =
     useState<HTMLDivElement | null>(null)
-  const nodeTypes = useMemo(() => WORKSPACE_CANVAS_V2_NODE_TYPES, [])
+  const nodeTypes = useMemo(() => ({ ...WORKSPACE_CANVAS_V2_NODE_TYPES, objectivePlanStep: ObjectivePlanNode }), [])
   const edgeTypes = useMemo(() => WORKSPACE_CANVAS_V2_EDGE_TYPES, [])
   const selectionGestures = resolveWorkspaceCanvasSelection(tutorialActive)
   const nodesSelectable = !tutorialActive
@@ -263,13 +263,14 @@ export function WorkspaceCanvasSurfaceV2View({
     }),
     [handleAddWorkspacePeopleToCanvas, onRemoveWorkspacePersonFromCanvas]
   )
+  const objectiveCanvas = useObjectiveCanvas(`${workspaceDataDrawerViewerId}:${uiPreferencesScope.orgId}`, !tutorialActive && !presentationMode, [...library.nodes, ...particles.nodes])
   const flowNodes = useMemo(
-    () => [...library.nodes, ...particles.nodes],
-    [library.nodes, particles.nodes]
+    () => [...library.nodes, ...particles.nodes, ...objectiveCanvas.nodes],
+    [library.nodes, particles.nodes, objectiveCanvas.nodes]
   )
   const flowEdges = useMemo(
-    () => [...edges, ...particles.edges],
-    [edges, particles.edges]
+    () => [...edges, ...particles.edges, ...objectiveCanvas.edges],
+    [edges, particles.edges, objectiveCanvas.edges]
   )
   const flowHandlers = useWorkspaceParticleFlowHandlers(particles, {
     onNodesChange,
@@ -328,7 +329,7 @@ export function WorkspaceCanvasSurfaceV2View({
           />
           {!tutorialActive && !presentationMode && (
             <div className="pointer-events-none absolute inset-x-2 top-14 z-10 flex justify-center md:top-2">
-              <ObjectivesIsland scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} canEdit={workspaceDataDrawerCanEdit} />
+              <ObjectivesIsland scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} canEdit={workspaceDataDrawerCanEdit} onProjection={objectiveCanvas.onProjection} />
             </div>
           )}
           <WorkspaceCanvasSurfaceV2ViewportControls
@@ -366,10 +367,9 @@ export function WorkspaceCanvasSurfaceV2View({
                     panActivationKeyCode="Space"
                     selectNodesOnDrag={selectNodesOnDrag}
                     {...flowHandlers}
-                    onNodeDoubleClick={onNodeDoubleClick}
                     onMoveStart={onMoveStart}
                     onMoveEnd={onMoveEnd}
-                    {...particleConnections.handlers}
+                    {...guardObjectivePlanInteractions({ ...flowHandlers, onNodeDoubleClick, ...particleConnections.handlers })}
                     onDragOver={handleCanvasDragOver}
                     onDrop={handleCanvasDrop}
                     onPaste={library.paste}
@@ -397,6 +397,7 @@ export function WorkspaceCanvasSurfaceV2View({
                           : "rgba(148, 163, 184, 0.64)"
                       }
                     />
+                    <ObjectivePlanViewport focusKey={objectiveCanvas.focusKey} />
                     <ParticleGeometryObserver
                       onChange={particles.layout.geometryChanged}
                     />
@@ -407,6 +408,7 @@ export function WorkspaceCanvasSurfaceV2View({
           </div>
           {nodes.length === 0 &&
           particles.nodes.length === 0 &&
+          objectiveCanvas.nodes.length === 0 &&
           emptyStateMessage ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center px-6">
               <p className="border-border/70 bg-card/80 text-muted-foreground rounded-md border px-3 py-2 text-center text-xs shadow-sm backdrop-blur-sm">

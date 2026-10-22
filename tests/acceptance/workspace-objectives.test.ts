@@ -42,14 +42,14 @@ describe("workspace-objectives feature contract", () => {
 // remains separately responsible for row access in the authenticated runtime.
 import { beforeEach, vi } from "vitest"
 import { editIslandObjective, setIslandStep } from "@/features/workspace-objectives/server/island-actions"
-const islandMocks = vi.hoisted(() => ({ client: vi.fn(), active: vi.fn(), from: vi.fn() }))
+const islandMocks = vi.hoisted(() => ({ client: vi.fn(), active: vi.fn(), from: vi.fn(), rpc: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: islandMocks.client }))
 vi.mock("@/lib/organization/active-org", () => ({ resolveActiveOrganization: islandMocks.active, canEditOrganization: (role: string) => ["owner", "admin", "staff"].includes(role) }))
 const scope = { userId: "00000000-0000-4000-8000-000000000001", organizationId: "00000000-0000-4000-8000-000000000002" }
 const edit = { id: "00000000-0000-4000-8000-000000000003", title: "Launch a volunteer program", description: "Recruit and train volunteers", status: "in_progress" as const, expectedUpdatedAt: "2026-10-22T12:00:00Z" }
 beforeEach(() => {
   vi.clearAllMocks()
-  islandMocks.client.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: scope.userId } }, error: null }) }, from: islandMocks.from })
+  islandMocks.client.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: scope.userId } }, error: null }) }, from: islandMocks.from, rpc: islandMocks.rpc })
   islandMocks.active.mockResolvedValue({ orgId: scope.organizationId, role: "owner" })
 })
 function query(data: unknown) {
@@ -83,5 +83,46 @@ describe("objective island authorization and concurrent edits", () => {
     islandMocks.from.mockReturnValueOnce(parent).mockReturnValueOnce(step)
     expect(await setIslandStep(scope, input)).toEqual({ ok: true })
     expect(step.eq.mock.calls).toEqual([["org_id", scope.organizationId], ["objective_id", edit.id], ["id", edit.id], ["step_type", "custom"], ["updated_at", edit.expectedUpdatedAt]])
+  })
+})
+
+import { connectedPlans } from "@/features/workspace-objectives/lib/plan-projection"
+import { guardObjectivePlanInteractions } from "@/features/workspace-objectives/lib/plan-flow-guards"
+import type { ObjectivePlan } from "@/features/workspace-objectives/plan-types"
+describe("objective plan canvas ownership", () => {
+  it("expands only explicit links and shared canonical steps, retaining unrelated trees separately", () => {
+    const plan = (id: string, stepIds: string[], target?: string): ObjectivePlan => ({ id, title: "Same title", objectiveId: "objective", revision: 1, stepIds, edges: target ? [{ id: `edge-${id}`, source: stepIds[0], target, label: "Approved" }] : [] })
+    const plans = [plan("a", ["a-step"], "b-step"), plan("b", ["b-step", "shared"]), plan("c", ["shared"]), plan("d", ["unrelated"])]
+    expect(connectedPlans(plans, ["a"]).map(item => item.id)).toEqual(["a", "b", "c"])
+    expect(connectedPlans(plans, ["c"]).map(item => item.id)).toEqual(["a", "b", "c"])
+    expect(connectedPlans(plans, ["d"]).map(item => item.id)).toEqual(["d"])
+    expect(connectedPlans(plans, []).length).toBe(0)
+  })
+  it("never sends projected plan mutations to the manual canvas store", () => {
+    const changes = vi.fn(); const connect = vi.fn()
+    const handlers = guardObjectivePlanInteractions({ onNodesChange: changes, onConnect: connect })
+    handlers.onNodesChange!([{ type: "remove", id: "objective-plan:step" }, { type: "remove", id: "manual-card" }])
+    expect(changes).toHaveBeenCalledWith([{ type: "remove", id: "manual-card" }])
+    handlers.onConnect!({ source: "objective-plan:step", target: "manual-card", sourceHandle: null, targetHandle: null })
+    expect(connect).not.toHaveBeenCalled()
+    expect(handlers.isValidConnection!({ source: "manual-card", target: "objective-plan:step", sourceHandle: null, targetHandle: null })).toBe(false)
+  })
+})
+
+
+import { saveObjectivePlan } from "@/features/workspace-objectives/server/plan-actions"
+describe("plan server action", () => {
+  const draft = { id: edit.id, objectiveId: edit.id, revision: 0, title: "Launch plan", steps: [], edges: [] }
+  it("rejects scope and read-only access before calling the database", async () => {
+    expect((await saveObjectivePlan({ ...scope, userId: edit.id }, draft)).ok).toBe(false)
+    islandMocks.active.mockResolvedValue({ orgId: scope.organizationId, role: "board" })
+    expect((await saveObjectivePlan(scope, draft)).ok).toBe(false)
+    expect(islandMocks.rpc).not.toHaveBeenCalled()
+  })
+  it("uses the authenticated organization and returns conflicts without claiming a save", async () => {
+    islandMocks.rpc.mockResolvedValueOnce({ error: { code: "40001" } }).mockResolvedValueOnce({ error: null })
+    expect(await saveObjectivePlan(scope, draft)).toMatchObject({ ok: false, error: expect.stringContaining("changed") })
+    expect(await saveObjectivePlan(scope, draft)).toEqual({ ok: true })
+    expect(islandMocks.rpc).toHaveBeenCalledWith("save_workspace_objective_plan", { p_org_id: scope.organizationId, p_draft: draft })
   })
 })

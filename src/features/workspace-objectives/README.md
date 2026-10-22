@@ -35,9 +35,25 @@ successful create. Collapsing retains drafts; changing actor/organization resets
 the entire boundary. Existing tables and RLS are reused; no new migration is
 needed for this initial UI slice.
 
-This is the first visible increment of the objective-led plan in
-`docs/plans/2026-10-22-workspace-ai-plan.md`, section5. Multiple editable plans,
-branch-aware progress, related-plan links and synchronized canvas trees remain
-unfinished. Do not treat the existing linear source steps as completed plan/tree
-support. Browser fixture `/?objectives` is fictional and simulates persistence;
-server-action tests separately cover scope and optimistic-write constraints.
+## Editable plans and canvas projection
+
+Custom objectives can own multiple plans. Each plan stores membership and labeled
+connections over canonical objective-step IDs; sharing a step never copies its title
+or completion. The list and existing React Flow canvas use the same action/data
+owner. Explicit connections and shared steps expand related plans; unrelated plans
+remain separate trees. ELK lays out projected plan nodes beside existing cards;
+projection IDs never enter manual canvas mutation handlers. The tree opens the same
+plan editor and completion action as the checklist.
+
+`20261022150000_workspace_objective_plans.sql` is additive and pending approval for
+shared environments. Authenticated RPCs enforce organization membership/write roles,
+custom source ownership, plan revisions and canonical step baselines in one
+transaction. Direct table access is denied. Invalid connections, cycles or stale
+steps roll back the whole edit. Missing RPCs leave the existing island usable.
+
+The plan editor keeps its opening revision, confirms discard and preserves input on
+conflict. It edits names, steps/status and labeled connections; branch choice/evaluation
+and reviewed AI plan proposals remain unfinished. Browser fixture `/?objectives` is
+fictional and simulates persistence. The disposable PostgreSQL suite verifies real
+permissions, transactions and concurrent writers independently; authenticated
+Next/Supabase browser integration remains a release gate.

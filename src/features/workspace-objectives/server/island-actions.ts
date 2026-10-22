@@ -1,39 +1,28 @@
 import "server-only"
+import { readObjectivePlans } from "./plan-actions"
 import { z } from "zod"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
+import { objectiveActor } from "./objective-actor"
 import { createWorkspaceObjectiveAction, loadWorkspaceObjectivesAction } from "./actions"
 import type { ObjectiveEdit, ObjectiveIslandData, ObjectiveMutationResult, ObjectiveScope } from "../island-types"
 
-const scopeSchema = z.object({ userId: z.uuid(), organizationId: z.uuid() })
 const titleSchema = z.string().trim().min(1, "Enter an objective.").max(240)
 const editSchema = z.object({
   id: z.uuid(), expectedUpdatedAt: z.string().min(1), title: titleSchema,
   description: z.string().max(10000), status: z.enum(["todo", "in_progress", "blocked", "done", "archived"]),
 })
-async function actor(scope: ObjectiveScope, write = false) {
-  scopeSchema.parse(scope)
-  const client = await createSupabaseServerClient()
-  const { data: { user }, error } = await client.auth.getUser()
-  if (error || !user || user.id !== scope.userId) throw new Error("Sign in again to use Objectives.")
-  const active = await resolveActiveOrganization(client, user.id)
-  if (active.orgId !== scope.organizationId) throw new Error("Reopen Objectives in your current organization.")
-  if (write && !canEditOrganization(active.role)) throw new Error("You do not have permission to edit objectives.")
-  return { client, userId: user.id, orgId: active.orgId }
-}
 function failure(error: unknown): { ok: false; error: string } {
   return { ok: false, error: error instanceof z.ZodError ? "Check the objective details." : error instanceof Error ? error.message : "Unable to update objectives." }
 }
 export async function loadObjectiveIsland(scope: ObjectiveScope): Promise<{ ok: true; data: ObjectiveIslandData } | { ok: false; error: string }> {
   try {
-    const { client, orgId } = await actor(scope)
+    const { client, orgId } = await objectiveActor(scope)
     const collection = await loadWorkspaceObjectivesAction()
     if (!collection.ok) return collection
     if (collection.data.loadedFrom !== "normalized") return { ok: true, data: { ...collection.data, steps: [] } }
     const { data, error } = await client.from("organization_workspace_objective_steps")
       .select("id, objective_id, title, status, step_type, step_order, updated_at").eq("org_id", orgId).order("step_order")
     if (error) throw new Error("Unable to load objective steps.")
-    return { ok: true, data: { ...collection.data, steps: (data ?? []).map(row => ({
+    return { ok: true, data: { ...collection.data, planning: await readObjectivePlans(client, orgId), steps: (data ?? []).map(row => ({
       editable: row.step_type === "custom", id: row.id, objectiveId: row.objective_id, title: row.title,
       status: row.status as ObjectiveIslandData["steps"][number]["status"], order: row.step_order, updatedAt: row.updated_at,
     })) } }
@@ -41,14 +30,14 @@ export async function loadObjectiveIsland(scope: ObjectiveScope): Promise<{ ok: 
 }
 export async function createIslandObjective(scope: ObjectiveScope, title: string): Promise<ObjectiveMutationResult> {
   try {
-    await actor(scope, true)
+    await objectiveActor(scope, true)
     const result = await createWorkspaceObjectiveAction({ title: titleSchema.parse(title) })
     return result.ok ? { ok: true } : result
   } catch (error) { return failure(error) }
 }
 export async function editIslandObjective(scope: ObjectiveScope, input: ObjectiveEdit): Promise<ObjectiveMutationResult> {
   try {
-    const { client, orgId, userId } = await actor(scope, true)
+    const { client, orgId, userId } = await objectiveActor(scope, true)
     const value = editSchema.parse(input)
     const { data, error } = await client.from("organization_workspace_objectives").update({
       title: value.title, description: value.description.trim() || null, status: value.status,
@@ -62,7 +51,7 @@ export async function editIslandObjective(scope: ObjectiveScope, input: Objectiv
 }
 export async function setIslandStep(scope: ObjectiveScope, input: { id: string; objectiveId: string; expectedUpdatedAt: string; done: boolean }): Promise<ObjectiveMutationResult> {
   try {
-    const { client, orgId } = await actor(scope, true)
+    const { client, orgId } = await objectiveActor(scope, true)
     const value = z.object({ id: z.uuid(), objectiveId: z.uuid(), expectedUpdatedAt: z.string().min(1), done: z.boolean() }).parse(input)
     const parent = await client.from("organization_workspace_objectives").select("kind")
       .eq("org_id", orgId).eq("id", value.objectiveId).maybeSingle()
