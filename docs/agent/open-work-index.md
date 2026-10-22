@@ -32,7 +32,7 @@ Maintain one entry per lane or preservation hold. Replace obsolete next actions 
 
 ## Public-map canvas typing — October22
 
-User-selected workstream01 defect repair, isolated `fix/map-canvas-types-20261022` from merged main `c63052e5`. [Canonical checkpoint](../plans/2026-10-22-map-canvas-types.md). Reproduced83canvas errors resolve to0 under the same app compilation scope;73focused tests pass before/after and60native-browser render cases are pixel-identical. PR receipt follows in checkpoint; hosted gates/release remain Caleb-owned. Other lanes and SHIP40 preserved.
+User-selected workstream01 defect repair, isolated `fix/map-canvas-types-20261022` from merged main `c63052e5`. [Canonical checkpoint](../plans/2026-10-22-map-canvas-types.md). Reproduced83canvas errors resolve to0 under the same app compilation scope;73focused tests pass before/after and60native-browser render cases are pixel-identical. [PR349](https://github.com/Hamernick/CoachHouse/pull/349) open, source `de0905d5` pushed/remote verified; normal pre-push and secret scan pass. Hosted gates/release remain Caleb-owned. Other lanes and SHIP40 preserved.
 
 Previous [PR348](https://github.com/Hamernick/CoachHouse/pull/348) is merged/closed per Caleb; preserve preview3142 and [prelaunch evidence](../plans/2026-10-22-prelaunch-polish.md). This lane repairs its recorded pre-existing canvas type errors.
 

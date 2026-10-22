@@ -53,4 +53,6 @@ roots.push(...parsed.fileNames.filter(name=>name.endsWith('.d.ts'))); const prog
 
 ## Delivery receipt
 
-Pending final secret scan, normal pre-push hook, commit/remote verification and PR creation. No merge/deployment authorization.
+Open [PR349](https://github.com/Hamernick/CoachHouse/pull/349), source commit `de0905d581692a7a2a9885db806ad457490bd2f8`, pushed and independently matched with `git ls-remote origin refs/heads/fix/map-canvas-types-20261022`. Normal Node22 pre-push passed in 5.64s (supply chain, large files, all eight changed source/test files linted). Staged binary diff secret scan: 519,736 bytes, zero findings. Final documentation receipt is committed separately; implementation evidence remains unchanged.
+
+Completion audit: all six requested modules repaired through one explicit helper; same-config compiler baseline/current output retained; both canvas implementations and unavailable/null/cache paths covered; existing regressions and native browser pixels verified; scoped guards, lint, secret scan and pre-push passed; one Graphify refresh complete; source branch/remote match and open PR delivered. No known remaining diagnostics in either checked program. Whole-repository types and full hosted gates were not asserted. Caleb owns current-head hosted quality/branch protection, review, merge, deployment and live acceptance. No CI polling or release action performed.
