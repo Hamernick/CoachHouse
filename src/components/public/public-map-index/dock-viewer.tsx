@@ -78,7 +78,7 @@ export function PublicMapDockAvatar() {
           <DropdownMenuItem asChild className={MENU_ITEM_CLASS}><Link href="/workspace"><LayoutDashboardIcon aria-hidden />Workspace</Link></DropdownMenuItem>
           <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={() => setSettingsTab("public-profile")}><UserRoundIcon aria-hidden />Public profile</DropdownMenuItem>
           <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={() => setSettingsTab("profile")}><SettingsIcon aria-hidden />Settings</DropdownMenuItem>
-        </> : <DropdownMenuItem asChild className={MENU_ITEM_CLASS}><Link href="/home-canvas?section=login"><LogInIcon aria-hidden />Sign in</Link></DropdownMenuItem>}
+        </> : <DropdownMenuItem asChild className={MENU_ITEM_CLASS}><Link href="/login"><LogInIcon aria-hidden />Sign in</Link></DropdownMenuItem>}
         <DropdownMenuSeparator />
         <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={() => setAboutOpen(true)}><InfoIcon aria-hidden />About Coach House</DropdownMenuItem>
         <DropdownMenuItem asChild className={MENU_ITEM_CLASS}><Link href="/terms"><FileTextIcon aria-hidden />Terms of Service</Link></DropdownMenuItem>

@@ -461,8 +461,7 @@ test.describe.serial("authenticated fiscal sponsorship routes", () => {
     await page.goto(signingPath)
     await expect(page).toHaveURL((url) => {
       return (
-        url.pathname === "/" &&
-        url.searchParams.get("section") === "login" &&
+        url.pathname === "/login" &&
         url.searchParams.get("redirect") === signingPath
       )
     })

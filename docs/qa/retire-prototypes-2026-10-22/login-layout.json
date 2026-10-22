@@ -1,0 +1,34 @@
+[
+  {
+    "width": 1280,
+    "scheme": "light",
+    "overflow": false,
+    "inputs": [
+      {
+        "type": "email",
+        "height": 36
+      },
+      {
+        "type": "password",
+        "height": 36
+      }
+    ],
+    "submit": 36
+  },
+  {
+    "width": 390,
+    "scheme": "dark",
+    "overflow": false,
+    "inputs": [
+      {
+        "type": "email",
+        "height": 44
+      },
+      {
+        "type": "password",
+        "height": 44
+      }
+    ],
+    "submit": 44
+  }
+]

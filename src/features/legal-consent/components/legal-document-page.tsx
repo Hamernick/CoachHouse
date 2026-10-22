@@ -125,7 +125,7 @@ export function LegalDocumentPage({ document }: { document: LegalDocument }) {
                 </div>
                 <div className="text-muted-foreground mt-12 flex flex-wrap gap-x-6 gap-y-3 border-t pt-6 text-sm">
                   <Link
-                    href="/home-canvas?section=signup"
+                    href="/sign-up"
                     className="text-foreground focus-visible:ring-ring rounded-sm underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none"
                   >
                     Return to account creation
