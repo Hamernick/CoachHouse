@@ -1,0 +1,482 @@
+[
+  {
+    "name": "dom | light | normal | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 378861866
+  },
+  {
+    "name": "dom | light | normal | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 570219408
+  },
+  {
+    "name": "dom | light | normal | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 26035,
+    "hash": 539202222
+  },
+  {
+    "name": "dom | light | normal | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 838054768
+  },
+  {
+    "name": "dom | light | normal | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 123502,
+    "hash": 937883377
+  },
+  {
+    "name": "dom | light | selected | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 42469,
+    "hash": 2613984772
+  },
+  {
+    "name": "dom | light | selected | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 2236187062
+  },
+  {
+    "name": "dom | light | selected | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 57958,
+    "hash": 560561869
+  },
+  {
+    "name": "dom | light | selected | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 1511970949
+  },
+  {
+    "name": "dom | light | selected | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 145589,
+    "hash": 257721916
+  },
+  {
+    "name": "dom | dark | normal | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 687225178
+  },
+  {
+    "name": "dom | dark | normal | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 570219408
+  },
+  {
+    "name": "dom | dark | normal | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 26035,
+    "hash": 542046064
+  },
+  {
+    "name": "dom | dark | normal | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 838054768
+  },
+  {
+    "name": "dom | dark | normal | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 123502,
+    "hash": 937883377
+  },
+  {
+    "name": "dom | dark | selected | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 42469,
+    "hash": 1773700630
+  },
+  {
+    "name": "dom | dark | selected | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 2236187062
+  },
+  {
+    "name": "dom | dark | selected | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 57958,
+    "hash": 1986380324
+  },
+  {
+    "name": "dom | dark | selected | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 1511970949
+  },
+  {
+    "name": "dom | dark | selected | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 145589,
+    "hash": 257721916
+  },
+  {
+    "name": "dom | light | cluster",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 30501,
+    "hash": 1186357801
+  },
+  {
+    "name": "dom | dark | cluster",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 30501,
+    "hash": 1186357801
+  },
+  {
+    "name": "dom | cluster-badge-sm-hires-v1",
+    "width": 136,
+    "height": 136,
+    "identical": true,
+    "visiblePixels": 13087,
+    "hash": 1657785897
+  },
+  {
+    "name": "dom | cluster-badge-md-hires-v1",
+    "width": 160,
+    "height": 160,
+    "identical": true,
+    "visiblePixels": 18403,
+    "hash": 569159637
+  },
+  {
+    "name": "dom | cluster-badge-lg-hires-v1",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 26822,
+    "hash": 2019653333
+  },
+  {
+    "name": "dom | cluster-badge-shadow-sm-hires-v1",
+    "width": 152,
+    "height": 152,
+    "identical": true,
+    "visiblePixels": 11196,
+    "hash": 839158454
+  },
+  {
+    "name": "dom | cluster-badge-shadow-md-hires-v1",
+    "width": 176,
+    "height": 176,
+    "identical": true,
+    "visiblePixels": 16157,
+    "hash": 648448018
+  },
+  {
+    "name": "dom | cluster-badge-shadow-lg-hires-v1",
+    "width": 208,
+    "height": 208,
+    "identical": true,
+    "visiblePixels": 24201,
+    "hash": 948235028
+  },
+  {
+    "name": "dom | public-map-point-shadow-hires-v1",
+    "width": 160,
+    "height": 160,
+    "identical": true,
+    "visiblePixels": 6937,
+    "hash": 2138925687
+  },
+  {
+    "name": "dom | normalized bitmap",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 112098127
+  },
+  {
+    "name": "offscreen | light | normal | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 378861866
+  },
+  {
+    "name": "offscreen | light | normal | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 2819653041
+  },
+  {
+    "name": "offscreen | light | normal | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 26035,
+    "hash": 1640782168
+  },
+  {
+    "name": "offscreen | light | normal | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 1947793486
+  },
+  {
+    "name": "offscreen | light | normal | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 123502,
+    "hash": 937883377
+  },
+  {
+    "name": "offscreen | light | selected | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 42469,
+    "hash": 2613984772
+  },
+  {
+    "name": "offscreen | light | selected | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 358526900
+  },
+  {
+    "name": "offscreen | light | selected | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 57958,
+    "hash": 1200006977
+  },
+  {
+    "name": "offscreen | light | selected | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 1635876150
+  },
+  {
+    "name": "offscreen | light | selected | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 145589,
+    "hash": 257721916
+  },
+  {
+    "name": "offscreen | dark | normal | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 687225178
+  },
+  {
+    "name": "offscreen | dark | normal | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 2819653041
+  },
+  {
+    "name": "offscreen | dark | normal | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 26035,
+    "hash": 2721136664
+  },
+  {
+    "name": "offscreen | dark | normal | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 20590,
+    "hash": 1947793486
+  },
+  {
+    "name": "offscreen | dark | normal | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 123502,
+    "hash": 937883377
+  },
+  {
+    "name": "offscreen | dark | selected | legacy",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 42469,
+    "hash": 1773700630
+  },
+  {
+    "name": "offscreen | dark | selected | pin",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 358526900
+  },
+  {
+    "name": "offscreen | dark | selected | legacyRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 57958,
+    "hash": 363979724
+  },
+  {
+    "name": "offscreen | dark | selected | pinRemote",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 25117,
+    "hash": 1635876150
+  },
+  {
+    "name": "offscreen | dark | selected | cooling",
+    "width": 816,
+    "height": 304,
+    "identical": true,
+    "visiblePixels": 145589,
+    "hash": 257721916
+  },
+  {
+    "name": "offscreen | light | cluster",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 30501,
+    "hash": 1186357801
+  },
+  {
+    "name": "offscreen | dark | cluster",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 30501,
+    "hash": 1186357801
+  },
+  {
+    "name": "offscreen | cluster-badge-sm-hires-v1",
+    "width": 136,
+    "height": 136,
+    "identical": true,
+    "visiblePixels": 13087,
+    "hash": 1657785897
+  },
+  {
+    "name": "offscreen | cluster-badge-md-hires-v1",
+    "width": 160,
+    "height": 160,
+    "identical": true,
+    "visiblePixels": 18403,
+    "hash": 569159637
+  },
+  {
+    "name": "offscreen | cluster-badge-lg-hires-v1",
+    "width": 192,
+    "height": 192,
+    "identical": true,
+    "visiblePixels": 26822,
+    "hash": 2019653333
+  },
+  {
+    "name": "offscreen | cluster-badge-shadow-sm-hires-v1",
+    "width": 152,
+    "height": 152,
+    "identical": true,
+    "visiblePixels": 11196,
+    "hash": 839158454
+  },
+  {
+    "name": "offscreen | cluster-badge-shadow-md-hires-v1",
+    "width": 176,
+    "height": 176,
+    "identical": true,
+    "visiblePixels": 16157,
+    "hash": 648448018
+  },
+  {
+    "name": "offscreen | cluster-badge-shadow-lg-hires-v1",
+    "width": 208,
+    "height": 208,
+    "identical": true,
+    "visiblePixels": 24201,
+    "hash": 948235028
+  },
+  {
+    "name": "offscreen | public-map-point-shadow-hires-v1",
+    "width": 160,
+    "height": 160,
+    "identical": true,
+    "visiblePixels": 6937,
+    "hash": 2138925687
+  },
+  {
+    "name": "offscreen | normalized bitmap",
+    "width": 288,
+    "height": 288,
+    "identical": true,
+    "visiblePixels": 27072,
+    "hash": 112098127
+  }
+]

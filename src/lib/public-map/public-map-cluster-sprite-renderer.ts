@@ -1,3 +1,4 @@
+import { getPublicMapCanvasContext2D } from "./public-map-canvas-context"
 import type {
   PublicMapClusterSpriteInput,
   PublicMapClusterSpriteResult,
@@ -81,7 +82,7 @@ function createClusterSpriteCanvas(size: number) {
 }
 
 function getClusterSpriteContext(canvas: HTMLCanvasElement | OffscreenCanvas) {
-  return canvas.getContext("2d", { willReadFrequently: true })
+  return getPublicMapCanvasContext2D(canvas, { willReadFrequently: true })
 }
 
 function drawClusterChrome({

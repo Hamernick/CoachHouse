@@ -453,6 +453,7 @@
       "tests/acceptance/public-home-map-preview-selection.test.ts",
       "tests/acceptance/public-home-surface.test.ts",
       "tests/acceptance/public-map-actions.test.ts",
+      "tests/acceptance/public-map-canvas-contexts.test.ts",
       "tests/acceptance/public-map-cluster-runtime.test.ts",
       "tests/acceptance/public-map-index-helpers.test.ts",
       "tests/acceptance/public-map-index-map-view-helpers.test.ts",
