@@ -31,7 +31,7 @@ import { useCoachingBookingActions } from "@/features/coaching-booking/hooks/use
 
 const BOOKING = {
   id: "12345678-1234-4234-8234-123456789abc", org_id: "org", user_id: "member", coach_id: "joel",
-  status: "held", price_tier: "included", starts_at: "2099-01-01T12:00:00Z", ends_at: "2099-01-01T12:45:00Z",
+  status: "held", price_tier: "included", starts_at: "2099-01-01T15:00:00Z", ends_at: "2099-01-01T15:45:00Z",
   timezone: "America/Chicago", attendee_notes: "Bring the budget", google_event_id: null as string | null,
   google_meet_url: null as string | null, calendar_pending_action: null as string | null,
   stripe_checkout_session_id: null as string | null, cancel_reason: null as string | null,
@@ -103,6 +103,25 @@ beforeEach(() => {
 })
 
 describe("coaching booking finalization", () => {
+  it.each([
+    ["2099-01-02T15:00:00Z", "2099-01-02T15:45:00Z"], // Friday
+    ["2099-01-01T15:30:00Z", "2099-01-01T16:15:00Z"], // Off-hour
+    ["2099-01-01T15:00:00Z", "2099-01-01T16:00:00Z"], // Wrong duration
+  ])("rejects an unconfirmed outside-schedule checkout before consuming a credit: %s", async (starts_at, ends_at) => {
+    const fixture = installAdmin({ status: "pending_payment", starts_at, ends_at })
+    expect((await finalize(fixture)).status).toBe("canceled")
+    expect(fixture.admin.rpc).not.toHaveBeenCalled()
+    expect(mocks.available).not.toHaveBeenCalled()
+    expect(mocks.create).not.toHaveBeenCalled()
+  })
+
+  it("preserves an established Friday meeting while retrying its pending calendar creation", async () => {
+    const fixture = installAdmin({ status: "confirmed", calendar_pending_action: "create", starts_at: "2099-01-02T15:00:00Z", ends_at: "2099-01-02T15:45:00Z", google_event_id: EVENT.googleEventId })
+    expect((await finalize(fixture)).status).toBe("confirmed")
+    expect(mocks.available).toHaveBeenCalled()
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ startsAt: "2099-01-02T15:00:00Z" }))
+  })
+
   it("waits for fresh availability before reserving a credit or creating an event", async () => {
     const fixture = installAdmin()
     let release!: () => void
@@ -223,6 +242,15 @@ describe("paid coaching checkout conflict return", () => {
     expect(fixture.admin.rpc).not.toHaveBeenCalledWith("confirm_coaching_credit_booking", expect.anything())
     expect(mocks.create).not.toHaveBeenCalled()
     expect(mocks.email).not.toHaveBeenCalled()
+  })
+
+  it("preserves a paid credit when a pending Friday checkout falls outside the new schedule", async () => {
+    const fixture = installAdmin({ status: "pending_payment", price_tier: "full", stripe_checkout_session_id: "cs_test_paid", starts_at: "2099-01-02T15:00:00Z", ends_at: "2099-01-02T15:45:00Z" })
+    expect(await paidReturn()).toMatchObject({ confirmed: false, slotUnavailable: true })
+    expect(fixture.grants).toEqual(new Set(["checkout:cs_test_paid"]))
+    expect(fixture.state.status).toBe("canceled")
+    expect(fixture.admin.rpc).not.toHaveBeenCalledWith("confirm_coaching_credit_booking", expect.anything())
+    expect(mocks.create).not.toHaveBeenCalled()
   })
 
   it("never retrieves or grants a checkout belonging to another member", async () => {

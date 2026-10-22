@@ -301,6 +301,7 @@
       "tests/acceptance/coaching-calendar-cron.test.ts",
       "tests/acceptance/coaching-calendar-safety.test.ts",
       "tests/acceptance/coaching-calendar-titles.test.ts",
+      "tests/acceptance/coaching-hours.test.ts",
       "tests/acceptance/collaboration-poll-auth.test.ts",
       "tests/acceptance/community-indexing.test.ts",
       "tests/acceptance/core-document-drive-source.test.ts",

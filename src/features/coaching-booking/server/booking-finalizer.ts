@@ -15,6 +15,7 @@ import {
 } from "../lib"
 import type { CoachingCoachId } from "../types"
 import { buildCoachingCalendarTitle } from "../lib/calendar-title"
+import { isCoachingSlotWithinSchedule } from "../lib/availability"
 import { isCoachingSlotUnavailable, COACHING_SLOT_UNAVAILABLE_MESSAGE } from "../lib/booking-errors"
 import { loadCoachingClientName } from "./coaching-client-name"
 import { assertCoachingCalendarAvailable } from "./calendar-conflicts"
@@ -86,6 +87,9 @@ export async function confirmCoachingBooking({
   }
 
   if (booking.status === "canceled") return booking
+  if (booking.status !== "confirmed" && !isCoachingSlotWithinSchedule(new Date(booking.starts_at), new Date(booking.ends_at))) {
+    return rejectUnavailableBooking(admin, booking)
+  }
   try {
     await assertCoachingCalendarAvailable({
       startsAt: booking.starts_at,
