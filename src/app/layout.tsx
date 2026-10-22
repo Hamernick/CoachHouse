@@ -17,7 +17,21 @@ export const metadata: Metadata = {
     template: "%s · Coach House",
   },
   description:
-    "A course platform built with Next.js, Tailwind CSS, and shadcn/ui. Bootstrapped in step S00.",
+    "Find, save, and share nonprofits. Build and run your organization with a shared Workspace, guided training, and Executive Coaches.",
+  openGraph: {
+    type: "website",
+    siteName: "Coach House",
+    images: [{
+      url: new URL("/opengraph-image", getPublicSiteOrigin()).href,
+      width: 1200,
+      height: 630,
+      alt: "Coach House — The platform for nonprofits",
+      type: "image/png",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

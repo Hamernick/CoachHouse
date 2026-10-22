@@ -12,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const handles = await fetchPublishedPublicHandles()
   const staticEntries: MetadataRoute.Sitemap = [
     { url: origin, changeFrequency: "daily", priority: 1 },
+    { url: `${origin}/build`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/resources`, changeFrequency: "daily", priority: 0.9 },
     ...(publicSharingEnabled
       ? [{ url: `${origin}/community`, changeFrequency: "weekly" as const, priority: 0.7 }]

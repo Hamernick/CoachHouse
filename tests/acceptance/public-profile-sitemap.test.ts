@@ -123,7 +123,7 @@ describe("bounded public profile sitemap lookup", () => {
     await vi.advanceTimersByTimeAsync(10_000)
     const urls = (await pending).map((entry) => entry.url)
     expect(urls).toEqual([
-      "https://coachhouse.app", "https://coachhouse.app/resources", "https://coachhouse.app/community",
+      "https://coachhouse.app", "https://coachhouse.app/build", "https://coachhouse.app/resources", "https://coachhouse.app/community",
       "https://coachhouse.app/pricing", "https://coachhouse.app/privacy", "https://coachhouse.app/terms",
       "https://coachhouse.app/documentation",
     ])
@@ -134,6 +134,17 @@ describe("bounded public profile sitemap lookup", () => {
     expect(await sitemap()).toContainEqual({
       url: "https://coachhouse.app/person", lastModified: updatedAt, changeFrequency: "weekly", priority: 0.8,
     })
+  })
+
+  it("includes the canonical Build landing once without exposing previews or private profiles", async () => {
+    database()
+    const urls = (await sitemap()).map(({ url }) => url)
+
+    expect(urls.filter((url) => url === "https://coachhouse.app/build")).toHaveLength(1)
+    expect(urls).not.toContain("https://coachhouse.app/private-person")
+    expect(urls).not.toContain("https://coachhouse.app/private-org")
+    expect(urls).not.toContain("https://coachhouse.app/home-canvas")
+    expect(urls.some((url) => url.includes("/visual-regression"))).toBe(false)
   })
 
   it("keeps the static sitemap when admin credentials are unavailable", async () => {

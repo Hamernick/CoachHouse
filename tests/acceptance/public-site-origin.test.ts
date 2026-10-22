@@ -4,6 +4,7 @@ import { getPublicSiteOrigin } from "@/lib/public-site-origin"
 import robots from "@/app/robots"
 
 beforeEach(() => {
+  vi.stubEnv("NODE_ENV", "development")
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "")
   vi.stubEnv("NEXT_PUBLIC_APP_URL", "")
   vi.stubEnv("VERCEL_URL", "")
@@ -33,4 +34,26 @@ describe("absolute public metadata origin", () => {
       expect(getPublicSiteOrigin()).toBe("http://localhost:3000")
     },
   )
+
+  it("uses the production canonical domain instead of a deployment host", () => {
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("VERCEL_URL", "coach-house-preview.vercel.app")
+    expect(getPublicSiteOrigin()).toBe("https://coachhouse.app")
+    expect(robots().sitemap).toBe("https://coachhouse.app/sitemap.xml")
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.coachhouse.app/path")
+    expect(getPublicSiteOrigin()).toBe("https://www.coachhouse.app")
+  })
+
+  it.each([
+    "http://localhost:3000",
+    "https://localhost",
+    "https://127.0.0.1",
+    "https://[::1]",
+    "https://coach-house-preview.vercel.app",
+    "invalid",
+  ])("does not leak a local or preview production origin: %s", (url) => {
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", url)
+    expect(getPublicSiteOrigin()).toBe("https://coachhouse.app")
+  })
 })

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   title: "Home Canvas Preview",
   description:
     "A homepage preview that mirrors the internal canvas and side navigation model.",
+  robots: { index: false, follow: false },
 }
 
 export const runtime = "nodejs"
