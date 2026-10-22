@@ -2,7 +2,7 @@
 
 ## Approved scope and lane
 
-Caleb approved the retirement plan and explicitly included `/tester/login` and `/marketplace`. Original01bounded cleanup. Isolated `fix/retire-public-prototypes-20261022`, checkout `/Users/calebhamernick/Development/coach-house-platform-retire-prototypes-20261022`, initially based on `06f9fd87` from PR350. PR350 merged as `f00bca9d`; its tree exactly matches the initial base, so the cleanup is rebased onto current main before delivery without changing source. Preserve unrelated worktrees/listeners/root dirt and sharedSHIP40. No production/provider/database changes, real auth submissions, or deployment actions.
+Caleb approved the retirement plan and explicitly included `/tester/login` and `/marketplace`. Original 01 bounded cleanup. Isolated `fix/retire-public-prototypes-20261022`, checkout `/Users/calebhamernick/Development/coach-house-platform-retire-prototypes-20261022`, initially based on `06f9fd87` from PR350. PR350 merged as `f00bca9d`; its tree exactly matches the initial base, so the cleanup is rebased onto current main before delivery without changing source. Preserve unrelated worktrees/listeners/root dirt and sharedSHIP40. No production/provider/database changes, real auth submissions, or deployment actions.
 
 ## Resulting behavior
 
@@ -17,7 +17,7 @@ Caleb approved the retirement plan and explicitly included `/tester/login` and `
 | `/tester/login` | `/login` with query state |
 | `/marketplace` | Permanent redirect to `/documentation/marketplace`, retaining supported search/filter fields |
 
-`/login` now renders the established LoginPanel/LoginForm in the existing branded AuthScreenShell. Existing-session handling, password/Google auth, notices, errors, forgot-password and invitation return paths are retained. Both server and browser reject return targets that loop into login aliases. Mobile controls have44pxhit areas; desktop remains compact. Styling follows docs/design.mdneutral theme tokens and existing auth primitives.
+`/login` now renders the established LoginPanel/LoginForm in the existing branded AuthScreenShell. Existing-session handling, password/Google auth, notices, errors, forgot-password and invitation return paths are retained. Both server and browser reject return targets that loop into login aliases. Mobile controls have 44px hit areas; desktop remains compact. Styling follows docs/design.md neutral theme tokens and existing auth primitives.
 
 Map account-menu, shared Resources/Documentation header, and legal account-creation links now use canonical destinations. Global search uses the current Documentation marketplace catalog/detail URLs; deleted the obsolete marketplace renderer and its unused data catalog. Shared HomeCanvas-named shell/map/documentation components remain because active pages use them. No broad shared-component purge.
 
@@ -32,7 +32,7 @@ Map account-menu, shared Resources/Documentation header, and legal account-creat
 
 ## Reproduction and recovery
 
-Use Node22.13.0 and frozen-lockfile dependencies installed only in this lane. Local preview3144uses the production build; prior3142andParticle3008untouched. Private evidence: `/tmp/coach-house-retire-prototypes-20261022/`.
+Use Node22.13.0 and frozen-lockfile dependencies installed only in this lane. Local preview 3144 uses the production build; prior 3142 and Particle 3008 untouched. Private evidence: `/tmp/coach-house-retire-prototypes-20261022/`.
 
 ```sh
 pnpm exec next build
@@ -42,4 +42,9 @@ pnpm exec playwright test --config .tmp/retirement.playwright.config.ts --grep '
 
 The local Playwright configuration runs behavior assertions only on the production server, using installed Chromium; it does not bypass the Ubuntu-only visual baseline workflow. The fiscal authenticated spec is updated but not executed: no production test users/records are created. Tests and mocked browser auth do not establish real-account/provider acceptance.
 
-Rollback: revert this cleanup PR only, leaving350's independent Edge image fix intact. Old routes can then render as before; no data migration or restoration is involved. Caleb owns hosted quality/review, merge, deployment, appearance review and live auth acceptance. PR/final receipt follows.
+Rollback: revert this cleanup PR only, leaving350's independent Edge image fix intact. Old routes can then render as before; no data migration or restoration is involved. Caleb owns hosted quality/review, merge, deployment, appearance review and live auth acceptance. Open [PR351](https://github.com/Hamernick/CoachHouse/pull/351) is ready for review.
+
+
+## PR handoff
+
+Source commit `e61b8e4068dd2f3a6b31c1b942b5df0e3acd080d` independently matches the remote branch. Rebase onto merged PR350 (`f00bca9d`) preserved the complete validated tree. Normal Node22 pre-push passed in 8.60s; staged binary secret scan found zero findings. No source changes followed validation. Production preview remains at http://localhost:3144/login; inspect listener ownership before restarting it with `pnpm exec next start -p 3144`. Hosted quality, review, merge, deployment and live acceptance remain pending with Caleb.
