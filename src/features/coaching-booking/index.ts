@@ -28,8 +28,7 @@ export { coachingCalendarCron } from "./handlers"
 export { legacyCoachingSchedule } from "./handlers"
 
 export { buildCoachingCalendarTitle } from "./lib/calendar-title"
-export { loadCoachingClientName } from "./server/coaching-client-name"
-export { getGoogleCoachingParticipantEmail } from "./server/google-calendar"
+export { loadCoachingCalendarDownload, getGoogleCoachingParticipantEmail } from "./loaders"
 export {
   COACHING_JOINT_COACH_IDS, COACHING_JOINT_COACH_LABEL, COACHING_JOINT_PRIMARY_COACH_ID,
   COACHING_SESSION_MINUTES, getValidGoogleCalendarEventUrl, getValidGoogleMeetUrl,

@@ -70,6 +70,6 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
   })
 
   return <CoachingBookingFlow initialData={data} bookingNotice={checkout === "unavailable"
-    ? "That time is no longer available. Your purchased coaching credit is ready to use. Choose another time."
+    ? "That time is no longer available. Choose another time."
     : undefined} />
 }

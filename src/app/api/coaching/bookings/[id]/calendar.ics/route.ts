@@ -4,7 +4,7 @@ import { env } from "@/lib/env"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase"
 import {
   buildCoachingCalendarTitle,
-  loadCoachingClientName,
+  loadCoachingCalendarDownload,
   getGoogleCoachingParticipantEmail,
   COACHING_JOINT_COACH_IDS,
   COACHING_JOINT_COACH_LABEL,
@@ -168,29 +168,18 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { data: booking, error } = await supabase
-    .from("coaching_bookings")
-    .select("id, user_id, starts_at, ends_at, timezone, attendee_notes, google_meet_url, google_event_html_link")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string
-      user_id: string
-      starts_at: string
-      ends_at: string
-      timezone: string
-      attendee_notes: string | null
-      google_meet_url: string | null
-      google_event_html_link: string | null
-    }>()
+  const { data, error } = await loadCoachingCalendarDownload({
+    supabase, bookingId: id, viewerUserId: user.id,
+  })
 
   if (error) {
     return NextResponse.json({ error: "Unable to load booking." }, { status: 500 })
   }
-  if (!booking) {
+  if (!data) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const clientName = await loadCoachingClientName({ supabase, userId: booking.user_id })
+  const { booking, clientName } = data
   const googleMeetUrl = getValidGoogleMeetUrl(booking.google_meet_url)
   const googleEventHtmlLink = getValidGoogleCalendarEventUrl(booking.google_event_html_link)
   const siteUrl = resolveSiteUrl(request)

@@ -31,6 +31,7 @@ import { Separator } from "@/components/ui/separator"
 import { SessionNotesField } from "./coaching-session-notes-field"
 import { CoachingRescheduleDialog } from "./coaching-reschedule-dialog"
 import { useCoachingBookingActions } from "../hooks/use-coaching-booking-actions"
+import { useCoachingCheckoutNotice } from "../hooks/use-coaching-checkout-notice"
 import { WheelPicker, WheelPickerWrapper, type WheelPickerOption } from "@/components/wheel-picker"
 import { COACHING_DEFAULT_TIMEZONE, COACHING_PATH, COACHING_SESSION_MINUTES, getValidGoogleMeetUrl, getValidGoogleCalendarEventUrl } from "../lib"
 import { listCoachingAvailabilityAction } from "../actions"
@@ -258,6 +259,8 @@ function BookingRow({ booking, onCancel, pending }: { booking: CoachingBookingRe
 
 export function CoachingBookingFlow({ initialData, bookingNotice }: CoachingBookingFlowProps) {
   const [step, setStep] = useState<FlowStep>("date")
+  const [checkoutNoticeDismissed, setCheckoutNoticeDismissed] = useState(false)
+  const checkoutNotice = useCoachingCheckoutNotice(bookingNotice, checkoutNoticeDismissed)
   const [stepDirection, setStepDirection] = useState<1 | -1>(1)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()))
@@ -310,7 +313,10 @@ export function CoachingBookingFlow({ initialData, bookingNotice }: CoachingBook
   const checkoutUnavailable = paidCheckoutRequired && !initialData.paymentConfigured
   const { pending, confirmSelection, cancelBooking } = useCoachingBookingActions({
     selectedSlot, checkoutUnavailable, selectedCoachId: initialData.selectedCoachId,
-    timezone, attendeeNotes, onBooked: () => setStep("done"),
+    timezone, attendeeNotes, onBooked: () => {
+      setCheckoutNoticeDismissed(true)
+      setStep("done")
+    },
     onUnavailable: () => {
       setSelectedSlot(null)
       setSlots([])
@@ -426,7 +432,7 @@ export function CoachingBookingFlow({ initialData, bookingNotice }: CoachingBook
     <main className="flex min-h-full flex-1 items-stretch justify-start px-0 py-0 sm:items-center sm:justify-center sm:px-4 sm:py-6 lg:px-6">
       <h1 className="sr-only">Coaching</h1>
       <div className="mx-auto flex w-full max-w-[42rem] flex-col gap-5 pb-[calc(3rem+env(safe-area-inset-bottom))] sm:gap-6 sm:pb-0">
-        {bookingNotice ? <Alert role="status"><AlertDescription>{bookingNotice}</AlertDescription></Alert> : null}
+        {checkoutNotice ? <Alert role="status"><AlertDescription>{checkoutNotice}</AlertDescription></Alert> : null}
         <section className="border-border/70 bg-card overflow-hidden rounded-xl border shadow-sm">
           <div className="grid xl:grid-cols-[17.5rem_minmax(0,1fr)]">
             <SessionDetailsPanel coaches={initialData.coaches} creditSummary={initialData.creditSummary} timezone={timezone} />

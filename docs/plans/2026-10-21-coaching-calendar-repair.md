@@ -3,6 +3,44 @@
 User approved the rewritten urgent plan on October21. Scope: client-first titles,
 existing upcoming invite title correction preparation, and joint-coach conflicts.
 
+## October22 release continuation
+
+User explicitly authorized the remaining release work. This supersedes the earlier
+PR-only authority boundary below; required quality/review gates remain mandatory.
+
+- Corrected both automated review findings: generic checkout notice consumes its
+  URL parameter and stays dismissed after successful replacement, Back and reload;
+  ICS first authorizes the booking through caller RLS, then resolves only that
+  booking owner's saved name. Organization-member download access is preserved.
+- Fixed the hosted feature-contract error by using the existing loaders facade;
+  public index no longer directly exports server internals. No guard weakened.
+- 47 focused cases pass; sticky-dismissal follow-up reran the affected13 cases.
+  Real-component Chromium proves query cleanup, retained notes, replacement success,
+  Back/reload dismissal and zero browser errors. Private proof:
+  `~/.local/share/coach-house/coaching-calendar/2026-10-21/browser/notice-result.json`.
+  Actions/router are stubbed; this is not authenticated production acceptance.
+- Complete local static gate passes in53.61s, including lint, feature/import/structure
+  guards and snapshots. Application TypeScript passes; final refresh recorded in handoff.
+- Current prior-head hosted run39712226207 failed static plus inherited acceptance,
+  build and visual checks. Exact-base main run39532273238 independently reproduces
+  both acceptance failures, /admin3109.1KB against1000KB budget, and the same10 visual
+  failures (Documents1, editor4, Find2, Tools3). PR /admin3109.4KB. These unrelated
+  failures remain blocked per workflow-quality.md; no budget/baseline changes.
+  Evidence logs: `/tmp/coaching-pr346-ci-failed.log` and
+  `/tmp/coaching-base5baa0d35-ci-failed.log`. GitHub also requires one code-owner
+  approval, strict current-head quality and resolved conversations.
+- User restored GCP CLI authentication. Read-only service inspection verified
+  `coach-house-calendar-broker`, us-central1, serving00009-hud; Joel/Paula primary
+  calendars only, no additional blocking calendars configured. Direct IAM signJwt
+  failed403 PERMISSION_DENIED, so exact event reads/title preview could not run.
+  Do not broaden IAM permissions or retry blindly. Existing broker lacks the new
+  title-event read operation. Private failure receipt:
+  `~/.local/share/coach-house/coaching-calendar/2026-10-22/live-calendar-audit-private.json`.
+- No merge, migration, deployment, event edit or email occurred. Next: clear inherited
+  CI in its owning scope and obtain required review; deploy tested broker before app,
+  apply exact migration with readback, then preview the exact upcoming title batch.
+  The actual screenshot conflict and recipient-calendar acceptance remain unverified.
+
 ## Lane and authority
 
 - Branch `fix/coaching-calendar-20261021`, isolated checkout

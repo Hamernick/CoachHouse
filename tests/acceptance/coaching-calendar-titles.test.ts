@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { parseTitleBackfillArgs, parseApprovedTitleManifest, reservePrivateTitleReceipt, runTitleBackfillCli } from "@/features/coaching-booking/server/title-backfill-cli"
 import { buildCoachingCalendarTitle } from "@/features/coaching-booking/lib/calendar-title"
 import { buildCoachingBookingEmail } from "@/features/coaching-booking/lib/email-templates"
+import { loadCoachingCalendarDownload } from "@/features/coaching-booking/server/calendar-download"
 import { loadCoachingClientName } from "@/features/coaching-booking/server/coaching-client-name"
 import {
   backfillCoachingCalendarTitles,
@@ -16,6 +17,9 @@ import {
 vi.mock("@/features/coaching-booking/server/calendar-event-titles", () => ({
   readGoogleCoachingEventForTitle: vi.fn(), updateGoogleCoachingEventTitle: vi.fn(),
 }))
+
+const downloadMocks = vi.hoisted(() => ({ createAdmin: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: downloadMocks.createAdmin }))
 
 const now = new Date("2026-10-21T12:00:00Z")
 const booking: CoachingTitleBackfillBooking = {
@@ -182,4 +186,50 @@ it("saves a private fatal receipt when approval validation fails before any live
     expect(JSON.parse(await readFile(output, "utf8"))).toMatchObject({ status: "failed", reason: "operator_setup_or_scan_failed", entries: [] })
     expect((await stat(output)).mode & 0o777).toBe(0o600)
   } finally { stderr.mockRestore(); await rm(folder, { recursive: true, force: true }) }
+})
+
+
+describe("calendar-download authorization and identity", () => {
+  function viewerClient(allowed: boolean, name: string | null = "John Smith", error: unknown = null) {
+    const eq = vi.fn(() => ({ maybeSingle: async () => ({ data: allowed ? { ...booking } : null, error }) }))
+    const profileEq = vi.fn(() => ({ maybeSingle: async () => ({ data: { full_name: name }, error: null }) }))
+    const from = vi.fn((table: string) => ({ select: () => ({ eq: table === "coaching_bookings" ? eq : profileEq }) }))
+    return { supabase: { from } as never, from, eq, profileEq }
+  }
+
+  it("resolves an authorized other-member booking through the exact booking owner's profile", async () => {
+    downloadMocks.createAdmin.mockReset()
+    const viewer = viewerClient(true)
+    const profileEq = vi.fn(() => ({ maybeSingle: async () => ({ data: { full_name: "John Smith" }, error: null }) }))
+    const adminFrom = vi.fn(() => ({ select: () => ({ eq: profileEq }) }))
+    downloadMocks.createAdmin.mockReturnValue({ from: adminFrom })
+    const result = await loadCoachingCalendarDownload({ supabase: viewer.supabase, bookingId: booking.id, viewerUserId: "other-org-member" })
+    expect(result.error).toBeNull()
+    expect(buildCoachingCalendarTitle(result.data?.clientName)).toBe("John Smith — Coach House meeting with Joel & Paula")
+    expect(viewer.from).toHaveBeenCalledWith("coaching_bookings")
+    expect(viewer.eq).toHaveBeenCalledWith("id", booking.id)
+    expect(viewer.profileEq).not.toHaveBeenCalled()
+    expect(adminFrom).toHaveBeenCalledWith("profiles")
+    expect(profileEq).toHaveBeenCalledWith("id", booking.user_id)
+  })
+
+  it.each([null, { message: "permission denied" }])("never elevates a booking missing from the caller's RLS scope %#", async (error) => {
+    downloadMocks.createAdmin.mockReset()
+    const viewer = viewerClient(false, null, error)
+    const result = await loadCoachingCalendarDownload({ supabase: viewer.supabase, bookingId: booking.id, viewerUserId: "unauthorized-user" })
+    expect(result.data).toBeNull()
+    expect(downloadMocks.createAdmin).not.toHaveBeenCalled()
+    expect(viewer.profileEq).not.toHaveBeenCalled()
+  })
+
+  it("keeps owner downloads on the caller's profile scope and preserves the missing-name fallback", async () => {
+    downloadMocks.createAdmin.mockReset()
+    const viewer = viewerClient(true, null)
+    const result = await loadCoachingCalendarDownload({ supabase: viewer.supabase, bookingId: booking.id, viewerUserId: booking.user_id })
+    expect(result.data?.clientName).toBeNull()
+    expect(result.data?.booking.id).toBe(booking.id)
+    expect(buildCoachingCalendarTitle(result.data?.clientName)).toBe("Client — Coach House meeting with Joel & Paula")
+    expect(viewer.profileEq).toHaveBeenCalledWith("id", booking.user_id)
+    expect(downloadMocks.createAdmin).not.toHaveBeenCalled()
+  })
 })
