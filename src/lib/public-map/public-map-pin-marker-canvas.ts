@@ -1,6 +1,7 @@
 import type { PublicMapGroupKey } from "@/lib/public-map/groups"
 import type { PublicMapResourceCategoryKey } from "@/lib/public-map/resource-categories"
 
+import { getPublicMapCanvasContext2D } from "./public-map-canvas-context"
 import { resolvePublicMapMarkerFallbackAccent } from "./public-map-marker-fallback"
 import {
   PUBLIC_MAP_MARKER_CANVAS_BACKING_SCALE,
@@ -94,7 +95,7 @@ function createMarkerCanvas() {
 }
 
 function getMarkerCanvasContext(canvas: HTMLCanvasElement | OffscreenCanvas) {
-  const context = canvas.getContext("2d", { willReadFrequently: true })
+  const context = getPublicMapCanvasContext2D(canvas, { willReadFrequently: true })
   if (!context) return null
 
   context.scale(

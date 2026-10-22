@@ -4,6 +4,7 @@ import {
   type PublicMapResourceCategoryKey,
 } from "@/lib/public-map/resource-categories"
 
+import { getPublicMapCanvasContext2D } from "./public-map-canvas-context"
 import {
   fillPublicMapMarkerFallback,
   publicMapMarkerColorToRgba,
@@ -86,7 +87,7 @@ function createMarkerCanvas(
 }
 
 function getMarkerCanvasContext(canvas: HTMLCanvasElement | OffscreenCanvas) {
-  const context = canvas.getContext("2d", {
+  const context = getPublicMapCanvasContext2D(canvas, {
     willReadFrequently: true,
   })
   if (!context) return null

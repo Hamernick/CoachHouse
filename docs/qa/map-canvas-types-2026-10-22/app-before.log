@@ -1,0 +1,588 @@
+src/lib/public-map/public-map-cluster-sprite-renderer.ts:46:11 - error TS2339: Property 'clearRect' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'clearRect' does not exist on type 'ImageBitmapRenderingContext'.
+
+46   context.clearRect(0, 0, canvasSize, canvasSize)
+             ~~~~~~~~~
+src/lib/public-map/public-map-cluster-sprite-renderer.ts:47:11 - error TS2339: Property 'scale' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'scale' does not exist on type 'ImageBitmapRenderingContext'.
+
+47   context.scale(scale, scale)
+             ~~~~~
+src/lib/public-map/public-map-cluster-sprite-renderer.ts:50:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+50     context,
+       ~~~~~~~
+
+  src/lib/public-map/public-map-cluster-sprite-renderer.ts:92:3
+    92   context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+         ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D; size: number; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-cluster-sprite-renderer.ts:55:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+55     context,
+       ~~~~~~~
+
+  src/lib/public-map/public-map-cluster-sprite-renderer.ts:138:3
+    138   context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ categoryKeys: PublicMapResourceCategoryKey[]; colorKeys: string[]; context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D; count: number; size: number; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-cluster-sprite-renderer.ts:63:25 - error TS2339: Property 'getImageData' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'getImageData' does not exist on type 'ImageBitmapRenderingContext'.
+
+63   const image = context.getImageData(0, 0, canvasSize, canvasSize)
+                           ~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-bitmap-cache.ts:110:11 - error TS2339: Property 'imageSmoothingEnabled' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingEnabled' does not exist on type 'ImageBitmapRenderingContext'.
+
+110   context.imageSmoothingEnabled = true
+              ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-bitmap-cache.ts:111:11 - error TS2339: Property 'imageSmoothingQuality' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingQuality' does not exist on type 'ImageBitmapRenderingContext'.
+
+111   context.imageSmoothingQuality = "high"
+              ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-bitmap-cache.ts:155:37 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerBitmapCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerBitmapCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+155     drawBitmapCoverSquare({ bitmap, context })
+                                        ~~~~~~~
+
+  src/lib/public-map/public-map-marker-bitmap-cache.ts:120:3
+    120   context: MarkerBitmapCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ bitmap: ImageBitmap; context: MarkerBitmapCanvasContext; }'
+src/lib/public-map/public-map-marker-canvas.ts:94:11 - error TS2339: Property 'scale' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'scale' does not exist on type 'ImageBitmapRenderingContext'.
+
+94   context.scale(
+             ~~~~~
+src/lib/public-map/public-map-marker-canvas.ts:98:11 - error TS2339: Property 'imageSmoothingEnabled' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingEnabled' does not exist on type 'ImageBitmapRenderingContext'.
+
+98   context.imageSmoothingEnabled = true
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-canvas.ts:99:11 - error TS2339: Property 'imageSmoothingQuality' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingQuality' does not exist on type 'ImageBitmapRenderingContext'.
+
+99   context.imageSmoothingQuality = "high"
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-canvas.ts:520:22 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+520   drawMarkerChrome({ context, selected, surfaceColor, theme })
+                         ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:301:3
+    301   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ contentKind?: PublicMapMarkerChromeContentKind | undefined; context: MarkerCanvasContext; selected: boolean; surfaceColor?: string | ... 1 more ... | undefined; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-marker-canvas.ts:522:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerFallbackContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerFallbackContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+522     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-marker-fallback.ts:17:3
+    17   context: MarkerFallbackContext
+         ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type 'MarkerFallbackInput'
+src/lib/public-map/public-map-marker-canvas.ts:536:7 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+536       context,
+          ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:232:3
+    232   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ category: PublicMapResourceCategoryKey; context: MarkerCanvasContext; geometry: MarkerChromeGeometry; glowColor: string; selected: boolean; }'
+src/lib/public-map/public-map-marker-canvas.ts:543:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+543     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:358:3
+    358   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; selected: boolean; sameLocationCount?: number | undefined; surfaceColor?: string | null | undefined; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-marker-canvas.ts:550:38 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+550   return readMarkerCanvasImageData({ context })
+                                         ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:107:3
+    107   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; dimensions?: MarkerCanvasDimensions | undefined; }'
+src/lib/public-map/public-map-marker-canvas.ts:576:35 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+576   drawMarkerChrome({ contentKind, context, selected, theme })
+                                      ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:301:3
+    301   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ contentKind?: PublicMapMarkerChromeContentKind | undefined; context: MarkerCanvasContext; selected: boolean; surfaceColor?: string | ... 1 more ... | undefined; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-marker-canvas.ts:579:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+579     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:432:3
+    432   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ bitmap: ImageBitmap; context: MarkerCanvasContext; geometry: MarkerChromeGeometry; }'
+src/lib/public-map/public-map-marker-canvas.ts:583:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+583     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:358:3
+    358   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; selected: boolean; sameLocationCount?: number | undefined; surfaceColor?: string | null | undefined; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-marker-canvas.ts:590:38 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+590   return readMarkerCanvasImageData({ context })
+                                         ~~~~~~~
+
+  src/lib/public-map/public-map-marker-canvas.ts:107:3
+    107   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; dimensions?: MarkerCanvasDimensions | undefined; }'
+src/lib/public-map/public-map-marker-static-images.ts:33:11 - error TS2339: Property 'scale' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'scale' does not exist on type 'ImageBitmapRenderingContext'.
+
+33   context.scale(
+             ~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:37:11 - error TS2339: Property 'imageSmoothingEnabled' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingEnabled' does not exist on type 'ImageBitmapRenderingContext'.
+
+37   context.imageSmoothingEnabled = true
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:38:11 - error TS2339: Property 'imageSmoothingQuality' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingQuality' does not exist on type 'ImageBitmapRenderingContext'.
+
+38   context.imageSmoothingQuality = "high"
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:73:11 - error TS2339: Property 'clearRect' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'clearRect' does not exist on type 'ImageBitmapRenderingContext'.
+
+73   context.clearRect(0, 0, size, size)
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:74:11 - error TS2339: Property 'save' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'save' does not exist on type 'ImageBitmapRenderingContext'.
+
+74   context.save()
+             ~~~~
+src/lib/public-map/public-map-marker-static-images.ts:75:11 - error TS2339: Property 'fillStyle' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'fillStyle' does not exist on type 'ImageBitmapRenderingContext'.
+
+75   context.fillStyle = "rgba(255, 255, 255, 0.98)"
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:76:11 - error TS2339: Property 'beginPath' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'beginPath' does not exist on type 'ImageBitmapRenderingContext'.
+
+76   context.beginPath()
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:77:11 - error TS2339: Property 'arc' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'arc' does not exist on type 'ImageBitmapRenderingContext'.
+
+77   context.arc(center, center, radius, 0, Math.PI * 2)
+             ~~~
+src/lib/public-map/public-map-marker-static-images.ts:78:11 - error TS2339: Property 'fill' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'fill' does not exist on type 'ImageBitmapRenderingContext'.
+
+78   context.fill()
+             ~~~~
+src/lib/public-map/public-map-marker-static-images.ts:79:11 - error TS2339: Property 'lineWidth' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'lineWidth' does not exist on type 'ImageBitmapRenderingContext'.
+
+79   context.lineWidth = 2
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:80:11 - error TS2339: Property 'strokeStyle' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'strokeStyle' does not exist on type 'ImageBitmapRenderingContext'.
+
+80   context.strokeStyle = "rgba(60, 60, 67, 0.18)"
+             ~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:81:11 - error TS2339: Property 'stroke' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'stroke' does not exist on type 'ImageBitmapRenderingContext'.
+
+81   context.stroke()
+             ~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:82:11 - error TS2339: Property 'restore' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'restore' does not exist on type 'ImageBitmapRenderingContext'.
+
+82   context.restore()
+             ~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:84:11 - error TS2339: Property 'save' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'save' does not exist on type 'ImageBitmapRenderingContext'.
+
+84   context.save()
+             ~~~~
+src/lib/public-map/public-map-marker-static-images.ts:85:11 - error TS2339: Property 'lineWidth' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'lineWidth' does not exist on type 'ImageBitmapRenderingContext'.
+
+85   context.lineWidth = 1
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:86:11 - error TS2339: Property 'strokeStyle' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'strokeStyle' does not exist on type 'ImageBitmapRenderingContext'.
+
+86   context.strokeStyle = "rgba(255, 255, 255, 0.88)"
+             ~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:87:11 - error TS2339: Property 'beginPath' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'beginPath' does not exist on type 'ImageBitmapRenderingContext'.
+
+87   context.beginPath()
+             ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:88:11 - error TS2339: Property 'arc' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'arc' does not exist on type 'ImageBitmapRenderingContext'.
+
+88   context.arc(center, center, radius - 2.25, 0, Math.PI * 2)
+             ~~~
+src/lib/public-map/public-map-marker-static-images.ts:89:11 - error TS2339: Property 'stroke' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'stroke' does not exist on type 'ImageBitmapRenderingContext'.
+
+89   context.stroke()
+             ~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:90:11 - error TS2339: Property 'restore' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'restore' does not exist on type 'ImageBitmapRenderingContext'.
+
+90   context.restore()
+             ~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:92:18 - error TS2339: Property 'getImageData' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'getImageData' does not exist on type 'ImageBitmapRenderingContext'.
+
+92   return context.getImageData(
+                    ~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:106:11 - error TS2339: Property 'clearRect' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'clearRect' does not exist on type 'ImageBitmapRenderingContext'.
+
+106   context.clearRect(0, 0, size, size)
+              ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:107:11 - error TS2339: Property 'save' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'save' does not exist on type 'ImageBitmapRenderingContext'.
+
+107   context.save()
+              ~~~~
+src/lib/public-map/public-map-marker-static-images.ts:108:11 - error TS2339: Property 'shadowColor' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'shadowColor' does not exist on type 'ImageBitmapRenderingContext'.
+
+108   context.shadowColor = `rgba(15, 23, 42, ${opacity})`
+              ~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:109:11 - error TS2339: Property 'shadowBlur' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'shadowBlur' does not exist on type 'ImageBitmapRenderingContext'.
+
+109   context.shadowBlur = 10
+              ~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:110:11 - error TS2339: Property 'shadowOffsetY' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'shadowOffsetY' does not exist on type 'ImageBitmapRenderingContext'.
+
+110   context.shadowOffsetY = 3
+              ~~~~~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:111:11 - error TS2339: Property 'fillStyle' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'fillStyle' does not exist on type 'ImageBitmapRenderingContext'.
+
+111   context.fillStyle = `rgba(15, 23, 42, ${opacity * 0.46})`
+              ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:112:11 - error TS2339: Property 'beginPath' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'beginPath' does not exist on type 'ImageBitmapRenderingContext'.
+
+112   context.beginPath()
+              ~~~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:113:11 - error TS2339: Property 'arc' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'arc' does not exist on type 'ImageBitmapRenderingContext'.
+
+113   context.arc(center, center - 1, radius, 0, Math.PI * 2)
+              ~~~
+src/lib/public-map/public-map-marker-static-images.ts:114:11 - error TS2339: Property 'fill' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'fill' does not exist on type 'ImageBitmapRenderingContext'.
+
+114   context.fill()
+              ~~~~
+src/lib/public-map/public-map-marker-static-images.ts:115:11 - error TS2339: Property 'restore' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'restore' does not exist on type 'ImageBitmapRenderingContext'.
+
+115   context.restore()
+              ~~~~~~~
+src/lib/public-map/public-map-marker-static-images.ts:117:18 - error TS2339: Property 'getImageData' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'getImageData' does not exist on type 'ImageBitmapRenderingContext'.
+
+117   return context.getImageData(
+                     ~~~~~~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:100:11 - error TS2339: Property 'scale' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'scale' does not exist on type 'ImageBitmapRenderingContext'.
+
+100   context.scale(
+              ~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:104:11 - error TS2339: Property 'imageSmoothingEnabled' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingEnabled' does not exist on type 'ImageBitmapRenderingContext'.
+
+104   context.imageSmoothingEnabled = true
+              ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:105:11 - error TS2339: Property 'imageSmoothingQuality' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingQuality' does not exist on type 'ImageBitmapRenderingContext'.
+
+105   context.imageSmoothingQuality = "high"
+              ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:305:11 - error TS2339: Property 'clearRect' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'clearRect' does not exist on type 'ImageBitmapRenderingContext'.
+
+305   context.clearRect(
+              ~~~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:311:23 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+311   drawPinSilhouette({ context, geometry })
+                          ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:122:3
+    122   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:312:36 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+312   beginPinFace({ color: faceColor, context, geometry })
+                                       ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:179:3
+    179   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ color: string; context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:318:7 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerIconContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerIconContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+318       context,
+          ~~~~~~~
+
+  src/lib/public-map/public-map-marker-icons.ts:84:3
+    84   context: MarkerIconContext
+         ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ category: PublicMapResourceCategoryKey; color?: string | undefined; context: MarkerIconContext; geometry: MarkerIconGeometry; iconScale?: number | undefined; minimumIconSize?: number | undefined; selected: boolean; strokeWidth?: number | undefined; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:327:7 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerIconContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerIconContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+327       context,
+          ~~~~~~~
+
+  src/lib/public-map/public-map-marker-icons.ts:111:3
+    111   context: MarkerIconContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ color?: string | undefined; context: MarkerIconContext; geometry: MarkerIconGeometry; iconScale?: number | undefined; minimumIconSize?: number | undefined; selected: boolean; strokeWidth?: number | undefined; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:335:11 - error TS2339: Property 'restore' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'restore' does not exist on type 'ImageBitmapRenderingContext'.
+
+335   context.restore()
+              ~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:336:23 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+336   drawPinFaceBorder({ context, geometry })
+                          ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:200:3
+    200   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:338:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+338     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:223:3
+    223   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; count?: number | undefined; selected: boolean; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:342:36 - error TS2345: Argument of type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to parameter of type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+342   return readMarkerCanvasImageData(context)
+                                       ~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:353:11 - error TS2339: Property 'clearRect' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'clearRect' does not exist on type 'ImageBitmapRenderingContext'.
+
+353   context.clearRect(
+              ~~~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:359:23 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+359   drawPinSilhouette({ context, geometry })
+                          ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:122:3
+    122   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:362:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+362     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:179:3
+    179   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ color: string; context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:365:43 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+365   drawBitmapCover({ bitmap: input.bitmap, context, geometry })
+                                              ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:267:3
+    267   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ bitmap: ImageBitmap; context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:366:11 - error TS2339: Property 'restore' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'restore' does not exist on type 'ImageBitmapRenderingContext'.
+
+366   context.restore()
+              ~~~~~~~
+src/lib/public-map/public-map-pin-marker-canvas.ts:367:23 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+367   drawPinFaceBorder({ context, geometry })
+                          ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:200:3
+    200   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; geometry: PublicMapPinMarkerGeometry; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:369:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+369     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-pin-marker-canvas.ts:223:3
+    223   context: MarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: MarkerCanvasContext; count?: number | undefined; selected: boolean; }'
+src/lib/public-map/public-map-pin-marker-canvas.ts:373:36 - error TS2345: Argument of type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to parameter of type 'MarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'MarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+373   return readMarkerCanvasImageData(context)
+                                       ~~~~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:71:11 - error TS2339: Property 'scale' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'scale' does not exist on type 'ImageBitmapRenderingContext'.
+
+71   context.scale(
+             ~~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:75:11 - error TS2339: Property 'imageSmoothingEnabled' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingEnabled' does not exist on type 'ImageBitmapRenderingContext'.
+
+75   context.imageSmoothingEnabled = true
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:76:11 - error TS2339: Property 'imageSmoothingQuality' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'imageSmoothingQuality' does not exist on type 'ImageBitmapRenderingContext'.
+
+76   context.imageSmoothingQuality = "high"
+             ~~~~~~~~~~~~~~~~~~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:420:11 - error TS2339: Property 'font' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'font' does not exist on type 'ImageBitmapRenderingContext'.
+
+420   context.font = resolveSpecialPillMarkerLabelFont(selected)
+              ~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:421:45 - error TS2345: Argument of type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to parameter of type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+421   const labelWidth = measureMarkerTextWidth(context, markerLabel)
+                                                ~~~~~~~
+src/lib/public-map/public-map-special-marker-canvas.ts:424:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+424     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-special-marker-canvas.ts:240:3
+    240   context: SpecialMarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: SpecialMarkerCanvasContext; labelWidth: number; selected: boolean; surfaceColor?: string | null | undefined; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-special-marker-canvas.ts:430:36 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+430   drawSpecialPillMarkerIconBadge({ context, geometry, palette, selected })
+                                       ~~~~~~~
+
+  src/lib/public-map/public-map-special-marker-canvas.ts:179:3
+    179   context: SpecialMarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: SpecialMarkerCanvasContext; geometry: PublicMapSpecialPillMarkerChromeGeometry; palette: PublicMapSpecialPillMarkerChromePalette; selected: boolean; }'
+src/lib/public-map/public-map-special-marker-canvas.ts:432:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+432     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-special-marker-canvas.ts:208:3
+    208   context: SpecialMarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: SpecialMarkerCanvasContext; geometry: PublicMapSpecialPillMarkerChromeGeometry; palette: PublicMapSpecialPillMarkerChromePalette; resourceCategory: PublicMapResourceCategoryKey; selected: boolean; }'
+src/lib/public-map/public-map-special-marker-canvas.ts:439:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+439     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-special-marker-canvas.ts:327:3
+    327   context: SpecialMarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: SpecialMarkerCanvasContext; geometry: PublicMapSpecialPillMarkerChromeGeometry; label: string; palette: PublicMapSpecialPillMarkerChromePalette; selected: boolean; }'
+src/lib/public-map/public-map-special-marker-canvas.ts:446:5 - error TS2322: Type 'OffscreenCanvasRenderingContext2D | RenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+  Type 'ImageBitmapRenderingContext' is not assignable to type 'SpecialMarkerCanvasContext'.
+    Type 'ImageBitmapRenderingContext' is missing the following properties from type 'OffscreenCanvasRenderingContext2D': globalAlpha, globalCompositeOperation, drawImage, beginPath, and 65 more.
+
+446     context,
+        ~~~~~~~
+
+  src/lib/public-map/public-map-special-marker-canvas.ts:363:3
+    363   context: SpecialMarkerCanvasContext
+          ~~~~~~~
+    The expected type comes from property 'context' which is declared here on type '{ context: SpecialMarkerCanvasContext; count?: number | undefined; geometry: PublicMapSpecialPillMarkerChromeGeometry; selected: boolean; theme: PublicMapTheme; }'
+src/lib/public-map/public-map-special-marker-canvas.ts:453:18 - error TS2339: Property 'getImageData' does not exist on type 'OffscreenCanvasRenderingContext2D | RenderingContext'.
+  Property 'getImageData' does not exist on type 'ImageBitmapRenderingContext'.
+
+453   return context.getImageData(
+                     ~~~~~~~~~~~~
+
+{"roots":16,"files":3226,"diagnostics":83}

@@ -2,6 +2,7 @@ import { buildPublicImageTransformUrl } from "@/lib/storage/public-url"
 
 import type { PublicMapGroupKey } from "@/lib/public-map/groups"
 
+import { getPublicMapCanvasContext2D } from "./public-map-canvas-context"
 import {
   createPublicMapFallbackMarkerImage,
   PUBLIC_MAP_MARKER_IMAGE_BACKING_SIZE,
@@ -103,7 +104,7 @@ function createMarkerBitmapCanvas() {
 function getMarkerBitmapCanvasContext(
   canvas: HTMLCanvasElement | OffscreenCanvas
 ) {
-  const context = canvas.getContext("2d", {
+  const context = getPublicMapCanvasContext2D(canvas, {
     willReadFrequently: true,
   })
   if (!context) return null
