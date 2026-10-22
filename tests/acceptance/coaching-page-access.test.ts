@@ -51,6 +51,18 @@ describe("coaching page account access", () => {
     })
   })
 
+  it("shows generic recovery guidance for an unavailable query without promising a credit", async () => {
+    context.mockResolvedValue({
+      supabase: {}, activeOrg: { orgId: "org" },
+      user: { id: "user", email: "user@example.test", app_metadata: {} },
+      profileAudience: { platformAccessLevel: null },
+    })
+    const page = await CoachingBookingPage({ searchParams: { checkout: "unavailable" } })
+    expect(page.props.bookingNotice).toBe("That time is no longer available. Choose another time.")
+    expect(page.props.bookingNotice).not.toContain("credit")
+    expect(confirmCheckout).not.toHaveBeenCalled()
+  })
+
   it("requires sign-in", async () => {
     context.mockResolvedValue(null)
     await expect(CoachingBookingPage()).rejects.toThrow("redirect:/login?redirect=/coaching")

@@ -9,16 +9,6 @@ type GoogleTokenCache = {
   expiresAt: number
 }
 
-type GoogleBusyWindow = {
-  start: string
-  end: string
-}
-
-type CoachingBusyWindow = {
-  startsAt: string
-  endsAt: string
-}
-
 type GoogleEventResponse = {
   status?: string
   id?: string
@@ -183,11 +173,13 @@ export async function requestGoogleCalendarDirect<T>({
   path,
   method = "GET",
   body,
+  requestHeaders,
 }: {
   coachId?: CoachingCoachId
   path: string
   method?: "GET" | "POST" | "PATCH" | "DELETE"
   body?: unknown
+  requestHeaders?: Record<string, string>
 }) {
   const token = await getAccessToken(coachId)
   const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
@@ -196,6 +188,7 @@ export async function requestGoogleCalendarDirect<T>({
     headers: {
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
+      ...requestHeaders,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
@@ -361,7 +354,7 @@ export async function requestGoogleCalendarBroker<T>({ operation, payload }: { o
   }
 
   if (!response.ok) {
-    throw new Error(`Google Calendar broker request failed (${response.status}).`)
+    throw Object.assign(new Error(`Google Calendar broker request failed (${response.status}).`), { status: response.status })
   }
 
   return (await response.json()) as T
@@ -415,48 +408,7 @@ async function waitForMeetUrl({
   return { event: currentEvent, meetUrl: extractMeetUrl(currentEvent) }
 }
 
-export async function listGoogleBusyWindows({
-  coachId,
-  timeMin,
-  timeMax,
-}: {
-  coachId: CoachingCoachId
-  timeMin: string
-  timeMax: string
-}) {
-  if (isBrokerConfigured()) {
-    const payload = await requestGoogleCalendarBroker<{
-      busy?: CoachingBusyWindow[]
-    }>({
-      operation: "freeBusy",
-      payload: { coachId, timeMin, timeMax },
-    })
-    return payload.busy ?? []
-  }
-
-  const calendarId = getCoachCalendarId(coachId)
-  if (!calendarId) {
-    throw new Error("Coach calendar is not configured.")
-  }
-
-  const payload = await requestGoogleCalendarDirect<{
-    calendars?: Record<string, { busy?: GoogleBusyWindow[] }>
-  }>({
-    coachId,
-    path: "/freeBusy",
-    method: "POST",
-    body: {
-      timeMin,
-      timeMax,
-      items: [{ id: calendarId }],
-    },
-  })
-
-  return (payload.calendars?.[calendarId]?.busy ?? []).map((window) => ({
-    startsAt: window.start,
-    endsAt: window.end,
-  }))
-}
+export { listGoogleBusyWindows } from "./calendar-conflicts"
 
 export async function createGoogleCoachingEvent({
   coachId,

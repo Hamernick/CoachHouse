@@ -32,6 +32,7 @@ import {
   normalizeCoachId,
 } from "../lib"
 import { buildCandidateSlots } from "../lib/availability"
+import { COACHING_SLOT_UNAVAILABLE, COACHING_SLOT_UNAVAILABLE_MESSAGE, isCoachingSlotUnavailable } from "../lib/booking-errors"
 import { COACHING_ATTENDEE_NOTES_MAX_LENGTH } from "../types"
 import type {
   CoachingActionResult,
@@ -148,17 +149,21 @@ function hasOverlap({
 async function listJointBusyWindows({
   from,
   to,
+  excludeBookingId,
+  excludeGoogleEventId,
 }: {
   from: string
   to: string
+  excludeBookingId?: string
+  excludeGoogleEventId?: string
 }) {
   const admin = createSupabaseAdminClient()
   const windows = await Promise.all([
     ...COACHING_JOINT_COACH_IDS.map((coachId) =>
-      listLocalBusyWindows({ supabase: admin, coachId, from, to })
+      listLocalBusyWindows({ supabase: admin, coachId, from, to, excludeBookingId })
     ),
     ...COACHING_JOINT_COACH_IDS.map((coachId) =>
-      listGoogleBusyWindows({ coachId, timeMin: from, timeMax: to })
+      listGoogleBusyWindows({ coachId, timeMin: from, timeMax: to, excludeGoogleEventId })
     ),
   ])
   return windows.flat()
@@ -276,6 +281,8 @@ export async function reserveCoachingBookingAction(
       return { ok: false, error: "Coach calendar is not connected yet." }
     }
 
+    const context = await resolveActionContext()
+
     const endsAt = addMinutes(startsAt, COACHING_SESSION_MINUTES)
     const attendeeNotes = normalizeAttendeeNotes(input.attendeeNotes)
     const busyWindows = await listJointBusyWindows({
@@ -285,11 +292,11 @@ export async function reserveCoachingBookingAction(
     if (hasOverlap({ startsAt, endsAt, windows: busyWindows })) {
       return {
         ok: false,
-        error: "That slot was just taken. Pick another time.",
+        error: COACHING_SLOT_UNAVAILABLE_MESSAGE,
+        code: COACHING_SLOT_UNAVAILABLE,
       }
     }
 
-    const context = await resolveActionContext()
     const admin = createSupabaseAdminClient()
     const creditSummary = await resolveCoachingCreditSummary({
       supabase: admin,
@@ -323,16 +330,18 @@ export async function reserveCoachingBookingAction(
       .single()
 
     if (error) {
+      if (isCoachingSlotUnavailable(error)) return { ok: false, error: COACHING_SLOT_UNAVAILABLE_MESSAGE, code: COACHING_SLOT_UNAVAILABLE }
       throw supabaseErrorToError(error, "Unable to reserve coaching booking.")
     }
 
     if (priceTier === "included") {
       try {
-        await confirmCoachingBooking({
+        const confirmed = await confirmCoachingBooking({
           admin,
           booking,
           attendeeEmail: context.userEmail,
         })
+        if (confirmed.status !== "confirmed") return { ok: false, error: COACHING_SLOT_UNAVAILABLE_MESSAGE, code: COACHING_SLOT_UNAVAILABLE }
       } catch (confirmError) {
         await admin
           .from("coaching_bookings")
@@ -397,6 +406,7 @@ export async function reserveCoachingBookingAction(
       ok: false,
       error:
         error instanceof Error ? error.message : "Unable to book coaching.",
+      ...(isCoachingSlotUnavailable(error) ? { code: COACHING_SLOT_UNAVAILABLE } : {}),
     }
   }
 }
@@ -498,16 +508,14 @@ export async function rescheduleCoachingBookingAction(
     const busyWindows = await listJointBusyWindows({
       from: startsAt.toISOString(),
       to: endsAt.toISOString(),
+      excludeBookingId: booking.id,
+      excludeGoogleEventId: booking.google_event_id ?? undefined,
     })
-    const conflictingWindows = busyWindows.filter(
-      (window) =>
-        Date.parse(window.startsAt) !== Date.parse(booking.starts_at) ||
-        Date.parse(window.endsAt) !== Date.parse(booking.ends_at)
-    )
-    if (hasOverlap({ startsAt, endsAt, windows: conflictingWindows })) {
+    if (hasOverlap({ startsAt, endsAt, windows: busyWindows })) {
       return {
         ok: false,
-        error: "That slot was just taken. Pick another time.",
+        error: COACHING_SLOT_UNAVAILABLE_MESSAGE,
+        code: COACHING_SLOT_UNAVAILABLE,
       }
     }
 

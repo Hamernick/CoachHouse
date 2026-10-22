@@ -23,3 +23,26 @@ Workspace Admin must authorize service account OAuth client `1083093572603497926
 - `GOOGLE_COACHING_BROKER_SECRET`
 
 The broker URL points at the Cloud Run service root. The secret must match `COACHING_CALENDAR_BROKER_SECRET`.
+
+## Blocking calendars and rollout
+
+The configured coach calendar always blocks availability. Optional
+`GOOGLE_COACHING_JOEL_BLOCKING_CALENDAR_IDS` and
+`GOOGLE_COACHING_PAULA_BLOCKING_CALENDAR_IDS` add comma-separated calendar IDs;
+set these on the broker (or the main app when using direct credentials).
+Include only calendars the coach intends to block bookings. Every configured
+calendar must be readable; missing entries, calendar errors, malformed intervals,
+and incomplete event pages prevent booking rather than imply free time.
+
+Deploy this broker revision before the corresponding app revision. Its
+`freeBusy` response includes `availabilityVersion: 2`; the app rejects older
+responses. Existing-event exclusion uses a bounded paginated event query and the
+organizer event's verified iCalUID and organizer email, preserving unrelated
+conflicts even at identical times. All-day opaque events returned by Google's
+overlap query block the queried slot without interpreting date-only times as UTC.
+
+`getEventForTitle` reads the complete current event. `updateEventTitle` requires
+its ETag and `sendUpdates: "all"`, sends a summary-only PATCH with `If-Match`,
+and returns an independent readback. A stale ETag returns HTTP 412. Existing
+reschedule operations remain time-only. Title repairs must be previewed and
+applied only to the reviewed booking/event list; no broad calendar scan is needed.

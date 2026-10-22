@@ -25,6 +25,7 @@ export type CoachingCoach = {
 }
 
 export type CoachingParticipant = {
+  calendarName?: string | null
   name: string
   initials: string
   imageUrl: string | null
@@ -50,6 +51,7 @@ export type CoachingSlot = {
 }
 
 export type CoachingBookingRecord = {
+  calendarTitle?: string
   id: string
   coachId: CoachingCoachId
   coachName: string
@@ -96,4 +98,4 @@ export type CoachingManageBookingInput = {
 
 export type CoachingActionResult<T> =
   | ({ ok: true } & T)
-  | { ok: false; error: string }
+  | { ok: false; error: string; code?: "COACHING_SLOT_UNAVAILABLE" }
