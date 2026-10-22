@@ -8,10 +8,10 @@ export function objectiveAiTransport(read: () => ObjectiveIslandData, save: (dat
   return {
     async quote() {
       const history = Object.values(runs())
-      return { maximumCredits: 100, tariffVersion: "fictional", account: { enabled: true, lots: [{ kind: "included", credits: 1000, spent: history.reduce((sum, run) => sum + (run.credits ?? 0), 0), reserved: history.filter(run => run.status === "running").length * 100, expiresAt: null }], history: [] } }
+      return { maximumCredits: 100, tariffVersion: "fictional", documents: [{ sectionId: "mission", title: "Mission", revision: "2026-10-22T12:00:00Z" }], account: { enabled: true, lots: [{ kind: "included", credits: 1000, spent: history.reduce((sum, run) => sum + (run.credits ?? 0), 0), reserved: history.filter(run => run.status === "running").length * 100, expiresAt: null }], history: [] } }
     },
     async generate(input) {
-      const run: FixtureRun = { id: input.id, target: input.target, status: "running", content: null, credits: null, maxCredits: 100, application: null, revisionSourceRunId: input.reviseRunId }
+      const run: FixtureRun = { id: input.id, target: input.target, status: "running", content: null, credits: null, maxCredits: 100, application: null, revisionSourceRunId: input.reviseRunId, document: input.document }
       saveRun(run)
       await new Promise(resolve => setTimeout(resolve, input.prompt.includes("slow") ? 1500 : 100))
       if (runs()[run.id].status === "canceled") return { proposal: runs()[run.id] }

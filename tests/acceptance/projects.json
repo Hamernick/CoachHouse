@@ -154,6 +154,8 @@
       "tests/acceptance/workspace-accelerator-step-node-card.test.ts",
       "tests/acceptance/workspace-ai.test.ts",
     "tests/acceptance/workspace-ai-plans.test.ts",
+    "tests/acceptance/workspace-ai-document-context.test.ts",
+    "tests/acceptance/workspace-ai-plan-application-context.test.ts",
     "tests/acceptance/workspace-ai-provider.test.ts",
       "tests/acceptance/workspace-board-accelerator-step-node-layout.test.ts",
       "tests/acceptance/workspace-board-accelerator-step-node-visibility.test.ts",

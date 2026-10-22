@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { aiPlanContentSchema, aiPlanTargetSchema, type AiPlanContent, type AiPlanProposal } from "../ai-plan-types"
+import { aiPlanContentSchema, aiPlanTargetSchema, aiPlanDocumentSchema, type AiPlanContent, type AiPlanProposal } from "../ai-plan-types"
 
 const key = z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/)
 export const generatedPlanShape = z.object({
@@ -40,11 +40,11 @@ export function bindAiPlan(text: string, runId: string, objectiveId: string, uui
 }
 export function aiPlanProposal(value: unknown): AiPlanProposal {
   const run = z.object({ id: z.uuid(), task: z.literal("plan"), actor_id: z.uuid(), org_id: z.uuid(),
-    target: aiPlanTargetSchema.extend({ kind: z.literal("plan"), title: z.string(), description: z.string().nullable(), revisionSourceRunId: z.uuid().optional() }),
+    target: aiPlanTargetSchema.extend({ kind: z.literal("plan"), title: z.string(), description: z.string().nullable(), revisionSourceRunId: z.uuid().optional(), document: aiPlanDocumentSchema.optional() }),
     status: z.enum(["reserved", "running", "reconciling", "succeeded", "failed", "canceled"]), proposal: z.string().nullable(), charged_credits: z.number().nullable(), max_credits: z.number(),
   }).parse(value)
   if (run.target.userId !== run.actor_id || run.target.organizationId !== run.org_id) throw new Error("Invalid proposal scope.")
   const content = run.proposal ? aiPlanContentSchema.parse(JSON.parse(run.proposal)) : null
   if (content && (content.draft.id !== run.id || content.draft.objectiveId !== run.target.objectiveId)) throw new Error("Invalid proposal target.")
-  return { id: run.id, target: aiPlanTargetSchema.parse({ userId: run.actor_id, organizationId: run.org_id, objectiveId: run.target.objectiveId, revision: run.target.revision }), status: run.status, content, credits: run.charged_credits, maxCredits: run.max_credits, application: null, revisionSourceRunId: run.target.revisionSourceRunId }
+  return { id: run.id, target: aiPlanTargetSchema.parse({ userId: run.actor_id, organizationId: run.org_id, objectiveId: run.target.objectiveId, revision: run.target.revision }), status: run.status, content, credits: run.charged_credits, maxCredits: run.max_credits, application: null, revisionSourceRunId: run.target.revisionSourceRunId, document: run.target.document }
 }

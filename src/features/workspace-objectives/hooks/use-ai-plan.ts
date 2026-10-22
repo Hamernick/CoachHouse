@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-import type { AiPlanProposal, AiPlanQuote, AiPlanTarget, AiPlanTransport } from "../ai-plan-types"
+import type { AiPlanDocument, AiPlanProposal, AiPlanQuote, AiPlanTarget, AiPlanTransport } from "../ai-plan-types"
 const terminal = (proposal: AiPlanProposal | null) => proposal && ["succeeded", "failed", "canceled"].includes(proposal.status)
 export function useAiPlan(target: AiPlanTarget, transport: AiPlanTransport, onChanged: () => void) {
   const [quote, setQuote] = useState<AiPlanQuote | null>(null)
@@ -34,12 +34,12 @@ export function useAiPlan(target: AiPlanTarget, transport: AiPlanTransport, onCh
     }
     return () => { current = false; alive.current = false }
   }, [target, transport, storageKey])
-  async function generate(prompt: string, revise: boolean) {
+  async function generate(prompt: string, revise: boolean, document?: AiPlanDocument) {
     if (locked.current || !quote || (runId && !terminal(proposal))) return false
     locked.current = true; setPending(true); setError(null)
     const prior = proposal; const id = crypto.randomUUID(); remember(id); setPrevious(prior); setProposal(null)
     try {
-      const result = await transport.generate({ id, target, prompt, maximumCredits: quote.maximumCredits, tariffVersion: quote.tariffVersion, ...(revise && prior ? { reviseRunId: prior.id } : {}) })
+      const result = await transport.generate({ id, target, prompt, ...(document ? { document } : {}), maximumCredits: quote.maximumCredits, tariffVersion: quote.tariffVersion, ...(revise && prior ? { reviseRunId: prior.id } : {}) })
       if (!alive.current) return false
       if (result.proposal) {
         setProposal(result.proposal)

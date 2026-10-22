@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { bindAiPlan, generatedPlanSchema, aiPlanProposal } from "@/features/workspace-objectives/lib/ai-plan-proposal"
 import { handleWorkspaceAiPlan } from "@/features/workspace-objectives/server/ai-plan-generation"
-const mocks = vi.hoisted(() => ({ objective: vi.fn(), read: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), correlate: vi.fn(), reconcile: vi.fn(), provider: vi.fn() }))
+const mocks = vi.hoisted(() => ({ objective: vi.fn(), read: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), correlate: vi.fn(), reconcile: vi.fn(), provider: vi.fn(), document: vi.fn() }))
 vi.mock("@/features/workspace-objectives/server/ai-plan-context", () => ({ loadPlanObjective: mocks.objective, loadAiPlan: mocks.read }))
 vi.mock("@/features/ai-credits", () => ({ reserveAiRun: mocks.reserve, claimAiRun: mocks.claim, settleAiRun: mocks.settle, correlateAiResponse: mocks.correlate, reconcileAiRun: mocks.reconcile }))
-vi.mock("@/features/workspace-ai/generation", async () => ({ ...await vi.importActual("@/features/workspace-ai/server/request-body"), streamWorkspaceDraft: mocks.provider, workspaceAiConfig: () => ({ tariff: { version: "fixture", model: "fixture" }, maxInputBytes: 70000, maxOutputTokens: 6000, maxCredits: 100, maxCost: 200000 }) }))
+vi.mock("@/features/workspace-ai/generation", async () => ({ ...await vi.importActual("@/features/workspace-ai/server/request-body"), streamWorkspaceDraft: mocks.provider, loadAiDocument: mocks.document, workspaceAiConfig: () => ({ tariff: { version: "fixture", model: "fixture" }, maxInputBytes: 70000, maxOutputTokens: 6000, maxCredits: 100, maxCost: 200000 }) }))
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
 const target = { organizationId: id(1), userId: id(2), objectiveId: id(3), revision: "2026-10-22T12:00:00Z" }
 const generated = { title: "Event plan", summary: "Choose a venue, then prepare the event.", assumptions: ["Venue access is not confirmed."], questions: ["Is a venue available?"],
@@ -15,6 +15,7 @@ let saved: unknown
 beforeEach(() => {
   vi.clearAllMocks()
   saved = null
+  mocks.document.mockResolvedValue({ section: { id: "mission", title: "Mission", lastUpdated: target.revision, content: "Serve local families." } })
   mocks.objective.mockResolvedValue({ orgId: id(1), userId: id(2), objective: { title: "Community event", description: null } })
   mocks.reserve.mockResolvedValue({ created: true }); mocks.claim.mockResolvedValue(true); mocks.reconcile.mockResolvedValue(undefined)
   mocks.provider.mockImplementation(async ({ onResponse }) => { await onResponse("response-1"); return { text: JSON.stringify(generated), usage: { input: 500, cachedInput: 0, output: 800 }, completed: true } })
@@ -47,6 +48,33 @@ describe("reviewed metered plan generation", () => {
     mocks.reserve.mockRejectedValueOnce(new Error("Not enough credits"))
     expect((await handleWorkspaceAiPlan(request())).status).toBe(400)
     expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("includes only explicitly selected server-loaded context and records its canonical revision", async () => {
+    await handleWorkspaceAiPlan(request())
+    expect(JSON.parse(mocks.provider.mock.calls[0][0].context).selectedDocument).toBeNull()
+    expect(mocks.document).not.toHaveBeenCalled()
+    await handleWorkspaceAiPlan(request({ document: { sectionId: "mission", title: "Untrusted client title", revision: target.revision } }))
+    expect(mocks.document).toHaveBeenCalledWith({ sectionId: "mission", title: "Untrusted client title", revision: target.revision, userId: target.userId, organizationId: target.organizationId })
+    expect(JSON.parse(mocks.provider.mock.calls[1][0].context).selectedDocument).toEqual({ sectionId: "mission", title: "Mission", revision: target.revision, content: "Serve local families." })
+    expect(mocks.reserve.mock.calls[1][0].target.document).toEqual({ sectionId: "mission", title: "Mission", revision: target.revision })
+    expect(JSON.stringify(mocks.reserve.mock.calls[1][0].target)).not.toContain("Serve local families")
+    expect(mocks.reserve.mock.calls[1][0].hash).not.toBe(mocks.reserve.mock.calls[0][0].hash)
+  })
+  it("rejects unavailable, stale, forged-scope and oversized document context before charging", async () => {
+    const document = { sectionId: "mission", title: "Mission", revision: target.revision }
+    for (const message of ["Access denied", "This document changed"]) {
+      mocks.document.mockRejectedValueOnce(new Error(message))
+      expect((await handleWorkspaceAiPlan(request({ document }))).status).toBe(400)
+    }
+    expect((await handleWorkspaceAiPlan(request({ document: { ...document, organizationId: id(9) } }))).status).toBe(400)
+    mocks.document.mockResolvedValueOnce({ section: { id: "mission", title: "Mission", lastUpdated: target.revision, content: "x".repeat(70000) } })
+    expect((await handleWorkspaceAiPlan(request({ document }))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled(); expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("cannot silently remove source context when revising an earlier proposal", async () => {
+    mocks.read.mockResolvedValueOnce({ proposal: { id: id(5), target, status: "succeeded", application: null, document: { sectionId: "mission", title: "Mission", revision: target.revision } } })
+    expect((await handleWorkspaceAiPlan(request({ reviseRunId: id(5) }))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled(); expect(mocks.provider).not.toHaveBeenCalled()
   })
   it("settles malformed/unsafe graphs without a customer charge, retaining measured provider cost", async () => {
     mocks.provider.mockResolvedValue({ text: JSON.stringify({ ...generated, edges: [...generated.edges, { source: "local", target: "venue", label: "Loop" }] }), usage: { input: 10, cachedInput: 0, output: 20 }, completed: true })

@@ -6,8 +6,8 @@ import { resolveRoadmapSections } from "@/lib/roadmap"
 import { aiDocumentTargetSchema } from "../lib"
 import type { AiDocumentTarget } from "../types"
 
-export async function requireAiActor(target: AiDocumentTarget) {
-  aiDocumentTargetSchema.parse(target)
+export async function requireAiActor(target: Pick<AiDocumentTarget, "userId" | "organizationId">) {
+  aiDocumentTargetSchema.pick({ userId: true, organizationId: true }).parse({ userId: target.userId, organizationId: target.organizationId })
   const client = await createSupabaseServerClient()
   const { data: { user }, error } = await client.auth.getUser()
   if (error || !user || user.id !== target.userId) throw new Error("Sign in again before using this document.")
@@ -19,6 +19,7 @@ export async function requireAiActor(target: AiDocumentTarget) {
   return { client, userId: user.id, organizationId: active.orgId }
 }
 export async function loadAiDocument(target: AiDocumentTarget) {
+  aiDocumentTargetSchema.parse(target)
   const actor = await requireAiActor(target)
   const { data, error } = await actor.client.from("organizations").select("profile").eq("user_id",actor.organizationId).single()
   if (error) throw new Error("This document could not be loaded.")
@@ -28,4 +29,14 @@ export async function loadAiDocument(target: AiDocumentTarget) {
   if (section.lastUpdated !== target.revision) throw new Error("This document changed. Reopen it before asking for a draft.")
   if (Buffer.byteLength(section.content,"utf8") > 60000) throw new Error("This document exceeds the current AI context limit.")
   return { ...actor, section }
+}
+
+// Metadata only; document bodies are loaded after deliberate selection.
+export async function listAiDocuments(scope: Pick<AiDocumentTarget, "userId" | "organizationId">) {
+  const actor = await requireAiActor(scope)
+  const { data, error } = await actor.client.from("organizations").select("profile").eq("user_id", actor.organizationId).single()
+  if (error) throw new Error("Unable to load available documents.")
+  return resolveRoadmapSections((data.profile ?? {}) as Record<string, unknown>)
+    .filter(section => !section.driveSource && !["budget", "calendar"].includes(section.id) && section.content.trim())
+    .map(section => ({ sectionId: section.id, title: section.title, revision: section.lastUpdated }))
 }
