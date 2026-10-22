@@ -60,7 +60,26 @@ but do not count toward progress. Converging branches use OR semantics. Completi
 an action never chooses an outcome. Decision choices are plan-specific; shared action
 steps retain canonical completion. Older clients preserve choices and cannot leave
 invalid outcomes. Before the v2 RPC is available, decision controls stay unavailable.
-Reviewed AI plan proposals and automatic evidence-based decision evaluation remain unfinished. Browser fixture `/?objectives` is
+Automatic evidence-based decision evaluation remains unfinished. Browser fixture `/?objectives` is
 fictional and simulates persistence. The disposable PostgreSQL suite verifies real
 permissions, transactions and concurrent writers independently; authenticated
 Next/Supabase browser integration remains a release gate.
+
+## Reviewed AI plans
+
+Custom objectives expose Plan with AI behind the existing AI flag. The server checks
+canonical objective scope/revision before reserving credits in the existing ledger.
+The shared OpenAI Responses adapter requests strict JSON-schema output; independent
+domain validation rejects broken references, duplicate outcomes and cycles. Server
+IDs bind private proposals to their objective. New steps are todo, choices unselected.
+
+Review exposes assumptions, questions and synchronized checklist/tree previews.
+Revise creates a separately quoted private proposal. Apply uses the canonical plan
+writer and private receipt atomically; replays never duplicate the plan. Undo only
+removes untouched, unshared generated work. Scoped run IDs recover lost responses;
+failed revisions can restore the prior proposal after reload. Closing never applies.
+
+`20261022170000_workspace_ai_plans.sql` and both plan migrations remain local-only.
+No second wallet or graph store. AI quality/model selection, authenticated runtime
+and user visual acceptance remain unproven. The browser fixture simulates generation
+and persistence without provider calls or production data.

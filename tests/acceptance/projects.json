@@ -153,6 +153,8 @@
       "tests/acceptance/workspace-accelerator-runtime-snapshot.test.ts",
       "tests/acceptance/workspace-accelerator-step-node-card.test.ts",
       "tests/acceptance/workspace-ai.test.ts",
+    "tests/acceptance/workspace-ai-plans.test.ts",
+    "tests/acceptance/workspace-ai-provider.test.ts",
       "tests/acceptance/workspace-board-accelerator-step-node-layout.test.ts",
       "tests/acceptance/workspace-board-accelerator-step-node-visibility.test.ts",
       "tests/acceptance/workspace-board-canvas-body.test.ts",

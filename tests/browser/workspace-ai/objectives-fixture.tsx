@@ -7,6 +7,7 @@ import { useState } from "react"
 import { ObjectivesIsland } from "../../../src/features/workspace-objectives/components/objectives-island"
 import { Button } from "../../../src/components/ui/button"
 import type { ObjectiveIslandData, ObjectiveIslandTransport } from "../../../src/features/workspace-objectives/island-types"
+import { objectiveAiTransport } from "./objective-ai-transport"
 import { scope } from "./fixture-data"
 
 const id = "00000000-0000-4000-8000-000000000071"
@@ -48,6 +49,7 @@ const transport: ObjectiveIslandTransport = {
     step.status = input.done ? "done" : "todo"; step.updatedAt = new Date().toISOString(); save(data); return { ok: true }
   },
 }
+transport.ai = objectiveAiTransport(read, save, transport.savePlan!)
 export function ObjectivesFixture() {
   const [sourceScope, setScope] = useState(scope)
   const canvas = useObjectiveCanvas(`${sourceScope.userId}:${sourceScope.organizationId}`, true, [])

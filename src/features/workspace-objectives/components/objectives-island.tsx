@@ -1,7 +1,7 @@
 "use client"
 import { useCallback, useId, useMemo, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { ChevronDown, ListTodo, Plus, RefreshCw } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -16,6 +16,8 @@ import { ObjectivePlanList } from "./objective-plan-list"
 import { usePlanProjection } from "../hooks/use-plan-projection"
 import { draftFromPlan, type ObjectivePlan, type PlanDraft } from "../plan-types"
 import type { ObjectiveStep } from "../island-types"
+import { AiPlanDialog } from "./ai-plan-dialog"
+import type { WorkspaceObjectiveRecord } from "../types"
 import { ObjectiveIslandCard } from "./objective-island-card"
 
 export function ObjectivesIsland({ scope, canEdit, transport, onProjection }: {
@@ -31,6 +33,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
   const state = useObjectiveIsland(scope, transport)
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
+  const [aiObjective, setAiObjective] = useState<WorkspaceObjectiveRecord | null>(null)
   const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null)
   const [title, setTitle] = useState("")
   const id = useId()
@@ -54,9 +57,8 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
     <Collapsible open={open} onOpenChange={value => { setOpen(value); if (value) void state.refresh() }}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="h-[42px] w-full gap-2 rounded-full px-3 [@media(pointer:coarse)]:h-11" aria-label="Objectives">
-          <ListTodo data-icon="inline-start" aria-hidden /><span>Objectives</span>
+          <span>Objectives</span>
           {state.data && <span className="text-xs tabular-nums text-muted-foreground">{remaining}</span>}
-          <ChevronDown data-icon="inline-end" className={cn("transition-transform motion-reduce:transition-none", open && "rotate-180")} aria-hidden />
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent forceMount hidden={!open}>
@@ -83,12 +85,13 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
               onToggle={id => setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id])}
               onEdit={editPlan} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
+            {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => setAiObjective(objective)}>Plan with AI</Button>}
           </ObjectiveIslandCard>)}
-          <Button type="button" variant="ghost" size="sm" className="self-end rounded-full" disabled={state.pending} onClick={() => void state.refresh()}><RefreshCw data-icon="inline-start" aria-hidden />Refresh</Button>
         </div>
       </CollapsibleContent>
     </Collapsible>
   </motion.div>
+    {aiObjective && transport.ai && <AiPlanDialog key={aiObjective.id} scope={scope} objective={aiObjective} transport={transport.ai} onClose={() => setAiObjective(null)} onChanged={() => void state.refresh()} />}
     {planDraft && <ObjectivePlanEditor decisionsAvailable={state.data?.planning?.decisionsAvailable} key={planDraft.id} initial={planDraft} connectedStepIds={(state.data?.planning?.plans ?? []).flatMap(plan => plan.stepIds)} allSteps={(state.data?.steps ?? []).filter(step => step.editable && state.data?.objectives.some(objective => objective.id === step.objectiveId && objective.kind === "custom"))}
       pending={state.pending} error={state.error} onClose={() => setPlanDraft(null)} onSave={draft => state.mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} />}
   </>

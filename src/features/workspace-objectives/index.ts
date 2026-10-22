@@ -20,3 +20,5 @@ export type {
   WorkspaceObjectiveStatus,
   WorkspaceObjectiveStatusUpdateInput,
 } from "./types"
+
+export { handleWorkspaceAiPlan } from "./routes"

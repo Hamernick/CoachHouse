@@ -31,10 +31,10 @@ export function useObjectiveIsland(scope: ObjectiveScope, transport: ObjectiveIs
       if (!result.ok) { setError(result.error); return false }
       // A refresh failure is not a mutation failure: don't invite duplicate creation.
       const loaded = await load()
-      if (!loaded && alive.current) setError("Saved. Refresh to load the latest objectives.")
+      if (!loaded && alive.current) setError("Saved. Reopen Objectives to load the latest changes.")
       return true
     } catch {
-      if (alive.current) setError("The result could not be confirmed. Refresh before trying again.")
+      if (alive.current) setError("The result could not be confirmed. Reopen Objectives before trying again.")
       return false
     } finally { lock.current = false; if (alive.current) setPending(false) }
   }, [load])

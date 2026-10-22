@@ -8,10 +8,10 @@ import type { AiCreditAccount, AiRateCard, AiUsage } from "../types"
 // actorId is always supplied by a server-verified session. SQL independently
 // checks organization membership; these helpers are not public server actions.
 export async function reserveAiRun(input: {
-  id: string; organizationId: string; actorId: string; hash: string;
+  id: string; organizationId: string; actorId: string; hash: string; task?: "plan";
   target: Json; prompt: string; tariff: AiRateCard; maxCredits: number; maxCost: number
 }) {
-  const { data, error } = await createSupabaseAdminClient({ actorId: input.actorId }).rpc("reserve_workspace_ai_run", {
+  const { data, error } = await createSupabaseAdminClient({ actorId: input.actorId }).rpc(input.task === "plan" ? "reserve_workspace_ai_plan_run" : "reserve_workspace_ai_run", {
     p_id: input.id, p_org_id: input.organizationId, p_actor_id: input.actorId, p_hash: input.hash,
     p_target: input.target, p_prompt: input.prompt, p_tariff: input.tariff,
     p_max_credits: input.maxCredits, p_max_cost: input.maxCost,

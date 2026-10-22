@@ -6,6 +6,10 @@ export type AiCreditFunctions = {
     Returns: Json
   }
   can_use_workspace_ai: { Args: { p_org_id: string; p_actor_id: string }; Returns: boolean }
+  reserve_workspace_ai_plan_run: {
+    Args: { p_id: string; p_org_id: string; p_actor_id: string; p_hash: string; p_target: Json; p_prompt: string; p_tariff: Json; p_max_credits: number; p_max_cost: number }
+    Returns: Json
+  }
   reserve_workspace_ai_run: {
     Args: { p_id: string; p_org_id: string; p_actor_id: string; p_hash: string; p_target: Json; p_prompt: string; p_tariff: Json; p_max_credits: number; p_max_cost: number }
     Returns: Json

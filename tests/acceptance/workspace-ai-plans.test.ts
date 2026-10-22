@@ -1,0 +1,90 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { bindAiPlan, generatedPlanSchema, aiPlanProposal } from "@/features/workspace-objectives/lib/ai-plan-proposal"
+import { handleWorkspaceAiPlan } from "@/features/workspace-objectives/server/ai-plan-generation"
+const mocks = vi.hoisted(() => ({ objective: vi.fn(), read: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), correlate: vi.fn(), reconcile: vi.fn(), provider: vi.fn() }))
+vi.mock("@/features/workspace-objectives/server/ai-plan-context", () => ({ loadPlanObjective: mocks.objective, loadAiPlan: mocks.read }))
+vi.mock("@/features/ai-credits", () => ({ reserveAiRun: mocks.reserve, claimAiRun: mocks.claim, settleAiRun: mocks.settle, correlateAiResponse: mocks.correlate, reconcileAiRun: mocks.reconcile }))
+vi.mock("@/features/workspace-ai/generation", async () => ({ ...await vi.importActual("@/features/workspace-ai/server/request-body"), streamWorkspaceDraft: mocks.provider, workspaceAiConfig: () => ({ tariff: { version: "fixture", model: "fixture" }, maxInputBytes: 70000, maxOutputTokens: 6000, maxCredits: 100, maxCost: 200000 }) }))
+const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
+const target = { organizationId: id(1), userId: id(2), objectiveId: id(3), revision: "2026-10-22T12:00:00Z" }
+const generated = { title: "Event plan", summary: "Choose a venue, then prepare the event.", assumptions: ["Venue access is not confirmed."], questions: ["Is a venue available?"],
+  steps: [{ key: "venue", title: "Venue available?", kind: "decision" }, { key: "local", title: "Prepare the venue", kind: "action" }, { key: "online", title: "Prepare online session", kind: "action" }],
+  edges: [{ source: "venue", target: "local", label: "Yes" }, { source: "venue", target: "online", label: "No" }] }
+const request = (patch = {}) => new Request("http://localhost:3008/api/workspace/ai/plan", { method: "POST", headers: { origin: "http://localhost:3008" }, body: JSON.stringify({ id: id(4), target, prompt: "Plan a community event", maximumCredits: 100, tariffVersion: "fixture", ...patch }) })
+let saved: unknown
+beforeEach(() => {
+  vi.clearAllMocks()
+  saved = null
+  mocks.objective.mockResolvedValue({ orgId: id(1), userId: id(2), objective: { title: "Community event", description: null } })
+  mocks.reserve.mockResolvedValue({ created: true }); mocks.claim.mockResolvedValue(true); mocks.reconcile.mockResolvedValue(undefined)
+  mocks.provider.mockImplementation(async ({ onResponse }) => { await onResponse("response-1"); return { text: JSON.stringify(generated), usage: { input: 500, cachedInput: 0, output: 800 }, completed: true } })
+  mocks.settle.mockImplementation(async input => { saved = { id: input.id, actor_id: id(2), org_id: id(1), task: "plan", target: { ...target, kind: "plan", title: "Community event", description: null }, status: input.status, proposal: input.proposal, charged_credits: input.status === "succeeded" ? 5 : 0, max_credits: 100 }; return saved })
+  mocks.read.mockImplementation(async () => ({ proposal: aiPlanProposal(saved) }))
+})
+describe("reviewed metered plan generation", () => {
+  it("reserves before provider work, binds canonical IDs, and settles before delivering a private proposal", async () => {
+    const response = await handleWorkspaceAiPlan(request()); expect(response.status).toBe(200)
+    const { proposal } = await response.json()
+    expect(mocks.reserve.mock.invocationCallOrder[0]).toBeLessThan(mocks.provider.mock.invocationCallOrder[0])
+    expect(mocks.correlate).toHaveBeenCalledWith(id(4), "response-1")
+    expect(mocks.reserve).toHaveBeenCalledWith(expect.objectContaining({ task: "plan", organizationId: id(1), actorId: id(2) }))
+    const format = mocks.provider.mock.calls[0][0].textFormat
+    expect(format).toMatchObject({ type: "json_schema", name: "workspace_plan", strict: true, schema: { additionalProperties: false } })
+    expect(format.schema.required).toEqual(expect.arrayContaining(["title", "summary", "assumptions", "questions", "steps", "edges"]))
+    expect(proposal.content.draft.id).toBe(id(4))
+    expect(proposal.content.draft.steps.every((step: { id: string; status: string }) => step.id.length === 36 && step.status === "todo")).toBe(true)
+    expect(proposal.content.draft.decisions[0].selectedEdgeId).toBeNull()
+    expect(proposal.application).toBeNull()
+    expect(proposal.credits).toBe(5)
+  })
+  it("rejects origin, oversized input, access, stale tariff and budget failures before spending", async () => {
+    expect((await handleWorkspaceAiPlan(new Request("http://localhost:3008/api/workspace/ai/plan", { method: "POST", headers: { origin: "https://elsewhere.test" }, body: "{}" }))).status).toBe(403)
+    expect((await handleWorkspaceAiPlan(request({ prompt: "x".repeat(13000) }))).status).toBe(400)
+    expect((await handleWorkspaceAiPlan(request({ tariffVersion: "old" }))).status).toBe(400)
+    mocks.objective.mockRejectedValueOnce(new Error("Access denied"))
+    expect((await handleWorkspaceAiPlan(request())).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled()
+    mocks.reserve.mockRejectedValueOnce(new Error("Not enough credits"))
+    expect((await handleWorkspaceAiPlan(request())).status).toBe(400)
+    expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("settles malformed/unsafe graphs without a customer charge, retaining measured provider cost", async () => {
+    mocks.provider.mockResolvedValue({ text: JSON.stringify({ ...generated, edges: [...generated.edges, { source: "local", target: "venue", label: "Loop" }] }), usage: { input: 10, cachedInput: 0, output: 20 }, completed: true })
+    const { proposal } = await (await handleWorkspaceAiPlan(request())).json()
+    expect(proposal.status).toBe("failed"); expect(proposal.credits).toBe(0); expect(proposal.content).toBeNull()
+    expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", proposal: null, usage: { input: 10, cachedInput: 0, output: 20 } }))
+  })
+  it("holds unknown usage for existing recovery rather than retrying provider work", async () => {
+    mocks.provider.mockRejectedValue(new Error("Stream lost"))
+    const result = await (await handleWorkspaceAiPlan(request())).json()
+    expect(result.reserved).toBe(true); expect(mocks.settle).not.toHaveBeenCalled()
+    expect(mocks.reconcile).toHaveBeenCalledWith(id(4), null)
+    expect(mocks.provider).toHaveBeenCalledOnce()
+  })
+  it("recovers an existing run without another provider request", async () => {
+    mocks.reserve.mockResolvedValue({ created: false }); mocks.read.mockResolvedValue({ proposal: { id: id(4), status: "running" } })
+    expect((await (await handleWorkspaceAiPlan(request())).json()).proposal.status).toBe("running")
+    expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("revises private proposals, rejecting applied or stale sources before spending", async () => {
+    const previous = { id: id(5), target, status: "succeeded", application: null, content: bindAiPlan(JSON.stringify(generated), id(5), target.objectiveId, () => crypto.randomUUID()) }
+    mocks.read.mockResolvedValueOnce({ proposal: previous })
+    await handleWorkspaceAiPlan(request({ reviseRunId: id(5) }))
+    expect(JSON.parse(mocks.provider.mock.calls[0][0].context).previousProposal).toEqual(previous.content)
+    mocks.reserve.mockClear(); mocks.provider.mockClear()
+    for (const proposal of [{ ...previous, application: {} }, { ...previous, target: { ...target, revision: "changed" } }]) {
+      mocks.read.mockResolvedValueOnce({ proposal })
+      expect((await handleWorkspaceAiPlan(request({ reviseRunId: id(5) }))).status).toBe(400)
+    }
+    expect(mocks.reserve).not.toHaveBeenCalled(); expect(mocks.provider).not.toHaveBeenCalled()
+  })
+})
+describe("bounded typed plan proposals", () => {
+  it("rejects dangling references, duplicates, executable fields, and unnamed decisions", () => {
+    for (const value of [{ ...generated, steps: [...generated.steps, generated.steps[0]] }, { ...generated, edges: [{ source: "venue", target: "foreign", label: "" }] }, { ...generated, execute: "fetch(...)" }, { ...generated, edges: generated.edges.map(edge => ({ ...edge, label: "" })) }]) expect(generatedPlanSchema.safeParse(value).success).toBe(false)
+  })
+  it("allows questions before a plan exists, and rejects empty no-op replies", () => {
+    expect(generatedPlanSchema.safeParse({ ...generated, steps: [], edges: [] }).success).toBe(true)
+    expect(generatedPlanSchema.safeParse({ ...generated, steps: [], edges: [], questions: [] }).success).toBe(false)
+  })
+})

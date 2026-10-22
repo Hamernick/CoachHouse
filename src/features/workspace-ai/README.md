@@ -20,4 +20,11 @@ The existing roadmap action commits the canonical profile and an immutable appli
 
 Tests: `tests/acceptance/workspace-ai*.test.ts`, disposable PostgreSQL via `pnpm test:rls:workspace-ai`, and `pnpm test:workspace-ai-browser`. The browser fixture uses real composer/editor components and save hooks with a deterministic simulated server. It validates UI wiring, not live authentication, provider output or database integration. Run its preview with `pnpm exec vite --config tests/browser/workspace-ai/vite.config.ts` at `http://127.0.0.1:3187`; no environment files, provider calls or production data are used. Do not run it alongside the browser suite on the same port. User visual acceptance and authenticated isolated-stack verification remain separate gates.
 
+The server-only `generation.ts` entrypoint lets Objectives reuse provider streaming,
+configuration and request bounds. Plans use strict JSON-schema output; documents
+retain sanitized HTML proposals. Native OpenAI SDK reuse supersedes the original
+AI SDK suggestion; no second chat/provider stack was installed. The model/tariff
+remain provisional pending real-provider evaluation. `store: false` is a request
+setting, not proof of account-wide retention policy.
+
 Authoritative continuation: `docs/plans/2026-10-22-workspace-ai-plan.md`, section12. This implementation is not release-ready.
