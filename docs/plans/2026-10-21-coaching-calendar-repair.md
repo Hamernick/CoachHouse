@@ -41,7 +41,7 @@ existing upcoming invite title correction preparation, and joint-coach conflicts
 
 ## Current checkpoint
 
-Implementation complete; preparing PR. No production changes.
+Implementation complete in open [PR346](https://github.com/Hamernick/CoachHouse/pull/346). No production changes.
 
 ### Implementation and local evidence
 
@@ -141,4 +141,5 @@ data-preserving trigger is a separate reviewed schema action, never auto-retry.
 - Application types final pass: `pnpm exec tsc --noEmit -p .tmp/coaching-tsconfig.json`.
 - Hosted checks/review/merge/deploy, production migration, real incident cause,
   exact provider title-preview eligibility and recipient acceptance remain open.
-- Commit/push/PR receipt follows after the normal hooks; no hosted polling.
+- Open non-draft [PR346](https://github.com/Hamernick/CoachHouse/pull/346). Runtime implementation `895a64ef`; private-artifact documentation `b6e4f5d`. Normal Node22 pre-push checks pass in5.07s, including full repository lint. Local and remote `b6e4f5d22175d0ad1f4ff0f47da9de77077d5bfb` independently matched before this documentation-only receipt; source checks remain valid. Checkout was clean/upstream-synced. No hosted checks polled; final remote verification is recorded in the handoff.
+- Resume `fix/coaching-calendar-20261021` in this checkout. Next: Caleb reviews current-head hosted gates/release; restore GCP access for actual blocking-calendar audit and exact read-only invite preview. Do not apply SQL, deploy, or rename live invites merely to close this handoff.
