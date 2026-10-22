@@ -1,8 +1,9 @@
 import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
 import type { AiCreditFunctions } from "./ai-functions"
+import type { DocumentFunctions } from "./document-functions"
 
-export type PublicFunctions = AiCreditFunctions & {
+export type PublicFunctions = AiCreditFunctions & DocumentFunctions & {
   save_organization_profile_with_brand_kit: {
     Args: { p_org_id: string; p_expected_updated_at: string; p_expected_brand_revision: string | null; p_identity: Json; p_profile_patch: Json }
     Returns: boolean
@@ -22,26 +23,6 @@ export type PublicFunctions = AiCreditFunctions & {
     Args: { p_organization_slug: string; p_link_id: string }
     Returns: Json
   }
-  can_edit_uploaded_document: { Args: { p_file_id: string }; Returns: boolean }
-  commit_uploaded_document_version: {
-    Args: { p_file_id: string; p_actor_id: string; p_request_id: string; p_generation: string;
-      p_expected_revision: string; p_expected_updated_at: string; p_sequence: number;
-      p_previous_hash: string; p_new_hash: string; p_new_size: number;
-      p_restore_version_id?: string; p_restore_checkpoint_base64?: string }
-    Returns: Json
-  }
-  reserve_uploaded_document_version: {
-    Args: { p_file_id: string; p_actor_id: string; p_request_id: string; p_generation: string;
-      p_expected_revision: string; p_expected_updated_at: string; p_sequence: number;
-      p_previous_hash: string; p_new_hash: string; p_new_size: number; p_restore_version_id?: string }
-    Returns: boolean
-  }
-  abandon_uploaded_document_version: { Args: { p_file_id: string; p_actor_id: string; p_request_id: string }; Returns: boolean }
-  finish_abandoned_document_version: { Args: { p_file_id: string; p_actor_id: string; p_request_id: string }; Returns: boolean }
-  can_edit_document_room: { Args: { p_room_id: string }; Returns: boolean }
-  initialize_document_room: { Args: { p_file_id: string; p_actor_id: string; p_base_revision: string; p_expected_updated_at: string; p_checkpoint_base64: string }; Returns: Json }
-  append_document_room_update: { Args: { p_room_id: string; p_generation: string; p_batch_id: string; p_update_base64: string }; Returns: Json }
-  compact_document_room: { Args: { p_room_id: string; p_generation: string; p_expected_sequence: number; p_checkpoint_base64: string }; Returns: boolean }
   record_fiscal_email_delivery: { Args: { p_event_id: string; p_message_id: string; p_event_type: string; p_occurred_at: string }; Returns: undefined }
   get_fiscal_guest_email_status: { Args: { p_project_id: string; p_user_id: string }; Returns: Json }
   purge_fiscal_email_delivery_events: { Args: Record<string, never>; Returns: number }
