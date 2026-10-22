@@ -1,3 +1,4 @@
+import { ObjectivesFixture } from "./objectives-fixture"
 import { RoadmapConflictReview } from "../../../src/components/roadmap/roadmap-editor/components/roadmap-conflict-review"
 import { WorkspaceWindowHeaderScope,useWorkspaceWindowHeaderActive } from "../../../src/components/workspace/workspace-window-header-slots"
 import { StrictMode, useEffect, useMemo, useState } from "react"
@@ -80,4 +81,4 @@ function Fixture() {
     <Toaster />
   </main>
 }
-createRoot(document.getElementById("root")!).render(<StrictMode><Fixture /></StrictMode>)
+createRoot(document.getElementById("root")!).render(<StrictMode>{new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)

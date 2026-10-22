@@ -6,7 +6,9 @@ Authoritative checkpoint for this planning slice. Companion: [rewritten prompt](
 
 ## 1. Recommendation and scope
 
-Build one bounded AI layer inside the current workspace. Reuse the canvas, document editor and saved-data owners. AI suggests; people approve changes; deterministic code enforces permissions, curriculum rules and money.
+Build an objective-led planning workspace for any organizational task. Objectives describe desired outcomes; each objective owns editable plans of steps, decisions, branches and linked resources. A compact Objectives island at the canvas top center expands into objective cards and inline plan checklists. The canvas projects those same plans as editable trees. Related plans display their explicit connections; unrelated plans remain separate trees. Funding discovery is an optional capability within a plan, not the organizing purpose of the product.
+
+Reuse the canvas, document editor and saved-data owners. AI proposes plans and revisions; people approve changes; deterministic code enforces permissions, curriculum rules and money.
 
 The first usable slice is: **select a core document → ask for help in the composer → see a streamed proposal and its credit cost → accept into the existing editor → save and reopen it.** This proves the same foundation later used for decision trees and resource matching.
 
@@ -129,7 +131,38 @@ Current graph relationships do not express all these distinctions. Add a version
 
 First preview with fictional local fixtures and a new development workspace. New-user starters can later use the versioned template. Existing users get an opt-in preview with a recoverable layout snapshot and retained IDs; adoption changes presentation without deleting underlying lessons, documents, custom resources or named workspaces. A future destructive replacement requires a separately reviewed exact scope. Rollback restores layout without rolling back legitimate intervening answers/document edits. Unknown schema data is preserved, never normalized into an empty board.
 
-## 5. Decision trees and objective tracker
+## 5. Objectives and synchronized plans — October 22 priority clarification
+
+The user's resumed direction supersedes the earlier funding-oriented framing and linear delivery order. Preserve the completed document-assistance slice; make the objective-to-plan journey the next visible implementation milestone. Authenticated runtime proof remains a release gate, not an open-ended prerequisite to building the requested planning experience.
+
+### Interaction contract
+
+- **Objective:** an editable desired outcome in the existing normalized objective collection. Examples include launching a program, recruiting volunteers, planning an event, improving governance or raising funds. Do not limit prompts/templates to funding.
+- **Plan:** one or more editable approaches attached to an objective, with ordered actions, decisions, named outcomes and linked documents/resources. The user can create and change them manually; AI proposals use the same model after review.
+- **Compact surface:** a rounded, Dynamic Island-style Objectives control at the top center of the existing canvas. Expand into compact objective cards with concise progress, status and accessible show-more controls. Avoid a separate dashboard or permanent large panel.
+- **Checklist view:** expanding an objective reveals its plan steps and branches inline. Decision alternatives are labeled and distinguishable; a flat list must not falsely imply all alternatives are required. Plan selection is available when an objective has multiple plans.
+- **Canvas view:** selecting a plan shows its tree using the existing graph engine. The checklist and graph share stable step IDs and canonical records; edits/completion in either view update the other after acknowledgment and survive reload.
+- **Related plans:** explicit, authorized relationships connect plans and expand their visible graph. Shared steps keep one identity. Unrelated plans display as separate trees; mere visual proximity or an AI guess does not merge records.
+- **Progress:** show actual applicable completed work; optional, unselected and unknown branches do not inflate or falsify completion. Keep learning, work and evidenced outcomes distinct.
+- **Preservation:** collapsing/switching hides a projection only. It cannot delete plans, answers, graph positions, collaborators' edits or pending drafts. Views remain useful when AI is disabled.
+
+Visual references: the user supplied a compact timeline/menu, expandable onboarding checklist, connected branch diagram and rounded segmented-progress card. Registry references are `https://lab.xevrion.dev/r/onboarding-checklist.json` and `https://lab.xevrion.dev/r/dynamic-island.json`. Inspect before adapting; preserve existing shadcn/Radix primitives, neutral light/dark tokens, keyboard support and reduced motion. Do not copy unrelated demo actions or install over shared components.
+
+### Next reviewable milestone
+
+Create an objective → add/edit a manual plan → expand its checklist → show/edit the same steps on the canvas → update status → reload. Demonstrate a related pair and an unrelated plan without duplicated records. Stop for a visible checkpoint at that boundary; report any remaining AI, billing, curriculum, matching or authenticated-runtime gates separately. Do not call a disconnected mock or schema-only change this milestone.
+
+### Sprint completion criteria
+
+1. The objective/checklist/tree journey above works with permissions, reliable saving and collaboration/conflict handling.
+2. AI creates and revises general-purpose plans as reviewed proposals, with validated/idempotent application and user-editable results.
+3. Metered document assistance, usage, purchases, limits and opt-in capped refill work as specified; proposed policy stays configurable pending approval.
+4. The expandable Accelerator retains the full curriculum, answers and completion, and links into objectives/plans without replacing canonical records.
+5. Relevant plans can invoke resource-specific funding discovery with verified sources, honest eligibility and amounts. Funding is not required for every objective.
+6. Resource terminology, accessible responsive UI, tested failure recovery and development-branch checkpoints are complete. Production migration, live billing, merge/deploy and appearance acceptance remain separately authorized gates.
+
+The remaining sections retain their security, persistence and evidence contracts.
+
 
 ### Decision trees
 
@@ -320,7 +353,7 @@ Purchase flow: choose one of three packs → see exact credits/price/taxes → S
 
 ## 10. Delivery sequence and acceptance
 
-Each phase ends with a complete usable interaction; no provider spend is exposed before metering. Use flags default-off and local/test fixtures before any production adoption.
+Each phase ends with a complete usable interaction; no provider spend is exposed before metering. Use flags default-off and local/test fixtures before any production adoption. **Priority override:** after the existing document-assistance checkpoint, implement section5's manual objective/checklist/tree journey and present that visible milestone, then AI plan proposals and remaining billing/curriculum/matching integrations. The table below remains the complete deliverable/evidence inventory, not an instruction to exhaust all infrastructure work before objective UI.
 
 | Phase | Deliverable | Required evidence |
 | --- | --- | --- |
@@ -439,3 +472,20 @@ Graphify AST refresh and unchanged semantic-cache restoration completed:22,923no
 - Registry value updates no longer briefly unregister the active editor, preventing keystrokes/save acknowledgment from resetting composer state. Per-document recovery/quote effects are fenced against target, mode and organization changes. Status reads and cancellation now reject a mismatched document target while allowing recovery after the document revision advances.
 - Evidence:13 focused acceptance tests pass across the streamed document route and new context/registry/status/cancel cases. All14 isolated Chromium scenarios pass; the4 context/scope scenarios also passed after the final effect-cleanup refinement. This includes other-editor mount/update, explicit switching and proposal recovery, removed-context prompt retention, hidden retained editors, and prior save/review/recovery behavior. No provider calls or shared-database mutation occurred.
 - Next: authenticated isolated-stack save/reopen, authorization and scheduled recovery integration, provider evaluation and user appearance acceptance. All later plan phases remain required. Existing PostgreSQL accounting/application proof remains valid at unchanged SQL. No new migration or activation is part of this slice; the five pending AI migrations and separate Brand Identity migration remain local-only.
+
+
+### Resumed objective-led direction — 2026-10-22
+
+The user clarified and resumed: general-purpose Objectives own editable plans; compact top-center island, inline expandable checklist and editable canvas tree are synchronized views. Explicitly related plans connect; unrelated plans remain separate. Funding is optional plan capability. Section5 and delivery priority now reflect this direction. Full original scope is preserved. Next implementation milestone is the manual persisted objective/checklist/tree interaction, followed by reviewed AI planning.
+
+Context checkpoint `21b7f4a97a408db7196cb21170f51c156d059214` independently matched the remote development branch. Graphify context maintenance completed (22,938 nodes/67,383 edges, valid endpoints; receipt `graphify-out/.graphify_ai_context_merge_receipt.json`). The isolated Vite preview was confirmed ready at127.0.0.1:3187 (session8469). The attempted local Colima/Docker installation exited1 before the pause; no authenticated stack or new verification result is claimed. Do not restart installation without inspecting its failure. Authenticated integration remains pending; production remains untouched.
+
+
+### Objectives island — first visible increment, not the complete planning milestone
+
+- Added a compact, expandable top-center Objectives control to the existing canvas, suppressed during tutorial/presentation. Reuses canonical objective and step tables and existing create/load owners. Custom objectives support creation, title/details/status edits and saved custom-step completion. System/source-managed completion stays protected; legacy fallback records remain read-only. No migration or shared-database write was performed.
+- Explicit user/org scope is checked server-side. Updates use org/custom ownership and expected updated_at; a refresh cannot silently rebase an open stale draft. Scope changes reset private UI. Collapse preserves unsaved fields. Mutation acknowledgment and refresh failure are distinguished to avoid retrying a successful create.
+- Registry references were inspected via shadcn CLI. Existing Radix/shadcn Card, Collapsible, fields and controls plus installed Framer Motion provide the adaptation; no registry source/dependencies replaced the app primitives. Narrow dark/reduced-motion capture inspected at `/tmp/workspace-objectives-island-dark.png`.
+- Evidence:4 focused objective acceptance tests pass (legacy mapping plus scope/read-only/stale-write/source protection).3 isolated browser scenarios pass for create/edit/step completion/reload, stale-draft and organization switching, narrow/reduced-motion layout. The strengthened stale-draft check passed again after fixing baseline retention across Refresh. Browser persistence is simulated; authenticated DB/browser proof remains pending. Whole TypeScript check reports existing unrelated errors, with no objective-island or changed canvas-view errors at that check; final fixture typing also reports no affected-file errors (`/tmp/workspace-objectives-island-final-types.log`). Focused lint passes without warnings. Boundaries, interaction locks and raw-button checks pass.
+- **Not complete:** users cannot yet create/select multiple plans, edit branches, connect related plans or view synchronized plan trees. Existing steps are displayed without inventing plan membership. Next cohesive slice must establish plan membership/relationships over existing objective/step IDs and connect both checklist and current React Flow canvas to the same saved records. Preserve existing manual canvas nodes/layout. Then add reviewed AI plan proposals and the remaining original deliverables.
+- The local container install failed because this Intel/macOS configuration has no compatible Docker/Go Homebrew bottles. Do not keep retrying or alter tap trust. Authenticated integration needs a separately resolved supported local runtime; this is not permission to use production.

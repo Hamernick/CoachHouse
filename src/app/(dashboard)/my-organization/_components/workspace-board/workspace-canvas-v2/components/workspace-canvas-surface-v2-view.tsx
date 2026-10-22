@@ -33,6 +33,7 @@ import { WorkspaceCanvasEdgeContextMenu } from "./workspace-canvas-edge-context-
 import { WorkspaceCanvasSurfaceV2ViewportControls } from "./workspace-canvas-surface-v2-viewport-controls-panel"
 import { useWorkspaceCanvasSurfaceGestureGuards } from "./workspace-canvas-surface-v2-gesture-effect"
 import { WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
+import { ObjectivesIsland } from "@/features/workspace-objectives/client"
 import { WorkspaceParticleDock } from "./workspace-particle-dock"
 import { WorkspaceCanvasSurfaceV2MobileShortcutOverlay } from "./workspace-canvas-surface-v2-mobile-shortcut-overlay"
 import {
@@ -325,6 +326,11 @@ export function WorkspaceCanvasSurfaceV2View({
               />
             }
           />
+          {!tutorialActive && !presentationMode && (
+            <div className="pointer-events-none absolute inset-x-2 top-14 z-10 flex justify-center md:top-2">
+              <ObjectivesIsland scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} canEdit={workspaceDataDrawerCanEdit} />
+            </div>
+          )}
           <WorkspaceCanvasSurfaceV2ViewportControls
             tutorialCalendarButtonCallout={
               tutorialCalendarButtonCallout ?? null
