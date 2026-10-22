@@ -3,6 +3,56 @@
 User approved the rewritten urgent plan on October21. Scope: client-first titles,
 existing upcoming invite title correction preparation, and joint-coach conflicts.
 
+## October22 coaching hours and three-calendar availability
+
+Current continuation: `fix/coaching-hours-calendars-20261022`, same isolated
+coaching checkout, fresh `origin/main` base `4ca66f42` after merged PR347/351.
+This section supersedes older current-status statements below.
+
+- User-approved hourly starts in America/Chicago: Monday/Tuesday/Thursday09:00–18:00
+  inclusive; Wednesday09:00–16:00; Saturday10:00–12:00. User explicitly confirmed
+  noon is Saturday's last start. Friday/Sunday closed. Existing45-minute duration
+  retained; all starts stay coach-local across DST and viewer timezone changes.
+- Slot generation, reservation, rescheduling and pending-checkout confirmation
+  enforce the same schedule. Pending unavailable purchases keep their credit;
+  already-confirmed meetings, including Fridays, remain intact. Direct table writes
+  are already revoked from authenticated users; management RPCs are service-only.
+  No SQL/schema change or existing appointment rewrite is required.
+- Three named calendars independently verified readable: Joel Coach House (`J`),
+  Paula Coach House (`Paula @ Coach House`), and `Joel @ AMJC`. Booking organizer
+  remains Joel Coach House; AMJC supplies additional busy periods only.
+- Authorized live broker configuration adds only
+  `GOOGLE_COACHING_JOEL_BLOCKING_CALENDAR_IDS=joel@amorejustchicago.org`.
+  Revision `00014-vum` first received0% traffic; signed canary reads proved an
+  AMJC-only conflict blocked Joel availability, Paula remained readable, and exact
+  self exclusion preserved an unrelated AMJC conflict. Promoted to100%, repeated
+  those checks against the untagged production endpoint, and independently verified
+  traffic, unchanged image/service account/other environment, and removed test tag.
+  Same image SHA256 `38c9d805ced753c29bdbf8f31d9b88197b2b7893ef134dcb2fb8ecf30458d781`.
+  Previous revision `00010-p6r` remains the rollback target for this config change.
+- Private0600receipts:
+  `~/.local/share/coach-house/coaching-calendar/2026-10-22/hours-calendars/`
+  (`broker-amjc-canary-readback.json`, `broker-amjc-production-readback.json`,
+  `broker-amjc-release-receipt.json`). Temporary proxy stopped. No event edits,
+  booking-row changes, emails or new permissions occurred.
+- Local source validation:60 focused schedule/finalization/payment cases and
+  scoped ESLint pass; acceptance manifest regenerated. Node22 application typecheck
+  passes (`pnpm exec tsc --noEmit -p .tmp/coaching-tsconfig.json`). One batched
+  Graphify AST refresh completed:21,900nodes/62,900edges. Exact open-work-index
+  semantic refresh completed at21,924nodes, preserving all unrelated graph data.
+  Normal Node22 pre-push passed in7.67s and
+  patch secret scan found0leaks.
+- Open [PR353](https://github.com/Hamernick/CoachHouse/pull/353), implementation
+  `d5e96eef`. Focused command:
+  `pnpm exec vitest run --config /tmp/coaching-hours.vitest.config.mjs`
+  (Node22; includes `coaching-hours.test.ts`37cases and
+  `coaching-booking-finalization.test.ts`23cases, existing acceptance setup/source
+  alias). The tracked manifest includes both suites for normal acceptance CI.
+  Scoped ESLint covers all five changed TypeScript source/test files.
+- Three-calendar blocking is live. New hours require this branch's application
+  release; hosted quality/review, merge/deployment and actual user booking acceptance
+  remain Caleb-owned. No merge/app deployment is claimed by this checkpoint.
+
 ## October22 existing invitation titles completed
 
 User authorized preview/apply with guest update notifications. All8 upcoming

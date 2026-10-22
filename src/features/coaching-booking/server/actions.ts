@@ -31,7 +31,7 @@ import {
   isValidFutureDate,
   normalizeCoachId,
 } from "../lib"
-import { buildCandidateSlots } from "../lib/availability"
+import { buildCandidateSlots, isCoachingSlotWithinSchedule } from "../lib/availability"
 import { COACHING_SLOT_UNAVAILABLE, COACHING_SLOT_UNAVAILABLE_MESSAGE, isCoachingSlotUnavailable } from "../lib/booking-errors"
 import { COACHING_ATTENDEE_NOTES_MAX_LENGTH } from "../types"
 import type {
@@ -277,6 +277,9 @@ export async function reserveCoachingBookingAction(
     if (!isValidFutureDate(input.startsAt)) {
       return { ok: false, error: "Choose a future coaching slot." }
     }
+    if (!isCoachingSlotWithinSchedule(startsAt)) {
+      return { ok: false, error: "Choose an available coaching time on the hour.", code: COACHING_SLOT_UNAVAILABLE }
+    }
     if (!isGoogleCoachingConfigured()) {
       return { ok: false, error: "Coach calendar is not connected yet." }
     }
@@ -504,6 +507,9 @@ export async function rescheduleCoachingBookingAction(
     }
 
     const startsAt = new Date(input.startsAt)
+    if (!isCoachingSlotWithinSchedule(startsAt)) {
+      return { ok: false, error: "Choose an available coaching time on the hour.", code: COACHING_SLOT_UNAVAILABLE }
+    }
     const endsAt = addMinutes(startsAt, COACHING_SESSION_MINUTES)
     const busyWindows = await listJointBusyWindows({
       from: startsAt.toISOString(),
