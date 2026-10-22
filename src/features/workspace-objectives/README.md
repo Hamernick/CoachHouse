@@ -52,8 +52,15 @@ transaction. Direct table access is denied. Invalid connections, cycles or stale
 steps roll back the whole edit. Missing RPCs leave the existing island usable.
 
 The plan editor keeps its opening revision, confirms discard and preserves input on
-conflict. It edits names, steps/status and labeled connections; branch choice/evaluation
-and reviewed AI plan proposals remain unfinished. Browser fixture `/?objectives` is
+conflict. It edits names, steps/status, explicit decisions and labeled outcomes.
+`20261022160000_workspace_plan_decisions.sql` adds revision-checked, per-plan choices.
+Both checklist and tree let users select an outcome or return to Needs information.
+Chosen branches propagate through related plans; unchosen/waiting actions stay saved
+but do not count toward progress. Converging branches use OR semantics. Completing
+an action never chooses an outcome. Decision choices are plan-specific; shared action
+steps retain canonical completion. Older clients preserve choices and cannot leave
+invalid outcomes. Before the v2 RPC is available, decision controls stay unavailable.
+Reviewed AI plan proposals and automatic evidence-based decision evaluation remain unfinished. Browser fixture `/?objectives` is
 fictional and simulates persistence. The disposable PostgreSQL suite verifies real
 permissions, transactions and concurrent writers independently; authenticated
 Next/Supabase browser integration remains a release gate.

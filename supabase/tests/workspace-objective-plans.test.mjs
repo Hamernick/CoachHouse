@@ -71,7 +71,9 @@ try {
   runSql("supabase/tests/workspace-objective-plans.bootstrap.sql")
   runSql("supabase/migrations/20260227190000_add_workspace_objective_tables.sql")
   runSql("supabase/migrations/20261022150000_workspace_objective_plans.sql")
+  runSql("supabase/migrations/20261022160000_workspace_plan_decisions.sql")
   runSql("supabase/tests/workspace-objective-plans.assertions.sql")
+  runSql("supabase/tests/workspace-plan-decisions.assertions.sql")
   const args = ["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   const compete = title => new Promise(resolve => {
     const child = spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})

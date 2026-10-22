@@ -8,16 +8,19 @@ import { ChevronDown, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ObjectiveEdit, ObjectiveStep } from "../island-types"
 import type { WorkspaceObjectiveRecord } from "../types"
+import { planProgress } from "../lib/plan-progress"
+import type { ObjectivePlan } from "../plan-types"
 import { ObjectiveEditForm } from "./objective-edit-form"
 
 const labels = { todo: "To do", in_progress: "In progress", blocked: "Blocked", done: "Done", archived: "Archived" }
-export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdit, onStep, children, checklistSteps = steps }: {
-  children?: ReactNode; checklistSteps?: ObjectiveStep[]; objective: WorkspaceObjectiveRecord; steps: ObjectiveStep[]; editable: boolean; pending: boolean
+export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdit, onStep, children, checklistSteps = steps, plans = [] }: {
+  plans?: ObjectivePlan[]; children?: ReactNode; checklistSteps?: ObjectiveStep[]; objective: WorkspaceObjectiveRecord; steps: ObjectiveStep[]; editable: boolean; pending: boolean
   onEdit: (input: ObjectiveEdit) => Promise<boolean>; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
-  const completed = steps.filter(step => step.status === "done").length
+  const progress = planProgress(plans, steps)
+  const completed = progress.completed.length
   const canEdit = editable && objective.kind === "custom"
   return <Card className="gap-0 rounded-3xl border-border/60 py-0 shadow-none">
     <Collapsible open={expanded || editing} onOpenChange={setExpanded}>
@@ -33,9 +36,9 @@ export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdi
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>{labels[objective.status]}</span>
-          {steps.length > 0 && <span className="tabular-nums">{completed} / {steps.length} steps</span>}
+          {steps.length > 0 && <span className="tabular-nums">{completed} / {progress.active.length} steps{progress.waiting ? " · Awaiting a decision" : ""}</span>}
         </div>
-        {steps.length > 0 && <div className="flex gap-1" aria-hidden>{steps.map(step => <span key={step.id} className={cn("h-1.5 min-w-0 flex-1 rounded-full bg-muted", step.status === "done" && "bg-primary")} />)}</div>}
+        {steps.length > 0 && <div className="flex gap-1" aria-hidden>{progress.active.map(step => <span key={step.id} className={cn("h-1.5 min-w-0 flex-1 rounded-full bg-muted", progress.completed.some(item => item.id === step.id) && "bg-primary")} />)}</div>}
       </CardHeader>
       <CollapsibleContent>
         <CardContent className="px-3 pb-3">

@@ -12,7 +12,7 @@ import { scope } from "./fixture-data"
 const id = "00000000-0000-4000-8000-000000000071"
 const date = "2026-10-22T12:00:00Z"
 const nodeTypes = { objectivePlanStep: ObjectivePlanNode }
-const initial: ObjectiveIslandData = { planning: { available: true, plans: [] }, loadedFrom: "normalized", groups: [], objectives: [{
+const initial: ObjectiveIslandData = { planning: { available: true, decisionsAvailable: true, plans: [] }, loadedFrom: "normalized", groups: [], objectives: [{
   id, orgId: scope.organizationId, groupId: null, title: "Launch a volunteer program", description: "Recruit and train our first team.",
   status: "in_progress", priority: "normal", kind: "custom", sourceType: "custom", sourceKey: null, dueAt: null,
   completedAt: null, positionRank: 0, createdBy: scope.userId, updatedBy: null, createdAt: date, updatedAt: date, assignees: [], links: [],
@@ -30,7 +30,7 @@ const transport: ObjectiveIslandTransport = {
       if (current) Object.assign(current, { title: step.title, status: step.status, updatedAt: new Date().toISOString() })
       else data.steps.push({ id: step.id, title: step.title, status: step.status, objectiveId: draft.objectiveId, editable: true, order: data.steps.length, updatedAt: new Date().toISOString() })
     })
-    const plan = { id: draft.id, objectiveId: draft.objectiveId, title: draft.title, revision: draft.revision + 1, stepIds: draft.steps.map(step => step.id), edges: draft.edges }
+    const plan = { id: draft.id, objectiveId: draft.objectiveId, title: draft.title, revision: draft.revision + 1, stepIds: draft.steps.map(step => step.id), edges: draft.edges, decisions: draft.decisions ?? existing?.decisions ?? [] }
     if (existing) Object.assign(existing, plan); else plans.push(plan)
     save(data); return { ok: true }
   },

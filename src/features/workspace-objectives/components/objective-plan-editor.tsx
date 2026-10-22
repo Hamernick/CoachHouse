@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ObjectiveStep } from "../island-types"
-import type { PlanDraft } from "../plan-types"
+import { planDraftSchema, type PlanDraft } from "../plan-types"
+import { clearRemovedChoices } from "../lib/plan-progress"
 
 function StepSelect({ value, onChange, steps, label, disabled }: { value: string; onChange: (id: string) => void; steps: { id: string; title: string }[]; label: string; disabled?: boolean }) {
   return <Select value={value || "unselected"} onValueChange={id => { if (id && id !== "unselected") onChange(id) }} disabled={disabled}><SelectTrigger aria-label={label} className="min-w-0 flex-1 rounded-xl shadow-none"><SelectValue placeholder={label} /></SelectTrigger>
     <SelectContent><SelectItem value="unselected" disabled className="hidden">{label}</SelectItem>{steps.map(step => <SelectItem key={step.id} value={step.id}>{step.title}</SelectItem>)}</SelectContent></Select>
 }
-export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pending, error, onSave, onClose }: {
-  initial: PlanDraft; allSteps: ObjectiveStep[]; connectedStepIds: string[]; pending: boolean; error: string | null
+export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pending, error, onSave, onClose, decisionsAvailable = false }: {
+  decisionsAvailable?: boolean; initial: PlanDraft; allSteps: ObjectiveStep[]; connectedStepIds: string[]; pending: boolean; error: string | null
   onSave: (draft: PlanDraft) => Promise<boolean>; onClose: () => void
 }) {
   // Preserve the opening revision and every canonical step baseline until explicitly reopened.
@@ -22,6 +23,7 @@ export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pendi
   const [source, setSource] = useState("")
   const [target, setTarget] = useState("")
   const [label, setLabel] = useState("")
+  const [validation, setValidation] = useState<string | null>(null)
   const [discard, setDiscard] = useState(false)
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
   const patch = (id: string, fields: Partial<PlanDraft["steps"][number]>) => setDraft(value => ({ ...value, steps: value.steps.map(step => step.id === id ? { ...step, ...fields } : step) }))
@@ -29,18 +31,21 @@ export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pendi
   return <Dialog open onOpenChange={open => { if (!open && !pending) { if (dirty) setDiscard(true); else onClose() } }}>
     <DialogContent className="max-h-[90svh] overflow-y-auto rounded-3xl sm:max-w-2xl">
       <DialogHeader><DialogTitle>{initial.revision ? "Edit plan" : "New plan"}</DialogTitle><DialogDescription className="sr-only">Edit steps and connect branches. Shared steps stay in sync across plans.</DialogDescription></DialogHeader>
-      <form className="flex min-w-0 flex-col gap-4" onSubmit={async event => { event.preventDefault(); if (await onSave(draft)) onClose() }}>
+      <form className="flex min-w-0 flex-col gap-4" onSubmit={async event => { event.preventDefault(); const result = planDraftSchema.safeParse(draft); if (!result.success) { setValidation(result.error.issues[0].message); return }; setValidation(null); if (await onSave(result.data)) onClose() }}>
         <div className="space-y-1"><Label htmlFor="objective-plan-title">Plan name</Label><Input id="objective-plan-title" value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} maxLength={240} required disabled={pending} className="rounded-xl shadow-none" /></div>
         <div className="space-y-2">
           <Label>Steps</Label>
           {draft.steps.map((step, index) => <div key={step.id} className="flex min-w-0 flex-wrap items-center gap-1 rounded-2xl bg-muted/50 p-2">
             <Input aria-label={`Step ${index + 1} title`} value={step.title} maxLength={240} required disabled={pending} onChange={event => patch(step.id, { title: event.target.value })} className="min-w-[140px] flex-1 rounded-xl shadow-none" />
-            <Select value={step.status} disabled={pending} onValueChange={value => patch(step.id, { status: value as typeof step.status })}>
+            {decisionsAvailable && <Select value={draft.decisions?.some(item => item.stepId === step.id) ? "decision" : "action"} disabled={pending} onValueChange={value => setDraft(current => ({ ...current, decisions: [...(current.decisions ?? []).filter(item => item.stepId !== step.id), ...(value === "decision" ? [{ stepId: step.id, selectedEdgeId: null }] : [])] }))}>
+              <SelectTrigger aria-label={`Step ${index + 1} type`} className="w-28 rounded-xl shadow-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="action">Action</SelectItem><SelectItem value="decision">Decision</SelectItem></SelectContent>
+            </Select>}
+            {!draft.decisions?.some(item => item.stepId === step.id) && <Select value={step.status} disabled={pending} onValueChange={value => patch(step.id, { status: value as typeof step.status })}>
               <SelectTrigger aria-label={`Step ${index + 1} status`} className="w-32 rounded-xl shadow-none"><SelectValue /></SelectTrigger><SelectContent>
                 <SelectItem value="todo">To do</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="blocked">Blocked</SelectItem><SelectItem value="done">Done</SelectItem>
-              </SelectContent></Select>
+              </SelectContent></Select>}
             <Button type="button" variant="ghost" size="icon" disabled={pending} className="rounded-full" aria-label={`Remove step ${index + 1} from plan`} onClick={() => {
-              setDraft(value => ({ ...value, steps: value.steps.filter(item => item.id !== step.id), edges: value.edges.filter(edge => edge.source !== step.id && edge.target !== step.id) }))
+              setDraft(value => clearRemovedChoices({ ...value, decisions: value.decisions?.filter(item => item.stepId !== step.id), steps: value.steps.filter(item => item.id !== step.id), edges: value.edges.filter(edge => edge.source !== step.id && edge.target !== step.id) }))
               setSource(""); setTarget("")
             }}><X aria-hidden /></Button>
           </div>)}
@@ -55,7 +60,7 @@ export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pendi
         <div className="space-y-2"><Label>Connections</Label>
           {draft.edges.map(edge => <div key={edge.id} className="flex items-center gap-2 rounded-xl bg-muted/50 p-2 text-sm">
             <span className="min-w-0 flex-1 break-words">{targets.find(step => step.id === edge.source)?.title} → {targets.find(step => step.id === edge.target)?.title}{edge.label && ` · ${edge.label}`}</span>
-            <Button type="button" variant="ghost" size="icon" className="rounded-full" disabled={pending} aria-label="Remove connection" onClick={() => setDraft(value => ({ ...value, edges: value.edges.filter(item => item.id !== edge.id) }))}><X aria-hidden /></Button>
+            <Button type="button" variant="ghost" size="icon" className="rounded-full" disabled={pending} aria-label="Remove connection" onClick={() => setDraft(value => clearRemovedChoices({ ...value, edges: value.edges.filter(item => item.id !== edge.id) }))}><X aria-hidden /></Button>
           </div>)}
           {draft.steps.length > 0 && <fieldset disabled={pending} className="flex min-w-0 flex-col gap-2 rounded-2xl bg-muted/40 p-2">
             <div className="flex min-w-0 gap-2"><StepSelect value={source} onChange={setSource} steps={draft.steps.filter(step => step.title.trim())} label="From step" /><StepSelect value={target} onChange={setTarget} steps={targets.filter(step => step.id !== source && step.title.trim())} label="To step" /></div>
@@ -65,6 +70,7 @@ export function ObjectivePlanEditor({ initial, allSteps, connectedStepIds, pendi
               }}>Connect</Button></div>
           </fieldset>}
         </div>
+        {validation && <p role="alert" className="text-sm text-destructive">{validation}</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         {discard && <div role="alert" className="flex flex-wrap items-center gap-2 rounded-2xl bg-muted p-3 text-sm"><span className="flex-1">Discard unsaved plan changes?</span><Button type="button" variant="ghost" className="rounded-full" onClick={() => setDiscard(false)}>Keep editing</Button><Button type="button" variant="destructive" className="rounded-full" onClick={onClose}>Discard</Button></div>}
         <DialogFooter><Button type="button" variant="ghost" className="rounded-full" disabled={pending} onClick={() => dirty ? setDiscard(true) : onClose()}>Cancel</Button><Button type="submit" className="rounded-full" disabled={pending}>Save plan</Button></DialogFooter>

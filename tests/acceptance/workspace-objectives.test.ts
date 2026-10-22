@@ -110,7 +110,7 @@ describe("objective plan canvas ownership", () => {
 })
 
 
-import { saveObjectivePlan } from "@/features/workspace-objectives/server/plan-actions"
+import { readObjectivePlans, saveObjectivePlan } from "@/features/workspace-objectives/server/plan-actions"
 describe("plan server action", () => {
   const draft = { id: edit.id, objectiveId: edit.id, revision: 0, title: "Launch plan", steps: [], edges: [] }
   it("rejects scope and read-only access before calling the database", async () => {
@@ -124,5 +124,21 @@ describe("plan server action", () => {
     expect(await saveObjectivePlan(scope, draft)).toMatchObject({ ok: false, error: expect.stringContaining("changed") })
     expect(await saveObjectivePlan(scope, draft)).toEqual({ ok: true })
     expect(islandMocks.rpc).toHaveBeenCalledWith("save_workspace_objective_plan", { p_org_id: scope.organizationId, p_draft: draft })
+  })
+})
+
+
+describe("decision migration compatibility", () => {
+  it("reports decision capability even for an empty collection and falls back safely before migration", async () => {
+    const client = await islandMocks.client()
+    islandMocks.rpc.mockResolvedValueOnce({ data: [], error: null })
+    expect(await readObjectivePlans(client, scope.organizationId)).toEqual({ available: true, decisionsAvailable: true, plans: [] })
+    islandMocks.rpc.mockResolvedValueOnce({ error: { code: "PGRST202" } }).mockResolvedValueOnce({ data: [], error: null })
+    expect(await readObjectivePlans(client, scope.organizationId)).toEqual({ available: true, decisionsAvailable: false, plans: [] })
+  })
+  it("never silently drops decision data on an older deployment", async () => {
+    islandMocks.rpc.mockResolvedValueOnce({ error: { code: "PGRST202" } })
+    expect((await saveObjectivePlan(scope, { id: edit.id, objectiveId: edit.id, revision: 0, title: "Plan", steps: [], edges: [], decisions: [] })).ok).toBe(false)
+    expect(islandMocks.rpc).toHaveBeenCalledWith("save_workspace_objective_plan_v2", expect.any(Object))
   })
 })

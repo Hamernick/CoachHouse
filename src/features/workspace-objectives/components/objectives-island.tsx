@@ -36,12 +36,18 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
   const id = useId()
   const reduced = useReducedMotion()
   const objectives = state.data?.objectives.filter(objective => objective.status !== "archived") ?? []
+  const activePlans = (state.data?.planning?.plans ?? []).filter(plan => objectives.some(objective => objective.id === plan.objectiveId))
   const remaining = objectives.filter(objective => objective.status !== "done").length
   const editable = canEdit && state.data?.loadedFrom === "normalized"
   const editPlan = useCallback((plan: ObjectivePlan) => setPlanDraft(draftFromPlan(plan, state.data?.steps ?? [])), [state.data?.steps])
   const { mutate } = state
-  const onStep = useCallback((step: ObjectiveStep, done: boolean) => { void mutate(() => transport.step(scope, { id: step.id, objectiveId: step.objectiveId, expectedUpdatedAt: step.updatedAt, done })) }, [mutate, transport, scope])
-  const projectionError = usePlanProjection({ data: state.data, selected, scopeKey: `${userId}:${organizationId}`, pending: state.pending, canEdit: Boolean(editable), onEdit: editPlan, onStep, onProjection })
+  const onStep = useCallback((step: ObjectiveStep, done: boolean) => { void mutate(() => transport.step(scope, { id: step.id, objectiveId: step.objectiveId, expectedUpdatedAt: step.updatedAt, done })).then(saved => { if (!saved) setOpen(true) }) }, [mutate, transport, scope])
+  const onChoice = useCallback((plan: ObjectivePlan, stepId: string, edgeId: string | null) => {
+    const draft = draftFromPlan(plan, state.data?.steps ?? [])
+    draft.decisions = (draft.decisions ?? []).map(decision => decision.stepId === stepId ? { ...decision, selectedEdgeId: edgeId } : decision)
+    void mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." })).then(saved => { if (!saved) setOpen(true) })
+  }, [mutate, transport, scope, state.data?.steps])
+  const projectionError = usePlanProjection({ data: state.data, selected, scopeKey: `${userId}:${organizationId}`, pending: state.pending, canEdit: Boolean(editable), onEdit: editPlan, onStep, onChoice, onProjection })
   return <><motion.div layout transition={reduced ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }}
     className={cn("nodrag nopan nowheel pointer-events-auto max-w-full overflow-hidden rounded-[22px] border border-border/70 bg-card/95 shadow-none backdrop-blur-xl", open ? "w-[400px]" : "w-fit")}
     onKeyDown={event => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); setOpen(false) } }}>
@@ -68,12 +74,12 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
           {state.error && <p role="alert" className="px-2 py-1 text-xs text-destructive">{state.error}</p>}
           {!state.data && state.pending && <Skeleton className="h-24 rounded-3xl" />}
           {state.data && !objectives.length && <p className="px-2 py-3 text-sm text-muted-foreground">No objectives yet.</p>}
-          {objectives.map(objective => <ObjectiveIslandCard key={objective.id} objective={objective}
+          {objectives.map(objective => <ObjectiveIslandCard key={objective.id} objective={objective} plans={activePlans}
             steps={(state.data?.steps ?? []).filter(step => step.objectiveId === objective.id || state.data?.planning?.plans.some(plan => plan.objectiveId === objective.id && plan.stepIds.includes(step.id)))}
             checklistSteps={(state.data?.steps ?? []).filter(step => step.objectiveId === objective.id && !state.data?.planning?.plans.some(plan => plan.objectiveId === objective.id && plan.stepIds.includes(step.id)))} editable={editable} pending={state.pending}
             onEdit={input => state.mutate(() => transport.edit(scope, input))}
             onStep={onStep}>
-            {state.data?.planning?.available && <ObjectivePlanList plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
+            {state.data?.planning?.available && <ObjectivePlanList onChoice={onChoice} allPlans={activePlans} plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
               onToggle={id => setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id])}
               onEdit={editPlan} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
@@ -83,7 +89,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
       </CollapsibleContent>
     </Collapsible>
   </motion.div>
-    {planDraft && <ObjectivePlanEditor key={planDraft.id} initial={planDraft} connectedStepIds={(state.data?.planning?.plans ?? []).flatMap(plan => plan.stepIds)} allSteps={(state.data?.steps ?? []).filter(step => step.editable && state.data?.objectives.some(objective => objective.id === step.objectiveId && objective.kind === "custom"))}
+    {planDraft && <ObjectivePlanEditor decisionsAvailable={state.data?.planning?.decisionsAvailable} key={planDraft.id} initial={planDraft} connectedStepIds={(state.data?.planning?.plans ?? []).flatMap(plan => plan.stepIds)} allSteps={(state.data?.steps ?? []).filter(step => step.editable && state.data?.objectives.some(objective => objective.id === step.objectiveId && objective.kind === "custom"))}
       pending={state.pending} error={state.error} onClose={() => setPlanDraft(null)} onSave={draft => state.mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} />}
   </>
 }

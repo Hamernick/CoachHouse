@@ -181,6 +181,7 @@
       "tests/acceptance/workspace-finance-report-server.test.ts",
       "tests/acceptance/workspace-map-card.test.ts",
       "tests/acceptance/workspace-objectives.test.ts",
+      "tests/acceptance/workspace-plan-progress.test.ts",
       "tests/acceptance/workspace-ontology-guided-focus.test.ts",
       "tests/acceptance/workspace-ontology-layout-scene.test.ts",
       "tests/acceptance/workspace-ontology-root-layout.test.ts",
