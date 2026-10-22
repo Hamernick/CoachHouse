@@ -1,8 +1,29 @@
 # Retire public prototypes and consolidate login — October 22, 2026
 
+## Current status — October 22: merged and deployed
+
+PRs [348](https://github.com/Hamernick/CoachHouse/pull/348), [349](https://github.com/Hamernick/CoachHouse/pull/349), [350](https://github.com/Hamernick/CoachHouse/pull/350) and [351](https://github.com/Hamernick/CoachHouse/pull/351) are merged. Caleb explicitly confirmed PR351 deployed to production. Its merge commit is `4ca66f42dd6fbce65d07b7103a4d4c4176412f0c`, including the authenticated-login return-path correction. Codex triggered this exact commit during GitHub's deployment outage; [Vercel deployment](https://vercel.com/calebs-projects-58ab1538/coachhouse/EorEo7eP43AkTg1zG2v5ymoHWktr) was independently observed Building, then Caleb confirmed deployment completed. PR350 was independently observed Ready earlier. Release is complete; do not reopen these fixes or treat historical open-PR/pending-deployment notes below as current. Real-account UX acceptance and any new defects remain distinct from deployment completion.
+
+## Completion count and original-list mapping
+
+All **five selected launch-polish tasks** from this chat are shipped. The source register contains **176 original requirements**; its `Verbatim check=PASS` means source preservation, not product completion. There is no reconciled all-chats completed total in that register. Do not claim five whole original requirements or an overall completion percentage.
+
+| Selected task | Shipped scope | Original-list status |
+| --- | --- | --- |
+| Default/status metadata | Shared defaults and status metadata | O123-01 partially covered; every-page audit remains |
+| Branded social preview | Default branded image, canonical metadata, deployment-safe static PNG | O124-01 complete |
+| Custom 404 | Recovery links, keyboard/mobile/theme behavior | O132-01 complete |
+| Build sitemap entry | Canonical `/build` entry with existing filtering retained | O126-01 / O173-01 partially covered; full intended-public-route coverage remains to reconcile |
+| Preview noindex | Guarded visual previews excluded; obsolete HomeCanvas later retired | Supporting indexing work; not a separate whole original requirement |
+
+Therefore this chat closes **two full original requirements**, delivers **five planned scoped tasks**, and additionally repairs canvas typing, the Edge deployment regression, and obsolete routes/login navigation. Those follow-ups are not counted again as original checklist completions. Prototype retirement advances B039 / O039-01 and broken-link work O133-01; the full production-flow/route audit is not closed. The 83 fixed type diagnostics are not 83 tasks. Four merged PRs are not four original requirements. Prior work across other chats is not counted as unfinished merely because it is outside this tally.
+
+Next candidates, not yet started or proven defective: remaining public-page metadata/sharing overrides, broken links, and scoped accessibility/mobile checks. Broader security, rate limiting, cost controls, database-access and infrastructure requirements remain outside this completed slice.
+
+
 ## Approved scope and lane
 
-Caleb approved the retirement plan and explicitly included `/tester/login` and `/marketplace`. Original 01 bounded cleanup. Isolated `fix/retire-public-prototypes-20261022`, checkout `/Users/calebhamernick/Development/coach-house-platform-retire-prototypes-20261022`, initially based on `06f9fd87` from PR350. PR350 merged as `f00bca9d`; its tree exactly matches the initial base, so the cleanup is rebased onto current main before delivery without changing source. Preserve unrelated worktrees/listeners/root dirt and sharedSHIP40. No production/provider/database changes, real auth submissions, or deployment actions.
+Caleb approved the retirement plan and explicitly included `/tester/login` and `/marketplace`. Original 01 bounded cleanup. Isolated `fix/retire-public-prototypes-20261022`, checkout `/Users/calebhamernick/Development/coach-house-platform-retire-prototypes-20261022`, initially based on `06f9fd87` from PR350. PR350 merged as `f00bca9d`; its tree exactly matches the initial base, so the cleanup is rebased onto current main before delivery without changing source. Preserve unrelated worktrees/listeners/root dirt and sharedSHIP40. Implementation made no provider/database changes or real auth submissions. The subsequently authorized deployment is recorded above.
 
 ## Resulting behavior
 
@@ -42,12 +63,12 @@ pnpm exec playwright test --config .tmp/retirement.playwright.config.ts --grep '
 
 The local Playwright configuration runs behavior assertions only on the production server, using installed Chromium; it does not bypass the Ubuntu-only visual baseline workflow. The fiscal authenticated spec is updated but not executed: no production test users/records are created. Tests and mocked browser auth do not establish real-account/provider acceptance.
 
-Rollback: revert this cleanup PR only, leaving350's independent Edge image fix intact. Old routes can then render as before; no data migration or restoration is involved. Caleb owns hosted quality/review, merge, deployment, appearance review and live auth acceptance. Open [PR351](https://github.com/Hamernick/CoachHouse/pull/351) is ready for review.
+Rollback: revert this cleanup PR only, leaving350's independent Edge image fix intact. Old routes can then render as before; no data migration or restoration is involved. Caleb owns hosted quality/review, merge, deployment, appearance review and live auth acceptance. [PR351](https://github.com/Hamernick/CoachHouse/pull/351) is merged and deployed; see the current receipt above.
 
 
 ## PR handoff
 
-Source commit `e61b8e4068dd2f3a6b31c1b942b5df0e3acd080d` independently matches the remote branch. Rebase onto merged PR350 (`f00bca9d`) preserved the complete validated tree. Normal Node22 pre-push passed in 8.60s; staged binary secret scan found zero findings. No source changes followed validation. Production preview remains at http://localhost:3144/login; inspect listener ownership before restarting it with `pnpm exec next start -p 3144`. Hosted quality, review, merge, deployment and live acceptance remain pending with Caleb.
+Source commit `e61b8e4068dd2f3a6b31c1b942b5df0e3acd080d` independently matches the remote branch. Rebase onto merged PR350 (`f00bca9d`) preserved the complete validated tree. Normal Node22 pre-push passed in 8.60s; staged binary secret scan found zero findings. No source changes followed validation. Production preview remains at http://localhost:3144/login; inspect listener ownership before restarting it with `pnpm exec next start -p 3144`. This was the pre-merge handoff; the current release receipt above supersedes its pending merge/deployment status.
 
 
 ## Review correction — authenticated login return paths

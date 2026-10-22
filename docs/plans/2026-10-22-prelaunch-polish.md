@@ -1,5 +1,9 @@
 # B115 prelaunch polish — October 22
 
+## Current release status — October 22
+
+Merged and deployed in the production release confirmed by Caleb at PR351 / `4ca66f42`. [Authoritative release receipt and source-list count](2026-10-22-retire-public-prototypes.md#current-status--october-22-merged-and-deployed). Earlier handoff and failed-deployment notes below are historical; do not reopen completed work.
+
 ## Scope and recovery
 
 Original packet: `02-security-infrastructure-launch.md`, stage 5 (launch hygiene), bounded by the user's attached five-item goal. Implement default/status metadata, branded social sharing, custom 404 recovery, `/build` sitemap coverage, and preview noindex only.

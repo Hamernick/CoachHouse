@@ -1,5 +1,9 @@
 # Public-map canvas TypeScript repair — October 22, 2026
 
+## Current release status — October 22
+
+Merged and deployed in the production release confirmed by Caleb at PR351 / `4ca66f42`. [Authoritative release receipt and source-list count](2026-10-22-retire-public-prototypes.md#current-status--october-22-merged-and-deployed). Earlier handoff and failed-deployment notes below are historical; do not reopen completed work.
+
 ## Scope and ownership
 
 Original workstream 01 narrow defect repair, explicitly selected by Caleb. PR348 is merged/closed. Fresh base `c63052e5`, isolated branch `fix/map-canvas-types-20261022`, worktree `/Users/calebhamernick/Development/coach-house-platform-map-canvas-types-20261022`. Shared SHIP40 ownership and unrelated dirty root/worktrees/listeners preserved. No new app server, dependencies, configuration, provider, data, migration, publication, clustering, or visual changes.
