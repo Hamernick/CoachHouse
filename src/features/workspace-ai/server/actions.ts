@@ -19,10 +19,16 @@ export async function readWorkspaceAiProposal(id: string,target: AiDocumentTarge
   const actor = await requireAiActor(target)
   const run = await readAiRun(id,actor.organizationId,actor.userId)
   if (!run) throw new Error("This AI request is unavailable.")
-  return aiRunProposal(run)
+  const proposal=aiRunProposal(run)
+  if (proposal.target.sectionId !== target.sectionId || proposal.target.userId !== actor.userId ||
+    proposal.target.organizationId !== actor.organizationId) throw new Error("This AI request belongs to another document.")
+  return proposal
 }
 export async function cancelWorkspaceAi(id: string,target: AiDocumentTarget) {
   z.uuid().parse(id)
   const actor = await requireAiActor(target)
+  const run=await readAiRun(id,actor.organizationId,actor.userId)
+  if (!run || aiRunProposal(run).target.sectionId !== target.sectionId)
+    throw new Error("This AI request belongs to another document.")
   return cancelAiRun(id,actor.organizationId,actor.userId)
 }

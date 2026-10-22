@@ -7,6 +7,8 @@ Explicit composer assistance for a selected, saved core document. Generated HTML
 - Private server context, provider streaming and limits: `server/**`.
 - Accounting belongs to `ai-credits`; it reserves before any provider work.
 - Existing command/search behavior is free and unchanged.
+- `WorkspaceAiComposer` requires the independently supplied current `sourceScope` (user and organization); an optional organization name labels context. Only active, editable core documents in that scope are eligible. The existing retained-tab header activity scope removes hidden editors from the ephemeral registry.
+- AI mode pins an unambiguous initial document; with multiple documents, the user chooses. The compact selector can switch or remove context. New mounts, keystrokes and saves never replace an explicit selection. Removed/missing context stays empty, prompts remain in the composer, and reopening can recover the existing per-document request without another generation. Status and cancellation validate the document as well as actor/organization.
 
 Activation requires both `NEXT_PUBLIC_WORKSPACE_AI_ENABLED=true` and server `WORKSPACE_AI_ENABLED=true`, a configured provider key, applied local migrations and an explicitly enabled organization wallet/database policy. Defaults are off. No activation or production migration is authorized by these files.
 

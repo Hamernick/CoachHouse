@@ -1,6 +1,7 @@
 "use client"
 
 import { RoadmapConflictReview } from "./roadmap-editor/components/roadmap-conflict-review"
+import { useWorkspaceWindowHeaderActive } from "@/components/workspace/workspace-window-header-slots"
 import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
 import { useMemo } from "react"
 import { useAiDocumentBridge } from "@/features/workspace-ai/client"
@@ -43,10 +44,11 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     resolveSaveConflict,
   } = useRoadmapEditorState(props)
 
+  const contextActive=useWorkspaceWindowHeaderActive()
   const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
     ...props.sourceScope, sectionId: activeSection.id, title: activeSection.title, revision: activeSection.lastUpdated,
   } : null,[props.sourceScope,activeSection])
-  useAiDocumentBridge(aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
+  useAiDocumentBridge(contextActive && aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
     target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,application:aiApplication,
   } : null)
 

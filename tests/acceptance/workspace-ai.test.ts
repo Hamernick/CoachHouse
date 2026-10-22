@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { readWorkspaceAiProposal,cancelWorkspaceAi } from "@/features/workspace-ai/server/actions"
+import { availableAiDocumentEditors,createAiDocumentRegistry,selectedAiDocumentEditor } from "@/features/workspace-ai/lib/document-registry"
 import { handleWorkspaceAiDocument } from "@/features/workspace-ai/server/stream-handler"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn() }))
-vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.actor }))
+const mocks = vi.hoisted(() => ({ actor: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn(),cancel:vi.fn() }))
+vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.actor,requireAiActor:mocks.actor }))
 vi.mock("@/features/workspace-ai/server/config",() => ({ workspaceAiConfig: () => ({ tariff: {version:"test",model:"fixture"},maxInputBytes:70000,maxOutputTokens:6000,maxCredits:100,maxCost:200000 }) }))
 vi.mock("@/features/workspace-ai/server/provider",() => ({ documentInstructions:"Untrusted document context",streamDocumentDraft:mocks.provider }))
-vi.mock("@/features/ai-credits",() => ({ correlateAiResponse:mocks.correlate,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
+vi.mock("@/features/ai-credits",() => ({ cancelAiRun:mocks.cancel,correlateAiResponse:mocks.correlate,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12,"0")}`
 const target={ organizationId:id(1),userId:id(2),sectionId:"need",title:"Need Statement",revision:null }
 const run={ id:id(3),actor_id:id(2),org_id:id(1),target:{...target,content:"<p>Original</p>"},status:"succeeded",proposal:"<p>Revised</p>",charged_credits:14,max_credits:100 }
@@ -92,5 +94,42 @@ describe("metered document assistance", () => {
       expect((await handleWorkspaceAiDocument(request({reviseRunId:id(4)}))).status).toBe(400)
     }
     expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+  })
+})
+
+
+describe("explicit document context",()=>{
+  it("does not silently switch an explicit or removed selection when editors mount, update or close",()=>{
+    const registry=createAiDocumentRegistry()
+    const bridge={target,content:"<p>Original</p>",dirty:false,saving:false,apply:()=>true}
+    registry.update("first",bridge)
+    expect(selectedAiDocumentEditor(registry.snapshot(),undefined)?.id).toBe("first")
+    registry.update("second",{...bridge,target:{...target,sectionId:"mission"}})
+    expect(selectedAiDocumentEditor(registry.snapshot(),undefined)).toBeNull()
+    expect(selectedAiDocumentEditor(registry.snapshot(),"first")?.target.sectionId).toBe("need")
+    const states:string[][]=[]
+    const unsubscribe=registry.subscribe(()=>states.push(registry.snapshot().map(editor=>editor.id)))
+    registry.update("first",{...bridge,dirty:true})
+    expect(states).toEqual([["first","second"]])
+    expect(selectedAiDocumentEditor(registry.snapshot(),null)).toBeNull()
+    registry.update("first",null)
+    expect(selectedAiDocumentEditor(registry.snapshot(),"first")).toBeNull()
+    unsubscribe()
+  })
+  it("filters mounted editors by both current actor and organization",()=>{
+    const registry=createAiDocumentRegistry()
+    const bridge={target,content:"private",dirty:false,saving:false,apply:()=>true}
+    registry.update("current",bridge)
+    registry.update("other-org",{...bridge,target:{...target,organizationId:id(9)}})
+    registry.update("other-user",{...bridge,target:{...target,userId:id(9)}})
+    expect(availableAiDocumentEditors(registry.snapshot(),target).map(editor=>editor.id)).toEqual(["current"])
+  })
+  it("rejects cross-document status and cancellation while allowing same-document recovery after a save",async()=>{
+    await expect(readWorkspaceAiProposal(run.id,{...target,sectionId:"mission"})).rejects.toThrow("another document")
+    await expect(cancelWorkspaceAi(run.id,{...target,sectionId:"mission"})).rejects.toThrow("another document")
+    expect(mocks.cancel).not.toHaveBeenCalled()
+    await expect(readWorkspaceAiProposal(run.id,{...target,revision:"new saved revision"})).resolves.toMatchObject({id:run.id})
+    await cancelWorkspaceAi(run.id,target)
+    expect(mocks.cancel).toHaveBeenCalledWith(run.id,target.organizationId,target.userId)
   })
 })

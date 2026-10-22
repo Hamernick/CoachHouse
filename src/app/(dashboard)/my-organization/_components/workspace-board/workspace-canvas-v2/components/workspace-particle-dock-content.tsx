@@ -45,10 +45,10 @@ export function WorkspaceParticleInspectorSlot({ session }: Props) {
   ) : null
 }
 
-export function WorkspaceParticleComposerSlot({ session }: Props) {
+export function WorkspaceParticleComposerSlot({ session,sourceScope,organizationName }: Props & {sourceScope:{userId:string;organizationId:string};organizationName?:string}) {
   const request = useWorkspaceCanvasOverlayDrawerRequest()
   return (
-    <WorkspaceAiComposer>{assistant => <ParticleComposer
+    <WorkspaceAiComposer sourceScope={sourceScope} organizationName={organizationName}>{assistant => <ParticleComposer
       assistant={assistant}
       disabled={!session.editable}
       pending={session.pending}

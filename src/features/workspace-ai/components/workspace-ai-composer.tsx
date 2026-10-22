@@ -4,15 +4,24 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { AiCreditsPanel, aiCreditBalance } from "@/features/ai-credits/client"
 import { quoteDocumentAssistance, readDocumentAssistance, stopDocumentAssistance } from "../actions"
-import { useAiDocumentTarget } from "../hooks/document-bridge"
+import { useAiDocumentEditors } from "../hooks/document-bridge"
+import { availableAiDocumentEditors,selectedAiDocumentEditor,type AiDocumentScope } from "../lib/document-registry"
+import { DocumentContextPicker } from "./document-context-picker"
 import type { AiDocumentProposal, AiStreamPart } from "../types"
 
 export type ComposerAssistance = {
   active: boolean; pending: boolean; controls: ReactNode; revising?:boolean
   submit: (prompt: string) => Promise<boolean>
 }
-export function WorkspaceAiComposer({ children }: { children: (assistant: ComposerAssistance) => ReactNode }) {
-  const bridge = useAiDocumentTarget()
+type Props = { sourceScope:AiDocumentScope; organizationName?:string; children:(assistant:ComposerAssistance)=>ReactNode }
+export function WorkspaceAiComposer(props:Props) {
+  return <WorkspaceAiComposerContent key={`${props.sourceScope.userId}:${props.sourceScope.organizationId}`} {...props} />
+}
+function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Props) {
+  const mounted=useAiDocumentEditors()
+  const editors=useMemo(()=>availableAiDocumentEditors(mounted,sourceScope),[mounted,sourceScope])
+  const [selectedId,setSelectedId]=useState<string | null>()
+  const bridge=selectedAiDocumentEditor(editors,selectedId)
   const [active,setActive] = useState(false)
   const [pending,setPending] = useState(false)
   const [quote,setQuote] = useState<Awaited<ReturnType<typeof quoteDocumentAssistance>> | null>(null)
@@ -30,39 +39,48 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
   const scope = useMemo(() => ({ targetKey }),[targetKey])
   const currentScope = useRef(scope)
   currentScope.current=scope
-  const enableIntent = useRef(0)
+  const liveBridge=useRef(bridge)
+  liveBridge.current=bridge
   useEffect(() => {
     abort.current?.abort()
-    setActive(false); setPending(false); setQuote(null); setProposal(null); setPreview(""); setError(null); setApplied(false)
+    setPending(false); setQuote(null); setProposal(null); setPreview(""); setError(null); setApplied(false)
     runId.current = null
     setUsage(false); setShowOriginal(false); setRevision(null)
   },[targetKey])
   useEffect(() => () => abort.current?.abort(),[])
 
-  async function enable() {
-    const intent = ++enableIntent.current
-    const current = () => currentScope.current === scope && enableIntent.current === intent
-    if (active) { setActive(false); return }
-    if (!bridge) { setError("Open a core document before asking for AI assistance."); return }
-    try {
-      setError(null)
-      setActive(true)
-      let savedId: string | null = null
-      try { savedId = sessionStorage.getItem(`workspace-ai:${targetKey}`) } catch { /* Browser storage may be unavailable. */ }
-      if (savedId) {
-        const result = await readDocumentAssistance(savedId,bridge.target)
-        if (!current()) return
-        runId.current=savedId; setProposal(result)
-        if (result.revisionSourceRunId && ["failed","canceled"].includes(result.status)) {
-          const previous = await readDocumentAssistance(result.revisionSourceRunId,bridge.target)
+  useEffect(()=>{
+    const chosen=liveBridge.current
+    if (!active || !chosen) return
+    let disposed=false
+    const current=()=>!disposed && currentScope.current===scope
+    // Pin the initially unambiguous editor once the user enables AI. Subsequent
+    // mounts, saves and focus changes cannot choose another target for them.
+    setSelectedId(chosen.id)
+    async function loadContext() {
+      try {
+        let savedId:string | null=null
+        try {savedId=sessionStorage.getItem(`workspace-ai:${targetKey}`)} catch { /* Optional recovery storage. */ }
+        if (savedId) {
+          runId.current=savedId
+          const result=await readDocumentAssistance(savedId,chosen!.target)
           if (!current()) return
-          if (previous.status === "succeeded" && !previous.application) setRevision(previous)
+          setProposal(result)
+          if (result.revisionSourceRunId && ["failed","canceled"].includes(result.status)) {
+            const previous=await readDocumentAssistance(result.revisionSourceRunId,chosen!.target)
+            if (!current()) return
+            if (previous.status === "succeeded" && !previous.application) setRevision(previous)
+          }
         }
-      }
-      const next = await quoteDocumentAssistance(bridge.target)
-      if (current()) setQuote(next)
-    } catch (cause) { if (current()) setError(cause instanceof Error ? cause.message : "AI assistance is unavailable.") }
-  }
+        const next=await quoteDocumentAssistance(chosen!.target)
+        if (current()) setQuote(next)
+      } catch(cause) {if (current()) setError(cause instanceof Error ? cause.message : "AI assistance is unavailable.")}
+    }
+    void loadContext()
+    return ()=>{disposed=true}
+    // Refresh only when the user changes context/mode. Draft keystrokes and save
+    // acknowledgments update the bridge without reloading an older proposal.
+  },[active,scope,targetKey])
   async function refresh() {
     const id = runId.current
     if (!id || !target) return
@@ -163,13 +181,14 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
   const appliedSaved = Boolean(application && bridge && !bridge.dirty && !bridge.saving && bridge.target.revision === application.saved_revision)
   if (process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED !== "true") return children({ active: false, pending: false, controls: null, submit })
   const controls = <Button type="button" variant="ghost" size="sm" className="h-9 touch-manipulation rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-    aria-pressed={active} aria-label="AI document assistance" disabled={pending} onClick={() => void enable()}>AI</Button>
+    aria-pressed={active} aria-label="AI document assistance" disabled={pending} onClick={() => setActive(!active)}>AI</Button>
   return <>
     {(active || error) && <section aria-label="AI document assistance" className="nodrag nopan nowheel mx-2.5 flex min-w-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-none backdrop-blur-xl [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
-      {target && active ? <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="min-w-0 truncate">{target.title}</span>
-        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : "Refreshing credits…"}</Button>
+      {active ? <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <DocumentContextPicker editors={editors} selected={bridge} organizationName={organizationName} disabled={pending} onSelect={setSelectedId} />
+        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : target ? "Refreshing credits…" : "No document selected"}</Button>
       </div> : null}
+      {active && !bridge ? <p className="text-xs text-muted-foreground">Choose a visible core document to include as context.</p> : null}
       {usage && quote ? <AiCreditsPanel account={quote.account} /> : null}
       {(preview || proposal?.content || pending) && <div className="h-56 overflow-auto overscroll-contain rounded-xl bg-muted/40 p-3">
         {proposal?.content ? <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proposal.content }} />

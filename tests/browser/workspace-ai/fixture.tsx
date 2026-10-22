@@ -1,4 +1,5 @@
 import { RoadmapConflictReview } from "../../../src/components/roadmap/roadmap-editor/components/roadmap-conflict-review"
+import { WorkspaceWindowHeaderScope,useWorkspaceWindowHeaderActive } from "../../../src/components/workspace/workspace-window-header-slots"
 import { StrictMode, useEffect, useMemo, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { Toaster } from "sonner"
@@ -9,21 +10,22 @@ import { WorkspaceAiComposer } from "../../../src/features/workspace-ai/componen
 import { useAiDocumentBridge } from "../../../src/features/workspace-ai/hooks/document-bridge"
 import { ParticleComposer } from "../../../src/features/workspace-particles/components/particle-composer"
 import type { RoadmapSection } from "../../../src/lib/roadmap"
-import { initialSection, scope } from "./fixture-data"
+import { initialSection, additionalSection, scope } from "./fixture-data"
 import { readFixture } from "./actions"
 import "../../../src/app/globals.css"
 
 function DocumentEditor({ section, sourceScope }: { section: RoadmapSection; sourceScope: typeof scope }) {
   const sections = useMemo(() => [section], [section])
   const editor = useRoadmapEditorState({ sourceScope, sections, publicSlug: null,
-    initialSectionId: "mission", navigationMode: "embedded", canEdit: true })
-  const target = useMemo(() => ({ ...sourceScope, sectionId: "mission", title: "Mission",
-    revision: editor.activeSection?.lastUpdated ?? null }), [sourceScope, editor.activeSection?.lastUpdated])
-  useAiDocumentBridge({ target, content: editor.activeDraft?.content ?? "", dirty: editor.isDirty,
-    saving: Boolean(editor.savingId), apply: editor.applyAiProposal, application: editor.aiApplication })
+    initialSectionId: section.id, navigationMode: "embedded", canEdit: true })
+  const target = useMemo(() => ({ ...sourceScope, sectionId: section.id, title: section.title,
+    revision: editor.activeSection?.lastUpdated ?? null }), [sourceScope, editor.activeSection?.lastUpdated,section.id,section.title])
+  const contextActive=useWorkspaceWindowHeaderActive()
+  useAiDocumentBridge(contextActive ? { target, content: editor.activeDraft?.content ?? "", dirty: editor.isDirty,
+    saving: Boolean(editor.savingId), apply: editor.applyAiProposal, application: editor.aiApplication } : null)
   return <section className="flex min-w-0 flex-col gap-3" aria-label="Document editor">
     <div className="flex items-center justify-between gap-2">
-      <h1 className="text-lg font-medium">Mission</h1>
+      <h1 className="text-lg font-medium">{section.title}</h1>
       <div className="flex items-center gap-2">
         <Button variant="ghost" className="rounded-full" disabled={editor.statusSelectDisabled}
           onClick={() => editor.handleStatusChange("complete")}>Publish</Button>
@@ -33,7 +35,7 @@ function DocumentEditor({ section, sourceScope }: { section: RoadmapSection; sou
     </div>
     {editor.activeDraft ? <RoadmapConflictReview conflict={editor.saveConflict} draft={editor.activeDraft} onResolve={editor.resolveSaveConflict} /> : null}
     <RichTextEditor value={editor.activeDraft?.content ?? ""}
-      onChange={content => editor.handleDraftChange({ content })} ariaLabel="Mission document"
+      onChange={content => editor.handleDraftChange({ content })} ariaLabel={`${section.title} document`}
       basicToolbar hideLinkPreviews minHeight={220} className="rounded-2xl border border-border/60" />
     <output data-testid="editor-state" className="text-xs text-muted-foreground">
       {editor.savingId ? "Saving" : editor.isDirty ? "Unsaved" : "Saved"} · {editor.activeSection?.isPublic ? "Public" : "Private"}
@@ -44,6 +46,8 @@ function DocumentEditor({ section, sourceScope }: { section: RoadmapSection; sou
 function Fixture() {
   const [section, setSection] = useState(initialSection)
   const [generation, setGeneration] = useState(0)
+  const [visible,setVisible]=useState(true)
+  const [showAdditional,setShowAdditional]=useState(false)
   const [ready, setReady] = useState(false)
   const [sourceScope, setSourceScope] = useState(scope)
   async function reopen() {
@@ -61,9 +65,16 @@ function Fixture() {
       setSection({ ...initialSection, content: "<p>A separate fictional organization.</p>" })
       setGeneration(value => value + 1)
     }}>Switch fixture organization</Button>
-    {ready ? <DocumentEditor key={generation} section={section} sourceScope={sourceScope} /> : null}
+    <div className="flex flex-wrap gap-2">
+      <Button variant="ghost" onClick={()=>setVisible(!visible)}>{visible ? "Hide mission window" : "Show mission window"}</Button>
+      <Button variant="ghost" onClick={()=>setShowAdditional(!showAdditional)}>{showAdditional ? "Close vision window" : "Open vision window"}</Button>
+    </div>
+    <WorkspaceWindowHeaderScope active={visible}><div hidden={!visible} inert={!visible}>
+      {ready ? <DocumentEditor key={generation} section={section} sourceScope={sourceScope} /> : null}
+    </div></WorkspaceWindowHeaderScope>
+    {showAdditional ? <DocumentEditor section={additionalSection} sourceScope={sourceScope} /> : null}
     <div className="min-w-0">
-      <WorkspaceAiComposer>{assistant => <ParticleComposer disabled={false} pending={false} error={null}
+      <WorkspaceAiComposer sourceScope={sourceScope} organizationName="Fictional Garden Collective">{assistant => <ParticleComposer disabled={false} pending={false} error={null}
         saved={false} assistant={assistant} onCreate={async () => false} onRetry={() => undefined} />}</WorkspaceAiComposer>
     </div>
     <Toaster />

@@ -1,11 +1,13 @@
 import type { Plugin } from "vite"
 import type { AiDocumentProposal, AiDocumentRequest, AiDocumentTarget } from "../../../src/features/workspace-ai/types"
-import { initialSection, scope } from "./fixture-data"
+import { initialSection, additionalSection, scope } from "./fixture-data"
 
 // Deterministic UI simulator only. Real authorization, CAS, accounting and atomic
 // application SQL are exercised separately by acceptance and disposable-PG tests.
 export function fixtureServer(): Plugin {
   let section = structuredClone(initialSection)
+  let secondSection=structuredClone(additionalSection)
+  const getSection=(id:string)=>id === "mission" ? section : id === "vision" ? secondSection : null
   let runs = new Map<string, AiDocumentProposal>()
   let saves = 0
   let generations = 0
@@ -28,7 +30,7 @@ export function fixtureServer(): Plugin {
         const body = JSON.parse(Buffer.concat(chunks).toString() || "{}")
         const sameScope = (target: AiDocumentTarget) => target?.userId === scope.userId && target?.organizationId === scope.organizationId
         if (path === "/__fixture/reset") {
-          section = structuredClone(initialSection); runs = new Map(); saves = 0; generations = 0
+          section = structuredClone(initialSection); secondSection=structuredClone(additionalSection); runs = new Map(); saves = 0; generations = 0
           control = { delaySave: 0, delayGeneration: 0, dropSaveReply: false, failGeneration: false, omitTerminal: false }
           json({ ok: true }); return
         }
@@ -37,10 +39,11 @@ export function fixtureServer(): Plugin {
           section = { ...section, content: "<p>A collaborator saved a newer mission.</p>", lastUpdated: new Date().toISOString() }
           json({ ok: true }); return
         }
-        if (path === "/__fixture/state") { json({ section, saves, generations, runs: [...runs.values()] }); return }
+        if (path === "/__fixture/state") { json({ section, secondSection, saves, generations, runs: [...runs.values()] }); return }
         if (path === "/__fixture/quote") {
           if (!sameScope(body)) { json({ error: "Unavailable organization" }, 403); return }
-          if (body.revision !== section.lastUpdated) { json({ error: "This document changed. Reopen it before asking for a draft." }, 409); return }
+          const chosen=getSection(body.sectionId)
+          if (!chosen || body.revision !== chosen.lastUpdated) { json({ error: "This document changed. Reopen it before asking for a draft." }, 409); return }
           json({ maximumCredits: 25, tariffVersion: "fixture-only", account: { enabled: true,
             lots: [{ kind: "included", credits: 500, spent: generations * 5, reserved: 0, expiresAt: null }], history: [] } }); return
         }
@@ -52,11 +55,12 @@ export function fixtureServer(): Plugin {
         }
         if (path === "/api/workspace/ai/document") {
           const request = body as AiDocumentRequest
-          if (!sameScope(request.target) || request.target.revision !== section.lastUpdated) {
+          const chosen=getSection(request.target.sectionId)
+          if (!sameScope(request.target) || !chosen || request.target.revision !== chosen.lastUpdated) {
             json({ error: "Document changed before generation.", reserved: false }, 409); return
           }
           generations++
-          const run: AiDocumentProposal = { id: request.id, target: request.target, original: section.content,
+          const run: AiDocumentProposal = { id: request.id, target: request.target, original: chosen.content,
             content: "", status: "running", credits: null, maxCredits: 25, revisionSourceRunId: request.reviseRunId }
           runs.set(run.id, run)
           res.setHeader("Content-Type", "application/x-ndjson")
@@ -75,22 +79,25 @@ export function fixtureServer(): Plugin {
         if (path === "/__fixture/save") {
           await sleep(control.delaySave)
           const run = runs.get(body.aiRunId)
-          if (run?.application?.saved_revision === section.lastUpdated) {
-            json({ section, aiApplication: run.application, aiReplay: true }); return
+          const chosen=getSection(body.sectionId)
+          if (!chosen) {json({error:"Unknown document"});return}
+          if (run?.application?.saved_revision === chosen.lastUpdated) {
+            json({ section:chosen, aiApplication: run.application, aiReplay: true }); return
           }
-          if (run?.application || body.expectedLastUpdated !== section.lastUpdated ||
+          if (run?.application || body.expectedLastUpdated !== chosen.lastUpdated ||
             (run && run.target.revision !== body.expectedLastUpdated && body.reviewedAiRevision !== body.expectedLastUpdated)) {
-            json({error:"This document changed. Review before saving.",code:"conflict",currentSection:section,aiApplication:run?.application}); return
+            json({error:"This document changed. Review before saving.",code:"conflict",currentSection:chosen,aiApplication:run?.application}); return
           }
           saves++
-          section = { ...section, content: body.content, lastUpdated: new Date().toISOString(),
-            status: body.status ?? section.status, isPublic: body.isPublic ?? (body.status === "complete" ? true : section.isPublic) }
-          if (run) run.application = { run_id: run.id, section_id: section.id, saved_revision: section.lastUpdated!,
-            content_hash: "a".repeat(64), saved_at: section.lastUpdated! }
+          const saved = { ...chosen, content: body.content, lastUpdated: new Date().toISOString(),
+            status: body.status ?? chosen.status, isPublic: body.isPublic ?? (body.status === "complete" ? true : chosen.isPublic) }
+          if (body.sectionId === "mission") section=saved;else secondSection=saved
+          if (run) run.application = { run_id: run.id, section_id: saved.id, saved_revision: saved.lastUpdated!,
+            content_hash: "a".repeat(64), saved_at: saved.lastUpdated! }
           if (control.dropSaveReply) {
             control.dropSaveReply = false; json({ error: "Fixture lost save reply after commit." }, 503); return
           }
-          json({ section, ...(run ? { aiApplication: run.application } : {}) }); return
+          json({ section:saved, ...(run ? { aiApplication: run.application } : {}) }); return
         }
         json({ error: "Unknown fixture request" }, 404)
       } catch { json({ error: "Invalid fixture request" }, 400) }

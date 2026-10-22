@@ -1,24 +1,12 @@
 "use client"
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react"
-import type { AiDocumentTarget, AiDocumentProposal,AiDocumentApplication } from "../types"
+import { createAiDocumentRegistry,type AiDocumentBridge,type AiDocumentEditor } from "../lib/document-registry"
 
-export type AiDocumentBridge = {
-  application?: AiDocumentApplication | null
-  target: AiDocumentTarget
-  dirty: boolean
-  saving: boolean
-  content: string
-  apply: (proposal: AiDocumentProposal) => boolean
-}
-// An ephemeral bridge to the mounted editor, not another document store.
-// Never persists private content or survives a full page/account navigation.
-const editors = new Map<string,AiDocumentBridge>()
-const listeners = new Set<() => void>()
-let current: AiDocumentBridge | null = null
-function emit() { current = [...editors.values()].at(-1) ?? null; listeners.forEach(listener => listener()) }
-const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
-export function useAiDocumentTarget() { return useSyncExternalStore(subscribe,() => current,() => null) }
+export type { AiDocumentBridge } from "../lib/document-registry"
+const registry=createAiDocumentRegistry()
+const empty:readonly AiDocumentEditor[]=[]
+export function useAiDocumentEditors() { return useSyncExternalStore(registry.subscribe,registry.snapshot,()=>empty) }
 
 export function useAiDocumentBridge(bridge: AiDocumentBridge | null) {
   const id = useId()
@@ -30,9 +18,10 @@ export function useAiDocumentBridge(bridge: AiDocumentBridge | null) {
   const content = bridge?.content
   const application = bridge?.application
   useEffect(() => {
-    if (!target || content === undefined || dirty === undefined || saving === undefined) return
-    editors.set(id,{ target, dirty, saving, content,application, apply: proposal => apply.current?.(proposal) ?? false })
-    emit()
-    return () => { editors.delete(id); emit() }
+    registry.update(id,target && content !== undefined && dirty !== undefined && saving !== undefined
+      ? {target,dirty,saving,content,application,apply:proposal=>apply.current?.(proposal) ?? false} : null)
   },[id,target,dirty,saving,content,application])
+  // Value updates must not unregister/re-register the selected editor: that
+  // transient gap used to reset in-progress composer state while typing/saving.
+  useEffect(()=>()=>registry.update(id,null),[id])
 }

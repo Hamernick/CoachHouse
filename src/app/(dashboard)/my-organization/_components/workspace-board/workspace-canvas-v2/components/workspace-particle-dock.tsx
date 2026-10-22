@@ -56,7 +56,7 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
       }
       particleComposer={
         !tutorialActive ? (
-          <WorkspaceParticleComposerSlot session={particles} />
+          <WorkspaceParticleComposerSlot session={particles} sourceScope={{userId:props.viewerId,organizationId:props.uiPreferencesScope.orgId}} organizationName={props.organizationEditorData.initialProfile.name ?? undefined} />
         ) : null
       }
     />

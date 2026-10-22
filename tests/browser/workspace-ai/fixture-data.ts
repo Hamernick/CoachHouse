@@ -10,3 +10,5 @@ export const initialSection: RoadmapSection = {
   isPublic: true, status: "complete", layout: "square", prompt: "", placeholder: "",
   homework: null, templateTitle: "Mission", templateSubtitle: "", titleIsTemplate: false, subtitleIsTemplate: false,
 }
+
+export const additionalSection:RoadmapSection={...initialSection,id:"vision",slug:"vision",title:"Vision",content:"<p>Every neighborhood has a shared garden.</p>"}
