@@ -1,0 +1,29 @@
+{
+  "imageStatus": 200,
+  "imageType": "image/png",
+  "dimensions": [
+    1200,
+    630
+  ],
+  "bytes": 47775,
+  "sha256": "eb07b39782e9244e90760e5695177716e675d95c530728f866d0ec16df09ee29",
+  "statusPage": 200,
+  "canonicalImage": "https://coachhouse.app/opengraph-image.png",
+  "edgeRoutes": [
+    {
+      "path": "/home",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/legacy-home",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/accelerator",
+      "status": 307,
+      "location": "/workspace/accelerator"
+    }
+  ]
+}

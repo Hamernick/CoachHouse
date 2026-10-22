@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Coach House",
     images: [{
-      url: new URL("/opengraph-image", getPublicSiteOrigin()).href,
+      url: new URL("/opengraph-image.png", getPublicSiteOrigin()).href,
       width: 1200,
       height: 630,
       alt: "Coach House — The platform for nonprofits",
