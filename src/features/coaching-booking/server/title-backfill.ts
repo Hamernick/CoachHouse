@@ -54,9 +54,25 @@ function stableJson(value: unknown): string {
 }
 
 function protectedFields(event: GoogleCoachingTitleEvent) {
-  // Google changes bookkeeping fields when a title changes; everything else must survive.
-  return Object.fromEntries(Object.entries(event)
+  const fields = Object.fromEntries(Object.entries(event)
     .filter(([key]) => !["summary", "etag", "updated", "sequence"].includes(key)))
+  const conference = event.conferenceData as {
+    createRequest?: { status?: { statusCode?: string } }
+    conferenceId?: unknown
+    entryPoints?: unknown
+  } | null | undefined
+  // Google may discard completed creation-request metadata on an unrelated edit.
+  // Keep the full established conference, including its signature and entry points,
+  // and keep every pending, failed, or unrecognized creation request protected.
+  if (conference?.createRequest?.status?.statusCode === "success"
+    && typeof conference.conferenceId === "string" && conference.conferenceId.trim().length > 0
+    && Array.isArray(conference.entryPoints) && conference.entryPoints.length > 0
+    && conference.entryPoints.every((entry) => entry && typeof entry.entryPointType === "string"
+      && entry.entryPointType.trim().length > 0 && typeof entry.uri === "string" && entry.uri.trim().length > 0)) {
+    fields.conferenceData = Object.fromEntries(Object.entries(conference)
+      .filter(([key]) => key !== "createRequest"))
+  }
+  return fields
 }
 
 function eligibilityReason(booking: CoachingTitleBackfillBooking, event: GoogleCoachingTitleEvent) {

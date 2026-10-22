@@ -233,3 +233,79 @@ describe("calendar-download authorization and identity", () => {
     expect(downloadMocks.createAdmin).not.toHaveBeenCalled()
   })
 })
+
+
+describe("completed conference metadata normalization", () => {
+  function conference(statusCode: string | null = "success") {
+    return {
+      conferenceId: "abc-defg-hij",
+      conferenceSolution: { key: { type: "hangoutsMeet" }, name: "Google Meet" },
+      entryPoints: [{ entryPointType: "video", uri: "https://meet.google.com/abc-defg-hij" }],
+      signature: "original-signature",
+      createRequest: { requestId: "original-request", ...(statusCode ? { status: { statusCode } } : {}) },
+    }
+  }
+
+  it("accepts only cleanup of successful creation metadata with matching protected digests", async () => {
+    const before = conference()
+    const { ports, event } = fixture({ conferenceData: before })
+    const plan = await dryRun(ports)
+    vi.mocked(ports.updateTitle).mockImplementation(async ({ summary }) => {
+      const after: Partial<typeof before> = structuredClone(before)
+      delete after.createRequest
+      Object.assign(event, { summary, conferenceData: after })
+    })
+    const result = await backfillCoachingCalendarTitles({ bookings: [booking], ports, now, apply: true, approvedEntries: plan.entries })
+    expect(result.entries[0]).toMatchObject({ result: "updated", verification: "verified" })
+    expect(result.entries[0].protectedDigestAfter).toBe(result.entries[0].protectedDigestBefore)
+    expect(before.createRequest.status?.statusCode).toBe("success")
+  })
+
+  it.each(["hangoutLink", "conferenceId", "entryPoints", "signature", "attendeeRsvp", "attendeeRemoval"])("rejects %s drift even when successful request metadata disappears", async (field) => {
+    const before = conference()
+    const { ports, event } = fixture({ conferenceData: before })
+    const plan = await dryRun(ports)
+    vi.mocked(ports.updateTitle).mockImplementation(async ({ summary }) => {
+      const after: Partial<typeof before> = structuredClone(before)
+      delete after.createRequest
+      Object.assign(event, { summary, conferenceData: after })
+      if (field === "hangoutLink") event.hangoutLink = "https://meet.google.com/xyz-uvwx-rst"
+      if (field === "conferenceId") after.conferenceId = "xyz-uvwx-rst"
+      if (field === "entryPoints") after.entryPoints = [{ entryPointType: "video", uri: "https://meet.google.com/xyz-uvwx-rst" }]
+      if (field === "signature") after.signature = "changed-signature"
+      if (field === "attendeeRsvp") event.attendees[0].responseStatus = "needsAction"
+      if (field === "attendeeRemoval") event.attendees = []
+    })
+    const result = await backfillCoachingCalendarTitles({ bookings: [booking], ports, now, apply: true, approvedEntries: plan.entries })
+    expect(result.entries[0]).toMatchObject({ result: "verification_failed", verification: "failed" })
+  })
+
+  it.each([
+    { conferenceId: "" }, { conferenceId: undefined },
+    { entryPoints: [] }, { entryPoints: undefined }, { entryPoints: [{}] },
+  ])("keeps successful creation metadata protected for incomplete conferences %#", async (overrides) => {
+    const before = { ...conference(), ...overrides }
+    const { ports, event } = fixture({ conferenceData: before })
+    const plan = await dryRun(ports)
+    vi.mocked(ports.updateTitle).mockImplementation(async ({ summary }) => {
+      const after: Partial<typeof before> = structuredClone(before)
+      delete after.createRequest
+      Object.assign(event, { summary, conferenceData: after })
+    })
+    const result = await backfillCoachingCalendarTitles({ bookings: [booking], ports, now, apply: true, approvedEntries: plan.entries })
+    expect(result.entries[0]).toMatchObject({ result: "verification_failed", verification: "failed" })
+  })
+
+  it.each(["pending", "failure", null])("keeps %s creation metadata protected", async (statusCode) => {
+    const before = conference(statusCode)
+    const { ports, event } = fixture({ conferenceData: before })
+    const plan = await dryRun(ports)
+    vi.mocked(ports.updateTitle).mockImplementation(async ({ summary }) => {
+      const after: Partial<typeof before> = structuredClone(before)
+      delete after.createRequest
+      Object.assign(event, { summary, conferenceData: after })
+    })
+    const result = await backfillCoachingCalendarTitles({ bookings: [booking], ports, now, apply: true, approvedEntries: plan.entries })
+    expect(result.entries[0]).toMatchObject({ result: "verification_failed", verification: "failed" })
+  })
+})
