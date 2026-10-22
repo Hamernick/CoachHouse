@@ -3,6 +3,69 @@
 User approved the rewritten urgent plan on October21. Scope: client-first titles,
 existing upcoming invite title correction preparation, and joint-coach conflicts.
 
+## October22 existing invitation titles completed
+
+User authorized preview/apply with guest update notifications. All8 upcoming
+confirmed app-created invitations now have the exact saved-client-first title.
+
+- Initial preview:8ready,0skipped/failed. First summary-only conditional PATCH
+  succeeded, but strict readback stopped the batch when its protected digest changed.
+  The original failure receipt is retained; the first event was never blindly retried.
+- Inspection found completed `conferenceData.createRequest` metadata absent after
+  the first edit. Its exact historical raw event was not retained by the initial
+  preview, so complete pre-first-write equality cannot be reconstructed. Current
+  times/Meet/event links match the stored booking, title propagated to Paula's
+  attendee copy, and all fields stayed unchanged across later independent snapshots.
+- Scoped verifier correction ignores only successful creation-request metadata with
+  a valid conference ID and nonempty valid entry points. It still protects all
+  conference IDs/signatures/entry points, Meet links, attendees/RSVPs and incomplete
+  creation requests.39focused cases and scoped ESLint pass. This is an operator-only
+  follow-up; no broker/web redeployment is required to run the corrected local CLI.
+- Fresh raw snapshots and a fresh preview retained the exact7remaining titles,
+  IDs and ETags; the first event skipped as already updated. Apply:7updated,
+  1skipped,0failures. Independent full raw comparison proves all7 changed only
+  title/bookkeeping and removal of completed creation metadata. All other fields,
+  including times, attendees/RSVPs, signatures and meeting links, match exactly.
+- Final independent GET verifies8/8expected titles. Each write used sendUpdates=all;
+  delivery/read status of guest notification emails is not claimed. No event was
+  recreated, no booking rows changed, and the first event received one write only.
+- Private0600receipts under
+  `~/.local/share/coach-house/coaching-calendar/2026-10-22/`: original title-preview
+  and failed-first-batch receipt, fresh title-preview-resume and successful resume
+  receipt, full before/final snapshots, booking-reference checks, recipient readback,
+  and `title-final-verification.json`. Customer data stays outside Git.
+- [Google's event reference](https://developers.google.com/workspace/calendar/api/v3/reference/events)
+  distinguishes conference creation requests from established conference details;
+  actual metadata removal is observed provider behavior, not an explicit documented
+  guarantee. No broader normalization of conference data is allowed.
+
+## October22 production broker and migration receipt
+
+User merged PR346 as `bbfe4ae438810e141e03223009f141ba8694bcac`, then explicitly
+authorized deploying the broker and applying the migration. Both are complete.
+
+- Cloud Run `coach-house-calendar-broker`, us-central1: revision `00010-p6r`
+  independently verified ready and serving100% traffic. Source is merged PR head
+  `a06b5d53`; image SHA256 `38c9d805ced753c29bdbf8f31d9b88197b2b7893ef134dcb2fb8ecf30458d781`.
+  Source deploy preserved an explicit old-revision traffic pin, so traffic was then
+  deliberately switched to the new revision and independently read back. Existing
+  environment and service account are unchanged. Read-only signed requests through
+  an authenticated local proxy returned availabilityVersion2 for both coaches.
+- Applied only migration `20261022010000` plus exact history entry atomically with
+  the existing joint-calendar lock and bounded deadlines. Independent readback
+  matches exact migration SQL, function body/security/search path, enabled trigger,
+  denied anon/authenticated function execution and unchanged RLS/policies/other
+  triggers. Zero active booking overlaps at preflight and readback; no row edits.
+  Migration SHA256 `c87226f20a960dd8b37545de439ac1c2b768afba2932b46f3affa31357ff9368`.
+- Private receipt: `~/.local/share/coach-house/coaching-calendar/2026-10-22/release/release-receipt.json`.
+  SQL, before/after catalog and API verification receipts retained with0600permissions.
+  Temporary proxy stopped. Rollback broker revision is `00009-hud`; do not roll it
+  back alone while the new app requires availabilityVersion2.
+- App deployment/real-user acceptance and exact existing-title preview/apply remain
+  separate. No invitations renamed, emails sent or calendar configuration changed.
+  Prior direct IAM-signing403 remains historical; broker access now works through
+  the authorized proxy, without changing IAM permissions.
+
 ## October22 release continuation
 
 User explicitly authorized the remaining release work. This supersedes the earlier
