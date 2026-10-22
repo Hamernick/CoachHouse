@@ -1,6 +1,6 @@
 # Open Work Index
 
-Current user-selected lane: **Public prototype retirement**, open [PR351](https://github.com/Hamernick/CoachHouse/pull/351). [Canonical checkpoint](../plans/2026-10-22-retire-public-prototypes.md); production preview http://localhost:3144/login. Locally validated; hosted review and release remain pending.
+Current user-selected lane: **Public prototype retirement**, open [PR351](https://github.com/Hamernick/CoachHouse/pull/351). [Canonical checkpoint](../plans/2026-10-22-retire-public-prototypes.md); production preview http://localhost:3144/login. Locally validated, including the authenticated return-path review correction (101 focused cases); hosted review and release remain pending.
 
 Previous coaching lane: **Coaching invitation titles and booking conflicts**. PR346 merged as bbfe4ae4; broker00010-p6r serves100% with availabilityVersion2, migration20261022010000 applied/verified. All8upcoming invitation titles updated and independently read back with guest notifications requested. [Canonical evidence and first-event verification limit](../plans/2026-10-21-coaching-calendar-repair.md#october22-existing-invitation-titles-completed). Follow-up fix/coaching-title-verification-20261022 handles completed Meet creation metadata in the operator. App/live conflict acceptance remains separate; other worktrees/SHIP40preserved.
 

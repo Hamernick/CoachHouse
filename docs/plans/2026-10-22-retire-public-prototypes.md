@@ -48,3 +48,8 @@ Rollback: revert this cleanup PR only, leaving350's independent Edge image fix i
 ## PR handoff
 
 Source commit `e61b8e4068dd2f3a6b31c1b942b5df0e3acd080d` independently matches the remote branch. Rebase onto merged PR350 (`f00bca9d`) preserved the complete validated tree. Normal Node22 pre-push passed in 8.60s; staged binary secret scan found zero findings. No source changes followed validation. Production preview remains at http://localhost:3144/login; inspect listener ownership before restarting it with `pnpm exec next start -p 3144`. Hosted quality, review, merge, deployment and live acceptance remain pending with Caleb.
+
+
+## Review correction — authenticated login return paths
+
+Caleb approved the P2 correction in PR351. The proxy previously intercepted authenticated `/login` requests before the page could honor their destination. It now uses the existing safe post-login redirect helper after preserving invitation normalization. Signup behavior, session-cookie copying and downstream authorization remain unchanged; tester pages stay retired. Four cases reproduce the failure before the fix, including the complete retired tester page → canonical login proxy chain. All 101 focused cases across proxy auth, retired routes, canonical login and existing-session form suites pass afterward. Unsafe/external URLs and login loops fall back to `/workspace`. Scoped lint, routes, boundaries, acceptance manifest, structure and threshold guards pass. Full build and browser evidence above predate this correction; no fresh full-build or production acceptance is claimed. Private logs: `proxy-before.log` and `proxy-after.log` in the existing evidence directory.

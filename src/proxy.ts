@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
 import { env } from "@/lib/env"
-import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
+import { DEFAULT_POST_AUTH_REDIRECT, getSafePostLoginRedirectPath } from "@/lib/auth/redirects"
 import { getOrganizationInviteRedirect } from "@/lib/auth/organization-invite"
 import { hasCoachCoachingAccess, isCoachRestrictedPath } from "@/features/platform-access"
 import type { Database } from "@/lib/supabase/types"
@@ -95,9 +95,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    const redirectResponse = NextResponse.redirect(
-      new URL(getOrganizationInviteRedirect(request.nextUrl.searchParams.get("redirect")) ?? DEFAULT_POST_AUTH_REDIRECT, request.url)
-    )
+    const requestedRedirect = request.nextUrl.searchParams.get("redirect")
+    const destination = getOrganizationInviteRedirect(requestedRedirect)
+      ?? (pathname === "/login" ? getSafePostLoginRedirectPath(requestedRedirect) : undefined)
+      ?? DEFAULT_POST_AUTH_REDIRECT
+    const redirectResponse = NextResponse.redirect(new URL(destination, request.url))
     copyCookies(response, redirectResponse)
     return redirectResponse
   }
