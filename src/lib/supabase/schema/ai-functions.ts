@@ -1,6 +1,10 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  commit_workspace_ai_document: {
+    Args: { p_id:string; p_org_id:string; p_actor_id:string; p_expected_updated_at:string; p_expected_section_revision:string | null; p_profile:Json; p_section:Json; p_content_hash:string }
+    Returns: Json
+  }
   can_use_workspace_ai: { Args: { p_org_id: string; p_actor_id: string }; Returns: boolean }
   reserve_workspace_ai_run: {
     Args: { p_id: string; p_org_id: string; p_actor_id: string; p_hash: string; p_target: Json; p_prompt: string; p_tariff: Json; p_max_credits: number; p_max_cost: number }

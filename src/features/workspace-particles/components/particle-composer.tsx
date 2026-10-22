@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useState, type ReactNode } from "react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
@@ -42,9 +42,11 @@ export function ParticleComposer({
   onCreate: (type: ParticleType, title: string) => Promise<boolean>
   onRetry: () => void
   onBrowse?: (query: string, open?: boolean) => void
-  assistant?: { active: boolean; pending: boolean; controls: ReactNode; submit: (prompt: string) => Promise<boolean> }
+  assistant?: { revising?:boolean; active: boolean; pending: boolean; controls: ReactNode; submit: (prompt: string) => Promise<boolean> }
 }) {
   const feedbackId = useId()
+  const inputRef=useRef<HTMLTextAreaElement>(null)
+  useEffect(()=>{ if (assistant?.revising) inputRef.current?.focus() },[assistant?.revising])
   const [menuOpen, setMenuOpen] = useState(false)
   const [input, setInput] = useState("")
   const [hint, setHint] = useState<string | null>(null)
@@ -129,8 +131,9 @@ export function ParticleComposer({
             </Popover>
           </InputGroupAddon>
           <InputGroupTextarea
+            ref={inputRef}
             aria-label={assistant?.active ? "Ask AI about this document" : "Search Particles or enter a command"}
-            placeholder={assistant?.active ? "Ask for help with this document…" : "Search Particles or add to the plan…"}
+            placeholder={assistant?.revising ? "Describe changes to this draft…" : assistant?.active ? "Ask for help with this document…" : "Search Particles or add to the plan…"}
             aria-describedby={feedbackId}
             aria-invalid={Boolean(error || hint)}
             value={input}

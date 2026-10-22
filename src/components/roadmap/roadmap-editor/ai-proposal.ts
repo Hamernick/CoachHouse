@@ -16,11 +16,11 @@ export function applyRoadmapAiProposal({ proposal, sourceScope, canEdit, busy, s
   const target = proposal.target
   const section = sectionsRef.current.find(item => item.id === target.sectionId)
   const draft = section && draftsRef.current[section.id]
-  if (!canEdit || busy || proposal.status !== "succeeded" || !section || !draft ||
+  if (!canEdit || busy || proposal.application || proposal.status !== "succeeded" || !section || !draft ||
     target.organizationId !== sourceScope?.organizationId || target.userId !== sourceScope?.userId ||
     activeIdRef.current !== section.id || section.driveSource || section.lastUpdated !== target.revision ||
     isRoadmapDraftDirty(section,draft) || draft.content !== proposal.original) return false
-  const next = { ...draft, content: proposal.content, requiresPrivateSave: true }
+  const next = { ...draft, content: proposal.content, requiresPrivateSave: true,aiRunId:proposal.id }
   draftsRef.current = { ...draftsRef.current, [section.id]: next }
   setDrafts(draftsRef.current)
   return true

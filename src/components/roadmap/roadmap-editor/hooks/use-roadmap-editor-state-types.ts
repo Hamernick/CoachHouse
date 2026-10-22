@@ -17,6 +17,7 @@ export type UseRoadmapEditorStateArgs = Pick<
 >
 
 export type UseRoadmapEditorStateResult = {
+  aiApplication: import("@/features/workspace-ai/client").AiDocumentApplication | null
   applyAiProposal: (proposal: import("@/features/workspace-ai/client").AiDocumentProposal) => boolean
   activeSection: RoadmapSection | undefined
   activeDraft: RoadmapDraft | null

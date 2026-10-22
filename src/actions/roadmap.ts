@@ -7,6 +7,8 @@ import { requireOrganizationDocumentStorage, resolveOrganizationDocumentStorageA
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 
 import { getSelectedGoogleDriveFile } from "@/features/google-drive"
+import { readAiDocumentApplication,commitAiDocumentApplication } from "@/features/workspace-ai"
+import type { AiDocumentApplication } from "@/features/workspace-ai/client"
 import { normalizeCoreDocumentDriveSource } from "@/lib/roadmap/core-document-source"
 
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
@@ -37,6 +39,7 @@ import {
 import { createNotification } from "@/lib/notifications"
 
 type SaveInput = {
+  aiRunId?: string
   driveFileId?: string | null
   targetOrganizationId?: string
   expectedOrganizationId?: string
@@ -56,7 +59,7 @@ type SaveInput = {
 }
 
 type SaveResult =
-  | { section: RoadmapSection }
+  | { section: RoadmapSection; aiApplication?: AiDocumentApplication; aiReplay?: boolean }
   | {
       error: string
       code?: "conflict" | "scope_changed"
@@ -93,6 +96,7 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
 }
 
 export async function saveRoadmapSectionAction({
+  aiRunId,
   driveFileId,
   targetOrganizationId,
   expectedOrganizationId,
@@ -176,6 +180,22 @@ export async function saveRoadmapSectionAction({
       null)
     : null
 
+  let aiApplication: AiDocumentApplication | undefined
+  if (aiRunId) {
+    if (!previousSection || previousSection.driveSource || driveFileId !== undefined ||
+      !expectedOrganizationId || !expectedUserId || expectedLastUpdated === undefined)
+      return { error: "Reopen this core document before saving an AI draft." }
+    try {
+      const receipt = await readAiDocumentApplication({ id:aiRunId,organizationId:orgId,userId:user.id,
+        sectionId:previousSection.id,revision:expectedLastUpdated })
+      if (receipt) {
+        if (receipt.saved_revision !== previousSection.lastUpdated)
+          return { error:"This proposal was already saved, and the document has changed since. Review your current draft.",code:"conflict",currentSection:previousSection }
+        return { section:previousSection,aiApplication:receipt,aiReplay:true }
+      }
+    } catch (cause) { return { error:cause instanceof Error ? cause.message : "Unable to verify the AI proposal." } }
+  }
+
   if (
     previousSection &&
     expectedLastUpdated !== undefined &&
@@ -241,9 +261,9 @@ export async function saveRoadmapSectionAction({
     content: sanitizedContent,
     budgetRows,
     imageUrl,
-    isPublic: driveSource ? false : allowPublicSharing ? isPublic : false,
+    isPublic: aiRunId || driveSource ? false : allowPublicSharing ? isPublic : false,
     layout,
-    status,
+    status: aiRunId ? "in_progress" as const : status,
     ctaLabel,
     ctaUrl,
   }
@@ -261,7 +281,14 @@ export async function saveRoadmapSectionAction({
     userId: orgId,
   })
 
-  if (orgRow) {
+  if (orgRow && aiRunId) {
+    try {
+      const committed = await commitAiDocumentApplication({ id:aiRunId,organizationId:orgId,userId:user.id,
+        organizationRevision:orgRow.updated_at,sourceRevision:expectedLastUpdated ?? null,profile:nextProfile,section })
+      if (committed.replayed) return { error:"This proposal was already saved. Retry to recover the saved version." }
+      aiApplication=committed.application
+    } catch (cause) { return { error:cause instanceof Error ? cause.message : "Unable to save this AI draft." } }
+  } else if (orgRow) {
     const { data: updatedRow, error: updateError } = await supabase
       .from("organizations")
       .update({ profile: nextProfile as Json })
@@ -313,7 +340,7 @@ export async function saveRoadmapSectionAction({
     }
   }
 
-  return { section }
+  return { section, ...(aiApplication ? {aiApplication} : {}) }
 }
 
 export async function deleteRoadmapSectionAction(

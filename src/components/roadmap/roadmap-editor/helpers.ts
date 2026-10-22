@@ -166,18 +166,12 @@ export function loadRoadmapDraftsFromStorage(
     }
     const storageUpdatedAtMs = timestampMs(parsed.updatedAt)
     const latestServerUpdatedAtMs = latestSectionUpdatedAtMs(sections)
-    if (
-      storageUpdatedAtMs !== null &&
-      latestServerUpdatedAtMs !== null &&
-      storageUpdatedAtMs < latestServerUpdatedAtMs
-    ) {
-      return next
-    }
+    const serverIsNewer = storageUpdatedAtMs !== null && latestServerUpdatedAtMs !== null && storageUpdatedAtMs < latestServerUpdatedAtMs
 
     sections.forEach((section) => {
       const draft = parsed.drafts[section.id]
-      if (!draft) return
-      if (hasSavedSectionValue(section) && isBlankStoredDraft(draft)) return
+      if (!draft || (serverIsNewer && !draft.aiRunId)) return
+      if (!draft.aiRunId && hasSavedSectionValue(section) && isBlankStoredDraft(draft)) return
       next[section.id] = {
         ...next[section.id],
         title: draft.title ?? next[section.id].title,
@@ -189,6 +183,7 @@ export function loadRoadmapDraftsFromStorage(
             : normalizeRoadmapBudgetRows(draft.budgetRows),
         imageUrl: draft.imageUrl ?? next[section.id].imageUrl,
         requiresPrivateSave: draft.requiresPrivateSave === true,
+        aiRunId: typeof draft.aiRunId === "string" ? draft.aiRunId : undefined,
       }
     })
   } catch {
@@ -225,6 +220,7 @@ export function persistRoadmapDraftsToStorage({
       budgetRows: draft.budgetRows,
       imageUrl: draft.imageUrl,
       requiresPrivateSave: draft.requiresPrivateSave === true,
+      aiRunId:draft.aiRunId,
     }
   })
 

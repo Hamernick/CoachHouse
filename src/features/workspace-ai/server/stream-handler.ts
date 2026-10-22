@@ -9,6 +9,7 @@ import { workspaceAiConfig } from "./config"
 import { documentInstructions, streamDocumentDraft } from "./provider"
 import type { AiStreamPart } from "../types"
 import { readAiRequestBody } from "./request-body"
+import { loadAiRevisionContext } from "./revision-context"
 
 export async function handleWorkspaceAiDocument(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin)
@@ -20,10 +21,13 @@ export async function handleWorkspaceAiDocument(request: Request) {
     if (input.tariffVersion !== config.tariff.version || input.maximumCredits < config.maxCredits)
       throw new Error("The AI price changed. Review the current maximum before continuing.")
     const actor = await loadAiDocument(input.target)
-    const target = { ...input.target, title: actor.section.title, content: actor.section.content }
-    const context = JSON.stringify({ document: { title: target.title, content: target.content }, request: input.prompt })
+    const revision = await loadAiRevisionContext(input.reviseRunId,input.target)
+    const target = { ...input.target, title: actor.section.title, content: actor.section.content,
+      ...(revision ? {revisionSourceRunId:revision.id} : {}) }
+    const context = JSON.stringify({ document: { title: target.title, content: target.content }, request: input.prompt,
+      ...(revision ? {draftToRevise:revision.content} : {}) })
     if (Buffer.byteLength(context + documentInstructions) + 1024 > config.maxInputBytes) throw new Error("This request exceeds the current context limit.")
-    const hash = createHash("sha256").update(JSON.stringify({ target, prompt: input.prompt, tariff: config.tariff })).digest("hex")
+    const hash = createHash("sha256").update(JSON.stringify({ target, prompt: input.prompt, tariff: config.tariff,revision })).digest("hex")
     const reserved = await reserveAiRun({ id: input.id, organizationId: actor.organizationId,
       actorId: actor.userId, hash, target, prompt: input.prompt, tariff: config.tariff,
       maxCredits: config.maxCredits, maxCost: config.maxCost })
@@ -68,6 +72,6 @@ export async function handleWorkspaceAiDocument(request: Request) {
     return new Response(stream, { headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } })
   } catch (error) {
     if (reservedId) await reconcileAiRun(reservedId,null).catch(() => undefined)
-    return Response.json({ error: error instanceof Error ? error.message : "AI assistance is unavailable." }, { status: 400 })
+    return Response.json({ error: error instanceof Error ? error.message : "AI assistance is unavailable.",reserved:Boolean(reservedId) }, { status: 400 })
   }
 }

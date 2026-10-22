@@ -37,13 +37,14 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     savingId,
     handleStatusChange,
     applyAiProposal,
+    aiApplication,
   } = useRoadmapEditorState(props)
 
   const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
     ...props.sourceScope, sectionId: activeSection.id, title: activeSection.title, revision: activeSection.lastUpdated,
   } : null,[props.sourceScope,activeSection])
   useAiDocumentBridge(aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
-    target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,
+    target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,application:aiApplication,
   } : null)
 
   if (!activeSection || !activeDraft) {

@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react"
-import type { AiDocumentTarget, AiDocumentProposal } from "../types"
+import type { AiDocumentTarget, AiDocumentProposal,AiDocumentApplication } from "../types"
 
 export type AiDocumentBridge = {
+  application?: AiDocumentApplication | null
   target: AiDocumentTarget
   dirty: boolean
   saving: boolean
@@ -27,10 +28,11 @@ export function useAiDocumentBridge(bridge: AiDocumentBridge | null) {
   const dirty = bridge?.dirty
   const saving = bridge?.saving
   const content = bridge?.content
+  const application = bridge?.application
   useEffect(() => {
     if (!target || content === undefined || dirty === undefined || saving === undefined) return
-    editors.set(id,{ target, dirty, saving, content, apply: proposal => apply.current?.(proposal) ?? false })
+    editors.set(id,{ target, dirty, saving, content,application, apply: proposal => apply.current?.(proposal) ?? false })
     emit()
     return () => { editors.delete(id); emit() }
-  },[id,target,dirty,saving,content])
+  },[id,target,dirty,saving,content,application])
 }

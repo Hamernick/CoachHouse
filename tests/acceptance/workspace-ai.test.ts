@@ -72,4 +72,25 @@ describe("metered document assistance", () => {
     expect(mocks.provider).not.toHaveBeenCalled()
     expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({status:"failed",usage:{input:0,cachedInput:0,output:0}}))
   })
+  it("revises a previous private proposal as a separately metered request",async()=>{
+    mocks.read.mockResolvedValueOnce({...run,id:id(4),proposal:"<p>Previous proposed wording</p>"})
+    await (await handleWorkspaceAiDocument(request({reviseRunId:id(4),prompt:"Make it shorter"}))).text()
+    const context=JSON.parse(mocks.provider.mock.calls[0][0].context)
+    expect(context.draftToRevise).toBe("<p>Previous proposed wording</p>")
+    expect(context.document.content).toBe("<p>Original</p>")
+    expect(mocks.reserve).toHaveBeenCalledWith(expect.objectContaining({id:id(3),target:expect.objectContaining({revisionSourceRunId:id(4)})}))
+    expect(mocks.settle).toHaveBeenCalledOnce()
+  })
+  it("rejects stale, cross-document and already-applied revision sources before spending",async()=>{
+    for (const source of [
+      {...run,target:{...run.target,sectionId:"mission"}},
+      {...run,target:{...run.target,revision:"changed"}},
+      {...run,target:{...run.target,organizationId:id(8)}},
+      {...run,application:{run_id:id(3),section_id:"need",saved_revision:"saved",content_hash:"a".repeat(64),saved_at:"2026-10-22"}},
+    ]) {
+      mocks.read.mockResolvedValueOnce(source)
+      expect((await handleWorkspaceAiDocument(request({reviseRunId:id(4)}))).status).toBe(400)
+    }
+    expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+  })
 })

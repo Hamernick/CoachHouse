@@ -18,6 +18,7 @@ export type RoadmapEditorProps = {
 }
 
 export type RoadmapDraft = {
+  aiRunId?: string
   requiresPrivateSave?: boolean
   id: string
   title: string
@@ -45,6 +46,7 @@ export type RoadmapDraftStorage = {
       content?: string
       budgetRows?: BudgetTableRow[]
       imageUrl?: string
+      aiRunId?: string
       requiresPrivateSave?: boolean
     }
   >

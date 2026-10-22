@@ -2,6 +2,7 @@ import { afterEach,describe,expect,it,vi } from "vitest"
 import { applyRoadmapAiProposal } from "@/components/roadmap/roadmap-editor/ai-proposal"
 import { createDraft,loadRoadmapDraftsFromStorage,persistRoadmapDraftsToStorage } from "@/components/roadmap/roadmap-editor/helpers"
 import { resolveRoadmapSections } from "@/lib/roadmap"
+import { acknowledgeRoadmapDraftSave } from "@/components/roadmap/roadmap-editor/save-acknowledgment"
 
 function fixture() {
   const section=resolveRoadmapSections({})[0]
@@ -47,6 +48,37 @@ describe("AI draft application into the existing core editor",() => {
     const restored=loadRoadmapDraftsFromStorage("test-org",input.sectionsRef.current)[input.activeIdRef.current]
     expect(restored.content).toBe(input.proposal.content)
     expect(restored.requiresPrivateSave).toBe(true)
+    expect(restored.aiRunId).toBe(input.proposal.id)
     expect(loadRoadmapDraftsFromStorage("another-org",input.sectionsRef.current)[input.activeIdRef.current].content).not.toBe(input.proposal.content)
+  })
+  it("uses a canonical save acknowledgment without losing typing during the request",()=>{
+    const input=fixture();applyRoadmapAiProposal(input)
+    const submitted=input.draftsRef.current[input.activeIdRef.current]
+    const current={...submitted,content:"<p>Typed while saving</p>"}
+    const saved={...input.sectionsRef.current[0],content:submitted.content,lastUpdated:"2026-10-22T13:00:00Z",isPublic:false}
+    const retained=acknowledgeRoadmapDraftSave(current,submitted,saved)
+    expect(retained.content).toBe(current.content)
+    expect(retained.aiRunId).toBeUndefined()
+    expect(retained.requiresPrivateSave).toBe(false)
+    expect(acknowledgeRoadmapDraftSave(submitted,submitted,saved).content).toBe(saved.content)
+  })
+  it("preserves edits made after a lost save response and clears the recovered application ID",()=>{
+    const input=fixture();applyRoadmapAiProposal(input)
+    const draft={...input.draftsRef.current[input.activeIdRef.current],content:"<p>Further changes</p>"}
+    const saved={...input.sectionsRef.current[0],content:input.proposal.content,lastUpdated:"2026-10-22T13:00:00Z",isPublic:false}
+    const retained=acknowledgeRoadmapDraftSave(draft,draft,saved,true)
+    expect(retained.content).toBe(draft.content)
+    expect(retained.aiRunId).toBeUndefined()
+    expect(retained.lastUpdated).toBe(saved.lastUpdated)
+  })
+  it("retains an AI recovery draft when the server acknowledgment arrives after local persistence",()=>{
+    const values=new Map<string,string>()
+    vi.stubGlobal("window",{localStorage:{getItem:(key:string)=>values.get(key) ?? null,setItem:(key:string,value:string)=>values.set(key,value)}})
+    const input=fixture();applyRoadmapAiProposal(input)
+    persistRoadmapDraftsToStorage({storageKey:"test-org",sections:input.sectionsRef.current,drafts:input.draftsRef.current})
+    const server=[{...input.sectionsRef.current[0],content:"<p>Server version</p>",lastUpdated:"2099-01-01T00:00:00Z"}]
+    const restored=loadRoadmapDraftsFromStorage("test-org",server)[input.activeIdRef.current]
+    expect(restored.content).toBe(input.proposal.content)
+    expect(restored.aiRunId).toBe(input.proposal.id)
   })
 })

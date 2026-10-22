@@ -12,8 +12,8 @@ import {
 } from "react"
 import { usePathname } from "next/navigation"
 
-import { saveRoadmapSectionAction } from "@/actions/roadmap"
-import type { AiDocumentProposal } from "@/features/workspace-ai/client"
+import type { AiDocumentProposal,AiDocumentApplication } from "@/features/workspace-ai/client"
+import { useRoadmapSave } from "./use-roadmap-save"
 import { applyRoadmapAiProposal } from "../ai-proposal"
 import {
   uploadOrgMedia,
@@ -22,7 +22,6 @@ import {
 import { toast } from "@/lib/toast"
 import { type RoadmapSection, type RoadmapSectionStatus } from "@/lib/roadmap"
 import {
-  hasMeaningfulRoadmapBudgetRows,
   roadmapBudgetRowsEqual,
 } from "@/lib/roadmap/budget"
 import {
@@ -96,6 +95,7 @@ export function useRoadmapEditorState({
   const [activeId, setActiveId] = useState(
     initialActiveId || initialSections[0]?.id || ""
   )
+  const [aiApplication,setAiApplication] = useState<AiDocumentApplication | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   useRoadmapWindowStatus(sections, drafts, savingId)
@@ -197,73 +197,8 @@ export function useRoadmapEditorState({
     return () => observer.disconnect()
   }, [headerTitle, headerSubtitle])
 
-  const saveSectionById = useCallback(
-    ({ sectionId, showToast }: { sectionId: string; showToast: boolean }) => {
-      if (!canEdit) return
-      if (!sectionId) return
-      if (savingId || isPending) return
-
-      const section = sectionsRef.current.find(
-        (entry) => entry.id === sectionId
-      )
-      if (!section) return
-      const draft = draftsRef.current[sectionId] ?? createDraft(section)
-      if (!isRoadmapDraftDirty(section, draft)) return
-
-      const shouldMarkInProgress =
-        section.status === "not_started" &&
-        (draft.content.trim().length > 0 ||
-          hasMeaningfulRoadmapBudgetRows(draft.budgetRows) ||
-          draft.title.trim().length > 0 ||
-          draft.subtitle.trim().length > 0)
-
-      setSavingId(section.id)
-      startTransition(async () => {
-        try {
-          const result = await saveRoadmapSectionAction({
-            expectedOrganizationId: sourceScope?.organizationId,
-            expectedUserId: sourceScope?.userId,
-            sectionId: section.id,
-            expectedLastUpdated: section.lastUpdated,
-            title: draft.title,
-            subtitle: draft.subtitle,
-            content: draft.content,
-            budgetRows: section.id === "budget" ? draft.budgetRows : undefined,
-            imageUrl: draft.imageUrl,
-            status: draft.requiresPrivateSave || shouldMarkInProgress ? "in_progress" : undefined,
-            ...(draft.requiresPrivateSave ? { isPublic: false } : {}),
-          })
-
-          if ("error" in result) {
-            toast.error(result.error)
-            return
-          }
-
-          const nextSection = result.section
-          setSections((prev) => {
-            const index = prev.findIndex((entry) => entry.id === nextSection.id)
-            if (index === -1) return [...prev, nextSection]
-            return prev.map((entry, idx) =>
-              idx === index ? nextSection : entry
-            )
-          })
-          setDrafts((prev) => ({
-            ...prev,
-            // Preserve typing that happened while the save was in flight.
-            [nextSection.id]: prev[nextSection.id] === draft ? createDraft(nextSection) : prev[nextSection.id],
-          }))
-          if (showToast) toast.success("Section saved")
-        } catch {
-          toast.error(
-            "The roadmap could not save. Your draft is still available; retry or refresh."
-          )
-        } finally {
-          setSavingId(null)
-        }
-      })
-    },
-    [canEdit, isPending, savingId, sourceScope]
-  )
+  const saveSectionById = useRoadmapSave({sourceScope,canEdit,isPending,savingId,sectionsRef,draftsRef,
+    setSections,setDrafts,setSavingId,setAiApplication,startTransition})
 
   const flushActiveSectionDraft = useCallback(() => {
     const sectionId = activeIdRef.current
@@ -362,60 +297,10 @@ export function useRoadmapEditorState({
 
   const handleStatusChange = useCallback(
     (nextStatus: RoadmapSectionStatus) => {
-      if (!canEdit) return
-      if (!activeSection) return
-      if (savingId || isPending) return
-      const draft =
-        draftsRef.current[activeSection.id] ?? createDraft(activeSection)
-      const draftIsDirty = isRoadmapDraftDirty(activeSection, draft)
-      setSavingId(activeSection.id)
-      startTransition(async () => {
-        try {
-          const result = await saveRoadmapSectionAction({
-            expectedOrganizationId: sourceScope?.organizationId,
-            expectedUserId: sourceScope?.userId,
-            sectionId: activeSection.id,
-            expectedLastUpdated: activeSection.lastUpdated,
-            status: nextStatus,
-            ...(draftIsDirty
-              ? {
-                  title: draft.title,
-                  subtitle: draft.subtitle,
-                  content: draft.content,
-                  budgetRows:
-                    activeSection.id === "budget"
-                      ? draft.budgetRows
-                      : undefined,
-                  imageUrl: draft.imageUrl,
-                }
-              : {}),
-          })
-
-          if ("error" in result) {
-            toast.error(result.error)
-            return
-          }
-
-          const nextSection = result.section
-          setSections((prev) =>
-            prev.map((section) =>
-              section.id === nextSection.id ? nextSection : section
-            )
-          )
-          setDrafts((prev) => ({
-            ...prev,
-            [nextSection.id]: createDraft(nextSection),
-          }))
-        } catch {
-          toast.error(
-            "The roadmap could not save. Your draft is still available; retry or refresh."
-          )
-        } finally {
-          setSavingId(null)
-        }
-      })
+      if (!activeSection || activeDraft?.requiresPrivateSave) return
+      saveSectionById({ sectionId: activeSection.id, showToast: false, status: nextStatus })
     },
-    [activeSection, canEdit, isPending, savingId, sourceScope]
+    [activeSection, activeDraft?.requiresPrivateSave, saveSectionById]
   )
 
   return {
@@ -430,7 +315,7 @@ export function useRoadmapEditorState({
     headerIconSize,
     headerTextRef,
     status,
-    statusSelectDisabled: isPending,
+    statusSelectDisabled: isPending || Boolean(savingId) || Boolean(activeDraft?.requiresPrivateSave),
     isHydrated,
     isCalendarSection,
     isBudgetSection,
@@ -443,5 +328,6 @@ export function useRoadmapEditorState({
     savingId,
     handleStatusChange,
     applyAiProposal,
+    aiApplication,
   }
 }

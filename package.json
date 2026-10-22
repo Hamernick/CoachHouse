@@ -29,6 +29,7 @@
     "test:acceptance:manifest:update": "node scripts/sync-acceptance-projects.mjs --write",
     "test": "pnpm test:snapshots && pnpm test:rls",
     "test:rls:workspace-ai": "node supabase/tests/workspace-ai.test.mjs",
+    "test:workspace-ai-browser": "playwright test --config tests/browser/workspace-ai/playwright.config.ts",
     "test:rls": "pnpm test:rls:workspace-ai && pnpm test:rls:project-recurrence && pnpm test:rls:signup-consent && pnpm test:rls:fiscal && pnpm test:rls:finance && pnpm test:rls:page-health && pnpm test:rls:claims && pnpm test:rls:public-profiles && pnpm test:rls:google-drive && pnpm test:rls:document-files && pnpm test:rls:document-activity && pnpm test:rls:nonprofit-directory && node supabase/tests/rls.test.mjs",
     "test:rls:project-recurrence": "node supabase/tests/recurring-projects.test.mjs",
     "test:rls:signup-consent": "node supabase/tests/signup-legal-consent.test.mjs",

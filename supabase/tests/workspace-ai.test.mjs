@@ -72,6 +72,7 @@ try {
   runSql("supabase/migrations/20261022120000_workspace_ai_metering.sql")
   runSql("supabase/migrations/20261022121000_workspace_ai_read_and_recovery.sql")
   runSql("supabase/migrations/20261022123000_workspace_ai_durable_recovery.sql")
+  runSql("supabase/migrations/20261022130000_workspace_ai_document_application.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
@@ -103,7 +104,8 @@ try {
     select public.assert_ai(public.read_workspace_ai_run('20000000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000004') is null,'cross-org private proposal hidden');
   `})
   runSql("supabase/tests/workspace-ai-recovery.assertions.sql")
-  console.log("[workspace-ai] Accounting, replay, access, cancellation, crash recovery and real concurrent wallet admission passed.")
+  runSql("supabase/tests/workspace-ai-application.assertions.sql")
+  console.log("[workspace-ai] Accounting, access, cancellation, crash recovery, atomic document application/replay/rollback and real concurrent wallet admission passed.")
 } finally {
   if (started) {
     spawnSync(join(postgresDirectory, "pg_ctl"), [
