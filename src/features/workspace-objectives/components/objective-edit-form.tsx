@@ -2,7 +2,8 @@
 import { useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Check } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkspaceObjectiveRecord, WorkspaceObjectiveStatus } from "../types"
@@ -21,9 +22,9 @@ export function ObjectiveEditForm({ objective, pending, onSave, onCancel }: {
     event.preventDefault()
     if (await onSave({ id: baseline.id, expectedUpdatedAt: baseline.updatedAt, title, description, status })) onCancel()
   }}>
-    <FieldGroup>
+    <FieldGroup className="gap-3">
       <Field><FieldLabel htmlFor={`${id}-title`}>Objective</FieldLabel>
-        <Input id={`${id}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={240} disabled={pending} />
+        <InputGroup className="items-center gap-0 rounded-2xl border border-border/70 p-1"><InputGroupInput autoFocus id={`${id}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={240} disabled={pending} className="min-w-0 border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" /><InputGroupAddon><Button type="submit" variant="ghost" size="icon" className="size-9 rounded-full" aria-label="Save" disabled={pending || !title.trim()}><Check aria-hidden /></Button></InputGroupAddon></InputGroup>
       </Field>
       <Field><FieldLabel htmlFor={`${id}-description`}>Details</FieldLabel>
         <Textarea id={`${id}-description`} value={description} onChange={event => setDescription(event.target.value)} maxLength={10000} disabled={pending} />
@@ -39,7 +40,7 @@ export function ObjectiveEditForm({ objective, pending, onSave, onCancel }: {
       </Field>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" className="rounded-full" disabled={pending} onClick={onCancel}>Cancel</Button>
-        <Button type="submit" size="sm" className="rounded-full" disabled={pending || !title.trim()}>Save</Button>
+
       </div>
     </FieldGroup>
   </form>

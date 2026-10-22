@@ -10,10 +10,12 @@ test("explicit decisions synchronize list/tree, preserve history, and survive re
     await page.getByRole("button", { name: "Add step", exact: true }).click()
     await page.getByLabel(`Step ${index + 1} title`, { exact: true }).fill(title)
   }
+  await page.getByRole("button", { name: "Step 1 options", exact: true }).click()
   await page.getByRole("combobox", { name: "Step 1 type", exact: true }).click()
   await page.getByRole("option", { name: "Decision", exact: true }).click()
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
   await expect(page.getByRole("alert")).toContainText("at least two uniquely named outcomes")
+  await page.getByRole("button", { name: "Connections", exact: true }).click()
   for (const [target, label] of [["Host in person", "Venue available"], ["Host online", "No venue"]]) {
     await page.getByRole("combobox", { name: "From step" }).click()
     await page.getByRole("option", { name: "Choose venue", exact: true }).click()
@@ -31,7 +33,6 @@ test("explicit decisions synchronize list/tree, preserve history, and survive re
   await page.getByRole("checkbox", { name: "Host online", exact: true }).check()
   await expect(page.getByRole("button", { name: "Venue plan 2/2", exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Show Venue plan tree", exact: true }).click()
-  await page.getByRole("button", { name: "Objectives", exact: true }).click()
   await expect(page.getByRole("checkbox", { name: "Complete Host in person", exact: true })).toBeDisabled()
   await page.getByRole("combobox", { name: "Tree outcome for Choose venue in Venue plan", exact: true }).click()
   await page.getByRole("option", { name: "Venue available", exact: true }).click()
@@ -52,7 +53,6 @@ test("explicit decisions synchronize list/tree, preserve history, and survive re
   await expect(page.getByRole("checkbox", { name: "Host online", exact: true })).toBeDisabled()
   // Another editor wins after this tree loaded; its revision must not be overwritten.
   await page.getByRole("button", { name: "Show Venue plan tree", exact: true }).click()
-  await page.getByRole("button", { name: "Objectives", exact: true }).click()
   await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem("objective-fixture")!)
     data.planning.plans[0].revision++

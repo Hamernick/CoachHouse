@@ -11,17 +11,17 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onT
   allPlans?: ObjectivePlan[]; onChoice: (plan: ObjectivePlan, stepId: string, edgeId: string | null) => void; plans: ObjectivePlan[]; steps: ObjectiveStep[]; canEdit: boolean; pending: boolean; visible: string[]
   onToggle: (id: string) => void; onEdit: (plan: ObjectivePlan) => void; onCreate: () => void; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
-  return <div className="space-y-2">
+  return <div className="flex flex-col gap-2">
     {plans.map(plan => {
       const members = plan.stepIds.flatMap(id => steps.find(step => step.id === id) ?? [])
       const progress = planProgress(allPlans, members)
       const done = progress.completed.length
-      return <Collapsible key={plan.id} className="rounded-2xl bg-muted/40 p-2">
+      return <Collapsible key={plan.id} className="min-w-0">
         <div className="flex min-w-0 items-center gap-1"><CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-9 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left"><span>{plan.title} <span className="text-xs tabular-nums text-muted-foreground">{done}/{progress.active.length}{progress.waiting > 0 ? " · Awaiting a decision" : ""}</span></span><ChevronDown aria-hidden /></Button></CollapsibleTrigger>
           <Button variant="ghost" size="icon" className="size-9 rounded-full aria-pressed:bg-accent" aria-label={`Show ${plan.title} tree`} aria-pressed={visible.includes(plan.id)} onClick={() => onToggle(plan.id)}><Workflow aria-hidden /></Button>
           {canEdit && <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={`Edit ${plan.title} plan`} disabled={pending} onClick={() => onEdit(plan)}><Pencil aria-hidden /></Button>}
         </div>
-        <CollapsibleContent><ul aria-label={`${plan.title} plan steps`} className="space-y-1 pt-1">{members.map(step => {
+        <CollapsibleContent><ul aria-label={`${plan.title} plan steps`} className="flex flex-col gap-1 pt-1">{members.map(step => {
           const decision = plan.decisions?.find(item => item.stepId === step.id)
           const applicable = progress.steps.get(step.id) ?? "active"
           return <li key={step.id} className="flex min-h-11 flex-wrap items-center gap-2" data-applicability={applicable}>
@@ -34,6 +34,6 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onT
         })}</ul></CollapsibleContent>
       </Collapsible>
     })}
-    {canEdit && <Button variant="ghost" size="sm" className="rounded-full" disabled={pending} onClick={onCreate}><Plus data-icon="inline-start" aria-hidden />Add plan</Button>}
+    {canEdit && <Button variant="ghost" size="sm" className="w-fit rounded-full" disabled={pending} onClick={onCreate}><Plus data-icon="inline-start" aria-hidden />Add plan</Button>}
   </div>
 }

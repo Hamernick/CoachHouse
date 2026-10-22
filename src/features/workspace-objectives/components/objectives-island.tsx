@@ -1,13 +1,11 @@
 "use client"
 import { useCallback, useId, useMemo, useState } from "react"
-import { motion, useReducedMotion } from "framer-motion"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { ObjectivesIslandSurface } from "./objectives-island-surface"
 import type { ObjectiveIslandTransport, ObjectiveScope } from "../island-types"
 import { useObjectiveIsland } from "../hooks/use-objective-island"
 import type { ObjectivePlanProjection } from "./objective-plan-node"
@@ -37,12 +35,11 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
   const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null)
   const [title, setTitle] = useState("")
   const id = useId()
-  const reduced = useReducedMotion()
   const objectives = state.data?.objectives.filter(objective => objective.status !== "archived") ?? []
   const activePlans = (state.data?.planning?.plans ?? []).filter(plan => objectives.some(objective => objective.id === plan.objectiveId))
   const remaining = objectives.filter(objective => objective.status !== "done").length
   const editable = canEdit && state.data?.loadedFrom === "normalized"
-  const editPlan = useCallback((plan: ObjectivePlan) => setPlanDraft(draftFromPlan(plan, state.data?.steps ?? [])), [state.data?.steps])
+  const editPlan = useCallback((plan: ObjectivePlan) => { setOpen(true); setPlanDraft(draftFromPlan(plan, state.data?.steps ?? [])) }, [state.data?.steps])
   const { mutate } = state
   const onStep = useCallback((step: ObjectiveStep, done: boolean) => { void mutate(() => transport.step(scope, { id: step.id, objectiveId: step.objectiveId, expectedUpdatedAt: step.updatedAt, done })).then(saved => { if (!saved) setOpen(true) }) }, [mutate, transport, scope])
   const onChoice = useCallback((plan: ObjectivePlan, stepId: string, edgeId: string | null) => {
@@ -51,26 +48,16 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
     void mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." })).then(saved => { if (!saved) setOpen(true) })
   }, [mutate, transport, scope, state.data?.steps])
   const projectionError = usePlanProjection({ data: state.data, selected, scopeKey: `${userId}:${organizationId}`, pending: state.pending, canEdit: Boolean(editable), onEdit: editPlan, onStep, onChoice, onProjection })
-  return <><motion.div layout transition={reduced ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }}
-    className={cn("nodrag nopan nowheel pointer-events-auto max-w-full overflow-hidden rounded-[22px] border border-border/70 bg-card/95 shadow-none backdrop-blur-xl", open ? "w-[400px]" : "w-fit")}
-    onKeyDown={event => { if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); setOpen(false) } }}>
-    <Collapsible open={open} onOpenChange={value => { setOpen(value); if (value) void state.refresh() }}>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="h-[42px] w-full gap-2 rounded-full px-3 [@media(pointer:coarse)]:h-11" aria-label="Objectives">
-          <span>Objectives</span>
-          {state.data && <span className="text-xs tabular-nums text-muted-foreground">{remaining}</span>}
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent forceMount hidden={!open}>
-        <div className="flex max-h-[min(65svh,600px)] flex-col gap-2 overflow-y-auto p-2 pt-0" aria-busy={state.pending}>
-          {canEdit && state.data && state.data.loadedFrom !== "legacy_tracker" && <form className="flex items-end gap-1" onSubmit={async event => {
+  return <ObjectivesIslandSurface open={open} count={state.data ? remaining : undefined} onOpenChange={value => { setOpen(value); if (value) void state.refresh() }}>
+    <div className="flex min-w-0 flex-col gap-2" style={planDraft || aiObjective ? { display: "none" } : undefined} inert={Boolean(planDraft || aiObjective)} aria-busy={state.pending}>
+          {canEdit && state.data && state.data.loadedFrom !== "legacy_tracker" && <form className="w-full" onSubmit={async event => {
             event.preventDefault()
             if (title.trim() && await state.mutate(() => transport.create(scope, title))) setTitle("")
           }}>
-            <Field className="min-w-0 flex-1"><FieldLabel className="sr-only" htmlFor={id}>New objective</FieldLabel>
-              <Input id={id} placeholder="What do you want to accomplish?" value={title} onChange={event => setTitle(event.target.value)} maxLength={240} disabled={state.pending} className="h-11 rounded-full shadow-none" />
-            </Field>
-            <Button type="submit" variant="ghost" size="icon" className="size-11 rounded-full" disabled={state.pending || !title.trim()} aria-label="Add objective"><Plus aria-hidden /></Button>
+            <Field className="min-w-0"><FieldLabel className="sr-only" htmlFor={id}>New objective</FieldLabel>
+              <InputGroup className="items-center gap-0 rounded-full border border-border/70 bg-muted/30 p-1"><InputGroupInput id={id} placeholder="What do you want to accomplish?" value={title} onChange={event => setTitle(event.target.value)} maxLength={240} disabled={state.pending} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
+            <InputGroupAddon>
+            <Button type="submit" variant="ghost" size="icon" className="size-9 rounded-full" disabled={state.pending || !title.trim()} aria-label="Add objective"><Plus aria-hidden /></Button></InputGroupAddon></InputGroup></Field>
           </form>}
           {projectionError && <p role="alert" className="px-2 text-xs text-destructive">{projectionError}</p>}
           {state.error && <p role="alert" className="px-2 py-1 text-xs text-destructive">{state.error}</p>}
@@ -83,16 +70,13 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
             onStep={onStep}>
             {state.data?.planning?.available && <ObjectivePlanList onChoice={onChoice} allPlans={activePlans} plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
-              onToggle={id => setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id])}
+              onToggle={id => { setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]); setOpen(false) }}
               onEdit={editPlan} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
             {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => setAiObjective(objective)}>Plan with AI</Button>}
           </ObjectiveIslandCard>)}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  </motion.div>
+    </div>
     {aiObjective && transport.ai && <AiPlanDialog key={aiObjective.id} scope={scope} objective={aiObjective} transport={transport.ai} onClose={() => setAiObjective(null)} onChanged={() => void state.refresh()} />}
     {planDraft && <ObjectivePlanEditor decisionsAvailable={state.data?.planning?.decisionsAvailable} key={planDraft.id} initial={planDraft} connectedStepIds={(state.data?.planning?.plans ?? []).flatMap(plan => plan.stepIds)} allSteps={(state.data?.steps ?? []).filter(step => step.editable && state.data?.objectives.some(objective => objective.id === step.objectiveId && objective.kind === "custom"))}
       pending={state.pending} error={state.error} onClose={() => setPlanDraft(null)} onSave={draft => state.mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} />}
-  </>
+  </ObjectivesIslandSurface>
 }
