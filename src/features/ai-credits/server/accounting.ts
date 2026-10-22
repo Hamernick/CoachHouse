@@ -29,13 +29,19 @@ export async function settleAiRun(input: {
   tariff: AiRateCard; maxCredits: number; proposal: string | null; responseId: string | null
 }) {
   const price = priceAiUsage(input.usage, input.tariff)
-  const { data, error } = await createSupabaseAdminClient().rpc("settle_workspace_ai_run", {
+  const { error } = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).rpc("record_workspace_ai_result", {
     p_id: input.id, p_status: input.status, p_cost: price.microdollars,
     p_credits: input.status === "succeeded" ? Math.min(price.credits, input.maxCredits) : 0,
     p_proposal: input.proposal, p_usage: input.usage, p_response_id: input.responseId,
   })
   if (error) throw new Error(error.message)
-  return data
+  const settlement = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).rpc("settle_recorded_workspace_ai_run", { p_id: input.id })
+  if (settlement.error) throw new Error(settlement.error.message)
+  return settlement.data
+}
+export async function correlateAiResponse(id: string, responseId: string) {
+  const { error } = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).rpc("correlate_workspace_ai_response", { p_id: id, p_response_id: responseId })
+  if (error) throw new Error("Unable to record provider correlation.")
 }
 export async function reconcileAiRun(id: string, responseId: string | null) {
   const { error } = await createSupabaseAdminClient().rpc("reconcile_workspace_ai_run", { p_id: id, p_response_id: responseId })
@@ -58,7 +64,7 @@ export async function readAiAccount(organizationId: string, actorId: string): Pr
   if (error) throw new Error("AI usage is unavailable.")
   return z.object({ enabled: z.boolean(), lots: z.array(z.object({
     kind: z.enum(["included", "purchased", "adjustment"]), expiresAt: z.string().nullable(),
-    credits: z.number(), spent: z.number(), reserved: z.number(),
+    credits: z.number(), spent: z.number(), reserved: z.number(), expired: z.boolean().default(false),
   })), history: z.array(z.object({ id: z.uuid(), status: z.string(), created_at: z.string(),
     charged_credits: z.number().nullable(), max_credits: z.number(), settled_at: z.string().nullable(),
   })) }).parse(data)

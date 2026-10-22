@@ -41,6 +41,7 @@ create table public.workspace_ai_runs (
   max_provider_microdollars integer not null check (max_provider_microdollars > 0),
   status text not null default 'reserved' check (status in ('reserved','running','reconciling','succeeded','failed','canceled')),
   provider_response_id text,
+  provider_cost_state text not null default 'pending' check (provider_cost_state in ('pending','measured','unconfirmed')),
   provider_microdollars bigint check (provider_microdollars >= 0),
   charged_credits integer check (charged_credits >= 0 and charged_credits <= max_credits),
   proposal text check (octet_length(proposal) <= 150000),
@@ -130,7 +131,7 @@ begin
     raise exception 'An AI request is already running';
   end if;
   select coalesce(sum(coalesce(provider_microdollars,max_provider_microdollars)),0) into consumed
-    from public.workspace_ai_runs where settled_at is null
+    from public.workspace_ai_runs where settled_at is null or provider_cost_state='unconfirmed'
       or settled_at >= date_trunc('day',now() at time zone 'UTC') at time zone 'UTC';
   if consumed+p_max_cost>policy.daily_provider_microdollars then raise exception 'AI daily service limit reached'; end if;
   select coalesce(sum(coalesce(charged_credits,max_credits)),0) into consumed
@@ -205,7 +206,7 @@ begin
   end loop;
   if remaining<>0 then raise exception 'AI reservation mismatch'; end if;
   update public.workspace_ai_runs set status=p_status,provider_microdollars=p_cost,charged_credits=p_credits,
-    proposal=p_proposal,usage=p_usage,provider_response_id=p_response_id,settled_at=clock_timestamp()
+    proposal=p_proposal,usage=p_usage,provider_response_id=coalesce(p_response_id,provider_response_id),provider_cost_state='measured',settled_at=clock_timestamp()
     where id=p_id returning * into run;
   -- Account for an unexpected provider overrun, but stop further admissions.
   if p_cost>run.max_provider_microdollars then update public.ai_credit_policy set enabled=false where id; end if;

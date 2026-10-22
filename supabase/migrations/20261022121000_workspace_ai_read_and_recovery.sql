@@ -3,11 +3,14 @@ returns jsonb language plpgsql security definer set search_path = '' as $$
 declare lots jsonb; history jsonb;
 begin
   if not public.can_use_workspace_ai(p_org_id,p_actor_id) then raise exception 'AI access denied' using errcode='42501'; end if;
-  select coalesce(jsonb_agg(jsonb_build_object('kind',l.kind,'expiresAt',l.expires_at,'credits',l.credits,
+  perform public.recover_workspace_ai_runs(p_org_id);
+  select coalesce(jsonb_agg(jsonb_build_object('kind',l.kind,'expiresAt',l.expires_at,'expired',coalesce(l.expires_at<=now(),false),'credits',l.credits,
     'spent',coalesce((select sum(credits) from public.ai_credit_entries where lot_id=l.id),0),
     'reserved',coalesce((select sum(r.credits) from public.ai_credit_reservations r join public.workspace_ai_runs a on a.id=r.run_id
       where r.lot_id=l.id and a.settled_at is null),0))), '[]') into lots
-    from public.ai_credit_lots l where org_id=p_org_id and (expires_at is null or expires_at>now());
+    from public.ai_credit_lots l where org_id=p_org_id and (expires_at is null or expires_at>now()
+      or exists(select 1 from public.ai_credit_reservations r join public.workspace_ai_runs a on a.id=r.run_id
+        where r.lot_id=l.id and a.settled_at is null));
   select coalesce(jsonb_agg(to_jsonb(h)), '[]') into history from
     (select id,status,created_at,charged_credits,max_credits,settled_at from public.workspace_ai_runs
       where org_id=p_org_id and actor_id=p_actor_id order by created_at desc limit 30) h;
@@ -16,10 +19,12 @@ begin
 end $$;
 
 create function public.read_workspace_ai_run(p_id uuid,p_org_id uuid,p_actor_id uuid)
-returns jsonb language sql stable security definer set search_path = '' as $$
-  select to_jsonb(r) from public.workspace_ai_runs r where id=p_id and org_id=p_org_id and actor_id=p_actor_id
-    and public.can_use_workspace_ai(p_org_id,p_actor_id)
-$$;
+returns jsonb language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.can_use_workspace_ai(p_org_id,p_actor_id) then return null; end if;
+  perform public.recover_workspace_ai_runs(p_org_id);
+  return (select to_jsonb(r) from public.workspace_ai_runs r where id=p_id and org_id=p_org_id and actor_id=p_actor_id);
+end $$;
 
 -- Unknown provider outcomes retain the reservation. No timeout silently releases
 -- budget or starts another provider request; reconciliation uses the response id.

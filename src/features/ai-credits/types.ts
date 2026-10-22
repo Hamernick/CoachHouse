@@ -9,6 +9,6 @@ export type AiRateCard = {
 export type AiUsage = { input: number; cachedInput: number; output: number }
 export type AiCreditAccount = {
   enabled: boolean
-  lots: Array<{ kind: "included" | "purchased" | "adjustment"; expiresAt: string | null; credits: number; spent: number; reserved: number }>
+  lots: Array<{ kind: "included" | "purchased" | "adjustment"; expiresAt: string | null; expired?: boolean; credits: number; spent: number; reserved: number }>
   history: Array<{ id: string; status: string; created_at: string; charged_credits: number | null; max_credits: number; settled_at: string | null }>
 }

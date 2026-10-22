@@ -1,6 +1,6 @@
 import "server-only"
 import { createHash } from "node:crypto"
-import { reserveAiRun, claimAiRun, settleAiRun, reconcileAiRun, readAiRun } from "@/features/ai-credits"
+import { correlateAiResponse, reserveAiRun, claimAiRun, settleAiRun, reconcileAiRun, readAiRun } from "@/features/ai-credits"
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { stripHtml } from "@/lib/markdown/convert"
 import { aiDocumentRequestSchema, aiRunProposal } from "../lib"
@@ -44,9 +44,9 @@ export async function handleWorkspaceAiDocument(request: Request) {
         let responseId: string | null = null
         send({ type: "start", id: input.id })
         try {
-          const result = await streamDocumentDraft({ model: config.tariff.model, context,
+          const result = await streamDocumentDraft({ requestId: input.id, model: config.tariff.model, context,
             maxOutputTokens: config.maxOutputTokens, signal,
-            onText: text => send({ type: "text", text }), onResponse: id => { responseId=id },
+            onText: text => send({ type: "text", text }), onResponse: async id => { responseId=id; await correlateAiResponse(input.id,id) },
           })
           if (!result.usage) throw new Error("The provider has not confirmed usage.")
           const proposal = sanitizeHtml(result.text).trim()
@@ -61,7 +61,7 @@ export async function handleWorkspaceAiDocument(request: Request) {
           // A disconnected stream is not proof of zero provider cost. Durable
           // reconciliation holds the budget instead of blindly retrying.
           await reconcileAiRun(input.id,responseId).catch(() => undefined)
-          send({ type: "error", id: input.id, message: "Request interrupted. Check its status before retrying; credits remain reserved until usage is confirmed." })
+          send({ type: "error", id: input.id, message: "Request interrupted. Check status to recover the result or release an expired reservation before retrying." })
         } finally { try { output.close() } catch { /* canceled reader */ } }
       },
     })

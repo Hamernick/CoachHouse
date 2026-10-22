@@ -1,5 +1,6 @@
 import "server-only"
+export { handleAiRecovery } from "./server/recovery"
 
 // Public server-only boundary. These are trusted server helpers, never callable
 // client actions with caller-supplied actor identities.
-export { reserveAiRun, claimAiRun, settleAiRun, reconcileAiRun, cancelAiRun, readAiRun, readAiAccount } from "./server/accounting"
+export { correlateAiResponse, reserveAiRun, claimAiRun, settleAiRun, reconcileAiRun, cancelAiRun, readAiRun, readAiAccount } from "./server/accounting"

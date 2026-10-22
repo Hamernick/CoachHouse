@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { handleWorkspaceAiDocument } from "@/features/workspace-ai/server/stream-handler"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn() }))
+const mocks = vi.hoisted(() => ({ actor: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn() }))
 vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.actor }))
 vi.mock("@/features/workspace-ai/server/config",() => ({ workspaceAiConfig: () => ({ tariff: {version:"test",model:"fixture"},maxInputBytes:70000,maxOutputTokens:6000,maxCredits:100,maxCost:200000 }) }))
 vi.mock("@/features/workspace-ai/server/provider",() => ({ documentInstructions:"Untrusted document context",streamDocumentDraft:mocks.provider }))
-vi.mock("@/features/ai-credits",() => ({ reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
+vi.mock("@/features/ai-credits",() => ({ correlateAiResponse:mocks.correlate,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12,"0")}`
 const target={ organizationId:id(1),userId:id(2),sectionId:"need",title:"Need Statement",revision:null }
 const run={ id:id(3),actor_id:id(2),org_id:id(1),target:{...target,content:"<p>Original</p>"},status:"succeeded",proposal:"<p>Revised</p>",charged_credits:14,max_credits:100 }
@@ -15,7 +15,7 @@ beforeEach(() => {
   mocks.actor.mockResolvedValue({ userId:id(2),organizationId:id(1),section:{ title:target.title,content:"<p>Original</p>" } })
   mocks.reserve.mockResolvedValue({created:true,run});mocks.claim.mockResolvedValue(true)
   mocks.settle.mockResolvedValue(run);mocks.read.mockResolvedValue(run);mocks.reconcile.mockResolvedValue(undefined)
-  mocks.provider.mockImplementation(async ({onText,onResponse}) => { onResponse("response-1");onText("<p>Revised</p>");return {text:"<p>Revised</p>",usage:{input:6000,cachedInput:0,output:1500},completed:true} })
+  mocks.provider.mockImplementation(async ({onText,onResponse}) => { await onResponse("response-1");onText("<p>Revised</p>");return {text:"<p>Revised</p>",usage:{input:6000,cachedInput:0,output:1500},completed:true} })
 })
 describe("metered document assistance", () => {
   it("rejects cross-origin and oversized requests before authentication or spending",async()=>{
@@ -30,6 +30,8 @@ describe("metered document assistance", () => {
     expect(parts.map(part=>part.type)).toEqual(["start","text","proposal"])
     expect(mocks.actor.mock.invocationCallOrder[0]).toBeLessThan(mocks.reserve.mock.invocationCallOrder[0])
     expect(mocks.reserve.mock.invocationCallOrder[0]).toBeLessThan(mocks.provider.mock.invocationCallOrder[0])
+    expect(mocks.correlate).toHaveBeenCalledWith(id(3),"response-1")
+    expect(mocks.correlate.mock.invocationCallOrder[0]).toBeLessThan(mocks.settle.mock.invocationCallOrder[0])
     expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({status:"succeeded",proposal:"<p>Revised</p>"}))
     expect(parts[2].proposal.credits).toBe(14)
   })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { AiCreditsPanel, aiCreditBalance } from "@/features/ai-credits/client"
 import { quoteDocumentAssistance, readDocumentAssistance, stopDocumentAssistance } from "../actions"
@@ -26,41 +26,55 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
   const runId = useRef<string | null>(null)
   const target = bridge?.target
   const targetKey = target ? `${target.userId}:${target.organizationId}:${target.sectionId}` : ""
-  const currentScope = useRef(targetKey)
-  currentScope.current=targetKey
+  const scope = useMemo(() => ({ targetKey }),[targetKey])
+  const currentScope = useRef(scope)
+  currentScope.current=scope
+  const enableIntent = useRef(0)
   useEffect(() => {
     abort.current?.abort()
     setActive(false); setPending(false); setQuote(null); setProposal(null); setPreview(""); setError(null); setApplied(false)
     runId.current = null
+    setUsage(false); setShowOriginal(false)
   },[targetKey])
   useEffect(() => () => abort.current?.abort(),[])
 
   async function enable() {
+    const intent = ++enableIntent.current
+    const current = () => currentScope.current === scope && enableIntent.current === intent
     if (active) { setActive(false); return }
     if (!bridge || bridge.dirty || bridge.saving) { setError("Open and save a core document before asking for AI assistance."); return }
     try {
       setError(null)
       const next = await quoteDocumentAssistance(bridge.target)
-      if (currentScope.current !== targetKey) return
+      if (!current()) return
       setQuote(next); setActive(true)
-      const savedId = sessionStorage.getItem(`workspace-ai:${targetKey}`)
-      if (savedId) { runId.current=savedId; setProposal(await readDocumentAssistance(savedId,bridge.target)) }
-    } catch (cause) { if (currentScope.current === targetKey) setError(cause instanceof Error ? cause.message : "AI assistance is unavailable.") }
+      let savedId: string | null = null
+      try { savedId = sessionStorage.getItem(`workspace-ai:${targetKey}`) } catch { /* Browser storage may be unavailable. */ }
+      if (savedId) {
+        const result = await readDocumentAssistance(savedId,bridge.target)
+        if (!current()) return
+        runId.current=savedId; setProposal(result)
+      }
+    } catch (cause) { if (current()) setError(cause instanceof Error ? cause.message : "AI assistance is unavailable.") }
   }
   async function refresh() {
-    if (!runId.current || !target) return
+    const id = runId.current
+    if (!id || !target) return
+    const current = () => currentScope.current === scope && runId.current === id
     try {
-      const result = await readDocumentAssistance(runId.current,target)
-      if (currentScope.current !== targetKey) return
-      setProposal(result); setError(null)
-      setQuote(await quoteDocumentAssistance(target))
-    }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to check this request.") }
+      const result = await readDocumentAssistance(id,target)
+      if (!current()) return
+      setProposal(result); setError(null); setQuote(null)
+      const next = await quoteDocumentAssistance(target)
+      if (current()) setQuote(next)
+    } catch (cause) { if (current()) setError(cause instanceof Error ? cause.message : "Unable to check this request.") }
   }
   async function stop() {
-    if (!runId.current || !target) return
-    try { await stopDocumentAssistance(runId.current,target); abort.current?.abort() }
-    catch { setError("Unable to stop the request. Check its status before retrying.") }
+    const id = runId.current, controller = abort.current
+    if (!id || !target) return
+    const current = () => currentScope.current === scope && runId.current === id
+    try { await stopDocumentAssistance(id,target); if (current()) controller?.abort() }
+    catch { if (current()) setError("Unable to stop the request. Check its status before retrying.") }
   }
   async function submit(prompt: string) {
     if (!bridge || !quote || pending || bridge.dirty || bridge.saving) return false
@@ -70,9 +84,9 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
     }
     const id = crypto.randomUUID()
     const controller = new AbortController()
-    const current = () => currentScope.current === targetKey && abort.current === controller
+    const current = () => currentScope.current === scope && abort.current === controller
     abort.current=controller; runId.current=id
-    sessionStorage.setItem(`workspace-ai:${targetKey}`,id)
+    try { sessionStorage.setItem(`workspace-ai:${targetKey}`,id) } catch { /* The current request remains available in memory. */ }
     setPending(true); setPreview(""); setProposal(null); setApplied(false); setError(null)
     try {
       const response = await fetch("/api/workspace/ai/document", { method: "POST", signal: controller.signal,
@@ -107,7 +121,15 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
       if (!current()) return false
       setError(controller.signal.aborted ? "Stopped. Check status to confirm the final credit charge." : cause instanceof Error ? cause.message : "Request interrupted. Check status before retrying.")
       return false
-    } finally { if (current()) { setPending(false); abort.current=null } }
+    } finally {
+      if (current()) {
+        setPending(false); abort.current=null; setQuote(null)
+        try {
+          const next = await quoteDocumentAssistance(bridge.target)
+          if (currentScope.current === scope && runId.current === id) setQuote(next)
+        } catch { /* Keep generation disabled until the current quote is refreshed. */ }
+      }
+    }
   }
   const appliedSaved = applied && bridge && !bridge.dirty && !bridge.saving && bridge.target.revision !== proposal?.target.revision
   if (process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED !== "true") return children({ active: false, pending: false, controls: null, submit })
@@ -117,7 +139,7 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
     {(active || error) && <section aria-label="AI document assistance" className="nodrag nopan nowheel mx-2.5 flex min-w-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-none backdrop-blur-xl [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
       {target && active ? <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <span className="min-w-0 truncate">{target.title}</span>
-        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote?.maximumCredits} credits maximum · Usage</Button>
+        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : "Refreshing credits…"}</Button>
       </div> : null}
       {usage && quote ? <AiCreditsPanel account={quote.account} /> : null}
       {(preview || proposal?.content || pending) && <div className="h-56 overflow-auto overscroll-contain rounded-xl bg-muted/40 p-3">
@@ -137,7 +159,8 @@ export function WorkspaceAiComposer({ children }: { children: (assistant: Compos
         {proposal?.credits !== null && proposal?.credits !== undefined ? <span className="text-xs text-muted-foreground">{proposal.credits} credits</span> : null}
         {!pending ? <Button size="sm" variant="ghost" className="rounded-full" onClick={() => void refresh()}>Check status</Button> : null}
         {!pending && (!proposal || !["reserved","running","reconciling"].includes(proposal.status)) ? <Button size="sm" variant="ghost" className="rounded-full" onClick={() => {
-          setProposal(null);setPreview("");setApplied(false);runId.current=null;sessionStorage.removeItem(`workspace-ai:${targetKey}`)
+          setProposal(null);setPreview("");setApplied(false);setShowOriginal(false);runId.current=null;
+          try { sessionStorage.removeItem(`workspace-ai:${targetKey}`) } catch { /* Storage can be unavailable. */ }
         }}>Discard</Button> : null}
       </div> : null}
       {showOriginal && proposal ? <div className="max-h-48 overflow-auto rounded-xl border border-border/60 p-3 text-muted-foreground"><p className="whitespace-pre-wrap">{proposal.original.replace(/<[^>]*>/g,"") || "Empty document"}</p></div> : null}

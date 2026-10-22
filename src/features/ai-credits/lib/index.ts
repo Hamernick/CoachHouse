@@ -18,7 +18,7 @@ export function priceAiUsage(usage: AiUsage, tariff: AiRateCard) {
 export function aiCreditBalance(account: AiCreditAccount) {
   const result = { available: 0, included: 0, purchased: 0, reserved: 0 }
   for (const lot of account.lots) {
-    const available = Math.max(0, lot.credits - lot.spent - lot.reserved)
+    const available = lot.expired ? 0 : Math.max(0, lot.credits - lot.spent - lot.reserved)
     result.available += available
     result.reserved += lot.reserved
     if (lot.kind === "included") result.included += available

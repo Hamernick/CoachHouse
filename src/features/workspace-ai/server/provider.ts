@@ -7,19 +7,19 @@ export const documentInstructions = "You help edit the explicitly selected Coach
 // Reuse the installed Responses SDK: typed stream parts, bounded output and
 // explicit stop/retry mirror the template without replacing our app primitives.
 export async function streamDocumentDraft(input: {
-  model: string; context: string; maxOutputTokens: number; signal: AbortSignal;
-  onText: (value: string) => void; onResponse: (id: string) => void
+  requestId: string; model: string; context: string; maxOutputTokens: number; signal: AbortSignal;
+  onText: (value: string) => void; onResponse: (id: string) => Promise<void>
 }) {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0, timeout: 90000 })
   const stream = await client.responses.create({
     model: input.model, instructions: documentInstructions, input: input.context,
-    max_output_tokens: input.maxOutputTokens, stream: true, store: false,
-  }, { signal: input.signal })
+    max_output_tokens: input.maxOutputTokens, stream: true, store: false, service_tier: "default",
+  }, { signal: input.signal, headers: { "X-Client-Request-Id": input.requestId } })
   let text = ""
   let usage: AiUsage | null = null
   let completed = false
   for await (const event of stream) {
-    if (event.type === "response.created") input.onResponse(event.response.id)
+    if (event.type === "response.created") await input.onResponse(event.response.id)
     if (event.type === "response.output_text.delta") {
       text += event.delta
       input.onText(event.delta)

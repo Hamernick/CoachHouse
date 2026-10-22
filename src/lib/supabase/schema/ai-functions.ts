@@ -11,6 +11,10 @@ export type AiCreditFunctions = {
     Args: { p_id: string; p_status: string; p_cost: number; p_credits: number; p_proposal: string | null; p_usage: Json; p_response_id: string | null }
     Returns: Json
   }
+  correlate_workspace_ai_response: { Args: { p_id: string; p_response_id: string }; Returns: undefined }
+  record_workspace_ai_result: AiCreditFunctions["settle_workspace_ai_run"] extends { Args: infer Args } ? { Args: Args; Returns: undefined } : never
+  settle_recorded_workspace_ai_run: { Args: { p_id: string }; Returns: Json }
+  recover_workspace_ai_runs: { Args: { p_org_id?: string }; Returns: number }
   read_workspace_ai_account: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
   read_workspace_ai_run: { Args: { p_id: string; p_org_id: string; p_actor_id: string }; Returns: Json }
   reconcile_workspace_ai_run: { Args: { p_id: string; p_response_id: string | null }; Returns: undefined }
