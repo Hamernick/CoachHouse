@@ -38,7 +38,17 @@ This section supersedes older current-status statements below.
 - Local source validation:60 focused schedule/finalization/payment cases and
   scoped ESLint pass; acceptance manifest regenerated. Node22 application typecheck
   passes (`pnpm exec tsc --noEmit -p .tmp/coaching-tsconfig.json`). One batched
-  Graphify refresh is running; final handoff below records its outcome.
+  Graphify AST refresh completed:21,900nodes/62,900edges. Exact open-work-index
+  semantic refresh completed at21,924nodes, preserving all unrelated graph data.
+  Normal Node22 pre-push passed in7.67s and
+  patch secret scan found0leaks.
+- Open [PR353](https://github.com/Hamernick/CoachHouse/pull/353), implementation
+  `d5e96eef`. Focused command:
+  `pnpm exec vitest run --config /tmp/coaching-hours.vitest.config.mjs`
+  (Node22; includes `coaching-hours.test.ts`37cases and
+  `coaching-booking-finalization.test.ts`23cases, existing acceptance setup/source
+  alias). The tracked manifest includes both suites for normal acceptance CI.
+  Scoped ESLint covers all five changed TypeScript source/test files.
 - Three-calendar blocking is live. New hours require this branch's application
   release; hosted quality/review, merge/deployment and actual user booking acceptance
   remain Caleb-owned. No merge/app deployment is claimed by this checkpoint.
