@@ -32,7 +32,7 @@ Maintain one entry per lane or preservation hold. Replace obsolete next actions 
 
 ## Prelaunch polish — October22
 
-User-selected B115 five-item patch, isolated `fix/prelaunch-polish-20261022`, base40a1cf92, preview3142. [Authoritative checkpoint](../plans/2026-10-22-prelaunch-polish.md). Metadata/social image,404,Build sitemap and preview noindex implemented;31focused cases and HTTP/browser checks pass.83type diagnostics remain in unchanged map code. PR handoff pending; hosted gates/release/user acceptance remain separate. Other lanes and SHIP40 preserved.
+User-selected B115 five-item patch, isolated `fix/prelaunch-polish-20261022`, base40a1cf92, preview3142. [Authoritative checkpoint](../plans/2026-10-22-prelaunch-polish.md). Metadata/social image,404,Build sitemap and preview noindex implemented;31focused cases and HTTP/browser checks pass.83type diagnostics remain in unchanged map code. [PR348](https://github.com/Hamernick/CoachHouse/pull/348) open; source `cc4475a3` pushed and verified. Hosted gates/release/user acceptance remain separate. Other lanes and SHIP40 preserved.
 
 ## Other remaining acceptance and preservation work
 
