@@ -1,6 +1,6 @@
 # Workspace AI, Accelerator graphs and credits
 
-Date: 2026-10-22. **Proposed; not implemented or commercially approved.**
+Date: 2026-10-22. **Implementation in progress; commercial policy remains proposed.**
 
 Authoritative checkpoint for this planning slice. Companion: [rewritten prompt](2026-10-22-workspace-ai-prompt.md).
 
@@ -361,3 +361,32 @@ Planning checkpoint `4ac8e089687259bd314365603a056a7606798e8d` was pushed to the
 Graphify AST refresh completed; the changed canonical index received a separate semantic refresh. Final local graph:22,712 nodes/66,723 edges. Three pre-existing test parser warnings and unrelated historical semantic backlog remain; neither is an application-test result. Recovery log: `/tmp/workspace-ai-plan-graphify-20261022.log`. Plans/runlogs are excluded by the existing Graphify scope. No runtime source changed.
 
 Next implementation step: phase 0, then a metered selected-core-document vertical slice. Preserve the existing branch and current application; do not resume unrelated old checklists, apply the pending Brand Identity migration or clear user boards from this planning handoff.
+
+## 12. Active implementation checkpoint — 2026-10-22
+
+The user activated the complete implementation goal. This section is the authoritative continuation record; section11 describes the earlier planning checkpoint. Work remains on `feat/particle-system-20261009` in the existing particle-system checkout. No production migrations, grants, charges, board resets, main merges or deployments have occurred.
+
+### Implemented in the first development slice
+
+- Scaffolded `workspace-ai` and `ai-credits`. The existing composer gains an explicit AI mode, a server-quoted maximum, bounded streaming preview, original comparison, Apply, Stop, usage and status recovery. Normal commands remain free. UI and server flags default off; database policy and organization wallet must also explicitly allow use.
+- Reused the installed OpenAI Responses SDK with typed stream parts and bounded requests, retaining the template's stream/review/stop pattern without copying its dependencies or replacing existing primitives. No framework upgrade or new package installation. Tariffs are server-configurable/versioned; proposed defaults do not grant entitlements.
+- Core-document access is verified against the current authenticated organization and storage permission. Context comes from the canonical saved document. Drive-backed, budget and calendar documents are not falsely presented as supported text editors.
+- Applying checks mounted-editor scope, baseline revision and unsaved changes, then uses its existing draft/autosave/CAS path. AI drafts retain private-save intent through local recovery, save as Draft and do not publish. Saves preserve typing that arrived while an earlier save was in flight.
+- Local migrations add private, RLS-protected wallets/lots, immutable entries/allocations, durable runs, serialized reservations, one-run-per-actor and organization/global/member caps, cost settlement, replay identity, read/status and durable cancellation. No session/anonymous financial writes or private table reads. Stop before settlement releases the customer charge while retaining measured provider cost. Unknown provider outcomes retain reservations instead of automatically retrying/spending twice.
+- UI follows `docs/design.md` neutral surfaces, restrained borders, existing rounded/pill controls, light/dark tokens and coarse-pointer targets. Streaming uses a fixed-height preview; no token-by-token canvas resize.
+
+### Evidence and limits
+
+- Node22 focused Vitest run:29 tests passed across `ai-credits`, `workspace-ai`, `workspace-ai-editor`, `core-document-source-action` and `roadmap-editor-status`. Covers pricing, access/price denial before spend, replay, sanitization, partial/unknown usage, editor conflict checks and private draft reload.
+- `node supabase/tests/workspace-ai.test.mjs` passed against a disposable local PostgreSQL server. Exercises private access denial, duplicate reservation/settlement/payment keys, expired-lot exclusion, cancellation, daily budget enforcement and a real two-connection overspend race. The harness stops and removes only its own temporary database.
+- Focused lint, import boundaries and diff checks pass. Feature-contract check reports three pre-existing violations in workspace-particles/workspace-sharing, none in the new features. Whole-repository TypeScript still reports existing workspace-management/calendar/public-map test errors; no new-feature errors were reported in `/tmp/workspace-ai-types-final-20261022.log` at that check's revision. Do not describe the whole repository as type-clean.
+- Provider behavior is tested with a mock; no paid provider evaluation, authenticated browser save/reopen, production schema application or user visual acceptance is claimed. Visual baselines await actual appearance review. AI remains disabled.
+
+### Next work — phase1 is NOT complete
+
+1. Complete durable crash/timeout reconciliation, persist provider request correlation before output, and establish a bounded recovery path for unresolved provider usage without duplicate calls or unreviewed retention changes. The current status UI exposes reconciliation, but no reconciliation worker/operator resolution path exists yet.
+2. Finish per-target apply/save receipts and verify save/reopen plus concurrent editor behavior end-to-end. Review original/proposal comparison, explicit Revise behavior, context switching, quota freshness, expired-but-reserved balance presentation and recovery UX. Existing core documents use their CAS owner; uploaded-document Yjs adapters remain a later supported-target integration.
+3. Add an isolated local/test fixture that can demonstrate the enabled interaction without using production data or live billing. Obtain user appearance review before updating visual baselines. Do not enable this on the shared production-connected preview as a shortcut.
+4. Then proceed through purchases/refill, curriculum/objectives, decision proposals, resource matching/terminology and controlled-release evidence. All original scope and production approval boundaries remain in force; the initial slice is not goal completion.
+
+Pending local AI migrations: `20261022120000_workspace_ai_metering.sql` and `20261022121000_workspace_ai_read_and_recovery.sql`. The unrelated Brand Identity migration remains separately pending. Activation requires `NEXT_PUBLIC_WORKSPACE_AI_ENABLED=true`, server `WORKSPACE_AI_ENABLED=true`, a provider key, and explicit database policy/wallet enablement. `WORKSPACE_AI_RATE_CARD` can override the proposed server tariff with validated JSON. No activation has been performed.

@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { WorkspaceAiComposer } from "@/features/workspace-ai/client"
 
 import {
   ParticleComposer,
@@ -47,7 +48,8 @@ export function WorkspaceParticleInspectorSlot({ session }: Props) {
 export function WorkspaceParticleComposerSlot({ session }: Props) {
   const request = useWorkspaceCanvasOverlayDrawerRequest()
   return (
-    <ParticleComposer
+    <WorkspaceAiComposer>{assistant => <ParticleComposer
+      assistant={assistant}
       disabled={!session.editable}
       pending={session.pending}
       error={session.error}
@@ -58,7 +60,7 @@ export function WorkspaceParticleComposerSlot({ session }: Props) {
         if (open) request?.({ tab: "particles" })
       }}
       onRetry={() => void session.retry()}
-    />
+    />}</WorkspaceAiComposer>
   )
 }
 

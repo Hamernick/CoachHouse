@@ -1,0 +1,31 @@
+import "server-only"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
+import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
+import { resolveRoadmapSections } from "@/lib/roadmap"
+import { aiDocumentTargetSchema } from "../lib"
+import type { AiDocumentTarget } from "../types"
+
+export async function requireAiActor(target: AiDocumentTarget) {
+  aiDocumentTargetSchema.parse(target)
+  const client = await createSupabaseServerClient()
+  const { data: { user }, error } = await client.auth.getUser()
+  if (error || !user || user.id !== target.userId) throw new Error("Sign in again before using this document.")
+  const active = await resolveActiveOrganization(client,user.id)
+  if (active.orgId !== target.organizationId || !canEditOrganization(active.role))
+    throw new Error("Reopen this document in your current organization.")
+  const storage = await requireOrganizationDocumentStorage({ supabase: client, orgId: active.orgId })
+  if ("error" in storage) throw new Error(storage.error)
+  return { client, userId: user.id, organizationId: active.orgId }
+}
+export async function loadAiDocument(target: AiDocumentTarget) {
+  const actor = await requireAiActor(target)
+  const { data, error } = await actor.client.from("organizations").select("profile").eq("user_id",actor.organizationId).single()
+  if (error) throw new Error("This document could not be loaded.")
+  const section = resolveRoadmapSections((data.profile ?? {}) as Record<string,unknown>).find(item => item.id === target.sectionId)
+  if (!section || section.driveSource || ["budget","calendar"].includes(section.id))
+    throw new Error("Open an editable core document to use AI assistance.")
+  if (section.lastUpdated !== target.revision) throw new Error("This document changed. Reopen it before asking for a draft.")
+  if (Buffer.byteLength(section.content,"utf8") > 60000) throw new Error("This document exceeds the current AI context limit.")
+  return { ...actor, section }
+}

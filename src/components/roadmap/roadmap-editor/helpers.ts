@@ -73,6 +73,7 @@ export function isRoadmapDraftDirty(
 ): boolean {
   const baseline = getRoadmapSectionBaseline(section)
   return (
+    draft.requiresPrivateSave === true ||
     draft.title !== baseline.title ||
     draft.subtitle !== baseline.subtitle ||
     draft.content !== baseline.content ||
@@ -187,6 +188,7 @@ export function loadRoadmapDraftsFromStorage(
             ? next[section.id].budgetRows
             : normalizeRoadmapBudgetRows(draft.budgetRows),
         imageUrl: draft.imageUrl ?? next[section.id].imageUrl,
+        requiresPrivateSave: draft.requiresPrivateSave === true,
       }
     })
   } catch {
@@ -222,6 +224,7 @@ export function persistRoadmapDraftsToStorage({
       content: draft.content,
       budgetRows: draft.budgetRows,
       imageUrl: draft.imageUrl,
+      requiresPrivateSave: draft.requiresPrivateSave === true,
     }
   })
 

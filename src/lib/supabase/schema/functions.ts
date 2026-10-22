@@ -1,7 +1,8 @@
 import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
+import type { AiCreditFunctions } from "./ai-functions"
 
-export type PublicFunctions = {
+export type PublicFunctions = AiCreditFunctions & {
   save_organization_profile_with_brand_kit: {
     Args: { p_org_id: string; p_expected_updated_at: string; p_expected_brand_revision: string | null; p_identity: Json; p_profile_patch: Json }
     Returns: boolean

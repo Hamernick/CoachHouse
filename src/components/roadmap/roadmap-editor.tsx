@@ -1,6 +1,8 @@
 "use client"
 
 import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
+import { useMemo } from "react"
+import { useAiDocumentBridge } from "@/features/workspace-ai/client"
 
 import { ROADMAP_SECTION_ICONS } from "@/components/roadmap/roadmap-icons"
 import { RoadmapEditorShell } from "@/components/roadmap/roadmap-editor/components"
@@ -34,7 +36,15 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     isDirty,
     savingId,
     handleStatusChange,
+    applyAiProposal,
   } = useRoadmapEditorState(props)
+
+  const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
+    ...props.sourceScope, sectionId: activeSection.id, title: activeSection.title, revision: activeSection.lastUpdated,
+  } : null,[props.sourceScope,activeSection])
+  useAiDocumentBridge(aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
+    target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,
+  } : null)
 
   if (!activeSection || !activeDraft) {
     return null

@@ -13,6 +13,8 @@ import {
 import { usePathname } from "next/navigation"
 
 import { saveRoadmapSectionAction } from "@/actions/roadmap"
+import type { AiDocumentProposal } from "@/features/workspace-ai/client"
+import { applyRoadmapAiProposal } from "../ai-proposal"
 import {
   uploadOrgMedia,
   validateOrgMediaFile,
@@ -59,6 +61,12 @@ function useRoadmapWindowStatus(
     ),
     pending: Boolean(savingId),
   })
+}
+
+async function uploadRoadmapImage(file: File) {
+  const error = validateOrgMediaFile(file)
+  if (error) throw new Error(error)
+  return uploadOrgMedia({ file, kind: "roadmap-inline" })
 }
 
 export function useRoadmapEditorState({
@@ -222,7 +230,8 @@ export function useRoadmapEditorState({
             content: draft.content,
             budgetRows: section.id === "budget" ? draft.budgetRows : undefined,
             imageUrl: draft.imageUrl,
-            status: shouldMarkInProgress ? "in_progress" : undefined,
+            status: draft.requiresPrivateSave || shouldMarkInProgress ? "in_progress" : undefined,
+            ...(draft.requiresPrivateSave ? { isPublic: false } : {}),
           })
 
           if ("error" in result) {
@@ -240,7 +249,8 @@ export function useRoadmapEditorState({
           })
           setDrafts((prev) => ({
             ...prev,
-            [nextSection.id]: createDraft(nextSection),
+            // Preserve typing that happened while the save was in flight.
+            [nextSection.id]: prev[nextSection.id] === draft ? createDraft(nextSection) : prev[nextSection.id],
           }))
           if (showToast) toast.success("Section saved")
         } catch {
@@ -328,6 +338,10 @@ export function useRoadmapEditorState({
     [activeSection, canEdit]
   )
 
+  const applyAiProposal = useCallback((proposal: AiDocumentProposal) => applyRoadmapAiProposal({
+    proposal,sourceScope,canEdit,busy: Boolean(savingId) || isPending,sectionsRef,draftsRef,activeIdRef,setDrafts,
+  }),[canEdit,isPending,savingId,sourceScope])
+
   const handleSave = useCallback(() => {
     if (!canEdit) return
     if (!activeSection) return
@@ -345,14 +359,6 @@ export function useRoadmapEditorState({
     saveSectionById,
     flushActiveSectionDraft,
   })
-
-  const handleImageUpload = useCallback(async (file: File) => {
-    const error = validateOrgMediaFile(file)
-    if (error) {
-      throw new Error(error)
-    }
-    return uploadOrgMedia({ file, kind: "roadmap-inline" })
-  }, [])
 
   const handleStatusChange = useCallback(
     (nextStatus: RoadmapSectionStatus) => {
@@ -431,10 +437,11 @@ export function useRoadmapEditorState({
     contentMaxWidth,
     editorPlaceholder,
     handleDraftChange,
-    handleImageUpload,
+    handleImageUpload: uploadRoadmapImage,
     handleSave,
     isDirty,
     savingId,
     handleStatusChange,
+    applyAiProposal,
   }
 }
