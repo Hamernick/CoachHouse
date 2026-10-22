@@ -32,7 +32,7 @@ Maintain one entry per lane or preservation hold. Replace obsolete next actions 
 
 ## Social sharing Edge deployment repair — October22
 
-PR348/349merged; Caleb reports both deployments failed because root sharing-image code imported Node filesystem modules into Edge functions. Fresh `fix/social-image-edge-runtime-20261022` from `443a6576` replaces the generator with the identical static PNG. [Canonical checkpoint](../plans/2026-10-22-social-image-edge-runtime.md) owns validation and PR receipt. Other work/SHIP40preserved; hosted release remains Caleb-owned.
+PR348/349merged; Caleb reports both deployments failed because root sharing-image code imported Node filesystem modules into Edge functions. Fresh `fix/social-image-edge-runtime-20261022` from `443a6576` replaces the generator with the identical static PNG. [PR350](https://github.com/Hamernick/CoachHouse/pull/350) open; source65c88f57pushed/remote verified. Full production build/three Edge bundle audits/HTTP checks/31tests pass. [Canonical checkpoint](../plans/2026-10-22-social-image-edge-runtime.md) owns evidence and recovery. Other work/SHIP40preserved; hosted release remains Caleb-owned.
 
 ## Public-map canvas typing — October22
 

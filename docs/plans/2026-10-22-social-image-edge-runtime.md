@@ -21,7 +21,7 @@ Image SHA256: `eb07b39782e9244e90760e5695177716e675d95c530728f866d0ec16df09ee29`
 - Full `pnpm exec next build` exits0: compilation60s, TypeScript2.2min,198/198static pages. No image-related Edge warnings; inherited presenter-audio NFT tracing warning remains.
 - All generated files in the three Edge function manifests checked: accelerator49/home43/legacy-home46files; no `node:fs/promises` or `node:path` references. Production HTTP returns the exact47,775bytePNG,1200x630with correct content type and canonical status metadata. Home/legacy-home200; accelerator307to workspace as before. Temporary3143server stopped. [Artifacts and reproducible audit](../qa/social-image-edge-2026-10-22/README.md).
 - Graphify refreshed once after the cohesive source slice:21,921nodes/62,974edges/1,194communities. No duplicate refresh.
-- Secret scan, normal pre-push and final PR receipt follow below.
+- Staged binary diff secret scan:63,705bytes/zero findings. Normal Node22pre-push passes in7.92s (supply chain, large files, changed-source lint).
 - Private logs: `/tmp/coach-house-social-edge-20261022/`.
 
 Commands:
@@ -37,3 +37,7 @@ git diff --check
 ```
 
 Caleb owns hosted quality/review/merge, Vercel deployment and live acceptance. No deployment or production verification is authorized by this local repair.
+
+## PR delivery
+
+Open [PR350](https://github.com/Hamernick/CoachHouse/pull/350), source `65c88f5723d896bfa1c6b40559048a8e2c20d501`, independently matched to the remote branch. Final documentation receipt is separate; all source validation remains valid. Merge only after required current-head hosted quality/review; Vercel packaging/deployment and live acceptance remain unverified and Caleb-owned. Static sharing URL after deployment: `https://coachhouse.app/opengraph-image.png`.
