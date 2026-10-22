@@ -111,7 +111,13 @@ function HomeCanvasFindShellContent({
     useAppShellRightRailState({ hasRightRail, isMobile })
 
   function navigateToSection(section: CanvasSectionId) {
-    router.push(`/home-canvas?section=${section}`)
+    const target = section === "login" ? "/login"
+      : section === "signup" ? "/sign-up"
+      : section === "pricing" ? "/pricing"
+      : section === "platform" ? "/build"
+      : section === "find" ? "/resources"
+      : "/"
+    router.push(target)
   }
 
   return (

@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server"
 
 import { fetchLearningEntitlements } from "@/lib/accelerator/entitlements"
-import { ITEMS } from "@/lib/marketplace/data"
+import { MARKETPLACE_RESOURCES } from "@/features/nonprofit-documentation"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
 import type { SearchResult } from "@/lib/search/types"
 import { createSupabaseServerClient } from "@/lib/supabase"
 import {
-  buildMarketplaceHref,
   formatSearchRow,
-  marketplaceCategoryLabel,
   matchesQuery,
   MAX_RESULTS,
   MIN_QUERY_LENGTH,
@@ -96,35 +94,15 @@ export async function GET(request: Request) {
         })
       }
 
-      for (const item of ITEMS) {
-        const primaryCategory = item.category[0]
-        const categoryLabel = marketplaceCategoryLabel(primaryCategory)
-        const searchableCategories = item.category
-          .map((category) => marketplaceCategoryLabel(category))
-          .filter(Boolean) as string[]
-        if (
-          matchesQuery(
-            [
-              item.name,
-              item.description,
-              item.byline ?? null,
-              ...searchableCategories,
-            ],
-            tokens
-          )
-        ) {
+      for (const item of MARKETPLACE_RESOURCES) {
+        if (matchesQuery([item.name, item.description, item.provider, ...item.functions], tokens)) {
           pushResult({
             id: `marketplace-${item.id}`,
             label: item.name,
-            subtitle: item.byline ?? categoryLabel ?? undefined,
-            href: buildMarketplaceHref(primaryCategory, item.name),
+            subtitle: item.provider,
+            href: `/documentation/marketplace/${item.id}`,
             group: "Marketplace",
-            image: item.image,
-            keywords: [
-              item.description,
-              item.byline ?? "",
-              ...searchableCategories,
-            ].filter(Boolean),
+            keywords: [item.description, item.provider, ...item.functions],
           })
         }
       }

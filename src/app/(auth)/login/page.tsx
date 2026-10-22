@@ -1,51 +1,40 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import {
-  DEFAULT_POST_AUTH_REDIRECT,
-  getSafeRedirectPath,
-} from "@/lib/auth/redirects"
+import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
+import { LoginPanel } from "@/components/auth/login-panel"
+import { DEFAULT_POST_AUTH_REDIRECT, getSafePostLoginRedirectPath } from "@/lib/auth/redirects"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 type SearchParams = Record<string, string | string[] | undefined>
 
-type LoginPageProps = {
-  searchParams?: Promise<SearchParams>
+export const metadata: Metadata = {
+  title: "Sign in",
+  robots: { index: false, follow: false },
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({
+  searchParams,
+}: { searchParams?: Promise<SearchParams> }) {
   const resolved = searchParams ? await searchParams : {}
-  const redirectParamRaw = Array.isArray(resolved.redirect)
-    ? resolved.redirect[0]
-    : resolved.redirect
-  const redirectParam = getSafeRedirectPath(redirectParamRaw)
-  const error = Array.isArray(resolved.error)
-    ? resolved.error[0]
-    : resolved.error
-  const notice = Array.isArray(resolved.notice)
-    ? resolved.notice[0]
-    : resolved.notice
-  const plan = Array.isArray(resolved.plan) ? resolved.plan[0] : resolved.plan
-  const addon = Array.isArray(resolved.addon)
-    ? resolved.addon[0]
-    : resolved.addon
+  const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value
+  const redirectTo = getSafePostLoginRedirectPath(first(resolved.redirect)) ?? DEFAULT_POST_AUTH_REDIRECT
+  const { data: { user } } = await (await createSupabaseServerClient()).auth.getUser()
+  if (user) redirect(redirectTo)
 
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const signupParams = new URLSearchParams({ redirect: redirectTo })
+  const plan = first(resolved.plan)
+  if (plan === "organization" || plan === "individual") signupParams.set("plan", plan)
+  if (first(resolved.addon) === "accelerator") signupParams.set("addon", "accelerator")
 
-  if (user) {
-    redirect(redirectParam ?? DEFAULT_POST_AUTH_REDIRECT)
-  }
-
-  const params = new URLSearchParams()
-  params.set("section", "login")
-
-  if (redirectParam) params.set("redirect", redirectParam)
-  if (typeof error === "string" && error.length > 0) params.set("error", error)
-  if (notice === "email_confirmed_sign_in") params.set("notice", notice)
-  if (plan === "organization" || plan === "individual") params.set("plan", plan)
-  if (addon === "accelerator") params.set("addon", addon)
-
-  redirect(`/home-canvas?${params.toString()}`)
+  return (
+    <AuthScreenShell showBrand>
+      <LoginPanel
+        redirectTo={redirectTo}
+        initialError={first(resolved.error)}
+        signUpHref={`/sign-up?${signupParams.toString()}`}
+        className="mx-auto max-sm:[&_input]:min-h-11 max-sm:[&_input]:pr-14 max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 max-sm:[&_a]:inline-flex max-sm:[&_a]:min-h-11 max-sm:[&_a]:items-center"
+      />
+    </AuthScreenShell>
+  )
 }

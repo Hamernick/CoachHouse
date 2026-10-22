@@ -119,6 +119,17 @@ describe("search route", () => {
     fetchSidebarTreeMock.mockReset()
   })
 
+  it("links marketplace search results to current Documentation resource pages", async () => {
+    const { supabaseStub } = buildSupabaseStub()
+    createSupabaseServerClientMock.mockResolvedValue(supabaseStub)
+    fetchSidebarTreeMock.mockResolvedValue([])
+    const response = await GET(new Request("https://example.org/api/search?q=Canva"))
+    const body = await response.json()
+    const resources = body.results.filter((row: { group: string }) => row.group === "Marketplace")
+    expect(resources.length).toBeGreaterThan(0)
+    expect(resources.every((row: { href: string }) => row.href.startsWith("/documentation/marketplace/"))).toBe(true)
+  })
+
   it("returns ranked results and filters session rows", async () => {
     const rpcData: RpcRow[] = [
       {

@@ -6,6 +6,7 @@ import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server"
 
 import { config, proxy } from "@/proxy"
 import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
+import { captureRedirect } from "./test-utils"
 
 const { getUserMock, createServerClientMock } = vi.hoisted(() => ({
   getUserMock: vi.fn(),
@@ -100,6 +101,36 @@ describe("proxy auth route redirects", () => {
     const response = await proxy(new NextRequest(`https://coachhouse.test${path}?redirect=${encodeURIComponent(destination)}`))
     expect(response.headers.get("location")).toBe(`https://coachhouse.test${destination}`)
     expect(response.cookies.get("sb-test-auth-token")?.value).toBe("refreshed")
+  })
+
+  it.each(["/workspace/roadmap", "/workspace?drawer=tools#documents", "/projects/project-123"])("preserves safe existing-session login destination %s", async (destination) => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "member" } } })
+    const response = await proxy(new NextRequest(`https://coachhouse.test/login?redirect=${encodeURIComponent(destination)}`))
+    expect(response.headers.get("location")).toBe(`https://coachhouse.test${destination}`)
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("refreshed")
+  })
+
+  it("preserves an authenticated retired tester bookmark through the login proxy", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "member" } } })
+    const { default: RetiredTesterLoginPage } = await import("@/app/(auth)/tester/login/page")
+    const location = await captureRedirect(() => RetiredTesterLoginPage({
+      searchParams: Promise.resolve({ redirect: "/workspace/roadmap?view=calendar" }),
+    }))
+    const response = await proxy(new NextRequest(new URL(location!, "https://coachhouse.test")))
+    expect(response.headers.get("location")).toBe("https://coachhouse.test/workspace/roadmap?view=calendar")
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("refreshed")
+  })
+
+  it.each(["https://example.org", "//example.org", "/%2fexample.org", "/%5cexample.org", "/login", "/login/?error=expired", "/tester/login?redirect=/workspace", "/home-canvas?section=login"])("rejects unsafe or looping existing-session login destination %s", async (destination) => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "member" } } })
+    const response = await proxy(new NextRequest(`https://coachhouse.test/login?redirect=${encodeURIComponent(destination)}`))
+    expect(response.headers.get("location")).toBe(`https://coachhouse.test${DEFAULT_POST_AUTH_REDIRECT}`)
+  })
+
+  it("retains the existing signup landing behavior for non-invite sessions", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "member" } } })
+    const response = await proxy(new NextRequest("https://coachhouse.test/sign-up?redirect=%2Fworkspace%2Froadmap"))
+    expect(response.headers.get("location")).toBe(`https://coachhouse.test${DEFAULT_POST_AUTH_REDIRECT}`)
   })
 
   it("preserves signed-in auth redirects", async () => {
