@@ -11,7 +11,7 @@ function statusOf(particle: Particle) {
     const progress = Math.round(Math.max(0, Math.min(100, particle.data.current / particle.data.target * 100)))
     return { label: `${progress}%`, progress }
   }
-  return { label: particle.status === "in_progress" ? "In progress" : "Not yet", progress: null }
+  return { label: particle.status === "in_progress" ? "In progress" : "Not started", progress: null }
 }
 
 export function ParticleStatusMark({ particle }: { particle: Particle }) {

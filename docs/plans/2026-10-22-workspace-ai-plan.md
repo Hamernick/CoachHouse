@@ -829,3 +829,5 @@ Spacing follow-up: added shared12px top padding below the feed tabs for both Obj
 Extended the2px objective rail across the4px inter-card gap and into the next objective's status circle. Nonfinal collapsed objectives retain the outgoing rail; first and final endpoints remain bounded. Browser geometry verifies expanded previous bottom196→incoming196, and collapsed bottom244→next incoming244. Restored original expansion state; no saved data changed. CSS-only diff check passes. Batched graph maintenance follows the completed tab-gap refresh; log /tmp/objectives-continuous-rail-graph.log.
 
 Status follow-up: Not yet circles now use a dashed border across objective and plan-item rows; progress rings and completion marks remain unchanged. Browser computed styles confirm dashed inactive and solid in-progress rings; scoped lint/diff pass. Reusing in-flight graph refresh38428, /tmp/objectives-continuous-rail-graph.log.
+
+Copy follow-up: changed the shared inactive status label from Not yet to Not started for objectives and plan items. Scoped lint passes. Reusing current graph refresh38428; no behavior changes.
