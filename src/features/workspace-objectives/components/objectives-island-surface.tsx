@@ -31,7 +31,7 @@ export function ObjectivesIslandSurface({ open, onOpenChange, completed = 0, tot
     return () => observer.disconnect()
   }, [])
   return <div ref={host} className="pointer-events-none flex w-[420px] max-w-full justify-center">
-    <motion.div initial={false} animate={{ width: open ? size.width : 122, height: open ? size.height : 42, borderRadius: open ? 24 : 21 }}
+    <motion.div initial={false} animate={{ width: open ? size.width : 124, height: open ? size.height : 42, borderRadius: open ? 24 : 21 }}
       transition={{ duration: reduced ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
       className="nodrag nopan nowheel pointer-events-auto relative overflow-hidden border border-border/60 bg-card shadow-none"
       onKeyDown={event => {
