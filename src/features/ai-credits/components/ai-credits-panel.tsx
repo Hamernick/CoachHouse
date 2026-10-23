@@ -8,14 +8,19 @@ import { loadCreditPurchases } from "../purchase-actions"
 import type { AiCreditPurchases } from "../purchase-types"
 import { CreditPurchaseControl } from "./credit-purchase-control"
 import { CreditSpendingLimits } from "./credit-spending-limits"
+import { CreditSubscriptionAllowance } from "./credit-subscription-allowance"
 import { CreditUsageHistory } from "./credit-usage-history"
 
-export function AiCreditsPanel({ account, organizationId, documentContexts }: { account?: AiCreditAccount; organizationId?: string; documentContexts?: Array<{ sectionId: string; open: () => void }> }) {
+type Props = { account?: AiCreditAccount; organizationId?: string; documentContexts?: Array<{ sectionId: string; open: () => void }> }
+export function AiCreditsPanel(props: Props) {
+  return <AiCreditsPanelContent key={props.organizationId ?? "local"} {...props} />
+}
+function AiCreditsPanelContent({ account, organizationId, documentContexts }: Props) {
   const [fresh, setFresh] = useState<{ account: AiCreditAccount; purchases: AiCreditPurchases } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
   useEffect(() => {
-    setFresh(null); setError(null)
+    setError(null)
     if (!organizationId) return
     let disposed = false, loading = false, attempts = 0
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -54,7 +59,8 @@ export function AiCreditsPanel({ account, organizationId, documentContexts }: { 
       {expires ? <p className="text-xs text-muted-foreground">Included credits expire {new Date(expires).toLocaleDateString()}.</p> : null}
       {current.paymentReview ? <p role="status" className="text-xs text-muted-foreground">A credit purchase needs payment review.</p> : null}
       {organizationId && fresh ? <CreditPurchaseControl key={organizationId} organizationId={organizationId} purchases={fresh.purchases} /> : null}
-      {organizationId ? <CreditSpendingLimits key={`limits:${organizationId}`} organizationId={organizationId} /> : null}
+      {organizationId ? <CreditSubscriptionAllowance key={`allowance:${organizationId}`} organizationId={organizationId} onAssigned={() => setRetry(value => value + 1)} /> : null}
+      {organizationId && current.enabled ? <CreditSpendingLimits key={`limits:${organizationId}`} organizationId={organizationId} /> : null}
       {error ? <p role="status" className="text-xs text-muted-foreground">{error}</p> : null}
       {organizationId ? <CreditUsageHistory key={`history:${organizationId}`} organizationId={organizationId} revision={JSON.stringify(current.history.map(run => [run.id, run.status, run.charged_credits]))} documentContexts={documentContexts} /> : current.history.length ? <ul className="flex max-h-52 flex-col gap-2 overflow-auto" aria-label="Your AI usage">
         {current.history.map(run => <li key={run.id} className="flex justify-between gap-3 border-t border-border/60 pt-2 text-xs">

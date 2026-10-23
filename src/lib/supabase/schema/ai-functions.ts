@@ -1,6 +1,10 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  read_ai_credit_allowance_setup: { Args: { p_org_id: string; p_actor_id: string; p_mode: string }; Returns: Json }
+  bind_ai_credit_subscription: { Args: { p_org_id: string; p_actor_id: string; p_mode: string; p_subscription: string; p_customer: string; p_operation_id: string }; Returns: undefined }
+  find_ai_credit_subscription_binding: { Args: { p_mode: string; p_subscription: string }; Returns: Json }
+  grant_ai_credit_allowance: { Args: { p_mode: string; p_subscription: string; p_customer: string; p_rule_key: string; p_invoice: string; p_start: string; p_end: string }; Returns: string }
   read_workspace_ai_usage: { Args: { p_org_id: string; p_actor_id: string; p_member_id: string | null; p_task: string | null; p_before_at: string | null; p_before_id: string | null }; Returns: Json }
   find_ai_credit_payment: { Args: { p_payment: string; p_mode: string }; Returns: Json }
   record_ai_credit_payment_restriction: { Args: { p_order_id: string; p_payment: string; p_mode: string; p_kind: string; p_provider_id: string; p_status: string; p_amount: number; p_currency: string; p_operation_key: string; p_event_created: number }; Returns: undefined }

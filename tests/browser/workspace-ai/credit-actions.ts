@@ -12,7 +12,8 @@ export async function loadCreditPurchases(organizationId: string) {
   const purchases: AiCreditPurchases = { canPurchase: !new URLSearchParams(location.search).has("staff"), packs: [pack],
     orders: id ? [{ ...pack, id, created_at: new Date().toISOString(), status: credited ? "paid" : "pending", paymentIssue: issue }] : [] }
   return { account: { ...creditAccount, paymentReview: Boolean(issue), lots: [creditAccount.lots[0],
-    ...(credited ? [{ ...creditAccount.lots[0], credits: 1000, restricted: Boolean(issue) }] : [])] }, purchases }
+    ...(credited ? [{ ...creditAccount.lots[0], credits: 1000, restricted: Boolean(issue) }] : []),
+    ...(localStorage.getItem("allowance-confirmed") ? [{ kind: "included" as const, credits: 500, spent: 0, reserved: 0, expiresAt: "2026-11-23T12:00:00Z" }] : [])] }, purchases }
 }
 export async function startCreditPurchase(input: { organizationId: string; id: string; pack: string }) {
   const calls = JSON.parse(localStorage.getItem("credit-calls") || "[]")
@@ -49,4 +50,19 @@ export async function loadAiUsageHistory(input: { memberId?: string | null; task
     resourceTitle: index % 2 ? null : `Document ${index + 1}`, sectionId: index % 2 ? null : "mission" }))
     .filter(row => (!staff || row.actorId === creditOrg) && (!input.memberId || row.actorId === input.memberId) && (!input.task || row.task === input.task) && (!input.before || row.created_at < input.before.at))
   return { canFilterMembers: !staff, members, rows: rows.slice(0, 20), hasMore: rows.length > 20 }
+}
+
+export async function loadAiAllowance() {
+  if (!new URLSearchParams(location.search).has("allowance")) return null
+  return { organizationName: "Fictional Organization", binding: localStorage.getItem("allowance-bound") ? "sub_fixture" : null,
+    grant: localStorage.getItem("allowance-confirmed") ? { label: "Fixture plan", credits: 500, expiresAt: "2026-11-23T12:00:00Z" } : null,
+    options: [{ id: "sub_fixture", label: "Fixture plan", credits: 500 }] }
+}
+export async function assignAiAllowance(input: { organizationId: string; subscriptionId: string; operationId: string }) {
+  const calls = JSON.parse(localStorage.getItem("allowance-calls") || "[]")
+  localStorage.setItem("allowance-calls", JSON.stringify([...calls, input]))
+  localStorage.setItem("allowance-bound", "true")
+  if (new URLSearchParams(location.search).has("allowance-failure") && calls.length === 0) throw new Error("Allowance confirmation pending. Retry this request.")
+  localStorage.setItem("allowance-confirmed", "true")
+  return loadAiAllowance()
 }

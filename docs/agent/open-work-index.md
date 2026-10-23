@@ -1,5 +1,7 @@
 # Open Work Index
 
+**October23 AI monthly allowance:** Default-off owner assignment and verified current monthly period grants are implemented with local privacy/concurrency/provider-fixture/browser evidence. No production activation. Annual/proration/reassignment/allowance reversal policies and capped refill remain unfinished. [Current continuation](../plans/2026-10-22-workspace-ai-plan.md#explicit-monthly-subscription-allowance--2026-10-23).
+
 **October23 AI Usage:** Account-menu navigation and private paginated member/task history implemented with local database and simulated browser evidence. No shared migration or production activation. [Current continuation](../plans/2026-10-22-workspace-ai-plan.md#usage-navigation-and-scoped-history--2026-10-23); allowance binding and capped refill remain next.
 
 **October23 AI payment holds:** Refund/dispute restrictions and immutable adjustment evidence pass local SQL, focused tests and simulated browser checks. Shared migrations remain unapplied. Usage history and capped refill remain unfinished; [checkpoint](../plans/2026-10-22-workspace-ai-plan.md#refund-and-dispute-payment-holds--2026-10-23).

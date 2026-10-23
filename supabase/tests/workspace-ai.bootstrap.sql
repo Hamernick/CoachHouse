@@ -10,3 +10,5 @@ create function public.fixture_ai_organization_timestamp() returns trigger langu
 begin new.updated_at=clock_timestamp(); return new; end $$;
 create trigger fixture_ai_organization_timestamp before update on public.organizations
   for each row execute function public.fixture_ai_organization_timestamp();
+
+create table public.subscriptions(user_id uuid not null references public.profiles(id),stripe_subscription_id text not null,stripe_customer_id text,status text,metadata jsonb,primary key(user_id,stripe_subscription_id));

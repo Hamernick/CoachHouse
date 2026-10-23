@@ -1,5 +1,5 @@
 import Stripe from "stripe"
-import { processAiCreditPurchase } from "@/features/ai-credits"
+import { processAiCreditPurchase, processAiAllowanceInvoice } from "@/features/ai-credits"
 
 import { isElectiveAddOnModuleSlug } from "@/lib/accelerator/elective-modules"
 import {
@@ -154,6 +154,7 @@ export async function processStripeWebhookEvent({
   }
 
   if (event.type === "invoice.paid") {
+    await processAiAllowanceInvoice(event, stripeClient, stripeMode)
     const invoice = event.data.object as Stripe.Invoice
     await handleAcceleratorMonthlyInstallmentInvoice({
       invoice,

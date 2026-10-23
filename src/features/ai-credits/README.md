@@ -42,3 +42,12 @@ Migration `20261023001500_workspace_ai_payment_restrictions.sql` must be applied
 The existing workspace account menu opens Usage in the composer surface without a selected document or model request. `read_workspace_ai_usage` exposes paginated financial fields only. Owners can filter member/task usage; other eligible members are restricted to themselves. Other members' private source titles/references, all prompts/proposals/source bodies and provider IDs are excluded. Keyset pagination retains timestamp precision and breaks ties by run UUID. Source actions exist only for current-scope mounted document editors, and are unavailable during generation.
 
 `20261023010000_workspace_ai_usage_history.sql` has disposable-test evidence only. Included totals/earliest expiration reflect actual lots; subscription plan/allowance reset metadata awaits explicit billing binding. Usage does not grant credits or activate AI. See the plan checkpoint for tests and remaining release gates.
+
+
+## Subscription allowances
+
+`WORKSPACE_AI_ALLOWANCES_ENABLED=true` and explicitly configured enabled `ai_credit_allowance_rules` are required. No commercial rows are seeded. Owners assign their verified active monthly subscription to the named organization in Usage. Assignment is immutable; one subscription and one organization cannot silently accumulate duplicate bindings. Reassignment requires a separately reviewed future-period path. Provider reads precede assignment; uncertain grant recovery reuses the assignment and period identity.
+
+The signed invoice.paid handler verifies the current full monthly invoice line and real payment before granting. The line's service period and invoice-payment relationship use the installed Stripe API contract ([invoice line items](https://docs.stripe.com/api/invoice-line-item/object), [invoice payments](https://docs.stripe.com/api/invoice-payment)). SQL serializes immutable grants, rejects period overlap and preserves replayed grants after policy-version changes. No trial/past-due/incomplete, annual, prorated/short, mixed, comped, refunded/disputed or unsupported-discount invoice is credited.
+
+Migration `20261023020000_workspace_ai_subscription_allowances.sql` has disposable-test evidence only. Annual scheduling, prorated/comped entitlements, next-period reassignment, post-grant allowance reversals and deletion policy remain launch gates, along with capped refill. No live Stripe writes are performed by assignment or grant reconciliation.

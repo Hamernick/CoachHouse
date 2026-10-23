@@ -84,6 +84,7 @@ try {
   runSql("supabase/migrations/20261022234500_workspace_ai_spending_limits.sql")
   runSql("supabase/migrations/20261023001500_workspace_ai_payment_restrictions.sql")
   runSql("supabase/migrations/20261023010000_workspace_ai_usage_history.sql")
+  runSql("supabase/migrations/20261023020000_workspace_ai_subscription_allowances.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
@@ -169,6 +170,19 @@ try {
   if (capped.filter(result => result.code === 0).length !== 1 || !capped.some(result => result.error.includes("Organization monthly AI credit limit reached"))) throw new Error(`Concurrent limit admission failed: ${JSON.stringify(capped)}`)
   runSql("supabase/tests/workspace-ai-payment-restrictions.assertions.sql")
   runSql("supabase/tests/workspace-ai-usage.assertions.sql")
+  runSql("supabase/tests/workspace-ai-allowances.assertions.sql")
+  run("psql",args,{input:`set role service_role; select public.bind_ai_credit_subscription('00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000004','test','sub_allowance_four','cus_allowance_four','75000000-0000-4000-8000-000000000004');`})
+  const allowanceStart=new Date(Date.now()-86400000).toISOString(), allowanceEnd=new Date(Date.now()+29*86400000).toISOString()
+  const grantConcurrently=()=>new Promise(resolve=>{
+    const child=spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})
+    let error="";child.stderr.on("data",chunk=>{error+=chunk});child.stdout.resume()
+    child.on("close",code=>resolve({code,error}))
+    child.stdin.end(`begin; set local role service_role; select public.grant_ai_credit_allowance('test','sub_allowance_four','cus_allowance_four','monthly-fixture-v1','in_allowance_race','${allowanceStart}','${allowanceEnd}'); select pg_sleep(0.1); commit;`)
+  })
+  const allowanceRace=await Promise.all([grantConcurrently(),grantConcurrently()])
+  if(allowanceRace.some(result=>result.code!==0)) throw new Error(`Allowance race failed: ${JSON.stringify(allowanceRace)}`)
+  run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.ai_credit_allowance_grants where subscription_id='sub_allowance_four'),'concurrent webhook/bind grants once');`})
+
   console.log("[workspace-ai] Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
 } finally {
   if (started) {
