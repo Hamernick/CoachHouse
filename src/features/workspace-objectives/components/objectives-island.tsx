@@ -64,7 +64,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
           {state.error && <p role="alert" className="px-2 py-1 text-xs text-destructive">{state.error}</p>}
           {!state.data && state.pending && <Skeleton className="h-24 rounded-3xl" />}
           {state.data && !objectives.length && <p className="px-2 py-3 text-sm text-muted-foreground">No objectives yet.</p>}
-          {objectives.map(objective => <ObjectiveIslandCard key={objective.id} objective={objective} plans={activePlans}
+          {objectives.map(objective => <ObjectiveIslandCard key={objective.id} objective={objective}
             steps={(state.data?.steps ?? []).filter(step => step.objectiveId === objective.id || state.data?.planning?.plans.some(plan => plan.objectiveId === objective.id && plan.stepIds.includes(step.id)))}
             checklistSteps={(state.data?.steps ?? []).filter(step => step.objectiveId === objective.id && !state.data?.planning?.plans.some(plan => plan.objectiveId === objective.id && plan.stepIds.includes(step.id)))} editable={editable} pending={state.pending}
             onEdit={input => state.mutate(() => transport.edit(scope, input))}

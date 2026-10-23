@@ -722,3 +722,5 @@ Focused ESLint and four existing browser scenarios pass (`/tmp/objective-menu-re
 
 
 User follow-up: removed the plan-row tree toggle from ObjectivePlanList; no replacement control or automatic tree-opening behavior added. Saved plans/connections remain unchanged. Existing browser journeys that click the removed toggle now need their canvas-entry expectations revised with the next approved tree navigation design; prior passes do not validate this changed navigation. Scoped lint/diff checks cover this button-only removal. The previous graph refresh54626 is still running; do not duplicate it. Include this follow-up in the next batched refresh.
+
+User follow-up: removed the objective-level status/completion summary and segmented progress bar from ObjectiveIslandCard, including the unused progress calculation. Plan-level completion and checklist behavior remain unchanged. Scoped lint/diff verification; no schema or data changes. Ongoing graph refresh54626 remains the maintenance owner; latest small follow-ups need the next batched extraction after it completes.
