@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-User-requested follow-up to original02 stage5, O124-01/O123-01: white, app-icon-style branding for organization links and a large homepage preview. Local implementation complete on `fix/branded-share-previews-20261023`, based on main5d40b7db, in `coach-house-platform-branded-share-previews-20261023`. Preparing one independent PR; user review, hosted quality, merge, deployment and iOS acceptance remain pending. This extends the earlier shipped social-image work; it is not another original-requirement completion.
+User-requested follow-up to original02 stage5, O124-01/O123-01: white, app-icon-style branding for organization links and a large homepage preview. Local implementation complete on `fix/branded-share-previews-20261023`, based on main5d40b7db, in `coach-house-platform-branded-share-previews-20261023`. Open [PR356](https://github.com/Hamernick/CoachHouse/pull/356); user review, hosted quality, merge, deployment and iOS acceptance remain pending. This extends the earlier shipped social-image work; it is not another original-requirement completion.
 
 Separate PR355/launch verification is preserved. The56 acceptance-test typing errors and dependency upgrade belong to another chat. Shared SHIP40 and unrelated worktrees/providers are unchanged.
 
@@ -25,7 +25,7 @@ Review links: [Coach House](http://localhost:3157/brand-share.png), [Mano Extend
 
 ## Verification
 
-Focused suites cover public-only eligibility, missing/corrupt/oversized logos, blocked remote URLs and signed/private storage paths, bounded format normalization, padding removal, Next's actual metadata resolver, large-image cards, logo revisions and existing profile behavior:
+All62 focused tests pass. The suites cover public-only eligibility, missing/corrupt/oversized logos, blocked remote URLs and signed/private storage paths, bounded format normalization, padding removal, Next's actual metadata resolver, large-image cards, logo revisions and existing profile behavior:
 
 ```sh
 pnpm exec vitest run --config vitest.config.ts tests/acceptance/public-share-image.test.ts tests/acceptance/prelaunch-social-metadata.test.ts tests/acceptance/public-profiles.test.ts tests/acceptance/public-site-origin.test.ts
@@ -33,9 +33,9 @@ pnpm exec vitest run --config vitest.config.ts tests/acceptance/public-share-ima
 
 Changed-file ESLint, route/import-boundary/structure and acceptance-manifest guards pass; existing near-budget warnings remain. A full `tsc --noEmit --incremental false --pretty false` reports56 errors solely in the13 known acceptance-test files, none in this task's source/tests. This check preceded the final two-stage padding normalization; the final focused suites cover that adjustment. The known failures remain merge blockers, not waived gates.
 
-Production compilation uses `pnpm exec next build --experimental-build-mode compile`: it checks optimized Turbopack bundling and Node/Edge isolation while leaving type validation/prerender release gates separate. The initial pass succeeded without Node/Edge errors, retaining only the pre-existing presenter-audio NFT warning. Final compilation/HTTP results are recorded in the delivery receipt. This is not a passing full production build or Vercel deployment claim.
+Production compilation uses `pnpm exec next build --experimental-build-mode compile`: it checks optimized Turbopack bundling and Node/Edge isolation while leaving type validation/prerender release gates separate. The final pass succeeds without Node/Edge errors, retaining only the pre-existing presenter-audio NFT warning. This is not a passing full production build or Vercel deployment claim.
 
-Local production HTTP verification checks `/`, `/manoextendida`, `/amorejustchicago`, each advertised PNG, and a missing profile image. It validates server-delivered metadata,1200x630 dimensions,200/image/png responses, size below250KB and404 for the missing profile. Raw pixel checks confirm every output is opaque with white corners. Initial assets measured18,239/27,367/27,768bytes respectively; final artwork may differ after the padding correction.
+Local production HTTP verification checks `/`, `/manoextendida`, `/amorejustchicago`, each advertised PNG, and a missing profile image. It validates server-delivered metadata,1200x630 dimensions,200/image/png responses, size below250KB and404 for the missing profile. Raw pixel checks confirm every output is opaque with white corners. Final compiled-source checks pass. Assets measure42,464/50,549/27,768bytes respectively; all three pixel checks pass.
 
 The initial development server retained a dependency-symlink path after isolated installation and failed compilation; restarting only its verified listener resolved that environment issue. Cold webpack profile compilation exceeded its HTTP timeout; production-mode HTTP checks replaced that failed attempt. macOS reports duplicate nativelibvips delegates because Next16.2.6 uses0.34.5 while the converter uses0.35.5; rendering/tests succeed. The separately owned Next upgrade converges the versions, but is not included or claimed merged here.
 
@@ -43,4 +43,4 @@ Private reproduction and outputs: `/tmp/coach-house-branded-share-20261023/` (`f
 
 ## Delivery and rollback
 
-Commit/push with normal hooks and secret scan, then open the PR. Update the original02/master current rows with its actual review state. Do not merge/deploy or poll CI. Rollback reverts this PR's metadata, renderer endpoint and added dependency; existing public pages/uploads/data remain intact. No migration, provider settings, mail or production data changes.
+Implementation `c6d76527` is pushed in [PR356](https://github.com/Hamernick/CoachHouse/pull/356). Zero-finding secret scan and normal Node22 prepush pass, including full lint (243.80s total). Final62tests, optimized compilation, production HTTP and pixel checks pass. Batched Graphify AST refresh completed:21,956nodes/62,977edges; index semantic maintenance follows the final handoff wording. Original02/master current rows point to this open PR. Do not merge/deploy or poll CI. Rollback reverts this PR's metadata, renderer endpoint and added dependency; existing public pages/uploads/data remain intact. No migration, provider settings, mail or production data changes.
