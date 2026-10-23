@@ -24,18 +24,18 @@ export function ParticleObjectivesIsland({ scope, controls }: { scope: Objective
     const operations = reorderObjectiveOperations(graph.particles, id, target.id)
     if (operations.length) void controls.commit(operations, { optimistic: true })
   }
-  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} completed={objectives.filter(item => item.status === "done").length} total={objectives.length}>
+  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} completed={objectives.filter(item => item.status === "done").length} total={objectives.length} footer={controls.canEdit && !controls.error && <form onSubmit={async event => { event.preventDefault(); if (title.trim() && await actions.createObjective(title.trim())) setTitle("") }}>
+        <InputGroup className="rounded-full bg-muted/30 p-1 shadow-none"><InputGroupInput aria-label="New objective" placeholder="What do you want to accomplish?" value={title} maxLength={240} required onChange={event => setTitle(event.target.value)} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
+          <InputGroupAddon><Button size="icon" variant="ghost" type="submit" className="size-9 rounded-full" aria-label="Add objective" disabled={controls.pending}><Plus aria-hidden /></Button></InputGroupAddon>
+        </InputGroup>
+      </form>}>
     <div aria-busy={controls.pending} className="flex min-w-0 flex-col gap-1">
       {(controls.error || actions.accessError) && <p role="alert" className="px-2 py-1 text-xs text-destructive">{controls.error || actions.accessError}{controls.error && <Button variant="link" size="sm" onClick={() => void controls.retry()}>Retry</Button>}</p>}
       <PlanParticleList label="Objectives list" particles={objectives} disabled={sortingDisabled} onMove={move} className="min-w-0 space-y-1">
         {objectives.map(objective => <ParticleObjectiveCard key={objective.id} objective={objective} controls={controls} actions={actions} userId={scope.userId} />)}
       </PlanParticleList>
       {!objectives.length && <p className="px-2 py-3 text-sm text-muted-foreground">Add an objective to start your plan.</p>}
-      {controls.canEdit && !controls.error && <form onSubmit={async event => { event.preventDefault(); if (title.trim() && await actions.createObjective(title.trim())) setTitle("") }}>
-        <InputGroup className="rounded-full bg-muted/30 p-1 shadow-none"><InputGroupInput aria-label="New objective" placeholder="What do you want to accomplish?" value={title} maxLength={240} required onChange={event => setTitle(event.target.value)} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
-          <InputGroupAddon><Button size="icon" variant="ghost" type="submit" className="size-9 rounded-full" aria-label="Add objective" disabled={controls.pending}><Plus aria-hidden /></Button></InputGroupAddon>
-        </InputGroup>
-      </form>}
+
     </div>
   </ObjectivesIslandSurface>
 }
