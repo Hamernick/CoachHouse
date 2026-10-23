@@ -142,6 +142,7 @@
       "tests/acceptance/supabase-management-api-config.test.ts",
       "tests/acceptance/supabase-manager-error-message.test.ts",
       "tests/acceptance/supabase-project-ref.test.ts",
+      "tests/acceptance/telemetry-url-privacy.test.ts",
       "tests/acceptance/theme-provider.test.ts",
       "tests/acceptance/timeline-gantt.test.ts",
       "tests/acceptance/tutorial-manager.test.ts",
