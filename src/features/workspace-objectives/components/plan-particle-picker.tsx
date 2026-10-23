@@ -33,7 +33,7 @@ export function PlanParticlePicker({ particles, excluded, pending, onAdd, onCrea
           </CommandGroup>
           <CommandGroup heading="Create">
             {PARTICLE_PRESETS.filter(item => item.type !== "objective").map(preset => <CommandItem key={preset.id} value={`new ${preset.label} ${preset.hint}`} disabled={pending || busy} className="min-h-11 gap-3 rounded-xl" onSelect={() => void choose(() => onCreate(preset))}>
-              <Plus className="size-4 text-muted-foreground" aria-hidden /><span>New {preset.label.toLowerCase()}</span>
+              <Plus className="size-4 text-muted-foreground" aria-hidden /><span>{preset.label}</span>
             </CommandItem>)}
           </CommandGroup>
         </CommandList>
