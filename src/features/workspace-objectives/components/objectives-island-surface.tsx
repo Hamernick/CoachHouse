@@ -48,7 +48,7 @@ export function ObjectivesIslandSurface({ open, onOpenChange, completed = 0, tot
         <motion.div id={id} initial={false} animate={{ opacity: open ? 1 : 0, y: open ? 0 : -4 }}
           transition={{ duration: reduced ? 0 : 0.12, delay: open && !reduced ? 0.06 : 0 }} inert={!open} aria-hidden={!open}
           className={open ? "pointer-events-auto" : "pointer-events-none"}>
-          <div className="flex max-h-[min(65svh,600px)] min-w-0 flex-col overflow-hidden px-3 pb-3">
+          <div className="flex max-h-[min(65svh,600px)] min-w-0 flex-col overflow-hidden px-3 pt-3 pb-3">
             <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain">{children}</div>
             {footer && <div className="shrink-0 pt-2">{footer}</div>}
           </div>
