@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Local implementation and focused verification complete; preparing an open PR on `fix/launch-checklist-five-20261023`. Hosted quality/review, merge, deployment and production acceptance remain Caleb-owned. This closes verification gaps for existing features; it does not claim five newly built features or a complete launch audit.
+Local implementation and focused verification complete; open [PR355](https://github.com/Hamernick/CoachHouse/pull/355) on `fix/launch-checklist-five-20261023`. Hosted quality/review, merge, deployment and production acceptance remain Caleb-owned. This closes verification gaps for existing features; it does not claim five newly built features or a complete launch audit.
 
 Original source: Desktop `02-security-infrastructure-launch.md`, stage 5 / B115. User selected five more tasks; the 56 test-type errors and dependency upgrade belong to another chat. Worktree: `coach-house-platform-launch-checklist-five-20261023`, base `5d40b7db`. Shared SHIP revision40 and unrelated worktrees/providers are unchanged.
 
@@ -40,4 +40,4 @@ Graph AST refresh initiated once after the code slice; completion recorded in th
 
 Four existing page/asset/indexing requirements now have explicit local verification. Analytics installation is also verified; the newly discovered privacy correction awaits PR/release. Earlier this chat shipped2 other complete original requirements (O124/O132). These are7 distinct requirements with implementation evidence, not7 newly shipped changes or an all-chats completion total. Keep production acceptance separate.
 
-Finish normal secret scan/commit/push and open one PR. Caleb owns hosted checks, merge/deployment and live acceptance. After release, confirm ordinary page measurement continues and private URL data is absent; do not send test credentials to production telemetry. Continue other original02 requirements only after source reconciliation. Do not duplicate the other chat's56 test-type repair.
+Implementation commit `8a40de72` is pushed. Staged secret scan passes; normal Node22 pre-push passes in40.01s. Review open [PR355](https://github.com/Hamernick/CoachHouse/pull/355). Caleb owns hosted checks, merge/deployment and live acceptance. After release, confirm ordinary page measurement continues and private URL data is absent; do not send test credentials to production telemetry. Continue other original02 requirements only after source reconciliation. Do not duplicate the other chat's56 test-type repair.
