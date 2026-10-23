@@ -33,7 +33,7 @@ export async function loadOpportunitySourceOptions(supabase: SupabaseClient<Data
       })
     }
   }
-  const fileOptions: OpportunitySourceOption[] = (files.data ?? []).filter(file => file.storage_path.startsWith(`${orgId}/library/`) && !file.storage_path.split("/").includes("..")).map(file => ({ source: { kind: "file", id: file.id }, title: file.name, category: "Document", description: `${file.mime_type} · ${Math.ceil(file.size_bytes / 1024)} KB` }))
+  const fileOptions: OpportunitySourceOption[] = (files.data ?? []).filter(file => file.storage_path.startsWith(`${orgId}/library/`) && !file.storage_path.split("/").includes("..")).map(file => ({ source: { kind: "file", id: file.id }, title: file.name, mimeType: file.mime_type, category: "Document", description: `${file.mime_type} · ${Math.ceil(file.size_bytes / 1024)} KB` }))
   const noteOptions: OpportunitySourceOption[] = notes.map(note => ({ source: { kind: "document", id: `module:${userId}:${note.moduleId}` }, title: `${note.moduleTitle} notes`, category: "Document", description: note.content.slice(0, 500), href: note.href ?? undefined }))
   return [...fileOptions, ...noteOptions, ...opportunityProfileSources(organization.data?.profile), ...(calendar.data ?? []).map(event => ({ source: { kind: "calendar" as const, id: event.id }, title: event.title, category: "Calendar item", description: event.description ?? undefined, startsAt: event.starts_at })), ...options.values(), ...([
     ["organization-overview", "Organization"], ["programs", "Resources"], ["fiscal-sponsorship", "Fiscal Sponsorship"],

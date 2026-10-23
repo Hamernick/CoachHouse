@@ -12,7 +12,7 @@ export const opportunitySourceSchema = z.discriminatedUnion("kind", [
 ])
 export const opportunitySourcesSchema = z.array(opportunitySourceSchema).max(20).refine(items => new Set(items.map(sourceKey)).size === items.length, "Source already added.")
 export type OpportunitySource = z.infer<typeof opportunitySourceSchema>
-export type OpportunitySourceOption = { source: OpportunitySource; title: string; category: string; description?: string; href?: string; startsAt?: string }
+export type OpportunitySourceOption = { source: OpportunitySource; title: string; category: string; description?: string; href?: string; startsAt?: string; mimeType?: string }
 export function sourceKey(source: OpportunitySource): string {
   return source.kind === "link" ? `link:${source.url}` : source.kind === "text" ? `text:${source.label}` : `${source.kind}:${source.id}`
 }

@@ -2,7 +2,7 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 vi.mock("@/actions/workspace-finance", () => ({ updateWorkspaceFinanceOpportunityStatus: vi.fn() }))
-vi.mock("@/actions/workspace-opportunities", () => ({ createWorkspaceOpportunity: vi.fn() }))
+vi.mock("@/actions/workspace-opportunities", () => ({ createWorkspaceOpportunity: vi.fn(), updateWorkspaceOpportunity: vi.fn() }))
 import { WorkspaceOpportunitiesFeed } from "@/features/workspace-finance"
 
 const opportunity = { id: "00000000-0000-4000-8000-000000000001", title: "Community grant", source: "Example Foundation", dueAt: "2027-01-15T17:00:00Z", status: "new" as const }
@@ -52,4 +52,29 @@ describe("workspace opportunity feed", () => {
     expect(html).not.toContain("<time")
     expect(html).toContain("Source: Grants.gov")
   })
+})
+
+it("shows edit instead of suggestion controls for manually created reports", () => {
+  const html = render({ opportunities: [{ ...opportunity, origin: "manual" }], canEdit: true, organizationId: opportunity.id })
+  expect(html).toContain('aria-label="Edit Community grant"')
+  expect(html).not.toContain('aria-label="Save Community grant"')
+  expect(html).not.toContain('aria-label="Dismiss Community grant"')
+})
+it("keeps report details expandable and escapes authored text", () => {
+  const html = render({ opportunities: [{ ...opportunity, origin: "manual", report: { version: 1, blocks: [{ id: opportunity.id, title: "", kind: "text", text: "<script>unsafe</script>" }] } }] })
+  expect(html).toContain('aria-label="Show more about Community grant"')
+  expect(html).toContain('&lt;script&gt;unsafe&lt;/script&gt;')
+  expect(html).not.toContain('<script>')
+})
+
+import { OpportunityReportContent } from "@/features/workspace-finance/components/opportunity-report-content"
+it("renders populated fact components and hides empty ones", () => {
+  const html = renderToStaticMarkup(createElement(OpportunityReportContent, { options: [], report: { version: 1, blocks: [
+    { id: opportunity.id, title: "Facts", kind: "facts", items: [{ id: opportunity.id, label: "Budget", value: "$3,000" }] },
+    { id: "00000000-0000-4000-8000-000000000002", title: "Empty", kind: "text", text: " " },
+  ] } }))
+  expect(html).toContain("<dt")
+  expect(html).toContain("Budget")
+  expect(html).toContain("$3,000")
+  expect(html).not.toContain("Empty")
 })

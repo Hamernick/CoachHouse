@@ -37,3 +37,6 @@ export type {
   WorkspaceFinanceStripeConnectionInput,
   WorkspaceFinanceView,
 } from "./types"
+
+export { opportunityReportSchema, readOpportunityReport, opportunityReportSources } from "./lib/opportunity-report"
+export type { OpportunityReport } from "./lib/opportunity-report"

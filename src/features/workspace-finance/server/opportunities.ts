@@ -7,6 +7,7 @@ import type {
   WorkspaceFinanceOpportunityStatus,
 } from "../types"
 import { GRANTS_GOV_SOURCE_KEY } from "../lib/grants-gov"
+import { readOpportunityReport } from "../lib/opportunity-report"
 import { readOpportunitySources } from "../lib/opportunity-sources"
 
 type OrganizationFinanceOpportunityRow =
@@ -35,6 +36,9 @@ export function mapOrganizationFinanceOpportunity(
 
   return {
     id: opportunity.id,
+    origin: opportunity.external_provider === "manual" ? "manual" : "suggested",
+    updatedAt: opportunity.updated_at,
+    report: readOpportunityReport(opportunity.report),
     title: opportunity.title,
     source: opportunity.source_label,
     sources: readOpportunitySources(opportunity.sources),
@@ -57,7 +61,7 @@ export async function loadOrganizationFinanceOpportunities({
   const { data, error } = await supabase
     .from("organization_finance_opportunities")
     .select(
-      "id,org_id,title,source_label,sources,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
+      "id,org_id,title,source_label,sources,report,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
     )
     .eq("org_id", orgId)
     .neq("status", "dismissed")

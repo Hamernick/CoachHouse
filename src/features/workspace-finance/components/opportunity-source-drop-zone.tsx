@@ -5,7 +5,8 @@ import { getWorkspaceOpportunitySources } from "@/actions/workspace-opportunity-
 import { sourceKey, type OpportunitySource, type OpportunitySourceOption } from "../lib/opportunity-sources"
 import { opportunityDocumentDrop } from "../lib/opportunity-document-drop"
 
-export function OpportunitySourceDropZone({ children, organizationId, value, onChange, onOptionsAdded, disabled, onBusyChange }: {
+export function OpportunitySourceDropZone({ children, organizationId, value, onChange, onOptionsAdded, disabled, onBusyChange, accept = PARTICLE_FILE_ACCEPT, validateFile }: {
+  accept?: string; validateFile?: (file: File) => string | null
   children: (openFiles: () => void) => ReactNode; organizationId: string; value: OpportunitySource[]; onChange: (value: OpportunitySource[]) => void
   onOptionsAdded: (options: OpportunitySourceOption[]) => void; disabled: boolean; onBusyChange: (busy: boolean) => void
 }) {
@@ -42,14 +43,14 @@ export function OpportunitySourceDropZone({ children, organizationId, value, onC
     try {
       for (const file of files) {
         try {
-          const invalid = particleFileError(file)
+          const invalid = validateFile?.(file) || particleFileError(file)
           if (invalid) throw new Error(invalid)
           setStatus(`Uploading ${file.name}…`)
           const key = `${file.name}:${file.size}:${file.lastModified}`
           let option = uploads.current.get(key)
           if (!option) {
             const uploaded = await uploadParticleFile(organizationId, file)
-            option = { source: { kind: "file", id: uploaded.fileId }, title: file.name, category: "Document", description: `${file.type || "Document"} · ${Math.ceil(file.size / 1024)} KB` }
+            option = { source: { kind: "file", id: uploaded.fileId }, title: file.name, mimeType: file.type, category: "Document", description: `${file.type || "Document"} · ${Math.ceil(file.size / 1024)} KB` }
             uploads.current.set(key, option)
           }
           if (!next.some(source => sourceKey(source) === sourceKey(option.source))) next.push(option.source)
@@ -65,7 +66,7 @@ export function OpportunitySourceDropZone({ children, organizationId, value, onC
     onDragOver={event => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = disabled || busy.current ? "none" : "copy" } }}
     onDrop={event => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.stopPropagation(); depth.current = 0; setOver(false); void upload(Array.from(event.dataTransfer.files)) } }}>
     {children(() => input.current?.click())}
-    <input ref={input} type="file" multiple accept={PARTICLE_FILE_ACCEPT} className="hidden" aria-label="Choose source files" disabled={disabled} onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void upload(files) }} />
+    <input ref={input} type="file" multiple accept={accept} className="hidden" aria-label="Choose source files" disabled={disabled} onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void upload(files) }} />
     {status && <p role="status" className="pr-10 text-xs text-muted-foreground">{status}</p>}
     {error && <p role="alert" className="pr-10 text-xs text-destructive">{error}</p>}
   </div>

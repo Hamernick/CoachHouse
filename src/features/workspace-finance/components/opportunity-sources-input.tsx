@@ -1,19 +1,26 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Paperclip } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command"
 import { opportunitySourceSchema, sourceKey, type OpportunitySource, type OpportunitySourceOption } from "../lib/opportunity-sources"
 import { OpportunitySourcePill, SourceIcon } from "./opportunity-source-pill"
 
-export function OpportunitySourcesInput({ value, onChange, organizationId, options, loadOptions, loading, error, disabled, query, onQueryChange, onAttachFiles }: {
+export function OpportunitySourcesInput({ value, onChange, organizationId, options, loadOptions, loading, error, disabled, query, onQueryChange, onAttachFiles, commitOnBlur = false }: {
   value: OpportunitySource[]; onChange: (sources: OpportunitySource[]) => void; organizationId: string
   options: OpportunitySourceOption[]; loadOptions: () => void; loading: boolean; error: string | null; disabled: boolean
   query: string; onQueryChange: (value: string) => void
-  onAttachFiles: () => void
+  onAttachFiles: () => void; commitOnBlur?: boolean
 }) {
   const [message, setMessage] = useState<string | null>(null)
+  const input = useRef<HTMLInputElement>(null)
   const mention = query.startsWith("@")
+  useEffect(() => {
+    if (!commitOnBlur) return
+    const text = query.trim()
+    const valid = !text || opportunitySourceSchema.safeParse(/^https?:\/\//i.test(text) ? { kind: "link", url: text } : { kind: "text", label: text }).success
+    input.current?.setCustomValidity(mention ? "Choose a source from the suggestions." : valid ? "" : "Enter a valid source.")
+  }, [commitOnBlur, mention, query])
   const matches = options.filter(item => !value.some(source => sourceKey(source) === sourceKey(item.source)) && `${item.title} ${item.category}`.toLocaleLowerCase().includes(query.slice(1).trim().toLocaleLowerCase())).slice(0, 20)
   function add(source: OpportunitySource) {
     if (value.length >= 20) { setMessage("You can add up to 20 sources."); return }
@@ -30,7 +37,7 @@ export function OpportunitySourcesInput({ value, onChange, organizationId, optio
   return <div className="min-w-0 space-y-1">
     {value.length > 0 && <div className="flex flex-wrap gap-1.5">{value.map(source => <OpportunitySourcePill key={sourceKey(source)} source={source} organizationId={organizationId} option={options.find(item => sourceKey(item.source) === sourceKey(source))} disabled={disabled} onRemove={() => onChange(value.filter(item => sourceKey(item) !== sourceKey(source)))} />)}</div>}
     <Command shouldFilter={false} className="h-auto bg-transparent [&_[data-slot=command-input-wrapper]]:border-0 [&_[data-slot=command-input-wrapper]]:px-1 [&_[data-slot=command-input-wrapper]>svg]:hidden">
-      <div className="relative"><CommandInput aria-label="Sources" aria-expanded={mention} placeholder="Sources" className="pr-10" disabled={disabled} maxLength={2048} value={query} onPaste={event => {
+      <div className="relative"><CommandInput ref={input} onBlur={() => { if (commitOnBlur && !mention) addTyped() }} aria-label="Sources" aria-expanded={mention} placeholder="Sources" className="pr-10" disabled={disabled} maxLength={2048} value={query} onPaste={event => {
         const text = event.clipboardData.getData("text").trim()
         const parsed = opportunitySourceSchema.safeParse({ kind: "link", url: text })
         if (parsed.success) { event.preventDefault(); add(parsed.data) }
