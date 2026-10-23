@@ -1,5 +1,9 @@
 # Open Work Index
 
+## Next.js security upgrade — October22
+
+User-selected isolated dependency repair: `fix/next-security-upgrade-20261022` from main5d40b7db. Next/eslint16.4.2, Sharp0.35.5 and security upgrade reminders;133 focused cases and advisory recheck pass. [Canonical checkpoint](../plans/2026-10-22-next-security-upgrade.md) owns remaining build/lint/HTTP and PR evidence. Other lanes/listeners and SHIP40 preserved; app release remains user-owned.
+
 Latest completed lane: **Public prototype retirement and prelaunch follow-ups**. PR348–351 are merged and deployed; Caleb confirmed PR351 production deployment. [Authoritative completion receipt and original-list count](../plans/2026-10-22-retire-public-prototypes.md#completion-count-and-original-list-mapping). Five selected scoped tasks shipped; two full original requirements closed by this chat (O124-01, O132-01). Broader B115/B039 work remains partial; no all-chats total asserted.
 
 Current coaching continuation: **Hours and three-calendar availability**, `fix/coaching-hours-calendars-20261022` from main4ca66f42. Requested Chicago hourly starts implemented, including Saturday noon last start and Friday closed;60focused cases pass. AMJC-only conflicts verified before/after broker00014-vum promotion to100%; all three calendars now block availability. New hours still await app PR/release. [Canonical checkpoint](../plans/2026-10-21-coaching-calendar-repair.md#october22-coaching-hours-and-three-calendar-availability). PR346/347 are merged, conflict migration applied, and8invitation titles previously verified. Existing appointments, unrelated lanes and SHIP40preserved.
