@@ -807,3 +807,5 @@ Expanded-card browser checks exposed incorrect drop targeting caused by measurin
 ### User review — fixed objective input, 2026-10-23
 
 Moved the objective creation form into a nonshrinking footer outside the list's scroll container. The existing capped island height and morph measurement include both sections; only the list scrolls. Existing callers without a footer retain their scrolling content. Scoped lint/diff pass. Actual localhost3008 scroll verification: list scrollTop changed0→14.5px while input bounds remained587.695→623.695px, with no saved data changes. Previous graph refresh completed; follow-up log `/tmp/objectives-fixed-input-graph.log`. Broader sprint remains paused.
+
+User follow-up: reduced closed Objectives shell width142→122px, preserving expanded dimensions/transition. Actual browser padding now12px left/12.95px right, previously12px/32.95px. Scoped lint passes. Prior graph update completed; current refresh `/tmp/objectives-pill-spacing-graph.log` (exec67870).
