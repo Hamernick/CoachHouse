@@ -3,18 +3,15 @@ import { useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useReducedMotion } from "motion/react"
-import { Circle, CircleCheck, CircleMinus, CircleDot, MoreHorizontal } from "lucide-react"
+import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { PARTICLE_DRAG_MIME, type Particle } from "@/features/workspace-particles/client"
+import { ParticleStatusMark, ParticleStatusLabel } from "./particle-status"
 import { ObjectiveInlineTitle } from "./objective-inline-title"
 import type { PlanningControls } from "../hooks/use-particle-plans"
 import styles from "./particle-objectives.module.css"
 
-export function ParticleStatusMark({ status }: { status: Particle["status"] }) {
-  const Icon = status === "done" ? CircleCheck : status === "blocked" ? CircleMinus : status === "in_progress" ? CircleDot : Circle
-  return <Icon aria-label={status === "backlog" ? "Not started" : status === "in_progress" ? "In progress" : status === "done" ? "Complete" : "Blocked"} className={`size-4 shrink-0 ${status === "done" ? "text-emerald-600 dark:text-emerald-400" : status === "in_progress" ? "text-orange-600 dark:text-orange-400" : status === "blocked" ? "text-destructive" : "text-muted-foreground"}`} />
-}
 export function PlanParticleRow({ particle, controls, canOrganize, onRemove, onMove, onDrop, first, last }: {
   particle: Particle; controls: PlanningControls; canOrganize: boolean; first: boolean; last: boolean
   onRemove: () => void; onMove: (direction: -1 | 1) => void; onDrop: (raw: string) => void
@@ -32,7 +29,7 @@ export function PlanParticleRow({ particle, controls, canOrganize, onRemove, onM
         variant="ghost" className={`touch-manipulation select-none ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} h-auto min-h-10 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-xl px-2 text-left [@media(pointer:coarse)]:min-h-11`}
         aria-pressed={sortable.isDragging || selected}
         onClick={() => { if (controls.select(particle.id) && !particle.canvasHidden) void controls.flow.current?.fitView({ nodes: [{ id: particle.id }], maxZoom: 1, duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200 }) }}>
-        <ParticleStatusMark status={particle.status} /><span className="min-w-0 break-words">{particle.title}</span>
+        <ParticleStatusMark particle={particle} /><span className="min-w-0 flex-1 break-words">{particle.title}</span><ParticleStatusLabel particle={particle} />
       </Button>}
       {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-9 shrink-0 rounded-full [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${particle.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger>
         <DropdownMenuContent align="end">

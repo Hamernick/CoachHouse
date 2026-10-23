@@ -5,7 +5,7 @@ import { useId, useRef, useState, type ReactNode } from "react"
 import { DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type CollisionDetection } from "@dnd-kit/core"
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { Particle } from "@/features/workspace-particles/client"
-import { ParticleStatusMark } from "./plan-particle-row"
+import { ParticleStatusMark, ParticleStatusLabel } from "./particle-status"
 import styles from "./particle-objectives.module.css"
 
 export function PlanParticleList({ label, particles, disabled, onMove, children, onDragOver, onDrop }: {
@@ -53,7 +53,7 @@ export function PlanParticleList({ label, particles, disabled, onMove, children,
       <ul ref={list} className={styles.branch} aria-label={label} onDragOver={onDragOver} onDrop={onDrop}>{children}</ul>
     </SortableContext>
     {active ? createPortal(<DragOverlay dropAnimation={null}>
-      <div inert className="pointer-events-none flex min-h-11 items-center gap-2 rounded-xl bg-muted px-2 text-sm font-medium select-none"><ParticleStatusMark status={active.status} /><span className="min-w-0 break-words">{active.title}</span></div>
+      <div inert className="pointer-events-none flex min-h-11 items-center gap-2 rounded-xl bg-muted px-2 text-sm font-medium select-none"><ParticleStatusMark particle={active} /><span className="min-w-0 flex-1 break-words">{active.title}</span><ParticleStatusLabel particle={active} /></div>
     </DragOverlay>, document.body) : null}
   </DndContext>
 }
