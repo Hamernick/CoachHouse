@@ -4,7 +4,7 @@ import { correlateAiResponse, reserveAiRun, claimAiRun, settleAiRun, reconcileAi
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { stripHtml } from "@/lib/markdown/convert"
 import { aiDocumentRequestSchema, aiRunProposal } from "../lib"
-import { loadAiDocument } from "./document-context"
+import { loadAiDocument, requireAiActor } from "./document-context"
 import { workspaceAiConfig } from "./config"
 import { documentInstructions, streamDocumentDraft } from "./provider"
 import type { AiStreamPart } from "../types"
@@ -20,11 +20,18 @@ export async function handleWorkspaceAiDocument(request: Request) {
     const input = aiDocumentRequestSchema.parse(await readAiRequestBody(request))
     if (input.tariffVersion !== config.tariff.version || input.maximumCredits < config.maxCredits)
       throw new Error("The AI price changed. Review the current maximum before continuing.")
-    const actor = await loadAiDocument(input.target)
+    const selection = input.selection
+    if (selection && (!/^selection:[0-9a-f-]{36}$/i.test(input.target.sectionId) || !input.target.revision))
+      throw new Error("Reopen the text selection before requesting changes.")
+    const actor = selection ? { ...await requireAiActor(input.target),
+      section: { title: "Selected text", content: sanitizeHtml(selection.html) } } : await loadAiDocument(input.target)
+    if (selection && actor.section.content.length > 6000) throw new Error("Select a shorter passage before asking for changes.")
+    if (selection && !stripHtml(actor.section.content).trim()) throw new Error("Select some text first.")
     const revision = await loadAiRevisionContext(input.reviseRunId,input.target)
     const target = { ...input.target, title: actor.section.title, content: actor.section.content,
+      ...(selection ? {selection: {...selection, html: actor.section.content}} : {}),
       ...(revision ? {revisionSourceRunId:revision.id} : {}) }
-    const context = JSON.stringify({ document: { title: target.title, content: target.content }, request: input.prompt,
+    const context = JSON.stringify({ [selection ? "selectedText" : "document"]: { title: target.title, content: target.content }, request: input.prompt,
       ...(revision ? {draftToRevise:revision.content} : {}) })
     if (Buffer.byteLength(context + documentInstructions) + 1024 > config.maxInputBytes) throw new Error("This request exceeds the current context limit.")
     const hash = createHash("sha256").update(JSON.stringify({ target, prompt: input.prompt, tariff: config.tariff,revision })).digest("hex")
@@ -50,6 +57,7 @@ export async function handleWorkspaceAiDocument(request: Request) {
         try {
           const result = await streamDocumentDraft({ requestId: input.id, model: config.tariff.model, context,
             maxOutputTokens: config.maxOutputTokens, signal,
+            selectionOnly: Boolean(selection),
             onText: text => send({ type: "text", text }), onResponse: async id => { responseId=id; await correlateAiResponse(input.id,id) },
           })
           if (!result.usage) throw new Error("The provider has not confirmed usage.")

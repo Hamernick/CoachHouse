@@ -22,3 +22,5 @@ export const readFixture = () => request("state")
 export const usePathname = () => "/workspace"
 export const validateOrgMediaFile = () => "Uploads are unavailable in this fixture."
 export const uploadOrgMedia = async () => { throw new Error("Uploads are unavailable in this fixture.") }
+
+export const quoteSelectionAssistance = () => request("quote-selection")

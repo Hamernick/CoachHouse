@@ -40,6 +40,10 @@ export function fixtureServer(): Plugin {
           json({ ok: true }); return
         }
         if (path === "/__fixture/state") { json({ section, secondSection, saves, generations, runs: [...runs.values()] }); return }
+        if (path === "/__fixture/quote-selection") {
+          json({ maximumCredits: 25, tariffVersion: "fixture-only", scope, account: { enabled: true,
+            lots: [{ kind: "included", credits: 500, spent: generations * 5, reserved: 0, expiresAt: null }], history: [] } }); return
+        }
         if (path === "/__fixture/quote") {
           if (!sameScope(body)) { json({ error: "Unavailable organization" }, 403); return }
           const chosen=getSection(body.sectionId)
@@ -55,20 +59,20 @@ export function fixtureServer(): Plugin {
         }
         if (path === "/api/workspace/ai/document") {
           const request = body as AiDocumentRequest
-          const chosen=getSection(request.target.sectionId)
+          const chosen=request.selection ? { content: request.selection.html, lastUpdated: request.target.revision } : getSection(request.target.sectionId)
           if (!sameScope(request.target) || !chosen || request.target.revision !== chosen.lastUpdated) {
             json({ error: "Document changed before generation.", reserved: false }, 409); return
           }
           generations++
           const run: AiDocumentProposal = { id: request.id, target: request.target, original: chosen.content,
-            content: "", status: "running", credits: null, maxCredits: 25, revisionSourceRunId: request.reviseRunId }
+            content: "", status: "running", credits: null, maxCredits: 25, revisionSourceRunId: request.reviseRunId, selection: request.selection }
           runs.set(run.id, run)
           res.setHeader("Content-Type", "application/x-ndjson")
           res.write(JSON.stringify({ type: "start", id: run.id }) + "\n")
           await sleep(control.delayGeneration)
           if (run.status !== "canceled") {
             run.status = control.failGeneration ? "failed" : "succeeded"
-            run.content = control.failGeneration ? "" : request.reviseRunId
+            run.content = control.failGeneration ? "" : request.selection ? "<strong>community</strong>" : request.reviseRunId
               ? "<p>We help neighbors grow thriving community gardens together.</p>"
               : "<p>We equip neighbors to create welcoming community gardens.</p>"
             run.credits = control.failGeneration ? 0 : 5

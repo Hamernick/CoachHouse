@@ -1,9 +1,11 @@
+export type AiTextSelection = { from: number; to: number; html: string }
 export type AiDocumentTarget = { organizationId: string; userId: string; sectionId: string; title: string; revision: string | null }
 export type AiDocumentApplication = { run_id:string; section_id:string; saved_revision:string; content_hash:string; saved_at:string }
-export type AiDocumentRequest = { id: string; target: AiDocumentTarget; prompt: string; maximumCredits: number; tariffVersion: string; reviseRunId?:string }
+export type AiDocumentRequest = { id: string; target: AiDocumentTarget; prompt: string; maximumCredits: number; tariffVersion: string; reviseRunId?:string; selection?: AiTextSelection }
 export type AiDocumentProposal = {
   id: string; target: AiDocumentTarget; original: string; content: string;
   status: string; credits: number | null; maxCredits: number
+  selection?: AiTextSelection
   application?: AiDocumentApplication | null
   revisionSourceRunId?: string
 }

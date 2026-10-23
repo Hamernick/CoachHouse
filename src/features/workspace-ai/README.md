@@ -1,6 +1,6 @@
 # Workspace AI
 
-Explicit composer assistance for a selected, saved core document. Generated HTML is sanitized, retained as a private proposal, reviewed, then transferred to the existing editor and its revision-checked save path. The feature does not publish documents or write graph state.
+Composer assistance for saved core documents and selection assistance in the shared Tiptap editor. Generated HTML is sanitized, retained as a private proposal, reviewed, then transferred to the existing editor and its revision-checked save path. The feature does not publish documents or write graph state.
 
 - Public browser API: `client.ts` and authenticated `actions.ts`.
 - Route adapter: `index.ts` / `routes.ts`; route files remain composition-only.
@@ -28,3 +28,11 @@ remain provisional pending real-provider evaluation. `store: false` is a request
 setting, not proof of account-wide retention policy.
 
 Authoritative continuation: `docs/plans/2026-10-22-workspace-ai-plan.md`, section12. This implementation is not release-ready.
+
+## Selected text
+
+The shared editor exposes a floating formatting menu and, when the public AI flag is enabled, Ask for changes. It sends only the explicitly selected passage through the existing document endpoint and credit reservation/settlement/recovery owner. Selection requests authorize the active organization and document-storage access; they do not fetch canonical document content. This also supports unsaved local note/profile drafts. Server HTML sanitization and request/context limits remain enforced.
+
+Review uses a compact anchored popover. Apply reauthorizes the private run and replaces the captured range with one native Tiptap transaction only while the editor is editable and its document still equals the captured snapshot. Existing note/profile/file save and collaboration owners receive that transaction. No new save endpoint, publication action or persisted-document replacement is added. The menu hides with inactive retained windows; read-only editors expose no mutation menu. Alt+Enter opens the request from a text selection.
+
+Interrupted runs can be checked/canceled in the open review. Reloading destroys the ephemeral editor/range; this implementation does not automatically restore or reattach selection suggestions after reload. The billed run remains in the durable ledger. Durable user-facing selection recovery and real provider/runtime acceptance remain release work; do not claim this closes the full workspace AI goal. The separate platform-admin upstream editor is outside this shared workspace editor integration.

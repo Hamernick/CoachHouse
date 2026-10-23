@@ -20,7 +20,7 @@ export default defineConfig({
   ] },
   plugins: [
     { name: "fixture-server-action-boundary", enforce: "pre", resolveId(source, importer) {
-      if (source === "../actions" && importer?.includes("workspace-ai/components/")) return actions
+      if (source === "../actions" && (importer?.includes("workspace-ai/components/") || importer?.includes("workspace-ai/hooks/"))) return actions
       return null
     } },
     fixtureServer(),

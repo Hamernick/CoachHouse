@@ -40,3 +40,14 @@ export async function listAiDocuments(scope: Pick<AiDocumentTarget, "userId" | "
     .filter(section => !section.driveSource && !["budget", "calendar"].includes(section.id) && section.content.trim())
     .map(section => ({ sectionId: section.id, title: section.title, revision: section.lastUpdated }))
 }
+
+// Explicitly supplied selection text is not a request to read a stored document.
+// Its canonical save continues through the owning editor's authorization path.
+export async function resolveAiSelectionActor() {
+  const client = await createSupabaseServerClient()
+  const { data: { user }, error } = await client.auth.getUser()
+  if (error || !user) throw new Error("Sign in before using AI assistance.")
+  const active = await resolveActiveOrganization(client, user.id)
+  if (!active.orgId) throw new Error("Select an organization before using AI assistance.")
+  return requireAiActor({ userId: user.id, organizationId: active.orgId })
+}

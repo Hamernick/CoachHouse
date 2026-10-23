@@ -3,8 +3,8 @@ import { readWorkspaceAiProposal,cancelWorkspaceAi } from "@/features/workspace-
 import { availableAiDocumentEditors,createAiDocumentRegistry,selectedAiDocumentEditor } from "@/features/workspace-ai/lib/document-registry"
 import { handleWorkspaceAiDocument } from "@/features/workspace-ai/server/stream-handler"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn(),cancel:vi.fn() }))
-vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.actor,requireAiActor:mocks.actor }))
+const mocks = vi.hoisted(() => ({ actor: vi.fn(), document: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn(),cancel:vi.fn() }))
+vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.document,requireAiActor:mocks.actor }))
 vi.mock("@/features/workspace-ai/server/config",() => ({ workspaceAiConfig: () => ({ tariff: {version:"test",model:"fixture"},maxInputBytes:70000,maxOutputTokens:6000,maxCredits:100,maxCost:200000 }) }))
 vi.mock("@/features/workspace-ai/server/provider",() => ({ documentInstructions:"Untrusted document context",streamDocumentDraft:mocks.provider }))
 vi.mock("@/features/ai-credits",() => ({ cancelAiRun:mocks.cancel,correlateAiResponse:mocks.correlate,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
@@ -14,6 +14,7 @@ const run={ id:id(3),actor_id:id(2),org_id:id(1),target:{...target,content:"<p>O
 function request(patch = {}) { return new Request("http://localhost:3008/api/workspace/ai/document",{method:"POST",headers:{origin:"http://localhost:3008"},body:JSON.stringify({ id:id(3),target,prompt:"Improve clarity",maximumCredits:100,tariffVersion:"test",...patch })}) }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.document.mockImplementation((...args) => mocks.actor(...args))
   mocks.actor.mockResolvedValue({ userId:id(2),organizationId:id(1),section:{ title:target.title,content:"<p>Original</p>" } })
   mocks.reserve.mockResolvedValue({created:true,run});mocks.claim.mockResolvedValue(true)
   mocks.settle.mockResolvedValue(run);mocks.read.mockResolvedValue(run);mocks.reconcile.mockResolvedValue(undefined)
@@ -131,5 +132,37 @@ describe("explicit document context",()=>{
     await expect(readWorkspaceAiProposal(run.id,{...target,revision:"new saved revision"})).resolves.toMatchObject({id:run.id})
     await cancelWorkspaceAi(run.id,target)
     expect(mocks.cancel).toHaveBeenCalledWith(run.id,target.organizationId,target.userId)
+  })
+})
+
+
+describe("Selected-text AI requests", () => {
+  const selectedTarget = { ...target, sectionId: `selection:${id(5)}`, revision: id(5) }
+  const selection = { from: 12, to: 24, html: "neighborhood" }
+  it("meters only explicitly supplied text without loading the canonical document", async () => {
+    await (await handleWorkspaceAiDocument(request({ target: selectedTarget, selection }))).text()
+    const input = mocks.provider.mock.calls[0][0]
+    expect(input.selectionOnly).toBe(true)
+    expect(mocks.document).not.toHaveBeenCalled()
+    expect(JSON.parse(input.context)).toEqual({ selectedText: { title: "Selected text", content: "neighborhood" }, request: "Improve clarity" })
+    expect(mocks.reserve).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ selection, content: "neighborhood" }) }))
+  })
+  it("rejects missing namespaces, empty ranges and oversized selections before charging", async () => {
+    for (const patch of [
+      { target, selection },
+      { target: selectedTarget, selection: { ...selection, to: 12 } },
+      { target: selectedTarget, selection: { ...selection, html: "x".repeat(6001) } },
+      { target: selectedTarget, selection: { ...selection, html: "&".repeat(1500) } },
+      { target: selectedTarget, selection: { ...selection, html: "<script>secret()</script>" } },
+    ]) expect((await handleWorkspaceAiDocument(request(patch))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled()
+    expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("preserves actor authorization and stored selection scope on recovery", async () => {
+    mocks.actor.mockRejectedValueOnce(new Error("Forbidden"))
+    expect((await handleWorkspaceAiDocument(request({ target: selectedTarget, selection }))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled()
+    mocks.read.mockResolvedValueOnce({ ...run, target: { ...selectedTarget, content: "neighborhood", selection } })
+    expect(await readWorkspaceAiProposal(id(3), selectedTarget)).toMatchObject({ selection, original: "neighborhood" })
   })
 })

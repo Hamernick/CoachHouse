@@ -4,6 +4,9 @@ import { EditorContent, useEditor } from "@tiptap/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
+import { useWorkspaceWindowHeaderActive } from "@/components/workspace/workspace-window-header-slots"
+import { SelectionAssistanceMenu } from "@/features/workspace-ai/client"
+
 import { cn } from "@/lib/utils"
 import { LinkPreviewCard } from "@/components/rich-text-editor/components/link-preview-card"
 import { RichTextToolbar } from "@/components/rich-text-editor/components/rich-text-toolbar"
@@ -46,6 +49,7 @@ export function RichTextEditor({
   contentClassName,
   session,
 }: RichTextEditorProps) {
+  const contextActive = useWorkspaceWindowHeaderActive()
   const applyingRef = useRef(false)
   const sessionRef = useRef(session)
   sessionRef.current = session
@@ -341,6 +345,7 @@ export function RichTextEditor({
           </div>
           <div className={cn("flex min-h-0 flex-1 flex-col", contentClassName)}>
             <EditorContent editor={editor} />
+            {!isReadOnly && <SelectionAssistanceMenu key={editor.instanceId} editor={editor} label={ariaLabel} active={contextActive && (session?.active ?? true)} />}
           </div>
           {!hideLinkPreviews && links.length > 0 ? (
             <div className="bg-muted/20 flex flex-wrap items-center gap-2 rounded-b-md border-t px-3 py-2">
