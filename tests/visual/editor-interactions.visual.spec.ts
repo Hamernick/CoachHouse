@@ -47,10 +47,16 @@ for (const width of [1440, 390]) {
   for (const title of ["Mission", "Vision"]) {
     test(`${title} supports wheel and keyboard scrolling without losing controls (${width})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
+      await page.route("**/api/account/document-capabilities?organizationId=sample", (route) =>
+        route.fulfill({
+          json: { capabilities: { canView: true, canViewHistory: true, canEdit: true, reason: "editable" } },
+        }),
+      )
       await page.goto(fixture)
       await page.getByRole("button", { name: `Open ${title}`, exact: true }).click()
       const dialog = page.getByRole("dialog", { name: title, exact: true })
       const editor = dialog.locator(".ProseMirror")
+      await expect(editor).toHaveAttribute("contenteditable", "true")
       await expect(editor).toContainText(`${title} paragraph 70`)
       const original = await editor.innerHTML()
       const scroller = dialog.locator(".overflow-y-auto").first()
@@ -65,6 +71,7 @@ for (const width of [1440, 390]) {
       await expect(save).toBeInViewport()
       await expect(save).toBeDisabled()
       await editor.focus()
+      await expect(editor).toBeFocused()
       await page.keyboard.press(process.platform === "darwin" ? "Meta+ArrowDown" : "Control+End")
       await expect(editor.locator("p").last()).toBeInViewport()
       await page.keyboard.insertText(" Temporary review edit.")

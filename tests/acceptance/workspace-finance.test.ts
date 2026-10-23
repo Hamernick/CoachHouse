@@ -134,6 +134,13 @@ describe("workspace-finance feature contract", () => {
   it("loads the authenticated organization Finance model on the server", () => {
     const loaderSource = readFileSync(WORKSPACE_INPUT_SOURCE, "utf8")
     const pageSource = readFileSync(WORKSPACE_PAGE_SOURCE, "utf8")
+    const viewSource = readFileSync(
+      join(
+        ROOT,
+        "src/app/(dashboard)/my-organization/_components/workspace-board/my-organization-workspace-view.tsx"
+      ),
+      "utf8"
+    )
 
     expect(loaderSource).toContain(
       "buildWorkspaceFinanceProgramInputs(programs)"
@@ -148,8 +155,15 @@ describe("workspace-finance feature contract", () => {
       "loadOrganizationFinanceOpportunities({ orgId, supabase })"
     )
     expect(loaderSource).not.toContain("service_role")
+    expect(pageSource).toContain("resolveOptionalAuthenticatedAppContext()")
+    expect(pageSource).toContain("const { orgId, role } = activeOrg")
     expect(pageSource).toContain("loadOrganizationWorkspaceFinanceInput({")
-    expect(pageSource).toContain("financeInput={financeInput}")
+    expect(pageSource).toMatch(
+      /<MyOrganizationWorkspaceView\b[^>]*financeInput=\{financeInput!?\}/
+    )
+    expect(viewSource).toMatch(
+      /<WorkspaceBoardCanvas\b[^>]*financeInput=\{financeInput\}/
+    )
   })
 
   it("defaults to Activity and preserves an explicit History view", () => {

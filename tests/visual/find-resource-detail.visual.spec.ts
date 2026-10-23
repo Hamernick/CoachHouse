@@ -61,6 +61,8 @@ for (const width of [1280, 390]) {
     ).toHaveCount(0)
     await detail.getByRole("button", { name: "Back to search" }).click()
     await expect(search).toHaveValue("housing")
+    await expect(detail).toHaveCount(0)
+    await expect(result).toBeVisible()
     await result.click()
     await expect(
       detail.getByRole("heading", { name: shelter.title, exact: true })

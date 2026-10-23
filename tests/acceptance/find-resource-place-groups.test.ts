@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { groupResourcePlaces, mergeResourcePlace } from "@/features/find-resource-index/lib/resource-place-groups"
 import { serializeFindResourceIndexItem } from "@/features/find-resource-index"
 import { buildFindResourceCatalog, parseFindResourceCatalogQuery, queryFindResourceCatalog } from "@/features/find-resource-index/lib/catalog-query"
+import { resolveResourceAvailability } from "@/lib/public-map/resource-availability"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 
 const library: ExternalResourceMapItem = {
@@ -71,10 +72,30 @@ describe("audited provider name aliases", () => {
     expect(groupResourcePlaces([a, { ...b, latitude: 42 }])).toHaveLength(2)
   })
   it("consolidates Evening Star aliases while preserving different service hours", () => {
-    const a = { ...library, id: "resource_map:758a9108-48e4-4031-81d8-f695f7700097", title: "Operation Blessing Evening Star", services: [{id:"sat",title:"Pantry",hoursLabel:"Saturday 9–11"}] }
-    const b = { ...a, id: "resource_map:7c60815a-b24f-41d7-8d4d-410ee500cef6", title: "Evening Star MBC", services: [{id:"thu",title:"Pantry",hoursLabel:"Thursday 12–2"}] }
+    const a: ExternalResourceMapItem = {
+      ...library,
+      id: "resource_map:758a9108-48e4-4031-81d8-f695f7700097",
+      title: "Operation Blessing Evening Star",
+      services: [{
+        id: "sat",
+        title: "Pantry",
+        description: null,
+        availability: resolveResourceAvailability({ hours: "Saturday 9–11" }),
+      }],
+    }
+    const b: ExternalResourceMapItem = {
+      ...a,
+      id: "resource_map:7c60815a-b24f-41d7-8d4d-410ee500cef6",
+      title: "Evening Star MBC",
+      services: [{
+        id: "thu",
+        title: "Pantry",
+        description: null,
+        availability: resolveResourceAvailability({ hours: "Thursday 12–2" }),
+      }],
+    }
     const groups = groupResourcePlaces([a, b])
     expect(groups).toHaveLength(1)
-    expect(mergeResourcePlace(groups[0]).services?.map(s=>s.hoursLabel)).toEqual(["Saturday 9–11", "Thursday 12–2"])
+    expect(mergeResourcePlace(groups[0]).services?.map((service) => service.availability?.label)).toEqual(["Saturday 9–11", "Thursday 12–2"])
   })
 })

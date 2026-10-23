@@ -9,6 +9,7 @@ const SRC_ROOT = path.join(ROOT, "src")
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"])
 const ALIAS_PREFIX = "@/"
 const FEATURE_ALIAS_PREFIX = "@/features/"
+const publicServerEntrypoints = new Map()
 
 const UI_ALIAS_ALLOWLIST = ["@/components/ui", "@/lib/", "@/hooks/use-mobile"]
 
@@ -120,6 +121,24 @@ function parseFeatureAlias(specifier) {
   }
 }
 
+async function hasPublicServerEntrypoint(featureName) {
+  if (!publicServerEntrypoints.has(featureName)) {
+    publicServerEntrypoints.set(featureName, (async () => {
+      const entryPath = path.join(SRC_ROOT, "features", featureName, "server.ts")
+      const sourceText = await fs.readFile(entryPath, "utf8").catch(() => null)
+      if (sourceText === null) return false
+      const sourceFile = ts.createSourceFile(entryPath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+      return sourceFile.statements.some((statement) =>
+        ts.isImportDeclaration(statement) &&
+        !statement.importClause &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        statement.moduleSpecifier.text === "server-only",
+      )
+    })())
+  }
+  return publicServerEntrypoints.get(featureName)
+}
+
 function applyBoundaryRules({ sourceFilePath, specifier }) {
   const errors = []
 
@@ -174,10 +193,10 @@ function applyBoundaryRules({ sourceFilePath, specifier }) {
     const isPublicEntrypoint =
       featureAlias.rest.length === 0 ||
       (featureAlias.rest.length === 1 &&
-        ["client", "index"].includes(featureAlias.rest[0]))
+        ["client", "index", "server"].includes(featureAlias.rest[0]))
     if (!isPublicEntrypoint) {
       errors.push(
-        `${sourceFilePath}: imports from features must use a public entrypoint ('@/features/${featureAlias.featureName}' or its client entrypoint). Found '${specifier}'.`
+        `${sourceFilePath}: imports from features must use a public entrypoint ('@/features/${featureAlias.featureName}' or its client/server entrypoint). Found '${specifier}'.`
       )
     }
   }
@@ -217,6 +236,14 @@ async function run() {
       errors.push(
         ...applyBoundaryRules({ sourceFilePath: repoRelative, specifier })
       )
+      const featureAlias = parseFeatureAlias(specifier)
+      if (
+        featureAlias?.rest.length === 1 &&
+        featureAlias.rest[0] === "server" &&
+        !(await hasPublicServerEntrypoint(featureAlias.featureName))
+      ) {
+        errors.push(`${repoRelative}: /server imports require a root server.ts with a side-effect 'server-only' import (found '${specifier}')`)
+      }
     }
   }
 

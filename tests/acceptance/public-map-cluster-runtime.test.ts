@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type mapboxgl from "mapbox-gl"
+import type { PublicMapFeatureCollection } from "@/lib/public-map/public-map-geojson"
 
 import {
   bindPublicMapPointerCursor,
@@ -437,7 +438,7 @@ describe("syncClusterSourceAndLayers", () => {
     sources: {},
     version: 8,
   }
-  const nonEmptyFeatureCollection = {
+  const nonEmptyFeatureCollection: PublicMapFeatureCollection = {
     type: "FeatureCollection",
     features: [
       {
@@ -447,19 +448,26 @@ describe("syncClusterSourceAndLayers", () => {
           coordinates: [-87.6298, 41.8781],
         },
         properties: {
+          itemId: "platform_organization:org-1",
+          itemType: "platform_organization",
           organizationId: "org-1",
           organizationIds: "org-1",
+          designation: "Community",
           name: "Org 1",
-          primaryGroup: "Dance",
+          primaryGroup: "community",
+          primaryResourceCategory: "community",
+          markerAccentColor: "#2f9f8f",
           markerImageKey: "public-map-marker-org-1",
           markerImageUrl: null,
+          markerStyleKey: "standard",
+          verificationStatus: "verified_platform",
           sameLocationKey: "org-1",
           sameLocationCount: 1,
           sameLocationLabel: null,
         },
       },
     ],
-  } as const
+  }
 
   it("returns cleanly when source access throws during style teardown", () => {
     const map = {
@@ -973,7 +981,7 @@ describe("syncClusterSourceAndLayers", () => {
 
   it("does not create the old demo circle cluster or point-shadow layers", () => {
     const layers = new Set<string>()
-    const addLayer = vi.fn((layer: { id: string }) => {
+    const addLayer = vi.fn((layer: mapboxgl.LayerSpecification) => {
       layers.add(layer.id)
     })
     const map = {

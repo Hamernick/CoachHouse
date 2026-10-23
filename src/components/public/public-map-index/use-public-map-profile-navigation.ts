@@ -52,14 +52,15 @@ export function usePublicMapNavigation(options: Options) {
   const selection = usePublicMapListItemSelection({ ...options, navigateToProfile, setSameLocationSelection: options.onSameLocationSelectionChange })
   const resetSelection = navigation.handleBackToSearch
   const handleBackToSearch = useCallback(() => {
-    if (embedded && !window.history.state?.homeProfileNavigation) {
+    if (embedded && window.location.pathname !== FIND_PATH && !window.history.state?.homeProfileNavigation) {
       // A directly loaded profile owns a framed server layout. Navigate to the
       // resources route so its unframed layout replaces that shell as well.
       router.replace(`${FIND_PATH}${window.location.search}`)
       return
     }
     resetSelection()
-    if (!embedded) return
+    // Unpublished or synthetic directory items open locally without a profile URL.
+    if (!embedded || window.location.pathname === FIND_PATH) return
     window.history.back()
   }, [embedded, resetSelection, router])
   return { ...navigation, ...selection, handleBackToSearch }

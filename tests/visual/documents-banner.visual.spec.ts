@@ -41,11 +41,11 @@ for (const colorScheme of ["light", "dark"] as const) {
   }
 }
 
-test("empty Core Document offers writing before showing the editor", async ({ page }) => {
+test("empty Core Document opens directly in the editor with Drive available", async ({ page }) => {
   await openBanner(page, "light")
   await page.getByRole("button", { name: "Show editor", exact: true }).click()
   await expect(page.getByRole("button", { name: "Choose from Google Drive", exact: true })).toBeVisible()
-  await page.getByRole("button", { name: "Start writing", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Start writing", exact: true })).toHaveCount(0)
   await expect(page.locator('[contenteditable="true"]')).toBeVisible()
   await expect(page.getByRole("button", { name: "Paste options", exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Choose from Google Drive", exact: true })).toBeVisible()
