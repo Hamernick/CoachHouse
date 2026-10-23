@@ -19,7 +19,7 @@ export async function createWorkspaceOpportunity(input: {
   id: string; organizationId: string; title: string; source: string; deadline: string
 }): Promise<{ opportunity: WorkspaceFinanceOpportunityInput } | { error: string }> {
   const parsed = inputSchema.safeParse(input)
-  if (!parsed.success) return { error: "Check the title, source, and deadline." }
+  if (!parsed.success) return { error: "Check the title, source, and timeline date." }
   let context: Awaited<ReturnType<typeof resolveAuthenticatedAppContext>>
   try { context = await resolveAuthenticatedAppContext() }
   catch { return { error: "Sign in to add an opportunity." } }

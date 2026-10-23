@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createWorkspaceOpportunity } from "@/actions/workspace-opportunities"
+import styles from "@/components/organization/org-profile-card/profile-edit-fields.module.css"
 import type { WorkspaceFinanceOpportunityInput } from "../types"
+import { WorkspaceOpportunityTimeline } from "./workspace-opportunity-timeline"
 
 export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel }: {
   organizationId: string; onCreated: (item: WorkspaceFinanceOpportunityInput) => void; onCancel: () => void
@@ -32,12 +34,14 @@ export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel }
     } catch { setError("Unable to add this opportunity. Your entries are still here.") }
     finally { setPending(false) }
   }
-  return <form aria-label="Add opportunity" onSubmit={submit} className="space-y-3 rounded-2xl border border-border/60 bg-background p-3" aria-busy={pending}>
-    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-medium">Add opportunity</h3><Button type="button" size="icon" variant="ghost" className="size-8 rounded-full" aria-label="Cancel adding opportunity" disabled={pending} onClick={onCancel}><X className="size-4" aria-hidden="true" /></Button></div>
+  return <form aria-label="Add opportunity" onSubmit={submit} className="space-y-3" aria-busy={pending}>
+    <div className="flex items-center justify-between gap-2 pl-3"><h3 className="text-sm font-medium">Add opportunity</h3><Button type="button" size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label="Cancel adding opportunity" disabled={pending} onClick={onCancel}><X className="size-4" aria-hidden="true" /></Button></div>
     <fieldset disabled={pending} className="space-y-3">
-      <div className="space-y-1.5"><Label htmlFor={`${prefix}-title`}>Title</Label><Input autoFocus id={`${prefix}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} placeholder="What’s the opportunity?" className="shadow-none" /></div>
-      <div className="space-y-1.5"><Label htmlFor={`${prefix}-source`}>Source <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id={`${prefix}-source`} value={source} onChange={event => setSource(event.target.value)} maxLength={120} placeholder="Organization or provider" className="shadow-none" /></div>
-      <div className="space-y-1.5"><Label htmlFor={`${prefix}-deadline`}>Deadline <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id={`${prefix}-deadline`} type="date" value={deadline} onChange={event => setDeadline(event.target.value)} className="shadow-none" /></div>
+      <div className={styles.group}>
+        <div className={`${styles.row} ${styles.stacked} !py-2`}><Label className="sr-only" htmlFor={`${prefix}-title`}>Title</Label><Input autoFocus id={`${prefix}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} placeholder="Opportunity title" /></div>
+        <div className={`${styles.row} ${styles.stacked} !py-2`}><Label className="sr-only" htmlFor={`${prefix}-source`}>Source (optional)</Label><Input id={`${prefix}-source`} value={source} onChange={event => setSource(event.target.value)} maxLength={120} placeholder="Organization or provider (optional)" /></div>
+        <WorkspaceOpportunityTimeline value={deadline} onChange={setDeadline} disabled={pending} />
+      </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full rounded-full" disabled={!title.trim()}>{pending ? "Adding…" : "Add opportunity"}</Button>
     </fieldset>
