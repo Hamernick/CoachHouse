@@ -2,12 +2,12 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, Pencil, Plus, Workflow } from "lucide-react"
+import { ChevronDown, Pencil, Plus } from "lucide-react"
 import type { ObjectiveStep } from "../island-types"
 import { planProgress } from "../lib/plan-progress"
 import { PlanDecisionChoice } from "./plan-decision-choice"
 import type { ObjectivePlan } from "../plan-types"
-export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onToggle, onEdit, onCreate, onStep, onChoice, onRevise, allPlans = plans }: {
+export function ObjectivePlanList({ plans, steps, canEdit, pending, onEdit, onCreate, onStep, onChoice, onRevise, allPlans = plans }: {
   onRevise?: (plan: ObjectivePlan) => void; allPlans?: ObjectivePlan[]; onChoice: (plan: ObjectivePlan, stepId: string, edgeId: string | null) => void; plans: ObjectivePlan[]; steps: ObjectiveStep[]; canEdit: boolean; pending: boolean; visible: string[]
   onToggle: (id: string) => void; onEdit: (plan: ObjectivePlan) => void; onCreate: () => void; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
@@ -18,7 +18,6 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onT
       const done = progress.completed.length
       return <Collapsible key={plan.id} className="min-w-0">
         <div className="flex min-w-0 items-center gap-1"><CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-9 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left"><span>{plan.title} <span className="text-xs tabular-nums text-muted-foreground">{done}/{progress.active.length}{progress.waiting > 0 ? " · Awaiting a decision" : ""}</span></span><ChevronDown aria-hidden /></Button></CollapsibleTrigger>
-          <Button variant="ghost" size="icon" className="size-9 rounded-full aria-pressed:bg-accent" aria-label={`Show ${plan.title} tree`} aria-pressed={visible.includes(plan.id)} onClick={() => onToggle(plan.id)}><Workflow aria-hidden /></Button>
           {canEdit && <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={`Edit ${plan.title} plan`} disabled={pending} onClick={() => onEdit(plan)}><Pencil aria-hidden /></Button>}
         </div>
         <CollapsibleContent><ul aria-label={`${plan.title} plan steps`} className="flex flex-col gap-1 pt-1">{members.map(step => {
