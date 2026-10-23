@@ -266,6 +266,64 @@ function buildProgramTitle(programName, agencyName) {
     : `${agencyName} - ${programName}`
 }
 
+/**
+ * @typedef {{
+ *   days?: Array<{
+ *     opens?: string | null,
+ *     closes?: string | null,
+ *     dayOfWeek?: string | null
+ *   }>
+ * }} MetroChicagoHours
+ */
+
+/**
+ * @param {object} options
+ * @param {string | null} [options.cityName]
+ * @param {string} options.fetchedAt
+ * @param {{
+ *   id: number | string,
+ *   name: string,
+ *   agency_status?: string | null,
+ *   application_process?: string | null,
+ *   categories?: Array<{ id?: number | string | null, name?: string | null }>,
+ *   contact_email_address?: string | null,
+ *   contact_phone?: string | null,
+ *   coverage_area?: string | null,
+ *   coverage_areas?: string | null,
+ *   description?: string | null,
+ *   documents_required?: string | null,
+ *   eligibility?: string | null,
+ *   hours?: string | MetroChicagoHours | null,
+ *   languages?: string | null,
+ *   modified_at?: string | null,
+ *   physical_location?: string | null,
+ *   program_fee?: string | null,
+ *   updated_at?: string | null,
+ *   website?: string | null,
+ *   agency: {
+ *     name: string,
+ *     email?: string | null,
+ *     hours?: string | MetroChicagoHours | null,
+ *     phone?: string | null,
+ *     physical_location?: string | null,
+ *     website?: string | null
+ *   },
+ *   site?: {
+ *     city_id?: number | string | null,
+ *     contact_email?: string | null,
+ *     contact_phone?: string | null,
+ *     disability_access?: string | null,
+ *     hours?: string | MetroChicagoHours | null,
+ *     lat?: number | string | null,
+ *     lng?: number | string | null,
+ *     name?: string | null,
+ *     physical_address?: string | null,
+ *     zip?: { name?: string | null } | null
+ *   } | null
+ * }} options.program
+ * @param {string} options.rawApiUrl
+ * @param {number} options.requestedCategoryId
+ */
 export function buildMetroChicagoShelterRecord({
   cityName = null,
   fetchedAt,

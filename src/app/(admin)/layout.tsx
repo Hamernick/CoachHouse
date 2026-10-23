@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 
 import { AppShell } from "@/components/app-shell"
 import { readAppSidebarDefaultOpen } from "@/components/app-shell/sidebar-state-server"
-import { MemberWorkspaceSidebarHeader } from "@/features/member-workspace"
+import { MemberWorkspaceSidebarHeader } from "@/features/member-workspace/server"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 
 export default async function AdminLayout({

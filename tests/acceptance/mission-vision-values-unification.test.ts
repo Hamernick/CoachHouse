@@ -371,6 +371,7 @@ describe("Mission, Vision, and Values integration guardrails", () => {
     expect(result).toEqual({ ok: true })
     expect(filters).toContainEqual(["user_id", "defy-org-id"])
     expect(filters).not.toContainEqual(["user_id", "invited-user-id"])
+    if (!writtenProfile) throw new Error("Expected the organization profile update to be written")
     expect(writtenProfile.vision).toBe("Legacy backup")
     expect(resolveOrganizationNarratives(writtenProfile).vision).toBe(
       "<p>A thriving future.</p>"

@@ -45,7 +45,7 @@ describe("workspace support search and scope", () => {
     expect(mergeSupportSearchResults([organization], [], "calebs organization")).toEqual([organization])
   })
   it("retains membership permissions while enriching a duplicate remote result", () => {
-    const member = { orgId: "one", name: "One", role: "board", contactEmail: null }
+    const member: { orgId: string; name: string; role: string; contactEmail: string | null } = { orgId: "one", name: "One", role: "board", contactEmail: null }
     const remote = { ...member, role: "admin", contactEmail: "person@example.org" }
     expect(mergeSupportSearchResults([member], [remote], "One")).toEqual([{ ...member, contactName: undefined, contactEmail: "person@example.org" }])
   })

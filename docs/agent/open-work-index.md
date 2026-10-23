@@ -1,5 +1,8 @@
 # Open Work Index
 
+## Next.js security upgrade — October22
+
+Open [PR354](https://github.com/Hamernick/CoachHouse/pull/354), `fix/next-security-upgrade-20261022` from main5d40b7db: Next/eslint16.4.2 and Sharp0.35.5. Implementation2944a179 hosted build/types/performance, static, RLS and4271acceptance cases pass; admin937.6KB below unchanged1000KB budget. Marketplace typing/Find Back fixed; three canonical Ubuntu Drive references reviewed/retained. [Canonical checkpoint](../plans/2026-10-22-next-security-upgrade.md) owns final quality/release status, source/verification/recovery. Other lanes/listeners and SHIP40 preserved; review/merge/deployment remain separate gates.
 Current launch verification: **Five launch basics and analytics URL privacy**, `fix/launch-checklist-five-20261023`, original02 stage5. Privacy, Terms, favicon and robots sitemap reference verified locally; both installed analytics providers mount and use the corrected private-URL filter.80 focused tests and HTTP/hydrated-provider checks pass. [Canonical checkpoint](../plans/2026-10-23-launch-checklist-five.md). Open [PR355](https://github.com/Hamernick/CoachHouse/pull/355) awaits hosted review/release;56 test-type errors are owned by another chat. Existing legal content and SHIP40 preserved.
 
 Latest completed lane: **Public prototype retirement and prelaunch follow-ups**. PR348–351 are merged and deployed; Caleb confirmed PR351 production deployment. [Authoritative completion receipt and original-list count](../plans/2026-10-22-retire-public-prototypes.md#completion-count-and-original-list-mapping). Five selected scoped tasks shipped; two full original requirements closed by this chat (O124-01, O132-01). Broader B115/B039 work remains partial; no all-chats total asserted.

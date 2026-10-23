@@ -94,7 +94,7 @@ describe("211 Metro Chicago shelter ingestion", () => {
       },
     })
     expect(record.extractedFields.description).not.toContain("<p>")
-    expect(record.extractedFields.hours.weekly.monday).toEqual([
+    expect(record.extractedFields.hours).toHaveProperty("weekly.monday", [
       { closesAt: "8:00am", opensAt: "7:00pm" },
     ])
     expect(record.extractedFields.links[0].url).not.toContain(

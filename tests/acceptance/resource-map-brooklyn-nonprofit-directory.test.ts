@@ -73,7 +73,11 @@ describe("Brooklyn and NYC nonprofit directory ingestion", () => {
     ])
 
     expect(records).toHaveLength(2)
-    expect(new Set(records.map((record) => record.sourceRecordId)).size).toBe(2)
+    expect(
+      new Set(
+        records.map((record: { sourceRecordId: string }) => record.sourceRecordId)
+      ).size
+    ).toBe(2)
     expect(records[0].extractedFields.enrichment).toMatchObject({
       publicResourceEligible: false,
       qualityNotes: expect.arrayContaining([

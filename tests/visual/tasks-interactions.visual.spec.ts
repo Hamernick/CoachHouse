@@ -170,6 +170,21 @@ test("cancelling a drag restores the source card controls without changing its s
 
 test.describe("browser-local calendar hydration", () => {
   test.use({ timezoneId: "America/New_York" })
+  for (const taskWeek of [null, "2026-02-30"]) {
+    test(`direct board hydration recovers ${taskWeek === null ? "a missing" : "an invalid"} week`, async ({ page }) => {
+      const errors: string[] = []
+      page.on("pageerror", error => errors.push(error.message))
+      await page.clock.setFixedTime(new Date("2026-10-22T12:00:00Z"))
+      const params = new URLSearchParams({ taskView: "board", ssr: "1" })
+      if (taskWeek !== null) params.set("taskWeek", taskWeek)
+      const response = await page.goto(`/visual-regression/tasks?${params}`, { waitUntil: "domcontentloaded" })
+      expect(await response!.text()).toContain("Loading task calendar")
+      const board = page.getByRole("region", { name: "Weekly task board", exact: true })
+      await expect(board).toBeVisible()
+      await expect(board.getByRole("heading", { level: 2 })).toHaveText("Oct 19 – Oct 25, 2026")
+      expect(errors).toEqual([])
+    })
+  }
   test("Sunday evening agrees on week, today and overdue state and advances on local midnight", async ({ page }) => {
     const errors: string[] = []
     page.on("pageerror", error => errors.push(error.message))

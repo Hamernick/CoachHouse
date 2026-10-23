@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import SearchXIcon from "lucide-react/dist/esm/icons/search-x"
 
@@ -38,19 +38,33 @@ function syncFilterUrl(filters: MarketplaceFilters) {
   )
 }
 
+function readFilterParams(params: Pick<URLSearchParams, "get">): MarketplaceFilters {
+  return {
+    ...sanitizeMarketplaceFilters({
+      query: params.get("q") ?? undefined,
+      type: params.get("type") ?? undefined,
+      function: params.get("function") ?? undefined,
+      stage: params.get("stage") ?? undefined,
+      cost: params.get("cost") ?? undefined,
+    }),
+    // Preserve spaces during typing; the resource predicate normalizes search.
+    query: (params.get("q") ?? "").slice(0, 100),
+  }
+}
+
 export function MarketplaceDirectory() {
   const params = useSearchParams()
-  const filters = useMemo(
-    () =>
-      sanitizeMarketplaceFilters({
-        query: params.get("q") ?? undefined,
-        type: params.get("type") ?? undefined,
-        function: params.get("function") ?? undefined,
-        stage: params.get("stage") ?? undefined,
-        cost: params.get("cost") ?? undefined,
-      }),
-    [params]
-  )
+  const [filters, setFilters] = useState(() => readFilterParams(params))
+  useEffect(() => {
+    // Native history updates reach Next's search params in a transition. Ignore
+    // older snapshots so they cannot replace a newer keystroke or filter change.
+    if (params.toString() !== new URLSearchParams(window.location.search).toString()) return
+    setFilters(readFilterParams(params))
+  }, [params])
+  const changeFilters = (next: MarketplaceFilters) => {
+    setFilters(next)
+    syncFilterUrl(next)
+  }
   const shortlist = useMarketplaceShortlist()
   const resources = useMemo(
     () => filterMarketplaceResources(MARKETPLACE_RESOURCES, filters),
@@ -67,9 +81,8 @@ export function MarketplaceDirectory() {
         Tools and resources
       </h2>
       <MarketplaceFiltersPanel
-        // Preserve spaces during typing; the resource predicate normalizes search.
-        filters={{ ...filters, query: (params.get("q") ?? "").slice(0, 100) }}
-        onChange={syncFilterUrl}
+        filters={filters}
+        onChange={changeFilters}
       />
       <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <div>

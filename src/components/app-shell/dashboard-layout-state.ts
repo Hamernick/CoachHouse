@@ -14,7 +14,7 @@ import {
   type PricingPlanTier,
 } from "@/lib/billing/plan-tier"
 import { loadAppPricingFeedbackPrompt } from "@/features/app-pricing-feedback"
-import { loadAccessibleOrganizations } from "@/features/member-workspace"
+import { loadAccessibleOrganizations } from "@/features/member-workspace/server"
 import { publicSharingEnabled } from "@/lib/feature-flags"
 import type { Json } from "@/lib/supabase"
 import { buildSavedOnboardingFlowDefaults } from "@/lib/onboarding/saved-defaults"

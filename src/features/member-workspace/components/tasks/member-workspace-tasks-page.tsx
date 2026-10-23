@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh"
 import { useRouter, useSearchParams } from "next/navigation"
 import { TaskRelationshipSelect, TaskPresentationControls } from "./task-presentation-controls"
@@ -86,11 +86,19 @@ export function MemberWorkspaceTasksPage({
   const router = useRouter()
   const searchParams = useSearchParams()
   const today = useTaskCalendarDay()
-  const state = useMemo(() => readTaskViewState(new URLSearchParams(searchParams.toString()), today), [searchParams, today])
+  const [state, setState] = useState(() => readTaskViewState(new URLSearchParams(searchParams.toString()), today))
+  useEffect(() => {
+    // Next commits native-history search params in a transition. An older URL
+    // snapshot must not overwrite a more recent checkbox or display change.
+    if (searchParams.toString() !== new URLSearchParams(window.location.search).toString()) return
+    setState(readTaskViewState(new URLSearchParams(searchParams.toString()), today))
+  }, [searchParams, today])
   const { filters, relation } = state
   const changeViewState = (patch: Partial<TaskViewState>) => {
     const current = new URLSearchParams(window.location.search)
-    const next = writeTaskViewState(current, { ...readTaskViewState(current, today), ...patch })
+    const nextState = { ...readTaskViewState(current, today), ...patch }
+    setState(nextState)
+    const next = writeTaskViewState(current, nextState)
     window.history.pushState(null, "", `${window.location.pathname}?${next.toString()}`)
   }
   const setFilters = (next: FilterChip[]) => changeViewState({ filters: next })
@@ -335,7 +343,7 @@ export function MemberWorkspaceTasksPage({
         <div className="flex-1 min-h-0 min-w-0 space-y-4 overflow-y-auto px-4 py-4">
           {state.view === "board" ? (today ? (
             <TaskWeekBoard tasks={visibleTaskGroups.flatMap(group => group.tasks)}
-              weekStart={state.week} today={today} showWeekend={state.weekend}
+              weekStart={state.week || today} today={today} showWeekend={state.weekend}
               onWeekChange={week => changeViewState({ week })}
               onWeekendChange={weekend => changeViewState({ weekend })}
               pendingTaskIds={pendingTaskIds} capabilities={capabilities}

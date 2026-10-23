@@ -250,6 +250,50 @@ function buildFieldEvidence({ fields, fetchedAt, rawApiUrl, sourceUrl }) {
   }))
 }
 
+/**
+ * @param {object} options
+ * @param {string} options.fetchedAt
+ * @param {{
+ *   locationId: number | string,
+ *   locationName: string,
+ *   address1?: string | null,
+ *   address2?: string | null,
+ *   city?: string | null,
+ *   contactEmail?: string | null,
+ *   contactPhone?: string | null,
+ *   country?: string | null,
+ *   foodOfferings?: string | null,
+ *   foodPrograms?: string | null,
+ *   foodServiceTypes?: string | null,
+ *   latitude?: number | string | null,
+ *   locationFeatures?: string | null,
+ *   longitude?: number | string | null,
+ *   phone?: string | null,
+ *   regionId?: number | string | null,
+ *   serviceArea?: string | null,
+ *   serviceAreas?: string | null,
+ *   serviceLanguages?: string | null,
+ *   servicePrograms?: string | null,
+ *   state?: string | null,
+ *   website?: string | null,
+ *   zipCode?: string | null
+ * }} options.location
+ * @param {string} options.rawApiUrl
+ * @param {Array<{
+ *   contactForHoursMessage?: string | null,
+ *   dayOfWeek?: number | string | null,
+ *   daysOfMonth?: string | null,
+ *   endTimeDescr?: string | null,
+ *   everyOtherWeekInd?: boolean | null,
+ *   locationId?: number | string | null,
+ *   locationServiceId?: number | string | null,
+ *   notes?: string | null,
+ *   startTimeDescr?: string | null,
+ *   weekDayDescr?: string | null,
+ *   weeksOfMonth?: string | null
+ * }>} [options.schedules]
+ * @param {string} [options.sourceUrl]
+ */
 export function buildFeedingIllinoisRecord({
   fetchedAt,
   location,
