@@ -102,11 +102,11 @@ export function ParticleConnections({
                     variant="ghost"
                     className="min-h-11 rounded-xl text-xs"
                     disabled={!editable || Boolean(hidden)}
-                    aria-label={`Insert Activity between ${source?.title} and ${target?.title}`}
+                    aria-label={`Insert Resource between ${source?.title} and ${target?.title}`}
                     onClick={() => void actions.insert(edge.id, edge.revision)}
 
                   >
-                    Insert Activity
+                    Insert Resource
                   </Button>
                 ) : null}
                 <Button

@@ -12,8 +12,9 @@ export function parseParticleCreateCommand(input: string): ParticleResult<{
   const match = /^create (\w+)\s+([\s\S]+)$/i.exec(
     input.trim()
   )
+  const requestedType = match?.[1]?.toLowerCase()
   const type = PARTICLE_CREATE_TYPES.find(
-    (item) => item === match?.[1]?.toLowerCase()
+    (item) => item === (requestedType === "resource" ? "activity" : requestedType)
   )
   const title = match?.[2]?.trim()
   if (!type || !title || title.length > 240)
@@ -21,7 +22,7 @@ export function parseParticleCreateCommand(input: string): ParticleResult<{
       ok: false,
       code: "invalid",
       error:
-        "Use: create objective Your goal (up to 240 characters). Or choose +.",
+        "Use: create objective Your goal or create resource Your title (up to 240 characters). Or choose +.",
     }
   return { ok: true, value: { type, title } }
 }

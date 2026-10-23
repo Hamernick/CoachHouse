@@ -31,7 +31,7 @@ export const particleRegistry = {
   activity: {
     ...PARTICLE_SIZE_SUPPORT.activity,
     layouts: PARTICLE_SIZE_LAYOUTS,
-    label: "Activity",
+    label: "Resource",
     width: 280,
     schema: particleDataSchemas.activity,
     defaults: () => ({ template: "task", steps: [] }),

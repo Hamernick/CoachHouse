@@ -209,7 +209,7 @@ export function ParticleComposer({
               ? "Saving…"
               : saved
                 ? "Saved"
-                : "Type to filter Particles. Enter opens the results. Use /commands to browse all, or create objective, create activity, or create workflow followed by a title. Shift + Enter adds a new line.")}
+                : "Type to filter Particles. Enter opens the results. Use /commands to browse all, or use create objective or create resource followed by a title. Shift + Enter adds a new line.")}
         </span>
         {error ? (
           <Button

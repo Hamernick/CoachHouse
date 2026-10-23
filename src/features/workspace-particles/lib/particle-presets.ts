@@ -165,7 +165,7 @@ export function particlePresetQuery(text: string): string | null {
 export function filterParticlePresets(query: string) {
   const search = query.trim().toLowerCase()
   return PARTICLE_PRESETS.filter((item) =>
-    `${item.id} ${item.label} ${item.hint} ${item.type}`
+    `${item.id} ${item.label} ${item.hint} ${item.type} ${item.id === "activity" ? "activities resources" : ""}`
       .toLowerCase()
       .includes(search)
   )

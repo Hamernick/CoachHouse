@@ -40,7 +40,7 @@ export function ProgramsCarousel({
     <Carousel
       setApi={setApi}
       opts={{ align: "center", loop: false }}
-      aria-label="Activity"
+      aria-label="Resource"
       className="grid w-full min-w-0 gap-4"
     >
       <div className="flex min-w-0 items-center justify-between gap-3">
@@ -48,7 +48,7 @@ export function ProgramsCarousel({
         {cards.length > 1 ? (
           <div className="flex shrink-0 items-center justify-end gap-2">
             <CarouselPrevious
-              aria-label="Previous activity"
+              aria-label="Previous resource"
               className="relative top-auto left-auto right-auto size-8 translate-y-0 shadow-none after:absolute after:-inset-1.5 md:after:hidden"
             />
             <span
@@ -60,7 +60,7 @@ export function ProgramsCarousel({
               {selected + 1} of {cards.length}
             </span>
             <CarouselNext
-              aria-label="Next activity"
+              aria-label="Next resource"
               className="relative top-auto left-auto right-auto size-8 translate-y-0 shadow-none after:absolute after:-inset-1.5 md:after:hidden"
             />
           </div>

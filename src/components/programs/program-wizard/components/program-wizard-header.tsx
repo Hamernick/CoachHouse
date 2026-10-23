@@ -21,7 +21,7 @@ export function ProgramWizardHeader({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="text-muted-foreground text-xs tracking-wide uppercase">
-            Activity setup
+            Resource setup
           </p>
           <h2 className="text-lg font-semibold text-pretty sm:text-xl">
             {STEPS[currentStep].title}
@@ -42,7 +42,7 @@ export function ProgramWizardHeader({
         </div>
       </div>
       <div className="mt-3">
-        <Progress value={completion} aria-label="Activity builder progress" />
+        <Progress value={completion} aria-label="Resource builder progress" />
       </div>
     </header>
   )

@@ -172,7 +172,7 @@ export function ParticleCalendarEntryFields({
           onChange={(status) => onChange({ ...entry, status })}
         />
         <CalendarChoice
-          label="Linked Activity"
+          label="Linked Resource"
           value={entry.activityId ?? "none"}
           disabled={disabled}
           options={[

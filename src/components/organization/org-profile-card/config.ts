@@ -11,7 +11,7 @@ export const ORG_PROFILE_TABS: Array<{
   label: string
 }> = [
   { value: "company", label: "Organization" },
-  { value: "programs", label: "Activity" },
+  { value: "programs", label: "Resource" },
   { value: "brand-kit", label: "Brand kit" },
 ]
 

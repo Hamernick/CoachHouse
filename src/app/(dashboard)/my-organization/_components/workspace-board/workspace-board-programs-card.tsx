@@ -130,7 +130,7 @@ export function WorkspaceBoardProgramsCard({
 
     return (
       <ProgramCard
-        title={program.title?.trim() || "Untitled activity"}
+        title={program.title?.trim() || "Untitled resource"}
         location={locationSummary(program) ?? undefined}
         description={resolveProgramSummary(program) ?? undefined}
         bannerImageUrl={resolveProgramBannerImageUrl(program) ?? undefined}
@@ -185,7 +185,7 @@ export function WorkspaceBoardProgramsCard({
         ) : (
           <Empty
             icon={<FolderPlusIcon className="h-5 w-5" aria-hidden />}
-            title="No activity to display"
+            title="No resources to display"
             description="Projects, programs, events, services, and grant requests you create will appear here."
             actions={
               canEdit ? null : (

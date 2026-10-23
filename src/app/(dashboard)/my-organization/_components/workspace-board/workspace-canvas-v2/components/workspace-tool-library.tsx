@@ -18,7 +18,7 @@ const TOOLS: { id: WorkspaceToolId; title: string; subtitle: string }[] = [
     title: "Organization",
     subtitle: "Profile and purpose",
   },
-  { id: "programs", title: "Activities", subtitle: "Programs and events" },
+  { id: "programs", title: "Resources", subtitle: "Programs and events" },
   {
     id: "fiscal-sponsorship",
     title: "Fiscal Sponsorship",

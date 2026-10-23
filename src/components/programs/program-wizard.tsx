@@ -94,7 +94,7 @@ export function ProgramWizard({
   const savedPayloadRef = useRef<UpdateProgramPayload>({})
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
   useWorkspaceEditorStatus({
-    label: "Activity",
+    label: "Resource",
     dirty:
       isOpen &&
       hydratedRef.current &&
@@ -255,7 +255,7 @@ export function ProgramWizard({
         const response = await saveProgram(serializePayload(form))
         if ("error" in response) toast.error(response.error)
       } catch {
-        toast.error("Could not save activity. Try again.")
+        toast.error("Could not save resource. Try again.")
       } finally {
         setIsAutoSaving(false)
       }
@@ -341,7 +341,7 @@ export function ProgramWizard({
         window.localStorage.removeItem(DRAFT_STORAGE_KEY)
       }
 
-      toast.success(mode === "create" ? "Activity created" : "Activity updated")
+      toast.success(mode === "create" ? "Resource created" : "Resource updated")
       editedRef.current = false
       setOpen(false)
       setForm(defaultProgramWizardForm)
@@ -353,16 +353,16 @@ export function ProgramWizard({
   const copyBrief = async () => {
     try {
       await navigator.clipboard.writeText(summaryText(form))
-      toast.success("Activity brief copied")
+      toast.success("Resource brief copied")
     } catch {
-      toast.error("Could not copy activity brief")
+      toast.error("Could not copy resource brief")
     }
   }
 
   const resolvedTrigger = triggerLabel ?? (
     <span className="inline-flex items-center gap-2">
       <Plus className="h-4 w-4" aria-hidden />
-      New activity
+      New resource
     </span>
   )
 
@@ -390,7 +390,7 @@ export function ProgramWizard({
               "bg-background/98 absolute max-h-[calc(100%-1rem)] w-[calc(100%-1rem)] shadow-[0_24px_70px_-42px_hsl(var(--foreground)/0.55)] backdrop-blur-xl sm:max-h-[calc(100%-2rem)] sm:w-[min(calc(100%-2rem),56rem)]"
           )}
         >
-          <DialogTitle className="sr-only">Activity builder</DialogTitle>
+          <DialogTitle className="sr-only">Resource builder</DialogTitle>
 
           <ProgramWizardHeader
             mode={mode}

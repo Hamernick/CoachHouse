@@ -39,7 +39,7 @@ export function ProgramVisibilitySwitch({
         router.refresh()
       } catch {
         setChecked(previous)
-        toast.error("Couldn’t update activity visibility. Try again.")
+        toast.error("Couldn’t update resource visibility. Try again.")
       } finally {
         saving.current = false
       }

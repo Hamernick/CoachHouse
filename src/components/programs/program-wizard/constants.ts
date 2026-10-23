@@ -6,7 +6,7 @@ export const STEPS: StepMeta[] = [
     helper: "Pick the category that best matches the work you want to add.",
   },
   {
-    title: "Activity name",
+    title: "Resource name",
     helper: "Give this work a clear name and one-sentence summary.",
   },
   {

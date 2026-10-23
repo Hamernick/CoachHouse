@@ -152,7 +152,7 @@ export function buildWorkspaceProgramsOntologyRoot({
 
   return {
     id: "programs",
-    label: "Activity",
+    label: "Resources",
     children: [
       {
         id: "ontology:programs:portfolio",

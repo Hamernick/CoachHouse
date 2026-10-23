@@ -36,7 +36,7 @@ export function FiscalSponsorshipStartDialog({
       <DialogContent className="max-h-[calc(100svh-2rem)] gap-5 overflow-y-auto rounded-3xl border-border/70 bg-card p-5 shadow-none sm:max-w-md" showCloseButton={!pending}>
         <DialogHeader className="pr-6 text-left">
           <DialogTitle>Start an application</DialogTitle>
-          <DialogDescription>What activity would you like sponsored?</DialogDescription>
+          <DialogDescription>What resource would you like sponsored?</DialogDescription>
         </DialogHeader>
         <form
           id={id}
@@ -53,12 +53,12 @@ export function FiscalSponsorshipStartDialog({
         >
           <Tabs value={mode} onValueChange={setMode} className="gap-4">
             <TabsList className="grid w-full grid-cols-2 rounded-full">
-              <TabsTrigger value="new" disabled={pending} className="rounded-full">New activity</TabsTrigger>
+              <TabsTrigger value="new" disabled={pending} className="rounded-full">New resource</TabsTrigger>
               <TabsTrigger value="existing" disabled={pending || programs.length === 0} className="rounded-full">Use existing</TabsTrigger>
             </TabsList>
             <TabsContent value="new" className="m-0 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor={`${id}-name`}>Activity name</Label>
+                <Label htmlFor={`${id}-name`}>Resource name</Label>
                 <Input id={`${id}-name`} value={name} onChange={(event) => setName(event.target.value)}
                   maxLength={160} required={mode === "new"} disabled={pending} className="rounded-xl"
                   placeholder="e.g. Community garden" />
@@ -70,13 +70,13 @@ export function FiscalSponsorshipStartDialog({
               </div>
             </TabsContent>
             <TabsContent value="existing" className="m-0 space-y-2">
-              <Label htmlFor={`${id}-activity`}>Activity</Label>
+              <Label htmlFor={`${id}-activity`}>Resource</Label>
               <Select value={programId} onValueChange={setProgramId} disabled={pending}>
                 <SelectTrigger id={`${id}-activity`} className="w-full rounded-xl">
-                  <SelectValue placeholder="Choose an activity" />
+                  <SelectValue placeholder="Choose a resource" />
                 </SelectTrigger>
                 <SelectContent>
-                  {programs.map((item) => <SelectItem key={item.id} value={item.id}>{item.title || "Untitled activity"}</SelectItem>)}
+                  {programs.map((item) => <SelectItem key={item.id} value={item.id}>{item.title || "Untitled resource"}</SelectItem>)}
                 </SelectContent>
               </Select>
               <p className="text-muted-foreground text-xs">Its details will prefill your application.</p>

@@ -243,7 +243,7 @@ export function useParticleConnections(input: Input) {
           now: new Date().toISOString(),
           position,
         })
-      }, "Activity inserted. Existing positions were preserved."),
+      }, "Resource inserted. Existing positions were preserved."),
     [perform]
   )
   return useMemo(

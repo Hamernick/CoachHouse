@@ -37,15 +37,19 @@ describe("Particle library placement", () => {
       onRetry: () => {}, onPlace: () => {},
     }
     const render = (extra = {}) => renderToStaticMarkup(createElement(ParticleLibrary, { ...props, ...extra }))
-    expect(render()).not.toContain(`workspace-particle:library:${blank.id}`)
-    expect(render()).toContain('aria-label="Add Activity to canvas"')
+    expect(render().match(/aria-label="Add Resource to canvas"/g)).toHaveLength(1)
+    expect(render()).toContain('aria-label="Add Resource to canvas"')
     for (const extra of [
       { connectedParticleIds: [blank.id] },
       { onAddPreset: undefined },
       { particles: [{ ...blank, title: "My activity" }] },
       { particles: [{ ...blank, description: "Keep these details" }] },
       { particles: [{ ...blank, locked: true }] },
-    ]) expect(render(extra)).toContain(`workspace-particle:library:${blank.id}`)
+    ]) {
+      const title = extra.particles?.[0]?.title ?? blank.title
+      const count = extra.onAddPreset === undefined && "onAddPreset" in extra ? 1 : title === blank.title ? 2 : 1
+      expect(render(extra).split(`aria-label="Add ${title} to canvas"`).length - 1).toBe(count)
+    }
     expect(blank.canvasHidden).toBe(true)
   })
   it("flows presets and existing Activity cards through one shared library list", () => {
@@ -87,12 +91,13 @@ describe("Particle library placement", () => {
   it("filters tool labels and descriptions with the same flexible word matching", () => {
     const tools = [
       { title: "Fiscal Sponsorship", subtitle: "Application and documents" },
-      { title: "Activities", subtitle: "Programs and events" },
+      { id: "programs", title: "Resources", subtitle: "Programs and events" },
     ]
     expect(filterParticleLibraryTools(tools, "  fiscal DOCUMENTS  ")).toEqual([
       tools[0],
     ])
     expect(filterParticleLibraryTools(tools, "events")).toEqual([tools[1]])
+    for (const term of ["activity", "activities", "resource", "resources"]) expect(filterParticleLibraryTools(tools, term)).toEqual([tools[1]])
     expect(filterParticleLibraryTools(tools, "unmatched")).toEqual([])
     expect(filterParticleLibraryTools(tools, "")).toEqual(tools)
   })

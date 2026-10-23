@@ -21,7 +21,7 @@ export const workspaceToolSourceHandleSchema = z.enum([
 export type WorkspaceToolId = z.infer<typeof workspaceToolIdSchema>
 export const WORKSPACE_TOOL_LABELS: Record<WorkspaceToolId, string> = {
   "organization-overview": "Organization",
-  programs: "Activities",
+  programs: "Resources",
   "fiscal-sponsorship": "Fiscal Sponsorship",
 }
 export function isWorkspaceToolId(id: string): id is WorkspaceToolId {

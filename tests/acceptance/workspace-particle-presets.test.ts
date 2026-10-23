@@ -508,3 +508,13 @@ it("offers a header plus without a status badge or automatic creation", () => {
   expect(html.match(/data-particle-frame="true"/g)).toHaveLength(1)
   expect(html.match(/data-particle-stack-back/g)).toHaveLength(2)
 })
+
+
+it("uses Resource wording while preserving activity storage and legacy commands", () => {
+  for (const command of ["create resource Summer program", "create activity Summer program"]) {
+    expect(parseParticleCreateCommand(command)).toEqual({ ok: true, value: { type: "activity", title: "Summer program" } })
+  }
+  for (const query of ["resource", "resources", "activity", "activities"]) {
+    expect(filterParticlePresets(query)).toEqual(expect.arrayContaining([expect.objectContaining({ id: "activity", type: "activity", label: "Resource" })]))
+  }
+})
