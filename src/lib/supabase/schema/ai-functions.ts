@@ -1,6 +1,7 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  read_workspace_ai_usage: { Args: { p_org_id: string; p_actor_id: string; p_member_id: string | null; p_task: string | null; p_before_at: string | null; p_before_id: string | null }; Returns: Json }
   find_ai_credit_payment: { Args: { p_payment: string; p_mode: string }; Returns: Json }
   record_ai_credit_payment_restriction: { Args: { p_order_id: string; p_payment: string; p_mode: string; p_kind: string; p_provider_id: string; p_status: string; p_amount: number; p_currency: string; p_operation_key: string; p_event_created: number }; Returns: undefined }
   read_ai_credit_limits: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }

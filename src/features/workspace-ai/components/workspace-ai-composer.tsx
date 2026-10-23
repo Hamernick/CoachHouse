@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { AiCreditsPanel } from "@/features/ai-credits/client"
+import { useRegisterAppShellAccountMenuAction } from "@/components/app-shell/account-menu-actions-context"
 import { quoteDocumentAssistance, readDocumentAssistance, stopDocumentAssistance } from "../actions"
 import { useAiDocumentEditors } from "../hooks/document-bridge"
 import { availableAiDocumentEditors,selectedAiDocumentEditor,type AiDocumentScope } from "../lib/document-registry"
@@ -31,6 +32,10 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
   const [applied,setApplied] = useState(false)
   const [revision,setRevision] = useState<AiDocumentProposal | null>(null)
   const [usage,setUsage] = useState(false)
+  const usageAction = useMemo(() => process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED === "true" ? {
+    id: "workspace-ai-usage", label: "Usage", onSelect: () => setUsage(true),
+  } : null, [])
+  useRegisterAppShellAccountMenuAction(usageAction)
   const [showOriginal,setShowOriginal] = useState(false)
   const abort = useRef<AbortController | null>(null)
   const runId = useRef<string | null>(null)
@@ -45,7 +50,7 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
     abort.current?.abort()
     setPending(false); setQuote(null); setProposal(null); setPreview(""); setError(null); setApplied(false)
     runId.current = null
-    setUsage(false); setShowOriginal(false); setRevision(null)
+    setShowOriginal(false); setRevision(null)
   },[targetKey])
   useEffect(() => () => abort.current?.abort(),[])
 
@@ -184,13 +189,18 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
   const controls = <Button type="button" variant="ghost" size="sm" className="h-9 touch-manipulation rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
     aria-pressed={active} aria-label="AI document assistance" disabled={pending} onClick={() => setActive(!active)}>AI</Button>
   return <>
-    {(active || error) && <section aria-label="AI document assistance" className="nodrag nopan nowheel mx-2.5 flex min-w-0 flex-col gap-2 rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-none backdrop-blur-xl [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
+    {(active || error || usage) && <section aria-label={usage ? "Usage" : "AI document assistance"} className="nodrag nopan nowheel mx-2.5 flex max-h-[65dvh] min-w-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-none backdrop-blur-xl [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
       {active ? <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <DocumentContextPicker editors={editors} selected={bridge} organizationName={organizationName} disabled={pending} onSelect={setSelectedId} />
-        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : target ? "Refreshing credits…" : "No document selected"}</Button>
+        <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : "Usage"}</Button>
       </div> : null}
       {active && !bridge ? <p className="text-xs text-muted-foreground">Choose a visible core document to include as context.</p> : null}
-      {usage && quote ? <AiCreditsPanel account={quote.account} organizationId={sourceScope.organizationId} /> : null}
+      {usage ? <>
+        <div className="flex items-center justify-between"><span className="text-sm font-medium">Usage</span><Button variant="ghost" size="sm" className="rounded-full text-xs" onClick={() => setUsage(false)}>Close</Button></div>
+        <AiCreditsPanel account={quote?.account} organizationId={sourceScope.organizationId} documentContexts={pending ? [] : editors.map(editor => ({ sectionId: editor.target.sectionId,
+          open: () => { setSelectedId(editor.id); setUsage(false); setActive(true) },
+        }))} />
+      </> : null}
       {(preview || proposal?.content || pending) && <div className="h-56 overflow-auto overscroll-contain rounded-xl bg-muted/40 p-3">
         {proposal?.content ? <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proposal.content }} />
           : preview ? <p className="whitespace-pre-wrap text-muted-foreground">{preview.replace(/<[^>]*>/g,"")}</p>

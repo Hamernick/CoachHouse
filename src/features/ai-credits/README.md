@@ -35,3 +35,10 @@ Migration `20261022234500_workspace_ai_spending_limits.sql` is disposable-test-o
 Refund/dispute webhooks reconcile current provider facts before changing private payment restrictions. The immutable adjustment journal preserves provider identity, prior/current state and held/consumed credit snapshots. Admission excludes held lots; prior reservations settle against their original allocations. Replays do not duplicate grants; a reversal before fulfillment binds and holds that later grant. Provider/reconciliation failures leave an event-specific verification hold until successful retry. Partial/consumed refunds remain for explicit policy review, with no automatic debt or replacement charge.
 
 Migration `20261023001500_workspace_ai_payment_restrictions.sql` must be applied before enabling this code; it has only disposable-test evidence. Tests: `ai-credit-payment-restrictions.test.ts`, `workspace-ai-payment-restrictions.assertions.sql`, and the purchase browser scenarios. No real Stripe charge/refund/dispute was created during development.
+
+
+## Usage history
+
+The existing workspace account menu opens Usage in the composer surface without a selected document or model request. `read_workspace_ai_usage` exposes paginated financial fields only. Owners can filter member/task usage; other eligible members are restricted to themselves. Other members' private source titles/references, all prompts/proposals/source bodies and provider IDs are excluded. Keyset pagination retains timestamp precision and breaks ties by run UUID. Source actions exist only for current-scope mounted document editors, and are unavailable during generation.
+
+`20261023010000_workspace_ai_usage_history.sql` has disposable-test evidence only. Included totals/earliest expiration reflect actual lots; subscription plan/allowance reset metadata awaits explicit billing binding. Usage does not grant credits or activate AI. See the plan checkpoint for tests and remaining release gates.

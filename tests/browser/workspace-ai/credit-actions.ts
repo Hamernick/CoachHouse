@@ -36,3 +36,17 @@ export async function saveAiCreditLimit(input: { memberId: string | null; limit:
   localStorage.setItem("credit-limits", JSON.stringify(limits))
   return limits
 }
+
+export async function loadAiUsageHistory(input: { memberId?: string | null; task?: string | null; before?: { at: string; id: string } | null }) {
+  if (new URLSearchParams(location.search).has("usage-error") && !sessionStorage.getItem("usage-available")) {
+    throw new Error("Simulated usage outage")
+  }
+  const staff = new URLSearchParams(location.search).has("staff")
+  const members = [{ id: creditOrg, name: "Fictional Owner" }, { id: "71000000-0000-4000-8000-000000000003", name: "Fictional Teammate" }]
+  const rows = Array.from({ length: 25 }, (_, index) => ({ id: `74000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+    created_at: new Date(Date.UTC(2026, 9, 23, 12, 0, 60 - index)).toISOString(), status: "succeeded", task: index % 2 ? "plan" as const : "document" as const,
+    charged_credits: index + 1, max_credits: 50, actorId: members[index % 2].id, actorName: members[index % 2].name,
+    resourceTitle: index % 2 ? null : `Document ${index + 1}`, sectionId: index % 2 ? null : "mission" }))
+    .filter(row => (!staff || row.actorId === creditOrg) && (!input.memberId || row.actorId === input.memberId) && (!input.task || row.task === input.task) && (!input.before || row.created_at < input.before.at))
+  return { canFilterMembers: !staff, members, rows: rows.slice(0, 20), hasMore: rows.length > 20 }
+}

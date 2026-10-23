@@ -288,6 +288,7 @@
       "tests/acceptance/ai-credits.test.ts",
       "tests/acceptance/ai-credit-purchases.test.ts",
       "tests/acceptance/ai-credit-limits.test.ts",
+      "tests/acceptance/ai-credit-usage.test.ts",
       "tests/acceptance/ai-credit-payment-restrictions.test.ts",
       "tests/acceptance/app-pricing-feedback.test.ts",
       "tests/acceptance/assignment-submission-resilience.test.ts",
