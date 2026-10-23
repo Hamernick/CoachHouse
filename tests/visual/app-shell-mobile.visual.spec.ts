@@ -292,12 +292,23 @@ test("scrubbing previews, commits inside, and cancels outside or with Escape", a
 test("touch pointer cancellation leaves the next action usable", async ({ page, context }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(`${fixture}?scenario=member-navigation`)
+  await expect(page.locator("[data-shell-ready]")).toHaveAttribute("data-shell-ready", "true")
   const navigation = page.getByRole("navigation", { name: "Main navigation" })
   await expect(navigation).toBeVisible()
-  const from = (await navigation.getByRole("link", { name: "Workspace" }).boundingBox())!
+  const workspace = navigation.getByRole("link", { name: "Workspace" })
+  await workspace.click({ trial: true })
+  const from = (await workspace.boundingBox())!
   const details = navigation.getByRole("button", { name: "Details" })
   const to = (await details.boundingBox())!
   const client = await context.newCDPSession(page)
+  await navigation.evaluate((element) => {
+    const onCapture = (event: Event) => {
+      if (event.target !== element) return
+      element.removeEventListener("gotpointercapture", onCapture)
+      element.setAttribute("data-test-native-pointer-capture", "true")
+    }
+    element.addEventListener("gotpointercapture", onCapture)
+  })
   await client.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [{ x: from.x + from.width / 2, y: from.y + from.height / 2 }],
@@ -306,6 +317,12 @@ test("touch pointer cancellation leaves the next action usable", async ({ page, 
     type: "touchMove",
     touchPoints: [{ x: to.x + to.width / 2, y: to.y + to.height / 2 }],
   })
+  // A second move completes the browser's implicit link-to-nav capture transfer.
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: to.x + to.width / 2 - 12, y: to.y + to.height / 2 }],
+  })
+  await expect(navigation).toHaveAttribute("data-test-native-pointer-capture", "true")
   await expect(navigation).toHaveAttribute("data-scrubbing", "true")
   await client.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] })
   await expect(navigation).toHaveAttribute("data-scrubbing", "false")

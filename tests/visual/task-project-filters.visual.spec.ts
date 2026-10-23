@@ -13,6 +13,7 @@ for (const width of [1440, 390]) {
     await page.getByRole("checkbox", { name: "Collaborating", exact: true }).click()
     await expect(page.getByRole("checkbox", { name: "Assigned to me", exact: true })).toBeChecked()
     await expect(page.getByRole("checkbox", { name: "Proposed to me", exact: true })).toBeChecked()
+    await expect(page.getByRole("checkbox", { name: "Collaborating", exact: true })).toBeChecked()
     await page.keyboard.press("Escape")
     await expect(page.getByRole("button", { name: "Edit Proposed outreach task", exact: true })).toHaveCount(1)
     await expect(page.getByRole("button", { name: "Edit Collaborating on completed report", exact: true })).toBeVisible()

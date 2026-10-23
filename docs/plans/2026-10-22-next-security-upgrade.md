@@ -148,3 +148,39 @@ Source fixes, canonical references and graph maintenance are complete. Merge,
 deployment and live verification remain user-owned. No database/provider/calendar/
 account/credential changes or production remediation claimed. Other terminals'
 files, dependencies and listeners remain preserved; this lane's servers are stopped.
+
+## Final CI continuation — two interaction failures
+
+Revision24f2628f CI39898741322 passes build/types/performance, static, RLS and
+acceptance. Visual result174passed/2failed: mobile touch cancellation did not enter
+scrubbing, and desktop task relationship toggles lost a prior checkbox selection.
+All earlier eleven visual failures are resolved. Both remaining bugs reproduced
+against the isolated3155fixture server and are now fixed:
+
+- Task checkboxes read delayed Next URL snapshots, overwriting prior selections.
+  Immediate local task-view state rejects stale URL snapshots. At4xCPU throttling,
+  the original drops Proposed; the fix preserves all three selections. Three
+  task Playwright interactions and11task-view acceptance cases pass, including
+  desktop/mobile reload and completion/order/board persistence.
+- A touch link's implicit pointer capture transfers to NAV; its bubbling
+  `lostpointercapture` wrongly cleared NAV's gesture. Ignore descendant capture-loss
+  while preserving NAV's own cancellation. Strengthened native-event regression
+  fails before/ passes after; three mouse/touch/keyboard/navigation journeys pass.
+  Test observes actual capture transfer after ordered listener installation and
+  readiness; no forced gesture state or timing increase.
+
+Both fixes pass scoped ESLint/diff checks; no baseline changes. Batched follow-up
+AST refresh log `.tmp/next-security-graphify-interactions.log`. Only source/test
+changes above plus this recovery receipt/runlog follow revision24f2628f. PR remains
+draft until required hosted quality passes its current revision; live PR body/checks
+hold that result. Previous source-complete wording predates these CI findings.
+
+Independent review caught a direct-board hydration regression before push: local
+state initially had no week while browser today became available. The board now
+uses its valid today fallback until the week resolves. Missing/invalid-week browser
+regressions both fail before and pass after the correction; explicit weeks remain
+authoritative. Six task/calendar interactions pass, including Sunday-to-midnight
+behavior, plus three native mobile journeys and 11 task-view cases. Review confirms
+no other empty-week consumer. Scoped lint/diff checks pass; own fixture server
+stopped and generated AGENTS suffix removed. The superseded graph job was stopped
+before this correction; one final refresh now owns the complete source slice.
