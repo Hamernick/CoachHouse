@@ -10,6 +10,7 @@ function price(amount: number, currency: string) {
   const format = new Intl.NumberFormat(undefined, { style: "currency", currency })
   return format.format(amount / 10 ** (format.resolvedOptions().maximumFractionDigits ?? 2))
 }
+const paymentIssueLabel = { refunded: "Refund confirmed", partially_refunded: "Partial refund · review required", refund_pending: "Refund pending", disputed: "Payment disputed", verification_pending: "Payment verification pending" }
 export function CreditPurchaseControl({ organizationId, purchases }: { organizationId: string; purchases: AiCreditPurchases }) {
   const [selected, setSelected] = useState("")
   const [busy, setBusy] = useState(false)
@@ -51,7 +52,7 @@ export function CreditPurchaseControl({ organizationId, purchases }: { organizat
     {purchases.orders.length ? <ul aria-label="Credit purchases" className="flex max-h-32 flex-col gap-2 overflow-auto text-xs text-muted-foreground">
       {purchases.orders.map(order => <li key={order.id} className="flex justify-between gap-3">
         <span>{order.credits.toLocaleString()} credits · {price(order.amount, order.currency)}</span>
-        <span>{order.status === "paid" ? "Credited" : order.status === "pending" ? "Awaiting payment confirmation" : "Checkout expired"}</span>
+        <span>{order.paymentIssue ? paymentIssueLabel[order.paymentIssue] : order.status === "paid" ? "Credited" : order.status === "pending" ? "Awaiting payment confirmation" : "Checkout expired"}</span>
       </li>)}
     </ul> : null}
   </div>

@@ -42,7 +42,9 @@ export function AiCreditsPanel({ account, organizationId }: { account: AiCreditA
         <dt>Included</dt><dd className="text-right tabular-nums">{balance.included.toLocaleString()}</dd>
         <dt>Purchased</dt><dd className="text-right tabular-nums">{balance.purchased.toLocaleString()}</dd>
         <dt>Reserved</dt><dd className="text-right tabular-nums">{balance.reserved.toLocaleString()}</dd>
+        {balance.held ? <><dt>Payment hold</dt><dd className="text-right tabular-nums">{balance.held.toLocaleString()}</dd></> : null}
       </dl>
+      {current.paymentReview ? <p role="status" className="text-xs text-muted-foreground">A credit purchase needs payment review.</p> : null}
       {organizationId && fresh ? <CreditPurchaseControl key={organizationId} organizationId={organizationId} purchases={fresh.purchases} /> : null}
       {organizationId ? <CreditSpendingLimits key={`limits:${organizationId}`} organizationId={organizationId} /> : null}
       {error ? <p role="status" className="text-xs text-muted-foreground">{error}</p> : null}

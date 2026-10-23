@@ -16,9 +16,11 @@ export function priceAiUsage(usage: AiUsage, tariff: AiRateCard) {
   return { microdollars, credits: Math.ceil(microdollars / tariff.microdollarsPerCredit) }
 }
 export function aiCreditBalance(account: AiCreditAccount) {
-  const result = { available: 0, included: 0, purchased: 0, reserved: 0 }
+  const result = { available: 0, included: 0, purchased: 0, reserved: 0, held: 0 }
   for (const lot of account.lots) {
-    const available = lot.expired ? 0 : Math.max(0, lot.credits - lot.spent - lot.reserved)
+    const remainder = lot.expired ? 0 : Math.max(0, lot.credits - lot.spent - lot.reserved)
+    const available = lot.restricted ? 0 : remainder
+    if (lot.restricted) result.held += remainder
     result.available += available
     result.reserved += lot.reserved
     if (lot.kind === "included") result.included += available

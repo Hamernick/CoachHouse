@@ -82,6 +82,7 @@ try {
   runSql("supabase/migrations/20261022230000_workspace_ai_plan_revisions.sql")
   runSql("supabase/migrations/20261022233000_workspace_ai_credit_purchases.sql")
   runSql("supabase/migrations/20261022234500_workspace_ai_spending_limits.sql")
+  runSql("supabase/migrations/20261023001500_workspace_ai_payment_restrictions.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
@@ -165,6 +166,7 @@ try {
   })
   const capped = await Promise.all([reserveWithCaps(4),reserveWithCaps(2)])
   if (capped.filter(result => result.code === 0).length !== 1 || !capped.some(result => result.error.includes("Organization monthly AI credit limit reached"))) throw new Error(`Concurrent limit admission failed: ${JSON.stringify(capped)}`)
+  runSql("supabase/tests/workspace-ai-payment-restrictions.assertions.sql")
   console.log("[workspace-ai] Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
 } finally {
   if (started) {

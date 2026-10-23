@@ -6,6 +6,8 @@ import type { PurchaseOrder } from "@/features/ai-credits/server/purchase-store"
 import { startCreditPurchase } from "@/features/ai-credits/purchase-actions"
 
 const store = vi.hoisted(() => ({ bindCheckout: vi.fn(), readPurchase: vi.fn(), fulfillPurchase: vi.fn(), preparePurchase: vi.fn(), readPurchases: vi.fn() }))
+const restrictions = vi.hoisted(() => ({ processAiCreditReversal: vi.fn(), syncCreditPaymentRestrictions: vi.fn(), verifyCreditPayment: vi.fn() }))
+vi.mock("@/features/ai-credits/server/payment-restrictions", () => restrictions)
 const auth = vi.hoisted(() => ({ getUser: vi.fn(), active: vi.fn(), runtime: vi.fn() }))
 vi.mock("@/features/ai-credits/server/purchase-store", () => store)
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: auth.getUser } }) }))
@@ -25,6 +27,8 @@ const stripe = stripeMock as unknown as Stripe
 const event = { type: "checkout.session.completed", data: { object: session } } as unknown as Stripe.Event
 beforeEach(() => {
   vi.clearAllMocks()
+  restrictions.processAiCreditReversal.mockResolvedValue(false)
+  restrictions.syncCreditPaymentRestrictions.mockResolvedValue(undefined)
   auth.getUser.mockResolvedValue({ data: { user: { id: order.actor_id, user_metadata: {} } } })
   auth.active.mockResolvedValue({ orgId: order.org_id, role: "owner" })
   auth.runtime.mockReturnValue({ mode: "test", client: stripe })
@@ -100,6 +104,12 @@ describe("verified credit payment fulfillment", () => {
     expect(await processAiCreditPurchase({ ...event, type: "checkout.session.async_payment_succeeded" } as Stripe.Event, stripe, "test")).toBe(true)
     expect(store.fulfillPurchase).toHaveBeenCalledWith(order, "cs_fixture", "pi_fixture")
     expect(stripeMock.checkout.sessions.listLineItems.mock.invocationCallOrder[0]).toBeLessThan(store.fulfillPurchase.mock.invocationCallOrder[0])
+    expect(restrictions.syncCreditPaymentRestrictions.mock.invocationCallOrder[0]).toBeLessThan(store.fulfillPurchase.mock.invocationCallOrder[0])
+  })
+  it("does not grant credits if reversal reconciliation cannot finish", async () => {
+    restrictions.syncCreditPaymentRestrictions.mockRejectedValueOnce(new Error("Payment review pending"))
+    await expect(processAiCreditPurchase(event, stripe, "test")).rejects.toThrow("review pending")
+    expect(store.fulfillPurchase).not.toHaveBeenCalled()
   })
   it.each([
     { client_reference_id: "other" }, { livemode: true }, { amount_total: 1 }, { currency: "eur" },

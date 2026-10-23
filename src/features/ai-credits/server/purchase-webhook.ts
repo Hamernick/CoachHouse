@@ -2,10 +2,12 @@ import "server-only"
 import type Stripe from "stripe"
 import { z } from "zod"
 import { readPurchase, fulfillPurchase } from "./purchase-store"
+import { processAiCreditReversal, syncCreditPaymentRestrictions, verifyCreditPayment } from "./payment-restrictions"
 
 // Called only by the existing signature-verified Stripe webhook. Fulfillment
 // remains available when new checkout is disabled, so paid orders cannot strand.
 export async function processAiCreditPurchase(event: Stripe.Event, stripe: Stripe, mode: "test" | "live") {
+  if (await processAiCreditReversal(event, stripe, mode)) return true
   if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") return false
   const incoming = event.data.object as Stripe.Checkout.Session
   if (incoming.metadata?.kind !== "ai_credit_pack") return false
@@ -27,6 +29,8 @@ export async function processAiCreditPurchase(event: Stripe.Event, stripe: Strip
   const item = items.data[0]
   if (items.has_more || items.data.length !== 1 || item.quantity !== 1 || item.price?.id !== order.price_id || item.amount_total !== order.amount)
     throw new Error("Credit payment product mismatch.")
+  verifyCreditPayment(order, payment, mode)
+  await syncCreditPaymentRestrictions(order, payment.id, stripe, { key: event.id, created: event.created })
   await fulfillPurchase(order, session.id, payment.id)
   return true
 }

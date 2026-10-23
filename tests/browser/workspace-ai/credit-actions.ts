@@ -7,10 +7,12 @@ const pack = { key: "fixture", credits: 1000, amount: 1000, currency: "usd" }
 export async function loadCreditPurchases(organizationId: string) {
   if (organizationId !== creditOrg) throw new Error("Organization changed")
   const credited = localStorage.getItem("credit-paid") === "true"
+  const issue = new URLSearchParams(location.search).has("restricted") ? "refund_pending" as const : null
   const id = localStorage.getItem("credit-order")
   const purchases: AiCreditPurchases = { canPurchase: !new URLSearchParams(location.search).has("staff"), packs: [pack],
-    orders: id ? [{ ...pack, id, created_at: new Date().toISOString(), status: credited ? "paid" : "pending" }] : [] }
-  return { account: { ...creditAccount, lots: [{ ...creditAccount.lots[0], credits: credited ? 1100 : 100 }] }, purchases }
+    orders: id ? [{ ...pack, id, created_at: new Date().toISOString(), status: credited ? "paid" : "pending", paymentIssue: issue }] : [] }
+  return { account: { ...creditAccount, paymentReview: Boolean(issue), lots: [creditAccount.lots[0],
+    ...(credited ? [{ ...creditAccount.lots[0], credits: 1000, restricted: Boolean(issue) }] : [])] }, purchases }
 }
 export async function startCreditPurchase(input: { organizationId: string; id: string; pack: string }) {
   const calls = JSON.parse(localStorage.getItem("credit-calls") || "[]")

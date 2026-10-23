@@ -15,7 +15,7 @@ export async function createCreditCheckout(order: PurchaseOrder, stripe: Stripe)
     if (!price.active || price.type !== "one_time" || price.unit_amount !== order.amount || price.currency !== order.currency || price.livemode !== (order.mode === "live"))
       throw new Error("This credit pack is unavailable.")
     session = await stripe.checkout.sessions.create({
-      mode: "payment", payment_method_types: ["card"], client_reference_id: order.id,
+      mode: "payment", payment_method_types: ["card"], client_reference_id: order.id, adaptive_pricing: { enabled: false },
       line_items: [{ price: order.price_id, quantity: 1 }],
       metadata: { kind: "ai_credit_pack", order_id: order.id, organization_id: order.org_id },
       payment_intent_data: { metadata: { kind: "ai_credit_pack", order_id: order.id } },

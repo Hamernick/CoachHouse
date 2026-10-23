@@ -44,3 +44,18 @@ test("members see usage without purchase controls", async ({ page }) => {
   await expect(page.getByText("100 credits available")).toBeVisible()
   await expect(page.getByRole("button", { name: "Buy credits", exact: true })).toHaveCount(0)
 })
+test("payment holds exclude affected credits and do not describe a pending refund as completed", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("credit-paid", "true")
+    localStorage.setItem("credit-order", "71000000-0000-4000-8000-000000000001")
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/?credits&restricted")
+  await expect(page.getByText("100 credits available")).toBeVisible()
+  await expect(page.locator("dt", { hasText: "Payment hold" }).locator("+ dd")).toHaveText("1,000")
+  await expect(page.getByRole("status")).toHaveText("A credit purchase needs payment review.")
+  await expect(page.getByRole("list", { name: "Credit purchases" })).toContainText("Refund pending")
+  await expect(page.getByText("Credited", { exact: true })).toHaveCount(0)
+  expect(await page.locator("main").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await page.screenshot({ path: "/tmp/workspace-credit-payment-hold.png" })
+})

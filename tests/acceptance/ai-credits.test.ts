@@ -26,12 +26,18 @@ describe("AI credit accounting", () => {
     expect(aiCreditBalance({ enabled: true,history: [],lots: [
       { kind: "included",expiresAt: "2026-11-01",credits: 500,spent: 200,reserved: 100 },
       { kind: "purchased",expiresAt: null,credits: 1000,spent: 100,reserved: 0 },
-    ] })).toEqual({ available: 1100,included: 200,purchased: 900,reserved: 100 })
+    ] })).toEqual({ available: 1100,included: 200,purchased: 900,reserved: 100,held:0 })
   })
   it("shows expired in-flight reservations without making expired credits available", () => {
     expect(aiCreditBalance({ enabled:true,history:[],lots:[
       {kind:"included",expiresAt:"2026-01-01",expired:true,credits:500,spent:100,reserved:40},
-    ]})).toEqual({available:0,included:0,purchased:0,reserved:40})
+    ]})).toEqual({available:0,included:0,purchased:0,reserved:40,held:0})
+  })
+  it("keeps restricted lots unavailable without removing consumed or pending allocations", () => {
+    expect(aiCreditBalance({ enabled:true,history:[],lots:[
+      {kind:"purchased",expiresAt:null,credits:1000,spent:100,reserved:40,restricted:true},
+      {kind:"included",expiresAt:null,credits:50,spent:10,reserved:0},
+    ]})).toEqual({available:40,included:40,purchased:0,reserved:40,held:860})
   })
   it("commits a terminal receipt before attempting settlement",async () => {
     rpc.mockResolvedValueOnce({error:null}).mockResolvedValueOnce({error:{message:"Disconnected"}})

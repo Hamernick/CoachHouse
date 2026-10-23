@@ -62,9 +62,9 @@ export async function readAiRun(id: string, organizationId: string, actorId: str
 export async function readAiAccount(organizationId: string, actorId: string): Promise<AiCreditAccount> {
   const { data, error } = await createSupabaseAdminClient({ actorId }).rpc("read_workspace_ai_account", { p_org_id: organizationId, p_actor_id: actorId })
   if (error) throw new Error("AI usage is unavailable.")
-  return z.object({ enabled: z.boolean(), lots: z.array(z.object({
+  return z.object({ enabled: z.boolean(), paymentReview: z.boolean().default(false), lots: z.array(z.object({
     kind: z.enum(["included", "purchased", "adjustment"]), expiresAt: z.string().nullable(),
-    credits: z.number(), spent: z.number(), reserved: z.number(), expired: z.boolean().default(false),
+    credits: z.number(), spent: z.number(), reserved: z.number(), expired: z.boolean().default(false), restricted: z.boolean().default(false),
   })), history: z.array(z.object({ id: z.uuid(), status: z.string(), created_at: z.string(),
     charged_credits: z.number().nullable(), max_credits: z.number(), settled_at: z.string().nullable(),
   })) }).parse(data)
