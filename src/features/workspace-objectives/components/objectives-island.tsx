@@ -38,7 +38,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
   const id = useId()
   const objectives = state.data?.objectives.filter(objective => objective.status !== "archived") ?? []
   const activePlans = (state.data?.planning?.plans ?? []).filter(plan => objectives.some(objective => objective.id === plan.objectiveId))
-  const remaining = objectives.filter(objective => objective.status !== "done").length
+  const completed = objectives.filter(objective => objective.status === "done").length
   const editable = canEdit && state.data?.loadedFrom === "normalized"
   const editPlan = useCallback((plan: ObjectivePlan) => { setOpen(true); setPlanDraft(draftFromPlan(plan, state.data?.steps ?? [])) }, [state.data?.steps])
   const { mutate } = state
@@ -49,7 +49,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
     void mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." })).then(saved => { if (!saved) setOpen(true) })
   }, [mutate, transport, scope, state.data?.steps])
   const projectionError = usePlanProjection({ data: state.data, selected, scopeKey: `${userId}:${organizationId}`, pending: state.pending, canEdit: Boolean(editable), onEdit: editPlan, onStep, onChoice, onProjection })
-  return <ObjectivesIslandSurface open={open} count={state.data ? remaining : undefined} onOpenChange={value => { setOpen(value); if (value) void state.refresh() }}>
+  return <ObjectivesIslandSurface open={open} completed={completed} total={objectives.length} onOpenChange={value => { setOpen(value); if (value) void state.refresh() }}>
     <div className="flex min-w-0 flex-col gap-2" style={planDraft || aiObjective ? { display: "none" } : undefined} inert={Boolean(planDraft || aiObjective)} aria-busy={state.pending}>
           {canEdit && state.data && state.data.loadedFrom !== "legacy_tracker" && <form className="w-full" onSubmit={async event => {
             event.preventDefault()

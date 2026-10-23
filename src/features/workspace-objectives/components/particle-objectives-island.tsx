@@ -13,7 +13,7 @@ export function ParticleObjectivesIsland({ scope, controls }: { scope: Objective
   const [title, setTitle] = useState("")
   const actions = useParticlePlans(scope, controls)
   const objectives = (controls.graph?.particles ?? []).filter((item): item is ObjectiveParticle => item.type === "objective")
-  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} count={objectives.filter(item => item.status !== "done").length}>
+  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} completed={objectives.filter(item => item.status === "done").length} total={objectives.length}>
     <div aria-busy={controls.pending} className="flex min-w-0 flex-col gap-1">
       {(controls.error || actions.accessError) && <p role="alert" className="px-2 py-1 text-xs text-destructive">{controls.error || actions.accessError}{controls.error && <Button variant="link" size="sm" onClick={() => void controls.retry()}>Retry</Button>}</p>}
       {objectives.map(objective => <ParticleObjectiveCard key={objective.id} objective={objective} controls={controls} actions={actions} userId={scope.userId} />)}
