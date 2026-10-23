@@ -811,3 +811,7 @@ Moved the objective creation form into a nonshrinking footer outside the list's 
 User follow-up: reduced closed Objectives shell width142→122px, preserving expanded dimensions/transition. Actual browser padding now12px left/12.95px right, previously12px/32.95px. Scoped lint passes. Prior graph update completed; current refresh `/tmp/objectives-pill-spacing-graph.log` (exec67870).
 
 Optical follow-up: user requested slightly more space on the right. Increased shell122→124px; browser confirms right padding14.95px with left12px. Existing graph refresh67870 is still running; no duplicate launched for this numeric adjustment.
+
+### User report — duplicate roadmap editor keys, 2026-10-23
+
+RoadmapConflictReview and RoadmapEditorShell were siblings sharing the same user/organization/section key. Added component-specific conflict:/editor: prefixes, retaining the existing remount boundary when scope or section changes.18 focused roadmap layout/status tests and scoped lint pass (`/tmp/roadmap-sibling-keys-tests.log`). Fresh localhost3008/workspace/roadmap/vision browser load plus Mission→Vision switching produced no console errors/warnings; saved content was not edited. Prior pill graph refresh completed; current refresh exec85374, `/tmp/roadmap-sibling-keys-graph.log`. No scope expansion or broader sprint resume.

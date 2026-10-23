@@ -66,9 +66,9 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
 
   return (
     <>
-    <RoadmapConflictReview key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`} conflict={saveConflict} draft={activeDraft} onResolve={resolveSaveConflict} />
+    <RoadmapConflictReview key={`conflict:${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`} conflict={saveConflict} draft={activeDraft} onResolve={resolveSaveConflict} />
     <RoadmapEditorShell
-      key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`}
+      key={`editor:${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`}
       sourceScope={props.sourceScope}
       sections={props.sections}
       activeSection={activeSection}
