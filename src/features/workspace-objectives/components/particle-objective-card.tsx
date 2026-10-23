@@ -28,7 +28,7 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
     }] }, created)
   const add = (particle: Particle, created = false) => store({ id: crypto.randomUUID(), title: "Plan", revision: 0, particleIds: [particle.id] }, created || particle.canvasHidden ? particle : undefined)
   return <Collapsible open={open} onOpenChange={setOpen} className={styles.objective}>
-    <div className="flex min-w-0 items-center gap-1">
+    <div className={`${styles.objectiveHeader} flex min-w-0 items-center gap-1`}>
       {rename ? <ObjectiveInlineTitle initial={objective.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...objective, title })} /> : <CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-11 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-xl px-2 text-left"><ParticleStatusMark particle={objective} /><span className="min-w-0 flex-1 break-words">{objective.title}</span><ParticleStatusLabel particle={objective} /></Button></CollapsibleTrigger>}
       {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${objective.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => setRename(true)}>Rename</DropdownMenuItem>
