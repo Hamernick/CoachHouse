@@ -1,15 +1,12 @@
 "use client"
 
 import { useRef, useState } from "react"
-import type HCaptcha from "@hcaptcha/react-hcaptcha"
 import { z } from "zod"
 import type { GuestDraftController } from "../lib/guest-draft-controller"
 import { guestFieldName, guestSubmissionInput } from "../lib/guest-submission-input"
 import type { guestSubmissionSchema } from "../lib/guest-submission-schema"
 
 export function usePublicFiscalSubmission(controller: GuestDraftController) {
-  const captchaRef = useRef<HCaptcha | null>(null)
-  const [captchaToken, setCaptchaToken] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -21,7 +18,7 @@ export function usePublicFiscalSubmission(controller: GuestDraftController) {
     setMessage(null)
     if (!pending.current) {
       try {
-        const parsed = guestSubmissionInput(controller.getSnapshot().draft, captchaToken)
+        const parsed = guestSubmissionInput(controller.getSnapshot().draft)
         if (!parsed.success) {
           setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [guestFieldName(issue.path), issue.code === "custom" ? issue.message : "Check this answer."])))
           return
@@ -44,8 +41,8 @@ export function usePublicFiscalSubmission(controller: GuestDraftController) {
         controller.acceptSubmission(receipt.reference); pending.current = null; setUncertain(false); return
       }
       if (response.status >= 500) throw new Error("uncertain_submission")
-      // Definite rejection: retain answers, release editing and require fresh captcha.
-      pending.current = null; setUncertain(false); setCaptchaToken(""); captchaRef.current?.resetCaptcha()
+      // Definite rejection: retain answers and release editing.
+      pending.current = null; setUncertain(false)
       if (response.status === 401) controller.expireSession()
       const failure = z.object({ error: z.string(), fields: z.array(z.object({ path: z.string(), message: z.string() })).optional() }).passthrough().safeParse(result)
       if (failure.success && failure.data.fields) setErrors(Object.fromEntries(failure.data.fields.map((field) => [guestFieldName(field.path.split(".")), field.message])))
@@ -57,5 +54,5 @@ export function usePublicFiscalSubmission(controller: GuestDraftController) {
       setMessage("We couldn’t confirm the result. Your answers are preserved. Retry to check the same application; it won’t create a duplicate.")
     } finally { busy.current = false; setWorking(false) }
   }
-  return { captchaRef, captchaToken, setCaptchaToken, errors, message, setMessage, working, uncertain, submit }
+  return { errors, message, setMessage, working, uncertain, submit }
 }

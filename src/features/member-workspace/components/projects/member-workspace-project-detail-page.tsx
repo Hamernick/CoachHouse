@@ -64,6 +64,7 @@ type MemberWorkspaceProjectDetailPageProps = {
   assigneeOptions: MemberWorkspacePersonOption[]
   currentUser: User
   fiscalSponsorshipWorkflowSummary?: FiscalSponsorshipProjectWorkflowSummary | null
+  fiscalSponsorshipWorkbench?: ReactNode
   organizationSummary: MemberWorkspaceAdminOrganizationSummary
   canManageProject?: boolean
   canManageProjectAssets?: boolean
@@ -205,6 +206,7 @@ export function MemberWorkspaceProjectDetailPage({
   assigneeOptions,
   currentUser,
   fiscalSponsorshipWorkflowSummary,
+  fiscalSponsorshipWorkbench,
   organizationSummary,
   canManageProject: canManageProjectProp,
   canManageProjectAssets: canManageProjectAssetsProp,
@@ -440,6 +442,7 @@ export function MemberWorkspaceProjectDetailPage({
                   />
 
                   <MemberWorkspaceProjectDetailTabs
+                    actionScope={directoryHref === "/organizations" ? "platform" : "workspace"}
                     showOrganizationPrograms={directoryHref === "/organizations"}
                     organizationPrograms={organizationPrograms} activeTab={activeTab}
                     assigneeOptions={assigneeOptions}
@@ -457,6 +460,7 @@ export function MemberWorkspaceProjectDetailPage({
                     fiscalSponsorshipWorkflowSummary={
                       fiscalSponsorshipWorkflowSummary
                     }
+                    fiscalSponsorshipWorkbench={fiscalSponsorshipWorkbench}
                     generateFiscalSponsorshipAgreementAction={
                       generateFiscalSponsorshipAgreementAction
                     }

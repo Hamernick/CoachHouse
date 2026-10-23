@@ -48,11 +48,11 @@ function readSource(relativePath: string) {
 }
 
 describe("public marketing canvas", () => {
-  it("keeps the established shell at the home-canvas route", () => {
+  it("retires the home-canvas shell behind destination redirects", () => {
     const routeSource = readSource("src/app/(public)/home-canvas/page.tsx")
 
-    expect(routeSource).toContain("<HomeCanvasPreview")
-    expect(routeSource).toContain("<PricingSurface embedded />")
+    expect(routeSource).not.toContain("<HomeCanvasPreview")
+    expect(routeSource).toContain("redirect(query ?")
     expect(routeSource).not.toContain("HomePageSurface")
   })
 
@@ -245,6 +245,6 @@ describe("public marketing canvas", () => {
 
     expect(tokenSource).toContain("getPublicMapboxToken")
     expect(tokenSource).toContain('startsWith("pk.")')
-    expect(routeSource).toContain("mapboxToken={getPublicMapboxToken()}")
+    expect(routeSource).not.toContain("getPublicMapboxToken")
   })
 })

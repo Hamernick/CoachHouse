@@ -1,5 +1,7 @@
 "use client"
 
+import { buildCoachingCalendarTitle } from "../lib/calendar-title"
+
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import CalendarCheckIcon from "lucide-react/dist/esm/icons/calendar-check"
@@ -22,12 +24,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Separator } from "@/components/ui/separator"
 import { SessionNotesField } from "./coaching-session-notes-field"
 import { CoachingRescheduleDialog } from "./coaching-reschedule-dialog"
 import { useCoachingBookingActions } from "../hooks/use-coaching-booking-actions"
+import { useCoachingCheckoutNotice } from "../hooks/use-coaching-checkout-notice"
 import { WheelPicker, WheelPickerWrapper, type WheelPickerOption } from "@/components/wheel-picker"
 import { COACHING_DEFAULT_TIMEZONE, COACHING_PATH, COACHING_SESSION_MINUTES, getValidGoogleMeetUrl, getValidGoogleCalendarEventUrl } from "../lib"
 import { listCoachingAvailabilityAction } from "../actions"
@@ -37,6 +41,7 @@ import { type CoachingBookingPageData, type CoachingBookingRecord, type Coaching
 
 type CoachingBookingFlowProps = {
   initialData: CoachingBookingPageData
+  bookingNotice?: string
 }
 
 type FlowStep = "date" | "time" | "review" | "done"
@@ -61,7 +66,7 @@ function buildGoogleCalendarUrl(booking: CoachingBookingRecord) {
   const dates = `${booking.startsAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}/${booking.endsAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}`
   const params = new URLSearchParams({
     action: "TEMPLATE",
-    text: `Coach House meeting with ${booking.coachName}`,
+    text: booking.calendarTitle ?? buildCoachingCalendarTitle(),
     dates,
     details: googleMeetUrl
       ? `Join Google Meet: ${googleMeetUrl}\nUse this Google Calendar invite for updates or rescheduling.`
@@ -252,12 +257,15 @@ function BookingRow({ booking, onCancel, pending }: { booking: CoachingBookingRe
   )
 }
 
-export function CoachingBookingFlow({ initialData }: CoachingBookingFlowProps) {
+export function CoachingBookingFlow({ initialData, bookingNotice }: CoachingBookingFlowProps) {
   const [step, setStep] = useState<FlowStep>("date")
+  const [checkoutNoticeDismissed, setCheckoutNoticeDismissed] = useState(false)
+  const checkoutNotice = useCoachingCheckoutNotice(bookingNotice, checkoutNoticeDismissed)
   const [stepDirection, setStepDirection] = useState<1 | -1>(1)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()))
   const [slots, setSlots] = useState<CoachingSlot[]>([])
+  const [availabilityRevision, setAvailabilityRevision] = useState(0)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<CoachingSlot | null>(null)
   const [attendeeNotes, setAttendeeNotes] = useState("")
@@ -305,7 +313,17 @@ export function CoachingBookingFlow({ initialData }: CoachingBookingFlowProps) {
   const checkoutUnavailable = paidCheckoutRequired && !initialData.paymentConfigured
   const { pending, confirmSelection, cancelBooking } = useCoachingBookingActions({
     selectedSlot, checkoutUnavailable, selectedCoachId: initialData.selectedCoachId,
-    timezone, attendeeNotes, onBooked: () => setStep("done"),
+    timezone, attendeeNotes, onBooked: () => {
+      setCheckoutNoticeDismissed(true)
+      setStep("done")
+    },
+    onUnavailable: () => {
+      setSelectedSlot(null)
+      setSlots([])
+      setAvailabilityLoading(true)
+      setAvailabilityRevision((revision) => revision + 1)
+      setStep("time")
+    },
   })
   const showCalendarStep = step === "date"
   const prefersReducedMotion = useReducedMotion()
@@ -371,7 +389,7 @@ export function CoachingBookingFlow({ initialData }: CoachingBookingFlowProps) {
       setSlots(result.slots)
       setAvailabilityLoading(false)
     })()
-  }, [calendarMonth, initialData.calendarConfigured, initialData.selectedCoachId, timezone])
+  }, [calendarMonth, initialData.calendarConfigured, initialData.selectedCoachId, timezone, availabilityRevision])
 
   useEffect(() => {
     if (availabilityLoading) return
@@ -414,6 +432,7 @@ export function CoachingBookingFlow({ initialData }: CoachingBookingFlowProps) {
     <main className="flex min-h-full flex-1 items-stretch justify-start px-0 py-0 sm:items-center sm:justify-center sm:px-4 sm:py-6 lg:px-6">
       <h1 className="sr-only">Coaching</h1>
       <div className="mx-auto flex w-full max-w-[42rem] flex-col gap-5 pb-[calc(3rem+env(safe-area-inset-bottom))] sm:gap-6 sm:pb-0">
+        {checkoutNotice ? <Alert role="status"><AlertDescription>{checkoutNotice}</AlertDescription></Alert> : null}
         <section className="border-border/70 bg-card overflow-hidden rounded-xl border shadow-sm">
           <div className="grid xl:grid-cols-[17.5rem_minmax(0,1fr)]">
             <SessionDetailsPanel coaches={initialData.coaches} creditSummary={initialData.creditSummary} timezone={timezone} />

@@ -34,20 +34,23 @@ export async function loadOrganizationProjectActivity({
   orgId,
   projectId,
   supabase,
+  projectOnly = false,
 }: {
   orgId: string
   projectId: string
+  projectOnly?: boolean
   supabase: Awaited<
     ReturnType<typeof resolveMemberWorkspaceActorContext>
   >["supabase"]
 }): Promise<ProjectActivityItem[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("organization_project_activity_events")
     .select(
       "id, org_id, project_id, entity_type, entity_id, event_type, title, from_status, to_status, actor_id, metadata, occurred_at"
     )
     .eq("org_id", orgId)
-    .or(`project_id.eq.${projectId},entity_type.in.(program,document,file)`)
+  query = projectOnly ? query.eq("project_id", projectId) : query.or(`project_id.eq.${projectId},entity_type.in.(program,document,file)`)
+  const { data, error } = await query
     .order("occurred_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(200)

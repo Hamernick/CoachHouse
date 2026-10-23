@@ -1,0 +1,1 @@
+export const PUBLIC_MAP_GLOBE_MAX_SPIN_ZOOM = 5

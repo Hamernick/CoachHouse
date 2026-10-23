@@ -1,3 +1,4 @@
+import { loadProjectTimelineAction, saveProjectTimelineDatesAction, saveProjectTimelineStatusAction } from "@/features/member-workspace"
 import {
   createMemberWorkspaceProjectAction,
   deleteMemberWorkspaceProjectAction,
@@ -12,8 +13,9 @@ import { requirePlatformCapability } from "@/lib/admin/auth"
 
 export default async function ProjectsPage() {
   await requirePlatformCapability("organizations", { loginRedirect: "/projects" })
-  const data = await loadMemberWorkspaceProjectsPage({ directory: "projects" })
+  const data = await loadMemberWorkspaceProjectsPage({ directory: "projects", actorScope: "platform" })
   return <MemberWorkspaceProjectsPage
+      timelineActions={{ load: loadProjectTimelineAction, dates: saveProjectTimelineDatesAction, status: saveProjectTimelineStatusAction }}
     {...data}
     directory="projects"
     deleteProjectAction={data.canCreateProjects ? deleteMemberWorkspaceProjectAction : undefined}

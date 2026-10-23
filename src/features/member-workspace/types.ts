@@ -14,6 +14,9 @@ export type MemberWorkspaceAccessibleOrganization = {
   name: string
   publicSlug: string | null
   imageUrl: string | null
+  supportAccess?: boolean
+  contactName?: string | null
+  contactEmail?: string | null
 }
 
 export type MemberWorkspaceProjectOrganizationOption = {
@@ -32,12 +35,14 @@ export type MemberWorkspacePersonOption = {
 }
 
 export type MemberWorkspaceHeaderState = {
+  presenceOrganizationId?: string
+  canSearchSupport?: boolean
   activeOrganization: MemberWorkspaceAccessibleOrganization
   accessibleOrganizations: MemberWorkspaceAccessibleOrganization[]
 }
 
 export type MemberWorkspaceSetActiveOrganizationResult =
-  | { ok: true; orgId: string }
+  | { ok: true; orgId: string; supportAccess?: boolean }
   | { error: string }
 
 export type MemberWorkspaceStorageMode =
@@ -64,7 +69,37 @@ export type MemberWorkspaceTaskAssignee = {
   avatarUrl: string | null
 }
 
+export type MemberWorkspaceTaskCapabilities = {
+  status: boolean
+  details: boolean
+  schedule: boolean
+  order: boolean
+}
+
+export type MemberWorkspaceScheduleTaskInput = {
+  taskId: string
+  projectId: string
+  startDate: string
+  expectedStartDate: string
+  expectedEndDate: string
+}
+
+export type MemberWorkspaceMoveTaskInput = {
+  taskId: string
+  projectId: string
+  neighborTaskId: string
+  placement: "before" | "after"
+  expectedSortOrder: number
+  expectedNeighborSortOrder: number
+  expectedUpdatedAt: string
+  expectedNeighborUpdatedAt: string
+}
+
 export type MemberWorkspaceTaskItem = {
+  sortOrder?: number
+  createdAt?: string
+  updatedAt?: string
+  capabilities?: MemberWorkspaceTaskCapabilities
   tracker?: TaskTrackerDetails
   organizationName?: string
   id: string

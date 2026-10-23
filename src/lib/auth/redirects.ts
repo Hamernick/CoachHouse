@@ -37,3 +37,14 @@ export function getSafeRedirectPath(value: unknown): string | undefined {
     return undefined
   }
 }
+
+/** A login destination must not send an existing session back into sign-in. */
+export function getSafePostLoginRedirectPath(value: unknown): string | undefined {
+  const path = getSafeRedirectPath(value)
+  if (!path) return undefined
+  const url = new URL(path, SAFE_REDIRECT_ORIGIN)
+  const pathname = url.pathname.replace(/\/+$/, "")
+  if (pathname === "/login" || pathname === "/tester/login") return undefined
+  if (pathname === "/home-canvas" && url.searchParams.get("section") === "login") return undefined
+  return path
+}

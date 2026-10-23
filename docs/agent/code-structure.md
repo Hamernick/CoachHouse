@@ -28,10 +28,14 @@
   - `tests/acceptance/<feature-name>.test.ts[x]` (feature acceptance baseline)
 - A feature may expose `client.ts` as a narrow client-safe public entrypoint when
   its root entrypoint also exports server-only modules.
+- A feature may expose `server.ts` as a narrow public entrypoint for server queries
+  and server-rendered composition. It must include `import "server-only"`; client
+  modules must not import it. This avoids loading unrelated client exports from a
+  mixed root barrel while preserving feature boundaries.
 - Enforced by `scripts/check-feature-contract.mjs` via `pnpm check:features`.
 - Scaffold/contract sync is enforced by `scripts/check-feature-scaffold-sync.mjs` via `pnpm check:feature-scaffold`.
 - Cross-feature imports must use public entrypoints only (`@/features/<name>` or
-  `@/features/<name>/client`), not deep internals.
+  `@/features/<name>/client` or `@/features/<name>/server`), not deep internals.
 - Feature code must not import from `src/app/**` route modules.
 - `lib/**` must stay framework-agnostic (no React/UI imports).
 - `components/**` cannot import `server/**`; `server/**` cannot import `components/**`.
@@ -58,7 +62,8 @@
 - `src/components/**` (non-`ui`) may not import route modules from `src/app/**` except action modules.
 - Route-private modules (`_components`, `_lib`) may not be imported outside `src/app/**`.
 - Imports from `src/features/**` must use feature public entrypoints
-  (`@/features/<name>` or `@/features/<name>/client`) outside feature modules;
+  (`@/features/<name>`, `@/features/<name>/client`, or the marked
+  `@/features/<name>/server` facade) outside feature modules;
   deep imports are disallowed.
 - Workspace persistence boundary is table-only; do not reintroduce legacy profile keys (`workspace_board_v1`, `workspace_collaboration_v1`) in runtime source.
 

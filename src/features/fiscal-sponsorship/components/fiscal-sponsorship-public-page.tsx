@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { DocumentationPageHeader } from "@/features/nonprofit-documentation"
 import { FiscalSponsorshipOverview } from "./fiscal-sponsorship-overview"
 import { FiscalSponsorshipPublicIntake } from "./fiscal-sponsorship-public-intake"
+import { FiscalLinkedApplications } from "./fiscal-linked-applications"
 
 export function FiscalSponsorshipPublicPage() {
   return (
@@ -17,6 +18,7 @@ export function FiscalSponsorshipPublicPage() {
         </Button>
         <p className="text-xs leading-5 text-muted-foreground">Applications are reviewed. Sponsorship does not guarantee funding.</p>
       </DocumentationPageHeader>
+      {process.env.FISCAL_GUEST_PROFILE_IMPORT_ENABLED === "true" && <FiscalLinkedApplications />}
       <FiscalSponsorshipPublicIntake
         profileImportEnabled={process.env.FISCAL_GUEST_PROFILE_IMPORT_ENABLED === "true"}
         draftPersistenceEnabled={process.env.FISCAL_GUEST_INTAKE_ENABLED === "true"}

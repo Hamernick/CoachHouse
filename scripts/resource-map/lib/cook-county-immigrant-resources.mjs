@@ -161,6 +161,23 @@ function parseLocation(row, geocode) {
   }
 }
 
+/**
+ * @param {object} options
+ * @param {string} options.fetchedAt
+ * @param {{
+ *   addressComponents?: { city?: string | null, state?: string | null, zip?: string | null },
+ *   coordinates?: { x?: number | null, y?: number | null }
+ * } | null} [options.geocode]
+ * @param {{
+ *   name: string,
+ *   website: string,
+ *   address?: string | null,
+ *   communityServed?: string | null,
+ *   serviceArea?: string | null,
+ *   services?: string | null
+ * }} options.row
+ * @param {string} [options.sourceUrl]
+ */
 export function buildCookCountyImmigrantResourceRecord({
   fetchedAt,
   geocode = null,

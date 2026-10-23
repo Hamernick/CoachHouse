@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "revision": 0,
+  "updated_at": null,
+  "active": null,
+  "receipts": [],
+  "sources": [
+    {
+      "id": "coverage.csv",
+      "sha256": "cd9d5e2f9284f239abb62c3c84d5a0727739c8bf924a8d17fd433687665378b5",
+      "private_location": "Desktop/Coach House Codex Workstreams/coverage.csv"
+    },
+    {
+      "id": "original-verbatim.txt",
+      "sha256": "ec84c7f291074212b485c9266efb39172f436e5dcb30c1f0b781708f7a079f5d",
+      "private_location": "Desktop/Coach House Codex Workstreams/original-verbatim.txt"
+    },
+    {
+      "id": "sources/handoff-2026-10-12.md",
+      "sha256": "c829e6ccbd13fb8a3abf78a7fb1e115ba58c6df57877e8493b24750bd8883602",
+      "private_location": "Desktop/Coach House Codex Workstreams/sources/handoff-2026-10-12.md"
+    },
+    {
+      "id": "SHIP.md",
+      "sha256": "95d022ae9d5ed7318cad67f54fb21fa12669d6716cdf500bccab99ec42636fef",
+      "private_location": "Desktop/Coach House Codex Workstreams/SHIP.md"
+    }
+  ],
+  "queue": [
+    {
+      "id": "SHIP-000",
+      "workstream": "00",
+      "source_ids": [
+        "SHIP.md:Phase-0"
+      ],
+      "scope": "Shared SHIP runner, sanitized queue, evidence gates and startup discovery",
+      "exclusions": [
+        "Application changes",
+        "Provider mutations",
+        "Website publication",
+        "Dashboard service"
+      ],
+      "acceptance": [
+        "Exclusive claim and atomic stale-write rejection",
+        "Restart and interrupted-write recovery",
+        "Fail-closed review, quality, deployment and closeout gates",
+        "Read-only provider reconciliation",
+        "Reviewable remotely recoverable PR"
+      ],
+      "dependencies": [],
+      "kind": "tooling",
+      "status": "queued",
+      "next_action": "Build and validate runner, then present exact revision for human review",
+      "plan_refs": [
+        {
+          "workstream": "00",
+          "stages": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AUDIT-001",
+      "workstream": "09",
+      "source_ids": [
+        "handoff:1.1",
+        "handoff:1.2",
+        "handoff:1.6"
+      ],
+      "scope": "Read-only verification of community, publication/sitemap and fiscal disclosure findings",
+      "exclusions": [
+        "Website implementation",
+        "Publishing",
+        "Payments or legal policy changes"
+      ],
+      "acceptance": [
+        "Reproduce or dismiss each finding against current source and production",
+        "Map findings to existing owners",
+        "Present smallest proposed fix and required decisions"
+      ],
+      "dependencies": [
+        "SHIP-000"
+      ],
+      "kind": "application",
+      "status": "queued",
+      "next_action": "After SHIP-000 closes, verify findings without website edits",
+      "plan_refs": [
+        {
+          "workstream": "09",
+          "stages": [
+            1
+          ]
+        },
+        {
+          "workstream": "05",
+          "stages": [
+            1
+          ]
+        },
+        {
+          "workstream": "03",
+          "stages": [
+            3
+          ]
+        }
+      ]
+    }
+  ],
+  "intake_manifest": "docs/shipping/intake.json",
+  "intake_count": 176,
+  "planning_manifest": "docs/shipping/plans.json"
+}

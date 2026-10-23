@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 }
 
 export default function ResourcesPage({ searchParams }: PublicFindRouteProps) {
-  return <PublicHomeResourceExplorer unframed searchParams={searchParams} />
+  return <PublicHomeResourceExplorer searchParams={searchParams} />
 }

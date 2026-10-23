@@ -23,7 +23,9 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
+import { COACH_HOUSE_DONATE_URL } from "@/lib/public-links"
 import { cn } from "@/lib/utils"
 
 import { BUILD_NAVIGATION_ITEMS, COLLECT_NAVIGATION_ITEMS } from "../lib"
@@ -160,6 +162,16 @@ function BuildCollectNavigation({
             <NavigationCards items={BUILD_NAVIGATION_ITEMS} onNavigate={() => setOpenMenu("")} />
           </NavigationMenuContent>
         </NavigationMenuItem>
+        <NavigationMenuItem value="donate">
+          <NavigationMenuLink
+            asChild
+            className={cn(navigationMenuTriggerStyle(), "relative h-8 touch-manipulation rounded-full bg-transparent px-3 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 dark:hover:bg-input/50 dark:focus:bg-input/50")}
+          >
+            <a href={COACH_HOUSE_DONATE_URL} target="_blank" rel="noopener noreferrer" onClick={() => setOpenMenu("")}>
+              Donate<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   )
@@ -191,15 +203,15 @@ export function BuildCollectPublicHeader({
   return (
     <header
       data-build-collect-public-header=""
-      className="grid min-h-15 shrink-0 grid-cols-[auto_1fr] items-center gap-2 px-[var(--shell-content-pad,1rem)] py-1.5 min-[480px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+      className="grid min-h-15 shrink-0 grid-cols-[auto_1fr] items-center gap-2 px-[var(--shell-content-pad,1rem)] py-1.5 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
     >
       <BuildCollectBrand hideOnDesktop={hideBrandOnDesktop} />
 
-      {showPublicNavigation ? <div className="col-span-2 row-start-2 flex min-w-0 items-center justify-center min-[480px]:col-span-1 min-[480px]:col-start-2 min-[480px]:row-start-1">
+      {showPublicNavigation ? <div className="col-span-2 row-start-2 flex min-w-0 items-center justify-center md:col-span-1 md:col-start-2 md:row-start-1">
         <BuildCollectNavigation activeArea={activeArea} />
       </div> : null}
 
-      <div className="col-start-2 row-start-1 flex min-w-0 shrink-0 items-center justify-end gap-3 min-[480px]:col-start-3">
+      <div className="col-start-2 row-start-1 flex min-w-0 shrink-0 items-center justify-end gap-3 md:col-start-3">
         {showPublicSearch && activeArea === "collect" ? (
           <Button
             type="button"

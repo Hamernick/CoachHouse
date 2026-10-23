@@ -5,8 +5,9 @@ Canonical agent contract for this repo. Keep this file short; details live in `/
 ## Non-Negotiables
 
 - Source of truth: this file + linked `docs/agent/**` documents.
-- Continuation protocol: follow the [Agent protocol](docs/RUNLOG.md#agent-protocol), including the current monthly entries and `docs/agent/open-work-index.md`, before the worktree checkpoint and lane selection. `docs/agent/HANDOFF.md` is deprecated and not authoritative.
-- Continuation protocol: after this file, read `docs/RUNLOG.md`, then the latest dated entries in its linked current monthly log, then `docs/agent/open-work-index.md`, and inspect the current git worktree before selecting a work lane; `docs/agent/HANDOFF.md` is deprecated and not authoritative.
+- Original workstream plans: use the restored directory supplied through `--plans-root`, or default to `~/Desktop/Coach House Codex Workstreams` (resolved under the current user's home; see `docs/shipping/plans.json`). Before selecting or implementing work, read that directory's `WORKSTREAMS.md`, then the relevant numbered `.md` packet in full (original requests, stages, decisions and checkpoint). Read its `SHIP.md` for current runner/claim location, including when this checkout predates SHIP. Missing files in the selected root are a blocker: recover the originals; never substitute a reconstructed plan or infer unfinished work from checkboxes.
+- Continuation protocol: after this file, read `docs/RUNLOG.md`, then the latest dated entries in its linked current monthly log, then `docs/agent/open-work-index.md`, following the [Agent protocol](docs/RUNLOG.md#agent-protocol) before the worktree checkpoint and lane selection. `docs/agent/HANDOFF.md` is deprecated and not authoritative.
+- SHIP: read [docs/SHIP.md](docs/SHIP.md), inspect the shared record and resolve any active claim before selecting work.
 - New-chat branch checkpoint: before writing files in the first turn of every chat, follow the mandatory worktree report and branch-choice protocol in `docs/agent/workflow-quality.md` unless the user's prompt already chose the branch strategy.
 - Implement changes in `src/**`, `app/**`, `migrations/**`, or `docs/**`.
 - Keep PRs small. Required CI merge checks include: `pnpm lint`, `pnpm test:snapshots`, `pnpm test:acceptance`, `pnpm test:rls`.
@@ -18,6 +19,7 @@ Canonical agent contract for this repo. Keep this file short; details live in `/
 
 ## Default Codex Mode (UI/Feature/Product)
 
+- Default delivery ends at an open PR: implement the requested scope, run focused local checks and normal pre-push hooks, then commit, push and open the PR. Caleb owns hosted CI/check review, required review coordination, merge, deployment and production verification. Do not monitor or poll those stages, merge, deploy, or run production verification unless explicitly asked. Report the PR link, local evidence and known blockers, then stop; this handoff does not waive required merge gates.
 - Treat UI, feature, and product-development requests as implementation tasks by default (not brainstorming-only) unless the user explicitly asks for planning only.
 - For new feature work, start from `pnpm scaffold:feature <kebab-name>` and implement inside `src/features/**`; keep `src/app/**` route files composition-only.
 - For UI changes, use existing shadcn/ui primitives and shared patterns; avoid one-off controls where system primitives already exist.

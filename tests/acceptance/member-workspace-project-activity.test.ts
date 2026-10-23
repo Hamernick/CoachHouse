@@ -31,6 +31,17 @@ function createActivityRow({
 }
 
 describe("organization project activity", () => {
+  it("excludes host-wide program, document and file activity in fiscal project scope", async () => {
+    const query = {
+      select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), or: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
+    expect(await loadOrganizationProjectActivityResult({ orgId: "host", projectId: "fiscal-project", projectOnly: true, supabase: { from: () => query } as never })).toEqual({ state: "ready", items: [] })
+    expect(query.eq).toHaveBeenCalledWith("org_id", "host")
+    expect(query.eq).toHaveBeenCalledWith("project_id", "fiscal-project")
+    expect(query.or).not.toHaveBeenCalled()
+  })
   it.each([
     [
       {

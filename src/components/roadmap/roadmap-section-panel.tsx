@@ -22,6 +22,7 @@ type RoadmapSectionPanelProps = {
   statusSelectDisabled?: boolean
   isHydrated?: boolean
   showHeader?: boolean
+  compactHeader?: boolean
   headerVariant?: "default" | "calendar"
   headerIconSize?: number | null
   headerTextRef?: RefObject<HTMLDivElement | null>
@@ -44,6 +45,7 @@ export function RoadmapSectionPanel({
   statusSelectDisabled = false,
   isHydrated = true,
   showHeader = true,
+  compactHeader = false,
   headerVariant = "default",
   headerIconSize = null,
   headerTextRef,
@@ -75,14 +77,52 @@ export function RoadmapSectionPanel({
   const headerPaddingClass = headerVariant === "calendar" ? "pt-0" : "pt-2 sm:pt-4"
   const headerTextSpacing = headerVariant === "calendar" ? "space-y-0.5" : "space-y-1"
 
+  const statusControl = (
+    !isHydrated ? (
+                <Skeleton className="h-7 w-24 rounded-full" />
+              ) : canEdit && onStatusChange ? (
+                <Select
+                  value={status}
+                  onValueChange={(value) => onStatusChange(value as RoadmapSectionStatus)}
+                  disabled={statusSelectDisabled}
+                >
+                  <SelectTrigger
+                    className={cn("h-7 rounded-full border border-border/60 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground shadow-none", compactHeader && "min-h-11 gap-1 sm:min-h-8") }
+                    aria-label={controlsPublicProfile ? "Core document publication status" : "Roadmap section status"}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
+                      <SelectValue placeholder={statusLabel} />
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_started">Not started</SelectItem>
+                    <SelectItem value="in_progress">{controlsPublicProfile ? "Draft" : "In progress"}</SelectItem>
+                    <SelectItem value="complete">{controlsPublicProfile ? "Public" : "Complete"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
+                  {statusLabel}
+                </span>
+              )
+  )
+
   return (
     <div
       className={cn(
         "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col gap-6 overflow-hidden",
+        compactHeader && "gap-2",
         panelClassName,
       )}
     >
-      {showHeader ? (
+      {compactHeader ? (
+        <div className={cn("mx-auto flex w-full min-w-0 shrink-0 flex-wrap items-center gap-1", contentMaxWidth)}>
+          {toolbarSlotId ? <div id={toolbarSlotId} className="min-w-0 flex-1" /> : null}
+          {showHeader ? <div className="shrink-0">{statusControl}</div> : null}
+        </div>
+      ) : showHeader ? (
         <div className={cn("w-full", headerPaddingClass)}>
           <div
             className={cn(
@@ -117,43 +157,15 @@ export function RoadmapSectionPanel({
             </div>
             <div className="flex flex-col items-start gap-2 sm:items-end">
               {headerControlsTop ? <div className="w-full sm:w-auto">{headerControlsTop}</div> : null}
-              {!isHydrated ? (
-                <Skeleton className="h-7 w-24 rounded-full" />
-              ) : canEdit && onStatusChange ? (
-                <Select
-                  value={status}
-                  onValueChange={(value) => onStatusChange(value as RoadmapSectionStatus)}
-                  disabled={statusSelectDisabled}
-                >
-                  <SelectTrigger
-                    className="h-7 rounded-full border border-border/60 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground shadow-none"
-                    aria-label={controlsPublicProfile ? "Core document publication status" : "Roadmap section status"}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
-                      <SelectValue placeholder={statusLabel} />
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="not_started">Not started</SelectItem>
-                    <SelectItem value="in_progress">{controlsPublicProfile ? "Draft" : "In progress"}</SelectItem>
-                    <SelectItem value="complete">{controlsPublicProfile ? "Public" : "Complete"}</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                  <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
-                  {statusLabel}
-                </span>
-              )}
+              {statusControl}
             </div>
           </div>
         </div>
       ) : null}
 
       <section className="flex w-full min-h-0 min-w-0 flex-1">
-        <div className={cn("mx-auto flex w-full min-h-0 flex-1 flex-col gap-5", contentMaxWidth)}>
-          {toolbarSlotId ? <div id={toolbarSlotId} className="w-full" /> : null}
+        <div className={cn("mx-auto flex w-full min-h-0 flex-1 flex-col gap-5", compactHeader && "gap-2", contentMaxWidth)}>
+          {toolbarSlotId && !compactHeader ? <div id={toolbarSlotId} className="w-full" /> : null}
           {body ?? (editorProps ? <RichTextEditor {...editorProps} /> : null)}
         </div>
       </section>

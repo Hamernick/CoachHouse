@@ -2,8 +2,6 @@ import type mapboxgl from "mapbox-gl"
 
 import {
   buildEmptyPublicMapFeatureCollection,
-  PUBLIC_MAP_MARKER_IMAGE_FALLBACK_KEY,
-  PUBLIC_MAP_MARKER_IMAGE_SELECTED_FALLBACK_KEY,
   type PublicMapFeatureCollection,
 } from "@/lib/public-map/public-map-geojson"
 import type { PublicMapTheme } from "@/lib/public-map/public-map-theme"
@@ -34,81 +32,20 @@ import {
   PUBLIC_MAP_SELECTED_MARKER_LAYER_ID,
 } from "./map-view-helpers"
 
-const PUBLIC_MAP_LABEL_FONT = ["Open Sans Semibold", "Arial Unicode MS Bold"]
-const PUBLIC_MAP_MARKER_ICON_EXPRESSION = [
-  "coalesce",
-  ["image", ["get", "markerImageKey"]],
-  ["image", PUBLIC_MAP_MARKER_IMAGE_FALLBACK_KEY],
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_SELECTED_MARKER_ICON_EXPRESSION = [
-  "coalesce",
-  ["image", ["concat", ["get", "markerImageKey"], "-selected"]],
-  ["image", PUBLIC_MAP_MARKER_IMAGE_SELECTED_FALLBACK_KEY],
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_LABEL_EXPRESSION = [
-  "coalesce",
-  ["get", "designation"],
-  ["get", "name"],
-  "",
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_SORT_KEY_EXPRESSION = [
-  "get",
-  "markerSortKey",
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_LABEL_SIZE = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3,
-  10,
-  8,
-  11,
-  12,
-  11.5,
-  16,
-  12,
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_ICON_SIZE = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3,
-  1.25,
-  8,
-  1.34,
-  11,
-  1.42,
-  14,
-  1.5,
-  16,
-  1.56,
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_OVERVIEW_TEXT_OPACITY = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3.5,
-  0,
-  5.5,
-  1,
-] as mapboxgl.ExpressionSpecification
-export const PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3,
-  1.55,
-  8,
-  1.65,
-  11,
-  1.75,
-  14,
-  1.85,
-  16,
-  1.95,
-] as mapboxgl.ExpressionSpecification
-const PUBLIC_MAP_MARKER_ICON_OFFSET: [number, number] = [0, 8.5]
-const PUBLIC_MAP_SELECTED_MARKER_ICON_OFFSET: [number, number] = [0, 9.5]
+import {
+  PUBLIC_MAP_LABEL_FONT,
+  PUBLIC_MAP_MARKER_ICON_EXPRESSION,
+  PUBLIC_MAP_SELECTED_MARKER_ICON_EXPRESSION,
+  PUBLIC_MAP_MARKER_LABEL_EXPRESSION,
+  PUBLIC_MAP_MARKER_SORT_KEY_EXPRESSION,
+  PUBLIC_MAP_MARKER_LABEL_SIZE,
+  PUBLIC_MAP_MARKER_ICON_SIZE,
+  PUBLIC_MAP_MARKER_OVERVIEW_TEXT_OPACITY,
+  PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE,
+  PUBLIC_MAP_MARKER_ICON_OFFSET,
+  PUBLIC_MAP_SELECTED_MARKER_ICON_OFFSET,
+} from "./map-marker-style-contracts"
+export { PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE } from "./map-marker-style-contracts"
 
 function resolveLabelPaint(theme: PublicMapTheme) {
   return theme === "dark"
@@ -146,12 +83,14 @@ function ensureMarkerSource(map: mapboxgl.Map) {
 }
 
 function ensureMarkerLayer({
+  declutter,
   kind,
   map,
   maxRelevanceTier,
   showLabels,
   theme,
 }: {
+  declutter: boolean
   kind: "normal" | "saved" | "selected"
   map: mapboxgl.Map
   maxRelevanceTier: PublicMapMarkerRelevanceTier
@@ -185,7 +124,7 @@ function ensureMarkerLayer({
         : resolveRelevantUnselectedPointFilter({
             selectedOrganizationId: null,
             activeSameLocationGroupKey: null,
-            maxRelevanceTier,
+            maxRelevanceTier: declutter ? 3 : maxRelevanceTier,
           }),
     layout: {
       "icon-image": selected
@@ -198,8 +137,10 @@ function ensureMarkerLayer({
       "icon-offset": selected
         ? PUBLIC_MAP_SELECTED_MARKER_ICON_OFFSET
         : PUBLIC_MAP_MARKER_ICON_OFFSET,
-      "icon-allow-overlap": true,
-      "icon-ignore-placement": true,
+      "icon-allow-overlap":
+        !declutter || selected || saved || maxRelevanceTier === 3,
+      "icon-ignore-placement":
+        !declutter || selected || saved || maxRelevanceTier === 3,
       "icon-padding": 2,
       "icon-pitch-alignment": "viewport",
       "icon-rotation-alignment": "viewport",
@@ -228,11 +169,13 @@ function ensureMarkerLayer({
 }
 
 function refreshMarkerLayerContracts({
+  declutter,
   map,
   maxRelevanceTier,
   showLabels,
   theme,
 }: {
+  declutter: boolean
   map: mapboxgl.Map
   maxRelevanceTier: PublicMapMarkerRelevanceTier
   showLabels: boolean
@@ -244,7 +187,7 @@ function refreshMarkerLayerContracts({
     PUBLIC_MAP_MARKER_LAYER_ID,
     resolveRelevantUnselectedPointFilter({
       activeSameLocationGroupKey: null,
-      maxRelevanceTier,
+      maxRelevanceTier: declutter ? 3 : maxRelevanceTier,
       selectedOrganizationId: null,
     })
   )
@@ -291,8 +234,18 @@ function refreshMarkerLayerContracts({
         ? PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE
         : PUBLIC_MAP_MARKER_ICON_SIZE
     )
-    setMapLayoutPropertySafely(map, layerId, "icon-allow-overlap", true)
-    setMapLayoutPropertySafely(map, layerId, "icon-ignore-placement", true)
+    setMapLayoutPropertySafely(
+      map,
+      layerId,
+      "icon-allow-overlap",
+      !declutter || kind !== "normal" || maxRelevanceTier === 3
+    )
+    setMapLayoutPropertySafely(
+      map,
+      layerId,
+      "icon-ignore-placement",
+      !declutter || kind !== "normal" || maxRelevanceTier === 3
+    )
     setMapLayoutPropertySafely(
       map,
       layerId,
@@ -346,11 +299,13 @@ function refreshMarkerLayerContracts({
 }
 
 export function ensurePublicMapMarkerLayers({
+  declutter = false,
   map,
   maxRelevanceTier = 0,
   showLabels = true,
   theme = "light",
 }: {
+  declutter?: boolean
   map: mapboxgl.Map
   maxRelevanceTier?: PublicMapMarkerRelevanceTier
   showLabels?: boolean
@@ -361,21 +316,36 @@ export function ensurePublicMapMarkerLayers({
   removeMapLayerSafely(map, PUBLIC_MAP_MARKER_LABEL_LAYER_ID)
   removeMapLayerSafely(map, PUBLIC_MAP_SELECTED_MARKER_LABEL_LAYER_ID)
   ensureMarkerLayer({
+    declutter,
     kind: "normal",
     map,
     maxRelevanceTier,
     showLabels,
     theme,
   })
-  ensureMarkerLayer({ kind: "saved", map, maxRelevanceTier, showLabels, theme })
   ensureMarkerLayer({
+    declutter,
+    kind: "saved",
+    map,
+    maxRelevanceTier,
+    showLabels,
+    theme,
+  })
+  ensureMarkerLayer({
+    declutter,
     kind: "selected",
     map,
     maxRelevanceTier,
     showLabels,
     theme,
   })
-  refreshMarkerLayerContracts({ map, maxRelevanceTier, showLabels, theme })
+  refreshMarkerLayerContracts({
+    declutter,
+    map,
+    maxRelevanceTier,
+    showLabels,
+    theme,
+  })
 
   return [
     PUBLIC_MAP_MARKER_LAYER_ID,
@@ -399,23 +369,40 @@ export function setPublicMapMarkerSourceData({
   return true
 }
 export function syncPublicMapMarkerSelection({
+  declutter = false,
   activeSameLocationGroupKey,
   map,
   maxRelevanceTier,
   selectedOrganizationId,
 }: {
+  declutter?: boolean
   activeSameLocationGroupKey: string | null
   map: mapboxgl.Map
   maxRelevanceTier: PublicMapMarkerRelevanceTier
   selectedOrganizationId: string | null
 }) {
+  // Mapbox places normal pins against the actual viewport at every camera
+  // movement/resize. At neighborhood detail every eligible pin is revealed.
+  // Saved and selected layers always bypass this decluttering.
+  setMapLayoutPropertySafely(
+    map,
+    PUBLIC_MAP_MARKER_LAYER_ID,
+    "icon-allow-overlap",
+    !declutter || maxRelevanceTier === 3
+  )
+  setMapLayoutPropertySafely(
+    map,
+    PUBLIC_MAP_MARKER_LAYER_ID,
+    "icon-ignore-placement",
+    !declutter || maxRelevanceTier === 3
+  )
   const selectedFilter = resolveSelectedPointFilter({
     activeSameLocationGroupKey,
     selectedOrganizationId,
   })
   const relevantUnselectedFilter = resolveRelevantUnselectedPointFilter({
     activeSameLocationGroupKey,
-    maxRelevanceTier,
+    maxRelevanceTier: declutter ? 3 : maxRelevanceTier,
     selectedOrganizationId,
   })
   const savedFilter = resolveSavedPointFilter({

@@ -4,7 +4,8 @@ Canonical index for implementation history and session continuation.
 
 ## Current log
 
-- [2026-10](runlog/2026-10.md)
+- [2026-10](runlog/2026-10.md) — current entries
+- [2026-10, part 1](runlog/2026-10-part1.md) — preserved October1–6 history
 
 ## Archive
 
@@ -17,8 +18,9 @@ Canonical index for implementation history and session continuation.
 1. Read `AGENTS.md`.
 2. Read this index and the latest dated entries in the current log.
 3. Read `docs/agent/open-work-index.md`.
-4. Complete the [worktree checkpoint](agent/workflow-quality.md#new-chat-worktree-checkpoint) before selecting a work lane or changing files. Honor an already chosen branch strategy.
-5. Append the session summary to the current monthly log, not this index.
+4. Read `WORKSTREAMS.md` from the original-plan root selected in `AGENTS.md` (`--plans-root`, otherwise `~/Desktop/Coach House Codex Workstreams`) and the relevant numbered packet in full, including decisions/checkpoints. Read [SHIP](SHIP.md), inspect the canonical shared record, refresh relevant remote refs and resolve any active claim. Never pull/reset another checkout.
+5. Complete the [worktree checkpoint](agent/workflow-quality.md#new-chat-worktree-checkpoint) before selecting a work lane or changing files. Honor an already chosen branch strategy.
+6. Append the session summary to the current monthly log, not this index.
 
 This is the canonical startup sequence. Run it once per chat; a model switch or
 resumption in the same chat reuses existing context. Reread only relevant sections

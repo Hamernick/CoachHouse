@@ -15,7 +15,7 @@ create table public.organization_projects (
   starter_seed_key text,
   created_by uuid not null references public.profiles(id),
   updated_by uuid references public.profiles(id),
-  option_settings jsonb not null default '{}',
+  option_settings jsonb,
   unique(org_id, starter_seed_key)
 );
 alter table public.organizations enable row level security;

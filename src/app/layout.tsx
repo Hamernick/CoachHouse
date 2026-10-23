@@ -8,15 +8,32 @@ import "./globals.css"
 
 import { AppProviders } from "@/components/providers/app-providers"
 import { AppTelemetry } from "@/components/providers/app-telemetry"
+import { getPublicSiteOrigin } from "@/lib/public-site-origin"
+import { DEFAULT_SHARE_IMAGE_PATH } from "@/lib/public-share-image-url"
 import { getLocale } from "@/lib/locale.server"
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getPublicSiteOrigin()),
   title: {
     default: "Coach House",
     template: "%s · Coach House",
   },
   description:
-    "A course platform built with Next.js, Tailwind CSS, and shadcn/ui. Bootstrapped in step S00.",
+    "Find, save, and share nonprofits. Build and run your organization with a shared Workspace, guided training, and Executive Coaches.",
+  openGraph: {
+    type: "website",
+    siteName: "Coach House",
+    images: [{
+      url: new URL(DEFAULT_SHARE_IMAGE_PATH, getPublicSiteOrigin()).href,
+      width: 1200,
+      height: 630,
+      alt: "Coach House — The platform for nonprofits",
+      type: "image/png",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

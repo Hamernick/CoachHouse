@@ -1,3 +1,4 @@
+import { normalizePublicHandle } from "@/features/public-profiles/client"
 import type { PricingPlanTier } from "@/lib/billing/plan-tier"
 
 import { resolveOnboardingSteps } from "./constants"
@@ -309,6 +310,10 @@ export function validateOnboardingStep({
     if (!simpleProfile && !firstName) nextErrors.firstName = "First name is required"
     if (!simpleProfile && !lastName) nextErrors.lastName = "Last name is required"
     if (!personHandle) nextErrors.personHandle = "Username is required"
+    else if (intentFocus === "build" && normalizePublicHandle(personHandle) ===
+      slugify(String(form.get("orgSlug") || form.get("orgName") || ""))) {
+      nextErrors.personHandle = "Choose a username different from your workspace URL."
+    }
     else if (personHandleStatus !== "available") {
       nextErrors.personHandle =
         personHandleHint ?? "Choose an available username"

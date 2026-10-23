@@ -73,9 +73,6 @@ export function PublicMapResourceDetail({
       {item.nonprofit ? (
         <section className={PUBLIC_MAP_DETAIL_SECTION_CLASSNAME}>
           <h3 className="text-base font-semibold">Record details</h3>
-          <p className="mt-2 text-sm">
-            EIN {item.nonprofit.ein.slice(0, 2)}-{item.nonprofit.ein.slice(2)}
-          </p>
           <p className="text-muted-foreground mt-1 text-xs">
             Source: IRS filings. Operating status unconfirmed.
           </p>

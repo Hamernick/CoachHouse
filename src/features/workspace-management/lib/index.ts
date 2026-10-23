@@ -45,7 +45,8 @@ export function mergeWorkspaceState(stored: unknown, next: unknown, id?: string 
   const { workspaceCatalog: _catalog, workspaceCanvasId: _id, ...state } = record(next)
   if (!id) {
     selectWorkspaceState(stored)
-    return { ...state, workspaceCatalog: root.workspaceCatalog ?? readWorkspaceCatalog(stored) } as Json
+    const merged: Record<string, unknown> = { ...state, workspaceCatalog: root.workspaceCatalog ?? readWorkspaceCatalog(stored) }
+    return merged as Json
   }
   selectWorkspaceState(stored, id)
   const catalog = readWorkspaceCatalog(stored)
@@ -80,7 +81,7 @@ export function changeWorkspaceCatalog(stored: unknown, command: WorkspaceComman
   if (current !== command.previousName && current !== command.name) throw new Error("This workspace was renamed by someone else. Refresh before renaming it.")
   return { ...root, workspaceCatalog: { ...catalog, defaultName: command.id ? catalog.defaultName : command.name, entries: catalog.entries.map((entry) => entry.id === command.id ? { ...entry, name: command.name, updatedAt: now } : entry) } } as Json
 }
-export function allWorkspaceStates(stored: unknown) {
+export function allWorkspaceStates(stored: unknown): Array<{ id: string | null; state: Record<string, unknown> }> {
   const catalog = readWorkspaceCatalog(stored)
   return [...(catalog.defaultDeleted ? [] : [{ id: null, state: record(stored) }]), ...catalog.entries.map(({ id, state }) => ({ id, state }))]
 }

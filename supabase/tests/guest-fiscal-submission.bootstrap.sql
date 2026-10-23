@@ -15,7 +15,7 @@ create table public.organization_projects(
  project_kind text not null, name text not null, created_source text not null,
  created_at timestamptz not null default now(),
  created_by uuid not null references public.profiles(id), updated_by uuid references public.profiles(id),
- organization_unassigned boolean not null default false, option_settings jsonb not null default '{}'
+ organization_unassigned boolean not null default false, option_settings jsonb
 );
 create table public.fiscal_sponsorship_events(
  id uuid primary key default gen_random_uuid(), org_id uuid, project_id uuid, application_id uuid,

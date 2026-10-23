@@ -13,6 +13,7 @@ on:
       - tests/visual/documentation.visual.spec.ts
       - tests/visual/app-shell-mobile.visual.spec.ts
       - tests/visual/focus-indicators.visual.spec.ts
+      - tests/visual/workspace-tools.visual.spec.ts
 
 permissions:
   contents: read
@@ -34,7 +35,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - name: Generate public references for review
-        run: pnpm test:visual:update all tests/visual/build-collect-navigation.visual.spec.ts tests/visual/public-shell.visual.spec.ts tests/visual/find-resource-detail.visual.spec.ts tests/visual/documentation.visual.spec.ts tests/visual/app-shell-mobile.visual.spec.ts tests/visual/focus-indicators.visual.spec.ts
+        run: pnpm test:visual:update all tests/visual/build-collect-navigation.visual.spec.ts tests/visual/public-shell.visual.spec.ts tests/visual/find-resource-detail.visual.spec.ts tests/visual/documentation.visual.spec.ts tests/visual/app-shell-mobile.visual.spec.ts tests/visual/focus-indicators.visual.spec.ts tests/visual/workspace-tools.visual.spec.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -44,5 +45,6 @@ jobs:
             tests/visual/public-shell.visual.spec.ts-snapshots/
             tests/visual/documentation.visual.spec.ts-snapshots/
             tests/visual/app-shell-mobile.visual.spec.ts-snapshots/
+            tests/visual/workspace-tools.visual.spec.ts-snapshots/
             test-results/
           retention-days: 7

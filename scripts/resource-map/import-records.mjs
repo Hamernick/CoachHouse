@@ -529,7 +529,7 @@ async function upsertRawIngestionRecords(admin, rawRows) {
   return byKey
 }
 
-async function fetchExistingImportRecords(
+export async function fetchExistingImportRecords(
   admin,
   sourceId,
   payload,
@@ -538,15 +538,28 @@ async function fetchExistingImportRecords(
   const select =
     "id,source_record_id,source_url,batch_id,promotion_status,review_status,extracted_fields"
   if (refreshExisting) {
-    const { data, error } = await retryTransientFetch(() =>
-      admin
-        .from("resource_map_import_records")
-        .select(select)
-        .eq("source_id", sourceId)
-        .limit(5000)
-    )
-    if (error) throw error
-    return data ?? []
+    const rows = []
+    let cursor = null
+    while (true) {
+      const { data, error } = await retryTransientFetch(() => {
+        let query = admin
+          .from("resource_map_import_records")
+          .select(select)
+          .eq("source_id", sourceId)
+          .order("id", { ascending: true })
+        if (cursor) query = query.gt("id", cursor)
+        return query.limit(500)
+      })
+      if (error) throw error
+      if (!data?.length) return rows
+      const nextCursor = data.at(-1)?.id
+      if (!nextCursor || (cursor && nextCursor <= cursor)) {
+        throw new Error("Import refresh lookup did not advance its cursor.")
+      }
+      rows.push(...data)
+      cursor = nextCursor
+      // Continue to an empty page: the server may cap below the requested limit.
+    }
   }
   const sourceRecordIds = [
     ...new Set(payload.map((row) => row.source_record_id).filter(Boolean)),
@@ -592,6 +605,18 @@ export function resolveExistingAssignments(
 ) {
   const bySourceRecordId = new Map()
   const byWebsite = new Map()
+  const incomingWebsiteCounts = new Map()
+  const incomingSourceIds = new Set()
+  for (const candidate of payload) {
+    if (candidate.source_record_id) {
+      if (incomingSourceIds.has(candidate.source_record_id)) {
+        throw new Error("Import input contains duplicate source record IDs.")
+      }
+      incomingSourceIds.add(candidate.source_record_id)
+    }
+    const key = normalizedWebsiteKey(candidate)
+    if (key) incomingWebsiteCounts.set(key, (incomingWebsiteCounts.get(key) ?? 0) + 1)
+  }
   for (const record of existingRecords) {
     if (
       record.source_record_id &&
@@ -616,7 +641,9 @@ export function resolveExistingAssignments(
     if (!refreshExisting) return null
     const websiteKey = normalizedWebsiteKey(candidate)
     const websiteMatches = websiteKey ? (byWebsite.get(websiteKey) ?? []) : []
-    return websiteMatches.length === 1
+    return websiteMatches.length === 1 &&
+      incomingWebsiteCounts.get(websiteKey) === 1 &&
+      !incomingSourceIds.has(websiteMatches[0].source_record_id)
       ? { record: websiteMatches[0], reconciled: true }
       : null
   })

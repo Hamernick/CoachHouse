@@ -21,4 +21,4 @@ export const fetchPublicResourceProfile = unstable_cache(async (id: string) => {
   const item = directoryItemSchema.parse(data)
   if (item.ein !== id) return null
   return nonprofitDirectoryMapItem(item)
-}, ["public-resource-profile-v1"], { revalidate: 300 })
+}, ["public-resource-profile-v3"], { revalidate: 300 })

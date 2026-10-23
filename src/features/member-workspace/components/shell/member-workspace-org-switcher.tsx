@@ -1,20 +1,12 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
-import CheckIcon from "lucide-react/dist/esm/icons/check"
+import { useRef, useState } from "react"
 import ChevronsUpDownIcon from "lucide-react/dist/esm/icons/chevrons-up-down"
+import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
 import {
   Drawer,
   DrawerContent,
@@ -26,144 +18,71 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { toast } from "@/lib/toast"
-import { cn } from "@/lib/utils"
+import { switchOrganization } from "../../lib/switch-organization"
 import type {
   MemberWorkspaceAccessibleOrganization,
   MemberWorkspaceSetActiveOrganizationResult,
 } from "../../types"
 
-function formatRole(role: MemberWorkspaceAccessibleOrganization["role"]) {
-  if (role === "owner") return "Owner"
-  if (role === "admin") return "Admin"
-  if (role === "staff") return "Staff"
-  if (role === "board") return "Board"
-  return "Member"
-}
-
-function getOrganizationInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-}
+import { OrganizationList } from "./member-workspace-org-switcher-list"
+import { getOrganizationInitials } from "./member-workspace-org-switcher-utils"
 
 type MemberWorkspaceOrgSwitcherProps = {
   presentation?: "sidebar" | "account-menu"
+  canSearchSupport?: boolean
   activeOrganization: MemberWorkspaceAccessibleOrganization
   organizations: MemberWorkspaceAccessibleOrganization[]
-  setActiveOrganizationAction: (
+  setActiveOrganizationAction?: (
     orgId: string,
   ) => Promise<MemberWorkspaceSetActiveOrganizationResult>
 }
 
-function OrganizationList({
-  activeOrganization,
-  organizations,
-  onSelect,
-}: {
-  activeOrganization: MemberWorkspaceAccessibleOrganization
-  organizations: MemberWorkspaceAccessibleOrganization[]
-  onSelect: (organization: MemberWorkspaceAccessibleOrganization) => void
-}) {
-  return (
-    <Command
-      key={activeOrganization.orgId}
-      defaultValue={activeOrganization.orgId}
-      className="rounded-2xl border border-border/60 bg-background"
-    >
-      <CommandInput placeholder="Search organizations" />
-      <CommandList className="max-h-[18rem]">
-        <CommandEmpty>No organizations found.</CommandEmpty>
-        <CommandGroup
-          heading="Organizations"
-          className="[&_[cmdk-group-items]]:space-y-1"
-        >
-          {organizations.map((organization) => {
-            const isActive = organization.orgId === activeOrganization.orgId
-            return (
-              <CommandItem
-                key={organization.orgId}
-                value={organization.orgId}
-                keywords={[organization.name, organization.role]}
-                onSelect={() => onSelect(organization)}
-                aria-current={isActive ? "true" : undefined}
-                className={cn(
-                  "gap-3 rounded-xl px-3 py-2",
-                  isActive && "bg-accent text-accent-foreground",
-                )}
-              >
-                <Avatar className="size-8 rounded-xl border border-border/70">
-                  <AvatarImage alt={organization.name} src={organization.imageUrl ?? undefined} />
-                  <AvatarFallback className="rounded-xl text-[10px] font-semibold">
-                    {getOrganizationInitials(organization.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      "truncate text-sm font-medium",
-                      isActive ? "text-accent-foreground" : "text-foreground",
-                    )}
-                  >
-                    {organization.name}
-                  </p>
-                  <p
-                    className={cn(
-                      "truncate text-xs",
-                      isActive ? "text-accent-foreground/80" : "text-muted-foreground",
-                    )}
-                  >
-                    {formatRole(organization.role)}
-                  </p>
-                </div>
-                <CheckIcon
-                  className={cn(
-                    "size-4 transition-opacity",
-                    isActive ? "text-accent-foreground" : "text-primary",
-                    isActive ? "opacity-100" : "opacity-0",
-                  )}
-                  aria-hidden
-                />
-              </CommandItem>
-            )
-          })}
-        </CommandGroup>
-      </CommandList>
-    </Command>
-  )
-}
-
 export function MemberWorkspaceOrgSwitcher({
   presentation = "sidebar",
+  canSearchSupport = false,
   activeOrganization,
   organizations,
-  setActiveOrganizationAction,
+  setActiveOrganizationAction = switchOrganization,
 }: MemberWorkspaceOrgSwitcherProps) {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null)
+  const switching = useRef(false)
+  const isPending = switchingTo !== null
 
-  const handleSelect = (organization: MemberWorkspaceAccessibleOrganization) => {
+  const handleSelect = async (organization: MemberWorkspaceAccessibleOrganization) => {
+    if (switching.current) return
     if (organization.orgId === activeOrganization.orgId) {
       setOpen(false)
       if (presentation === "account-menu") triggerRef.current?.focus()
       return
     }
 
-    startTransition(async () => {
+    // Existing document editors register beforeunload when work is pending.
+    // Check before changing the shared selection cookie, not after a reload starts.
+    if (!window.dispatchEvent(new Event("beforeunload", { cancelable: true }))) {
+      toast.error("Wait for your changes to save before switching organizations.")
+      return
+    }
+    switching.current = true
+    setSwitchingTo(organization.name)
+    setOpen(false)
+    try {
       const result = await setActiveOrganizationAction(organization.orgId)
       if ("error" in result) {
         toast.error(result.error)
+        switching.current = false
+        setSwitchingTo(null)
         return
       }
-
-      setOpen(false)
-      window.location.reload()
-    })
+      if (result.supportAccess) window.location.assign("/workspace")
+      else window.location.reload()
+    } catch {
+      toast.error("Unable to switch organizations. Please try again.")
+      switching.current = false
+      setSwitchingTo(null)
+    }
   }
 
   const trigger = (
@@ -174,6 +93,7 @@ export function MemberWorkspaceOrgSwitcher({
       aria-label="Switch organization"
       className="h-auto w-full justify-between gap-2 rounded-xl border border-transparent bg-transparent px-1 py-2 text-left md:py-1 has-[>svg]:px-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:has-[>svg]:px-0"
       disabled={isPending}
+      aria-busy={isPending}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:min-w-auto group-data-[collapsible=icon]:gap-0">
         <Avatar className="size-9 rounded-xl border border-transparent group-data-[collapsible=icon]:size-10">
@@ -188,7 +108,7 @@ export function MemberWorkspaceOrgSwitcher({
           </p>
         </div>
       </div>
-      <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden />
+      {isPending ? <LoaderCircleIcon className="size-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden /> : <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden />}
     </Button>
   )
 
@@ -198,6 +118,7 @@ export function MemberWorkspaceOrgSwitcher({
         <CollapsibleTrigger asChild>{trigger}</CollapsibleTrigger>
         <CollapsibleContent className="pt-2" inert={isPending || undefined}>
           <OrganizationList
+            canSearchSupport={canSearchSupport}
             activeOrganization={activeOrganization}
             organizations={organizations}
             onSelect={handleSelect}
@@ -220,6 +141,7 @@ export function MemberWorkspaceOrgSwitcher({
           </DrawerHeader>
           <div className="px-4 pb-4">
             <OrganizationList
+              canSearchSupport={canSearchSupport}
               activeOrganization={activeOrganization}
               organizations={organizations}
               onSelect={handleSelect}
@@ -237,11 +159,12 @@ export function MemberWorkspaceOrgSwitcher({
         <div className="border-b border-border/60 px-4 py-3">
           <p className="text-sm font-semibold text-foreground">Switch organization</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Change the active organization for Workspace, Admin, and Documents.
+            {canSearchSupport ? "Your organizations are listed below. Search to help another organization temporarily." : "Change the active organization for Workspace, Admin, and Documents."}
           </p>
         </div>
         <div className="p-3">
           <OrganizationList
+              canSearchSupport={canSearchSupport}
             activeOrganization={activeOrganization}
             organizations={organizations}
             onSelect={handleSelect}

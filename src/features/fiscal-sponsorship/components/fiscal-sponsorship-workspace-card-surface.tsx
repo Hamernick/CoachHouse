@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
@@ -19,6 +20,9 @@ import {
 import { FiscalSponsorshipMark } from "./fiscal-sponsorship-mark"
 
 type FiscalSponsorshipWorkspaceCardSurfaceProps = {
+  primaryActionLabel?: string
+  applicationSummary?: { name: string; status: string }
+  applicationLinks?: ReactNode
   className?: string
   draggable?: boolean
   applications?: FiscalWorkspaceApplication[]
@@ -33,6 +37,9 @@ type FiscalSponsorshipWorkspaceCardSurfaceProps = {
 }
 
 export function FiscalSponsorshipWorkspaceCardSurface({
+  primaryActionLabel = "Start application",
+  applicationSummary,
+  applicationLinks,
   className,
   draggable = false,
   applications = [],
@@ -63,7 +70,12 @@ export function FiscalSponsorshipWorkspaceCardSurface({
         <h3 className={WORKSPACE_PARTICLE_CHROME.title}>Fiscal Sponsorship</h3>
       </WorkspaceNodeFrameHeader>
       <WorkspaceNodeFrameBody className={cn("nodrag nopan nowheel", WORKSPACE_PARTICLE_CHROME.body)}>
-        {loading ? (
+        {applicationSummary ? (
+          <div className="py-3">
+            <p className="text-sm font-medium">{applicationSummary.name}</p>
+            <p className="text-muted-foreground mt-1 text-xs">{applicationSummary.status}</p>
+          </div>
+        ) : loading ? (
           <p className="text-muted-foreground py-3 text-sm" role="status">Loading applications…</p>
         ) : applications.length ? (
           <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto" aria-label="Sponsorship applications">
@@ -110,6 +122,7 @@ export function FiscalSponsorshipWorkspaceCardSurface({
             {onRetry ? <Button variant="ghost" size="sm" className="rounded-full" onClick={onRetry}>Try again</Button> : null}
           </div>
         ) : null}
+        {applicationLinks}
       </WorkspaceNodeFrameBody>
       <WorkspaceNodeFrameFooter className={cn("nodrag nopan flex-wrap", WORKSPACE_PARTICLE_CHROME.footer)}>
         <Button asChild variant="ghost" size="sm" className={cn("rounded-full", WORKSPACE_PARTICLE_CHROME.action)}>
@@ -123,7 +136,7 @@ export function FiscalSponsorshipWorkspaceCardSurface({
           disabled={!openFlowHref && (!onStart || loading || Boolean(busyProjectId))}
           onClick={openFlowHref ? undefined : onStart}
         >
-          {openFlowHref ? <Link href={openFlowHref}>Start application</Link> : <><PlusIcon aria-hidden />Start application</>}
+          {openFlowHref ? <Link href={openFlowHref}>{primaryActionLabel}</Link> : <><PlusIcon aria-hidden />{primaryActionLabel}</>}
         </Button>
       </WorkspaceNodeFrameFooter>
     </WorkspaceNodeFrameRoot>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { NextRequest } from "next/server"
+import { NextRequest, type NextResponse } from "next/server"
 
 const { createSupabaseRouteHandlerClientMock } = vi.hoisted(() => ({
   createSupabaseRouteHandlerClientMock: vi.fn(),
@@ -12,11 +12,15 @@ vi.mock("@/lib/supabase/route", () => ({
 function buildRouteSupabaseStub(options?: {
   verifyOtpError?: { message: string } | null
   exchangeCodeError?: { message: string } | null
+  redirectType?: string | null
 }) {
   return {
     auth: {
       verifyOtp: vi.fn().mockResolvedValue({ error: options?.verifyOtpError ?? null }),
-      exchangeCodeForSession: vi.fn().mockResolvedValue({ error: options?.exchangeCodeError ?? null }),
+      exchangeCodeForSession: vi.fn().mockResolvedValue({
+        data: { redirectType: options?.redirectType ?? null },
+        error: options?.exchangeCodeError ?? null,
+      }),
     },
   }
 }
@@ -24,6 +28,55 @@ function buildRouteSupabaseStub(options?: {
 describe("auth recovery flow", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it.each([undefined, "/workspace", "/update-password-other"])(
+    "keeps successful recovery OTPs on the reset form with destination %s",
+    async (destination) => {
+      const supabase = buildRouteSupabaseStub()
+      createSupabaseRouteHandlerClientMock.mockReturnValue(supabase)
+      const url = new URL("http://localhost/auth/callback?token_hash=test-token&type=recovery")
+      if (destination) url.searchParams.set("redirect", destination)
+
+      const { handleSupabaseAuthCallback } = await import("@/lib/supabase/auth-callback")
+      const response = await handleSupabaseAuthCallback(new NextRequest(url))
+      const location = new URL(response.headers.get("location")!)
+
+      expect(location.pathname).toBe("/update-password")
+      expect(location.searchParams.get("redirect")).toBe(destination ?? null)
+      expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({ token_hash: "test-token", type: "recovery" })
+      expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled()
+    },
+  )
+
+  it("recovers the PKCE recovery type after the provider loses the redirect, preserving session cookies", async () => {
+    const supabase = buildRouteSupabaseStub({ redirectType: "recovery" })
+    createSupabaseRouteHandlerClientMock.mockImplementation((_request, response: NextResponse) => {
+      supabase.auth.exchangeCodeForSession.mockImplementation(async () => {
+        response.cookies.set("test-session", "verified-session", { httpOnly: true, path: "/" })
+        return { data: { redirectType: "recovery" }, error: null }
+      })
+      return supabase
+    })
+
+    const { handleSupabaseAuthCallback } = await import("@/lib/supabase/auth-callback")
+    const response = await handleSupabaseAuthCallback(
+      new NextRequest("http://localhost/auth/callback?code=test-code"),
+    )
+
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/update-password")
+    expect(response.cookies.get("test-session")?.value).toBe("verified-session")
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly")
+    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith("test-code")
+  })
+
+  it.each([null, "signup"])("does not infer recovery from ordinary SDK redirect type %s", async (redirectType) => {
+    createSupabaseRouteHandlerClientMock.mockReturnValue(buildRouteSupabaseStub({ redirectType }))
+    const { handleSupabaseAuthCallback } = await import("@/lib/supabase/auth-callback")
+    const response = await handleSupabaseAuthCallback(
+      new NextRequest("http://localhost/auth/callback?code=test-code"),
+    )
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/workspace")
   })
 
   it("redirects recovery OTP failures back to update-password with a retry state", async () => {
@@ -108,7 +161,7 @@ describe("auth recovery flow", () => {
     expect(location.pathname).toBe("/workspace")
   })
 
-  it("resolves the update-password page to retry immediately when recovery is invalid", async () => {
+  it.each([false, true])("keeps invalid recovery in retry state with existing user %s", async (hasServerUser) => {
     const { resolveUpdatePasswordPageState } = await import("@/app/(auth)/update-password/page")
 
     expect(
@@ -117,7 +170,7 @@ describe("auth recovery flow", () => {
           redirect: "/workspace",
           recovery_error: "invalid_or_expired",
         },
-        { hasServerUser: false },
+        { hasServerUser },
       ),
     ).toEqual({
       redirect: "/workspace",

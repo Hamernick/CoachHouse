@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { resolveAuthCallbackUrl } from "@/components/auth/auth-callback-url"
+import { getPasswordRecoveryPath } from "@/lib/auth/password-recovery"
 import { useSupabaseClient } from "@/hooks/use-supabase-client"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,12 +31,7 @@ type ForgotPasswordFormProps = {
 }
 
 export function buildForgotPasswordCallbackRedirect(redirectTo?: string) {
-  if (!redirectTo) return "/update-password"
-  if (redirectTo.startsWith("/update-password")) return redirectTo
-
-  const updatePasswordUrl = new URL("/update-password", "https://coachhouse.local")
-  updatePasswordUrl.searchParams.set("redirect", redirectTo)
-  return `${updatePasswordUrl.pathname}${updatePasswordUrl.search}`
+  return getPasswordRecoveryPath(redirectTo)
 }
 
 export function ForgotPasswordForm({ redirectTo }: ForgotPasswordFormProps) {

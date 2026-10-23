@@ -1,6 +1,6 @@
 "use server"
 
-import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+import { resolveWorkspaceProjectScope } from "@/lib/workspace/ordinary-project-access"
 
 import { z } from "zod"
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
@@ -23,10 +23,10 @@ export async function refreshOrganizationProjectActivity(input: {
   if (!parsed.success) return { state: "error", items: [] }
   try {
     const actor = await resolveMemberWorkspaceActorContext()
-    if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId: parsed.data.projectId }))) return { state: "forbidden", items: [] }
+    const scope = await resolveWorkspaceProjectScope({ supabase: actor.supabase, userId: actor.userId, projectId: parsed.data.projectId })
     if (
-      !actor.hasMemberWorkspaceAccess ||
-      !actorCanAccessOrganization(actor, parsed.data.orgId)
+      scope === "denied" || !actor.hasMemberWorkspaceAccess ||
+      (scope !== "fiscal" && !actorCanAccessOrganization(actor, parsed.data.orgId))
     )
       return { state: "forbidden", items: [] }
     const { data, error } = await actor.supabase
@@ -40,6 +40,7 @@ export async function refreshOrganizationProjectActivity(input: {
     return loadOrganizationProjectActivityResult({
       ...parsed.data,
       supabase: actor.supabase,
+      projectOnly: scope === "fiscal",
     })
   } catch {
     return { state: "error", items: [] }

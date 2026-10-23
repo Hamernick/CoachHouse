@@ -10,6 +10,8 @@ import {
   useState,
   useTransition,
 } from "react"
+import { organizationDocumentCollaborationEnabled } from "@/lib/feature-flags"
+import { useRoadmapSavedSection } from "./use-roadmap-saved-section"
 import { usePathname } from "next/navigation"
 
 import type { AiDocumentProposal,AiDocumentApplication } from "@/features/workspace-ai/client"
@@ -60,12 +62,6 @@ function useRoadmapWindowStatus(
     ),
     pending: Boolean(savingId),
   })
-}
-
-async function uploadRoadmapImage(file: File) {
-  const error = validateOrgMediaFile(file)
-  if (error) throw new Error(error)
-  return uploadOrgMedia({ file, kind: "roadmap-inline" })
 }
 
 export function useRoadmapEditorState({
@@ -204,9 +200,9 @@ export function useRoadmapEditorState({
 
   const flushActiveSectionDraft = useCallback(() => {
     const sectionId = activeIdRef.current
-    if (!sectionId) return
+    if (!sectionId || (organizationDocumentCollaborationEnabled && sourceScope)) return
     saveSectionById({ sectionId, showToast: false })
-  }, [saveSectionById])
+  }, [saveSectionById, sourceScope])
 
   useEffect(() => {
     if (!initialSectionId || initialSectionId === activeIdRef.current) return
@@ -287,7 +283,7 @@ export function useRoadmapEditorState({
   }, [activeSection, canEdit, saveSectionById])
 
   useRoadmapEditorAutosave({
-    canEdit:canEdit && loadedStorageKey === storageKey,
+    canEdit: canEdit && loadedStorageKey === storageKey && !(organizationDocumentCollaborationEnabled && sourceScope),
     activeSection,
     activeDraft,
     isDirty,
@@ -298,6 +294,14 @@ export function useRoadmapEditorState({
     flushActiveSectionDraft,
   })
 
+  const handleImageUpload = useCallback(async (file: File) => {
+    const error = validateOrgMediaFile(file)
+    if (error) {
+      throw new Error(error)
+    }
+    return uploadOrgMedia({ file, kind: "roadmap-inline", organizationId: sourceScope?.organizationId })
+  }, [sourceScope?.organizationId])
+
   const handleStatusChange = useCallback(
     (nextStatus: RoadmapSectionStatus) => {
       if (!activeSection || activeDraft?.requiresPrivateSave) return
@@ -306,7 +310,10 @@ export function useRoadmapEditorState({
     [activeSection, activeDraft?.requiresPrivateSave, saveSectionById]
   )
 
+  const handleSavedSection = useRoadmapSavedSection(setSections, setDrafts)
+
   return {
+    handleSavedSection,
     activeSection,
     activeDraft,
     drafts,
@@ -325,7 +332,7 @@ export function useRoadmapEditorState({
     contentMaxWidth,
     editorPlaceholder,
     handleDraftChange,
-    handleImageUpload: uploadRoadmapImage,
+    handleImageUpload,
     handleSave,
     isDirty,
     savingId,

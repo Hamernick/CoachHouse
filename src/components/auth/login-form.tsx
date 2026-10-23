@@ -12,7 +12,7 @@ import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { useSupabaseClient } from "@/hooks/use-supabase-client"
 import {
   DEFAULT_POST_AUTH_REDIRECT,
-  getSafeRedirectPath,
+  getSafePostLoginRedirectPath,
 } from "@/lib/auth/redirects"
 import { Button } from "@/components/ui/button"
 import {
@@ -107,10 +107,10 @@ export function LoginForm({
   const searchParams = useSearchParams()
   const searchError = mapAuthErrorMessage(searchParams.get("error"))
   const noticeMessage = mapAuthNoticeMessage(searchParams.get("notice"))
-  const redirectFromSearch = getSafeRedirectPath(searchParams.get("redirect"))
+  const redirectFromSearch = getSafePostLoginRedirectPath(searchParams.get("redirect"))
   const resolvedRedirectTo =
     redirectFromSearch ??
-    getSafeRedirectPath(redirectTo) ??
+    getSafePostLoginRedirectPath(redirectTo) ??
     DEFAULT_POST_AUTH_REDIRECT
   const [errorMessage, setErrorMessage] = useState<string | null>(
     mapAuthErrorMessage(initialError) ?? searchError

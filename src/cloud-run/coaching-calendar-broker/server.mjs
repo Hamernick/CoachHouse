@@ -1,5 +1,6 @@
 import http from "node:http"
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto"
+import { blockingCalendarIds, eventIdentity, listBlockingEventWindows, readCompleteFreeBusy, validateBusyWindows } from "./calendar-availability.mjs"
 
 const PORT = Number(process.env.PORT ?? 8080)
 const MAX_BODY_BYTES = 24_000
@@ -230,7 +231,7 @@ async function getCalendarAccessTokenForCoach(coachId) {
   return token.accessToken
 }
 
-async function requestCalendar({ coachId, path, method = "GET", body }) {
+async function requestCalendar({ coachId, path, method = "GET", body, requestHeaders }) {
   const token = await getCalendarAccessTokenForCoach(coachId)
   const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
     signal: AbortSignal.timeout(8000),
@@ -238,6 +239,7 @@ async function requestCalendar({ coachId, path, method = "GET", body }) {
     headers: {
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
+      ...requestHeaders,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
@@ -320,33 +322,42 @@ async function waitForMeetUrl({ coachId, calendarId, event }) {
   return { event: currentEvent, meetUrl: extractMeetUrl(currentEvent) }
 }
 
-async function freeBusy(payload) {
+export async function freeBusy(payload, request = requestCalendar) {
+  const { coachId, timeMin, timeMax, excludeGoogleEventId } = payload
+  validateBusyWindows([{ startsAt: timeMin, endsAt: timeMax }])
+  const additional = coachId === "paula" ? process.env.GOOGLE_COACHING_PAULA_BLOCKING_CALENDAR_IDS : process.env.GOOGLE_COACHING_JOEL_BLOCKING_CALENDAR_IDS
+  const calendarIds = blockingCalendarIds(requireCalendarId(coachId), additional)
+  let identity
+  if (excludeGoogleEventId) {
+    try {
+      const event = await request({ coachId: "joel", path: `/calendars/${encodeURIComponent(requireCalendarId("joel"))}/events/${encodeURIComponent(excludeGoogleEventId)}` })
+      identity = eventIdentity(event, excludeGoogleEventId)
+    } catch (error) {
+      if (error.status !== 404) throw error
+    }
+  }
+  const busy = identity
+    ? await listBlockingEventWindows({ request, calendarIds, coachId, timeMin, timeMax, identity })
+    : readCompleteFreeBusy(await request({ coachId, path: "/freeBusy", method: "POST", body: { timeMin, timeMax, items: calendarIds.map((id) => ({ id })) } }), calendarIds)
+  return { busy, availabilityVersion: 2 }
+}
+
+export async function getEventForTitle(payload, request = requestCalendar) {
   const calendarId = requireCalendarId(payload.coachId)
-  const response = await requestCalendar({
+  return request({ coachId: payload.coachId, path: `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(payload.googleEventId)}?conferenceDataVersion=1` })
+}
+
+export async function updateEventTitle(payload, request = requestCalendar) {
+  if (!payload.etag || !payload.summary?.trim() || payload.sendUpdates !== "all") throw Object.assign(new Error("Invalid title update."), { status: 400 })
+  const calendarId = requireCalendarId(payload.coachId)
+  await request({
     coachId: payload.coachId,
-    path: "/freeBusy",
-    method: "POST",
-    body: {
-      timeMin: payload.timeMin,
-      timeMax: payload.timeMax,
-      items: [{ id: calendarId }],
-    },
+    path: `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(payload.googleEventId)}?conferenceDataVersion=1&sendUpdates=all`,
+    method: "PATCH",
+    requestHeaders: { "If-Match": payload.etag },
+    body: { summary: payload.summary },
   })
-  const calendar = response.calendars?.[calendarId]
-  if (calendar?.errors?.length > 0) {
-    const error = new Error(
-      `Google Calendar freeBusy failed for ${calendarId}: ${JSON.stringify(calendar.errors).slice(0, 500)}`,
-    )
-    error.status = 502
-    throw error
-  }
-  const busy = calendar?.busy ?? []
-  return {
-    busy: busy.map((window) => ({
-      startsAt: window.start,
-      endsAt: window.end,
-    })),
-  }
+  return getEventForTitle(payload, request)
 }
 
 async function createEvent(payload) {
@@ -437,6 +448,8 @@ async function getEvent(payload) {
 }
 
 async function dispatch({ operation, payload }) {
+  if (operation === "getEventForTitle") return await getEventForTitle(payload)
+  if (operation === "updateEventTitle") return await updateEventTitle(payload)
   if (operation === "getEvent") return await getEvent(payload)
   if (operation === "freeBusy") return await freeBusy(payload)
   if (operation === "createEvent") return await createEvent(payload)
@@ -472,6 +485,6 @@ const server = http.createServer(async (req, res) => {
   }
 })
 
-server.listen(PORT, "0.0.0.0", () => {
+if (process.env.NODE_ENV !== "test") server.listen(PORT, "0.0.0.0", () => {
   console.log(`Coach House coaching calendar broker listening on ${PORT}`)
 })

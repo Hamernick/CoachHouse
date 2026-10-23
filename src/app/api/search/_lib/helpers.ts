@@ -1,4 +1,3 @@
-import { CATEGORIES, type MarketplaceCategory } from "@/lib/marketplace/data"
 import type { SearchResult } from "@/lib/search/types"
 import type { SearchRow } from "./types"
 
@@ -40,23 +39,6 @@ export function matchesQuery(
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
-
-export function marketplaceCategoryLabel(
-  category: MarketplaceCategory | undefined,
-) {
-  if (!category) return null
-  return CATEGORIES.find((item) => item.value === category)?.label ?? null
-}
-
-export function buildMarketplaceHref(
-  category: MarketplaceCategory | undefined,
-  name: string,
-) {
-  const params = new URLSearchParams()
-  if (category) params.set("category", category)
-  params.set("q", name)
-  return `/marketplace?${params.toString()}`
 }
 
 export function extractProfileValue(profile: Record<string, unknown>, key: string) {

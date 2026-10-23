@@ -50,10 +50,16 @@ export function buildDocumentsTabDocuments(
       documentsRaw && isRecord(documentsRaw[key])
         ? (documentsRaw[key] as Record<string, unknown>)
         : null
-    if (!raw) return null
+    // The full-account seed stores example references, not uploaded files.
+    if (
+      !raw ||
+      typeof raw.path !== "string" ||
+      !raw.path.trim() ||
+      raw.path.startsWith("seed/")
+    ) return null
     return {
       name: String(raw.name ?? ""),
-      path: String(raw.path ?? ""),
+      path: raw.path,
       size: typeof raw.size === "number" ? raw.size : null,
       mime: typeof raw.mime === "string" ? raw.mime : null,
       updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : null,

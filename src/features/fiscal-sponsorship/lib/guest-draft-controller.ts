@@ -1,11 +1,13 @@
 import { buildFiscalSponsorshipApplicationDraft, type FiscalSponsorshipApplicationDraft } from "./application-draft"
-import { guestDraftResponseSchema, pickGuestFiscalDraft, type GuestFiscalDraft } from "./guest-draft"
+import { guestDraftResponseSchema, guestDraftSchema, pickGuestFiscalDraft, type GuestFiscalDraft } from "./guest-draft"
+
+import { GuestDraftRecovery, pickGuestRecoveryDraft } from "./guest-draft-recovery"
 
 type Phase = "preview" | "loading" | "ready" | "saving" | "error" | "conflict" | "expired" | "invalid" | "submitted"
 type SaveRequest = { operation: "save"; version: number; requestId: string; draft: GuestFiscalDraft }
 export type GuestDraftState = {
   phase: Phase; draft: FiscalSponsorshipApplicationDraft; dirty: boolean;
-  saved: boolean; expiresAt: string | null; reference: string | null; error: string | null;
+  saved: boolean; localBackup: boolean; expiresAt: string | null; reference: string | null; error: string | null;
 }
 const emptyDraft = () => buildFiscalSponsorshipApplicationDraft({ data: { projectId: "", projectName: "", applicantName: "" } })
 const fingerprint = (draft: FiscalSponsorshipApplicationDraft) => JSON.stringify(pickGuestFiscalDraft(draft))
@@ -14,7 +16,7 @@ class DraftRequestError extends Error {
   constructor(readonly status: number) { super("draft_request_failed") }
 }
 
-// One serialized writer per mounted form. No answers are stored in browser storage.
+// One serialized writer per mounted form; optional recovery stays in this tab.
 export class GuestDraftController {
   private state: GuestDraftState
   private listeners = new Set<() => void>()
@@ -25,15 +27,33 @@ export class GuestDraftController {
   private request: AbortController | null = null
   private epoch = 0
   private active = false
+  private recoveryLoaded = false
+  private recovering = false
 
-  constructor(private enabled: boolean, private transport: typeof fetch = fetch) {
+  constructor(private enabled: boolean, private transport: typeof fetch = fetch, private recovery?: GuestDraftRecovery) {
     this.state = { phase: enabled ? "loading" : "preview", draft: emptyDraft(), dirty: false,
-      saved: false, expiresAt: null, reference: null, error: null }
+      saved: false, localBackup: false, expiresAt: null, reference: null, error: null }
   }
   getSnapshot = () => this.state
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private set(patch: Partial<GuestDraftState>) {
     this.state = { ...this.state, ...patch }
+    if (this.enabled && this.recovery) {
+      if (this.state.phase === "submitted") {
+        this.recovery.clear()
+        this.state.localBackup = false
+      } else if (this.state.dirty || this.state.saved || this.recovering) {
+        try {
+          this.state.localBackup = this.recovery.write({
+            draft: pickGuestRecoveryDraft(this.state.draft), version: this.version,
+            baseline: this.baseline, pending: this.pending, expiresAt: this.state.expiresAt,
+          })
+        } catch { this.recovery.clear(); this.state.localBackup = false }
+      } else {
+        this.recovery.clear()
+        this.state.localBackup = false
+      }
+    }
     this.listeners.forEach((listener) => listener())
   }
   private clearTimer() { if (this.timer) clearTimeout(this.timer); this.timer = null }
@@ -42,11 +62,25 @@ export class GuestDraftController {
     if (this.active) return
     this.active = true
     if (!this.enabled) return
-    if (this.pending) { this.set({ phase: "error" }); await this.save(); return }
+    if (!this.recoveryLoaded) {
+      this.recoveryLoaded = true
+      const recovered = this.recovery?.read()
+      if (recovered) {
+        this.version = recovered.version
+        this.baseline = recovered.baseline
+        this.pending = recovered.pending
+        this.recovering = true
+        this.set({ draft: { ...emptyDraft(), ...recovered.draft }, dirty: true, saved: false,
+          expiresAt: recovered.expiresAt, localBackup: true })
+      }
+    }
+    if (this.pending && !this.recovering) { this.set({ phase: "error" }); await this.save(); return }
     await this.load(false)
   }
   private async post(path: string, body: object, signal: AbortSignal) {
-    const response = await this.transport(`/api/public/fiscal-sponsorship/${path}`, {
+    // Native browser fetch rejects a controller instance as its receiver.
+    const transport = this.transport
+    const response = await transport(`/api/public/fiscal-sponsorship/${path}`, {
       method: "POST", credentials: "same-origin", cache: "no-store", signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]),
       headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     })
@@ -58,7 +92,8 @@ export class GuestDraftController {
     this.set({ phase: status === 401 ? "expired" : "error", error: status === 429
       ? "Saving is paused. Wait a minute, then retry. Your answers are still here."
       : status === 401 ? "Your draft session expired. Your answers are still here."
-        : "We couldn’t confirm your draft was saved. Keep this page open and retry." })
+        : this.state.localBackup ? "Your answers are backed up in this tab. Retry to save online."
+          : "We couldn’t confirm your draft was saved. Keep this page open and retry." })
   }
   private submitted(reference: string) {
     this.pending = null
@@ -79,15 +114,25 @@ export class GuestDraftController {
       const restored = { ...emptyDraft(), ...result.draft }
       // A failed initial read or expired session can leave unsaved local edits.
       // Never replace those with a different server draft without confirmation.
-      if (this.state.dirty && !discard && result.version > 0 && fingerprint(restored) !== fingerprint(this.state.draft)) {
+      const remoteFingerprint = fingerprint(restored)
+      const sameBaseline = this.version === result.version && this.baseline === remoteFingerprint
+      const pendingCommitted = this.pending !== null && result.version === this.pending.version + 1
+        && remoteFingerprint === fingerprint({ ...emptyDraft(), ...this.pending.draft })
+      if (this.state.dirty && !discard && result.version > 0
+        && remoteFingerprint !== JSON.stringify(pickGuestRecoveryDraft(this.state.draft))
+        && !sameBaseline && !pendingCommitted) {
         this.set({ phase: "conflict", error: null }); return
       }
       this.version = result.version
-      this.baseline = fingerprint(restored)
-      this.pending = null
+      this.baseline = remoteFingerprint
+      if (discard || !sameBaseline || pendingCommitted) this.pending = null
+      this.recovering = false
       const draft = discard || !this.state.dirty ? restored : this.state.draft
-      this.set({ phase: "ready", draft, dirty: fingerprint(draft) !== this.baseline,
-        saved: result.version > 0, expiresAt: result.expiresAt, error: null })
+      const valid = guestDraftSchema.safeParse(pickGuestRecoveryDraft(draft)).success
+      this.set({ phase: valid ? "ready" : "invalid", draft,
+        dirty: this.pending !== null || JSON.stringify(pickGuestRecoveryDraft(draft)) !== this.baseline,
+        saved: result.version > 0, expiresAt: result.expiresAt,
+        error: valid ? null : "An answer is too long to save. Shorten it before leaving this page." })
     } catch (error) { if (this.active && epoch === this.epoch) this.fail(error) }
     finally {
       if (epoch === this.epoch) { this.request = null; this.schedule() }
@@ -136,7 +181,7 @@ export class GuestDraftController {
     finally { if (epoch === this.epoch) { this.request = null; this.schedule() } }
   }
   async retry() {
-    if (this.state.phase === "expired" || this.version === null) await this.load(false)
+    if (this.recovering || this.state.phase === "expired" || this.version === null) await this.load(false)
     else await this.save()
   }
   async flush() {

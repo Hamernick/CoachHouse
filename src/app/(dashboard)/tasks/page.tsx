@@ -1,18 +1,20 @@
 import {
   clearMemberWorkspaceStarterDataAction,
-  createMemberWorkspaceTaskAction,
+  createDirectoryTaskAction,
   loadMemberWorkspaceTasksPage,
   MemberWorkspaceTasksPage,
-  updateMemberWorkspaceTaskOrderAction,
-  updateMemberWorkspaceTaskAction,
-  updateMemberWorkspaceTaskStatusAction,
+  scheduleMemberWorkspaceTaskAction,
+  moveMemberWorkspaceTaskAction,
+  updateDirectoryTaskAction,
+  updateDirectoryTaskStatusAction,
 } from "@/features/member-workspace"
+import { hasPlatformCapability } from "@/features/platform-access"
 import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { requireMemberWorkspacePageAccess } from "@/lib/workspace/member-workspace-access"
 
 export default async function TasksPage() {
   await requireMemberWorkspacePageAccess("tasks")
-  const { user } = await resolveAuthenticatedAppContext()
+  const { user, profileAudience } = await resolveAuthenticatedAppContext()
 
   const {
     taskGroups,
@@ -24,7 +26,7 @@ export default async function TasksPage() {
     scope,
     assigneeOptions,
     projectOptions,
-  } = await loadMemberWorkspaceTasksPage()
+  } = await loadMemberWorkspaceTasksPage(hasPlatformCapability(profileAudience.platformAccessLevel, "organizations") ? "platform" : "workspace")
 
   return (
     <MemberWorkspaceTasksPage
@@ -37,13 +39,12 @@ export default async function TasksPage() {
       canManageTasks={canManageTasks}
       clearStarterDataAction={clearMemberWorkspaceStarterDataAction}
       updateTaskStatusAction={
-        canManageTasks ? updateMemberWorkspaceTaskStatusAction : undefined
+        updateDirectoryTaskStatusAction
       }
-      createTaskAction={canManageTasks ? createMemberWorkspaceTaskAction : undefined}
-      updateTaskAction={canManageTasks ? updateMemberWorkspaceTaskAction : undefined}
-      updateTaskOrderAction={
-        canManageTasks ? updateMemberWorkspaceTaskOrderAction : undefined
-      }
+      createTaskAction={canManageTasks ? createDirectoryTaskAction : undefined}
+      updateTaskAction={canManageTasks ? updateDirectoryTaskAction : undefined}
+      scheduleTaskAction={canManageTasks ? scheduleMemberWorkspaceTaskAction : undefined}
+      moveTaskAction={canManageTasks ? moveMemberWorkspaceTaskAction : undefined}
       scope={scope}
       assigneeOptions={assigneeOptions}
       projectOptions={projectOptions}

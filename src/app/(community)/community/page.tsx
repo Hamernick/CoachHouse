@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { CommunityJoinCards } from "@/components/community/community-join-cards"
@@ -5,6 +6,12 @@ import { resolveAppShellOnboardingRedirectTarget } from "@/components/app-shell/
 import { requireServerSession } from "@/lib/auth"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { publicSharingEnabled } from "@/lib/feature-flags"
+
+export const metadata: Metadata = {
+  title: "Community",
+  description: "Join Coach House communities for nonprofit conversations, announcements, and coordination.",
+  robots: { index: publicSharingEnabled, follow: true },
+}
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"

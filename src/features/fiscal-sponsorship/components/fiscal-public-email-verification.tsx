@@ -43,7 +43,7 @@ export function FiscalPublicEmailVerification({ profileImportEnabled = false }: 
     <section className="mx-auto w-full max-w-lg px-4 py-8" aria-labelledby="verification-title">
       <h1 id="verification-title" className="text-2xl font-normal tracking-tight">{state === "verified" ? "Email verified" : "Verify your email"}</h1>
       <p className="mt-1 text-sm leading-6 text-muted-foreground">
-        {state === "verified" ? "You can now view your application and respond to any updates. No account has been created."
+        {state === "verified" ? "You can continue here or return to the original browser where you applied and choose Check again. No account has been created."
           : state === "missing" ? "Open the private verification link in your application confirmation email."
             : "Confirm this email belongs to you. This won’t create an account or publish your information."}
       </p>

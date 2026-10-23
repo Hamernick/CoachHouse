@@ -1,7 +1,16 @@
+import type { Metadata } from "next"
+
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { SUPPORT_EMAIL } from "@/components/app-shell/constants"
 import { PublicHeader } from "@/components/public/public-header"
+
+export const metadata: Metadata = {
+  title: "System status",
+  description:
+    "Live status reporting is not configured for Coach House. Contact support for a current service check or help with an issue.",
+  alternates: { canonical: "/status" },
+}
 
 export default function StatusPage() {
   return (

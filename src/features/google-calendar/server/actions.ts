@@ -52,6 +52,7 @@ async function context(request: NextRequest, response: NextResponse) {
   } = await supabase.auth.getUser()
   if (error || !user) throw new CalendarError("unauthorized", 401)
   const org = await resolveActiveOrganization(supabase, user.id)
+  if (org.supportAccess) throw new CalendarError("forbidden", 403)
   return { userId: user.id, orgId: org.orgId }
 }
 export function calendarHandler(operation: Operation) {
@@ -149,14 +150,13 @@ export async function calendarCallback(request: NextRequest) {
 }
 export async function calendarCron(request: NextRequest) {
   try {
-    const secret = env.GOOGLE_CALENDAR_CRON_SECRET
-    const expected = Buffer.from("Bearer " + (secret ?? ""))
     const actual = Buffer.from(request.headers.get("authorization") ?? "")
     if (
-      !secret ||
-      secret.length < 32 ||
-      actual.length !== expected.length ||
-      !timingSafeEqual(actual, expected)
+      ![env.GOOGLE_CALENDAR_CRON_SECRET, process.env.CRON_SECRET].some((secret) => {
+        if (!secret || secret.length < 32) return false
+        const expected = Buffer.from("Bearer " + secret)
+        return actual.length === expected.length && timingSafeEqual(actual, expected)
+      })
     )
       throw new CalendarError("unauthorized", 401)
     calendarConfig()

@@ -48,6 +48,8 @@ export function FiscalSponsorshipRequiredDocumentConnectPanel({
   const router = useRouter()
   const [selectedAssetId, setSelectedAssetId] = React.useState("")
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
+  const [savedUpload, setSavedUpload] = React.useState<FiscalSponsorshipProjectAssetOption | null>(null)
+  const availableAssets = savedUpload && !assets.some((asset) => asset.id === savedUpload.id) ? [...assets, savedUpload] : assets
   const [isPending, startTransition] = React.useTransition()
   const canConnect = Boolean(selectedFile || selectedAssetId)
 
@@ -71,6 +73,12 @@ export function FiscalSponsorshipRequiredDocumentConnectPanel({
             })
           : null
         const assetId = uploadedAsset?.assetId || selectedAssetId
+        // Keep a completed upload available if document connection must be retried.
+        if (uploadedAsset) {
+          setSelectedAssetId(assetId)
+          setSavedUpload({ id: assetId, name: uploadedAsset.assetName || selectedFile?.name || label })
+          setSelectedFile(null)
+        }
         const result = await connectDocumentAssetAction({
           assetId,
           documentKey,
@@ -125,7 +133,7 @@ export function FiscalSponsorshipRequiredDocumentConnectPanel({
         <DropzoneContent className="items-center text-center" />
       </Dropzone>
 
-      {assets.length > 0 ? (
+      {availableAssets.length > 0 ? (
         <FieldSet className="min-w-0 gap-1.5">
           <FieldLegend className="text-muted-foreground text-[11px] font-medium">
             Or use an existing project file
@@ -140,7 +148,7 @@ export function FiscalSponsorshipRequiredDocumentConnectPanel({
             aria-label={`Choose existing project file for ${label}`}
             className="max-h-40 gap-1.5 overflow-y-auto overscroll-contain pr-1"
           >
-            {assets.map((asset) => {
+            {availableAssets.map((asset) => {
               const inputId = `fiscal-required-${documentKey}-${asset.id}`
 
               return (

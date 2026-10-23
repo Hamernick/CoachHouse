@@ -40,7 +40,10 @@ Drive feature disconnect now also removes only its own saved credentials.
 
 ## Synchronization
 
-- Authenticated manual POST and a separately authenticated scheduler GET.
+- Authenticated manual POST and a separately authenticated scheduler GET. Vercel uses
+  its existing `CRON_SECRET`; custom schedulers can retain `GOOGLE_CALENDAR_CRON_SECRET`.
+  The production cron entry runs every five minutes after deployment; the feature flag
+  still gates all sync work.
 - One database lease/revision per user serializes jobs. Settings, pause, disconnect and
   reconnect invalidate that revision. Before external work and before persisting its results,
   workers recheck the active lease. A Google request already sent can finish after pause;

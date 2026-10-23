@@ -58,6 +58,7 @@ import {
 } from "./member-workspace-project-view-options"
 
 type MemberWorkspaceProjectsPageProps = {
+  timelineActions?: import("../../lib/project-timeline-types").ProjectTimelineActions
   deleteProjectAction?: (projectId: string) => Promise<{ ok: true; id: string } | { error: string }>
   directory?: "organizations" | "projects"
   viewerUserId?: string
@@ -146,6 +147,14 @@ function parseDirectoryState(
   }
 }
 
+function chipsToTimelineParams(filters: FilterChip[], current: Iterable<[string, string]>) {
+  const params = chipsToParams(filters)
+  for (const [key, value] of current) {
+    if (key.startsWith("timeline")) params.set(key, value)
+  }
+  return params
+}
+
 export function MemberWorkspaceProjectsPage(
   props: MemberWorkspaceProjectsPageProps
 ) {
@@ -195,10 +204,7 @@ export function MemberWorkspaceProjectsPage(
     defaultCoachFilter
   )
   const [viewOptions, setViewOptions] = useState({ ...DEFAULT_VIEW_OPTIONS, ...(directory === "projects" ? { viewType: "board" as const } : {}) })
-  const [kanbanVisibilityMode, setKanbanVisibilityMode] =
-    useState<OrganizationKanbanVisibilityMode>(
-      ORGANIZATION_KANBAN_VISIBILITY_VISIBLE
-    )
+  const [kanbanVisibilityMode, setKanbanVisibilityMode] = useState<OrganizationKanbanVisibilityMode>(ORGANIZATION_KANBAN_VISIBILITY_VISIBLE)
   const [isProjectWizardOpen, setIsProjectWizardOpen] = useState(false)
   const [editingProject, setEditingProject] =
     useState<PlatformAdminDashboardLabProject | null>(null)
@@ -239,7 +245,7 @@ export function MemberWorkspaceProjectsPage(
     nextKanbanVisibilityMode?: OrganizationKanbanVisibilityMode
     nextViewOptions?: typeof viewOptions
   }) => {
-    const params = chipsToParams(nextFilters)
+    const params = chipsToTimelineParams(nextFilters, searchParams)
     applyOrganizationCoachFilterToParams(params, nextCoachFilter)
     if (defaultCoachFilter !== "all" && nextCoachFilter === "all") params.set("coach", "all")
     applyOrganizationKanbanVisibilityToParams(params, nextKanbanVisibilityMode)
@@ -247,9 +253,7 @@ export function MemberWorkspaceProjectsPage(
     if (directory === "projects") params.set("view", nextViewOptions.viewType)
     const nextQuery = params.toString()
     saveDirectoryQuery({ directory, viewerUserId }, nextQuery, nextCoachFilter)
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
-      scroll: false,
-    })
+    window.history.replaceState(null, "", nextQuery ? `${pathname}?${nextQuery}` : pathname)
   }
 
   const handleFiltersChange = (nextFilters: FilterChip[]) => {
@@ -277,11 +281,14 @@ export function MemberWorkspaceProjectsPage(
   }
 
   const handleClearAllFilters = () => {
+    const nextViewOptions = { ...viewOptions, completion: "all" as const, showClosedProjects: true }
+    setViewOptions(nextViewOptions)
     setFilters([])
     setCoachFilter(ORGANIZATION_COACH_FILTER_ALL)
     setKanbanVisibilityMode(ORGANIZATION_KANBAN_VISIBILITY_VISIBLE)
     replaceSearchState({
       nextFilters: [],
+      nextViewOptions,
       nextCoachFilter: ORGANIZATION_COACH_FILTER_ALL,
       nextKanbanVisibilityMode: ORGANIZATION_KANBAN_VISIBILITY_VISIBLE,
     })
@@ -341,7 +348,7 @@ export function MemberWorkspaceProjectsPage(
     [directory, filters, kanbanVisibleProjects, viewOptions]
   )
   const hasActiveFilters =
-    filters.length > 0 ||
+    viewOptions.completion !== "all" || !viewOptions.showClosedProjects || filters.length > 0 ||
     coachFilter !== ORGANIZATION_COACH_FILTER_ALL ||
     kanbanVisibilityMode === ORGANIZATION_KANBAN_VISIBILITY_HIDDEN
   const showHiddenOrganizationsEmpty =
@@ -408,6 +415,7 @@ export function MemberWorkspaceProjectsPage(
           {!showPageEmpty && effectiveViewType === "timeline" ? (
             <MemberWorkspaceProjectTimelineView
               projects={filteredProjects}
+              actions={props.timelineActions}
               updateProjectScheduleAction={updateProjectScheduleAction}
             />
           ) : null}

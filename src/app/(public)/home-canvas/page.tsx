@@ -1,94 +1,25 @@
-import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import { HomeCanvasPreview } from "@/components/public/home-canvas-preview"
 import { resolvePublicAuthCallbackHref } from "@/components/public/public-auth-callback"
-import { PricingSurface } from "@/components/public/pricing-surface"
-import {
-  DEFAULT_POST_AUTH_REDIRECT,
-  getSafeRedirectPath,
-} from "@/lib/auth/redirects"
-import { getPublicMapboxToken } from "@/lib/mapbox/token"
-import {
-  resolveSignupBuilderPlanTier,
-  resolveSignupBuilderPlanTierFromRedirect,
-  resolveSignupIntentFocus,
-} from "@/lib/onboarding/signup-plan"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export const metadata: Metadata = {
-  title: "Home Canvas Preview",
-  description:
-    "A homepage preview that mirrors the internal canvas and side navigation model.",
-}
+type SearchParams = Record<string, string | string[] | undefined>
 
-export const runtime = "nodejs"
-export const revalidate = 86400
-
-type HomeCanvasPreviewPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}
-
-function readStringParam(value: string | string[] | undefined) {
-  return typeof value === "string" ? value : undefined
-}
-
-export default async function HomeCanvasPreviewPage({
+export default async function RetiredHomeCanvasPage({
   searchParams,
-}: HomeCanvasPreviewPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const searchParamsObject = new URLSearchParams()
-  for (const [key, value] of Object.entries(resolvedSearchParams ?? {})) {
-    if (typeof value === "string") {
-      searchParamsObject.set(key, value)
-      continue
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        searchParamsObject.append(key, item)
-      }
-    }
+}: { searchParams?: Promise<SearchParams> }) {
+  const resolved = searchParams ? await searchParams : {}
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(resolved)) {
+    if (typeof value === "string") params.append(key, value)
+    else if (Array.isArray(value)) for (const item of value) params.append(key, item)
   }
-  const authCallbackHref = resolvePublicAuthCallbackHref({
-    pathname: "/home-canvas",
-    searchParams: searchParamsObject,
-  })
-  if (authCallbackHref) {
-    redirect(authCallbackHref)
-  }
-  const initialSection = readStringParam(resolvedSearchParams?.section)
-  if (initialSection === "pricing") {
-    searchParamsObject.delete("section")
-    searchParamsObject.delete("embed")
-    const query = searchParamsObject.toString()
-    redirect(query ? `/pricing?${query}` : "/pricing")
-  }
-  const loginRedirectTo = getSafeRedirectPath(
-    readStringParam(resolvedSearchParams?.redirect)
-  )
-  const signupPlanTier =
-    resolveSignupBuilderPlanTier(readStringParam(resolvedSearchParams?.plan)) ??
-    resolveSignupBuilderPlanTierFromRedirect(loginRedirectTo)
-  const signupIntentFocus = resolveSignupIntentFocus(
-    readStringParam(resolvedSearchParams?.intent)
-  )
-  if (initialSection === "login") {
-    const supabase = await createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  const callback = resolvePublicAuthCallbackHref({ pathname: "/home-canvas", searchParams: params })
+  if (callback) redirect(callback)
 
-    if (user) redirect(DEFAULT_POST_AUTH_REDIRECT)
-  }
-
-  return (
-    <HomeCanvasPreview
-      initialSection={initialSection}
-      loginRedirectTo={loginRedirectTo}
-      mapboxToken={getPublicMapboxToken()}
-      pricingPanel={<PricingSurface embedded />}
-      signupIntentFocus={signupIntentFocus}
-      signupPlanTier={signupPlanTier}
-    />
-  )
+  const section = params.get("section")
+  const target = section === "login" ? "/login" : section === "signup" ? "/sign-up" : section === "pricing" ? "/pricing" : "/"
+  params.delete("section")
+  params.delete("embed")
+  const query = params.toString()
+  redirect(query ? `${target}?${query}` : target)
 }

@@ -1,5 +1,53 @@
 import { prepareVisualPage } from "./reviewed-platform-screenshot"
 import { expect, test } from "@playwright/test"
+import { COACH_HOUSE_DONATE_URL } from "../../src/lib/public-links"
+
+for (const route of ["/pricing", "/build"] as const) {
+  test(`all public plan buttons preserve their selection from ${route}`, async ({ page }) => {
+    for (const [title, plan] of [["Individual", "free"], ["Organization", "organization"], ["Operations Support", "operations_support"]]) {
+      await page.goto(`${route}?react-grab=0`)
+      const card = page.getByRole("group", { name: `${title} plan`, exact: true })
+      const link = card.getByRole("link")
+      await expect(link).toHaveAttribute("href", `/sign-up?intent=build&plan=${plan}`)
+      await link.click()
+      await expect(page).toHaveURL(new RegExp(`/sign-up\\?intent=build&plan=${plan}$`))
+      await expect(page.locator('[data-slot="card-title"]').filter({ hasText: /^Create your account$/ })).toBeVisible()
+      const login = new URL(await page.getByRole("link", { name: "Sign in", exact: true }).getAttribute("href") ?? "", "https://coachhouse.app")
+      const destination = new URL(login.searchParams.get("redirect") ?? "", "https://coachhouse.app")
+      expect(destination.pathname).toBe(plan === "free" ? "/onboarding" : "/api/stripe/checkout")
+      expect(destination.searchParams.get("plan")).toBe(plan)
+    }
+  })
+}
+
+test("Donate is a direct external link and fits beside public navigation", async ({ page, context }) => {
+  await page.setViewportSize({ width: 600, height: 900 })
+  await page.goto("/build?react-grab=0")
+  const navigation = page.getByRole("navigation", { name: "Public navigation" })
+  const donate = navigation.getByRole("link", { name: /Donate/ })
+  await expect(navigation.locator('[data-slot="navigation-menu-item"]').nth(2)).toContainText("Donate")
+  await expect(donate).toHaveAttribute("href", COACH_HOUSE_DONATE_URL)
+  await expect(donate).toHaveAttribute("target", "_blank")
+  await expect(donate).toHaveAttribute("rel", "noopener noreferrer")
+  await donate.hover()
+  await expect(navigation.locator('[data-slot="navigation-menu-content"][data-state="open"]')).toHaveCount(0)
+  const navigationBox = await navigation.boundingBox()
+  const loginBox = await page.getByRole("button", { name: "Login", exact: true }).boundingBox()
+  expect(navigationBox).not.toBeNull()
+  expect(loginBox).not.toBeNull()
+  expect(navigationBox!.y).toBeGreaterThanOrEqual(loginBox!.y + loginBox!.height)
+
+  // Verify the external-window behavior without contacting a payment provider.
+  await context.route(COACH_HOUSE_DONATE_URL, (route) => route.fulfill({ body: "Donation destination" }))
+  const popupPromise = page.waitForEvent("popup")
+  await donate.click()
+  const popup = await popupPromise
+  await expect(popup).toHaveURL(COACH_HOUSE_DONATE_URL)
+  await popup.waitForLoadState()
+  expect(await popup.evaluate(() => window.opener === null)).toBe(true)
+  await popup.close()
+  await expect(page.locator("footer").getByRole("link", { name: /Donate/ })).toHaveAttribute("href", COACH_HOUSE_DONATE_URL)
+})
 
 test("public Build landing and hover navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -111,10 +159,10 @@ for (const route of ["/", "/documentation"] as const) {
         .filter({ hasText: menuName })
       await expect(page.getByRole("button", { name: /Toggle theme \(currently/ })).toBeVisible()
       await trigger.hover()
-      const link = page.locator(
+      const link = page.locator('[data-slot="navigation-menu-content"][data-state="open"]').locator(
         menuName === "Collect"
           ? 'a[href="/login?redirect=%2Fresources"]'
-          : 'a[href="/build#pricing"]'
+          : 'a[href="/pricing"]'
       )
       await expect(link).toBeVisible()
       await link.hover()
@@ -123,12 +171,12 @@ for (const route of ["/", "/documentation"] as const) {
       await expect(page).toHaveURL(
         menuName === "Collect"
           ? /\/login\?redirect=%2Fresources$/
-          : /\/build#pricing$/
+          : /\/pricing$/
       )
       if (menuName === "Build") {
         await expect(
-          page.getByRole("region", {
-            name: "Choose how you build.",
+          page.getByRole("heading", {
+            name: "Simple pricing",
           })
         ).toBeVisible()
       }

@@ -10,11 +10,12 @@ async function fetchPublicMapOrganizationsUncached(): Promise<
   const supabase = createSupabaseAdminClient()
   const { data: orgRows, error: orgError } = await supabase
     .from("organizations")
-    .select("user_id, profile, location_lat, location_lng, public_slug")
+    .select("user_id, ein, profile, location_lat, location_lng, public_slug")
     .eq("is_public", true)
     .returns<
       Array<{
         user_id: string
+        ein: string | null
         profile: unknown
         location_lat: number | null
         location_lng: number | null
@@ -51,7 +52,7 @@ async function fetchPublicMapOrganizationsUncached(): Promise<
 const fetchPublicMapOrganizationsCached = unstable_cache(
   async (): Promise<PublicMapOrganization[]> =>
     fetchPublicMapOrganizationsUncached(),
-  ["public-map-organizations-v8"],
+  ["public-map-organizations-v9"],
   { revalidate: 300, tags: ["public-map-organizations"] }
 )
 

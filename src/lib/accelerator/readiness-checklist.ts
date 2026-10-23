@@ -7,6 +7,14 @@ export type ReadinessChecklistItem = {
 
 const READINESS_REASON_TO_CTA: Record<string, { href: string; label: string }> =
   {
+    "Add an EIN": {
+      href: getWorkspaceEditorPath({ tab: "company" }),
+      label: "Add an EIN",
+    },
+    "Confirm 501(c)(3) status": {
+      href: getWorkspaceEditorPath({ tab: "company" }),
+      label: "Confirm 501(c)(3) status",
+    },
     "Set a program funding goal": {
       href: getWorkspaceEditorPath({ tab: "programs" }),
       label: "Set a program funding goal",

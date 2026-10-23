@@ -108,6 +108,7 @@ describe("find resource index feature contract", () => {
       subtitle: "Neighborhood Resource Hub",
       latitude: 41.8781,
       longitude: -87.6298,
+      addressStreet: "123 Pantry Ave",
       city: "Chicago",
       state: "IL",
       country: "United States",
@@ -124,14 +125,13 @@ describe("find resource index feature contract", () => {
     })
   })
 
-  it("excludes detail, contact, source, and street-address fields", () => {
+  it("excludes detail, contact, and source fields", () => {
     const serialized = serializeFindResourceIndexItem(buildResourceItem())
     const serializedKeys = Object.keys(serialized)
 
     expect(serializedKeys).not.toEqual(
       expect.arrayContaining([
         "address",
-        "addressStreet",
         "aliases",
         "contacts",
         "deliveryModes",
@@ -380,5 +380,16 @@ describe("bounded server resource queries", () => {
     const catalog = buildFindResourceCatalog([indexItem], "v1")
     const options = parseFindResourceCatalogQuery(new URLSearchParams("mode=directory&cursor=deleted"))!
     expect(queryFindResourceCatalog(catalog, options).resourceItems).toEqual([])
+  })
+})
+
+
+describe("map coordinate eligibility", () => {
+  it("keeps placeholders and invalid coordinates out of map pages", () => {
+    const item = serializeFindResourceIndexItem(buildResourceItem())
+    for (const point of [{latitude:0,longitude:0},{latitude:null,longitude:null},{latitude:91,longitude:1},{latitude:1,longitude:181},{latitude:NaN,longitude:1}]) {
+      expect(resourceIndexItemInBounds({...item,...point},[-180,-90,180,90])).toBe(false)
+    }
+    expect(resourceIndexItemInBounds(item,[-180,-90,180,90])).toBe(true)
   })
 })

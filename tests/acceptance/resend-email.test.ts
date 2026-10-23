@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { canSendResendEmail, sendResendEmail } from "@/lib/email/resend"
+import { MINIMAL_EMAIL_RESPONSIVE_STYLE, renderMinimalEmail } from "@/lib/email/minimal-template"
 import { env } from "@/lib/env"
 
 const originalEnv = {
@@ -25,6 +26,77 @@ describe("resend email helper", () => {
     env.EMAIL_OPS_TOKEN_SECRET = originalEnv.EMAIL_OPS_TOKEN_SECRET
     env.NEXT_PUBLIC_SITE_URL = originalEnv.NEXT_PUBLIC_SITE_URL
     vi.unstubAllGlobals()
+  })
+
+  it("delivers the shared renderer with its exact responsive CSS and matching text", async () => {
+    env.RESEND_API_KEY = "re_test"
+    env.RESEND_FROM_EMAIL = "hello@coachhouse.app"
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "minimal-id" }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const rendered = renderMinimalEmail({ title: "Review application", details: [{ label: "Project", value: "Northside" }], action: { label: "Review", href: "https://coachhouse.app/projects/sample" } })
+    const result = await sendResendEmail({ to: "sample@example.test", subject: "New FS application: Northside", ...rendered })
+    expect(result).toEqual({ ok: true, id: "minimal-id" })
+    const wire = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(wire.html).toBe(rendered.html)
+    expect(wire.html).toContain(MINIMAL_EMAIL_RESPONSIVE_STYLE)
+    expect(wire.text).toBe(rendered.text)
+  })
+
+  it.each([
+    '<meta http-equiv="refresh" content="0;url=https://example.test">',
+    '<meta charset="utf-8" onload="bad()">',
+    '<script>bad()</script>',
+    '<p onclick="bad()">Dangerous</p>',
+  ])("blocks authored active HTML despite the safe shared shell: %s", async (unsafe) => {
+    env.RESEND_API_KEY = "re_test"
+    env.RESEND_FROM_EMAIL = "hello@coachhouse.app"
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    const rendered = renderMinimalEmail({ title: "Update" })
+    const result = await sendResendEmail({ to: "sample@example.test", subject: "Update", ...rendered, html: rendered.html + unsafe })
+    expect(result.ok).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    '<style>@import url("https://example.test/tracking.css");</style>',
+    '<style>body{background:url(https://example.test/tracking)}</style>',
+    '<style>@import url("https://example.test/tracking.css");',
+  ])("strips arbitrary styles while retaining only exact generated CSS: %s", async (unsafe) => {
+    env.RESEND_API_KEY = "re_test"
+    env.RESEND_FROM_EMAIL = "hello@coachhouse.app"
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "safe-style-id" }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const rendered = renderMinimalEmail({ title: "Update" })
+    const result = await sendResendEmail({ to: "sample@example.test", subject: "Update", ...rendered, html: rendered.html + unsafe })
+    expect(result.ok).toBe(true)
+    const wire = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(wire.html).toBe(rendered.html)
+    expect(wire.html).toContain(MINIMAL_EMAIL_RESPONSIVE_STYLE)
+    expect(wire.html).not.toContain("@import")
+    expect(wire.html).not.toContain("example.test/tracking")
+  })
+
+  it("includes explicit staff CC recipients in the provider request", async () => {
+    env.RESEND_API_KEY = "re_test"
+    env.RESEND_FROM_EMAIL = "hello@coachhouse.app"
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "cc-id" }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    expect(await sendResendEmail({ to: "joel@example.test", cc: ["caleb@example.test"], subject: "Application", html: "<p>Review application</p>", text: "Review application" })).toEqual({ ok: true, id: "cc-id" })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ to: ["joel@example.test"], cc: ["caleb@example.test"] })
+  })
+
+  it("omits live unsubscribe headers for fixture samples while normal delivery retains them", async () => {
+    env.RESEND_API_KEY = "re_test"
+    env.RESEND_FROM_EMAIL = "hello@coachhouse.app"
+    env.RESEND_UNSUBSCRIBE_URL = "https://coach.test/unsubscribe-live"
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "sample" }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const mail = { to: "caleb@bandto.com", subject: "Sample", html: "<p>Sample</p>", text: "Sample" }
+    await sendResendEmail({ ...mail, omitUnsubscribeHeaders: true })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).headers).toBeUndefined()
+    await sendResendEmail(mail)
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).headers["List-Unsubscribe"]).toContain("https://coach.test/unsubscribe-live")
   })
 
   it("uses the canonical Resend API key when configured", async () => {

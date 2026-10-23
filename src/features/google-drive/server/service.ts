@@ -1,5 +1,6 @@
 import {
   downloadGoogleDriveDocument,
+  downloadGoogleDriveDocumentContent,
   downloadGoogleDriveThumbnail,
 } from "./file-content"
 import "server-only"
@@ -480,4 +481,17 @@ export async function getSelectedGoogleDriveFile(
   if (file.status !== "available")
     throw new GoogleDriveError("file_not_authorized", 403)
   return file
+}
+
+export async function getGoogleDriveFileContent(input: {
+  userId: string
+  fileId: unknown
+}) {
+  const ids = normalizeGoogleDriveFileIds([input.fileId])
+  if (!ids) throw new GoogleDriveError("invalid", 400)
+  const { accessToken } = await getAccessToken(
+    createSupabaseAdminClient(),
+    input.userId
+  )
+  return downloadGoogleDriveDocumentContent(accessToken, ids[0])
 }

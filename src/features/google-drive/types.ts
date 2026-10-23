@@ -32,6 +32,7 @@ export type GoogleDriveErrorCode =
   | "file_not_authorized"
   | "rate_limited"
   | "provider_unavailable"
+  | "unsupported_preview"
 
 export class GoogleDriveError extends Error {
   constructor(

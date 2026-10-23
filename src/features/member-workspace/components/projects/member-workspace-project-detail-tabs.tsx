@@ -75,6 +75,7 @@ function ProjectDetailOverviewContent({
 }
 
 type MemberWorkspaceProjectDetailTabsProps = {
+  actionScope?: "workspace" | "platform"
   showOrganizationPrograms?: boolean
   organizationPrograms?: OrgProgram[]
   activeTab: string
@@ -155,6 +156,7 @@ type MemberWorkspaceProjectDetailTabsProps = {
   FiscalSponsorshipProjectWorkbenchDocumentActionProps
 
 export function MemberWorkspaceProjectDetailTabs({
+  actionScope = "workspace",
   organizationPrograms,
   showOrganizationPrograms = false,
   activeTab,
@@ -200,7 +202,7 @@ export function MemberWorkspaceProjectDetailTabs({
     setAddingFiscal(true)
     setTabError(null)
     try {
-      const result = await enableProjectFiscalSponsorshipAction(project.id)
+      const result = await enableProjectFiscalSponsorshipAction(project.id, actionScope)
       if ("error" in result) { setTabError(result.error ?? "Could not add Fiscal Sponsorship."); return }
       setAddedProjectId(project.id)
       onActiveTabChange("fiscal-sponsorship")
@@ -320,7 +322,7 @@ export function MemberWorkspaceProjectDetailTabs({
       </TabsContent>
 
       <TabsContent value="assets">
-        <ProjectAssetFolders key={project.id} projectId={project.id} workflowSummary={fiscalSponsorshipWorkflowSummary} />
+        <ProjectAssetFolders actionScope={actionScope} key={project.id} projectId={project.id} workflowSummary={fiscalSponsorshipWorkflowSummary} />
       </TabsContent>
     </Tabs>
   )

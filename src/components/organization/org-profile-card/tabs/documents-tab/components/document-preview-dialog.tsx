@@ -16,11 +16,19 @@ import type { LibraryItem } from "./documents-library-items"
 import { DocumentPdfViewer } from "./document-pdf-viewer"
 
 function DocumentPreviewContent({ item }: { item: LibraryItem }) {
-  const preview = useDocumentPreviewUrl(
+  const driveThumbnail = Boolean(item.driveDocument)
+  const signedPreview = useDocumentPreviewUrl(
     item.previewPath,
     item.previewVersion,
-    true
+    !driveThumbnail
   )
+  // Drive's endpoint serves thumbnail image bytes, including for PDF covers.
+  const preview = {
+    ...signedPreview,
+    url: driveThumbnail ? (item.previewPath ?? null) : signedPreview.url,
+    error: driveThumbnail ? null : signedPreview.error,
+  }
+  const originalUrl = item.driveDocument?.webViewLink ?? preview.url
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const onPreviewError = useCallback(
     () => setFailedUrl(preview.url),
@@ -35,7 +43,9 @@ function DocumentPreviewContent({ item }: { item: LibraryItem }) {
     <>
       <DialogHeader className="pr-10">
         <DialogTitle className="break-words">{item.name}</DialogTitle>
-        <DialogDescription>Document preview</DialogDescription>
+        <DialogDescription>
+          {driveThumbnail ? "Google Drive thumbnail preview" : "Document preview"}
+        </DialogDescription>
       </DialogHeader>
       <div className="bg-muted/40 flex h-[65dvh] min-h-0 items-center justify-center overflow-hidden rounded-lg">
         {error ? (
@@ -58,7 +68,7 @@ function DocumentPreviewContent({ item }: { item: LibraryItem }) {
             className="size-full"
             aria-label="Loading document preview"
           />
-        ) : item.fileType === "image" ? (
+        ) : driveThumbnail || item.fileType === "image" ? (
           // Private signed files bypass the public image optimizer.
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -78,10 +88,10 @@ function DocumentPreviewContent({ item }: { item: LibraryItem }) {
           />
         )}
       </div>
-      {preview.url ? (
+      {originalUrl ? (
         <div className="flex justify-end">
           <Button variant="outline" asChild>
-            <a href={preview.url} target="_blank" rel="noopener noreferrer">
+            <a href={originalUrl} target="_blank" rel="noopener noreferrer">
               Open original
             </a>
           </Button>

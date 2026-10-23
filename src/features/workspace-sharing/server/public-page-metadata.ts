@@ -1,7 +1,7 @@
 import "server-only"
 
 import type { Metadata } from "next"
-import { publicOrigin } from "@/lib/public-profile-metadata"
+import { getPublicSiteOrigin } from "@/lib/public-site-origin"
 import { loadPublicWorkspacePage } from "./public-page"
 
 export async function workspacePageMetadata(org: string, linkId: string): Promise<Metadata> {
@@ -11,7 +11,7 @@ export async function workspacePageMetadata(org: string, linkId: string): Promis
   const { snapshot } = page
   const title = snapshot.title ? `${snapshot.title} · ${snapshot.brand.name}` : snapshot.brand.name
   const description = (snapshot.description || `Shared by ${snapshot.brand.name}.`).replace(/\s+/g, " ").trim().slice(0, 240)
-  const canonical = `${publicOrigin()}/${encodeURIComponent(org)}/${encodeURIComponent(linkId)}`
+  const canonical = `${getPublicSiteOrigin()}/${encodeURIComponent(org)}/${encodeURIComponent(linkId)}`
   return {
     title: { absolute: title }, description, alternates: { canonical },
     openGraph: { type: "website", title, description, url: canonical },

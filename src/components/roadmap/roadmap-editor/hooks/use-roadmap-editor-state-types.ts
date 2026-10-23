@@ -21,6 +21,7 @@ export type UseRoadmapEditorStateResult = {
   resolveSaveConflict:(choice:"saved" | "reviewed" | "retry")=>void
   aiApplication: import("@/features/workspace-ai/client").AiDocumentApplication | null
   applyAiProposal: (proposal: import("@/features/workspace-ai/client").AiDocumentProposal) => boolean
+  handleSavedSection: (section: RoadmapSection) => void
   activeSection: RoadmapSection | undefined
   activeDraft: RoadmapDraft | null
   drafts: Record<string, RoadmapDraft>

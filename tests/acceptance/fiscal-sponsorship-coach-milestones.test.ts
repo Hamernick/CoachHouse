@@ -139,7 +139,7 @@ describe("Karissa fiscal event emails", () => {
     deliveryMocks.send.mockReset().mockResolvedValue({ ok: true, id: "email-id" })
     vi.stubEnv("INTERNAL_CRON_SECRET", "test-cron-secret")
     vi.stubEnv("FISCAL_STAFF_EMAILS_ENABLED", "true")
-    deliveryMocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_staff_emails" ? [notificationJob] : true, error: null }))
+    deliveryMocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_staff_emails_v2" ? [notificationJob] : true, error: null }))
   })
   afterEach(() => vi.unstubAllEnvs())
   it("does not dispatch staff messages without explicit activation", async () => {
@@ -163,6 +163,24 @@ describe("Karissa fiscal event emails", () => {
     expect(deliveryMocks.rpc).toHaveBeenLastCalledWith("finish_fiscal_staff_email", {
       p_event_id: notificationJob.event_id, p_lease_token: notificationJob.lease_token, p_message_id: "email-id", p_success: true,
     })
+  })
+  it("sends Karissa the application digest with Caleb copied and a stable new key", async () => {
+    deliveryMocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_staff_emails_v2" ? [{ ...notificationJob, template_version: 2, to_recipients: ["joel@coachhousesolutions.org", "fs@coachhousesolutions.org"], cc_recipients: ["caleb@bandto.com"], message_snapshot: { projectName: "Community garden" }, review_snapshot: { project_name: "Community garden", project_description: "Grow together", corrections: true } }] : true, error: null }))
+    await dispatchFiscalStaffEmails(); await dispatchFiscalStaffEmails()
+    const mail = deliveryMocks.send.mock.calls[0][0]
+    expect(mail).toMatchObject({ to: ["joel@coachhousesolutions.org", "fs@coachhousesolutions.org"], cc: ["caleb@bandto.com"], subject: "FS corrections received: Community garden", idempotencyKey: `fiscal-staff-minimal-v1/${notificationJob.event_id}` })
+    expect(mail.text).toContain("Grow together")
+    expect(mail.html).toContain("Review application</a>")
+    expect(JSON.stringify(deliveryMocks.send.mock.calls[1][0])).toEqual(JSON.stringify(mail))
+  })
+  it("uses the legacy staff worker only when the new function is absent", async () => {
+    deliveryMocks.rpc.mockImplementation(async (name: string) => name === "claim_fiscal_staff_emails_v2" ? { data: null, error: { code: "PGRST202" } } : { data: name === "claim_fiscal_staff_emails" ? [notificationJob] : true, error: null })
+    expect(await dispatchFiscalStaffEmails()).toEqual({ sent: 1, failed: 0 })
+    expect(deliveryMocks.send.mock.calls[0][0]).not.toHaveProperty("cc")
+    deliveryMocks.rpc.mockResolvedValue({ data: null, error: { code: "08006" } })
+    deliveryMocks.rpc.mockClear()
+    await expect(dispatchFiscalStaffEmails()).rejects.toThrow("queue unavailable")
+    expect(deliveryMocks.rpc).toHaveBeenCalledTimes(1)
   })
   it("records delivery failure for retry without marking it sent", async () => {
     deliveryMocks.send.mockRejectedValue(new Error("network error"))

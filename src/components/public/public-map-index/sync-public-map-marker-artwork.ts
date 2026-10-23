@@ -15,6 +15,7 @@ import {
 } from "./map-marker-layer-contracts"
 
 export function syncPublicMapMarkerArtwork({
+  declutter = false,
   activeSameLocationGroupKey = null,
   features,
   map,
@@ -23,6 +24,7 @@ export function syncPublicMapMarkerArtwork({
   showLabels = true,
   theme,
 }: {
+  declutter?: boolean
   activeSameLocationGroupKey?: string | null
   features: PublicMapPointFeature[]
   map: mapboxgl.Map
@@ -38,7 +40,13 @@ export function syncPublicMapMarkerArtwork({
     theme,
   })
   if (
-    !ensurePublicMapMarkerLayers({ map, maxRelevanceTier, showLabels, theme })
+    !ensurePublicMapMarkerLayers({
+      declutter,
+      map,
+      maxRelevanceTier,
+      showLabels,
+      theme,
+    })
   ) {
     return { profileImageLoads, updated: false }
   }
@@ -52,6 +60,7 @@ export function syncPublicMapMarkerArtwork({
   })
   if (updated) {
     syncPublicMapMarkerSelection({
+      declutter,
       activeSameLocationGroupKey,
       map,
       maxRelevanceTier,

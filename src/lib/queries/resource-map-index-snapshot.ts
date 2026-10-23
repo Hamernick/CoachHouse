@@ -9,7 +9,7 @@ import type { Database } from "@/lib/supabase/types"
 import { fetchPublicResourceMapItems, isResourceMapPublicDbEnabled } from "./resource-map-public-items"
 
 // Detail bodies, contact arrays, documents and links stay on the detail endpoint.
-export const PUBLIC_RESOURCE_INDEX_COLUMNS = "item_id,title,subtitle,organization_name,latitude,longitude,city,state,country,resource_categories,primary_resource_category,verification_status,logo_url,favicon_url,source_label,source_url,source_attribution,last_verified_at,hours,timezone,appointment_required,availability_status,availability_notes,temporary_closed_until" as const
+export const PUBLIC_RESOURCE_INDEX_COLUMNS = "item_id,title,subtitle,organization_name,latitude,longitude,address_line1,address_line2,city,state,country,resource_categories,primary_resource_category,verification_status,logo_url,favicon_url,source_label,source_url,source_attribution,last_verified_at,hours,timezone,appointment_required,availability_status,availability_notes,temporary_closed_until" as const
 const PAGE_SIZE = 500
 
 export async function readPublicResourceIndexPage(cursor: string | null) {
@@ -23,7 +23,7 @@ export async function readPublicResourceIndexPage(cursor: string | null) {
   return data ?? []
 }
 
-const readIndexPage = unstable_cache(readPublicResourceIndexPage, ["public-resource-index-projection-v1"], { revalidate: 300 })
+const readIndexPage = unstable_cache(readPublicResourceIndexPage, ["public-resource-index-projection-v2"], { revalidate: 300 })
 
 export async function fetchPublicResourceIndexSnapshot(): Promise<ExternalResourceMapItem[]> {
   if (env.RESOURCE_MAP_LOCAL_PREVIEW_FILE?.trim()) {

@@ -23,6 +23,8 @@ export function RichTextEditor({
   basicToolbar = false,
   hideLinkPreviews = false,
   value,
+  onReady,
+  applyExternalValue = true,
   onChange,
   ariaLabel,
   readOnly = false,
@@ -39,6 +41,7 @@ export function RichTextEditor({
   onImageUploaded,
   insertUploadedImage = true,
   preserveImages = false,
+  linkPreviews = true,
   onImagePickerReady,
   toolbarPortalId,
   toolbarClassName,
@@ -178,7 +181,7 @@ export function RichTextEditor({
     immediatelyRender: false,
   })
   const linkMeta = useLinkPreviews(links, {
-    active: !hideLinkPreviews && (session?.active ?? true),
+    active: linkPreviews && !hideLinkPreviews && (session?.active ?? true),
     bounded: Boolean(session),
   })
 
@@ -198,6 +201,16 @@ export function RichTextEditor({
       metadataTimer.current = null
     }
   }, [editor, sessionActive, scheduleMetadata])
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    // Tiptap preserves editable across option updates; connection and permission
+    // changes must update the live editor without emitting a content change.
+    editor.setEditable(!isReadOnly, false)
+  }, [editor, isReadOnly])
+
+  useEffect(() => {
+    if (editor) onReady?.(editor)
+  }, [editor, onReady])
 
   useEffect(() => {
     if (!editor) return
@@ -214,7 +227,7 @@ export function RichTextEditor({
   }, [toolbarPortalId])
 
   useEffect(() => {
-    if (!editor || sessionRef.current || typeof value !== "string") return
+    if (!applyExternalValue || !editor || sessionRef.current || typeof value !== "string") return
     const current = editor.getHTML()
     if (current !== value) {
       applyingRef.current = true
@@ -241,7 +254,7 @@ export function RichTextEditor({
         cancelled = true
       }
     }
-  }, [editor, value])
+  }, [applyExternalValue, editor, value])
 
   useEffect(() => {
     if (!editor) return
@@ -300,6 +313,12 @@ export function RichTextEditor({
     editor.chain().focus().run()
   }
 
+  const editorHeader = header ? (
+    <div className={cn("text-muted-foreground px-3 pt-3 text-sm", headerClassName)}>
+      {header}
+    </div>
+  ) : null
+
   return (
     <>
       <div
@@ -322,16 +341,7 @@ export function RichTextEditor({
           className="flex min-h-0 flex-1 flex-col"
           onMouseDown={handleWrapperMouseDown}
         >
-          {header ? (
-            <div
-              className={cn(
-                "text-muted-foreground px-3 pt-3 text-sm",
-                headerClassName
-              )}
-            >
-              {header}
-            </div>
-          ) : null}
+          {editorHeader}
           <div
             className={cn(
               "bg-muted/30 text-muted-foreground flex items-center justify-end gap-2 px-3 py-2 text-xs",
@@ -347,7 +357,7 @@ export function RichTextEditor({
             <EditorContent editor={editor} />
             {!isReadOnly && <SelectionAssistanceMenu key={editor.instanceId} editor={editor} label={ariaLabel} active={contextActive && (session?.active ?? true)} />}
           </div>
-          {!hideLinkPreviews && links.length > 0 ? (
+          {linkPreviews && !hideLinkPreviews && links.length > 0 ? (
             <div className="bg-muted/20 flex flex-wrap items-center gap-2 rounded-b-md border-t px-3 py-2">
               {links.map((href) => (
                 <LinkPreviewCard key={href} href={href} meta={linkMeta[href]} />

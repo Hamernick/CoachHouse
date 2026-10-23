@@ -6,6 +6,7 @@ import type { MemberWorkspaceHeaderState } from "@/features/member-workspace"
 import type { PlatformAccessLevel } from "@/features/platform-access"
 
 export type DashboardLayoutState = {
+  organizationScope?: { orgId: string; supportAccess?: boolean; presenceOrganizationId?: string }
   userPresent: boolean
   sidebarTree: SidebarClass[]
   user: {
@@ -16,6 +17,7 @@ export type DashboardLayoutState = {
   }
   isAdmin: boolean
   platformAccessLevel: PlatformAccessLevel | null
+  hasCoachingAccess: boolean
   isTester: boolean
   showOrgAdmin: boolean
   canAccessOrgAdmin: boolean
@@ -59,6 +61,7 @@ export const EMPTY_STATE: DashboardLayoutState = {
   },
   isAdmin: false,
   platformAccessLevel: null,
+  hasCoachingAccess: false,
   isTester: false,
   showOrgAdmin: false,
   canAccessOrgAdmin: false,

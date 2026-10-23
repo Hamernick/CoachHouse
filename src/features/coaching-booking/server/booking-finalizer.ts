@@ -14,6 +14,11 @@ import {
   normalizePriceTier,
 } from "../lib"
 import type { CoachingCoachId } from "../types"
+import { buildCoachingCalendarTitle } from "../lib/calendar-title"
+import { isCoachingSlotWithinSchedule } from "../lib/availability"
+import { isCoachingSlotUnavailable, COACHING_SLOT_UNAVAILABLE_MESSAGE } from "../lib/booking-errors"
+import { loadCoachingClientName } from "./coaching-client-name"
+import { assertCoachingCalendarAvailable } from "./calendar-conflicts"
 import { sendCoachingBookingConfirmationEmails } from "./email"
 import {
   createGoogleCoachingEvent,
@@ -38,6 +43,22 @@ type BookingForConfirmation = {
   google_meet_url: string | null
   calendar_pending_action?: string | null
   stripe_checkout_session_id?: string | null
+  cancel_reason?: string | null
+}
+
+async function rejectUnavailableBooking(admin: AdminClient, booking: BookingForConfirmation) {
+  const result = await admin.from("coaching_bookings").update({
+    status: "canceled",
+    canceled_at: new Date().toISOString(),
+    cancel_reason: COACHING_SLOT_UNAVAILABLE_MESSAGE,
+    hold_expires_at: null,
+  }).eq("id", booking.id).in("status", ["held", "pending_payment"])
+    .select("id").maybeSingle()
+  if (result.error) throw supabaseErrorToError(result.error, "Unable to release the unavailable coaching slot.")
+  // A concurrent successful confirmation must not be canceled by a stale caller.
+  const current = await loadCoachingBookingForConfirmation({ admin, bookingId: booking.id })
+  if (!current) throw new Error("Unable to reload coaching booking.")
+  return current
 }
 
 function buildCalendarEventDescription(booking: BookingForConfirmation) {
@@ -65,13 +86,32 @@ export async function confirmCoachingBooking({
     return booking
   }
 
+  if (booking.status === "canceled") return booking
+  if (booking.status !== "confirmed" && !isCoachingSlotWithinSchedule(new Date(booking.starts_at), new Date(booking.ends_at))) {
+    return rejectUnavailableBooking(admin, booking)
+  }
+  try {
+    await assertCoachingCalendarAvailable({
+      startsAt: booking.starts_at,
+      endsAt: booking.ends_at,
+      excludeGoogleEventId: booking.google_event_id ?? booking.id.replaceAll("-", ""),
+    })
+  } catch (error) {
+    if (!isCoachingSlotUnavailable(error) || booking.status === "confirmed") throw error
+    return rejectUnavailableBooking(admin, booking)
+  }
+  const attendeeName = await loadCoachingClientName({ supabase: admin, userId: booking.user_id })
+
   const creditResult = await admin.rpc("confirm_coaching_credit_booking", {
     p_booking_id: booking.id,
     p_checkout_id: stripeCheckoutSessionId ?? null,
     p_payment_id: stripePaymentIntentId ?? null,
     p_customer_id: stripeCustomerId ?? null,
   })
-  if (creditResult.error) throw supabaseErrorToError(creditResult.error, "Unable to reserve coaching credit.")
+  if (creditResult.error) {
+    if (isCoachingSlotUnavailable(creditResult.error)) return rejectUnavailableBooking(admin, booking)
+    throw supabaseErrorToError(creditResult.error, "Unable to reserve coaching credit.")
+  }
 
   const coachId = normalizeCoachId(booking.coach_id)
   const priceTier = normalizePriceTier(booking.price_tier)
@@ -81,7 +121,7 @@ export async function confirmCoachingBooking({
   const calendarEvent = await createGoogleCoachingEvent({
     eventId: booking.id.replaceAll("-", ""),
     coachId,
-    summary: `Coach House meeting with ${COACHING_JOINT_COACH_LABEL}`,
+    summary: buildCoachingCalendarTitle(attendeeName),
     description: buildCalendarEventDescription(booking),
     startsAt: booking.starts_at,
     endsAt: booking.ends_at,
@@ -93,7 +133,11 @@ export async function confirmCoachingBooking({
     console.error("Coaching calendar confirmation pending", error)
     return null
   })
-  if (!calendarEvent) return { ...booking, status: "confirmed" }
+  if (!calendarEvent) {
+    const current = await loadCoachingBookingForConfirmation({ admin, bookingId: booking.id })
+    if (!current) throw new Error("Unable to reload coaching booking.")
+    return current
+  }
 
   const googleEventId = getValidGoogleCalendarEventId(calendarEvent.googleEventId)
   const googleMeetUrl = getValidGoogleMeetUrl(calendarEvent.googleMeetUrl)
@@ -159,6 +203,7 @@ export async function confirmCoachingBooking({
 
   try {
     await sendCoachingBookingConfirmationEmails({
+      attendeeName,
       attendeeEmail,
       coachEmails: COACHING_JOINT_COACH_IDS.map((participantId) =>
         getGoogleCoachingParticipantEmail(participantId)
@@ -205,7 +250,7 @@ export async function loadCoachingBookingForConfirmation({
   const { data, error } = await admin
     .from("coaching_bookings")
     .select(
-      "id, org_id, user_id, coach_id, status, price_tier, starts_at, ends_at, timezone, attendee_notes, google_event_id, google_meet_url, calendar_pending_action, stripe_checkout_session_id"
+      "id, org_id, user_id, coach_id, status, price_tier, starts_at, ends_at, timezone, attendee_notes, google_event_id, google_meet_url, calendar_pending_action, stripe_checkout_session_id, cancel_reason"
     )
     .eq("id", bookingId)
     .maybeSingle<BookingForConfirmation>()

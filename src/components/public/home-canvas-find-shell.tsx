@@ -26,6 +26,7 @@ export function HomeCanvasFindShell({
   children,
   inset = true,
   glassHeader = false,
+  headerInFlow = false,
   showAuthActions = true,
   showPublicSearch = true,
   showPublicNavigation = true,
@@ -38,6 +39,7 @@ export function HomeCanvasFindShell({
   children: ReactNode
   inset?: boolean
   glassHeader?: boolean
+  headerInFlow?: boolean
   showAuthActions?: boolean
   showPublicSearch?: boolean
   showPublicNavigation?: boolean
@@ -53,6 +55,7 @@ export function HomeCanvasFindShell({
         <HomeCanvasFindShellContent
           inset={inset}
           glassHeader={glassHeader}
+          headerInFlow={headerInFlow}
           showAuthActions={showAuthActions}
           showPublicSearch={showPublicSearch}
           showPublicNavigation={showPublicNavigation}
@@ -73,6 +76,7 @@ function HomeCanvasFindShellContent({
   children,
   inset,
   glassHeader,
+  headerInFlow,
   showAuthActions,
   showPublicSearch,
   showPublicNavigation,
@@ -85,6 +89,7 @@ function HomeCanvasFindShellContent({
   children: ReactNode
   inset: boolean
   glassHeader: boolean
+  headerInFlow: boolean
   showAuthActions: boolean
   showPublicSearch: boolean
   showPublicNavigation: boolean
@@ -106,7 +111,13 @@ function HomeCanvasFindShellContent({
     useAppShellRightRailState({ hasRightRail, isMobile })
 
   function navigateToSection(section: CanvasSectionId) {
-    router.push(`/home-canvas?section=${section}`)
+    const target = section === "login" ? "/login"
+      : section === "signup" ? "/sign-up"
+      : section === "pricing" ? "/pricing"
+      : section === "platform" ? "/build"
+      : section === "find" ? "/resources"
+      : "/"
+    router.push(target)
   }
 
   return (
@@ -137,7 +148,7 @@ function HomeCanvasFindShellContent({
                 "shrink-0",
                 glassHeader && "z-40 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75",
                 glassHeader && !frameCanvas && "[html.light_&]:bg-transparent [html.light_&]:backdrop-blur-none",
-                glassHeader && (inset && frameCanvas ? "relative" : "absolute inset-x-0 top-0")
+                glassHeader && (headerInFlow || (inset && frameCanvas) ? "relative" : "absolute inset-x-0 top-0")
               )}
             >
             <HomeCanvasPreviewHeader

@@ -100,6 +100,7 @@ export function AppShellInner({
   user,
   isAdmin,
   platformAccessLevel = null,
+  hasCoachingAccess = false,
   isTester = false,
   showOrgAdmin = false,
   canAccessOrgAdmin = true,
@@ -250,6 +251,7 @@ export function AppShellInner({
       useFlushContentBody={useFullBleedContent}
       useFullBleedContent={useFullBleedContent}
       useMobileSingleGutterContent={useMobileSingleGutterContent}
+      compactEditorBottomPadding={pathname === "/workspace/roadmap" || Boolean(pathname?.startsWith("/workspace/roadmap/"))}
     >
       {children}
     </ShellMainContent>
@@ -308,6 +310,7 @@ export function AppShellInner({
                   accountMenuContent={accountMenuContent}
                   isAdmin={isAdmin}
                   platformAccessLevel={platformAccessLevel}
+                  hasCoachingAccess={hasCoachingAccess}
                   isTester={isTester}
                   showOrgAdmin={showOrgAdmin}
                   canAccessOrgAdmin={canAccessOrgAdmin}
@@ -342,6 +345,7 @@ export function AppShellInner({
               <AppShellHeader
                 breadcrumbs={breadcrumbs}
                 hasUser={hasUser}
+                notificationIdentity={user?.email}
                 isAdmin={isAdmin}
                 onboardingLocked={onboardingLocked}
                 rightOpen={rightOpen}

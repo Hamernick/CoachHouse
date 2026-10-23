@@ -70,6 +70,7 @@ export function NotificationsMenu() {
     bulkUpdating,
     selectedUpdating,
     requestUpdating,
+    totalCount,
     unreadCount,
     showBellUnreadCue,
     refreshNotifications,
@@ -128,9 +129,11 @@ export function NotificationsMenu() {
     <div className="border-border/60 flex items-center justify-between border-b px-4 py-3">
       <div className="flex min-w-0 items-center gap-2">
         <p className="text-foreground truncate text-sm font-semibold">Notifications</p>
-        <Badge variant="secondary" className="rounded-full">
-          {inboxItems.length}
-        </Badge>
+        {totalCount !== null ? (
+          <Badge variant="secondary" className="rounded-full">
+            {totalCount}
+          </Badge>
+        ) : null}
         {unreadCount > 0 ? (
           <Badge variant="secondary" className="rounded-full">
             {unreadCount} unread
@@ -142,7 +145,7 @@ export function NotificationsMenu() {
         size="sm"
         variant="ghost"
         onClick={() => handleMarkAllRead()}
-        disabled={bulkUpdating || unreadCount === 0}
+        disabled={bulkUpdating || selectedUpdating || !!requestUpdating || unreadCount === 0}
         className="shrink-0"
       >
         {bulkUpdating ? (
@@ -203,7 +206,7 @@ export function NotificationsMenu() {
         <NotificationPreview
           item={selectedItem}
           loading={loading}
-          updating={selectedUpdating}
+          updating={selectedUpdating || bulkUpdating}
           requestUpdating={requestUpdating}
           onOpen={handleOpenSelected}
           onToggleRead={handleToggleRead}
@@ -234,7 +237,7 @@ export function NotificationsMenu() {
           <NotificationPreview
             item={mobileDetailItem}
             loading={loading}
-            updating={selectedUpdating}
+            updating={selectedUpdating || bulkUpdating}
             requestUpdating={requestUpdating}
             className="min-h-0 max-h-none flex-1 border-t-0 md:border-l-0"
             onOpen={handleOpenSelected}

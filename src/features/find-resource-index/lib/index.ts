@@ -82,12 +82,15 @@ function serializeFindResourceDetailAvailability(
 
 function serializeFindResourceDetailServices(
   services: ExternalResourceMapItem["services"],
-  itemDescription: string | null
+  itemDescription: string | null,
+  itemTitle: string
 ) {
   return (services ?? []).flatMap((service) => {
     const description =
       service.description === itemDescription ? null : service.description
     const hasUsefulDetails = Boolean(
+      service.title !== itemTitle ||
+      service.availability?.label ||
       description ||
       service.whoItHelps ||
       service.eligibility ||
@@ -128,7 +131,8 @@ export function serializeFindResourceDetailItem(
     serializeFindResourceDetailAvailability(availability)
   const publicServices = serializeFindResourceDetailServices(
     services,
-    rest.description
+    rest.description,
+    rest.title
   )
   const publicSourceUrl =
     sourceUrl && isPublicMapTechnicalSourceUrl(sourceUrl) ? null : sourceUrl
@@ -171,6 +175,7 @@ export function serializeFindResourceIndexItem(
     subtitle: item.subtitle,
     latitude: item.latitude,
     longitude: item.longitude,
+    addressStreet: item.addressStreet,
     city: item.city,
     state: item.state,
     country: item.country,

@@ -1,3 +1,4 @@
+import { resourceStreetKey } from "./resource-street-key"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import { formatFullOrganizationLocation } from "@/lib/location/organization-location"
 
@@ -70,23 +71,42 @@ export function buildSameLocationGroups<
 >(organizations: T[]) {
   const groupsByKey = new Map<string, PublicMapSameLocationGroup<T>>()
 
-  for (const organization of organizations) {
+  const groupsByCoordinates = new Map<string, PublicMapSameLocationGroup<T>>()
+  const groupsByAddress = new Map<string, PublicMapSameLocationGroup<T>[]>()
+  for (const organization of [...organizations].sort((a, b) => a.id.localeCompare(b.id))) {
     const key = resolveSameLocationGroupKey({
       longitude: organization.longitude,
       latitude: organization.latitude,
     })
-    const existing = groupsByKey.get(key)
+    const addressKey = resourceStreetKey(organization)
+    // One building can be geocoded to different entrances. Keep each listing;
+    // combine only its marker, with a short distance guard against bad addresses.
+    const existing = groupsByCoordinates.get(key) ?? (addressKey ? groupsByAddress.get(addressKey)?.find((group) =>
+      group.organizations.every((other) => {
+        const dy = (organization.latitude - other.latitude) * 111_320
+        const dx = (((organization.longitude - other.longitude + 540) % 360) - 180) * 111_320 * Math.cos((organization.latitude + other.latitude) * Math.PI / 360)
+        return Math.hypot(dx, dy) <= 250
+      })
+    ) : undefined)
     if (existing) {
-      existing.organizations.push(organization)
+      if (!existing.organizations.some((item) => item.id === organization.id)) existing.organizations.push(organization)
+      groupsByCoordinates.set(key, existing)
+      if (addressKey) {
+        const addressed = groupsByAddress.get(addressKey) ?? []
+        if (!addressed.includes(existing)) groupsByAddress.set(addressKey, [...addressed, existing])
+      }
       continue
     }
 
-    groupsByKey.set(key, {
+    const group: PublicMapSameLocationGroup<T> = {
       key,
       coordinates: [organization.longitude, organization.latitude],
       locationLabel: resolveSameLocationLabel(organization),
       organizations: [organization],
-    })
+    }
+    groupsByKey.set(key, group)
+    groupsByCoordinates.set(key, group)
+    if (addressKey) groupsByAddress.set(addressKey, [...(groupsByAddress.get(addressKey) ?? []), group])
   }
 
   return Array.from(groupsByKey.values()).sort((left, right) =>

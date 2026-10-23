@@ -1,6 +1,8 @@
 import "server-only"
 import { getGoogleDriveFile } from "./google-api"
 import { GoogleDriveError } from "../types"
+import { sanitizeHtml } from "@/lib/markdown/sanitize"
+import { markdownToHtmlLite } from "@/lib/markdown/simple"
 
 const LIMIT = 15 * 1024 * 1024
 const THUMBNAIL_LIMIT = 5 * 1024 * 1024
@@ -86,4 +88,41 @@ export async function downloadGoogleDriveDocument(
     bytes: await readBoundedResponse(response, LIMIT),
     sourceUrl: file.webViewLink,
   }
+}
+
+export async function downloadGoogleDriveDocumentContent(
+  accessToken: string,
+  fileId: string
+) {
+  const file = await getGoogleDriveFile(accessToken, fileId)
+  if (file.status !== "available")
+    throw new GoogleDriveError("file_not_authorized", 403)
+  const native = file.mimeType === "application/vnd.google-apps.document"
+  const markdown = /\.(md|markdown)$/i.test(file.name)
+  const plain = file.mimeType === "text/plain" || /\.txt$/i.test(file.name)
+  if (!native && !markdown && !plain)
+    throw new GoogleDriveError("unsupported_preview", 415)
+  const url = new URL(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}${native ? "/export" : ""}`
+  )
+  if (native) url.searchParams.set("mimeType", "text/html")
+  else {
+    url.searchParams.set("alt", "media")
+    url.searchParams.set("supportsAllDrives", "true")
+  }
+  const response = await fetch(url, {
+    headers: { authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+    redirect: "error",
+  })
+  if (!response.ok) throw new GoogleDriveError("file_not_authorized", 403)
+  const text = (await readBoundedResponse(response, LIMIT)).toString("utf8")
+  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  const html = native
+    ? text.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "")
+    : markdown
+      ? markdownToHtmlLite(escaped)
+      : `<p>${escaped.replace(/\r?\n/g, "<br>")}</p>`
+  return { content: sanitizeHtml(html), name: file.name }
 }

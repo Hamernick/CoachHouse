@@ -11,6 +11,8 @@ import {
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
+import { verifyTaskPlanningConcurrency } from "./task-planning-concurrency.mjs"
+
 const root = process.cwd()
 const postgresDirectory = process.env.POSTGRES_BINDIR?.trim() || resolvePgBin()
 const dataDirectory = mkdtempSync(join(tmpdir(), "ch-project-recurrence-"))
@@ -126,7 +128,15 @@ try {
   runSql("supabase/migrations/20260116130000_extend_notifications.sql")
   runSql("supabase/migrations/20260805233500_atomic_organization_task_creation.sql")
   runSql("supabase/migrations/20260928160000_task_assignment_notifications.sql")
+  runSql("supabase/migrations/20261020232000_personal_notification_privacy.sql")
   runSql("supabase/tests/task-assignment-notifications.assertions.sql")
+  runSql("supabase/tests/personal-notification-privacy.assertions.sql")
+  runSql("supabase/migrations/20261021010000_task_schedule_and_relative_order.sql")
+  runSql("supabase/tests/task-planning.assertions.sql")
+  await verifyTaskPlanningConcurrency({ postgresDirectory, port, socketDirectory })
+  runSql("supabase/tests/workspace-preview-seeds.bootstrap.sql")
+  runSql("supabase/migrations/20261021020000_disable_workspace_preview_seeds.sql")
+  runSql("supabase/tests/workspace-preview-seeds.assertions.sql")
   console.log("[recurring-projects] Month-end recurrence, idempotency, rollback, task copies, optional fields, assignment notifications, and RLS passed.")
 } finally {
   if (started) {

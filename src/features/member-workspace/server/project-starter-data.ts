@@ -55,6 +55,7 @@ export function mapOrganizationProjectToViewModel(
 ): PlatformAdminDashboardLabProject {
   return {
     id: project.id,
+    canEditSchedule: project.created_source !== "system" || project.project_kind === "organization_admin",
     fiscalSponsorshipEnabled: projectFiscalSponsorshipEnabled(project.option_settings, project.guided_setup),
     recurrence: project.recurrence ?? "none",
     organizationId: project.org_id,
@@ -67,6 +68,7 @@ export function mapOrganizationProjectToViewModel(
     description: project.description ?? undefined,
     taskCount: project.task_count,
     progress: project.progress,
+    createdAt: project.created_at,
     startDate: parseDateOnly(project.start_date),
     endDate: parseDateOnly(project.end_date),
     status: project.status as PlatformAdminDashboardLabProject["status"],

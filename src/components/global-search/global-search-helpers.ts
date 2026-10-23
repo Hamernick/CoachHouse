@@ -297,7 +297,7 @@ export function buildBaseSearchItems({
     {
       id: "page-marketplace",
       label: "Marketplace",
-      href: "/marketplace",
+      href: "/documentation/marketplace",
       group: "Pages",
       keywords: ["tools", "resources"],
     },

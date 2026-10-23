@@ -15,6 +15,7 @@ type ShellMainContentProps = {
   useFlushContentBody: boolean
   useFullBleedContent: boolean
   useMobileSingleGutterContent: boolean
+  compactEditorBottomPadding?: boolean
 }
 
 export function ShellMainContent({
@@ -27,6 +28,7 @@ export function ShellMainContent({
   useFlushContentBody,
   useFullBleedContent,
   useMobileSingleGutterContent,
+  compactEditorBottomPadding = false,
 }: ShellMainContentProps) {
   return (
     <div
@@ -80,6 +82,7 @@ export function ShellMainContent({
                 useFlushContentBody
                   ? "gap-0 px-0 py-0"
                   : "gap-6 px-[var(--shell-content-pad)] py-[var(--shell-content-pad)]",
+                !useFlushContentBody && compactEditorBottomPadding && "pb-2",
                 useMobileSingleGutterContent &&
                   "max-md:gap-0 max-md:px-0 max-md:py-0"
               )}

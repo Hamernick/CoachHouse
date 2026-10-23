@@ -27,11 +27,41 @@ export async function fetchPublishedPublicHandles(): Promise<
     })
     return []
   }
+  const controller = new AbortController()
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error("Public profile sitemap exceeded its 10-second deadline"))
+      controller.abort()
+    }, 10_000)
+  })
+
+  try {
+    return await Promise.race([
+      readPublishedPublicHandles(supabase, controller.signal),
+      deadline,
+    ])
+  } catch (error) {
+    console.error("[public-profile-sitemap] lookup failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    })
+    return []
+  } finally {
+    clearTimeout(timeout)
+    controller.abort()
+  }
+}
+
+async function readPublishedPublicHandles(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  signal: AbortSignal
+): Promise<PublishedPublicHandle[]> {
   const { data, error } = await supabase
     .from("public_handles")
     .select("handle, owner_type, profile_id, organization_id, updated_at")
     .order("handle", { ascending: true })
     .limit(50_000)
+    .abortSignal(signal)
     .returns<PublicHandleSitemapRow[]>()
 
   if (error) {
@@ -58,6 +88,7 @@ export async function fetchPublishedPublicHandles(): Promise<
           .select("profile_id")
           .in("profile_id", profileIds)
           .eq("is_public", true)
+          .abortSignal(signal)
           .returns<Array<{ profile_id: string }>>()
       : Promise.resolve({ data: [], error: null }),
     organizationIds.length
@@ -66,6 +97,7 @@ export async function fetchPublishedPublicHandles(): Promise<
           .select("user_id")
           .in("user_id", organizationIds)
           .eq("is_public", true)
+          .abortSignal(signal)
           .returns<Array<{ user_id: string }>>()
       : Promise.resolve({ data: [], error: null }),
   ])

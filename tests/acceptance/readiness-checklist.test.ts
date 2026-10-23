@@ -83,3 +83,10 @@ describe("readiness checklist link resolution", () => {
     ])
   })
 })
+
+it("links the Verified badge requirements to the existing organization editor", () => {
+  const checklist = buildReadinessChecklist({ reasons: ["Add an EIN", "Confirm 501(c)(3) status"] })
+  expect(checklist).toHaveLength(2)
+  expect(checklist.map((item) => item.label)).toEqual(["Add an EIN", "Confirm 501(c)(3) status"])
+  expect(checklist.every((item) => item.href.includes("company"))).toBe(true)
+})

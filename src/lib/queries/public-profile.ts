@@ -557,7 +557,7 @@ async function fetchPublicProfileUncached(
 
 const fetchPublicProfileCached = unstable_cache(
   fetchPublicProfileUncached,
-  ["public-profile-by-handle-v3"],
+  ["public-profile-by-handle-v4"],
   {
     revalidate: 300,
     tags: ["public-profiles", "public-map-organizations"],

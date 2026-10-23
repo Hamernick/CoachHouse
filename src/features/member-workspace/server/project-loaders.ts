@@ -22,7 +22,6 @@ import {
   filterOrganizationsForActor,
 } from "./member-workspace-actor-permissions"
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
-import { ensureStarterProjectsForOrg } from "./project-persistence"
 import { organizationProjectSelectFields } from "./project-select"
 import { resolveMemberWorkspaceStorageMode } from "./starter-data"
 import {
@@ -30,6 +29,7 @@ import {
   toMemberWorkspaceDataError,
 } from "./table-errors"
 import { loadPlatformAdminWorkstreamConfiguration } from "./admin-workstreams"
+import { attachFiscalProjectReviewerLabels } from "./fiscal-project-reviewer-labels"
 
 async function loadAdminStandardOrganizationProjects({
   orgIds,
@@ -67,8 +67,10 @@ async function loadAdminStandardOrganizationProjects({
   return data ?? []
 }
 
-export async function loadMemberWorkspaceProjectsPage({ directory = "organizations" }: { directory?: "organizations" | "projects" } = {}) {
-  const actor = await resolveMemberWorkspaceActorContext()
+export async function loadMemberWorkspaceProjectsPage({
+  directory = "organizations", actorScope = "workspace",
+}: { directory?: "organizations" | "projects"; actorScope?: "workspace" | "platform" } = {}) {
+  const actor = await resolveMemberWorkspaceActorContext(actorScope)
 
   if (actorCanAccessOrganizations(actor)) {
     const organizations = filterOrganizationsForActor(
@@ -103,7 +105,11 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
       ])
 
     if (guestResult.error) throw toMemberWorkspaceDataError(guestResult.error, "Unable to load assigned fiscal projects.")
-    const guestProjects = (guestResult.data ?? []) as unknown as OrganizationProjectRecord[]
+    const guestProjects = await attachFiscalProjectReviewerLabels({
+      projects: (guestResult.data ?? []) as unknown as OrganizationProjectRecord[],
+      people: assigneeOptions,
+      supabase: actor.supabase,
+    })
 
     if (!canonicalProjects || !standardProjects) {
       return {
@@ -208,18 +214,10 @@ export async function loadMemberWorkspaceProjectsPage({ directory = "organizatio
         },
       ]
     : [{ orgId: actor.activeOrg.orgId, name: "Active organization" }]
-  const [, assigneeOptions] = await Promise.all([
-    ensureStarterProjectsForOrg({
-      canEdit: actor.canEdit,
-      orgId: actor.activeOrg.orgId,
-      userId: actor.userId,
-      supabase: actor.supabase,
-    }),
-    loadMemberWorkspacePersonOptionsForOrganizations({
-      orgIds: [actor.activeOrg.orgId],
-      supabase: actor.supabase,
-    }),
-  ])
+  const assigneeOptions = await loadMemberWorkspacePersonOptionsForOrganizations({
+    orgIds: [actor.activeOrg.orgId],
+    supabase: actor.supabase,
+  })
 
   const { data: projects, error } = await actor.supabase
     .from("organization_projects")

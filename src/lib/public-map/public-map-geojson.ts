@@ -1,3 +1,5 @@
+import { resourceStreetKey } from "./resource-street-key"
+import { hasPublicMapCoordinates as organizationHasMapLocation } from "./map-coordinates"
 import type { Feature, FeatureCollection, Point } from "geojson"
 
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
@@ -30,7 +32,6 @@ export const PUBLIC_MAP_MARKER_IMAGE_SELECTED_FALLBACK_KEY =
 export const PUBLIC_MAP_ORGANIZATION_ID_SEPARATOR = "|"
 export const PUBLIC_MAP_MARKER_SPRITE_VERSION =
   "pin-v12-shopping-basket-community-fridges"
-const PUBLIC_MAP_MAX_LATITUDE = 85.051129
 
 export type PublicMapPointProperties = {
   itemId: string
@@ -163,26 +164,6 @@ export function resolvePublicMapMarkerImageKey(
   return `${baseKey}-${hashPublicMapMarkerImageIdentity(markerIdentity)}`
 }
 
-function organizationHasMapLocation<
-  T extends Pick<PublicMapOrganization, "latitude" | "longitude">,
->(
-  organization: T
-): organization is T & {
-  latitude: number
-  longitude: number
-} {
-  return (
-    typeof organization.latitude === "number" &&
-    Number.isFinite(organization.latitude) &&
-    organization.latitude >= -PUBLIC_MAP_MAX_LATITUDE &&
-    organization.latitude <= PUBLIC_MAP_MAX_LATITUDE &&
-    typeof organization.longitude === "number" &&
-    Number.isFinite(organization.longitude) &&
-    organization.longitude >= -180 &&
-    organization.longitude <= 180 &&
-    !(organization.latitude === 0 && organization.longitude === 0)
-  )
-}
 
 export function isPublicMapClusterFeature(
   feature: PublicMapFeatureCollection["features"][number]
@@ -406,6 +387,7 @@ export function buildPublicMapDataVersion(
           buildPublicMapMarkerImageIdentity(organization, markerTheme)
         ),
         organization.publicSlug ?? "",
+        resourceStreetKey(organization) ?? "",
       ].join(":"),
     ]
   })
@@ -428,6 +410,7 @@ export function buildPublicMapItemDataVersion(
         normalizePublicMapVersionCoordinate(item.longitude),
         normalizePublicMapVersionCoordinate(item.latitude),
         item.markerImageUrl ?? "",
+        resourceStreetKey(item) ?? "",
         resolvePublicMapMarkerStyleKey({
           resourceCategory: item.primaryResourceCategory,
         }),

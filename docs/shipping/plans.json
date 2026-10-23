@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "private_root": "Desktop/Coach House Codex Workstreams",
+  "index": "WORKSTREAMS.md",
+  "private_recovery": "Hamernick/coach-house-planning-private: snapshots/2026-10-13-planning/workstreams/",
+  "workstreams": [
+    {
+      "id": "00",
+      "file": "sources/ship-bootstrap-20261013.md",
+      "section": "## Phase 0 \u2014 establish the shared harness first",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "01",
+      "file": "01-production-stability.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "02",
+      "file": "02-security-infrastructure-launch.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "03",
+      "file": "03-accounts-onboarding-fiscal.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "04",
+      "file": "04-workspace-documents-integrations.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "05",
+      "file": "05-public-profiles-discovery-collect.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "06",
+      "file": "06-documentation-interactive-tools.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "07",
+      "file": "07-particles-sharing-handoff.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "08",
+      "file": "08-ai-planning-funding.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "09",
+      "file": "09-website-marketing-communications.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "10",
+      "file": "10-mobile-accessibility-integration.md",
+      "section": "### Sequential implementation plan",
+      "stages": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "context_files": [
+    "WORKSTREAMS.md",
+    "HANDOFF-PLACEMENT.md",
+    "sources/handoff-2026-10-12.md"
+  ]
+}

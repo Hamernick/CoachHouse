@@ -18,11 +18,15 @@ export const guestFollowupSchema = z.object({
 export type GuestFollowup = z.infer<typeof guestFollowupSchema>
 export const guestFollowupHref = (reference: string) => `/documentation/fiscal-sponsorship/application?application=${encodeURIComponent(reference)}`
 
+export function parseGuestApplicationAnswers(value: Record<string, unknown>): GuestApplicationAnswers {
+  return applicationSchema.parse(Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !["applicant_full_name", "estimated_budget_cents"].includes(key))
+    .map(([key, field]) => [key.replace(/_([a-z0-9])/g, (_, letter: string) => letter.toUpperCase()), field])))
+}
+
 export function parseGuestFollowup(value: unknown): GuestFollowup {
   const raw = z.object({ application: z.record(z.string(), z.unknown()).nullable() }).passthrough().parse(value)
-  const application = raw.application === null ? null : Object.fromEntries(Object.entries(raw.application)
-    .filter(([key]) => !["applicant_full_name", "estimated_budget_cents"].includes(key))
-    .map(([key, field]) => [key.replace(/_([a-z0-9])/g, (_, letter: string) => letter.toUpperCase()), field]))
+  const application = raw.application === null ? null : parseGuestApplicationAnswers(raw.application)
   return guestFollowupSchema.parse({ ...raw, application })
 }
 export function guestCorrectionDraft(answers: GuestApplicationAnswers) {

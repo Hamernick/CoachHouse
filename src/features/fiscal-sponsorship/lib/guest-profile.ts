@@ -1,4 +1,7 @@
 import { z } from "zod"
+import { getWorkspaceDrawerPath } from "@/lib/workspace/routes"
+
+export const GUEST_ORGANIZATION_PROFILE_HREF = getWorkspaceDrawerPath({ tab: "organization" })
 
 const text = (max: number) => z.string().trim().max(max).refine((value) => !/[<>]/.test(value), "Use plain text without HTML.")
 export const guestProfileFieldsSchema = z.object({

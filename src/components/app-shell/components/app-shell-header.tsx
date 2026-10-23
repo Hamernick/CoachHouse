@@ -24,6 +24,7 @@ const AppShellCalendarAction = dynamic(
 type AppShellHeaderProps = {
   breadcrumbs?: ReactNode
   hasUser: boolean
+  notificationIdentity?: string | null
   isAdmin: boolean
   onboardingLocked: boolean
   rightOpen: boolean
@@ -33,6 +34,7 @@ type AppShellHeaderProps = {
 export function AppShellHeader({
   breadcrumbs,
   hasUser,
+  notificationIdentity,
   isAdmin,
   onboardingLocked,
   rightOpen,
@@ -115,7 +117,7 @@ export function AppShellHeader({
             {hasUser && !isMobile && !onboardingLocked ? (
               <AppShellCalendarAction />
             ) : null}
-            {hasUser && !isCompactMobileHeader ? <NotificationsMenu /> : null}
+            {hasUser && !isCompactMobileHeader ? <NotificationsMenu key={notificationIdentity} /> : null}
             <div className="hidden items-center md:flex">
               <ThemeToggle />
             </div>

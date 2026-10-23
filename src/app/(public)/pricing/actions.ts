@@ -116,12 +116,16 @@ export async function startCheckout(formData: FormData) {
 
   const userId = user.id
   let orgId = userId
+  let supportMode = false
   try {
     const resolved = await resolveActiveOrganization(supabase, userId)
+    supportMode = resolved.supportAccess === true
     orgId = resolved.orgId
   } catch {
     orgId = userId
   }
+
+  if (supportMode) redirectCheckoutError({ planTier: "organization", code: "checkout_failed", source })
 
   const stripeConfig = resolveStripeRuntimeConfigForAudience({ isTester: forceCheckoutForTester })
   if (!stripeConfig) {

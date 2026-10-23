@@ -1,7 +1,9 @@
 import type mapboxgl from "mapbox-gl"
+import { PUBLIC_MAP_GLOBE_MAX_SPIN_ZOOM } from "@/lib/public-map/globe-settings"
+
+export { PUBLIC_MAP_GLOBE_MAX_SPIN_ZOOM } from "@/lib/public-map/globe-settings"
 
 export const PUBLIC_MAP_GLOBE_SECONDS_PER_REVOLUTION = 180
-export const PUBLIC_MAP_GLOBE_MAX_SPIN_ZOOM = 5
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)"
 

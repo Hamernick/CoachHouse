@@ -45,8 +45,8 @@ describe("guest project review", () => {
     expect(await loadGuestFiscalProjectReview(id)).toBeNull()
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
-  it("does not show an incomplete application as a successful review", async () => {
-    mocks.draft.mockResolvedValue({ error: "unavailable" })
+  it.each(["draft", "workflow"] as const)("returns recovery copy when the %s query fails", async (query) => {
+    mocks[query].mockResolvedValue({ error: "unavailable" })
     expect(await loadGuestFiscalProjectReview(id)).toEqual({ error: "The application could not be loaded. Refresh to try again." })
   })
   it("rejects malformed project ids", async () => {

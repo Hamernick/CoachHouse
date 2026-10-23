@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), activeOrg: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), accountRpc: vi.fn(), getUser: vi.fn(), activeOrg: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }))
-vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.getUser } }) }))
+vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ rpc: mocks.accountRpc, auth: { getUser: mocks.getUser } }) }))
 vi.mock("@/lib/organization/active-org-cookie", () => ({ writeActiveOrganizationCookie: mocks.activeOrg }))
 import { handleGuestFiscalProfile } from "@/features/fiscal-sponsorship/server/guest-profile"
 import { GUEST_COOKIE, issueGuestCapability } from "@/features/fiscal-sponsorship/server/guest-request-security"
@@ -20,11 +20,40 @@ beforeEach(() => {
   vi.stubEnv("FISCAL_GUEST_INTAKE_ENABLED", "true"); vi.stubEnv("FISCAL_GUEST_RISK_SECRET", secret)
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://coach.test"); vi.stubEnv("HCAPTCHA_SECRET_KEY", "test-secret")
   vi.stubEnv("NEXT_PUBLIC_HCAPTCHA_SITE_KEY", "test-site"); vi.stubEnv("VERCEL", "")
+  vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "false")
+  mocks.accountRpc.mockResolvedValue({ data: null, error: null })
   mocks.getUser.mockResolvedValue({ data: { user: { id: actor, email_confirmed_at: "2026-10-10T00:00:00Z" } }, error: null })
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "consume_fiscal_guest_limit" ? true : preview, error: null }))
 })
 afterEach(() => vi.unstubAllEnvs())
 describe("optional verified fiscal profile reuse", () => {
+  it("reopens a legacy own-organization claim without copying answers when its guest session is gone", async () => {
+    vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+    mocks.accountRpc.mockResolvedValue({ data: true, error: null })
+    for (const operation of ["preview", "open"]) {
+      const input = request({ operation, reference }); input.headers.delete("cookie")
+      const response = await handleGuestFiscalProfile(input)
+      expect(await response.json()).toEqual(operation === "open" ? { state: "opened", href: "/workspace?drawer=organization" } : { state: "linked" })
+    }
+    expect(mocks.activeOrg).toHaveBeenCalledOnce()
+    expect(mocks.activeOrg).toHaveBeenCalledWith(actor)
+    expect(mocks.rpc.mock.calls.every(([name]) => name === "consume_fiscal_guest_limit")).toBe(true)
+  })
+  it("does not open an editor's personal organization from another organization's application", async () => {
+    vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+    mocks.accountRpc.mockResolvedValue({ data: false, error: null })
+    const input = request({ operation: "open", reference }); input.headers.delete("cookie")
+    expect((await handleGuestFiscalProfile(input)).status).toBe(403)
+    expect(mocks.accountRpc).toHaveBeenCalledWith("fiscal_profile_owner_linked", { p_reference: reference })
+    expect(mocks.activeOrg).not.toHaveBeenCalled()
+  })
+  it("cannot create a claim or copy profile answers with only a signed-in account", async () => {
+    vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+    const input = request({ operation: "save", reference, requestId: actor, version: "a".repeat(32), fields: { name: "Unverified" } }); input.headers.delete("cookie")
+    expect((await handleGuestFiscalProfile(input)).status).toBe(403)
+    expect(mocks.activeOrg).not.toHaveBeenCalled()
+    expect(mocks.rpc.mock.calls.every(([name]) => name === "consume_fiscal_guest_limit")).toBe(true)
+  })
   it("loads only the allowlisted preview through server-verified identity", async () => {
     const response = await handleGuestFiscalProfile(request())
     expect(await response.json()).toEqual(preview)
@@ -73,7 +102,7 @@ describe("optional verified fiscal profile reuse", () => {
     mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "consume_fiscal_guest_limit" ? true : { state: "linked" }, error: null }))
     expect(await (await handleGuestFiscalProfile(request())).json()).toEqual({ state: "linked" })
     expect(mocks.activeOrg).not.toHaveBeenCalled()
-    expect(await (await handleGuestFiscalProfile(request({ operation: "open", reference }))).json()).toEqual({ state: "opened", href: "/organization/profile" })
+    expect(await (await handleGuestFiscalProfile(request({ operation: "open", reference }))).json()).toEqual({ state: "opened", href: "/workspace?drawer=organization" })
     expect(mocks.activeOrg).toHaveBeenCalledWith(actor)
   })
   it("denies invalid, expired, mismatched or already claimed proof without revealing data", async () => {

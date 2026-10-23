@@ -35,7 +35,7 @@ beforeEach(() => {
   write = query({ id: projectId })
   assets = query([{ id: fileId, name: "Budget.pdf" }])
   documents = query([{ id: fileId, name: "Policy attachment.pdf" }])
-  mocks.actor.mockResolvedValue({ userId: "editor", activeOrg: { orgId: "org-a" }, isAdmin: false, canEdit: true, hasMemberWorkspaceAccess: true, supabase: { from: (table: string) => table === "organization_projects" ? read : table === "organization_project_assets" ? assets : documents } })
+  mocks.actor.mockResolvedValue({ userId: "editor", activeOrg: { orgId: "org-a" }, isAdmin: false, canEdit: true, hasMemberWorkspaceAccess: true, supabase: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }), from: (table: string) => table === "organization_projects" ? read : table === "organization_project_assets" ? assets : documents } })
   mocks.admin.mockReturnValue({ from: () => write })
   mocks.documents.mockResolvedValue({
     sections: resolveRoadmapSections({}),
@@ -47,6 +47,43 @@ beforeEach(() => {
 })
 
 describe("project file folders", () => {
+  it("rejects untrusted action scope values before resolving an actor", async () => {
+    expect(await loadProjectAssetFolders(projectId, "invalid" as never)).toEqual({ error: "Choose a valid project view." })
+    expect(mocks.actor).not.toHaveBeenCalled()
+  })
+
+  it("uses verified platform scope for a directory file library while support workspace stays restricted", async () => {
+    const actor = await mocks.actor()
+    mocks.actor.mockImplementation(async (scope) => scope === "platform"
+      ? { ...actor, canAccessOrganizations: true, organizationCoachScope: { mode: "assigned", organizationIds: new Set(["org-a"]), canAccessUnassigned: false } }
+      : { ...actor, activeOrg: { orgId: "support-org" } })
+    expect(await loadProjectAssetFolders(projectId)).toEqual({ error: "Unable to access that project." })
+    expect(await loadProjectAssetFolders(projectId, "platform")).toHaveProperty("canEdit", true)
+    expect(mocks.actor).toHaveBeenLastCalledWith("platform")
+  })
+
+  it("allows a fiscal reviewer to read only project files without host documents or writes", async () => {
+    const actor = await mocks.actor()
+    actor.supabase.rpc.mockResolvedValue({ data: true, error: null })
+    mocks.actor.mockResolvedValue({ ...actor, activeOrg: { orgId: "another-org" }, isAdmin: true })
+    const result = await loadProjectAssetFolders(projectId)
+    expect(result).toHaveProperty("canEdit", false)
+    expect(result).toHaveProperty("canUpload", true)
+    expect(result).toHaveProperty("organizationDocuments", null)
+    expect(result).toHaveProperty("files", [expect.objectContaining({ key: fileKey, source: "project" })])
+    expect(assets.eq).toHaveBeenCalledWith("project_id", projectId)
+    expect(mocks.documents).not.toHaveBeenCalled()
+    expect(documents.select).not.toHaveBeenCalled()
+    expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Host folder" })).toHaveProperty("error")
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it.each([{ data: false, error: null }, { data: null, error: { code: "unavailable" } }, { data: undefined, error: null }])("denies fiscal file reads on failed or revoked authorization", async (scope) => {
+    const actor = await mocks.actor()
+    actor.supabase.rpc.mockResolvedValue(scope)
+    expect(await loadProjectAssetFolders(projectId)).toHaveProperty("error")
+    expect(read.select).not.toHaveBeenCalled()
+    expect(assets.select).not.toHaveBeenCalled()
+  })
   it.each([true, false])("loads only project-owned files for standard projects (existing assets: %s)", async (hasFiles) => {
     read.maybeSingle.mockResolvedValue({ data: { ...project, project_kind: "standard" }, error: null })
     mocks.actor.mockResolvedValue({ ...await mocks.actor(), isAdmin: true })
@@ -234,6 +271,3 @@ describe("folder drag and drop", () => {
     expect(render(true)).not.toContain('draggable="true"')
   })
 })
-
-// These fixtures represent ordinary projects; guest scope has a separate denial suite.
-vi.mock("@/lib/workspace/ordinary-project-access", () => ({ isOrdinaryWorkspaceProject: async () => true }))

@@ -10,6 +10,7 @@ const ACCEPTANCE_TESTS_ROOT = path.join(ROOT, "tests", "acceptance")
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"])
 const KEBAB_CASE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const FEATURE_ALIAS_PREFIX = "@/features/"
+const publicServerEntrypoints = new Map()
 
 const REQUIRED_DIRECTORIES = ["components", "lib", "server"]
 const REQUIRED_FILES = ["README.md", "index.ts", "types.ts", "components/index.ts", "lib/index.ts", "server/actions.ts"]
@@ -25,6 +26,24 @@ async function pathExists(targetPath) {
   } catch {
     return false
   }
+}
+
+async function hasPublicServerEntrypoint(featureName) {
+  if (!publicServerEntrypoints.has(featureName)) {
+    publicServerEntrypoints.set(featureName, (async () => {
+      const entryPath = path.join(FEATURES_ROOT, featureName, "server.ts")
+      const sourceText = await fs.readFile(entryPath, "utf8").catch(() => null)
+      if (sourceText === null) return false
+      const sourceFile = ts.createSourceFile(entryPath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+      return sourceFile.statements.some((statement) =>
+        ts.isImportDeclaration(statement) &&
+        !statement.importClause &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        statement.moduleSpecifier.text === "server-only",
+      )
+    })())
+  }
+  return publicServerEntrypoints.get(featureName)
 }
 
 async function hasFeatureAcceptanceTest(featureName) {
@@ -143,7 +162,7 @@ function collectSpecifierErrors({ repoRelativePath, featureName, layer, specifie
   if (featureAlias) {
     if (featureAlias.featureName !== featureName) {
       const isPublicEntry =
-        featureAlias.rest.length === 0 || (featureAlias.rest.length === 1 && ["index", "client"].includes(featureAlias.rest[0]))
+        featureAlias.rest.length === 0 || (featureAlias.rest.length === 1 && ["index", "client", "server"].includes(featureAlias.rest[0]))
       if (!isPublicEntry) {
         errors.push(
           `${repoRelativePath}: cross-feature imports must use public entrypoint ('@/features/${featureAlias.featureName}'). Found '${specifier}'.`,
@@ -253,8 +272,27 @@ async function main() {
 
       const layer = getLayerFromPath(repoRelativePath)
       const specifiers = collectModuleSpecifiers(sourceFile)
+      if (repoRelativePath === `${featureRelativeRoot}/server.ts`) {
+        const hasServerOnlyMarker = sourceFile.statements.some((statement) =>
+          ts.isImportDeclaration(statement) &&
+          !statement.importClause &&
+          ts.isStringLiteral(statement.moduleSpecifier) &&
+          statement.moduleSpecifier.text === "server-only",
+        )
+        if (!hasServerOnlyMarker) {
+          errors.push(`${repoRelativePath}: public server entrypoint must import 'server-only'`)
+        }
+      }
       for (const specifier of specifiers) {
         errors.push(...collectSpecifierErrors({ repoRelativePath, featureName, layer, specifier }))
+        const featureAlias = parseFeatureAlias(specifier)
+        if (
+          featureAlias?.rest.length === 1 &&
+          featureAlias.rest[0] === "server" &&
+          !(await hasPublicServerEntrypoint(featureAlias.featureName))
+        ) {
+          errors.push(`${repoRelativePath}: /server imports require a root server.ts with a side-effect 'server-only' import (found '${specifier}')`)
+        }
       }
 
       if (repoRelativePath === `${featureRelativeRoot}/index.ts`) {

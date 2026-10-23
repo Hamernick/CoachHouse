@@ -35,7 +35,7 @@ export function useResourceDirectory({ endpoint, initialResourceItems, query, ca
   const params = new URLSearchParams({ q: debouncedQuery.trim(), category, ...(guide ? { guide } : {}) })
   const base = endpoint?.split("?")[0]
   const directory = useResourceQuery(enabled ? `${base}?mode=directory&limit=24&${params}` : null, true)
-  const map = useResourceQuery(enabled && bounds ? `${base}?mode=map&limit=500&${params}&bounds=${bounds}` : null)
+  const map = useResourceQuery(enabled && bounds ? `${base}?mode=map&limit=500&${params}&bounds=${bounds}` : null, "all")
   const [retainedRetry, setRetainedRetry] = useState(0)
   const [retained, setRetained] = useState<ExternalResourceMapItem[]>(initialResourceItems)
   const retainedKey = [...new Set(retainedIds)].sort().join("|")
@@ -100,8 +100,8 @@ export function useResourceDirectory({ endpoint, initialResourceItems, query, ca
       },
     } : null,
     retry: enabled ? retry : legacy.retry,
-    error: enabled ? directory.error || nonprofit.error : legacy.error,
-    status: enabled ? directory.error || nonprofit.error ? "error" as const : directory.pending || nonprofit.pending ? "loading" as const : "ready" as const : legacy.status,
+    error: enabled ? directory.error || nonprofit.error || map.error : legacy.error,
+    status: enabled ? directory.error || nonprofit.error || map.error ? "error" as const : directory.pending || nonprofit.pending || map.pending ? "loading" as const : "ready" as const : legacy.status,
     pending: enabled && (directory.pending || nonprofit.pending || debouncedQuery !== query),
     totalResourceCount: enabled ? summary === null || !(directory.data ?? directory.previousData) ? null : (directory.data ?? directory.previousData)!.totalCount + summary : legacy.totalResourceCount,
   }

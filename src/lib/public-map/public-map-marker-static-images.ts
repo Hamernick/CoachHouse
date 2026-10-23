@@ -1,5 +1,6 @@
 import type mapboxgl from "mapbox-gl"
 
+import { getPublicMapCanvasContext2D } from "./public-map-canvas-context"
 import {
   PUBLIC_MAP_CLUSTER_BADGE_LARGE_KEY,
   PUBLIC_MAP_CLUSTER_BADGE_MEDIUM_KEY,
@@ -26,7 +27,7 @@ function createSizedCanvas(size: number) {
 }
 
 function getCanvasContext(canvas: HTMLCanvasElement | OffscreenCanvas) {
-  const context = canvas.getContext("2d", {
+  const context = getPublicMapCanvasContext2D(canvas, {
     willReadFrequently: true,
   })
   if (!context) return null

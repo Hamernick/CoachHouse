@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 
 import {
   hasPlatformCapability,
+  hasCoachCoachingAccess,
   isCoachRestrictedPath,
   isPlatformAccessLevel,
 } from "@/features/platform-access"
@@ -52,6 +53,20 @@ describe("platform access", () => {
     expect(isCoachRestrictedPath("/admin/platform")).toBe(true)
     expect(isCoachRestrictedPath("/internal/platform-lab")).toBe(true)
     expect(isCoachRestrictedPath("/organization/documents")).toBe(true)
+  })
+
+  it("opens only coaching for an explicit administrator-issued coaching grant", () => {
+    expect(hasCoachCoachingAccess({ coaching_access: true })).toBe(true)
+    for (const metadata of [undefined, null, {}, { coaching_access: false }, { coaching_access: "true" }]) {
+      expect(hasCoachCoachingAccess(metadata)).toBe(false)
+    }
+    for (const path of ["/coaching", "/coaching/booking"]) {
+      expect(isCoachRestrictedPath(path)).toBe(true)
+      expect(isCoachRestrictedPath(path, true)).toBe(false)
+    }
+    for (const path of ["/admin/platform", "/billing", "/email", "/organization/documents"]) {
+      expect(isCoachRestrictedPath(path, true)).toBe(true)
+    }
   })
 
   it("keeps broad RLS access developer-only and seeds verified staff", () => {

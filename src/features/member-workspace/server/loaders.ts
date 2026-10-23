@@ -25,7 +25,7 @@ export async function loadMemberWorkspacePeoplePage(): Promise<MemberWorkspacePe
 
   const { supabase, user, profileAudience, activeOrg } = requestContext
 
-  if (profileAudience.isAdmin) {
+  if (profileAudience.isAdmin && !activeOrg.supportAccess) {
     const baseOrganizations = await loadAdminOrganizationSummaries({
       supabase,
     })
@@ -65,7 +65,7 @@ export async function loadMemberWorkspacePeoplePage(): Promise<MemberWorkspacePe
     Array.isArray(profile.org_people) ? profile.org_people : []
   ) as OrgPerson[]
 
-  if (org) {
+  if (org && !activeOrg.supportAccess) {
     const { data: profileRow } = await supabase
       .from("profiles")
       .select("full_name, headline, avatar_url")

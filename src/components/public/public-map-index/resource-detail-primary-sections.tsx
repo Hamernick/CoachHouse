@@ -5,6 +5,7 @@ import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
 import BookmarkIcon from "lucide-react/dist/esm/icons/bookmark"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 
+import { PublicProfileEin } from "@/components/public/public-profile-ein"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TrackedResourceShareButton } from "@/features/public-profiles/client"
@@ -193,6 +194,7 @@ export function PublicMapResourceIdentitySection({
       <PublicMapResourceIdentityMedia item={item} markerColor={markerColor} />
       <div className="w-full min-w-0 flex-1">
         <Heading className={cn(PUBLIC_MAP_DETAIL_TITLE_CLASSNAME, "text-xl leading-7 tracking-tight sm:text-2xl sm:leading-8")}>{title}</Heading>
+        <PublicProfileEin value={item.nonprofit?.ein ?? item.ein} />
         {subtitle ? (
           <p className="text-muted-foreground mx-auto mt-0.5 max-w-lg text-sm leading-5 text-pretty">
             {subtitle}

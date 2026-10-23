@@ -1,4 +1,4 @@
-import { resolveOrganizationDocumentStorageAccess } from "@/lib/organization/document-storage-access"
+import { resolveDocumentCapabilities } from "@/lib/organization/document-capabilities"
 import { FeatureUpgradeNotice } from "@/components/paywall/feature-upgrade-notice"
 
 import { redirect } from "next/navigation"
@@ -13,7 +13,6 @@ import {
 import { resolveRoadmapHomework } from "@/lib/roadmap/homework"
 import { cleanupOrgProfileHtml } from "@/lib/organization/profile-cleanup"
 import {
-  canEditOrganization,
   resolveActiveOrganization,
 } from "@/lib/organization/active-org"
 import { createSupabaseServerClient } from "@/lib/supabase"
@@ -40,9 +39,10 @@ export async function StrategicRoadmapEditorPage({
   }
   if (!user) redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`)
 
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
-  const storageAccess = await resolveOrganizationDocumentStorageAccess({ supabase, orgId })
-  const canEdit = canEditOrganization(role) && "hasStorageAccess" in storageAccess && storageAccess.hasStorageAccess
+  const { orgId } = await resolveActiveOrganization(supabase, user.id)
+  const access = await resolveDocumentCapabilities(supabase, user.id, orgId)
+  if ("error" in access) throw new Error("Unable to verify document access.")
+  const canEdit = access.capabilities.canEdit
 
   const { data: orgRow } = await supabase
     .from("organizations")
@@ -79,7 +79,7 @@ export async function StrategicRoadmapEditorPage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {!("hasStorageAccess" in storageAccess && storageAccess.hasStorageAccess) ? <FeatureUpgradeNotice title="Read here. Build more with an upgrade.">Your existing roadmap stays readable. Upgrade to edit and create documents in Coach House, or link Google Drive files from Documents.</FeatureUpgradeNotice> : null}
+      {access.capabilities.reason === "upgrade" ? <FeatureUpgradeNotice title="Read here. Build more with an upgrade.">Your existing roadmap stays readable. Upgrade to edit and create documents in Coach House, or link Google Drive files from Documents.</FeatureUpgradeNotice> : null}
       <RoadmapShell
         sourceScope={{ userId: user.id, organizationId: orgId }}
         sections={roadmapSections}

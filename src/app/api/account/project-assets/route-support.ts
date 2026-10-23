@@ -1,4 +1,4 @@
-import { isOrdinaryWorkspaceProject } from "@/lib/workspace/ordinary-project-access"
+import { resolveWorkspaceProjectScope } from "@/lib/workspace/ordinary-project-access"
 import { buildProjectAssetOpenPath } from "@/features/member-workspace"
 import type { Database } from "@/lib/supabase"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
@@ -187,7 +187,9 @@ export async function canAccessProjectOrg({
   supabase: ProjectAssetsRouteClient
   userId: string
 }) {
-  if (!(await isOrdinaryWorkspaceProject({ supabase, userId, projectId }))) return false
+  const scope = await resolveWorkspaceProjectScope({ supabase, userId, projectId })
+  if (scope === "denied") return false
+  if (scope === "fiscal") return !requireEdit
   const { data: staff, error: staffError } = await supabase
     .from("platform_staff_members")
     .select("access_level,can_access_unassigned_organizations")

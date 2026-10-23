@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { validatePublicHandle } from "@/features/public-profiles"
 import { fetchLearningEntitlements } from "@/lib/accelerator/entitlements"
 import { markOrganizationSetupModuleCompleted } from "@/lib/accelerator/organization-setup"
-import { writeOnboardingOrganizationProfile } from "@/lib/onboarding/organization-profile-write"
+import { ONBOARDING_ORGANIZATION_SLUG_TAKEN, writeOnboardingOrganizationProfile } from "@/lib/onboarding/organization-profile-write"
 import { normalizeOrganizationFormationStatus } from "@/lib/onboarding/requirements"
 import { organizationProfileNameSchema } from "@/lib/organization/profile-persistence-validation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -65,6 +65,14 @@ function workspaceOnboardingMetadata({
     workspace_onboarding_started_at: accessSelectionOnly ? null : updatedAt,
     workspace_onboarding_completed_at: null,
   }
+}
+
+function handleOrganizationWriteError(error: string, userId: string, slug: string): never {
+  if (error === ONBOARDING_ORGANIZATION_SLUG_TAKEN) {
+    redirect(buildOnboardingErrorRedirect({ intentFocus: "build", error: "slug_taken", slug }))
+  }
+  console.error("completeOnboardingAction: organization upsert failed", { userId, message: error })
+  throw supabaseErrorToError({ message: error }, "Unable to save your organization.")
 }
 
 export async function completeOnboardingAction(form: FormData) {
@@ -139,6 +147,10 @@ export async function completeOnboardingAction(form: FormData) {
     intentFocus === "build" &&
     (onboardingMode !== "post_signup_access" ||
       profileSetup || Boolean(orgName || orgSlugRaw || formationStatus))
+  if (requiresOrganizationSetup && !builderAccessSelectionOnly &&
+      personHandleValidation.valid && personHandleValidation.handle === normalizedSlug) {
+    redirect(buildOnboardingErrorRedirect({ intentFocus, error: "person_handle_matches_org_slug" }))
+  }
   let organizationTarget: ActiveOrganization = { orgId: user.id, role: "owner" }
   if (requiresOrganizationSetup && onboardingMode === "workspace_setup") {
     organizationTarget = await resolveActiveOrganization(supabase, user.id)
@@ -335,14 +347,7 @@ export async function completeOnboardingAction(form: FormData) {
     })
 
     if ("error" in organizationWrite) {
-      console.error("completeOnboardingAction: organization upsert failed", {
-        userId: user.id,
-        message: organizationWrite.error,
-      })
-      throw supabaseErrorToError(
-        { message: organizationWrite.error },
-        "Unable to save your organization."
-      )
+      handleOrganizationWriteError(organizationWrite.error, user.id, normalizedSlug)
     }
   }
 

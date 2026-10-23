@@ -1,3 +1,4 @@
+import { buildCoachingCalendarTitle, normalizeCoachingClientName } from "../lib/calendar-title"
 import { loadPersonalCoachingCreditAccount } from "./credit-account"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
@@ -106,6 +107,7 @@ export async function loadCoachingCurrentUserProfile({
 
   return {
     name,
+    calendarName: normalizeCoachingClientName(data?.full_name),
     initials: initialsFromName(name),
     imageUrl: normalizedText(data?.avatar_url),
   }
@@ -300,7 +302,9 @@ export async function loadCoachingBookingPageData({
     selectedCoachId,
     currentUser,
     creditSummary,
-    upcomingBookings,
+    upcomingBookings: upcomingBookings.map((booking) => ({
+      ...booking, calendarTitle: buildCoachingCalendarTitle(currentUser.calendarName),
+    })),
     timezone,
     calendarConfigured: isGoogleCoachingConfigured(),
     paymentConfigured,
@@ -312,20 +316,23 @@ export async function listLocalBusyWindows({
   coachId,
   from,
   to,
+  excludeBookingId,
 }: {
   supabase: AppSupabase
   coachId: CoachingCoachId
   from: string
   to: string
+  excludeBookingId?: string
 }) {
-  const { data, error } = await supabase
+  let query = supabase
     .from("coaching_bookings")
     .select("starts_at, ends_at, status, hold_expires_at")
     .eq("coach_id", coachId)
     .in("status", ["held", "pending_payment", "confirmed"])
     .lt("starts_at", to)
     .gt("ends_at", from)
-    .returns<
+  if (excludeBookingId) query = query.neq("id", excludeBookingId)
+  const { data, error } = await query.returns<
       Array<{
         starts_at: string
         ends_at: string

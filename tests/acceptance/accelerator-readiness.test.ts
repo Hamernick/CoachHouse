@@ -45,6 +45,7 @@ describe("accelerator readiness", () => {
 
   const baseProfile = {
     name: "Bright Futures",
+    ein: "01-2345678",
     tagline: "Impact from idea to launch",
     mission: "Support families",
     need: "Absenteeism support gap",
@@ -52,6 +53,79 @@ describe("accelerator readiness", () => {
     address_city: "Los Angeles",
     address_state: "CA",
   }
+
+  const verifiedProfile = {
+    ...baseProfile,
+    formationStatus: "approved",
+    documents: {
+      verificationLetter: { path: "seed/verification.pdf" },
+      bylaws: { path: "seed/bylaws.pdf" },
+      stateRegistration: { path: "seed/state.pdf" },
+      goodStandingCertificate: { path: "seed/standing.pdf" },
+      w9: { path: "seed/w9.pdf" },
+    },
+  }
+
+  it.each(["not_started", "in_progress", "completed"] as const)(
+    "verifies documented organizations regardless of Formation lesson status: %s",
+    (status) => {
+      const readiness = resolveAcceleratorReadiness({
+        profile: verifiedProfile,
+        modules: ["naming-your-nfp", "nfp-registration", "filing-1023"].map(
+          (slug) => makeModule(slug, status),
+        ),
+        roadmapSections: coreSections,
+        programs: [{ goal_cents: 2500000 }],
+        peopleCount: 1,
+      })
+
+      expect(readiness.verified).toBe(true)
+      expect(readiness.verifiedMissing).toEqual([])
+      expect(readiness.verifiedChecklist.map((item) => item.id)).not.toContain("formation-lessons")
+      expect(readiness.progressPercent).toBe(100)
+      // The separate Fundable training milestone is not rewritten by verification.
+      expect(readiness.fundable).toBe(status === "completed")
+    },
+  )
+
+  it("allows verification with no course enrollment", () => {
+    const readiness = resolveAcceleratorReadiness({
+      profile: verifiedProfile,
+      modules: [],
+      roadmapSections: coreSections,
+      programs: [{ goal_cents: 2500000 }],
+      peopleCount: 0,
+    })
+    expect(readiness.verified).toBe(true)
+    expect(readiness.verifiedChecklist.every((item) => item.complete)).toBe(true)
+  })
+
+  it.each([null, "", "invalid", "12345678"])("requires a valid EIN: %s", (ein) => {
+    const readiness = resolveAcceleratorReadiness({
+      profile: { ...verifiedProfile, ein }, modules: [], roadmapSections: [], programs: [], peopleCount: 0,
+    })
+    expect(readiness.verified).toBe(false)
+    expect(readiness.verifiedMissing).toContain("Add an EIN")
+  })
+
+  it.each(["pre_501c3", "in_progress", undefined])("requires 501(c)(3) status: %s", (formationStatus) => {
+    const readiness = resolveAcceleratorReadiness({
+      profile: { ...verifiedProfile, formationStatus }, modules: [], roadmapSections: [], programs: [], peopleCount: 0,
+    })
+    expect(readiness.verified).toBe(false)
+    expect(readiness.verifiedMissing).toContain("Confirm 501(c)(3) status")
+  })
+
+  it("verifies from status and EIN without courses, document uploads, roadmap or funding goals", () => {
+    const readiness = resolveAcceleratorReadiness({
+      profile: { ein: "01-2345678", formationStatus: "approved" },
+      modules: [], roadmapSections: [], programs: [], peopleCount: 0,
+    })
+    expect(readiness.verified).toBe(true)
+    expect(readiness.fundable).toBe(false)
+    expect(readiness.verifiedMissing).toEqual([])
+    expect(readiness.verifiedChecklist.map((item) => item.id)).toEqual(["ein", "approved-formation-status"])
+  })
 
   it("returns Building when hard requirements are missing", () => {
     const readiness = resolveAcceleratorReadiness({
@@ -120,7 +194,7 @@ describe("accelerator readiness", () => {
     expect(readiness.progressPercent).toBeLessThan(readiness.verifiedCheckpoint)
   })
 
-  it("returns Verified when verified criteria and score threshold are met", () => {
+  it("retains Verified and Fundable when both existing states qualify", () => {
     const readiness = resolveAcceleratorReadiness({
       profile: {
         ...baseProfile,

@@ -6,7 +6,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { guestApplicationPayload, guestSubmissionSchema } from "../lib/guest-submission-schema"
 import {
   GUEST_COOKIE, guestIntakeConfiguration, guestRequestIdentity, guestRiskKey,
-  hashGuestCapability, issueGuestCapability, readGuestCapability, readGuestJson, verifyGuestCaptcha,
+  hashGuestCapability, issueGuestCapability, readGuestCapability, readGuestJson,
 } from "./guest-request-security"
 
 function reply(body: object, status = 200, retryAfter?: number) {
@@ -64,7 +64,6 @@ export async function handleGuestFiscalSubmission(request: Request) {
       const receipt = referenceSchema.parse(existing.data)
       return reply({ ok: true, reference: receipt.submissionId })
     }
-    if (!(await verifyGuestCaptcha(config, parsed.data.captchaToken, ip))) return reply({ error: "Please complete the verification again.", captchaRequired: true }, 400)
     const emailLimit = await admin.rpc("consume_fiscal_guest_limit", {
       p_key_hash: guestRiskKey(config.riskSecret, "submit-email", parsed.data.application.primaryEmail), p_limit: 3, p_window_seconds: 86400,
     })

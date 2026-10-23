@@ -41,6 +41,8 @@ export function resolveOnboardingError(raw: string | null) {
       return "Use 2–48 lowercase letters, numbers, or single hyphens for your username."
     case "reserved_person_handle":
       return "That username is reserved. Try another."
+    case "person_handle_matches_org_slug":
+      return "Choose a username different from your workspace URL."
     case "person_handle_taken":
       return "That username was just claimed. Try another."
     case "missing_intent_focus":

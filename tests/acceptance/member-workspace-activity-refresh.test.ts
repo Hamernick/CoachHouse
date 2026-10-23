@@ -162,6 +162,7 @@ describe("activity refresh authorization", () => {
     expect(accessMocks.load).toHaveBeenCalledWith({
       orgId,
       projectId,
+      projectOnly: false,
       supabase,
     })
   })

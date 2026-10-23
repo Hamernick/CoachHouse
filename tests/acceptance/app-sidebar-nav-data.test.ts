@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { SidebarBody } from "@/components/app-sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { describe, expect, it, vi } from "vitest"
 
 import { RESOURCE_NAV, buildMainNav } from "@/components/app-sidebar/nav-data"
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/organizations",
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ prefetch: () => {} }),
+}))
 
 describe("app sidebar nav data", () => {
   it("groups internal platform navigation only for true platform admins", () => {
@@ -196,6 +206,18 @@ describe("app sidebar nav data", () => {
     expect(nav.map((item) => item.title)).toEqual(["Workspace"])
     expect(nav.find((item) => item.title === "Admin Dashboard")).toBeUndefined()
     expect(nav.map((item) => item.badge)).not.toContain("Upgrade")
+  })
+
+  it.each([true, false])("renders Coaching for coach access grant %s", (hasCoachingAccess) => {
+    const markup = renderToStaticMarkup(createElement(SidebarProvider, null,
+      createElement(SidebarBody, {
+        isAdmin: false, isTester: false, platformAccessLevel: "coach",
+        hasCoachingAccess, showCoachScheduling: true,
+        user: { name: "Paula", title: null, email: null, avatar: null },
+      })
+    ))
+    expect(markup.includes('href="/coaching"')).toBe(hasCoachingAccess)
+    expect(markup).not.toContain('href="/admin/platform"')
   })
 
   it("links Documentation internally and keeps Community hidden", () => {

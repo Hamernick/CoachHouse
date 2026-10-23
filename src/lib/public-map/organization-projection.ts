@@ -1,3 +1,4 @@
+import { normalizeEin } from "@/lib/organization/ein"
 import { organizationProfileBrandTypographySchema } from "@/lib/organization/profile-persistence-validation"
 import { isFormationStatus } from "@/lib/organization/formation-status"
 import type { FormationStatus } from "@/lib/organization/org-profile-brand-types"
@@ -52,6 +53,7 @@ export type PublicMapActivityLinkSource = Pick<
 >
 
 export type PublicMapOrganization = {
+  ein?: string | null
   id: string
   name: string
   tagline: string | null
@@ -186,6 +188,7 @@ function buildPublicMapActivityLinkSource(
 }
 
 export type PublicMapOrganizationRow = {
+  ein?: string | null
   user_id: string
   profile: unknown
   location_lat: number | null
@@ -268,6 +271,7 @@ export function projectPublicMapOrganizations(orgRows: PublicMapOrganizationRow[
 
       return {
         id: row.user_id,
+        ein: normalizeEin(row.ein),
         name: readProfileString(profile, "name") ?? "Organization",
         tagline: readProfileString(profile, "tagline"),
         description:

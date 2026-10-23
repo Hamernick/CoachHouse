@@ -72,7 +72,7 @@ export function DocumentPdfThumbnail({
       role="img"
       aria-label={`${name} first page`}
       data-preview-ready={ready || undefined}
-      className="size-full object-contain"
+      className="h-auto max-h-full w-auto max-w-full rounded-lg object-contain"
     />
   )
 }

@@ -244,6 +244,48 @@ describe("completeOnboardingAction", () => {
     expect(updateUser).not.toHaveBeenCalled()
   })
 
+  it("rejects a profile username matching its pending workspace URL before any writes", async () => {
+    const from = vi.fn()
+    const rpc = vi.fn()
+    const updateUser = vi.fn()
+    createSupabaseServerClientServerMock.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "owner" } }, error: null }), updateUser }, from, rpc,
+    })
+    const form = new FormData()
+    for (const [key, value] of Object.entries({ intentFocus: "build", onboardingMode: "post_signup_access", onboardingVersion: "workspace_profile", orgName: "Test", orgSlug: "test", personHandle: "@Test" })) form.set(key, value)
+    expect(await captureRedirect(() => completeOnboardingAction(form))).toContain("error=person_handle_matches_org_slug")
+    expect(from).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "Public handle is already taken.",
+    "Public handle is reserved.",
+    'duplicate key value violates unique constraint "uniq_organizations_public_slug_lower"',
+  ])("returns a recoverable URL error for an organization namespace collision: %s", async (message) => {
+    const insert = vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { code: "23505", message } }) }) })
+    const updateUser = vi.fn()
+    createSupabaseServerClientServerMock.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "owner", email: "owner@example.test" } }, error: null }), updateUser },
+      rpc: vi.fn().mockResolvedValue({ data: { ok: true }, error: null }),
+      from: vi.fn((table: string) => {
+        if (table === "profiles") return { upsert: vi.fn().mockResolvedValue({ error: null }) }
+        if (table === "organizations") return {
+          select: vi.fn((_columns: string, options?: { head?: boolean }) => options?.head
+            ? { ilike: vi.fn().mockReturnValue({ neq: vi.fn().mockResolvedValue({ count: 0, error: null }) }) }
+            : { eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }), insert,
+        }
+        throw new Error(`Unexpected table: ${table}`)
+      }),
+    })
+    const form = new FormData()
+    for (const [key, value] of Object.entries({ intentFocus: "build", onboardingMode: "post_signup_access", onboardingVersion: "workspace_profile", orgName: "Community", orgSlug: "community-house", personHandle: "founder" })) form.set(key, value)
+    expect(await captureRedirect(() => completeOnboardingAction(form))).toContain("error=slug_taken")
+    expect(insert).toHaveBeenCalledTimes(1)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
   it("sends completed member onboarding to find", async () => {
     const profilesUpsertMock = vi.fn().mockResolvedValue({ error: null })
     const updateUserMock = vi.fn().mockResolvedValue({ error: null })

@@ -20,6 +20,26 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => { clients.splice(0).forEach((client) => client.stop()); vi.useRealTimers() })
 
 describe("guest draft autosave and recovery", () => {
+  it("invokes browser fetch without binding it to the draft controller", async () => {
+    const transport = vi.fn<typeof fetch>(async function (this: unknown, url, init) {
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError("Failed to execute fetch on Window: Illegal invocation")
+      }
+      if (String(url).endsWith("session")) return Response.json({ ok: true })
+      const body = JSON.parse(String(init?.body))
+      return body.operation === "read" ? draftResponse() : draftResponse(body.draft, body.version + 1)
+    })
+    const client = new GuestDraftController(true, transport)
+    clients.push(client)
+    await client.start()
+    expect(client.getSnapshot()).toMatchObject({ phase: "ready", dirty: false })
+    client.edit("projectName", "Ready to submit")
+    expect(await client.flush()).toBe(true)
+    expect(client.getSnapshot()).toMatchObject({ phase: "ready", saved: true, dirty: false })
+    expect(transport).toHaveBeenCalledTimes(3)
+    expect(transport.mock.contexts.every((context) => context !== client)).toBe(true)
+  })
+
   it("flushes the latest answers after an in-flight save before submission", async () => {
     const { client, transport, saves } = setup()
     await client.start()

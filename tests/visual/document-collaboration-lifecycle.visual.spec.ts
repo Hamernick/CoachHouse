@@ -1,0 +1,25 @@
+import { expect, test } from "@playwright/test"
+import { buildDocumentCollaborationLifecycleFixture } from "./fixtures/document-collaboration-lifecycle"
+
+test("actual editor remains editable without presence and recovers an unsaved draft after remount", async ({ page }) => {
+  await page.route("http://127.0.0.1:3139/fixture", route => route.fulfill({ contentType: "text/html", body: '<meta charset="utf-8"><div id="root"></div>' }))
+  await page.goto("http://127.0.0.1:3139/fixture")
+  await page.addScriptTag({ content: await buildDocumentCollaborationLifecycleFixture() })
+  const editor = page.getByLabel("Origin Story", { exact: true })
+  await expect(editor).toHaveAttribute("contenteditable", "true")
+  await expect(page.getByText("Live cursors unavailable")).toBeVisible()
+  await page.getByRole("button", { name: "Disconnect test connection" }).click()
+  await editor.press("End")
+  await editor.pressSequentially(" retained draft")
+  await expect(page.getByText("Connection interrupted. Your local copy is retained.")).toBeVisible()
+  await page.getByRole("button", { name: "Close test editor" }).click()
+  await page.getByRole("button", { name: "Restore test connection" }).click()
+  await page.getByRole("button", { name: "Open test editor" }).click()
+  await expect(page.getByRole("button", { name: "Restore earlier draft" })).toBeEnabled()
+  await page.getByRole("button", { name: "Restore earlier draft" }).click()
+  await expect(editor).toContainText("retained draft")
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Revoke test access" }).click()
+  await expect(editor).toHaveAttribute("contenteditable", "false")
+  await expect(editor).toContainText("retained draft")
+})

@@ -1,3 +1,4 @@
+import { shouldShowPublicMapResourceRow } from "@/lib/public-map/resource-item-visibility"
 import { env } from "@/lib/env"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
@@ -18,15 +19,17 @@ async function resolveClaimableListing(targetId: string) {
   const admin = createSupabaseAdminClient()
   const { data, error } = await admin
     .from("resource_map_public_items")
-    .select("organization_id, organization_name, platform_org_id, source_label")
+    .select("organization_id, organization_name, platform_org_id, source_label, title, source_url")
     .eq("organization_id", targetId)
     .is("platform_org_id", null)
     .not("source_label", "is", null)
-    .limit(1)
-    .maybeSingle()
+    .limit(80)
 
-  if (error || !data?.organization_name || !data.source_label) return null
-  return { id: data.organization_id, name: data.organization_name }
+  if (error) return null
+  const listing = data?.find((row) => row.organization_name && row.source_label &&
+    !row.platform_org_id && shouldShowPublicMapResourceRow(row))
+  if (!listing) return null
+  return { id: listing.organization_id, name: listing.organization_name }
 }
 
 function asRecord(value: unknown) {

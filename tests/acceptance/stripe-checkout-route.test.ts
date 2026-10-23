@@ -132,12 +132,20 @@ describe("stripe checkout route", () => {
 
     expect(response.status).toBe(307)
     expect(response.headers.get("location")).toBe("https://checkout.stripe.test/session_123")
+    // Stripe substitutes only the literal token in the URL supplied to Checkout.
+    const successUrl = stripeCheckoutCreateMock.mock.calls[0][0].success_url as string
+    const returnedUrl = new URL(successUrl.replace("{CHECKOUT_SESSION_ID}", "cs_test_completed"))
+    expect(returnedUrl.searchParams.get("session_id")).toBe("cs_test_completed")
+    expect(returnedUrl.searchParams.get("redirect")).toBe(
+      "/workspace?onboarding_flow=1&source=onboarding_pricing",
+    )
+    expect(returnedUrl.searchParams.get("context")).toBe("onboarding_builder")
     expect(stripeCheckoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         cancel_url:
           "http://localhost/workspace?onboarding_flow=1&source=onboarding_pricing&cancelled=true",
         success_url: expect.stringContaining(
-          "/pricing/success?session_id=%7BCHECKOUT_SESSION_ID%7D&redirect=%2Fworkspace%3Fonboarding_flow%3D1%26source%3Donboarding_pricing&context=onboarding_builder",
+          "/pricing/success?session_id={CHECKOUT_SESSION_ID}&redirect=%2Fworkspace%3Fonboarding_flow%3D1%26source%3Donboarding_pricing&context=onboarding_builder",
         ),
       }),
     )
@@ -187,7 +195,7 @@ describe("stripe checkout route", () => {
     expect(stripeCheckoutCreateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         success_url: expect.stringContaining(
-          "/pricing/success?session_id=%7BCHECKOUT_SESSION_ID%7D&redirect=%2Fworkspace",
+          "/pricing/success?session_id={CHECKOUT_SESSION_ID}&redirect=%2Fworkspace",
         ),
         cancel_url: "http://localhost/find?cancelled=true",
         metadata: expect.objectContaining({

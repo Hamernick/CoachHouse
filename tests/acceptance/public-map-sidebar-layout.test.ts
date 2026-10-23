@@ -1162,6 +1162,7 @@ describe("public map sidebar layout", () => {
     )
     const memberRailMarkup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         directoryHeaderStart: React.createElement("span", {
           "data-public-map-test-header-start": "",
         }),
@@ -1183,6 +1184,7 @@ describe("public map sidebar layout", () => {
     )
     const guidesRailMarkup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         showGuidesTab: true,
         directoryRail: null,
         directoryMode: null,
@@ -1301,6 +1303,7 @@ describe("public map sidebar layout", () => {
 
     const emptyGuidesMarkup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         activeTab: "guides",
         directoryRail: React.createElement("div", null, "Directory"),
         directoryMode: "search",
@@ -1392,6 +1395,7 @@ describe("public map sidebar layout", () => {
     }
     const markup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         collectedCount: 2500,
         directoryRail: React.createElement("div", null, "Directory"),
         savedOrganizations: [],
@@ -1435,6 +1439,7 @@ describe("public map sidebar layout", () => {
 
     const markup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         directoryRail: null,
         directoryMode: null,
         savedOrganizations: [communityOrganization, healthOrganization],
@@ -1460,6 +1465,7 @@ describe("public map sidebar layout", () => {
     expect(markup).toContain(">Collected 3 items<")
     const savedRailMarkup = renderToStaticMarkup(
       React.createElement(PublicMapSavedRail, {
+        onSelectOrganization: () => {},
         savedOrganizations: [communityOrganization, healthOrganization],
         favoritesCount: 2,
         onToggleFavorite: () => {},
@@ -1555,6 +1561,7 @@ describe("public map sidebar layout", () => {
 
     const markup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         savedOrganizations: [],
         savedResources: [resource],
         onSelectResource: () => {},
@@ -1603,6 +1610,7 @@ describe("public map sidebar layout", () => {
   it("does not show a false-empty My Map while collected resources resolve", () => {
     const loadingMarkup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         savedOrganizations: [],
         savedResources: [],
         unresolvedCollectedResourceCount: 2,
@@ -1612,6 +1620,7 @@ describe("public map sidebar layout", () => {
     )
     const errorMarkup = renderToStaticMarkup(
       React.createElement(PublicMapMemberRail, {
+        onSelectOrganization: () => {},
         savedOrganizations: [],
         savedResources: [],
         unresolvedCollectedResourceCount: 2,

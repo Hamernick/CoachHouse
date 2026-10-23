@@ -7,9 +7,14 @@ import { canEditOrganization } from "@/lib/organization/active-org"
 import { loadOrganizationCoachActorScope } from "@/lib/admin/organization-coach-scope"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
-const resolveMemberWorkspaceActorContextCached = cache(async () => {
+const resolveMemberWorkspaceActorContextCached = cache(async (scope: "workspace" | "platform") => {
   const { supabase, user, profileAudience, activeOrg } =
     await resolveAuthenticatedAppContext()
+  // Admin directories use verified staff capability, independent of the selected support workspace.
+  if (scope === "platform" && !hasPlatformCapability(profileAudience.platformAccessLevel, "organizations")) {
+    throw new Error("Unable to access the platform directory.")
+  }
+  const supportWorkspace = scope === "workspace" && activeOrg.supportAccess
   const userMeta =
     (user.user_metadata as Record<string, unknown> | null) ?? null
   const metadataFirstName =
@@ -34,7 +39,7 @@ const resolveMemberWorkspaceActorContextCached = cache(async () => {
   const isPlatformStaff =
     profileAudience.isPlatformStaff || profileAudience.isAdmin
   const adminSupabase = createSupabaseAdminClient({ actorId: user.id })
-  const dataSupabase = isPlatformStaff ? adminSupabase : supabase
+  const dataSupabase = isPlatformStaff && !supportWorkspace ? adminSupabase : supabase
   const paidAccess = isPlatformStaff
     ? { hasPaidTeamAccess: true }
     : await resolvePaidTeamAccessForOrgSubscription({
@@ -50,10 +55,10 @@ const resolveMemberWorkspaceActorContextCached = cache(async () => {
   return {
     supabase: dataSupabase,
     userId: user.id,
-    isAdmin: profileAudience.isAdmin,
-    isPlatformStaff,
+    isAdmin: profileAudience.isAdmin && !supportWorkspace,
+    isPlatformStaff: isPlatformStaff && !supportWorkspace,
     platformAccessLevel: profileAudience.platformAccessLevel,
-    canAccessOrganizations: hasPlatformCapability(
+    canAccessOrganizations: !supportWorkspace && hasPlatformCapability(
       profileAudience.platformAccessLevel,
       "organizations"
     ),
@@ -75,6 +80,6 @@ const resolveMemberWorkspaceActorContextCached = cache(async () => {
   }
 })
 
-export async function resolveMemberWorkspaceActorContext() {
-  return resolveMemberWorkspaceActorContextCached()
+export async function resolveMemberWorkspaceActorContext(scope: "workspace" | "platform" = "workspace") {
+  return resolveMemberWorkspaceActorContextCached(scope)
 }

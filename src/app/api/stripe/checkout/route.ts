@@ -263,6 +263,7 @@ export async function GET(request: NextRequest) {
   let orgId: string
   try {
     const resolved = await resolveActiveOrganization(supabase, userId)
+    if (resolved.supportAccess) throw new Error("Exit support mode before purchasing.")
     orgId = resolved.orgId
   } catch {
     return buildErrorRedirect({ request, supabaseResponse, returnTarget: cancelTarget ?? redirectTarget,
@@ -307,7 +308,8 @@ export async function GET(request: NextRequest) {
           ...(redirectTarget ? { redirect_after_success: redirectTarget } : {}),
         },
       },
-      success_url: successUrl.toString(),
+      // Stripe must receive its literal template token to substitute the session ID.
+      success_url: successUrl.toString().replace("session_id=%7BCHECKOUT_SESSION_ID%7D", "session_id={CHECKOUT_SESSION_ID}"),
       cancel_url: cancelTarget
         ? buildInternalRedirectUrl({
             request,

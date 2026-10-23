@@ -1,3 +1,4 @@
+import { loadFiscalReviewTasks } from "./fiscal-review-tasks"
 import { readTaskTrackerDetails } from "@/lib/task-tracker"
 import { loadPersonalTaskScope } from "./personal-task-scope"
 import type { Database } from "@/lib/supabase"
@@ -7,7 +8,6 @@ import { actorCanAccessOrganization, actorCanAccessOrganizations } from "./membe
 import { resolveMemberWorkspaceActorContext } from "./member-workspace-actor-context"
 import { loadMemberWorkspacePersonOptionsForOrganizations } from "./person-options"
 import { loadTaskAssigneeMap, type TaskAssigneeProfile } from "./task-assignees"
-import { ensureStarterTasksForOrg } from "./task-persistence"
 import { loadTaskProjectScope } from "./task-project-scope"
 import {
   mapTaskRowsToGroups,
@@ -51,9 +51,7 @@ function compareTaskItems(
   left: MemberWorkspaceTaskItem,
   right: MemberWorkspaceTaskItem
 ) {
-  const dateDiff = left.startDate.localeCompare(right.startDate)
-  if (dateDiff !== 0) return dateDiff
-  return left.title.localeCompare(right.title)
+  return (left.sortOrder ?? 0) - (right.sortOrder ?? 0) || left.id.localeCompare(right.id)
 }
 
 function mapTaskAssignmentRowsToItems(
@@ -70,6 +68,10 @@ function mapTaskAssignmentRowsToItems(
       return [
         {
           id: task.id,
+          sortOrder: task.sort_order,
+          updatedAt: task.updated_at,
+        createdAt: task.created_at,
+          capabilities: { status: true, details: canUpdate && task.created_source !== "system", schedule: canUpdate && task.created_source !== "system", order: canUpdate && task.created_source !== "system" },
           tracker: readTaskTrackerDetails(task.tracker_metadata),
           projectId: task.project_id,
           projectName: project?.name ?? "Unassigned Project",
@@ -98,7 +100,7 @@ function mapTaskAssignmentRowsToItems(
           tagLabel: task.tag_label ?? null,
           workstreamName: task.workstream_name ?? null,
           assignee: assigneeByTaskId.get(task.id) ?? null,
-          canUpdate,
+          canUpdate: canUpdate && task.created_source !== "system",
         },
       ]
     })
@@ -120,6 +122,8 @@ type AdminTaskQueryRow = Pick<
   | "tag_label"
   | "workstream_name"
   | "sort_order"
+  | "updated_at"
+  | "created_at"
   | "created_source"
   | "created_by"
   | "tracker_metadata"
@@ -150,6 +154,9 @@ function mapAdminTaskRowsToItems(
       const project = task.organization_projects
       return {
         id: task.id,
+        sortOrder: task.sort_order,
+        updatedAt: task.updated_at,
+        createdAt: task.created_at,
         tracker: readTaskTrackerDetails(task.tracker_metadata),
         organizationName: organizationNames.get(task.org_id),
         projectId: task.project_id,
@@ -179,14 +186,15 @@ function mapAdminTaskRowsToItems(
         tagLabel: task.tag_label ?? null,
         workstreamName: task.workstream_name ?? null,
         assignee: assigneeByTaskId.get(task.id) ?? null,
-        canUpdate,
+        canUpdate: canUpdate && task.created_source !== "system",
       }
     })
     .sort(compareTaskItems)
 }
 
-export async function loadMemberWorkspaceTasksPage() {
-  const actor = await resolveMemberWorkspaceActorContext()
+export async function loadMemberWorkspaceTasksPage(actorScope: "workspace" | "platform" = "workspace") {
+  const actor = await resolveMemberWorkspaceActorContext(actorScope)
+  const fiscalTasks = actorScope === "platform" ? await loadFiscalReviewTasks(actor.currentUser) : []
 
   if (actorCanAccessOrganizations(actor)) {
     const { data: myAssignments, error: myAssignmentsError } = await actor.supabase
@@ -213,7 +221,7 @@ export async function loadMemberWorkspaceTasksPage() {
       actor.supabase
         .from("organization_tasks")
         .select(
-          "id, org_id, project_id, tracker_metadata, title, description, task_type, status, start_date, end_date, priority, tag_label, workstream_name, sort_order, created_source, created_by, organization_projects(id, name, client_name, status, priority, tags, member_labels, type_label, duration_label, start_date, end_date)"
+          "id, org_id, project_id, tracker_metadata, title, description, task_type, status, start_date, end_date, priority, tag_label, workstream_name, sort_order, updated_at, created_at, created_source, created_by, organization_projects(id, name, client_name, status, priority, tags, member_labels, type_label, duration_label, start_date, end_date)"
         )
         .or(personalFilter)
         .order("start_date", { ascending: true })
@@ -282,15 +290,22 @@ export async function loadMemberWorkspaceTasksPage() {
     ])
 
     return {
-      taskGroups: mapTaskRowsToGroups(
-        mapAdminTaskRowsToItems(rows.filter((task) => personalScope.taskIds.has(task.id)), assigneeByTaskId, true, personalScope.organizationNames)
-          .map((task) => ({ ...task, canUpdate: accessibleProjectIds.has(task.projectId) }))
-      ),
-      storageMode: resolveMemberWorkspaceStorageMode(rows),
+      taskGroups: mapTaskRowsToGroups([
+        ...fiscalTasks,
+        ...mapAdminTaskRowsToItems(rows.filter((task) => personalScope.taskIds.has(task.id)), assigneeByTaskId, true, personalScope.organizationNames)
+          .map((task) => {
+            const canEdit = task.canUpdate && accessibleProjectIds.has(task.projectId)
+            return { ...task, canUpdate: canEdit, capabilities: {
+              status: canEdit || assignedTaskIds.has(task.id), details: canEdit,
+              schedule: canEdit, order: canEdit,
+            } }
+          })
+      ]),
+      storageMode: fiscalTasks.length ? "custom" as const : resolveMemberWorkspaceStorageMode(rows),
       starterTaskCount: rows.filter(
         (task) => task.created_source === "starter_seed"
       ).length,
-      hasAnyOrgTasks: rows.length > 0,
+      hasAnyOrgTasks: rows.length > 0 || fiscalTasks.length > 0,
       canResetStarterData: false,
       canManageTasks: true,
       scope: "platform-admin" as const,
@@ -299,13 +314,7 @@ export async function loadMemberWorkspaceTasksPage() {
     }
   }
 
-  const [, assigneeOptions, taskProjectScope] = await Promise.all([
-    ensureStarterTasksForOrg({
-      canEdit: actor.canEdit,
-      orgId: actor.activeOrg.orgId,
-      userId: actor.userId,
-      supabase: actor.supabase,
-    }),
+  const [assigneeOptions, taskProjectScope] = await Promise.all([
     loadMemberWorkspacePersonOptionsForOrganizations({
       orgIds: [actor.activeOrg.orgId],
       supabase: actor.supabase,

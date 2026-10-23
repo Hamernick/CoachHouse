@@ -11,8 +11,7 @@ import {
   refundLatestAdminOrganizationPaymentAction,
 } from "@/features/admin-organization-billing"
 import {
-  FiscalGuestProjectReview,
-  loadGuestFiscalProjectReview,
+  FiscalGuestProjectWorkbench,
   canManageFiscalSponsorshipForOrganization,
   connectFiscalSponsorshipDocumentAsset,
   generateFiscalSponsorshipAgreement,
@@ -87,15 +86,15 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
     )
   }
 
-  if (result.state === "fiscal-intake") {
-    const review = await loadGuestFiscalProjectReview(result.projectId)
-    if (!review) notFound()
-    if ("error" in review) {
-      return <div className="px-6 py-10"><Empty title="Application unavailable" description={review.error} variant="subtle" /></div>
-    }
-    return <FiscalGuestProjectReview {...review} />
+  if (result.state === "fiscal-review-unavailable") {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10">
+        <Empty title="Application unavailable" description={result.message} variant="subtle" />
+      </div>
+    )
   }
 
+  const isFiscalIntake = result.scope === "fiscal-intake"
   const canManageProject =
     result.scope === "organization" || result.scope === "platform-admin"
   const canManageProjectAssets =
@@ -124,17 +123,17 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
           userId: staff.userId,
         })
       : Promise.resolve(false),
-    loadFiscalSponsorshipProjectWorkflowSummary(result.project.id),
-    staff.accessLevel === "developer"
+    result.fiscalReview ? Promise.resolve(result.fiscalReview.workflow) : loadFiscalSponsorshipProjectWorkflowSummary(result.project.id),
+    !isFiscalIntake && staff.accessLevel === "developer"
       ? loadAdminOrganizationBilling(result.organizationSummary.orgId)
       : Promise.resolve(null),
-    loadOrganizationCoachAssignmentData({
+    isFiscalIntake ? Promise.resolve(null) : loadOrganizationCoachAssignmentData({
       organizationIds: [result.organizationSummary.orgId],
     }).catch(() => null),
-    projectKind === "organization_admin"
+    !isFiscalIntake && projectKind === "organization_admin"
       ? loadAdminCoachingCredits(result.organizationSummary.orgId)
       : Promise.resolve(null),
-    loadOrganizationPrograms(result.organizationSummary.orgId),
+    isFiscalIntake ? Promise.resolve([]) : loadOrganizationPrograms(result.organizationSummary.orgId),
   ])
   const fiscalSponsorshipWorkflowData =
     "error" in fiscalSponsorshipWorkflowSummary
@@ -184,6 +183,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       currentUser={result.currentUser}
       organizationSummary={result.organizationSummary}
       fiscalSponsorshipWorkflowSummary={fiscalSponsorshipWorkflowData}
+      fiscalSponsorshipWorkbench={result.fiscalReview ? <FiscalGuestProjectWorkbench {...result.fiscalReview} projectAssets={result.project.files.map((file) => ({ id: file.id, name: file.name, description: file.description ?? null, url: file.url, sizeLabel: file.isLinkAsset ? "Link" : `${file.sizeMB.toFixed(1)} MB` }))} /> : undefined}
       canManageProject={canManageProject}
       canManageProjectAssets={canManageProjectAssets}
       canEditProjectDetails={canEditProjectDetails}

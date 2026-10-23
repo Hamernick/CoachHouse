@@ -752,6 +752,7 @@ describe("coaching booking feature", () => {
       "src/features/coaching-booking/server/booking-finalizer.ts"
     )
     const email = readSource("src/features/coaching-booking/server/email.ts")
+    const emailTemplate = readSource("src/features/coaching-booking/lib/email-templates.ts")
     const actions = readSource(
       "src/features/coaching-booking/server/actions.ts"
     )
@@ -837,18 +838,18 @@ describe("coaching booking feature", () => {
     expect(finalizer).toContain("sendCoachingBookingConfirmationEmails")
     expect(finalizer).toContain("internalAttendeeEmails")
     expect(finalizer).toContain(
-      "Coach House meeting with ${COACHING_JOINT_COACH_LABEL}"
+      "summary: buildCoachingCalendarTitle(attendeeName)"
     )
     expect(finalizer).toContain("Meeting notes from attendee:")
     expect(finalizer).toContain("attendeeNotes: booking.attendee_notes")
     expect(finalizer).toContain('"confirm_coaching_credit_booking"')
     expect(email).toContain("sendResendEmail")
-    expect(email).toContain("Your Coach House coaching meeting is confirmed")
-    expect(email).toContain("New Coach House coaching meeting booked")
-    expect(email).toContain("attendeeNotes?: string | null")
-    expect(email).toContain("Notes: ${normalizedAttendeeNotes}")
-    expect(email).toContain(
-      "getValidGoogleCalendarEventUrl(googleEventHtmlLink)"
+    expect(emailTemplate).toContain("Your Coach House coaching meeting is confirmed")
+    expect(emailTemplate).toContain("New Coach House coaching meeting booked")
+    expect(emailTemplate).toContain("attendeeNotes?: string | null")
+    expect(emailTemplate).toContain('sections: notes ? [{ title: "Notes", body: [notes] }]')
+    expect(emailTemplate).toContain(
+      "getValidGoogleCalendarEventUrl(input.googleEventHtmlLink)"
     )
     expect(icsRoute).toContain("COACHING_JOINT_COACH_LABEL")
     expect(icsRoute).toContain(
@@ -861,7 +862,7 @@ describe("coaching booking feature", () => {
       "getValidGoogleCalendarEventUrl(booking.google_event_html_link)"
     )
     expect(icsRoute).toContain("attendee_notes")
-    expect(icsRoute).toContain("Coach House Advisory Meeting with")
+    expect(icsRoute).toContain("buildCoachingCalendarTitle")
     expect(icsRoute).toContain(
       'const ICS_FILENAME_PREFIX = "coach-house-advisory-meeting"'
     )
@@ -939,7 +940,7 @@ describe("coaching booking feature", () => {
     expect(google).toContain("https://sts.googleapis.com/v1/token")
     expect(google).toContain("generateIdToken")
     expect(google).toContain("https://oauth2.googleapis.com/token")
-    expect(google).toContain("/freeBusy")
+    expect(readSource("src/features/coaching-booking/server/calendar-conflicts.ts")).toContain("/freeBusy")
     expect(google).toContain("conferenceDataVersion=1")
     expect(google).toContain("GOOGLE_COACHING_PAULA_IMPERSONATED_USER")
     expect(google).toContain('type: "hangoutsMeet"')
@@ -990,7 +991,7 @@ describe("coaching booking feature", () => {
     expect(broker).toContain("https://www.googleapis.com/auth/calendar")
     expect(broker).toContain("timingSafeEqual")
     expect(broker).toContain("COACHING_CALENDAR_BROKER_SECRET")
-    expect(broker).toContain("Google Calendar freeBusy failed")
+    expect(broker).toContain("readCompleteFreeBusy")
     expect(broker).toContain("detail.slice(0, 500)")
     expect(broker).toContain("Attendee: ${payload.attendeeEmail}")
     expect(broker).toContain("attendeeEmail: payload.attendeeEmail")

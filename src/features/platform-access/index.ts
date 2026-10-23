@@ -1,5 +1,6 @@
 export {
   hasPlatformCapability,
+  hasCoachCoachingAccess,
   isPlatformAccessLevel,
   isCoachRestrictedPath,
   resolveLegacyPlatformAccessLevel,

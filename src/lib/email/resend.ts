@@ -5,6 +5,8 @@ import { buildEmailUnsubscribeUrls } from "@/lib/email/preference-tokens"
 type SendResendEmailInput = {
   signal?: AbortSignal
   to: string | string[]
+  cc?: string[]
+  omitUnsubscribeHeaders?: boolean
   subject: string
   html: string
   text: string
@@ -141,7 +143,7 @@ export async function sendResendEmail(
   let unsubscribeUrl: string | null = null
 
   try {
-    const resolvedUnsubscribe = await resolveUnsubscribeHeaders(replyTo, input.unsubscribe)
+    const resolvedUnsubscribe = input.omitUnsubscribeHeaders ? { headers: null, unsubscribeUrl: null } : await resolveUnsubscribeHeaders(replyTo, input.unsubscribe)
     unsubscribeHeaders = resolvedUnsubscribe.headers
     unsubscribeUrl = resolvedUnsubscribe.unsubscribeUrl
   } catch (error) {
@@ -182,6 +184,7 @@ export async function sendResendEmail(
     body: JSON.stringify({
       from: `${fromName} <${fromEmail}>`,
       to: Array.isArray(input.to) ? input.to : [input.to],
+      ...(input.cc?.length ? { cc: input.cc } : {}),
       subject: input.subject,
       html: audit.sanitizedHtml,
       text: input.text,

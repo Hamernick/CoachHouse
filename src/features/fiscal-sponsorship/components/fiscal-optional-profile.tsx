@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { guestProfileFieldsSchema, guestProfilePreviewSchema, type GuestProfileFields, type GuestProfilePreview } from "../lib/guest-profile"
+import { GUEST_ORGANIZATION_PROFILE_HREF, guestProfileFieldsSchema, guestProfilePreviewSchema, type GuestProfileFields, type GuestProfilePreview } from "../lib/guest-profile"
 import { FiscalOptionalProfileAuth } from "./fiscal-optional-profile-auth"
 import { FiscalProfileSelection } from "./fiscal-profile-selection"
 import { usePublicFiscalNavigation } from "./use-public-fiscal-navigation"
 import { FiscalPublicLeaveDialog } from "./fiscal-public-draft-status"
+import { guestFollowupHref } from "../lib/guest-followup"
 
 const empty: GuestProfileFields = { name: "", description: "", email: "", phone: "" }
 async function post(body: object) {
@@ -75,7 +76,7 @@ export function FiscalOptionalProfile({ reference }: { reference: string }) {
     try {
       const { response, data } = await post({ operation: "open", reference })
       if (!response.ok || data.state !== "opened") { setMessage(data.error ?? "Couldn’t open your profile. Try again."); return }
-      router.push("/organization/profile")
+      router.push(GUEST_ORGANIZATION_PROFILE_HREF)
     } catch { setMessage("Couldn’t open your profile. Your saved details are unchanged.") }
     finally { setWorking(false) }
   }
@@ -97,7 +98,10 @@ export function FiscalOptionalProfile({ reference }: { reference: string }) {
     <p role="status" aria-live="polite" className="mt-3 text-sm text-muted-foreground">{message}</p>
     {state === "error" && <Button variant="outline" onClick={() => { void load() }} className="mt-2 min-h-11 rounded-full shadow-none">Reload preview</Button>}
     {state === "linked" && <p className="mt-3 text-sm text-muted-foreground">You can close this page. Publishing your profile is a separate choice.</p>}
-    {state === "linked" && <Button onClick={() => { void openProfile() }} disabled={working} className="mt-3 min-h-11 rounded-full shadow-none">{working ? "Opening profile…" : "Open organization profile"}</Button>}
+    {state === "linked" && <div className="mt-3 flex flex-wrap items-center gap-2">
+      <Button asChild variant="outline" className="min-h-11 rounded-full shadow-none"><Link href={guestFollowupHref(reference)}>View application</Link></Button>
+      <Button onClick={() => { void openProfile() }} disabled={working} className="min-h-11 rounded-full shadow-none">{working ? "Opening profile…" : "Open organization profile"}</Button>
+    </div>}
     {state !== "linked" && <Button asChild variant="link" className="mt-3 min-h-11 px-0"><Link href="/documentation/fiscal-sponsorship">Not now</Link></Button>}
   </section>
 }

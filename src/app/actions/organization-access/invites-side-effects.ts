@@ -1,14 +1,14 @@
 import { headers } from "next/headers"
 
 import {
-  buildOrganizationAccessRequestEmailHtml,
+  buildOrganizationAccessRequestEmail,
   buildOrganizationAccessRequestEmailSubject,
-  buildOrganizationInviteEmailHtml,
+  buildOrganizationInviteEmail,
   buildOrganizationInviteEmailSubject,
-} from "@/features/organization-access"
+} from "@/features/organization-access/client"
 import { sendResendEmail } from "@/lib/email/resend"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
-import { formatOrganizationRoleLabel, type OrganizationMemberRole } from "./shared"
+import { type OrganizationMemberRole } from "./shared"
 
 const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -93,18 +93,14 @@ export async function sendExistingUserAccessRequestEmail({
     subject: buildOrganizationAccessRequestEmailSubject({
       organizationName,
     }),
-    html: buildOrganizationAccessRequestEmailHtml({
+    ...buildOrganizationAccessRequestEmail({
       siteUrl,
       organizationName,
       reviewUrl,
+      inviterName,
+      role,
+      respondBy: formatInviteExpiryLabel(expiresAt),
     }),
-    text: [
-      `${organizationName} invited you to Coach House access`,
-      "",
-      `${inviterName} requested ${formatOrganizationRoleLabel(role).toLowerCase()} access for you.`,
-      `Review request: ${reviewUrl}`,
-      `Respond by: ${formatInviteExpiryLabel(expiresAt)}`,
-    ].join("\n"),
     tags: [
       { name: "category", value: "organization-access-request" },
       { name: "organization", value: organizationName.slice(0, 64) },
@@ -135,20 +131,14 @@ export async function sendExternalOrganizationInviteEmail({
       organizationName,
       role: role === "owner" ? "admin" : role,
     }),
-    html: buildOrganizationInviteEmailHtml({
+    ...buildOrganizationInviteEmail({
       siteUrl,
       organizationName,
       role: role === "owner" ? "admin" : role,
       joinUrl: inviteUrl,
+      inviterName,
+      respondBy: formatInviteExpiryLabel(expiresAt),
     }),
-    text: [
-      `Join ${organizationName} on Coach House`,
-      "",
-      `${inviterName} invited you to join ${organizationName}.`,
-      `Access: ${formatOrganizationRoleLabel(role)}`,
-      `Review invite: ${inviteUrl}`,
-      `Respond by: ${formatInviteExpiryLabel(expiresAt)}`,
-    ].join("\n"),
     tags: [
       { name: "category", value: "organization-invite" },
       { name: "organization", value: organizationName.slice(0, 64) },

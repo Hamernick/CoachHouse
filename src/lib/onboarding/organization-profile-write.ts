@@ -3,6 +3,16 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { commitPeopleProfileMutation } from "@/lib/people/profile-write"
 import type { Database, Json } from "@/lib/supabase"
 
+export const ONBOARDING_ORGANIZATION_SLUG_TAKEN = "That organization URL is already taken or reserved."
+
+function isPublicSlugConflict(error: { code?: string; message: string } | null) {
+  return error?.code === "23505" && (
+    error.message === "Public handle is already taken." ||
+    error.message === "Public handle is reserved." ||
+    error.message.includes("uniq_organizations_public_slug_lower")
+  )
+}
+
 type OnboardingOrganizationProfileInput = {
   avatarUrl: string | null
   formationStatus: "pre_501c3" | "in_progress" | "approved" | null
@@ -127,6 +137,7 @@ export async function writeOnboardingOrganizationProfile({
           })
           .select("updated_at")
           .maybeSingle<{ updated_at: string }>()
+        if (isPublicSlugConflict(error)) return { status: "error", error: ONBOARDING_ORGANIZATION_SLUG_TAKEN }
         if (error?.code === "23505") return { status: "conflict" }
         if (error) return { status: "error", error: error.message }
         return data ? { status: "written" } : { status: "conflict" }
@@ -140,6 +151,7 @@ export async function writeOnboardingOrganizationProfile({
         .eq("updated_at", snapshot.revision)
         .select("updated_at")
         .maybeSingle<{ updated_at: string }>()
+      if (isPublicSlugConflict(error)) return { status: "error", error: ONBOARDING_ORGANIZATION_SLUG_TAKEN }
       if (error) return { status: "error", error: error.message }
       return data ? { status: "written" } : { status: "conflict" }
     },

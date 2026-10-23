@@ -1,4 +1,6 @@
 import { cache } from "react"
+import { hasCoachCoachingAccess } from "@/features/platform-access"
+import { hasWorkspaceSupportAccess } from "@/lib/organization/support-access"
 
 import { fetchSidebarTree, type SidebarClass } from "@/lib/academy"
 import {
@@ -12,7 +14,7 @@ import {
   type PricingPlanTier,
 } from "@/lib/billing/plan-tier"
 import { loadAppPricingFeedbackPrompt } from "@/features/app-pricing-feedback"
-import { loadAccessibleOrganizations } from "@/features/member-workspace"
+import { loadAccessibleOrganizations } from "@/features/member-workspace/server"
 import { publicSharingEnabled } from "@/lib/feature-flags"
 import type { Json } from "@/lib/supabase"
 import { buildSavedOnboardingFlowDefaults } from "@/lib/onboarding/saved-defaults"
@@ -133,7 +135,7 @@ const resolveDashboardLayoutStateCached = cache(
     }
 
     const accessibleOrganizationsPromise =
-      metadataIntentFocus !== "fund"
+      (metadataIntentFocus !== "fund" || isPlatformStaff)
         ? loadAccessibleOrganizations(supabase, user.id)
         : Promise.resolve([])
     const appPricingFeedbackPromptPromise = loadAppPricingFeedbackPrompt({
@@ -258,7 +260,7 @@ const resolveDashboardLayoutStateCached = cache(
       isPlatformStaff || hasActiveSubscription || orgId !== user.id
     canAccessOrgAdmin = showOrgAdmin && showMemberWorkspace
 
-    if (metadataIntentFocus !== "fund" && showMemberWorkspace) {
+    if ((metadataIntentFocus !== "fund" || isPlatformStaff) && showMemberWorkspace) {
       const resolvedActiveOrganization =
         accessibleOrganizations.find(
           (organization) => organization.orgId === orgId
@@ -268,7 +270,9 @@ const resolveDashboardLayoutStateCached = cache(
 
       if (resolvedActiveOrganization) {
         memberWorkspaceHeader = {
-          activeOrganization: resolvedActiveOrganization,
+          activeOrganization: { ...resolvedActiveOrganization, supportAccess: activeOrg.supportAccess },
+          presenceOrganizationId: orgRowResult.data ? orgId : undefined,
+          canSearchSupport: await hasWorkspaceSupportAccess(supabase),
           accessibleOrganizations,
         }
       }
@@ -333,6 +337,7 @@ const resolveDashboardLayoutStateCached = cache(
       },
       isAdmin,
       platformAccessLevel,
+      hasCoachingAccess: hasCoachCoachingAccess(user.app_metadata),
       isTester,
       showOrgAdmin,
       canAccessOrgAdmin,
@@ -366,6 +371,7 @@ const resolveDashboardLayoutStateCached = cache(
           ? metadataIntentFocus
           : null,
       formationStatus,
+      organizationScope: { orgId, supportAccess: activeOrg.supportAccess, presenceOrganizationId: orgRowResult.data ? orgId : undefined },
       memberWorkspaceHeader,
       memberMapOnboarding: {
         hasOrganizationSwitcher: accessibleOrganizations.length > 1,

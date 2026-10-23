@@ -1,10 +1,11 @@
 export type MemberWorkspaceProjectViewType = "list" | "board" | "timeline"
 
-export type MemberWorkspaceProjectOrdering = "manual" | "alphabetical" | "date"
+export type MemberWorkspaceProjectOrdering = "manual" | "alphabetical" | "date" | "added"
 
 export type MemberWorkspaceProjectViewOptions = {
   viewType: MemberWorkspaceProjectViewType
   ordering: MemberWorkspaceProjectOrdering
+  completion: "all" | "completed" | "incomplete"
   showClosedProjects: boolean
   hiddenWorkstreamCategoryKeys: string[]
   properties: Array<"title" | "status" | "assignee" | "dueDate">
@@ -19,6 +20,7 @@ export const DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS: MemberWorkspaceProje
   {
     viewType: "list",
     ordering: "manual",
+    completion: "all",
     showClosedProjects: true,
     hiddenWorkstreamCategoryKeys: [],
     properties: ["title", "status", "assignee", "dueDate"],
@@ -88,7 +90,7 @@ function isViewType(
 function isOrdering(
   value: string | null
 ): value is MemberWorkspaceProjectOrdering {
-  return value === "manual" || value === "alphabetical" || value === "date"
+  return value === "manual" || value === "alphabetical" || value === "date" || value === "added"
 }
 
 const PROJECT_PROPERTY_ORDER = [
@@ -132,6 +134,7 @@ export function paramsToViewOptions(
     ordering: isOrdering(orderValue)
       ? orderValue
       : DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS.ordering,
+    completion: params.get("completion") === "completed" ? "completed" : params.get("completion") === "incomplete" ? "incomplete" : "all",
     showClosedProjects: params.get("closed") !== "hide",
     hiddenWorkstreamCategoryKeys: Array.from(
       new Set(hiddenWorkstreamCategoryKeys)
@@ -162,6 +165,9 @@ export function applyViewOptionsToParams(
   } else {
     params.set("order", options.ordering)
   }
+
+  if (options.completion === "all") params.delete("completion")
+  else params.set("completion", options.completion)
 
   if (options.showClosedProjects) {
     params.delete("closed")

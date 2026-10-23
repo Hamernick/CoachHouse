@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), accountRpc: vi.fn(), getUser: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }))
+vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ rpc: mocks.accountRpc, auth: { getUser: mocks.getUser } }) }))
+import { loadLinkedFiscalApplications } from "@/features/fiscal-sponsorship/server/linked-applications"
 import { handleGuestFiscalFollowup } from "@/features/fiscal-sponsorship/server/guest-followup"
 import { GUEST_COOKIE, issueGuestCapability } from "@/features/fiscal-sponsorship/server/guest-request-security"
 import { guestApplicationPayload } from "@/features/fiscal-sponsorship/lib/guest-submission-schema"
@@ -26,10 +28,48 @@ const request = (body: object = { operation: "read", reference }, origin = "http
 beforeEach(() => {
  vi.resetAllMocks(); vi.stubEnv("FISCAL_GUEST_INTAKE_ENABLED", "true"); vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://coach.test")
  vi.stubEnv("FISCAL_GUEST_RISK_SECRET", secret); vi.stubEnv("HCAPTCHA_SECRET_KEY", "test-secret"); vi.stubEnv("NEXT_PUBLIC_HCAPTCHA_SITE_KEY", "test-key")
+ vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "false")
+ mocks.getUser.mockResolvedValue({ data: { user: null }, error: null })
+ mocks.accountRpc.mockResolvedValue({ data: null, error: null })
  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "consume_fiscal_guest_limit" ? true : name === "read_fiscal_guest_application" ? state : { state: "submitted" }, error: null }))
 })
 afterEach(() => vi.unstubAllEnvs())
 describe("guest applicant follow-up", () => {
+ it("lets a linked verified account read and correct after the guest cookie expires", async () => {
+  vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+  mocks.getUser.mockResolvedValue({ data: { user: { id: reference, email_confirmed_at: "2026-10-15" } }, error: null })
+  mocks.accountRpc.mockResolvedValueOnce({ data: state, error: null }).mockResolvedValueOnce({ data: { state: "submitted" }, error: null })
+  const read = request(); read.headers.delete("cookie")
+  expect((await handleGuestFiscalFollowup(read)).status).toBe(200)
+  const correct = request({ operation: "resubmit", reference, requestId: reference, version: state.version, application: answers }); correct.headers.delete("cookie")
+  expect(await (await handleGuestFiscalFollowup(correct)).json()).toEqual({ state: "submitted" })
+  expect(mocks.accountRpc).toHaveBeenCalledWith("read_linked_fiscal_application", { p_reference: reference })
+  expect(mocks.accountRpc).toHaveBeenLastCalledWith("resubmit_linked_fiscal_application", expect.objectContaining({ p_reference: reference, p_application: guestApplicationPayload(answers) }))
+  expect(mocks.rpc.mock.calls.every(([name]) => name === "consume_fiscal_guest_limit")).toBe(true)
+ })
+ it("requires confirmed server identity and an explicit claim for account return", async () => {
+  vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+  const read = () => { const input = request(); input.headers.delete("cookie"); return input }
+  expect((await handleGuestFiscalFollowup(read())).status).toBe(403)
+  mocks.getUser.mockResolvedValue({ data: { user: { id: reference } }, error: null })
+  expect((await handleGuestFiscalFollowup(read())).status).toBe(403)
+  expect(mocks.accountRpc).not.toHaveBeenCalled()
+  mocks.getUser.mockResolvedValue({ data: { user: { id: reference, email_confirmed_at: "2026-10-15" } }, error: null })
+  expect((await handleGuestFiscalFollowup(read())).status).toBe(403)
+ })
+ it("lists only the authenticated account RPC result and hides anonymous/disabled discovery", async () => {
+  expect(await loadLinkedFiscalApplications()).toEqual({ applications: [] })
+  expect(mocks.getUser).not.toHaveBeenCalled()
+  vi.stubEnv("FISCAL_GUEST_PROFILE_IMPORT_ENABLED", "true")
+  expect(await loadLinkedFiscalApplications()).toEqual({ applications: [] })
+  mocks.getUser.mockResolvedValue({ data: { user: { id: reference, email_confirmed_at: "2026-10-15" } }, error: null })
+  const applications = [{ reference, projectName: "Garden", status: "submitted", submittedAt: "2026-10-15" }]
+  mocks.accountRpc.mockResolvedValue({ data: applications, error: null })
+  expect(await loadLinkedFiscalApplications()).toEqual({ applications })
+  expect(mocks.accountRpc).toHaveBeenLastCalledWith("list_linked_fiscal_applications")
+  mocks.accountRpc.mockResolvedValue({ data: null, error: { message: "private schema details" } })
+  expect(await loadLinkedFiscalApplications()).toEqual({ applications: [], error: expect.not.stringContaining("private schema") })
+ })
  it("returns only validated applicant data with no-store headers", async () => {
   const response = await handleGuestFiscalFollowup(request())
   expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toBe("no-store")
@@ -39,7 +79,7 @@ describe("guest applicant follow-up", () => {
   const parsed = parseGuestFollowup(state)
   const draft = guestCorrectionDraft(parsed.application!)
   expect(draft.fundraisingGoalDollars).toBe("123.45")
-  const input = guestSubmissionInput(draft, "verified-session")
+  const input = guestSubmissionInput(draft)
   expect(input.success).toBe(true)
   if (input.success) expect(input.data.application).toEqual(answers)
  })

@@ -159,9 +159,7 @@ function ScopedDocumentsTab({
           />
         ) : !documentFiles.loading ? (
           <FeatureUpgradeNotice title="Your files, connected">
-            Connect Google Drive to use your own files on Free. Upgrade to
-            create, edit, and store documents in Coach House. Existing documents
-            remain readable.
+            Use Google Drive for free. Upgrade to create and edit documents.
           </FeatureUpgradeNotice>
         ) : null}
 

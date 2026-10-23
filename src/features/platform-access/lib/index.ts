@@ -51,7 +51,18 @@ function pathMatchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
-export function isCoachRestrictedPath(pathname: string) {
+// Pass only app_metadata from a server-verified Auth user; user_metadata is editable.
+export function hasCoachCoachingAccess(
+  appMetadata: Record<string, unknown> | null | undefined
+) {
+  return appMetadata?.coaching_access === true
+}
+
+export function isCoachRestrictedPath(pathname: string, hasCoachingAccess = false) {
+  if (hasCoachingAccess && pathMatchesPrefix(pathname, "/coaching")) {
+    return false
+  }
+
   if (
     COACH_ALLOWED_ROUTE_PREFIXES.some((prefix) =>
       pathMatchesPrefix(pathname, prefix)

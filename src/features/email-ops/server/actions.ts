@@ -2,12 +2,12 @@
 
 import { requireAdmin } from "@/lib/admin/auth"
 import { sendResendEmail } from "@/lib/email/resend"
+import { env } from "@/lib/env"
+import { buildEmailOpsCampaignEmail } from "../lib/campaign-email"
 
 import {
   findEmailOpsCampaign,
   normalizeEmailOpsTestSendInput,
-  renderEmailOpsMarkdownHtml,
-  renderEmailOpsMarkdownText,
 } from "../lib"
 import type { EmailOpsActionResult } from "../types"
 
@@ -37,9 +37,8 @@ export async function sendEmailOpsTestEmailAction(
 
   const result = await sendResendEmail({
     to: input.to,
+    ...buildEmailOpsCampaignEmail(campaign, env.NEXT_PUBLIC_SITE_URL || "https://coachhouse.app"),
     subject: `[Test] ${campaign.subject}`,
-    html: renderEmailOpsMarkdownHtml(campaign.markdown),
-    text: renderEmailOpsMarkdownText(campaign.markdown),
     previewText: campaign.previewText,
     unsubscribe: {
       email: input.to,

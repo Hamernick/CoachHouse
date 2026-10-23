@@ -22,17 +22,12 @@ vi.mock("@/lib/organization/active-org", () => ({
 }))
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 
-function client(data: Record<string, string> | null) {
-  const query = {
-    select: vi.fn(),
-    eq: vi.fn(),
-    maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+function client(data: Record<string, string> | null, membership: Record<string, string> | null = null) {
+  function query(value: Record<string, string> | null) {
+    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: value, error: null }) }
   }
-  query.select.mockReturnValue(query)
-  query.eq.mockReturnValue(query)
-  return {
-    from: vi.fn().mockReturnValue(query),
-  } as unknown as SupabaseClient<Database>
+  return { from: vi.fn().mockImplementation((table: string) => query(table === "organization_memberships" ? membership : data)) } as unknown as SupabaseClient<Database>
 }
 
 describe("scoped organization document access", () => {
@@ -67,6 +62,13 @@ describe("scoped organization document access", () => {
         "target-org"
       )
     ).toEqual({ error: "Forbidden" })
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("allows explicit organization owners and members without service elevation", async () => {
+    const owner = client({ role: "member" })
+    expect(await resolveOrganizationDocumentAccess(owner, "user", "user")).toMatchObject({ role: "owner", supabase: owner })
+    const member = client({ role: "member" }, { role: "staff" })
+    expect(await resolveOrganizationDocumentAccess(member, "user", "target-org")).toMatchObject({ role: "staff", supabase: member })
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("rejects an unassigned coach", async () => {

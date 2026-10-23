@@ -127,8 +127,11 @@ try {
 
   if (process.argv.includes("--guest")) {
     runSql("supabase/tests/guest-fiscal-submission.bootstrap.sql")
+    runSql("supabase/migrations/20260920150000_project_option_settings.sql")
     runSql("supabase/migrations/20260609154000_add_fiscal_sponsorship_applications.sql")
     runSql("supabase/migrations/20261010100000_guest_fiscal_submission.sql")
+    runSql("supabase/migrations/20261015200000_fix_fiscal_project_options.sql")
+    runSql("supabase/migrations/20261015200000_fix_fiscal_project_options.sql") // Retry must be a no-op.
     runSql("supabase/migrations/20261010120000_fiscal_staff_event_notifications.sql")
     runSql("supabase/migrations/20261012160000_guest_fiscal_submission_notifications.sql")
     runSql("supabase/tests/guest-fiscal-submission.assertions.sql")
@@ -159,6 +162,22 @@ try {
     runSql("supabase/tests/guest-fiscal-related-records.bootstrap.sql")
     runSql("supabase/migrations/20261011130000_guest_fiscal_related_records.sql")
     runSql("supabase/tests/guest-fiscal-related-records.assertions.sql")
+    runSql("supabase/migrations/20261015040000_fiscal_linked_applicant_access.sql")
+    runSql("supabase/migrations/20261015041000_index_linked_fiscal_applications.sql")
+    if (!process.argv.includes("--release-mvp")) runSql("supabase/tests/fiscal-linked-applicant.assertions.sql")
+    runSql("supabase/tests/guest-fiscal-browser-return.bootstrap.sql")
+    runSql("supabase/migrations/20261015210000_fiscal_receipt_copy_and_browser_return.sql")
+    runSql("supabase/tests/guest-fiscal-receipt-copy.assertions.sql")
+    runSql("supabase/tests/fiscal-review-task.bootstrap.sql")
+    runSql("supabase/migrations/20261016200000_fiscal_review_tasks_and_cc.sql")
+    runSql("supabase/tests/fiscal-review-task.assertions.sql")
+    if (!process.argv.includes("--release-mvp")) {
+      runSql("supabase/migrations/20261020230000_fiscal_organization_link.sql")
+      runSql("supabase/tests/fiscal-organization-link.assertions.sql")
+      runSql("supabase/tests/fiscal-reviewer-assets.bootstrap.sql")
+      runSql("supabase/migrations/20261020231000_fiscal_reviewer_asset_upload.sql")
+      runSql("supabase/tests/fiscal-reviewer-assets.assertions.sql")
+    }
     if (process.argv.includes("--connected")) {
       const connected = spawnSync("pnpm", ["exec", "vitest", "run", "tests/acceptance/fiscal-sponsorship-connected-storage.test.ts", "--maxWorkers=1", "--config", "vitest.config.ts"], {
         cwd: root, encoding: "utf8", timeout: 90000,
@@ -174,14 +193,24 @@ try {
   runSql("supabase/tests/fiscal-final-schema-rls.assertions.sql")
 
   runSql("supabase/tests/public-fiscal-intake.bootstrap.sql")
+  runSql("supabase/migrations/20260920150000_project_option_settings.sql")
   runSql("supabase/migrations/20260505120000_gate_member_workspace_paid_access.sql")
   runSql("supabase/migrations/20261010090000_public_fiscal_intake.sql")
+  runSql("supabase/migrations/20261015200000_fix_fiscal_project_options.sql")
+  runSql("supabase/migrations/20261015200000_fix_fiscal_project_options.sql")
   runSql("supabase/tests/public-fiscal-intake.assertions.sql")
 
   console.log("[fiscal-intake] Anonymous denial, owner isolation, profile preservation and idempotent start passed.")
   console.log(
     "[fiscal-rls] Final-schema role matrix passed for owner, staff, board, sponsor operator, assigned coach, unassigned coach, and unrelated user."
   )
+  // The required fiscal RLS command also covers the existing guest harness and
+  // real handlers; a default green check must not silently skip applicant grants.
+  const guest = spawnSync(process.execPath, [join(root, "supabase/tests/fiscal-final-schema-rls.test.mjs"), "--guest", "--connected"], {
+    cwd: root, encoding: "utf8", timeout: 120000, env: process.env,
+  })
+  if (guest.status !== 0) throw new Error(`Guest fiscal RLS failed:\n${guest.stdout}\n${guest.stderr}`)
+  console.log(guest.stdout)
   }
 } finally {
   if (started) {

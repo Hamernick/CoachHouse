@@ -2,6 +2,7 @@
 
 import { RoadmapConflictReview } from "./roadmap-editor/components/roadmap-conflict-review"
 import { useWorkspaceWindowHeaderActive } from "@/components/workspace/workspace-window-header-slots"
+import { useEffect, useState } from "react"
 import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
 import { useMemo } from "react"
 import { useAiDocumentBridge } from "@/features/workspace-ai/client"
@@ -14,6 +15,10 @@ import type { RoadmapEditorProps } from "@/components/roadmap/roadmap-editor/typ
 export type { RoadmapEditorLayout } from "@/components/roadmap/roadmap-editor/types"
 
 export function RoadmapEditor(props: RoadmapEditorProps) {
+  const { onDirtyChange } = props
+  const [legacyPending, setLegacyPending] = useState(false)
+  const [collaborationPending, setCollaborationPending] = useState(false)
+  useEffect(() => { onDirtyChange?.(legacyPending || collaborationPending) }, [onDirtyChange, legacyPending, collaborationPending])
   const {
     activeSection,
     activeDraft,
@@ -42,7 +47,8 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     aiApplication,
     saveConflict,
     resolveSaveConflict,
-  } = useRoadmapEditorState(props)
+    handleSavedSection,
+  } = useRoadmapEditorState({ ...props, onDirtyChange: setLegacyPending })
 
   const contextActive=useWorkspaceWindowHeaderActive()
   const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
@@ -78,6 +84,8 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
       status={status}
       canEdit={props.canEdit ?? true}
       onStatusChange={handleStatusChange}
+      onSavedSection={handleSavedSection}
+      onCollaborationPending={setCollaborationPending}
       statusSelectDisabled={statusSelectDisabled}
       isHydrated={isHydrated}
       isCalendarSection={isCalendarSection}

@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+import visualConfig from "../../playwright.visual.config"
+
+// Inspect configuration without running platform-specific visual comparisons.
+vi.mock("../../scripts/visual-baseline-environment", () => ({
+  assertVisualBaselineEnvironment: vi.fn(),
+}))
 
 function readSource(path: string) {
   return readFileSync(join(process.cwd(), path), "utf8")
@@ -14,7 +21,6 @@ const w9Page = readSource(
   "src/app/(dashboard)/fiscal-sponsorship/w9/[projectId]/page.tsx"
 )
 const browserConfig = readSource("playwright.fiscal-auth.config.ts")
-const visualConfig = readSource("playwright.visual.config.ts")
 const browserSpec = readSource(
   "tests/visual/fiscal-sponsorship-authenticated-routes.visual.spec.ts"
 )
@@ -38,8 +44,8 @@ describe("fiscal sponsorship authenticated route proof", () => {
     expect(browserConfig).toContain("FISCAL_AUTH_QA_ALLOW_SEED")
     expect(browserConfig).toContain("PRODUCTION_SUPABASE_HOST")
     expect(browserConfig).toContain("reuseExistingServer: false")
-    expect(visualConfig).toContain(
-      'testIgnore: "fiscal-sponsorship-authenticated-routes.visual.spec.ts"'
+    expect([visualConfig.testIgnore].flat()).toContain(
+      "fiscal-sponsorship-authenticated-routes.visual.spec.ts"
     )
     expect(browserSpec).toContain("require a preview branch")
     expect(nextConfig).toContain('"vswzhuwjtgzrkxknrmxu.supabase.co"')

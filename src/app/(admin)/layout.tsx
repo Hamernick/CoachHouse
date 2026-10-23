@@ -1,10 +1,11 @@
 import type { ReactNode } from "react"
+import { OrganizationWorkspaceSupportPanel, WorkspaceOrganizationScope } from "@/features/organization-workspace-support"
 
 import { redirect } from "next/navigation"
 
 import { AppShell } from "@/components/app-shell"
 import { readAppSidebarDefaultOpen } from "@/components/app-shell/sidebar-state-server"
-import { MemberWorkspaceSidebarHeader } from "@/features/member-workspace"
+import { MemberWorkspaceSidebarHeader } from "@/features/member-workspace/server"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 
 export default async function AdminLayout({
@@ -24,6 +25,7 @@ export default async function AdminLayout({
   }
 
   return (
+    <WorkspaceOrganizationScope organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
     <AppShell
       breadcrumbs={breadcrumbs}
       accountMenuContent={
@@ -33,6 +35,7 @@ export default async function AdminLayout({
       user={state.user}
       isAdmin={state.isAdmin}
       platformAccessLevel={state.platformAccessLevel}
+      hasCoachingAccess={state.hasCoachingAccess}
       isTester={state.isTester}
       showOrgAdmin={state.showOrgAdmin}
       canAccessOrgAdmin={state.canAccessOrgAdmin}
@@ -53,7 +56,9 @@ export default async function AdminLayout({
       defaultSidebarOpen={defaultSidebarOpen}
       context="admin"
     >
-      {children}
+      {!state.memberWorkspaceHeader && state.organizationScope?.presenceOrganizationId ? <OrganizationWorkspaceSupportPanel organizationId={state.organizationScope.presenceOrganizationId} supportAccess={state.organizationScope.supportAccess} /> : null}
+        {children}
     </AppShell>
+    </WorkspaceOrganizationScope>
   )
 }

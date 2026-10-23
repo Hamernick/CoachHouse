@@ -1,49 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { setActiveOrganization } from "./organization-switch"
 
-import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { writeActiveOrganizationCookie } from "@/lib/organization/active-org-cookie"
-import type { MemberWorkspaceSetActiveOrganizationResult } from "../types"
-import { loadAccessibleOrganizations } from "./load-accessible-organizations"
-
-export async function setActiveOrganizationAction(
-  orgId: string
-): Promise<MemberWorkspaceSetActiveOrganizationResult> {
-  const normalizedOrgId = orgId.trim()
-  if (!normalizedOrgId) {
-    return { error: "Choose an organization." }
+export async function setActiveOrganizationAction(orgId: string) {
+  const result = await setActiveOrganization(orgId)
+  if (!("error" in result)) {
+    for (const path of ["/admin", "/my-organization", "/organization", "/organization/documents", "/workspace", "/organizations", "/tasks", "/people"]) revalidatePath(path)
   }
-
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: "Not authenticated." }
-  }
-
-  const accessibleOrganizations = await loadAccessibleOrganizations(
-    supabase,
-    user.id
-  )
-  const organization = accessibleOrganizations.find(
-    (entry) => entry.orgId === normalizedOrgId
-  )
-
-  if (!organization) {
-    return { error: "You do not have access to that organization." }
-  }
-
-  await writeActiveOrganizationCookie(organization.orgId)
-  revalidatePath("/admin")
-  revalidatePath("/my-organization")
-  revalidatePath("/organization")
-  revalidatePath("/organization/documents")
-  revalidatePath("/workspace")
-  revalidatePath("/organizations")
-  revalidatePath("/tasks")
-  revalidatePath("/people")
-  return { ok: true, orgId: organization.orgId }
+  return result
 }

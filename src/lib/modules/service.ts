@@ -32,11 +32,13 @@ export async function getClassModulesForUser({
   classSlug,
   userId,
   forceAdmin = false,
+  includeProgress = true,
   supabase: supabaseOverride,
 }: {
   classSlug: string
   userId: string
   forceAdmin?: boolean
+  includeProgress?: boolean
   supabase?: SupabaseClient<Database, "public">
 }): Promise<ClassModuleResult> {
   const supabase = supabaseOverride ?? await createSupabaseServerClient()
@@ -261,7 +263,7 @@ export async function getClassModulesForUser({
     ? allModules
     : allModules.filter((module) => module.published)
 
-  if (modules.length === 0) {
+  if (modules.length === 0 || !includeProgress) {
     return {
       classId: classRecord.id,
       classTitle: classRecord.title,
@@ -270,7 +272,7 @@ export async function getClassModulesForUser({
       classVideoUrl,
       classResources,
       classPublished,
-      modules: [],
+      modules,
       progressMap: {},
     }
   }

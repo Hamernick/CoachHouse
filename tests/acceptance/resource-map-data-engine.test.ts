@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { createServer } from "node:http"
+import { createServer, type RequestListener } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -66,7 +66,7 @@ function readJsonl(filePath: string) {
 }
 
 async function withFixtureServer(
-  handler: Parameters<typeof createServer>[0],
+  handler: RequestListener,
   callback: (baseUrl: string) => Promise<void>
 ) {
   const server = createServer(handler)
@@ -2594,7 +2594,11 @@ describe("resource map local data engine", () => {
 
     expect(parsed.warnings).toEqual([])
     expect(
-      new Set(parsed.records.map((record) => record.sourceRecordId)).size
+      new Set(
+        parsed.records.map(
+          (record: { sourceRecordId: string }) => record.sourceRecordId
+        )
+      ).size
     ).toBe(2)
     expect(parsed.records[0].sourceRecordId).toMatch(/^[a-f0-9]{32}$/u)
     expect(parsed.records[1].sourceRecordId).toMatch(/^[a-f0-9]{32}$/u)

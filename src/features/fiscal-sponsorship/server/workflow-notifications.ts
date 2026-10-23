@@ -1,5 +1,6 @@
 import "server-only"
 
+import { buildFiscalSignatureEmail } from "../lib/signature-email"
 import { loadGuestNotificationRecipients } from "./guest-notification-recipients"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -66,15 +67,6 @@ function uniqueUserIds(userIds: Array<string | null | undefined>) {
   return [
     ...new Set(userIds.filter((userId): userId is string => Boolean(userId))),
   ]
-}
-
-function escapeEmailHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;")
 }
 
 function resolveFiscalSiteUrl() {
@@ -474,24 +466,12 @@ export async function notifyFiscalAgreementSent({
         })
       : Promise.resolve(),
     sendResendEmail({
-      html: [
-        `<p>${escapeEmailHtml(projectName)} is ready for your signature in Coach House.</p>`,
-        `<p><a href="${escapeEmailHtml(signingUrl)}">Review and sign the agreement</a></p>`,
-        "<p>You must sign in with the Coach House account assigned to this application.</p>",
-      ].join(""),
+      ...buildFiscalSignatureEmail({ siteUrl: resolveFiscalSiteUrl(), projectName, signingUrl }),
       idempotencyKey: `fiscal-agreement-signing-${packetId}`,
-      subject: `${projectName} is ready for signature`,
       tags: [
         { name: "category", value: "fiscal-signature" },
         { name: "packet", value: packetId },
       ],
-      text: [
-        `${projectName} is ready for your signature in Coach House.`,
-        "",
-        `Review and sign: ${signingUrl}`,
-        "",
-        "Sign in with the Coach House account assigned to this application.",
-      ].join("\n"),
       to: applicantSignerEmail,
     }).then((result) => {
       if (!result.ok) {

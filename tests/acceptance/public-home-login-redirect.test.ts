@@ -1,86 +1,41 @@
-import { createElement } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { captureRedirect, createSupabaseServerClientServerMock, redirectMock, resetTestMocks } from "./test-utils"
 
-import {
-  captureRedirect,
-  createSupabaseServerClientServerMock,
-  resetTestMocks,
-} from "./test-utils"
+vi.mock("next/navigation", () => ({ redirect: redirectMock, permanentRedirect: redirectMock }))
 
-vi.mock("@/components/public/home-canvas-preview", () => ({
-  HomeCanvasPreview: (props: { initialSection?: string }) =>
-    createElement(
-      "div",
-      { "data-initial-section": props.initialSection },
-      "Home"
-    ),
-}))
+describe("retired public page destinations", () => {
+  beforeEach(() => resetTestMocks())
 
-vi.mock("@/components/public/pricing-surface", () => ({
-  PricingSurface: () => createElement("div", null, "Pricing"),
-}))
-
-describe("public home-canvas login section", () => {
-  beforeEach(() => {
-    resetTestMocks()
-  })
-
-  it("redirects authenticated visitors from the home login section to workspace", async () => {
-    createSupabaseServerClientServerMock.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user-1" } },
-          error: null,
-        }),
-      },
-    })
-
-    const { default: LandingPage } =
-      await import("@/app/(public)/home-canvas/page")
-    const destination = await captureRedirect(() =>
-      LandingPage({
-        searchParams: Promise.resolve({ section: "login" }),
-      })
-    )
-
-    expect(destination).toBe("/workspace")
-  })
-
-  it("renders the established home canvas by default", async () => {
-    const { default: LandingPage } =
-      await import("@/app/(public)/home-canvas/page")
-    const result = await LandingPage({ searchParams: Promise.resolve({}) })
-
-    expect(result.props.initialSection).toBeUndefined()
-  })
-
-  it("redirects old canvas pricing links while preserving campaign and plan parameters", async () => {
-    const { default: LandingPage } =
-      await import("@/app/(public)/home-canvas/page")
-    const destination = await captureRedirect(() => LandingPage({
-      searchParams: Promise.resolve({ section: "pricing", embed: "1", source: "campaign", plan: "organization" }),
-    }))
-
-    expect(destination).toBe("/pricing?source=campaign&plan=organization")
+  it.each([
+    [{}, "/"],
+    [{ section: "hero" }, "/"],
+    [{ section: "login" }, "/login"],
+    [{ section: "signup", intent: "build" }, "/sign-up?intent=build"],
+    [{ section: "pricing", embed: "1", source: "campaign", plan: "organization" }, "/pricing?source=campaign&plan=organization"],
+    [{ section: "login", redirect: "/join-organization?token=fixture", notice: "email_confirmed_sign_in" }, "/login?redirect=%2Fjoin-organization%3Ftoken%3Dfixture&notice=email_confirmed_sign_in"],
+    [{ section: "login", code: "fixture-code", redirect: "/workspace" }, "/auth/callback?section=login&code=fixture-code&redirect=%2Fworkspace"],
+    [{ token_hash: "fixture-hash", type: "recovery", next: "/update-password" }, "/auth/callback?token_hash=fixture-hash&type=recovery&next=%2Fupdate-password"],
+    [{ section: "pricing", tag: ["one", "two"] }, "/pricing?tag=one&tag=two"],
+  ])("preserves the destination for %j", async (params, expected) => {
+    const { default: Page } = await import("@/app/(public)/home-canvas/page")
+    expect(await captureRedirect(() => Page({ searchParams: Promise.resolve(params) }))).toBe(expected)
     expect(createSupabaseServerClientServerMock).not.toHaveBeenCalled()
   })
 
-  it("still renders the home login section for signed-out visitors", async () => {
-    createSupabaseServerClientServerMock.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-      },
-    })
+  it("preserves tester return paths and notices through canonical login", async () => {
+    const { default: Page } = await import("@/app/(auth)/tester/login/page")
+    expect(await captureRedirect(() => Page({ searchParams: Promise.resolve({ redirect: "/workspace", notice: "email_confirmed_sign_in" }) }))).toBe("/login?redirect=%2Fworkspace&notice=email_confirmed_sign_in")
+  })
 
-    const { default: LandingPage } =
-      await import("@/app/(public)/home-canvas/page")
-    const result = await LandingPage({
-      searchParams: Promise.resolve({ section: "login" }),
-    })
+  it("redirects old homepage prototypes to the current homepage", async () => {
+    const { default: Home } = await import("@/app/(public)/home/page")
+    const { default: Legacy } = await import("@/app/(public)/legacy-home/page")
+    expect(await captureRedirect(async () => Home())).toBe("/")
+    expect(await captureRedirect(async () => Legacy())).toBe("/")
+  })
 
-    expect(result.props.initialSection).toBe("login")
+  it("moves marketplace bookmarks to Documentation with supported filters", async () => {
+    const { default: Page } = await import("@/app/(dashboard)/marketplace/page")
+    expect(await captureRedirect(() => Page({ searchParams: Promise.resolve({ q: "Canva", type: "software", category: "top-picks" }) }))).toBe("/documentation/marketplace?q=Canva&type=software")
   })
 })

@@ -29,7 +29,7 @@ export function FiscalGuestCorrections({ application, onReload }: { application:
     if (busy.current || conflict) return
     if (!pending.current) {
       let parsed: ReturnType<typeof guestSubmissionInput>
-      try { parsed = guestSubmissionInput(draft, "verified-application-session") }
+      try { parsed = guestSubmissionInput(draft) }
       catch { setMessage("An answer is too long. Shorten it before submitting."); return }
       if (!parsed.success) {
         setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [guestFieldName(issue.path), issue.code === "custom" ? issue.message : "Check this answer."])))

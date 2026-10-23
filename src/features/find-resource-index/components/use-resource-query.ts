@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { loadFindResourceQuery } from "../lib/client-cache"
+import { loadResourceMapPages } from "../lib/map-pages"
 import type { FindResourceCatalogResponse } from "../lib/catalog-query"
 
-export function useResourceQuery(url: string | null, paginate = false) {
+export function useResourceQuery(url: string | null, paginate: boolean | "all" = false) {
   const [state, setState] = useState<{ url: string | null; data?: FindResourceCatalogResponse; pending: boolean; error: string | null }>({ url: null, pending: false, error: null })
   const [retryVersion, setRetryVersion] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -21,7 +22,9 @@ export function useResourceQuery(url: string | null, paginate = false) {
     const refresh = async (force: boolean, background = false) => {
       if (!background) setState((previous) => ({ ...previous, pending: true, error: null }))
       try {
-        const data = await loadFindResourceQuery(url, force)
+        const data = paginate === "all"
+          ? await loadResourceMapPages(url, force, () => !disposed && generation.current === version)
+          : await loadFindResourceQuery(url, force)
         if (disposed || generation.current !== version) return
         setState((previous) => {
           // Preserve appended pages and object identity when the catalog is unchanged.
@@ -39,7 +42,7 @@ export function useResourceQuery(url: string | null, paginate = false) {
     const timer = window.setInterval(refreshVisible, 300_000)
     window.addEventListener("online", refreshVisible)
     return () => { disposed = true; window.clearInterval(timer); window.removeEventListener("online", refreshVisible) }
-  }, [url, retryVersion])
+  }, [url, retryVersion, paginate])
 
   const loadMore = useCallback(async () => {
     const current = latest.current

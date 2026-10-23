@@ -14,16 +14,22 @@ export function FeatureUpgradeNotice({ title, children }: {
   const trigger = useRef<HTMLButtonElement>(null)
   return (
     <>
-      <Alert className="border-border/70 bg-muted/30">
-        <GiftIcon aria-hidden />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="flex flex-col items-start gap-3">
-          <p>{children}</p>
-          <Button ref={trigger} type="button" variant="secondary" size="sm" className="rounded-lg shadow-none" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-            <GiftIcon className="size-4" aria-hidden />Upgrade
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <div className="@container/upgrade mx-auto my-4 w-full max-w-3xl shrink-0 px-4">
+        <Alert className="border-border/70 bg-muted/30 px-3 py-3">
+          <GiftIcon aria-hidden />
+          <div className="col-start-2 flex min-w-0 flex-col items-start gap-3 @md/upgrade:flex-row @md/upgrade:items-center @md/upgrade:justify-between">
+            <div className="min-w-0 space-y-1">
+              <AlertTitle className="line-clamp-none leading-5">{title}</AlertTitle>
+              <AlertDescription className="[&_p]:leading-5">
+                <p>{children}</p>
+              </AlertDescription>
+            </div>
+            <Button ref={trigger} type="button" variant="secondary" size="sm" className="h-11 shrink-0 rounded-lg shadow-none @md/upgrade:h-9" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+              <GiftIcon className="size-4" aria-hidden />Upgrade
+            </Button>
+          </div>
+        </Alert>
+      </div>
       <PaywallOverlay open={open} onOpenChange={setOpen} restoreFocus={() => trigger.current?.focus({ preventScroll: true })} />
     </>
   )

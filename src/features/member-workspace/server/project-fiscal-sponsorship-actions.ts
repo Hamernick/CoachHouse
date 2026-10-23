@@ -10,9 +10,10 @@ import { actorCanAccessOrganization, actorCanAccessOrganizations } from "./membe
 import { ensureMemberWorkspaceFeatureAccess } from "./access"
 import { mergeProjectOptions, projectFiscalSponsorshipEnabled } from "../lib/project-fiscal-sponsorship"
 
-export async function enableProjectFiscalSponsorshipAction(projectId: string) {
+export async function enableProjectFiscalSponsorshipAction(projectId: string, scope: "workspace" | "platform" = "workspace") {
+  if (scope !== "workspace" && scope !== "platform") return { error: "Choose a valid project view." }
   if (!z.string().uuid().safeParse(projectId).success) return { error: "Choose a valid project." }
-  const actor = await resolveMemberWorkspaceActorContext()
+  const actor = await resolveMemberWorkspaceActorContext(scope)
   if (!(await isOrdinaryWorkspaceProject({ supabase: actor.supabase, userId: actor.userId, projectId }))) return { error: "Use the fiscal application review for this project." }
   const access = ensureMemberWorkspaceFeatureAccess(actor)
   if (access) return access

@@ -24,6 +24,7 @@ export type AppSidebarProps = {
   }
   isAdmin?: boolean
   platformAccessLevel?: PlatformAccessLevel | null
+  hasCoachingAccess?: boolean
   isTester?: boolean
   showOrgAdmin?: boolean
   canAccessOrgAdmin?: boolean
@@ -48,6 +49,7 @@ export function AppSidebar({
   user,
   isAdmin = false,
   platformAccessLevel = null,
+  hasCoachingAccess = false,
   isTester = false,
   showOrgAdmin = false,
   canAccessOrgAdmin = true,
@@ -81,6 +83,7 @@ export function AppSidebar({
       <SidebarBody
         isAdmin={isAdmin}
         platformAccessLevel={platformAccessLevel}
+        hasCoachingAccess={hasCoachingAccess}
         isTester={isTester}
         classes={classes}
         user={resolvedUser}
@@ -108,6 +111,7 @@ type SidebarBodyProps = {
   accountMenuContent?: ReactNode
   isAdmin: boolean
   platformAccessLevel?: PlatformAccessLevel | null
+  hasCoachingAccess?: boolean
   isTester: boolean
   classes?: SidebarClass[]
   user: {
@@ -139,6 +143,7 @@ export function SidebarBody({
   accountMenuContent,
   isAdmin,
   platformAccessLevel = null,
+  hasCoachingAccess = false,
   isTester,
   classes,
   user,
@@ -209,7 +214,7 @@ export function SidebarBody({
       <SidebarFooter className="mt-auto pb-[var(--shell-rail-padding,0.75rem)]">
         {onboardingLocked ? null : (
           <div className="flex flex-col gap-4 pt-2">
-            {showCoachScheduling && !isCoach ? (
+            {showCoachScheduling && (!isCoach || hasCoachingAccess) ? (
               <>
                 <div className="hidden group-data-[collapsible=icon]:hidden [@media(min-height:56rem)]:block">
                   <CoachSchedulingCard />

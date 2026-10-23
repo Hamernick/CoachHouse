@@ -28,7 +28,16 @@ describe("guest applications stay outside general host workspace tools", () => {
   expect(mocks.rpc).toHaveBeenCalledWith("fiscal_guest_project_reviewer_access", { p_project_id: projectId, p_user_id: userId })
   expect(mocks.from).not.toHaveBeenCalled()
  })
- it.each([{ data: true, error: null }, { data: false, error: null }, { data: null, error: { code: "unavailable" } }, { data: undefined, error: null }])("blocks guest or unknown scope even with broad staff/host permissions: %j", async (scope) => {
+ it("keeps ordinary mutations denied for authorized fiscal reviewers", async () => {
+  mocks.rpc.mockResolvedValue({ data: true, error: null })
+  expect(await loadProjectOptionSettings(projectId)).toHaveProperty("error")
+  expect(await createMemberWorkspaceProjectNoteAction({ projectId, title: "Private", content: "No write" })).toHaveProperty("error")
+  expect(await enableProjectFiscalSponsorshipAction(projectId)).toHaveProperty("error")
+  expect(await updateMemberWorkspaceProjectStatusAction(projectId,"active")).toHaveProperty("error")
+  expect(await canAccessProjectOrg({ projectId, orgId, requireEdit: true, supabase: client, userId })).toBe(false)
+  expect(mocks.from).not.toHaveBeenCalled()
+ })
+ it.each([{ data: false, error: null }, { data: null, error: { code: "unavailable" } }, { data: undefined, error: null }])("blocks denied or unknown scope even with broad staff/host permissions: %j", async (scope) => {
   mocks.rpc.mockResolvedValue(scope)
   expect(await loadProjectOptionSettings(projectId)).toHaveProperty("error")
   expect(await createMemberWorkspaceProjectNoteAction({ projectId, title: "Private", content: "No write" })).toHaveProperty("error")

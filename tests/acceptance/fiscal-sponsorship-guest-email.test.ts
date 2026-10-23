@@ -5,6 +5,14 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc
 vi.mock("@/lib/email/resend", () => ({ sendResendEmail: mocks.send, canSendResendEmail: () => true }))
 import { dispatchFiscalGuestEmails, handleGuestFiscalEmailCron } from "@/features/fiscal-sponsorship/server/guest-email-dispatch"
 const job = { id: "20000000-0000-4000-8000-000000000001", submissionId: "20000000-0000-4000-8000-000000000002", projectId: "20000000-0000-4000-8000-000000000003", kind: "applicant_receipt", recipient: "guest@example.test", leaseToken: "20000000-0000-4000-8000-000000000004" }
+const snapshot = {
+ applicant_first_name: "Sam", applicant_last_name: "River", primary_email: "guest@example.test",
+ mailing_street_address: "1 Main Street", mailing_city: "Chicago", mailing_state: "IL", mailing_postal_code: "60601",
+ legal_entity_type: "individual", project_name: "Garden_project", project_description: "<script>hello</script>",
+ project_duration_type: "ongoing_multi_year", fundraising_goal: { amountCents: 12345, period: "monthly" },
+ prospective_funding_sources: "Neighbors", public_benefit: "Grow food", operates_outside_united_states: false,
+ engages_in_lobbying: false, has_legal_compliance_financial_concerns: false,
+}
 beforeEach(() => {
  vi.resetAllMocks()
  vi.stubEnv("FISCAL_GUEST_EMAILS_ENABLED", "true")
@@ -14,15 +22,56 @@ beforeEach(() => {
  let proof: object | null = null
  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => {
   if (name === "prepare_fiscal_guest_email_proof") proof ??= { nonce: args!.p_nonce, expiresAt: args!.p_expires_at, tokenHash: args!.p_token_hash }
-  return { data: name === "claim_fiscal_guest_emails" ? [job] : name === "prepare_fiscal_guest_email_proof" ? proof : true, error: null }
+  return { data: ["claim_fiscal_guest_emails", "claim_fiscal_guest_emails_v4"].includes(name) ? [job] : name === "prepare_fiscal_guest_email_proof" ? proof : true, error: null }
  })
  mocks.send.mockResolvedValue({ ok: true, id: "provider-id" })
 })
 afterEach(() => vi.unstubAllEnvs())
 describe("guest receipt delivery", () => {
+ it("emails a copy without requiring a link, freezes retries, and escapes HTML", async () => {
+  const original = mocks.rpc.getMockImplementation()!
+  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => name === "claim_fiscal_guest_emails_v4"
+   ? { data: [{ ...job, receiptSnapshot: snapshot }], error: null } : original(name,args))
+  await dispatchFiscalGuestEmails(); await dispatchFiscalGuestEmails()
+  const mail = mocks.send.mock.calls[0][0]
+  expect(mail.idempotencyKey).toBe(`fiscal-guest-receipt-v3/${job.id}`)
+  expect(mail.text).toContain("COPY OF YOUR SUBMITTED ANSWERS")
+  expect(mail.text).toContain("No account or email confirmation is needed to submit")
+  expect(mail.text).toContain("Garden_project")
+  expect(mail.text).toContain("$123.45 (monthly)")
+  expect(mail.text).toContain("Optional:")
+  expect(mail.html).toContain("&lt;script&gt;")
+  expect(mail.html).not.toContain("<script>")
+  expect(mail.text).not.toContain("/projects/")
+  expect(mocks.send.mock.calls[1][0]).toMatchObject(mail)
+ })
+ it.each([
+  { ...snapshot, review_notes: "Internal reviewer note" },
+  { ...snapshot, primary_email: "another@example.test" },
+ ])("refuses private/recipient-mismatched receipt data", async (receiptSnapshot) => {
+  const original = mocks.rpc.getMockImplementation()!
+  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => name === "claim_fiscal_guest_emails_v4"
+   ? { data: [{ ...job, receiptSnapshot }], error: null } : original(name,args))
+  expect(await dispatchFiscalGuestEmails()).toEqual({ sent: 0, failed: 1 })
+  expect(mocks.send).not.toHaveBeenCalled()
+ })
+ it("uses the legacy worker only when the new migration is absent", async () => {
+  const original = mocks.rpc.getMockImplementation()!
+  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => ["claim_fiscal_guest_emails_v4", "claim_fiscal_guest_emails_v3"].includes(name)
+   ? { data: null, error: { code: "PGRST202" } } : original(name,args))
+  expect(await dispatchFiscalGuestEmails()).toEqual({ sent: 1, failed: 0 })
+  expect(mocks.rpc).toHaveBeenCalledWith("claim_fiscal_guest_emails")
+  expect(mocks.send.mock.calls[0][0].idempotencyKey).toBe(`fiscal-guest-v2/${job.id}`)
+ })
+ it("does not retry an uncertain queue claim through a different worker", async () => {
+  mocks.rpc.mockResolvedValue({ data: null, error: { code: "08006" } })
+  await expect(dispatchFiscalGuestEmails()).rejects.toThrow("queue unavailable")
+  expect(mocks.rpc).not.toHaveBeenCalledWith("claim_fiscal_guest_emails")
+  expect(mocks.send).not.toHaveBeenCalled()
+ })
  it("sends recovery links with stable copy and no internal project information", async () => {
   const original = mocks.rpc.getMockImplementation()!
-  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => name === "claim_fiscal_guest_emails" ? { data: [{ ...job, kind: "applicant_recovery" }], error: null } : original(name, args))
+  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => ["claim_fiscal_guest_emails", "claim_fiscal_guest_emails_v4"].includes(name) ? { data: [{ ...job, kind: "applicant_recovery" }], error: null } : original(name, args))
   await dispatchFiscalGuestEmails(); await dispatchFiscalGuestEmails()
   const first = mocks.send.mock.calls[0][0], second = mocks.send.mock.calls[1][0]
   expect(second).toMatchObject(first)
@@ -54,7 +103,7 @@ describe("guest receipt delivery", () => {
   expect(mocks.rpc).toHaveBeenCalledWith("finish_fiscal_guest_email", { p_id: job.id, p_lease_token: job.leaseToken, p_success: false, p_message_id: null })
  })
  it("does not report success after a stale or failed acknowledgement", async () => {
-  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_guest_emails" ? [{ ...job, kind: "reviewer_notification" }] : false, error: null }))
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: ["claim_fiscal_guest_emails", "claim_fiscal_guest_emails_v4"].includes(name) ? [{ ...job, kind: "reviewer_notification" }] : false, error: null }))
   await expect(dispatchFiscalGuestEmails()).rejects.toThrow("could not be recorded")
  })
  it("requires explicit delivery activation and authenticated cron", async () => {
@@ -67,7 +116,7 @@ describe("guest receipt delivery", () => {
   let proof: object | null = null
   mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => {
    if (name === "prepare_fiscal_guest_email_proof") proof ??= { nonce: args!.p_nonce, expiresAt: args!.p_expires_at, tokenHash: args!.p_token_hash }
-   return { data: name === "claim_fiscal_guest_emails" ? [{ ...job, kind }] : name === "prepare_fiscal_guest_email_proof" ? proof : true, error: null }
+   return { data: ["claim_fiscal_guest_emails", "claim_fiscal_guest_emails_v4"].includes(name) ? [{ ...job, kind }] : name === "prepare_fiscal_guest_email_proof" ? proof : true, error: null }
   })
   await dispatchFiscalGuestEmails(); await dispatchFiscalGuestEmails()
   const mail = mocks.send.mock.calls[0][0]
@@ -78,8 +127,44 @@ describe("guest receipt delivery", () => {
   expect(mocks.send.mock.calls[1][0]).toMatchObject({ text: mail.text, html: mail.html, idempotencyKey: mail.idempotencyKey })
  })
  it("routes reviewer mail to its private project, never the applicant's public profile", async () => {
-  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_guest_emails" ? [{ ...job, kind: "reviewer_notification", recipient: "joel@coachhousesolutions.org" }] : true, error: null }))
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: ["claim_fiscal_guest_emails", "claim_fiscal_guest_emails_v4"].includes(name) ? [{ ...job, kind: "reviewer_notification", recipient: "joel@coachhousesolutions.org" }] : true, error: null }))
   await dispatchFiscalGuestEmails()
   expect(mocks.send.mock.calls[0][0].text).toContain(`https://coach.test/projects/${job.projectId}`)
+ })
+})
+
+describe("staff application CC", () => {
+ it.each(["reviewer_notification", "reviewer_update"])("copies Caleb on %s with stable versioned retry payload", async (kind) => {
+  const original = mocks.rpc.getMockImplementation()!
+  mocks.rpc.mockImplementation(async (name: string, args?: Record<string, string>) => name === "claim_fiscal_guest_emails_v4"
+   ? { data: [{ ...job, kind, recipient: "joel@coachhousesolutions.org", ccRecipients: ["caleb@bandto.com"] }], error: null } : original(name,args))
+  await dispatchFiscalGuestEmails(); await dispatchFiscalGuestEmails()
+  expect(mocks.send.mock.calls[0][0]).toMatchObject({ to: "joel@coachhousesolutions.org", cc: ["caleb@bandto.com"] })
+  expect(mocks.send.mock.calls[0][0].idempotencyKey).toContain(kind === "reviewer_update" ? "reviewer-update-v2" : "reviewer-v4")
+  expect(JSON.stringify(mocks.send.mock.calls[1][0])).toEqual(JSON.stringify(mocks.send.mock.calls[0][0]))
+  expect(mocks.send.mock.calls[0][0].text).not.toContain("#verify=")
+ })
+ it.each(["reviewer_notification", "reviewer_update"])("sends the immutable application digest for %s", async (kind) => {
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_guest_emails_v4" ? [{ ...job, kind, recipient: "joel@coachhousesolutions.org", ccRecipients: ["caleb@bandto.com"], reviewSnapshot: { ...snapshot, applicant_full_name: "Sam River", received_at: "2026-10-16T20:00:00Z" } }] : true, error: null }))
+  await dispatchFiscalGuestEmails(); await dispatchFiscalGuestEmails()
+  const mail = mocks.send.mock.calls[0][0]
+  expect(mail.subject).toContain("Garden_project")
+  expect(mail.text).toContain("$123.45 / month")
+  expect(mail.html).toContain("Review application</a>")
+  expect(mail.html).not.toContain("<script>")
+  expect(mail.idempotencyKey).toContain(kind === "reviewer_update" ? "digest-update-v1" : "digest-v1")
+  expect(JSON.stringify(mocks.send.mock.calls[1][0])).toEqual(JSON.stringify(mail))
+  expect(mocks.rpc.mock.calls.some(([name]) => name === "prepare_fiscal_guest_email_proof")).toBe(false)
+ })
+ it("refuses to CC an applicant access link", async () => {
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "claim_fiscal_guest_emails_v4" ? [{ ...job, ccRecipients: ["caleb@bandto.com"] }] : true, error: null }))
+  expect(await dispatchFiscalGuestEmails()).toEqual({ sent: 0, failed: 1 })
+  expect(mocks.send).not.toHaveBeenCalled()
+ })
+ it("retains the v3 worker during staged deployment without changing legacy payloads", async () => {
+  mocks.rpc.mockImplementation(async (name: string) => name === "claim_fiscal_guest_emails_v4" ? { data: null, error: { code: "PGRST202" } } : { data: name === "claim_fiscal_guest_emails_v3" ? [{ ...job, kind: "reviewer_notification" }] : true, error: null })
+  await dispatchFiscalGuestEmails()
+  expect(mocks.send.mock.calls[0][0]).not.toHaveProperty("cc")
+  expect(mocks.send.mock.calls[0][0].idempotencyKey).toBe(`fiscal-guest-v2/${job.id}`)
  })
 })

@@ -5,7 +5,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc
 import { handleGuestFiscalRecovery } from "@/features/fiscal-sponsorship/server/guest-recovery"
 import { filterPrivateTelemetry } from "@/lib/telemetry-privacy"
 const reference = "20000000-0000-4000-8000-000000000001"
-const body = { reference, requestId: "20000000-0000-4000-8000-000000000002", email: "Guest@example.test", captchaToken: "proof" }
+const body = { reference, requestId: "20000000-0000-4000-8000-000000000002", email: "Guest@example.test" }
 const request = (value: unknown = body, origin = "https://coach.test") => new Request("https://coach.test/api/public/fiscal-sponsorship/recover", {
   method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(value),
 })
@@ -19,7 +19,7 @@ beforeEach(() => {
   mocks.fetch.mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }))
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "consume_fiscal_guest_limit" ? true : null, error: null }))
 })
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe("private application recovery", () => {
   it("requires no existing account or cookie and only queues a scoped request", async () => {
@@ -46,13 +46,22 @@ describe("private application recovery", () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
     expect(mocks.fetch).not.toHaveBeenCalled()
   })
-  it("checks IP limits before captcha and rejects failed verification", async () => {
+  it("checks IP limits before requesting a recovery link", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: false, error: null })
     expect((await handleGuestFiscalRecovery(request())).status).toBe(429)
-    expect(mocks.fetch).not.toHaveBeenCalled()
-    mocks.fetch.mockResolvedValue(new Response('{"success":false}'))
-    expect((await handleGuestFiscalRecovery(request())).status).toBe(400)
     expect(mocks.rpc.mock.calls.some(([name]) => name === "request_fiscal_guest_recovery")).toBe(false)
+    expect(mocks.fetch).not.toHaveBeenCalled()
+  })
+  it("requests recovery without CAPTCHA keys, token or provider calls", async () => {
+    vi.stubEnv("HCAPTCHA_SECRET_KEY", ""); vi.stubEnv("NEXT_PUBLIC_HCAPTCHA_SITE_KEY", "")
+    expect((await handleGuestFiscalRecovery(request())).status).toBe(202)
+    expect(mocks.rpc).toHaveBeenCalledWith("request_fiscal_guest_recovery", expect.objectContaining({ p_reference: reference }))
+    expect(mocks.fetch).not.toHaveBeenCalled()
+  })
+  it("accepts ignored legacy CAPTCHA fields without forwarding them to recovery", async () => {
+    expect((await handleGuestFiscalRecovery(request({ ...body, captchaToken: "old-form-token" }))).status).toBe(202)
+    expect(mocks.rpc).toHaveBeenCalledWith("request_fiscal_guest_recovery", { p_reference: reference, p_email: "guest@example.test", p_request_id: body.requestId })
+    expect(mocks.fetch).not.toHaveBeenCalled()
   })
   it("fails closed on limit or queue failures without exposing provider errors", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: "private detail" } })

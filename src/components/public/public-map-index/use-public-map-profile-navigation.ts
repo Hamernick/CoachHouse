@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { buildPublicOrganizationProfileHref, FIND_PATH } from "@/lib/find/routes"
 import { publicResourceProfileHref, publicResourceProfileItemId } from "@/lib/public-map/resource-profile-href"
 import { usePublicMapIndexNavigationHandlers, usePublicMapListItemSelection } from "./public-map-index-selection"
@@ -21,6 +22,7 @@ export function resolveEmbeddedProfileId(pathname: string, organizations: Readon
 }
 
 export function usePublicMapNavigation(options: Options) {
+  const router = useRouter()
   const { embedded, beforeProfileNavigation, organizationById, setSelectedOrgId, setSelectedListItemId, setSidebarMode } = options
   const selectProfile = useCallback((id: string | null) => {
     setSelectedOrgId(id && organizationById.has(id) ? id : null)
@@ -50,10 +52,16 @@ export function usePublicMapNavigation(options: Options) {
   const selection = usePublicMapListItemSelection({ ...options, navigateToProfile, setSameLocationSelection: options.onSameLocationSelectionChange })
   const resetSelection = navigation.handleBackToSearch
   const handleBackToSearch = useCallback(() => {
+    if (embedded && window.location.pathname !== FIND_PATH && !window.history.state?.homeProfileNavigation) {
+      // A directly loaded profile owns a framed server layout. Navigate to the
+      // resources route so its unframed layout replaces that shell as well.
+      router.replace(`${FIND_PATH}${window.location.search}`)
+      return
+    }
     resetSelection()
-    if (!embedded) return
-    if (window.history.state?.homeProfileNavigation) window.history.back()
-    else window.history.replaceState({ homeProfileNavigation: false }, "", `${FIND_PATH}${window.location.search}`)
-  }, [embedded, resetSelection])
+    // Unpublished or synthetic directory items open locally without a profile URL.
+    if (!embedded || window.location.pathname === FIND_PATH) return
+    window.history.back()
+  }, [embedded, resetSelection, router])
   return { ...navigation, ...selection, handleBackToSearch }
 }

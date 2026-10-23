@@ -157,14 +157,18 @@ export function usePublicMapListItemSelection({
       )
       if (selectableIds.length === 0) return
 
-      // Keep the other places available when returning from the detail drawer.
+      // A shared pin is a chooser, never an implicit selection of its first item.
       setSameLocationSelection({ ...group, organizationIds: selectableIds })
-      handleSelectMapMarker(selectableIds[0], true)
+      setSelectedOrgId(null)
+      setSelectedListItemId(null)
+      setSidebarMode("search")
     },
     [
-      handleSelectMapMarker,
       selectableMapItemById,
       setSameLocationSelection,
+      setSelectedOrgId,
+      setSelectedListItemId,
+      setSidebarMode,
     ]
   )
 

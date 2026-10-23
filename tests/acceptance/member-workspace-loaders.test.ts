@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { loadFiscalReviewTasksMock } = vi.hoisted(() => ({ loadFiscalReviewTasksMock: vi.fn() }))
+vi.mock("@/features/member-workspace/server/fiscal-review-tasks", () => ({ loadFiscalReviewTasks: loadFiscalReviewTasksMock }))
+
 const { resolveMemberWorkspaceActorContextMock } = vi.hoisted(() => ({
   resolveMemberWorkspaceActorContextMock: vi.fn(),
 }))
@@ -21,10 +24,6 @@ const { loadMemberWorkspacePersonOptionsForOrganizationsMock } = vi.hoisted(
     loadMemberWorkspacePersonOptionsForOrganizationsMock: vi.fn(),
   })
 )
-
-const { ensureStarterTasksForOrgMock } = vi.hoisted(() => ({
-  ensureStarterTasksForOrgMock: vi.fn(),
-}))
 
 const { loadFiscalSponsorshipProjectListStatusesMock } = vi.hoisted(() => ({
   loadFiscalSponsorshipProjectListStatusesMock: vi.fn(),
@@ -131,10 +130,6 @@ vi.mock("@/features/member-workspace/server/person-options", () => ({
     loadMemberWorkspacePersonOptionsForOrganizationsMock,
 }))
 
-vi.mock("@/features/member-workspace/server/task-persistence", () => ({
-  ensureStarterTasksForOrg: ensureStarterTasksForOrgMock,
-}))
-
 vi.mock(
   "@/features/member-workspace/server/fiscal-sponsorship-project-list-status",
   () => ({
@@ -145,6 +140,7 @@ vi.mock(
 
 import { loadMemberWorkspaceProjectsPage } from "@/features/member-workspace/server/project-loaders"
 import { loadMemberWorkspaceTasksPage } from "@/features/member-workspace/server/task-loaders"
+import { loadMemberWorkspaceProjectDetailPage } from "@/features/member-workspace/server/project-detail-loader"
 
 const missingProjectsTableError = {
   code: "PGRST205",
@@ -158,19 +154,6 @@ const missingTasksTableError = {
 }
 
 function createProjectsMissingTableSupabase() {
-  let projectCalls = 0
-
-  const projectCountQuery = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn(() =>
-      Promise.resolve({
-        count: null,
-        error: missingProjectsTableError,
-      })
-    ),
-  }
-
   const projectListQuery = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -187,8 +170,7 @@ function createProjectsMissingTableSupabase() {
   return {
     from: vi.fn((table: string) => {
       if (table === "organization_projects") {
-        projectCalls += 1
-        return projectCalls === 1 ? projectCountQuery : projectListQuery
+        return projectListQuery
       }
 
       throw new Error(`Unexpected table query: ${table}`)
@@ -258,16 +240,61 @@ function createTasksMissingTableSupabase() {
 
 describe("member workspace loaders", () => {
   beforeEach(() => {
+    loadFiscalReviewTasksMock.mockReset().mockResolvedValue([])
     resolveMemberWorkspaceActorContextMock.mockReset()
     loadAdminOrganizationSummariesMock.mockReset()
     ensureCanonicalAdminProjectsMock.mockReset()
     loadAccessibleOrganizationsMock.mockReset()
     loadMemberWorkspacePersonOptionsForOrganizationsMock.mockReset()
     loadMemberWorkspacePersonOptionsForOrganizationsMock.mockResolvedValue([])
-    ensureStarterTasksForOrgMock.mockReset()
-    ensureStarterTasksForOrgMock.mockResolvedValue(undefined)
     loadFiscalSponsorshipProjectListStatusesMock.mockReset()
     loadFiscalSponsorshipProjectListStatusesMock.mockResolvedValue(new Map())
+  })
+
+  it("keeps new organization project, task, and missing-detail loads read-only", async () => {
+    const write = vi.fn(() => {
+      throw new Error("Page loads must not write starter data")
+    })
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      returns: vi.fn().mockResolvedValue({ data: [], error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      insert: write,
+      upsert: write,
+      update: write,
+      delete: write,
+    }
+    const supabase = { from: vi.fn((_table: string) => query), rpc: write }
+    resolveMemberWorkspaceActorContextMock.mockResolvedValue({
+      supabase,
+      userId: "user-1",
+      activeOrg: { orgId: "org-1", role: "owner" },
+      isAdmin: false,
+      canEdit: true,
+    })
+    loadAccessibleOrganizationsMock.mockResolvedValue([
+      { orgId: "org-1", name: "Org One", role: "owner", publicSlug: "org-one" },
+    ])
+
+    // Repeat the visits to catch delayed/retry initialization after an empty load.
+    for (let visit = 0; visit < 2; visit += 1) {
+      await expect(loadMemberWorkspaceProjectsPage()).resolves.toMatchObject({
+        projects: [], storageMode: "empty", starterProjectCount: 0,
+      })
+      await expect(loadMemberWorkspaceTasksPage()).resolves.toMatchObject({
+        taskGroups: [], projectOptions: [], storageMode: "empty", starterTaskCount: 0,
+      })
+      await expect(loadMemberWorkspaceProjectDetailPage("missing-project"))
+        .resolves.toEqual({ state: "not-found" })
+    }
+
+    expect(write).not.toHaveBeenCalled()
+    expect(supabase.from).toHaveBeenCalledTimes(6)
+    expect(supabase.from.mock.calls.every(([table]) => table === "organization_projects"))
+      .toBe(true)
   })
 
   it("returns an empty projects state when member workspace project tables are missing", async () => {
@@ -581,6 +608,22 @@ describe("member workspace loaders", () => {
     expect(result.taskGroups.flatMap((group) => group.tasks).map((item) => item.id)).toEqual(["assigned-task"])
     expect(result.taskGroups[0].tasks[0]).toMatchObject({ canUpdate: false, assignee: { id: "coach-1" } })
     expect(result.projectOptions).toEqual([])
+  })
+
+  it("includes assigned fiscal tasks in the platform task page without loading host profiles", async () => {
+    const user = { id: "coach-1", name: "Karissa" }
+    const task = { id: "fiscal-task", projectId: "fiscal-project", projectName: "Garden", projectStatus: "active", projectPriority: "medium", projectTags: [], projectMembers: ["Joel", "Caleb", "Karissa"], projectStartDate: "", projectEndDate: "", title: "Review fiscal sponsorship application", taskType: "task", status: "todo", startDate: "", endDate: "", assignee: user, canUpdate: false }
+    const query = () => ({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), neq: vi.fn().mockReturnThis(), or: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), returns: vi.fn().mockResolvedValue({ data: [], error: null }) })
+    const supabase = { from: vi.fn(() => query()) }
+    resolveMemberWorkspaceActorContextMock.mockResolvedValue({ supabase, userId: user.id, currentUser: user, isAdmin: false, canAccessOrganizations: true, canEdit: false, organizationCoachScope: { mode: "assigned", organizationIds: new Set() } })
+    loadFiscalReviewTasksMock.mockResolvedValue([task])
+    const result = await loadMemberWorkspaceTasksPage("platform")
+    expect(resolveMemberWorkspaceActorContextMock).toHaveBeenCalledWith("platform")
+    expect(loadFiscalReviewTasksMock).toHaveBeenCalledWith(user)
+    expect(result.taskGroups.flatMap((group) => group.tasks)).toMatchObject([task])
+    expect(result).toMatchObject({ canManageTasks: true, hasAnyOrgTasks: true, storageMode: "custom", projectOptions: [] })
+    expect(supabase.from).not.toHaveBeenCalledWith("organizations")
+    expect(supabase.from).not.toHaveBeenCalledWith("profiles")
   })
 
   it("returns an empty tasks state when member workspace task tables are missing", async () => {

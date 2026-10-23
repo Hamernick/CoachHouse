@@ -6,6 +6,7 @@ import HeartIcon from "lucide-react/dist/esm/icons/heart"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 import WifiIcon from "lucide-react/dist/esm/icons/wifi"
 
+import { PublicProfileEin } from "@/components/public/public-profile-ein"
 import { ShareButton } from "@/components/shared/share-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -274,6 +275,7 @@ export function OrganizationDetailIdentitySection({
             </span>
           </div>
         ) : null}
+        <PublicProfileEin value={organization.ein} formationStatus={organization.formationStatus} />
         <OrganizationDetailIdentityLinks organization={organization} />
       </div>
     </div>

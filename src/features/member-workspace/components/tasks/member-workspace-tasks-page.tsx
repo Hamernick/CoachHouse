@@ -1,18 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh"
-import { useRouter } from "next/navigation"
-import { matchesPersonalTaskRelation, type PersonalTaskRelation } from "@/lib/task-tracker"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { useRouter, useSearchParams } from "next/navigation"
+import { TaskRelationshipSelect, TaskPresentationControls } from "./task-presentation-controls"
+import { selectPersonalTaskGroups } from "../../lib/task-presentation"
 import { format } from "date-fns"
 import { Plus } from "@phosphor-icons/react/dist/ssr"
-import {
-  DndContext,
-  type DragEndEvent,
-  closestCenter,
-} from "@dnd-kit/core"
-import { arrayMove } from "@dnd-kit/sortable"
 
 import {
   Button,
@@ -27,20 +21,21 @@ import {
   type ProjectTask,
   type ProjectTaskGroup,
   type TaskQuickCreateSubmitValue,
-  ProjectTaskListView,
   computeTaskFilterCounts,
   filterTasksByChips,
 } from "@/features/platform-admin-dashboard"
+import { TaskProjectList } from "./task-project-list"
+import { TaskWeekBoard } from "./task-week-board"
+import { useTaskCalendarDay } from "./use-task-calendar-day"
+import { useTaskMutations, type TaskMutationActions } from "./use-task-mutations"
+import { readTaskViewState, writeTaskViewState, type TaskViewState } from "../../lib/task-view-state"
 import { toProjectGroup } from "../../lib/task-view-model"
-import { withSaveFeedback } from "@/lib/with-save-feedback"
 import { upsertPersonalTask } from "../../lib/saved-task"
 import type {
   MemberWorkspaceCreateTaskInput,
   MemberWorkspacePersonOption,
   MemberWorkspaceStorageMode,
   MemberWorkspaceTaskGroup,
-  MemberWorkspaceTaskItem,
-  MemberWorkspaceTaskStatus,
 } from "../../types"
 import { MemberWorkspaceClearStarterDataButton } from "../shared/member-workspace-clear-starter-data-button"
 
@@ -49,30 +44,6 @@ type MemberWorkspaceTaskFilterCounts = {
   priority?: Record<string, number>
   tags?: Record<string, number>
   members?: Record<string, number>
-}
-
-function updateTaskGroups(
-  groups: MemberWorkspaceTaskGroup[],
-  taskId: string,
-  updater: (task: MemberWorkspaceTaskItem) => MemberWorkspaceTaskItem,
-) {
-  return groups.map((group) => ({
-    ...group,
-    tasks: group.tasks.map((task) => (task.id === taskId ? updater(task) : task)),
-  }))
-}
-
-function TaskRelationshipSelect({ value, onChange }: { value: PersonalTaskRelation; onChange: (value: PersonalTaskRelation) => void }) {
-  return (
-          <Select value={value} onValueChange={(value) => onChange(value as PersonalTaskRelation)}>
-            <SelectTrigger className="h-8 w-44" aria-label="Task relationship"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="owned">Assigned to me</SelectItem>
-              <SelectItem value="proposed">Proposed to me</SelectItem>
-              <SelectItem value="collaborating">Collaborating</SelectItem>
-            </SelectContent>
-          </Select>
-  )
 }
 
 export function MemberWorkspaceTasksPage({
@@ -87,11 +58,12 @@ export function MemberWorkspaceTasksPage({
   updateTaskStatusAction,
   createTaskAction,
   updateTaskAction,
-  updateTaskOrderAction,
+  scheduleTaskAction,
+  moveTaskAction,
   assigneeOptions,
   projectOptions,
   scope,
-}: {
+}: TaskMutationActions & {
   viewerUserId: string
   initialTaskGroups: MemberWorkspaceTaskGroup[]
   storageMode: MemberWorkspaceStorageMode
@@ -100,10 +72,6 @@ export function MemberWorkspaceTasksPage({
   canResetStarterData: boolean
   canManageTasks: boolean
   clearStarterDataAction?: () => Promise<{ ok: true } | { error: string }>
-  updateTaskStatusAction?: (
-    taskId: string,
-    nextStatus: MemberWorkspaceTaskStatus,
-  ) => Promise<{ ok: true; taskId: string; status: MemberWorkspaceTaskStatus } | { error: string }>
   createTaskAction?: (
     input: MemberWorkspaceCreateTaskInput,
   ) => Promise<{ ok: true; taskId: string } | { error: string }>
@@ -111,26 +79,40 @@ export function MemberWorkspaceTasksPage({
     taskId: string,
     input: MemberWorkspaceCreateTaskInput,
   ) => Promise<{ ok: true; taskId: string } | { error: string }>
-  updateTaskOrderAction?: (
-    projectId: string,
-    orderedTaskIds: string[],
-  ) => Promise<{ ok: true; projectId: string } | { error: string }>
   assigneeOptions: MemberWorkspacePersonOption[]
   projectOptions: Array<{ id: string; label: string }>
   scope: "organization" | "platform-admin"
 }) {
   const router = useRouter()
-  const [groups, setGroups] = useState(initialTaskGroups)
-  useEffect(() => setGroups(initialTaskGroups), [initialTaskGroups])
-  const [filters, setFilters] = useState<FilterChip[]>([])
-  const [relation, setRelation] = useState<PersonalTaskRelation>("owned")
+  const searchParams = useSearchParams()
+  const today = useTaskCalendarDay()
+  const [state, setState] = useState(() => readTaskViewState(new URLSearchParams(searchParams.toString()), today))
+  useEffect(() => {
+    // Next commits native-history search params in a transition. An older URL
+    // snapshot must not overwrite a more recent checkbox or display change.
+    if (searchParams.toString() !== new URLSearchParams(window.location.search).toString()) return
+    setState(readTaskViewState(new URLSearchParams(searchParams.toString()), today))
+  }, [searchParams, today])
+  const { filters, relation } = state
+  const changeViewState = (patch: Partial<TaskViewState>) => {
+    const current = new URLSearchParams(window.location.search)
+    const nextState = { ...readTaskViewState(current, today), ...patch }
+    setState(nextState)
+    const next = writeTaskViewState(current, nextState)
+    window.history.pushState(null, "", `${window.location.pathname}?${next.toString()}`)
+  }
+  const setFilters = (next: FilterChip[]) => changeViewState({ filters: next })
+  const { groups, setGroups, pendingTaskIds, capabilities, toggleTask, scheduleTask, moveTask } = useTaskMutations({
+    initialTaskGroups, canManageTasks, canEditTasks: Boolean(updateTaskAction), actions: { updateTaskStatusAction, scheduleTaskAction, moveTaskAction }, refresh: router.refresh,
+  })
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false)
   const [createContext, setCreateContext] = useState<CreateTaskContext | undefined>(undefined)
   const [editingTask, setEditingTask] = useState<ProjectTask | undefined>(undefined)
-  const [mutationPending, startMutationTransition] = useTransition()
+  const mutationPending = pendingTaskIds.size > 0
   useVisibleRefresh(router.refresh, !isTaskCreateOpen && !mutationPending)
 
-  const adaptedGroups = useMemo(() => groups.map(group => ({ ...group, tasks: group.tasks.filter(task => matchesPersonalTaskRelation(task, viewerUserId, relation)) })).filter(group => group.tasks.length).map(toProjectGroup), [groups, viewerUserId, relation])
+  const selectedGroups = useMemo(() => selectPersonalTaskGroups(groups, viewerUserId, state), [groups, viewerUserId, state])
+  const adaptedGroups = useMemo(() => selectedGroups.map(toProjectGroup), [selectedGroups])
   const allTasks = useMemo(
     () => adaptedGroups.flatMap((group) => group.tasks),
     [adaptedGroups],
@@ -223,13 +205,13 @@ export function MemberWorkspaceTasksPage({
 
   const openCreateTask = (context?: CreateTaskContext) => {
     setEditingTask(undefined)
-    setCreateContext(context)
+    setCreateContext({ ...context, projectId: context?.projectId ?? (projectOptions.length === 1 ? projectOptions[0].id : undefined) })
     setIsTaskCreateOpen(true)
   }
 
   const openEditTask = (task: ProjectTask) => {
     const sourceTask = findTaskItem(task.id)
-    if (!sourceTask?.canUpdate || !updateTaskAction || !canManageTasks) {
+    if (!sourceTask || !capabilities(sourceTask).details || pendingTaskIds.has(task.id) || !updateTaskAction) {
       return
     }
 
@@ -272,88 +254,11 @@ export function MemberWorkspaceTasksPage({
     return result
   }
 
-  const handleToggleTask = (taskId: string) => {
-    if (mutationPending || !canManageTasks || !updateTaskStatusAction) {
-      return
-    }
-
-    const currentTask = groups
-      .flatMap((group) => group.tasks)
-      .find((task) => task.id === taskId)
-    if (!currentTask) return
-
-    const nextStatus: MemberWorkspaceTaskStatus =
-      currentTask.status === "done" ? "todo" : "done"
-    const previousGroups = groups
-
-    setGroups((current) =>
-      updateTaskGroups(current, taskId, (task) => ({
-        ...task,
-        status: nextStatus,
-      })),
-    )
-    startMutationTransition(async () => {
-      const result = await withSaveFeedback(() => updateTaskStatusAction(taskId, nextStatus), { pending: "Saving task…", success: nextStatus === "done" ? "Task completed" : "Task reopened" })
-      if ("error" in result) {
-        setGroups(previousGroups)
-        return
-      }
-      router.refresh()
-    })
-  }
-
-  const canReorderTasks =
-    !mutationPending && canManageTasks && Boolean(updateTaskOrderAction) && filters.length === 0
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (!canReorderTasks || !updateTaskOrderAction) {
-      return
-    }
-
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const activeId = String(active.id)
-    const overId = String(over.id)
-
-    const activeGroupIndex = groups.findIndex((group) =>
-      group.tasks.some((task) => task.id === activeId),
-    )
-    const overGroupIndex = groups.findIndex((group) =>
-      group.tasks.some((task) => task.id === overId),
-    )
-
-    if (activeGroupIndex === -1 || overGroupIndex === -1 || activeGroupIndex !== overGroupIndex) {
-      return
-    }
-
-    const group = groups[activeGroupIndex]
-    const oldIndex = group.tasks.findIndex((task) => task.id === activeId)
-    const newIndex = group.tasks.findIndex((task) => task.id === overId)
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
-
-    const previousGroups = groups
-    const reorderedTasks = arrayMove(group.tasks, oldIndex, newIndex)
-    const nextGroups = groups.map((item, index) =>
-      index === activeGroupIndex
-        ? { ...item, tasks: reorderedTasks }
-        : item,
-    )
-
-    setGroups(nextGroups)
-    startMutationTransition(async () => {
-      const result = await withSaveFeedback(() => updateTaskOrderAction(
-        group.projectId,
-        reorderedTasks.map((task) => task.id),
-      ), { pending: "Saving task order…", success: "Task order saved" })
-
-      if ("error" in result) {
-        setGroups(previousGroups)
-        return
-      }
-
-      router.refresh()
-    })
+  const visibleIds = new Set(visibleGroups.flatMap(group => group.tasks.map(task => task.id)))
+  const visibleTaskGroups = selectedGroups.map(group => ({ ...group, tasks: group.tasks.filter(task => visibleIds.has(task.id)) })).filter(group => group.tasks.length)
+  const openTaskById = (id: string) => {
+    const task = visibleGroups.flatMap(group => group.tasks).find(item => item.id === id)
+    if (task) openEditTask(task)
   }
 
   const canOpenTaskCreate =
@@ -385,11 +290,12 @@ export function MemberWorkspaceTasksPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-4 pb-3 pt-3">
-        <div className="flex items-center gap-2">
-          <TaskRelationshipSelect value={relation} onChange={setRelation} />
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <TaskRelationshipSelect value={relation} onChange={(relation) => changeViewState({ relation })} />
           <FilterPopover
             entityType="task"
+            applyOnChange
             initialChips={filters}
             onApply={setFilters}
             onClear={() => setFilters([])}
@@ -397,13 +303,21 @@ export function MemberWorkspaceTasksPage({
             memberOptions={memberFilterOptions}
             tagOptions={tagFilterOptions}
           />
+          <TaskPresentationControls state={state} onChange={changeViewState} />
           <ChipOverflow
             chips={filters}
             onRemove={(key, value) =>
-              setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
+              setFilters(filters.filter((chip) => !(chip.key === key && chip.value === value)))
             }
             maxVisible={6}
           />
+        </div>
+        <div className="flex shrink-0 items-center rounded-lg border border-border p-1" role="group" aria-label="Task view">
+          {(["list", "board"] as const).map(view => (
+            <Button key={view} size="sm" variant={state.view === view ? "secondary" : "ghost"} aria-pressed={state.view === view} className="min-h-10 sm:min-h-8" onClick={() => changeViewState({ view })}>
+              {view === "list" ? "List" : "Board"}
+            </Button>
+          ))}
         </div>
       </div>
     </header>
@@ -413,12 +327,12 @@ export function MemberWorkspaceTasksPage({
     <div className="flex flex-1 flex-col min-h-0 bg-background min-w-0">
       {header}
 
-      {!visibleGroups.length ? (
+      {state.view === "list" && !visibleGroups.length ? (
         <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground">
-          {filters.length > 0
+          {filters.length > 0 || state.completion !== "all"
             ? "No tasks match the current filters."
             : hasAnyOrgTasks
-              ? relation === "owned" ? "No tasks assigned to you yet." : "No tasks in this view."
+              ? relation.length === 1 && relation[0] === "owned" ? "No tasks assigned to you yet." : "No tasks in this view."
               : canOpenTaskCreate
                 ? scope === "platform-admin"
                   ? "No tasks available yet."
@@ -426,20 +340,23 @@ export function MemberWorkspaceTasksPage({
                 : "Create a project first to start adding tasks."}
         </div>
       ) : (
-        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-4 py-4">
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragEnd={canReorderTasks ? handleDragEnd : undefined}
-          >
-            <ProjectTaskListView
-              flat
-              groups={visibleGroups}
-              onToggleTask={handleToggleTask}
-              onAddTask={(context) => openCreateTask(context)}
-              onOpenTask={canManageTasks ? openEditTask : undefined}
-              canReorder={canReorderTasks}
-            />
-          </DndContext>
+        <div className="flex-1 min-h-0 min-w-0 space-y-4 overflow-y-auto px-4 py-4">
+          {state.view === "board" ? (today ? (
+            <TaskWeekBoard tasks={visibleTaskGroups.flatMap(group => group.tasks)}
+              weekStart={state.week || today} today={today} showWeekend={state.weekend}
+              onWeekChange={week => changeViewState({ week })}
+              onWeekendChange={weekend => changeViewState({ weekend })}
+              pendingTaskIds={pendingTaskIds} capabilities={capabilities}
+              onToggleTask={toggleTask} onOpenTask={openTaskById} onScheduleTask={scheduleTask}
+              onAddTask={canOpenTaskCreate ? context => openCreateTask({ ...context, projectId: projectOptions.some(project => project.id === context.projectId) ? context.projectId : undefined }) : undefined}
+              onShowList={() => changeViewState({ view: "list" })} />
+          ) : <p role="status" className="text-sm text-muted-foreground">Loading task calendar…</p>) : (
+            <TaskProjectList groups={visibleTaskGroups} pendingTaskIds={pendingTaskIds} capabilities={capabilities}
+              onToggleTask={toggleTask} onOpenTask={openTaskById}
+              onAddTask={canOpenTaskCreate ? context => openCreateTask(context) : undefined}
+              canAddTask={projectId => projectOptions.some(project => project.id === projectId)}
+              onMoveTask={moveTaskAction && state.ordering === "manual" ? moveTask : undefined} />
+          )}
         </div>
       )}
 
@@ -456,6 +373,8 @@ export function MemberWorkspaceTasksPage({
         workstreamOptionsByProjectId={workstreamOptionsByProjectId}
         assigneeOptions={assigneeOptions}
         onSubmitTask={handleTaskSubmit}
+        hideUnsupportedControls
+        requireProjectSelection
       />
     </div>
   )

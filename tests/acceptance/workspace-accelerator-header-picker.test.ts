@@ -12,6 +12,7 @@ import {
   WorkspaceAcceleratorDrawerHeaderControls,
   WorkspaceAcceleratorHeaderPicker,
 } from "@/features/workspace-accelerator-card/components/workspace-accelerator-card-panel-support"
+import { resolveAcceleratorReadiness } from "@/lib/accelerator/readiness"
 import type { AcceleratorReadinessSummary } from "@/lib/accelerator/readiness"
 import { WorkspaceAcceleratorCardProgressSummary, WorkspaceAcceleratorCardProgressStrip } from "@/features/workspace-accelerator-card/components/workspace-accelerator-card-progress-strip"
 import { WORKSPACE_ACCELERATOR_TUTORIAL_GUARD_CHROME_CLASSNAME } from "@/features/workspace-accelerator-card/components/workspace-accelerator-tutorial-guard-tooltip"
@@ -44,6 +45,26 @@ function extractProgressPercentMarkup(markup: string) {
 }
 
 describe("workspace accelerator header picker", () => {
+  it("shows a blue Verified badge independently of the green Fundable badge", () => {
+    const readinessSummary = resolveAcceleratorReadiness({
+      profile: { ein: "01-2345678", formationStatus: "approved" },
+      modules: [], roadmapSections: [], programs: [], peopleCount: 0,
+    })
+    const markup = renderToStaticMarkup(React.createElement(WorkspaceAcceleratorCardProgressSummary, {
+      progressPercent: 0, readinessSummary,
+    }))
+    expect(markup).toContain("text-blue-600")
+    expect(markup).not.toContain("text-emerald-600")
+    expect(markup).toContain("2/2 ready")
+    expect(markup).toContain("0% lessons complete")
+    const both = renderToStaticMarkup(React.createElement(WorkspaceAcceleratorCardProgressSummary, {
+      progressPercent: 0, readinessSummary: { ...readinessSummary, fundable: true },
+    }))
+    expect(both).toContain("text-blue-600")
+    expect(both).toContain("text-emerald-600")
+    expect(both.match(/lucide-badge-check/g)).toHaveLength(2)
+  })
+
   it("keeps complete lessons independent from incomplete readiness", () => {
     const summary: AcceleratorReadinessSummary = {
       score: 80, progressPercent: 80, fundableCheckpoint: 70, verifiedCheckpoint: 90,

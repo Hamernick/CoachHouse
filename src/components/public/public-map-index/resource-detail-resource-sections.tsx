@@ -203,6 +203,9 @@ export function PublicMapResourceServicesSection({
             (Boolean(service.description) &&
               service.description !== item.description)
           const serviceRows = [
+            { label: "Hours", value: service.availability?.label },
+            { label: "Availability", value: service.availability?.statusLabel },
+            { label: "Access notes", value: service.availability?.notes },
             { label: "Who it helps", value: service.whoItHelps },
             { label: "Eligibility", value: service.eligibility },
             { label: "Cost", value: service.cost },

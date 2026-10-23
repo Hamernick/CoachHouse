@@ -59,11 +59,12 @@ export async function AcceleratorOverviewPageContent() {
     fetchAcceleratorProgressSummary({ supabase, userId: user.id, isAdmin }),
     supabase
       .from("organizations")
-      .select("profile, public_slug")
+      .select("profile, public_slug, ein")
       .eq("user_id", activeOrg.orgId)
       .maybeSingle<{
         profile: Record<string, unknown> | null
         public_slug: string | null
+        ein: string | null
       }>(),
     resolveRoadmapHomework(user.id, supabase),
     fetchLearningEntitlements({
@@ -157,7 +158,7 @@ export async function AcceleratorOverviewPageContent() {
     isRoadmapSectionComplete
   ).length
   const readiness = resolveAcceleratorReadiness({
-    profile: orgProfile,
+    profile: { ...orgProfile, ein: orgResult.data?.ein ?? null },
     modules: visibleGroups.flatMap((group) =>
       group.modules.map((module) => ({
         slug: module.slug,

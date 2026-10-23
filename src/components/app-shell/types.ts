@@ -18,6 +18,7 @@ export type AppShellProps = {
   } | null
   isAdmin: boolean
   platformAccessLevel?: PlatformAccessLevel | null
+  hasCoachingAccess?: boolean
   isTester?: boolean
   showOrgAdmin?: boolean
   canAccessOrgAdmin?: boolean

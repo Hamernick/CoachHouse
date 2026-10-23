@@ -1,0 +1,68 @@
+{
+  "github": {
+    "head": "48f881a513ac9361b6740ee0062b3c58924d8562",
+    "quality": "failure",
+    "review": "REVIEW_REQUIRED",
+    "protection_satisfied": false,
+    "reference": "https://github.com/Hamernick/CoachHouse/pull/290",
+    "observed_at": "2026-10-13T04:22:06.430661+00:00",
+    "merge_state": "UNKNOWN",
+    "required_checks": [
+      {
+        "context": "quality",
+        "app_id": 15368
+      }
+    ]
+  },
+  "merge": {
+    "sha": "fabee958969e538a07c9a478c72574a3eda7d79b",
+    "at": "2026-10-13T01:18:37Z",
+    "default_branch_contains": true
+  },
+  "deployment_observations": [
+    {
+      "id": 7027712180,
+      "environment": "Production \u2013 coachhouse",
+      "sha": "fabee958969e538a07c9a478c72574a3eda7d79b",
+      "statuses": [
+        {
+          "state": "success",
+          "environment_url": "https://coachhouse-o8vtx4l28-calebs-projects-58ab1538.vercel.app",
+          "log_url": "https://coachhouse-o8vtx4l28-calebs-projects-58ab1538.vercel.app",
+          "created_at": "2026-10-13T01:21:59Z"
+        }
+      ]
+    },
+    {
+      "id": 7027677848,
+      "environment": "github-pages",
+      "sha": "fabee958969e538a07c9a478c72574a3eda7d79b",
+      "statuses": [
+        {
+          "state": "success",
+          "environment_url": "https://hamernick.github.io/CoachHouse/",
+          "log_url": "https://github.com/Hamernick/CoachHouse/actions/runs/38331512220/job/115082223034",
+          "created_at": "2026-10-13T01:19:33Z"
+        },
+        {
+          "state": "in_progress",
+          "environment_url": "",
+          "log_url": "https://github.com/Hamernick/CoachHouse/actions/runs/38331512220/job/115082223034",
+          "created_at": "2026-10-13T01:19:23Z"
+        },
+        {
+          "state": "queued",
+          "environment_url": "",
+          "log_url": "https://github.com/Hamernick/CoachHouse/actions/runs/38331512220/job/115082223034",
+          "created_at": "2026-10-13T01:19:21Z"
+        }
+      ]
+    }
+  ],
+  "provider_status": "unknown until intended project/domain/source SHA is checked at provider",
+  "provider_access": {
+    "status": "blocked",
+    "reason": "Vercel alias API returned HTTP 403 using existing CLI credential. No credential change attempted.",
+    "observed_at": "2026-10-13T04:22:08.318230+00:00"
+  }
+}

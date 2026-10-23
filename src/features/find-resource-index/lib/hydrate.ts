@@ -4,7 +4,7 @@ import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-item
 export function hydrateFindResourceIndexItem(
   item: FindResourceIndexItem
 ): ExternalResourceMapItem {
-  const address = [item.city, item.state, item.country]
+  const address = [item.addressStreet, item.city, item.state, item.country]
     .filter(Boolean)
     .join(", ")
 
@@ -12,7 +12,7 @@ export function hydrateFindResourceIndexItem(
     ...item,
     description: null,
     address: address || null,
-    addressStreet: null,
+    addressStreet: item.addressStreet ?? null,
     orgCategory: null,
     sourceLabel: null,
     sourceUrl: null,

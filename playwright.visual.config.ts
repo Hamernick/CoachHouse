@@ -9,7 +9,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`
 export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   testDir: "./tests/visual",
-  testIgnore: "fiscal-sponsorship-authenticated-routes.visual.spec.ts",
+  testIgnore: ["fiscal-sponsorship-authenticated-routes.visual.spec.ts", "workspace-support-authenticated-routes.visual.spec.ts"],
   timeout: 90_000,
   snapshotPathTemplate: "{snapshotDir}/{testFileName}-snapshots/{arg}{ext}",
   updateSnapshots: "none",

@@ -14,11 +14,13 @@ export type FindResourceIndexAvailability = {
 
 export type FindResourceIndexItem = {
   id: string
+  relatedResourceIds?: string[]
   itemType: "external_resource"
   title: string
   subtitle: string | null
   latitude: number | null
   longitude: number | null
+  addressStreet?: string | null
   city: string | null
   state: string | null
   country: string | null

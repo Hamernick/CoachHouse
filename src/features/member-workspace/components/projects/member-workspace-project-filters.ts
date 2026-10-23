@@ -1,3 +1,4 @@
+import { comparePresentationDates } from "../../lib/presentation-date-order"
 import type { PlatformAdminDashboardLabProject } from "@/features/platform-admin-dashboard"
 import type {
   MemberWorkspaceProjectFilterChip,
@@ -85,14 +86,12 @@ function applyVisibilityFilters(
   projects: PlatformAdminDashboardLabProject[],
   viewOptions: MemberWorkspaceProjectViewOptions
 ) {
-  if (viewOptions.showClosedProjects) {
-    return projects.slice()
-  }
-
-  return projects.filter(
-    (project) =>
-      project.status !== "completed" && project.status !== "cancelled"
-  )
+  return projects.filter(project => {
+    if (!viewOptions.showClosedProjects && ["completed", "cancelled"].includes(project.status)) return false
+    if (viewOptions.completion === "completed") return project.status === "completed"
+    if (viewOptions.completion === "incomplete") return project.status !== "completed"
+    return true
+  })
 }
 
 function matchesExactMember(
@@ -191,8 +190,12 @@ function sortProjects(
 
   if (viewOptions.ordering === "date") {
     sorted.sort(
-      (left, right) => (left.endDate?.getTime() ?? Infinity) - (right.endDate?.getTime() ?? Infinity)
+      (left, right) => comparePresentationDates(left.endDate, right.endDate)
     )
+  }
+
+  if (viewOptions.ordering === "added") {
+    sorted.sort((left, right) => comparePresentationDates(left.createdAt, right.createdAt, true))
   }
 
   return sorted

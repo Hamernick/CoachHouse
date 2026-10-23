@@ -160,6 +160,7 @@ export function MobileNavigationPanel({
           clearClickSuppression()
         }}
         onLostPointerCapture={(event) => {
+          if (event.target !== event.currentTarget) return
           if (gesture.current?.pointerId !== event.pointerId) return
           gesture.current = null
           setScrubIndex(null)

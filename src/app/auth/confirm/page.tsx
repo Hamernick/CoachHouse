@@ -5,11 +5,13 @@ import { redirect } from "next/navigation"
 import { AuthCard } from "@/components/auth/auth-card"
 import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
 import { Button } from "@/components/ui/button"
+import { resolvePasswordRecoveryDestination } from "@/lib/auth/password-recovery"
 import {
   buildLoginUrlWithAuthConfirmationError,
   getSafeEmailOtpType,
   resolvePostAuthConfirmationRedirect,
   resolveAuthConfirmationDestination,
+  resolveConfirmedSignupDestination,
 } from "@/lib/supabase/auth-confirmation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -17,15 +19,6 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
-}
-
-function safeOrigin(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || value.length === 0) return null
-  try {
-    return new URL(value).origin
-  } catch {
-    return null
-  }
 }
 
 async function resolveRequestOrigin() {
@@ -40,10 +33,14 @@ async function confirmEmailAction(formData: FormData) {
 
   const tokenHash = formData.get("token_hash")
   const type = getSafeEmailOtpType(formData.get("type"))
-  const destination = resolveAuthConfirmationDestination(formData.get("destination"))
-  const requestOrigin = safeOrigin(formData.get("request_origin")) ?? (await resolveRequestOrigin())
+  const requestOrigin = await resolveRequestOrigin()
+  const rawDestination = resolveAuthConfirmationDestination(formData.get("destination"), requestOrigin)
+  const destination = type === "recovery"
+    ? resolvePasswordRecoveryDestination(rawDestination)
+    : rawDestination
 
   if (typeof tokenHash !== "string" || tokenHash.length === 0 || !type) {
+    if (type === "recovery") redirect(resolvePasswordRecoveryDestination(destination, "missing_code"))
     redirect(
       buildLoginUrlWithAuthConfirmationError({
         destination,
@@ -53,12 +50,13 @@ async function confirmEmailAction(formData: FormData) {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
     type,
   })
 
   if (error) {
+    if (type === "recovery") redirect(resolvePasswordRecoveryDestination(destination, "invalid_or_expired"))
     redirect(
       buildLoginUrlWithAuthConfirmationError({
         destination,
@@ -67,7 +65,12 @@ async function confirmEmailAction(formData: FormData) {
     )
   }
 
-  redirect(resolvePostAuthConfirmationRedirect(destination, requestOrigin))
+  const confirmedDestination = resolveConfirmedSignupDestination({
+    destination,
+    type,
+    userMetadata: data.user?.user_metadata,
+  })
+  redirect(resolvePostAuthConfirmationRedirect(confirmedDestination, requestOrigin))
 }
 
 export default async function ConfirmEmailPage({
@@ -79,16 +82,23 @@ export default async function ConfirmEmailPage({
   const tokenHash = firstParam(resolved.token_hash)
   const type = getSafeEmailOtpType(firstParam(resolved.type))
   const origin = await resolveRequestOrigin()
-  const destination = resolveAuthConfirmationDestination(firstParam(resolved.next), origin)
+  const rawDestination = resolveAuthConfirmationDestination(firstParam(resolved.next), origin)
+  const destination = type === "recovery"
+    ? resolvePasswordRecoveryDestination(rawDestination)
+    : rawDestination
+  if (type === "recovery" && !tokenHash) {
+    redirect(resolvePasswordRecoveryDestination(destination, "missing_code"))
+  }
   const canConfirm = Boolean(tokenHash && type)
+  const isRecovery = type === "recovery"
 
   return (
     <AuthScreenShell>
       <AuthCard
-        title={canConfirm ? "Confirm your email" : "Confirmation link unavailable"}
+        title={canConfirm ? isRecovery ? "Reset your password" : "Confirm your email" : "Confirmation link unavailable"}
         description={
           canConfirm
-            ? "Finish securing your Coach House account before continuing."
+            ? isRecovery ? "Continue to choose a new password for your Coach House account." : "Finish securing your Coach House account before continuing."
             : "This link is missing the verification details needed to confirm an account."
         }
       >
@@ -97,12 +107,11 @@ export default async function ConfirmEmailPage({
             <input type="hidden" name="token_hash" value={tokenHash ?? ""} />
             <input type="hidden" name="type" value={type ?? ""} />
             <input type="hidden" name="destination" value={destination} />
-            <input type="hidden" name="request_origin" value={origin ?? ""} />
             <Button type="submit" className="w-full">
-              Confirm email
+              {isRecovery ? "Continue to reset password" : "Confirm email"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              After confirmation, Coach House will continue to your next step.
+              {isRecovery ? "Your reset link will be verified before you choose a new password." : "After confirmation, Coach House will continue to your next step."}
             </p>
           </form>
         ) : (

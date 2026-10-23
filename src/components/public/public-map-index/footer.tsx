@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { COACH_HOUSE_DONATE_URL } from "@/lib/public-links"
 
 const PublicMapClaimDialog = lazy(() =>
   import("@/features/public-map-claims").then((module) => ({
@@ -35,7 +36,7 @@ export function PublicMapFooter({ showClaim = true }: { showClaim?: boolean }) {
         <CollapsibleContent className="text-muted-foreground space-y-2 px-2 pb-3 text-sm leading-5">
           <PublicMapAboutContent />
         </CollapsibleContent>
-      <nav aria-label="Legal" className="flex items-center justify-center gap-1">
+      <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-1">
         {[["/privacy", "Privacy Policy"], ["/terms", "Terms"]].map(([href, label]) => (
           <Button
             key={href}
@@ -47,6 +48,11 @@ export function PublicMapFooter({ showClaim = true }: { showClaim?: boolean }) {
             <Link href={href}>{label}</Link>
           </Button>
         ))}
+        <Button asChild variant="link" size="sm" className="text-muted-foreground hover:text-foreground active:text-foreground focus-visible:text-foreground h-11 touch-manipulation px-2 text-xs sm:h-8">
+          <a href={COACH_HOUSE_DONATE_URL} target="_blank" rel="noopener noreferrer">
+            Donate<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </Button>
         <CollapsibleTrigger asChild>
           <Button variant="link" size="sm" className="text-muted-foreground h-11 px-2 text-xs sm:h-8">
             About

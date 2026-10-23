@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { resolveDocumentCapabilities } from "@/lib/organization/document-capabilities"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
 
@@ -11,18 +12,13 @@ const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.next()
-  const supabase = createSupabaseRouteHandlerClient(request, response)
+  let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser()
   if (error || !user) {
     return NextResponse.json({ error: error?.message ?? "Unauthorized" }, { status: 401 })
-  }
-
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
-  if (!canEditOrganization(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -37,6 +33,19 @@ export async function POST(request: NextRequest) {
     kindParam === "cover"
       ? kindParam
       : "cover"
+  let orgId: string
+  if (kind === "roadmap" || kind === "roadmap-inline") {
+    if (request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 })
+    const target = request.headers.get("x-coach-house-organization-id") ?? (await resolveActiveOrganization(supabase, user.id)).orgId
+    const resolved = await resolveDocumentCapabilities(supabase, user.id, target)
+    if ("error" in resolved || !resolved.capabilities.canEdit) return NextResponse.json({ error: "Document edit access required." }, { status: 403 })
+    orgId = resolved.access.orgId
+    supabase = resolved.access.supabase
+  } else {
+    const active = await resolveActiveOrganization(supabase, user.id)
+    if (!canEditOrganization(active.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    orgId = active.orgId
+  }
   const bucket = kind === "roadmap-inline" ? ROADMAP_INLINE_BUCKET : BUCKET
 
   const form = await request.formData()

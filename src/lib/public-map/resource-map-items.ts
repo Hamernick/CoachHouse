@@ -135,6 +135,7 @@ export type PlatformOrganizationMapItem = PublicMapBaseItem & {
 }
 
 export type ExternalResourceMapItem = PublicMapBaseItem & {
+  ein?: string | null
   itemType: "external_resource"
   organization?: never
   orgCategory: null

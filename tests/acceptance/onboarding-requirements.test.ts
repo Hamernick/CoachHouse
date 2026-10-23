@@ -33,7 +33,7 @@ describe("saved onboarding requirements", () => {
     }
   )
 
-  it("recovers the legacy completed owner without requiring another plan selection", () => {
+  it("keeps a completed owner with saved work in the workspace", () => {
     expect(
       resolveOnboardingRequirements({
         ...complete,
@@ -41,27 +41,51 @@ describe("saved onboarding requirements", () => {
         publicSlug: null,
       })
     ).toEqual({
-      required: true,
+      required: false,
       mode: "workspace_setup",
       organizationSetupComplete: false,
     })
   })
 
   it.each([
+    [null, null],
+    [{}, null],
     [{ name: "", formationStatus: "approved" }, "community-house"],
     [{ name: "   ", formationStatus: "approved" }, "community-house"],
     [{ name: "Community House", formationStatus: "approved" }, ""],
     [{ name: "Community House", formationStatus: "approved" }, null],
   ])(
-    "requires each missing organization field despite completion metadata",
+    "does not revoke completed onboarding when organization details are missing",
     (organizationProfile, publicSlug) => {
-      expect(
-        resolveOnboardingRequirements({
-          ...complete,
-          organizationProfile,
-          publicSlug,
-        }).required
-      ).toBe(true)
+      const requirements = resolveOnboardingRequirements({
+        ...complete,
+        organizationProfile,
+        publicSlug,
+      })
+      expect(requirements).toMatchObject({ required: false, organizationSetupComplete: false })
+      for (const pathname of ["/workspace", "/accelerator", "/organization"]) {
+        expect(resolveAppShellOnboardingRedirectTarget({
+          onboardingLocked: requirements.required,
+          isAdminContext: false,
+          pathname,
+        })).toBeNull()
+      }
+    }
+  )
+
+  it.each([false, undefined, null, "true", 1])(
+    "still requires onboarding for an uncompleted account (%s), even with organization details",
+    (onboardingCompleted) => {
+      const requirements = resolveOnboardingRequirements({
+        ...complete,
+        userMetadata: { ...complete.userMetadata, onboarding_completed: onboardingCompleted },
+      })
+      expect(requirements.required).toBe(true)
+      expect(resolveAppShellOnboardingRedirectTarget({
+        onboardingLocked: requirements.required,
+        isAdminContext: false,
+        pathname: "/workspace",
+      })).toBe("/onboarding?source=onboarding")
     }
   )
 

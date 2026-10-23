@@ -1,4 +1,4 @@
-import { addMinutes, COACHING_SESSION_MINUTES, toSlotId } from "."
+import { addMinutes, COACHING_DEFAULT_TIMEZONE, COACHING_SESSION_MINUTES, toSlotId } from "."
 import type { CoachingCoachId, CoachingSlot } from "../types"
 
 type BusyWindow = {
@@ -6,7 +6,24 @@ type BusyWindow = {
   endsAt: string
 }
 
-const SLOT_START_HOURS = [9, 10, 11, 13, 14, 15]
+const FULL_DAY_START_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+const SLOT_START_HOURS_BY_WEEKDAY: Record<number, readonly number[]> = {
+  0: [],
+  1: FULL_DAY_START_HOURS,
+  2: FULL_DAY_START_HOURS,
+  3: [9, 10, 11, 12, 13, 14, 15, 16],
+  4: FULL_DAY_START_HOURS,
+  5: [],
+  6: [10, 11, 12],
+}
+
+export function isCoachingSlotWithinSchedule(startsAt: Date, endsAt?: Date) {
+  if (!Number.isFinite(startsAt.getTime()) || startsAt.getUTCMilliseconds() !== 0) return false
+  if (endsAt && endsAt.getTime() - startsAt.getTime() !== COACHING_SESSION_MINUTES * 60_000) return false
+  const local = getTimezoneParts(startsAt, COACHING_DEFAULT_TIMEZONE)
+  const weekday = new Date(Date.UTC(local.year, local.month - 1, local.day)).getUTCDay()
+  return local.minute === 0 && local.second === 0 && SLOT_START_HOURS_BY_WEEKDAY[weekday].includes(local.hour)
+}
 
 function overlaps(leftStart: Date, leftEnd: Date, rightStart: Date, rightEnd: Date) {
   return leftStart < rightEnd && rightStart < leftEnd
@@ -64,9 +81,14 @@ export function localDateTimeToUtc({
     0,
     0,
   )
-  const candidate = new Date(localCandidate)
-  const offset = getTimezoneOffsetMs(candidate, timezone)
-  return new Date(localCandidate - offset)
+  let candidate = new Date(localCandidate)
+  // Re-evaluate the offset at the converted instant so DST on this date is used.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const corrected = new Date(localCandidate - getTimezoneOffsetMs(candidate, timezone))
+    if (corrected.getTime() === candidate.getTime()) return corrected
+    candidate = corrected
+  }
+  return candidate
 }
 
 export function buildCandidateSlots({
@@ -82,8 +104,11 @@ export function buildCandidateSlots({
   timezone: string
   busyWindows: BusyWindow[]
 }): CoachingSlot[] {
-  const dateCursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()))
-  const endDate = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) return []
+  const fromLocal = getTimezoneParts(from, COACHING_DEFAULT_TIMEZONE)
+  const toLocal = getTimezoneParts(to, COACHING_DEFAULT_TIMEZONE)
+  const dateCursor = new Date(Date.UTC(fromLocal.year, fromLocal.month - 1, fromLocal.day))
+  const endDate = new Date(Date.UTC(toLocal.year, toLocal.month - 1, toLocal.day))
   const busy = busyWindows.map((window) => ({
     startsAt: new Date(window.startsAt),
     endsAt: new Date(window.endsAt),
@@ -93,31 +118,29 @@ export function buildCandidateSlots({
 
   while (dateCursor <= endDate) {
     const weekday = dateCursor.getUTCDay()
-    if (weekday !== 0 && weekday !== 6) {
-      for (const hour of SLOT_START_HOURS) {
-        const startsAt = localDateTimeToUtc({ date: dateCursor, hour, timezone })
-        const endsAt = addMinutes(startsAt, COACHING_SESSION_MINUTES)
-        if (startsAt <= now || startsAt < from || startsAt > to) continue
-        const blocked = busy.some((window) => overlaps(startsAt, endsAt, window.startsAt, window.endsAt))
-        slots.push({
-          id: toSlotId(coachId, startsAt.toISOString()),
-          coachId,
-          startsAt: startsAt.toISOString(),
-          endsAt: endsAt.toISOString(),
-          dateLabel: new Intl.DateTimeFormat(undefined, {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            timeZone: timezone,
-          }).format(startsAt),
-          timeLabel: new Intl.DateTimeFormat(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-            timeZone: timezone,
-          }).format(startsAt),
-          available: !blocked,
-        })
-      }
+    for (const hour of SLOT_START_HOURS_BY_WEEKDAY[weekday]) {
+      const startsAt = localDateTimeToUtc({ date: dateCursor, hour, timezone: COACHING_DEFAULT_TIMEZONE })
+      const endsAt = addMinutes(startsAt, COACHING_SESSION_MINUTES)
+      if (startsAt <= now || startsAt < from || startsAt > to) continue
+      const blocked = busy.some((window) => overlaps(startsAt, endsAt, window.startsAt, window.endsAt))
+      slots.push({
+        id: toSlotId(coachId, startsAt.toISOString()),
+        coachId,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        dateLabel: new Intl.DateTimeFormat(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          timeZone: timezone,
+        }).format(startsAt),
+        timeLabel: new Intl.DateTimeFormat(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: timezone,
+        }).format(startsAt),
+        available: !blocked,
+      })
     }
     dateCursor.setUTCDate(dateCursor.getUTCDate() + 1)
   }

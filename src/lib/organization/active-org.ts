@@ -3,12 +3,15 @@ import { cache } from "react"
 
 import type { Database } from "@/lib/supabase"
 import { readActiveOrganizationCookie } from "./active-org-cookie"
+import { hasWorkspaceSupportAccess } from "./support-access"
+import { readOrganizationRequestScope } from "@/server/organization/request-scope"
 
 export type OrganizationMemberRole = "owner" | "admin" | "staff" | "board" | "member"
 
 export type ActiveOrganization = {
   orgId: string
   role: OrganizationMemberRole
+  supportAccess?: boolean
 }
 
 const ROLE_PRIORITY: Record<OrganizationMemberRole, number> = {
@@ -89,11 +92,33 @@ export async function resolveActiveOrganization(
   userId: string,
   options?: {
     preferredOrgId?: string | null
+    allowSupport?: boolean
   },
 ): Promise<ActiveOrganization> {
-  const preferredOrgId =
+  const scope = await readOrganizationRequestScope()
+  const preferredOrgId = scope?.explicit ?? (
     options && "preferredOrgId" in options
       ? options.preferredOrgId?.trim() || null
-      : await readActiveOrganizationCookie().catch(() => null)
+      : await readActiveOrganizationCookie().catch(() => null))
+  if (preferredOrgId && preferredOrgId !== userId && options?.allowSupport !== false) {
+    if (await hasWorkspaceSupportAccess(supabase)) {
+      if (scope?.method && !["GET", "HEAD", "OPTIONS"].includes(scope.method) && !scope.explicit) {
+        throw new Error("Reload this workspace before saving. Its organization context is missing.")
+      }
+      const { data, error } = await supabase.from("organizations").select("user_id")
+        .eq("user_id", preferredOrgId).maybeSingle()
+      if (error || !data) throw new Error("This workspace is unavailable. Choose another organization.")
+      return { orgId: preferredOrgId, role: "admin", supportAccess: true }
+    }
+  }
+  if ((scope?.supportRequested || (scope?.support && preferredOrgId === scope.support)) && options?.allowSupport !== false) {
+    if (!scope?.explicit && scope?.method === "GET") return resolveActiveOrganizationCached(supabase, userId, userId)
+    throw new Error("Workspace support access was revoked. Choose one of your own organizations.")
+  }
+  if (scope?.explicit) {
+    const resolved = await resolveActiveOrganizationCached(supabase, userId, preferredOrgId)
+    if (resolved.orgId !== preferredOrgId) throw new Error("You no longer have access to this organization.")
+    return resolved
+  }
   return resolveActiveOrganizationCached(supabase, userId, preferredOrgId)
 }

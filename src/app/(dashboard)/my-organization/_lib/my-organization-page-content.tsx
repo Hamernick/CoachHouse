@@ -426,7 +426,7 @@ export default async function MyOrganizationPage({
       seed={workspaceSeedWithTutorial}
       onInitialOnboardingSubmit={completeOnboardingAction}
       organizationEditorData={organizationEditorData}
-      financeInput={financeInput}
+      financeInput={financeInput!}
     />
   )
 }

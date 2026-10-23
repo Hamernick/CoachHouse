@@ -263,7 +263,7 @@ describe("Calendar presentation", () => {
       "Content type",
       "Delivery",
       "Entry status",
-      "Linked Activity",
+      "Linked Resource",
       "Scheduled for",
       "Call to action",
       "External URL",

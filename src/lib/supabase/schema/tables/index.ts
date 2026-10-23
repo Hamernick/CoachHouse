@@ -111,6 +111,7 @@ import type { CoachingCoachesTable } from "./coaching_coaches"
 import type { CoachingBookingsTable } from "./coaching_bookings"
 import type { CoachingCreditLedgerTable } from "./coaching_credit_ledger"
 import type { FiscalSponsorshipApplicationsTable } from "./fiscal_sponsorship_applications"
+import type { FiscalProjectReviewersTable } from "./fiscal_project_reviewers"
 import type { FiscalSponsorshipDocumentsTable } from "./fiscal_sponsorship_documents"
 import type { FiscalSponsorshipEventsTable } from "./fiscal_sponsorship_events"
 import type { FiscalSponsorshipReviewsTable } from "./fiscal_sponsorship_reviews"
@@ -239,6 +240,7 @@ export type { CoachingCoachesTable } from "./coaching_coaches"
 export type { CoachingBookingsTable } from "./coaching_bookings"
 export type { CoachingCreditLedgerTable } from "./coaching_credit_ledger"
 export type { FiscalSponsorshipApplicationsTable } from "./fiscal_sponsorship_applications"
+export type { FiscalProjectReviewersTable } from "./fiscal_project_reviewers"
 export type { FiscalSponsorshipDocumentsTable } from "./fiscal_sponsorship_documents"
 export type { FiscalSponsorshipEventsTable } from "./fiscal_sponsorship_events"
 export type { FiscalSponsorshipReviewsTable } from "./fiscal_sponsorship_reviews"
@@ -371,6 +373,7 @@ export type PublicTables = {
   coaching_accelerator_credit_receipts: { Row: { user_id: string; created_at: string }; Insert: { user_id: string; created_at?: string }; Update: { user_id?: string; created_at?: string }; Relationships: [] }
   coaching_credit_ledger: CoachingCreditLedgerTable
   fiscal_sponsorship_applications: FiscalSponsorshipApplicationsTable
+  fiscal_project_reviewers: FiscalProjectReviewersTable
   fiscal_sponsorship_documents: FiscalSponsorshipDocumentsTable
   fiscal_sponsorship_events: FiscalSponsorshipEventsTable
   fiscal_sponsorship_reviews: FiscalSponsorshipReviewsTable

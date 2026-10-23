@@ -1,3 +1,9 @@
+import {
+  MINIMAL_EMAIL_CHARSET_META,
+  MINIMAL_EMAIL_RESPONSIVE_STYLE,
+  MINIMAL_EMAIL_VIEWPORT_META,
+} from "./minimal-template"
+
 export type EmailContentAuditIssueSeverity = "blocked" | "warning"
 
 export type EmailContentAuditIssue = {
@@ -23,9 +29,11 @@ export type EmailContentAuditResult = {
 const BLOCKLISTED_TAG_PATTERN =
   /<\s*(script|iframe|object|embed|link|meta|base|form|input|button)\b/gi
 const BLOCKLISTED_TAG_WITH_BODY_PATTERN =
-  /<\s*(script|iframe|object|embed|style)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi
+  /<\s*(script|iframe|object|embed)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi
 const BLOCKLISTED_SELF_CLOSING_TAG_PATTERN =
   /<\s*(script|iframe|object|embed|link|meta|base|form|input|button)\b[^>]*\/?>/gi
+const STYLE_TAG_PATTERN = /<\s*style\b[^>]*>[\s\S]*?(?:<\s*\/\s*style\s*>|$)/gi
+const SAFE_META_TAGS = new Set([MINIMAL_EMAIL_CHARSET_META, MINIMAL_EMAIL_VIEWPORT_META])
 const EVENT_HANDLER_PATTERN = /\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi
 const DANGEROUS_PROTOCOL_PATTERN = /\b(?:href|src)\s*=\s*(["']?)\s*(javascript:|data:text\/html)/gi
 const HTML_LINK_PATTERN = /<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1[^>]*>/gi
@@ -36,7 +44,8 @@ const UNSUBSCRIBE_LINK_PATTERN = /unsubscribe/i
 function stripDangerousEmailHtml(input: string) {
   return input
     .replace(BLOCKLISTED_TAG_WITH_BODY_PATTERN, "")
-    .replace(BLOCKLISTED_SELF_CLOSING_TAG_PATTERN, "")
+    .replace(STYLE_TAG_PATTERN, (tag) => tag === MINIMAL_EMAIL_RESPONSIVE_STYLE ? tag : "")
+    .replace(BLOCKLISTED_SELF_CLOSING_TAG_PATTERN, (tag) => SAFE_META_TAGS.has(tag) ? tag : "")
     .replace(EVENT_HANDLER_PATTERN, "")
     .replace(DANGEROUS_PROTOCOL_PATTERN, "href=$1#blocked-")
 }
@@ -106,7 +115,9 @@ export function auditEmailContentForDelivery(
     })
   }
 
-  if (hasMatch(BLOCKLISTED_TAG_PATTERN, html) || hasMatch(EVENT_HANDLER_PATTERN, html)) {
+  // Exact renderer metadata is inert; authored variants still face the original blocklist.
+  const htmlWithoutSafeMeta = html.replaceAll(MINIMAL_EMAIL_CHARSET_META, "").replaceAll(MINIMAL_EMAIL_VIEWPORT_META, "")
+  if (hasMatch(BLOCKLISTED_TAG_PATTERN, htmlWithoutSafeMeta) || hasMatch(EVENT_HANDLER_PATTERN, html)) {
     issues.push({
       id: "dangerous-html",
       severity: "blocked",

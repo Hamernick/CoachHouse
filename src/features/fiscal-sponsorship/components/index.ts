@@ -21,8 +21,10 @@ export { FiscalSponsorshipW9Page } from "./w9/fiscal-sponsorship-w9-page"
 
 export { FiscalSponsorshipPublicPage } from "./fiscal-sponsorship-public-page"
 
-export { FiscalGuestProjectReview } from "./fiscal-guest-project-review"
+export { FiscalGuestProjectWorkbench } from "./fiscal-guest-project-workbench"
 export { FiscalPublicEmailVerification } from "./fiscal-public-email-verification"
 export { FiscalOptionalProfile } from "./fiscal-optional-profile"
 
 export { FiscalGuestApplication } from "./fiscal-guest-application"
+
+export { FiscalLinkedWorkspaceCard } from "./fiscal-linked-workspace-card"

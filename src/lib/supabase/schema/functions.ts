@@ -3,28 +3,23 @@ import type { ResourceMapPublicItemsView } from "./views"
 import type { AiCreditFunctions } from "./ai-functions"
 import type { DocumentFunctions } from "./document-functions"
 
+import type { WorkspaceFunctions } from "./workspace-functions"
 import type { ObjectivePlanFunctions } from "./objective-plan-functions"
 
-export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectivePlanFunctions & {
-  save_organization_profile_with_brand_kit: {
-    Args: { p_org_id: string; p_expected_updated_at: string; p_expected_brand_revision: string | null; p_identity: Json; p_profile_patch: Json }
-    Returns: boolean
-  }
-  workspace_canvas_storage_version: { Args: Record<never, never>; Returns: number }
-  commit_workspace_page: {
-    Args: {
-      p_actor_id: string; p_org_id: string; p_page_id: string; p_operation_id: string;
-      p_operation_hash: string; p_expected_revision: number; p_intent: string;
-      p_draft: Json | null; p_snapshot: Json | null; p_expected_graph: Json | null;
-      p_expected_org_updated_at: string | null
-      p_expected_drive_sources?: Json; p_expected_profile?: Json | null
-    }
-    Returns: Json
-  }
-  read_workspace_page_public: {
-    Args: { p_organization_slug: string; p_link_id: string }
-    Returns: Json
-  }
+export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectivePlanFunctions & WorkspaceFunctions & {
+  fiscal_profile_owner_linked: { Args: { p_reference: string }; Returns: boolean }
+  register_fiscal_guest_project_asset: { Args: { p_actor_id: string; p_project_id: string; p_asset_id: string; p_filename: string; p_title: string; p_description: string | null; p_mime: string | null; p_size_bytes: number; p_storage_path: string }; Returns: Json }
+  search_fiscal_organization_link: { Args: { p_project_id: string; p_query: string }; Returns: Json }
+  link_fiscal_organization: { Args: { p_project_id: string; p_org_id: string; p_request_id: string; p_version: string }; Returns: Json }
+  list_fiscal_organization_applications: { Args: { p_org_id: string }; Returns: Json }
+  fiscal_guest_email_send_allowed: { Args: { p_id: string; p_lease_token: string }; Returns: boolean }
+  fiscal_staff_email_send_allowed: { Args: { p_event_id: string; p_lease_token: string }; Returns: boolean }
+  list_fiscal_review_tasks: { Args: { p_user_id: string }; Returns: Json }
+  update_fiscal_review_task_status: { Args: { p_task_id: string; p_user_id: string; p_status: string }; Returns: Json }
+  claim_fiscal_guest_emails_v4: { Args: Record<string, never>; Returns: Json }
+  list_linked_fiscal_applications: { Args: Record<string, never>; Returns: Json }
+  read_linked_fiscal_application: { Args: { p_reference: string }; Returns: Json }
+  resubmit_linked_fiscal_application: { Args: { p_reference: string; p_request_id: string; p_version: string; p_application: Json }; Returns: Json }
   record_fiscal_email_delivery: { Args: { p_event_id: string; p_message_id: string; p_event_type: string; p_occurred_at: string }; Returns: undefined }
   get_fiscal_guest_email_status: { Args: { p_project_id: string; p_user_id: string }; Returns: Json }
   purge_fiscal_email_delivery_events: { Args: Record<string, never>; Returns: number }
@@ -43,6 +38,7 @@ export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectiveP
   consume_fiscal_guest_limit: { Args: { p_key_hash: string; p_limit: number; p_window_seconds: number }; Returns: boolean }
   get_fiscal_guest_receipt: { Args: { p_key_hash: string }; Returns: Json }
   claim_fiscal_guest_emails: { Args: Record<string, never>; Returns: Json }
+  claim_fiscal_guest_emails_v3: { Args: Record<string, never>; Returns: Json }
   finish_fiscal_guest_email: { Args: { p_id: string; p_lease_token: string; p_message_id: string | null; p_success: boolean }; Returns: boolean }
 
   get_fiscal_guest_notification_recipients: {
@@ -55,6 +51,7 @@ export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectiveP
     Args: { p_project_id: string; p_user_id: string }
     Returns: boolean | null
   }
+  claim_fiscal_staff_emails_v2: { Args: Record<string, never>; Returns: Json }
   claim_fiscal_staff_emails: { Args: Record<string, never>; Returns: Json }
   finish_fiscal_staff_email: {
     Args: { p_event_id: string; p_lease_token: string; p_message_id: string | null; p_success: boolean }
@@ -368,6 +365,25 @@ export type PublicFunctions = AiCreditFunctions & DocumentFunctions & ObjectiveP
       p_expected_org_id: string
       p_expected_project_id: string
       p_task_id: string
+    }
+    Returns: Json
+  }
+  schedule_organization_task_transition: {
+    Args: {
+      p_actor_id: string; p_task_id: string; p_project_id: string; p_expected_org_id: string
+      p_start_date: string | null; p_expected_start_date: string | null; p_expected_end_date: string | null
+    }
+    Returns: Json
+  }
+  move_organization_task_transition: {
+    Args: {
+      p_actor_id: string
+      p_task_id: string
+      p_project_id: string
+      p_expected_org_id: string
+      p_neighbor_task_id: string; p_placement: string
+      p_expected_sort_order: number; p_expected_neighbor_sort_order: number
+      p_expected_updated_at: string; p_expected_neighbor_updated_at: string
     }
     Returns: Json
   }

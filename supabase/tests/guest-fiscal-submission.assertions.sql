@@ -44,7 +44,7 @@ do $$ begin
     or (select count(*) from public.fiscal_sponsorship_events) <> 1 then raise exception 'Incomplete or duplicated handoff'; end if;
   if exists(select 1 from public.fiscal_guest_submissions where claimed_user_id is not null or contact_email <> 'guest@example.test') then raise exception 'Guest identity is wrong'; end if;
   if exists(select 1 from public.fiscal_sponsorship_applications where created_by is not null or status <> 'submitted' or project_description <> 'Grow food together' or jsonb_array_length(metadata->'budgetRows') <> 1) then raise exception 'Lost applicant data or forged actor'; end if;
-  if exists(select 1 from public.organization_projects where org_id <> '10000000-0000-0000-0000-000000000001' or not organization_unassigned or option_settings->>'fiscalSponsorshipEnabled' <> 'true') then raise exception 'Incorrect project ownership or fiscal setup'; end if;
+  if exists(select 1 from public.organization_projects where org_id <> '10000000-0000-0000-0000-000000000001' or not organization_unassigned or option_settings is distinct from '{"tags":[],"sprintTypes":[],"fiscalSponsorshipEnabled":true}'::jsonb) then raise exception 'Incorrect project ownership or fiscal setup'; end if;
   if (select count(*) from public.profiles) <> 3 then raise exception 'Created a fake applicant account'; end if;
 end $$;
 -- Missing reviewer must fail without leaving a project or application behind.

@@ -9,7 +9,8 @@ const date = z.iso.date().nullable().optional()
 
 // Explicit public input contract: no caller-owned IDs, review status, metadata or snapshots.
 export const guestSubmissionSchema = z.object({
-  captchaToken: z.string().min(1).max(10000),
+  // Accept ignored tokens from forms loaded before CAPTCHA removal.
+  captchaToken: z.string().max(10000).optional(),
   application: z.object({
     applicantFirstName: requiredShort, applicantLastName: requiredShort,
     primaryEmail: z.string().trim().toLowerCase().email().max(254),

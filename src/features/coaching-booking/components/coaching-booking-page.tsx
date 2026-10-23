@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { hasCoachCoachingAccess } from "@/features/platform-access"
 
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { COACHING_PATH } from "../lib"
@@ -26,6 +27,13 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
     redirect("/login?redirect=/coaching")
   }
 
+  if (
+    context.profileAudience.platformAccessLevel === "coach" &&
+    !hasCoachCoachingAccess(context.user.app_metadata)
+  ) {
+    redirect("/organizations")
+  }
+
   if (checkout === "cancelled" && bookingId) {
     const result = await confirmPaidCoachingCheckoutReturn({
       bookingId,
@@ -44,12 +52,13 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
   }
 
   if (checkout === "success" && bookingId) {
-    await confirmPaidCoachingCheckoutReturn({
+    const result = await confirmPaidCoachingCheckoutReturn({
       bookingId,
       userId: context.user.id,
       orgId: context.activeOrg.orgId,
       userEmail: context.user.email ?? null,
     })
+    if (result.slotUnavailable) redirect(`${COACHING_PATH}?checkout=unavailable`)
     redirect(COACHING_PATH)
   }
 
@@ -60,5 +69,7 @@ export async function CoachingBookingPage({ searchParams }: CoachingBookingPageP
     userEmail: context.user.email ?? null,
   })
 
-  return <CoachingBookingFlow initialData={data} />
+  return <CoachingBookingFlow initialData={data} bookingNotice={checkout === "unavailable"
+    ? "That time is no longer available. Choose another time."
+    : undefined} />
 }

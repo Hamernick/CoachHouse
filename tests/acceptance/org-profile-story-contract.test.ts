@@ -23,6 +23,14 @@ vi.mock("@/components/ui/avatar", () => ({
 }))
 
 describe("organization profile story contract", () => {
+  it("does not revive a stale profile EIN after the canonical EIN is removed", () => {
+    const profile = buildInitialOrganizationProfile({
+      profile: { ein: "01-2345678", formationStatus: "approved" },
+      organization: { ein: null, public_slug: "org", is_public: true },
+    })
+    expect(profile.ein).toBe("")
+  })
+
   it.each(["https://profile-controlled.example", "http://127.0.0.1:8080", "http://[::1]", "http://192.168.1.1"])(
     "does not automatically load profile-controlled image origins: %s",
     (url) => {

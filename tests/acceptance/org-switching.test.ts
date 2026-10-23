@@ -3,13 +3,21 @@ import { join } from "node:path"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const readActiveOrganizationCookieMock = vi.hoisted(() => vi.fn())
+const { readActiveOrganizationCookieMock, revalidatePathMock, setActiveOrganizationMock } = vi.hoisted(() => ({
+  readActiveOrganizationCookieMock: vi.fn(),
+  revalidatePathMock: vi.fn(),
+  setActiveOrganizationMock: vi.fn(),
+}))
+
+vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }))
+vi.mock("@/features/member-workspace/server/organization-switch", () => ({ setActiveOrganization: setActiveOrganizationMock }))
 
 vi.mock("@/lib/organization/active-org-cookie", () => ({
   readActiveOrganizationCookie: readActiveOrganizationCookieMock,
 }))
 
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
+import { setActiveOrganizationAction } from "@/features/member-workspace/server/actions"
 
 const ROOT = process.cwd()
 
@@ -47,6 +55,8 @@ function createSupabase(memberships: MembershipRow[]) {
 describe("organization switching", () => {
   beforeEach(() => {
     readActiveOrganizationCookieMock.mockReset()
+    revalidatePathMock.mockReset()
+    setActiveOrganizationMock.mockReset()
   })
 
   it("uses the active organization cookie when callers do not pass an explicit preference", async () => {
@@ -88,10 +98,10 @@ describe("organization switching", () => {
     const switcherSource = readSource(
       "src/features/member-workspace/components/shell/member-workspace-org-switcher.tsx",
     )
+    const switcherListSource = readSource("src/features/member-workspace/components/shell/member-workspace-org-switcher-list.tsx")
     const workspaceViewSource = readSource(
       "src/app/(dashboard)/my-organization/_components/workspace-board/my-organization-workspace-view.tsx",
     )
-    const actionSource = readSource("src/features/member-workspace/server/actions.ts")
     const appShellSource = readSource("src/components/app-shell/app-shell-inner.tsx")
 
     expect(pageSource).toContain("resolveOptionalAuthenticatedAppContext")
@@ -100,19 +110,36 @@ describe("organization switching", () => {
     expect(adminLayoutSource).toContain("MemberWorkspaceSidebarHeader")
     expect(adminLayoutSource).toContain("showMemberWorkspace={state.showMemberWorkspace}")
     expect(appShellSource).not.toContain("(!isAdminContext || isAdmin)")
-    expect(switcherSource).toContain("defaultValue={activeOrganization.orgId}")
-    expect(switcherSource).toContain("value={organization.orgId}")
-    expect(switcherSource).toContain("keywords={[organization.name, organization.role]}")
-    expect(switcherSource).toContain('aria-current={isActive ? "true" : undefined}')
-    expect(switcherSource).toContain(
+    expect(switcherListSource).toContain("defaultValue={activeOrganization.orgId}")
+    expect(switcherListSource).toContain("value={organization.orgId}")
+    expect(switcherListSource).toContain("keywords={[organization.name, organization.role,")
+    expect(switcherListSource).toContain('aria-current={isActive ? "true" : undefined}')
+    expect(switcherListSource).toContain(
       'className="[&_[cmdk-group-items]]:space-y-1"',
     )
     expect(switcherSource).toContain("Workspace, Admin, and Documents")
     expect(switcherSource).toContain("window.location.reload()")
     expect(switcherSource).not.toContain("router.refresh()")
     expect(workspaceViewSource).toContain('key={`${seed.orgId}:${seed.boardState.workspaceCanvasId ?? "main"}`}')
-    expect(actionSource).toContain('revalidatePath("/admin")')
-    expect(actionSource).toContain('revalidatePath("/workspace")')
-    expect(actionSource).toContain('revalidatePath("/organization/documents")')
+  })
+
+  it("revalidates organization-scoped pages after a successful switch", async () => {
+    const switched = { ok: true, orgId: "org-board", supportAccess: false }
+    setActiveOrganizationMock.mockResolvedValue(switched)
+
+    expect(await setActiveOrganizationAction("org-board")).toEqual(switched)
+    expect(setActiveOrganizationMock).toHaveBeenCalledExactlyOnceWith("org-board")
+    expect(revalidatePathMock.mock.calls.map(([path]) => path)).toEqual([
+      "/admin", "/my-organization", "/organization", "/organization/documents",
+      "/workspace", "/organizations", "/tasks", "/people",
+    ])
+  })
+
+  it("does not revalidate pages when organization access is denied", async () => {
+    const denied = { error: "You do not have access to that organization." }
+    setActiveOrganizationMock.mockResolvedValue(denied)
+
+    expect(await setActiveOrganizationAction("org-private")).toEqual(denied)
+    expect(revalidatePathMock).not.toHaveBeenCalled()
   })
 })

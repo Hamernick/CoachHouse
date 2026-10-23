@@ -54,6 +54,17 @@ describe("same-location groups", () => {
     ])
   })
 
+  it("offers separate resources at the same street despite entrance coordinate differences", () => {
+    const a = { id: "a", name: "Pantry", latitude: 41.9, longitude: -87.6, address: null, addressStreet: "123 North Main Street", city: "Chicago", state: "IL", country: "US" }
+    const b = { ...a, id: "b", name: "Clinic", addressStreet: "123 N Main St., Chicago, IL 60601", latitude: 41.9005 }
+    const groups = buildSameLocationGroups([b, a])
+    expect(groups).toHaveLength(1)
+    expect(groups[0].organizations.map(item => item.id)).toEqual(["a", "b"])
+    expect(buildSameLocationGroups([a, { ...b, latitude: 42 }])).toHaveLength(2)
+    expect(buildSameLocationGroups([a, { ...b, addressStreet: "125 N Main St" }])).toHaveLength(2)
+    expect(buildSameLocationGroups([a, { ...b, addressStreet: "123 N Main St Suite 2" }])).toHaveLength(2)
+  })
+
   it("uses a stable coordinate key for shared-location markers", () => {
     expect(
       resolveSameLocationGroupKey({
@@ -84,4 +95,21 @@ describe("same-location groups", () => {
       }),
     ).toBe("Chicago, IL, United States")
   })
+})
+
+it("does not duplicate a pin when a third item shares an alternate entrance coordinate", () => {
+  const a = { id: "a", name: "Pantry", latitude: 41.9, longitude: -87.6, address: null, addressStreet: "123 Main St", city: "Chicago", state: "IL", country: "US" }
+  const b = { ...a, id: "b", latitude: 41.9005 }
+  const c = { ...b, id: "c", addressStreet: null }
+  const groups = buildSameLocationGroups([c, b, a, a])
+  expect(groups).toHaveLength(1)
+  expect(groups[0].organizations.map(item=>item.id)).toEqual(["a", "b", "c"])
+})
+
+
+it("retains an address learned from an exact-coordinate collision", () => {
+  const a = { id: "a", name: "Pantry", latitude: 41.9, longitude: -87.6, address: null, addressStreet: null, city: "Chicago", state: "IL", country: "US" }
+  const b = { ...a, id: "b", addressStreet: "123 Main St" }
+  const c = { ...b, id: "c", latitude: 41.9005 }
+  expect(buildSameLocationGroups([a,b,c])).toHaveLength(1)
 })

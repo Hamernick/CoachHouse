@@ -13,10 +13,10 @@ export function validateOrgMediaFile(file: File): string | null {
   return null
 }
 
-export async function uploadOrgMedia({ file, kind }: { file: File; kind: OrgMediaKind }): Promise<string> {
+export async function uploadOrgMedia({ file, kind, organizationId }: { file: File; kind: OrgMediaKind; organizationId?: string }): Promise<string> {
   const formData = new FormData()
   formData.append("file", file)
-  const res = await fetch(`/api/account/org-media?kind=${kind}`, { method: "POST", body: formData })
+  const res = await fetch(`/api/account/org-media?kind=${kind}`, { method: "POST", body: formData, headers: organizationId ? { "x-coach-house-organization-id": organizationId } : undefined })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err?.error || "Upload failed")

@@ -27,6 +27,8 @@ export type LinkPreviewMetaMap = Record<string, LinkPreviewMeta>
 export type RichTextEditorProps = {
   basicToolbar?: boolean
   hideLinkPreviews?: boolean
+  onReady?: (editor: Editor) => void
+  applyExternalValue?: boolean
   value: string
   onChange: (value: string) => void
   ariaLabel?: string
@@ -47,6 +49,7 @@ export type RichTextEditorProps = {
   }) => void | Promise<void>
   insertUploadedImage?: boolean
   preserveImages?: boolean
+  linkPreviews?: boolean
   onImagePickerReady?: (open: (() => void) | null) => void
   toolbarPortalId?: string
   toolbarClassName?: string

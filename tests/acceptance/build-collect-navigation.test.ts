@@ -20,8 +20,8 @@ describe("build-collect-navigation feature contract", () => {
     expect(BUILD_NAVIGATION_ITEMS.map((item) => item.href)).toEqual([
       "/build#workspace",
       "/build#accelerator",
-      "/build#documentation",
-      "/build#pricing",
+      "/documentation",
+      "/pricing",
     ])
   })
 

@@ -1,9 +1,14 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { resolvePublicMapPinMarkerGeometry } from "@/lib/public-map/public-map-pin-marker-canvas"
-import { PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE } from "@/components/public/public-map-index/map-marker-layer-contracts"
+import type mapboxgl from "mapbox-gl"
+import {
+  ensurePublicMapMarkerLayers,
+  syncPublicMapMarkerSelection,
+  PUBLIC_MAP_SELECTED_MARKER_ICON_SIZE,
+} from "@/components/public/public-map-index/map-marker-layer-contracts"
 import { resolvePublicMapMarkerClickAction } from "@/components/public/public-map-index/public-map-marker-runtime"
 import { shouldUsePublicMapPinProfileImage } from "@/lib/public-map/public-map-pin-marker-images"
 
@@ -12,13 +17,80 @@ function readRepoFile(path: string) {
 }
 
 describe("public map pin markers", () => {
+  it("uses viewport collisions for normal pins only, and releases them at zoom 12", () => {
+    const layers = new Map<string, mapboxgl.SymbolLayerSpecification>()
+    const setData = vi.fn()
+    const map = {
+      getStyle: () => ({}),
+      getSource: () => ({ setData }),
+      getLayer: (id: string) => layers.get(id),
+      addLayer: (layer: mapboxgl.SymbolLayerSpecification) =>
+        layers.set(layer.id, layer),
+      removeLayer: (id: string) => layers.delete(id),
+      setFilter: vi.fn(),
+      setPaintProperty: vi.fn(),
+      setLayoutProperty: vi.fn(),
+    }
+    expect(
+      ensurePublicMapMarkerLayers({
+        map: map as unknown as mapboxgl.Map,
+        declutter: true,
+        maxRelevanceTier: 0,
+      })
+    ).toBe(true)
+    const normal = [...layers.values()].find((layer) =>
+      (layer.filter as unknown[])?.some((predicate) =>
+        JSON.stringify(predicate).includes("markerRelevanceTier")
+      )
+    )
+    expect(normal?.layout?.["icon-allow-overlap"]).toBe(false)
+    expect(normal?.filter).toContainEqual([
+      "<=",
+      ["get", "markerRelevanceTier"],
+      3,
+    ])
+    const other = [...layers.values()].filter((layer) => layer !== normal)
+    expect(other).toHaveLength(2)
+    expect(
+      other.every((layer) => layer.layout?.["icon-allow-overlap"] === true)
+    ).toBe(true)
+    map.setLayoutProperty.mockClear()
+    syncPublicMapMarkerSelection({
+      map: map as unknown as mapboxgl.Map,
+      declutter: true,
+      maxRelevanceTier: 3,
+      selectedOrganizationId: null,
+      activeSameLocationGroupKey: null,
+    })
+    expect(map.setLayoutProperty).toHaveBeenCalledWith(
+      normal?.id,
+      "icon-allow-overlap",
+      true
+    )
+    expect(setData).not.toHaveBeenCalled()
+    layers.clear()
+    ensurePublicMapMarkerLayers({
+      map: map as unknown as mapboxgl.Map,
+      maxRelevanceTier: 0,
+    })
+    expect(
+      [...layers.values()].every(
+        (layer) => layer.layout?.["icon-allow-overlap"] === true
+      )
+    ).toBe(true)
+  })
+
   it("uses compact circular white-shell pins anchored by their tip", () => {
     const canvasSource = readRepoFile(
       "src/lib/public-map/public-map-pin-marker-canvas.ts"
     )
-    const layerSource = readRepoFile(
-      "src/components/public/public-map-index/map-marker-layer-contracts.ts"
-    )
+    const layerSource =
+      readRepoFile(
+        "src/components/public/public-map-index/map-marker-layer-contracts.ts"
+      ) +
+      readRepoFile(
+        "src/components/public/public-map-index/map-marker-style-contracts.ts"
+      )
 
     expect(canvasSource).toContain('context.fillStyle = "#FFFFFF"')
     expect(canvasSource).toContain(
@@ -47,8 +119,8 @@ describe("public map pin markers", () => {
     expect(canvasSource).toContain("drawPublicMapResourceCategoryMarkerIcon")
     expect(canvasSource).not.toContain("createRadialGradient")
     expect(layerSource).toContain('"icon-anchor": "bottom"')
-    expect(layerSource).toContain('"icon-allow-overlap": true')
-    expect(layerSource).toContain('"icon-ignore-placement": true')
+    expect(layerSource).toContain('"icon-allow-overlap":')
+    expect(layerSource).toContain('"icon-ignore-placement":')
     expect(layerSource).toContain(
       '"symbol-sort-key": PUBLIC_MAP_MARKER_SORT_KEY_EXPRESSION'
     )
@@ -186,7 +258,7 @@ describe("public map pin markers", () => {
     })
   })
 
-  it("focuses the map when any marker is clicked", () => {
+  it("focuses the map when a single-resource marker is clicked", () => {
     const selectionSource = readRepoFile(
       "src/components/public/public-map-index/public-map-index-selection.ts"
     )
@@ -194,17 +266,8 @@ describe("public map pin markers", () => {
       selectionSource.indexOf("const handleSelectMapMarker"),
       selectionSource.indexOf("const handleOpenSameLocationGroup")
     )
-    const sameLocationSource = selectionSource.slice(
-      selectionSource.indexOf("const handleOpenSameLocationGroup"),
-      selectionSource.indexOf(
-        "return {",
-        selectionSource.indexOf("const handleOpenSameLocationGroup")
-      )
-    )
 
     expect(markerSelectionSource).toContain("focusMapItemOnMap(selectableId)")
     expect(markerSelectionSource).toContain("openDetails: true")
-    expect(sameLocationSource).toContain("handleSelectMapMarker(selectableIds[0], true)")
-    expect(sameLocationSource).not.toContain('setSidebarMode("search")')
   })
 })

@@ -1,0 +1,26 @@
+import { expect, test } from "@playwright/test"
+import { buildRichTextEditabilityFixture } from "./fixtures/rich-text-editability"
+
+test("connected editor accepts typing and respects later read-only changes", async ({ page }) => {
+  await page.setContent('<div id="root"></div>')
+  await page.addScriptTag({ content: await buildRichTextEditabilityFixture() })
+  const editor = page.getByLabel("Document", { exact: true })
+  const updates = page.locator("output")
+  const toggle = page.getByRole("button", { name: "Toggle access" })
+  await expect(editor).toHaveAttribute("contenteditable", "false")
+  await toggle.click()
+  await expect(editor).toHaveAttribute("contenteditable", "true")
+  await expect(updates).toHaveText("0")
+  await editor.press("End")
+  await editor.pressSequentially(" edited")
+  await expect(editor).toHaveText("Existing text edited")
+  const afterTyping = await updates.textContent()
+  expect(Number(afterTyping)).toBeGreaterThan(0)
+  await toggle.click()
+  await expect(editor).toHaveAttribute("contenteditable", "false")
+  await expect(updates).toHaveText(afterTyping!)
+  await toggle.click()
+  await expect(editor).toHaveAttribute("contenteditable", "true")
+  await expect(editor).toHaveText("Existing text edited")
+  await expect(updates).toHaveText(afterTyping!)
+})

@@ -1,4 +1,4 @@
-import { setActiveOrganizationAction } from "../../actions"
+import { OrganizationWorkspaceSupportPanel } from "@/features/organization-workspace-support"
 import type { MemberWorkspaceHeaderState } from "../../types"
 import { MemberWorkspaceOrgSwitcher } from "./member-workspace-org-switcher"
 
@@ -10,11 +10,14 @@ export function MemberWorkspaceSidebarHeader({
   if (!state) return null
 
   return (
+    <>
     <MemberWorkspaceOrgSwitcher
       presentation="account-menu"
+      canSearchSupport={state.canSearchSupport}
       activeOrganization={state.activeOrganization}
       organizations={state.accessibleOrganizations}
-      setActiveOrganizationAction={setActiveOrganizationAction}
     />
+    {state.presenceOrganizationId ? <OrganizationWorkspaceSupportPanel organizationId={state.presenceOrganizationId} supportAccess={state.activeOrganization.supportAccess} /> : null}
+    </>
   )
 }

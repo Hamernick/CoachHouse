@@ -31,6 +31,7 @@ function createProject(
 ): PlatformAdminDashboardLabProject {
   return {
     id: overrides.id ?? "project-1",
+    createdAt: overrides.createdAt,
     name: overrides.name ?? "Project",
     taskCount: overrides.taskCount ?? 0,
     progress: overrides.progress ?? 0,
@@ -414,4 +415,23 @@ describe("member workspace project filters", () => {
       "cancelled",
     ])
   })
+})
+
+
+it("persists completion and added ordering and filters projects by actual completion", () => {
+  const options = paramsToViewOptions(new URLSearchParams("completion=completed&order=added"))
+  expect(paramsToViewOptions(applyViewOptionsToParams(new URLSearchParams(), options))).toEqual(options)
+  const projects = [createProject({ id: "active", status: "active" }), createProject({ id: "done", status: "completed" }), createProject({ id: "cancelled", status: "cancelled" })]
+  expect(filterMemberWorkspaceProjects({ directory: "projects", filters: [], projects, viewOptions: options }).map(project => project.id)).toEqual(["done"])
+  expect(filterMemberWorkspaceProjects({ directory: "projects", filters: [], projects, viewOptions: { ...options, completion: "incomplete" } }).map(project => project.id)).toEqual(["active", "cancelled"])
+})
+
+it("sorts project creation timestamps independently of deadlines with missing dates last", () => {
+  const projects = [
+    createProject({ id: "unknown" }),
+    createProject({ id: "old", createdAt: "2026-01-01T00:00:00Z", endDate: new Date("2026-12-31") }),
+    createProject({ id: "new", createdAt: "2026-10-20T00:00:00Z", endDate: new Date("2027-01-01") }),
+  ]
+  expect(filterMemberWorkspaceProjects({ projects, filters: [], viewOptions: { ...DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS, ordering: "added" } }).map(project => project.id)).toEqual(["new", "old", "unknown"])
+  expect(filterMemberWorkspaceProjects({ projects, filters: [], viewOptions: { ...DEFAULT_MEMBER_WORKSPACE_PROJECT_VIEW_OPTIONS, ordering: "date" } }).map(project => project.id)).toEqual(["unknown", "old", "new"])
 })

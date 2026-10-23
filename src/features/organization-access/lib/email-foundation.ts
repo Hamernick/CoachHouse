@@ -1,3 +1,4 @@
+import { renderMinimalEmail } from "@/lib/email/minimal-template"
 import {
   formatOrganizationAccessRoleLabel,
   type OrganizationAccessRole,
@@ -12,6 +13,7 @@ export type CoachHouseEmailPreview = {
   previewText: string
   description: string
   html: string
+  text: string
 }
 
 type EmailStat = {
@@ -33,144 +35,23 @@ type EmailTemplateInput = {
   stats?: EmailStat[]
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;")
-}
-
-function renderStats(stats: EmailStat[] | undefined) {
-  if (!stats || stats.length === 0) return ""
-
-  return `
-    <tr>
-      <td style="padding:20px 28px 0 28px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-          <tr>
-            ${stats
-              .map(
-                (stat) => `
-                  <td valign="top" style="width:${100 / stats.length}%;padding-right:8px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc;">
-                      <tr>
-                        <td style="padding:14px 14px 12px 14px;">
-                          <div style="font-size:11px;line-height:1.4;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;font-weight:700;">
-                            ${escapeHtml(stat.label)}
-                          </div>
-                          <div style="padding-top:8px;font-size:18px;line-height:1.2;color:#0f172a;font-weight:700;">
-                            ${escapeHtml(stat.value)}
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                `,
-              )
-              .join("")}
-          </tr>
-        </table>
-      </td>
-    </tr>
-  `
+export function renderCoachHouseEmail(input: EmailTemplateInput) {
+  return renderMinimalEmail({
+    logoUrl: input.logoUrl,
+    eyebrow: input.eyebrow,
+    title: input.title,
+    intro: input.intro,
+    body: input.body,
+    details: input.stats,
+    action: { label: input.ctaLabel, href: input.ctaHref },
+    helpText: input.helpText,
+    footer: input.footer,
+    previewText: input.previewText,
+  })
 }
 
 export function renderCoachHouseEmailHtml(input: EmailTemplateInput) {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${escapeHtml(input.title)}</title>
-  </head>
-  <body style="margin:0;padding:0;background:#f4f4f1;color:#0f172a;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      ${escapeHtml(input.previewText)}
-    </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f4f1;padding:24px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid #ddd7cf;border-radius:22px;overflow:hidden;">
-            <tr>
-              <td style="padding:24px 28px 0 28px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #ddd7cf;border-radius:16px;background:#faf8f4;">
-                  <tr>
-                    <td style="padding:12px 14px;">
-                      <img src="${escapeHtml(input.logoUrl)}" alt="Coach House" width="132" style="display:block;border:0;outline:none;text-decoration:none;height:auto;" />
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:22px 28px 0 28px;">
-                <div style="display:inline-block;border-radius:999px;background:#f2ede5;padding:6px 10px;font-size:11px;line-height:1.2;letter-spacing:0.08em;text-transform:uppercase;color:#6b665f;font-weight:700;">
-                  ${escapeHtml(input.eyebrow)}
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:14px 28px 0 28px;">
-                <h1 style="margin:0;font-size:30px;line-height:1.15;letter-spacing:-0.02em;color:#0f172a;font-weight:700;">
-                  ${escapeHtml(input.title)}
-                </h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:14px 28px 0 28px;">
-                <p style="margin:0;font-size:17px;line-height:1.7;color:#334155;">
-                  ${escapeHtml(input.intro)}
-                </p>
-              </td>
-            </tr>
-            ${renderStats(input.stats)}
-            <tr>
-              <td style="padding:20px 28px 0 28px;">
-                ${input.body
-                  .map(
-                    (paragraph) => `
-                      <p style="margin:0 0 14px 0;font-size:15px;line-height:1.8;color:#475569;">
-                        ${escapeHtml(paragraph)}
-                      </p>
-                    `,
-                  )
-                  .join("")}
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:10px 28px 0 28px;">
-                <a href="${escapeHtml(input.ctaHref)}" style="display:inline-block;border-radius:14px;background:#0f172a;padding:14px 18px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;line-height:1;">
-                  ${escapeHtml(input.ctaLabel)}
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:18px 28px 0 28px;">
-                <div style="border:1px solid #e5e7eb;border-radius:16px;background:#f8fafc;padding:14px 16px;">
-                  <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;">
-                    ${escapeHtml(input.helpText)}
-                  </p>
-                  <p style="margin:10px 0 0 0;word-break:break-all;font-size:12px;line-height:1.7;color:#0f172a;">
-                    ${escapeHtml(input.ctaHref)}
-                  </p>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:18px 28px 28px 28px;">
-                <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7280;">
-                  ${escapeHtml(input.footer)}
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
+  return renderCoachHouseEmail(input).html
 }
 
 type PreviewSeed = {
@@ -179,7 +60,7 @@ type PreviewSeed = {
 }
 
 function resolveLogoUrl(siteUrl: string) {
-  return `${siteUrl.replace(/\/$/, "")}/coach-house-logo-light.png`
+  return `${siteUrl.replace(/\/$/, "")}/coach-house-logo-dark.png`
 }
 
 export function buildOrganizationInviteEmailPreview({
@@ -197,19 +78,18 @@ export function buildOrganizationInviteEmailPreview({
     previewText: `Accept your Coach House invite to join ${organizationName}.`,
     description:
       "Custom app-owned invite email for people who do not have an account yet.",
-    html: renderCoachHouseEmailHtml({
+    ...renderCoachHouseEmail({
       logoUrl: resolveLogoUrl(siteUrl),
       eyebrow: "Organization invite",
       title: `Join ${organizationName} on Coach House`,
       intro:
-        "You’ve been invited to create your account and step into the organization workspace.",
+        "You’ve been invited to join this organization on Coach House.",
       body: [
-        `${organizationName} is using Coach House to keep plans, operations, and team context in one place.`,
-        "Create your account first, then we’ll take you straight into the final join step.",
+        "Create your account, then accept the invitation to access the workspace.",
       ],
       ctaLabel: "Create account and join",
       ctaHref: joinUrl,
-      helpText: "If the button does not open correctly, paste this link into your browser.",
+      helpText: "Sign in or create an account to accept this invitation.",
       footer:
         "If you were not expecting this invite, you can safely ignore this message.",
       previewText: `Accept your Coach House invite to join ${organizationName}.`,
@@ -225,25 +105,28 @@ export function buildExistingUserRequestEmailPreview({
   siteUrl,
   organizationName,
   reviewUrl = `${siteUrl.replace(/\/$/, "")}/access-requests`,
-}: PreviewSeed & { reviewUrl?: string }): CoachHouseEmailPreview {
+  inviterName,
+  role,
+  respondBy,
+}: PreviewSeed & { reviewUrl?: string; inviterName?: string; role?: OrganizationAccessRole; respondBy?: string }): CoachHouseEmailPreview {
   return {
     id: "organization-existing-user-request",
     family: "app",
     category: "Invites",
     title: "Existing user request",
-    subject: `${organizationName} invited you to Coach House access`,
+    subject: `${organizationName} invited you to collaborate`,
     previewText: `Review the access request from ${organizationName} inside your Coach House account.`,
     description:
       "Heads-up email for an existing Coach House user who should accept or decline inside notifications.",
-    html: renderCoachHouseEmailHtml({
+    ...renderCoachHouseEmail({
       logoUrl: resolveLogoUrl(siteUrl),
       eyebrow: "Access request",
       title: `${organizationName} invited you to collaborate`,
-      intro:
-        "There’s a new access request waiting for you in Coach House notifications.",
+      intro: inviterName
+        ? `${inviterName} invited you to collaborate with ${organizationName}.`
+        : "There’s a new access request waiting for you in Coach House notifications.",
       body: [
         "Open your account to review the request and choose whether to accept or decline it.",
-        "This keeps access decisions tied to your existing Coach House identity instead of a separate invite link.",
       ],
       ctaLabel: "Review request",
       ctaHref: reviewUrl,
@@ -254,6 +137,8 @@ export function buildExistingUserRequestEmailPreview({
       stats: [
         { label: "Action", value: "Accept or decline" },
         { label: "Location", value: "Notifications" },
+        ...(role ? [{ label: "Role", value: formatOrganizationAccessRoleLabel(role) }] : []),
+        ...(respondBy ? [{ label: "Respond by", value: respondBy }] : []),
       ],
     }),
   }
@@ -285,7 +170,7 @@ function buildSupabaseAuthEmailTemplate(
     subject: input.subject,
     previewText: input.previewText,
     description: input.description,
-    html: renderCoachHouseEmailHtml({
+    ...renderCoachHouseEmail({
       logoUrl: resolveLogoUrl(siteUrl),
       eyebrow: input.eyebrow,
       title: input.title,
@@ -293,13 +178,9 @@ function buildSupabaseAuthEmailTemplate(
       body: input.body,
       ctaLabel: input.ctaLabel,
       ctaHref: input.ctaHref,
-      helpText: "If the button does not work, paste this link into your browser.",
+      helpText: "Use this link only if you requested this email.",
       footer: input.footer,
       previewText: input.previewText,
-      stats: [
-        { label: "Security", value: "Verified" },
-        { label: "Channel", value: "Email" },
-      ],
     }),
   }
 }
@@ -314,7 +195,7 @@ export function buildSupabaseAuthEmailPreviews(
       id: "supabase-confirm-sign-up",
       title: "Confirm your email",
       subject: "Confirm your email to get started with Coach House",
-      previewText: "One quick click and your account will be ready.",
+      previewText: "Confirm your address to continue setting up your account.",
       description: "Supabase confirmation email used after sign up.",
       eyebrow: "Confirm sign up",
       ctaLabel: "Confirm email",
@@ -323,7 +204,7 @@ export function buildSupabaseAuthEmailPreviews(
       intro:
         "Welcome to Coach House. Confirm your email so we can finish setting up your account.",
       body: [
-        "This keeps access secure and makes sure we’re sending updates to the right place.",
+        "After confirming, you can continue where you left off.",
       ],
       footer: "If you didn’t create an account, you can safely ignore this email.",
     }),
@@ -383,7 +264,8 @@ export function buildSupabaseAuthEmailPreviews(
       description: "Supabase recovery email template.",
       eyebrow: "Reset password",
       ctaLabel: "Reset password",
-      ctaHref: "{{ .ConfirmationURL }}",
+      ctaHref:
+        `${normalizedSiteUrl}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next={{ .RedirectTo }}`,
       intro:
         "Use the secure link below to choose a new password for your Coach House account.",
       body: [
@@ -431,23 +313,21 @@ export function buildOrganizationAccessRequestEmailSubject({
 }: {
   organizationName: string
 }) {
-  return `${organizationName} invited you to Coach House access`
+  return `${organizationName} invited you to collaborate`
 }
 
-export function buildOrganizationAccessRequestEmailHtml({
-  siteUrl,
-  organizationName,
-  reviewUrl,
-}: {
-  siteUrl: string
-  organizationName: string
+export function buildOrganizationAccessRequestEmail(input: PreviewSeed & {
   reviewUrl: string
+  inviterName?: string
+  role?: OrganizationAccessRole
+  respondBy?: string
 }) {
-  return buildExistingUserRequestEmailPreview({
-    siteUrl,
-    organizationName,
-    reviewUrl,
-  }).html
+  const { html, text } = buildExistingUserRequestEmailPreview(input)
+  return { html, text }
+}
+
+export function buildOrganizationAccessRequestEmailHtml(input: Parameters<typeof buildOrganizationAccessRequestEmail>[0]) {
+  return buildOrganizationAccessRequestEmail(input).html
 }
 
 export function buildOrganizationInviteEmailSubject({
@@ -460,36 +340,46 @@ export function buildOrganizationInviteEmailSubject({
   return `Join ${organizationName} as ${formatOrganizationAccessRoleLabel(role)} on Coach House`
 }
 
-export function buildOrganizationInviteEmailHtml({
+export function buildOrganizationInviteEmail({
   siteUrl,
   organizationName,
   role,
   joinUrl,
+  inviterName,
+  respondBy,
 }: {
   siteUrl: string
   organizationName: string
   role: OrganizationAccessRole
   joinUrl: string
+  inviterName?: string
+  respondBy?: string
 }) {
-  return renderCoachHouseEmailHtml({
+  return renderCoachHouseEmail({
     logoUrl: resolveLogoUrl(siteUrl),
     eyebrow: "Organization invite",
     title: `Join ${organizationName} on Coach House`,
-    intro:
-      "You’ve been invited to create your account and step into the organization workspace.",
+    intro: inviterName
+      ? `${inviterName} invited you to join ${organizationName}.`
+      : "You’ve been invited to join this organization on Coach House.",
     body: [
       `${organizationName} is ready for you inside Coach House.`,
       `Your access will open as ${formatOrganizationAccessRoleLabel(role)} once you finish the secure join step.`,
     ],
     ctaLabel: "Create account and join",
     ctaHref: joinUrl,
-    helpText: "If the button does not open correctly, paste this link into your browser.",
+    helpText: "Sign in or create an account to accept this invitation.",
     footer:
       "If you were not expecting this invite, you can safely ignore this message.",
     previewText: `Accept your Coach House invite to join ${organizationName}.`,
     stats: [
       { label: "Access", value: "Organization" },
       { label: "Role", value: formatOrganizationAccessRoleLabel(role) },
+      ...(respondBy ? [{ label: "Respond by", value: respondBy }] : []),
     ],
   })
+}
+
+export function buildOrganizationInviteEmailHtml(input: Parameters<typeof buildOrganizationInviteEmail>[0]) {
+  return buildOrganizationInviteEmail(input).html
 }

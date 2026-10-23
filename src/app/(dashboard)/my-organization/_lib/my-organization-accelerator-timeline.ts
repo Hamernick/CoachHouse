@@ -66,6 +66,7 @@ async function loadModuleContextById({
           classSlug,
           userId,
           forceAdmin: false,
+          includeProgress: false,
           supabase,
         })
         return { classSlug, context }

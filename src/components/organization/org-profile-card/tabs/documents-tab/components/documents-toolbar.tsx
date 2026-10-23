@@ -23,7 +23,7 @@ const TABS: Array<{ value: DocumentsLibraryTab; label: string }> = [
 export function DocumentsToolbar(props: DocumentsToolbarProps) {
   const inWindowHeader = useWorkspaceWindowHeader()
   return (
-    <header className={inWindowHeader ? undefined : "space-y-5"}>
+    <header className={inWindowHeader ? undefined : "mb-6 space-y-5"}>
       <WorkspaceWindowHeaderPortal>
         <div
           className={cn(

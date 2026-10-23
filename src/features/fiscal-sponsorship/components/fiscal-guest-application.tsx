@@ -31,7 +31,7 @@ export function FiscalGuestApplication({ reference, profileImportEnabled = false
     <h1 id="guest-application-title" className="text-2xl font-normal tracking-tight">Your application</h1>
     <p className="mt-1 text-sm text-muted-foreground">Private application status. No account required.</p>
     {loading && <div role="status" className="mt-4 space-y-2"><span className="sr-only">Loading application…</span><Skeleton className="h-6 w-48" /><Skeleton className="h-16 w-full rounded-xl" /></div>}
-    {error && <div role="alert" className="mt-4 rounded-xl border p-4 text-sm"><p>{error}</p><Button type="button" variant="outline" onClick={() => { void load() }} className="mt-3 min-h-11 rounded-full shadow-none">Retry</Button><p className="mt-2 text-muted-foreground"><Link className="underline focus-ring" href={`/documentation/fiscal-sponsorship/recover?application=${reference}`}>Request a new access link</Link>.</p></div>}
+    {error && <div role="alert" className="mt-4 rounded-xl border p-4 text-sm"><p>{error}</p><Button type="button" variant="outline" onClick={() => { void load() }} className="mt-3 min-h-11 rounded-full shadow-none">Check again</Button><p className="mt-2 text-muted-foreground">If you verified on your phone, check again in the original browser where you applied. In a different browser, <Link className="underline focus-ring" href={`/documentation/fiscal-sponsorship/recover?application=${reference}`}>request a new access link</Link>.</p></div>}
     {application && <>
       <div className="mt-5 rounded-2xl border p-4">
         <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="min-w-0 break-words text-lg font-medium">{application.projectName}</h2><Badge variant="secondary">{status}</Badge></div>

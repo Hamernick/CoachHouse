@@ -15,6 +15,7 @@ export function useCoachingBookingActions({
   timezone,
   attendeeNotes,
   onBooked,
+  onUnavailable,
 }: {
   selectedSlot: CoachingSlot | null
   checkoutUnavailable: boolean
@@ -22,6 +23,7 @@ export function useCoachingBookingActions({
   timezone: string
   attendeeNotes: string
   onBooked: () => void
+  onUnavailable?: () => void
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -42,10 +44,17 @@ export function useCoachingBookingActions({
 
         if (!result.ok) {
           toast.error(result.error)
+          if (result.code === "COACHING_SLOT_UNAVAILABLE") onUnavailable?.()
           return
         }
         if ("checkoutUrl" in result && result.checkoutUrl) {
           window.location.assign(result.checkoutUrl)
+          return
+        }
+        if (!result.confirmed) {
+          toast.error("Your meeting is not confirmed. Refresh and choose another time.")
+          onUnavailable?.()
+          router.refresh()
           return
         }
         router.refresh()

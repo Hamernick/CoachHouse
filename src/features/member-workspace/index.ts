@@ -19,6 +19,7 @@ export {
   sanitizeProjectAssetFilename,
 } from "./lib"
 export { setActiveOrganizationAction } from "./actions"
+export { handleOrganizationSwitchPost } from "./routes"
 export {
   loadAccessibleOrganizations,
   loadOrganizationPrograms,
@@ -39,7 +40,6 @@ export {
   clearMemberWorkspaceStarterDataAction,
   createMemberWorkspaceProjectAction,
   deleteMemberWorkspaceProjectAction,
-  resetMemberWorkspaceStarterProjectsAction,
   updateMemberWorkspaceProjectAction,
   updateMemberWorkspaceProjectScheduleAction,
   updateMemberWorkspaceProjectStatusAction,
@@ -54,6 +54,10 @@ export {
 } from "./project-detail-actions"
 export {
   createMemberWorkspaceTaskAction,
+  createDirectoryTaskAction,
+  updateDirectoryTaskAction,
+  scheduleMemberWorkspaceTaskAction,
+  moveMemberWorkspaceTaskAction,
   deleteMemberWorkspaceTaskAction,
   updateMemberWorkspaceTaskAction,
   updateMemberWorkspaceTaskOrderAction,
@@ -66,3 +70,7 @@ export type {
   MemberWorkspaceHeaderState,
   MemberWorkspaceWorkstreamCategory,
 } from "./types"
+
+export { updateDirectoryTaskStatusAction } from "./task-actions"
+
+export { loadProjectTimelineAction, saveProjectTimelineDatesAction, saveProjectTimelineStatusAction } from "./actions"

@@ -4,11 +4,13 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { guestEmailProofSecret } from "./guest-email-proof-token"
-import { guestIntakeConfiguration, guestRequestIdentity, guestRiskKey, readGuestJson, verifyGuestCaptcha } from "./guest-request-security"
+import { guestIntakeConfiguration, guestRequestIdentity, guestRiskKey, readGuestJson } from "./guest-request-security"
 
 const schema = z.object({
   reference: z.string().uuid(), email: z.string().trim().toLowerCase().email().max(254),
-  requestId: z.string().uuid(), captchaToken: z.string().min(1).max(10000),
+  requestId: z.string().uuid(),
+  // Accept ignored tokens from forms loaded before CAPTCHA removal.
+  captchaToken: z.string().max(10000).optional(),
 }).strict()
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: {
   "Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
@@ -36,7 +38,6 @@ export async function handleGuestFiscalRecovery(request: Request) {
     })
     if (ipLimit.error) throw new Error("limit_unavailable")
     if (ipLimit.data !== true) return reply({ error: "Please wait before requesting another link." }, 429)
-    if (!await verifyGuestCaptcha(config, parsed.data.captchaToken, ip)) return reply({ error: "Please complete the verification again." }, 400)
     const emailLimit = await admin.rpc("consume_fiscal_guest_limit", {
       p_key_hash: guestRiskKey(config.riskSecret, "recovery-email", parsed.data.email), p_limit: 3, p_window_seconds: 86400,
     })

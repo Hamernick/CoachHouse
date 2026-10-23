@@ -79,7 +79,7 @@ export function NavUserMenuContent({
             {avatarFallback}
           </AvatarFallback>
         </Avatar>
-        <div className="flex flex-col text-left text-sm leading-tight">
+        <div className="flex min-w-0 flex-1 flex-col text-left text-sm leading-tight">
           <span className="text-foreground truncate font-medium">
             {displayName}
           </span>

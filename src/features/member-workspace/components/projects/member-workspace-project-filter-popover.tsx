@@ -193,26 +193,31 @@ export function MemberWorkspaceProjectFilterPopover({
       .filter(category => category.label.toLowerCase().includes(normalizedQuery))
   }, [directory, query])
 
-  const handleApply = () => {
+  const applySelection = (selection: FilterTemp) => {
     const chips: FilterChip[] = (initialChips ?? []).filter(
       (chip) => chip.key.toLowerCase() === "search"
     )
-    temp.status.forEach((value) =>
+    selection.status.forEach((value) =>
       chips.push({ key: "Status", value: capitalize(value) })
     )
-    temp.fiscalSponsorship.forEach((value) =>
+    selection.fiscalSponsorship.forEach((value) =>
       chips.push({
         key: "Fiscal Sponsorship",
         value: value.split("_").map(capitalize).join(" "),
       })
     )
-    temp.priority.forEach((value) =>
+    selection.priority.forEach((value) =>
       chips.push({ key: "Priority", value: capitalize(value) })
     )
-    temp.tags.forEach((value) => chips.push({ key: "Tag", value }))
-    temp.members.forEach((value) => chips.push({ key: "Member", value }))
+    selection.tags.forEach((value) => chips.push({ key: "Tag", value }))
+    selection.members.forEach((value) => chips.push({ key: "Member", value }))
     onApply(chips)
-    setOpen(false)
+  }
+
+  const changeSelection = (category: keyof FilterTemp, value: string) => {
+    const next = { ...temp, [category]: toggleSet(temp[category], value) }
+    setTemp(next)
+    applySelection(next)
   }
 
   const handleClear = () => {
@@ -291,12 +296,8 @@ export function MemberWorkspaceProjectFilterPopover({
                   >
                     <Checkbox
                       checked={temp.priority.has(priority)}
-                      onCheckedChange={() =>
-                        setTemp((current) => ({
-                          ...current,
-                          priority: toggleSet(current.priority, priority),
-                        }))
-                      }
+                      aria-label={capitalize(priority)}
+                      onCheckedChange={() => changeSelection("priority", priority)}
                     />
                     <span className="flex-1 text-sm">
                       {capitalize(priority)}
@@ -320,12 +321,8 @@ export function MemberWorkspaceProjectFilterPopover({
                   >
                     <Checkbox
                       checked={temp.status.has(option.value)}
-                      onCheckedChange={() =>
-                        setTemp((current) => ({
-                          ...current,
-                          status: toggleSet(current.status, option.value),
-                        }))
-                      }
+                      aria-label={option.label}
+                      onCheckedChange={() => changeSelection("status", option.value)}
                     />
                     <span className="flex-1 text-sm">{option.label}</span>
                     {counts?.status?.[option.value] != null ? (
@@ -348,15 +345,8 @@ export function MemberWorkspaceProjectFilterPopover({
                     >
                       <Checkbox
                         checked={temp.fiscalSponsorship.has(option.value)}
-                        onCheckedChange={() =>
-                          setTemp((current) => ({
-                            ...current,
-                            fiscalSponsorship: toggleSet(
-                              current.fiscalSponsorship,
-                              option.value
-                            ),
-                          }))
-                        }
+                        aria-label={option.label}
+                      onCheckedChange={() => changeSelection("fiscalSponsorship", option.value)}
                       />
                       <span className="flex-1 text-sm">{option.label}</span>
                       {counts?.fiscalSponsorship?.[option.value] != null ? (
@@ -379,12 +369,8 @@ export function MemberWorkspaceProjectFilterPopover({
                   >
                     <Checkbox
                       checked={temp.members.has(member.id)}
-                      onCheckedChange={() =>
-                        setTemp((current) => ({
-                          ...current,
-                          members: toggleSet(current.members, member.id),
-                        }))
-                      }
+                      aria-label={member.label}
+                      onCheckedChange={() => changeSelection("members", member.id)}
                     />
                     <span className="flex-1 text-sm">{member.label}</span>
                     {counts?.members?.[member.id.toLowerCase()] != null ? (
@@ -417,12 +403,8 @@ export function MemberWorkspaceProjectFilterPopover({
                       >
                         <Checkbox
                           checked={temp.tags.has(tag)}
-                          onCheckedChange={() =>
-                            setTemp((current) => ({
-                              ...current,
-                              tags: toggleSet(current.tags, tag),
-                            }))
-                          }
+                          aria-label={tag}
+                      onCheckedChange={() => changeSelection("tags", tag)}
                         />
                         <span className="flex-1 text-sm">{tag}</span>
                         {counts?.tags?.[tag] != null ? (
@@ -445,8 +427,8 @@ export function MemberWorkspaceProjectFilterPopover({
               >
                 Clear
               </Button>
-              <Button type="button" size="sm" onClick={handleApply}>
-                Apply filters
+              <Button type="button" size="sm" onClick={() => setOpen(false)}>
+                Done
               </Button>
             </div>
           </div>

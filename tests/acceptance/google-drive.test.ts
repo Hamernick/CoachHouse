@@ -27,6 +27,110 @@ afterEach(() => {
   vi.resetModules()
 })
 
+describe("Google Drive roadmap authorization", () => {
+  afterEach(() => {
+    vi.doUnmock("@/features/google-drive/server/context")
+    vi.doUnmock("@/features/google-drive/server/service")
+  })
+
+  async function setup(options: { actor?: string; organization?: string; file?: string; unauthorized?: boolean } = {}) {
+    const { NextRequest, NextResponse } = await import("next/server")
+    const { GoogleDriveError } = await import("@/features/google-drive/types")
+    const content = vi.fn().mockResolvedValue({ name: "Plan", content: "<p>Current Drive content</p>" })
+    const readProfile = vi.fn().mockResolvedValue({ data: { profile: { roadmap: { sections: [{ id: "vision", content: "<p>Keep saved draft</p>", driveSource: { provider: "google_drive", fileId: "selected-file", name: "Plan", webViewLink: "https://docs.google.com/document/d/selected-file/edit" } }] } } }, error: null })
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: readProfile }
+    const context = vi.fn(async () => {
+      if (options.unauthorized) throw new GoogleDriveError("unauthorized", 401)
+      return { user: { id: "current-user" }, organization: { orgId: "current-org" }, supabase: { from: vi.fn().mockReturnValue(query) } }
+    })
+    vi.doMock("@/features/google-drive/server/context", () => ({ requireGoogleDriveContext: context }))
+    vi.doMock("@/features/google-drive/server/service", () => ({ getGoogleDriveFileContent: content }))
+    const { readRoadmapGoogleDriveContent } = await import("@/features/google-drive/server/roadmap-content")
+    const params = new URLSearchParams({ userId: options.actor ?? "current-user", organizationId: options.organization ?? "current-org", sectionId: "vision", fileId: options.file ?? "selected-file" })
+    return { run: () => readRoadmapGoogleDriveContent(new NextRequest(`https://example.test/api/integrations/google-drive/roadmap-content?${params}`), new NextResponse()), content, readProfile }
+  }
+
+  it("requires authentication before any profile or provider read", async () => {
+    const fixture = await setup({ unauthorized: true })
+    await expect(fixture.run()).rejects.toMatchObject({ code: "unauthorized", status: 401 })
+    expect(fixture.readProfile).not.toHaveBeenCalled()
+    expect(fixture.content).not.toHaveBeenCalled()
+  })
+
+  it.each([{ actor: "other-user" }, { organization: "other-org" }])("rejects a changed actor or organization", async (options) => {
+    const fixture = await setup(options)
+    await expect(fixture.run()).rejects.toMatchObject({ code: "forbidden", status: 403 })
+    expect(fixture.readProfile).not.toHaveBeenCalled()
+    expect(fixture.content).not.toHaveBeenCalled()
+  })
+
+  it("rejects a stale or arbitrary file selection before contacting Google", async () => {
+    const fixture = await setup({ file: "unlinked-file" })
+    await expect(fixture.run()).rejects.toMatchObject({ code: "file_not_authorized", status: 403 })
+    expect(fixture.content).not.toHaveBeenCalled()
+  })
+
+  it("reads only the persisted section's file through the authenticated actor", async () => {
+    const fixture = await setup()
+    await expect(fixture.run()).resolves.toEqual({ name: "Plan", content: "<p>Current Drive content</p>" })
+    expect(fixture.content).toHaveBeenCalledExactlyOnceWith({ userId: "current-user", fileId: "selected-file" })
+  })
+})
+
+describe("Google Drive roadmap content", () => {
+  function stubDocument(content: string, mimeType = "application/vnd.google-apps.document", name = "Strategy") {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: "selected-file", name, mimeType, webViewLink: "https://docs.google.com/document/d/selected-file/edit" }))
+      .mockResolvedValueOnce(new Response(content))
+    vi.stubGlobal("fetch", fetchMock)
+    return fetchMock
+  }
+
+  it("exports sanitized HTML without returning credentials or changing stored drafts", async () => {
+    const fetchMock = stubDocument('<html><head><title>Hidden title</title></head><body><h1>Strategy</h1><p onclick="steal()">Plan<script>private()</script><a href="javascript:steal()">link</a></p></body></html>')
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    const document = await downloadGoogleDriveDocumentContent("private-token", "selected-file")
+    expect(document).toEqual({ name: "Strategy", content: "<h1>Strategy</h1><p>Plan<a>link</a></p>" })
+    expect(fetchMock.mock.calls[1][0].searchParams.get("mimeType")).toBe("text/html")
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ cache: "no-store", redirect: "error", headers: { authorization: "Bearer private-token" } })
+  })
+
+  it.each([
+    ["text/plain", "notes.txt", "<b>text</b>\nnext", "<p>&lt;b&gt;text&lt;/b&gt;<br>next</p>"],
+    ["text/markdown", "notes.md", "**Plan**\nNext", "<p><strong>Plan</strong><br>Next</p>"],
+  ])("reads %s without interpreting supplied HTML", async (mime, name, input, expected) => {
+    stubDocument(input, mime, name)
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    expect((await downloadGoogleDriveDocumentContent("token", "selected-file")).content).toBe(expected)
+  })
+
+  it("rejects unsupported formats before downloading content", async () => {
+    const fetchMock = stubDocument("unused", "application/pdf", "plan.pdf")
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    await expect(downloadGoogleDriveDocumentContent("token", "selected-file")).rejects.toMatchObject({ code: "unsupported_preview", status: 415 })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("rejects revoked or inaccessible provider files", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 403 })))
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    await expect(downloadGoogleDriveDocumentContent("token", "selected-file")).rejects.toMatchObject({ code: "file_not_authorized", status: 403 })
+  })
+
+  it("does not return provider export errors as document content", async () => {
+    const fetchMock = stubDocument("unused")
+    fetchMock.mockReset().mockResolvedValueOnce(Response.json({ id: "selected-file", name: "Plan", mimeType: "application/vnd.google-apps.document", webViewLink: "https://docs.google.com/document/d/selected-file/edit" })).mockResolvedValueOnce(new Response("private-provider-error", { status: 403 }))
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    await expect(downloadGoogleDriveDocumentContent("token", "selected-file")).rejects.toMatchObject({ code: "file_not_authorized", status: 403 })
+  })
+
+  it("bounds preview content even when the provider omits content-length", async () => {
+    stubDocument("x".repeat(15 * 1024 * 1024 + 1))
+    const { downloadGoogleDriveDocumentContent } = await import("@/features/google-drive/server/file-content")
+    await expect(downloadGoogleDriveDocumentContent("token", "selected-file")).rejects.toMatchObject({ code: "invalid", status: 413 })
+  })
+})
+
 function stubGoogleDriveServerConfig() {
   vi.stubEnv("GOOGLE_DRIVE_ENABLED", "true")
   vi.stubEnv("GOOGLE_DRIVE_CLIENT_ID", "client-id")

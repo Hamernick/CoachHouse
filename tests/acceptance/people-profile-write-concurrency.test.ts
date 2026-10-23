@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 
@@ -11,6 +11,8 @@ import {
   PEOPLE_PROFILE_WRITE_CONFLICT_ERROR,
 } from "@/lib/people/profile-write"
 
+import { writeOnboardingOrganizationProfile } from "@/lib/onboarding/organization-profile-write"
+
 const ROOT = process.cwd()
 
 function readSource(relativePath: string) {
@@ -18,6 +20,22 @@ function readSource(relativePath: string) {
 }
 
 describe("People profile write concurrency", () => {
+  it("retries a concurrent organization insert and preserves the other writer's fields", async () => {
+    const read = vi.fn()
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: { profile: { mission: "Concurrent mission", org_people: [{ id: "other", name: "Other" }] }, updated_at: "revision-1" }, error: null })
+    const insert = vi.fn().mockReturnValue({ select: () => ({ maybeSingle: async () => ({ data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "organizations_pkey"' } }) }) })
+    const updateQuery = { eq: vi.fn(() => updateQuery), select: () => ({ maybeSingle: async () => ({ data: { updated_at: "revision-2" }, error: null }) }) }
+    const update = vi.fn(() => updateQuery)
+    const supabase = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: read }) }), insert, update }) } as unknown as SupabaseClient<Database>
+    expect(await writeOnboardingOrganizationProfile({
+      supabase, avatarUrl: null, formationStatus: null, fullName: "Founder", intentFocus: "build", linkedin: "", normalizedSlug: "community-house", orgName: "Community House", publicEmail: "", roleInterest: null, targetOrgId: "owner", title: "Founder", user: { id: "owner" },
+    })).toEqual({ ok: true })
+    expect(insert).toHaveBeenCalledTimes(1)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ profile: expect.objectContaining({ mission: "Concurrent mission", org_people: expect.arrayContaining([{ id: "other", name: "Other" }, expect.objectContaining({ id: "owner" })]) }) }))
+    expect(updateQuery.eq).toHaveBeenCalledWith("updated_at", "revision-1")
+  })
+
   it("retries a stale write and preserves the concurrent profile change", async () => {
     let revision = "revision-1"
     let profile: Record<string, unknown> = {

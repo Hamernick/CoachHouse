@@ -1,3 +1,4 @@
+import { normalizeEin } from "@/lib/organization/ein"
 import type { ModuleCardStatus } from "@/lib/accelerator/progress"
 import {
   resolveOrganizationNarrativePlainText,
@@ -135,24 +136,9 @@ export function resolveAcceleratorReadiness({
     fundableHardRequirements &&
     fundableScore >= ACCELERATOR_FUNDABLE_THRESHOLD
 
-  const docDepthCount = VERIFIED_DOC_KEYS.filter((key) => hasUploadedDocument(documents, key)).length
-  const docDepthScore = Math.round((docDepthCount / VERIFIED_DOC_KEYS.length) * 20)
-  const hasAdvancedModuleSignal = modules.some((module) => {
-    const slug = module.slug.trim().toLowerCase()
-    if (CORE_FORMATION_MODULE_SLUGS.has(slug)) return false
-    return module.status === "in_progress" || module.status === "completed"
-  })
-  const verifiedScore = clamp((fundable ? 70 : 0) + docDepthScore + (hasAdvancedModuleSignal ? 10 : 0), 0, 100)
-
   const formationStatus = String(profile.formationStatus ?? "").trim().toLowerCase()
-  const verifiedMandatory =
-    hasVerificationLetter &&
-    formationStatus === "approved" &&
-    coreLessonsComplete &&
-    roadmapCoreCompleted === CORE_ROADMAP_SECTION_IDS.size &&
-    hasFundingGoal
-  const verified =
-    verifiedMandatory && verifiedScore >= ACCELERATOR_VERIFIED_THRESHOLD
+  const hasEin = Boolean(normalizeEin(profile.ein))
+  const verified = hasEin && formationStatus === "approved"
 
   const score = verified
     ? 100
@@ -189,29 +175,14 @@ export function resolveAcceleratorReadiness({
 
   const verifiedChecklist: AcceleratorReadinessChecklistItem[] = [
     {
-      id: "verification-letter",
-      label: "Upload verification letter",
-      complete: hasVerificationLetter,
+      id: "ein",
+      label: "Add an EIN",
+      complete: hasEin,
     },
     {
       id: "approved-formation-status",
-      label: "Formation status must be approved",
+      label: "Confirm 501(c)(3) status",
       complete: formationStatus === "approved",
-    },
-    {
-      id: "formation-lessons",
-      label: "Complete the Formation class",
-      complete: coreLessonsComplete,
-    },
-    {
-      id: "core-roadmap-sections",
-      label: "Complete core roadmap sections",
-      complete: roadmapCoreCompleted === CORE_ROADMAP_SECTION_IDS.size,
-    },
-    {
-      id: "program-funding-goal",
-      label: "Set a program funding goal",
-      complete: hasFundingGoal,
     },
   ]
 

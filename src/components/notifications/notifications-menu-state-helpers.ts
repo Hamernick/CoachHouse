@@ -2,6 +2,30 @@ import { type NotificationItem } from "@/components/notifications/types"
 
 export type NotificationViewTab = "all" | "unread"
 
+export type NotificationInboxState = {
+  items: NotificationItem[]
+  totalCount: number
+  unreadCount: number
+}
+
+export function setInboxNotificationUnread(
+  inbox: NotificationInboxState | null,
+  notificationId: string,
+  unread: boolean,
+): NotificationInboxState | null {
+  if (!inbox) return inbox
+  const item = inbox.items.find((item) => item.id === notificationId)
+  if (!item || item.unread === unread) return inbox
+
+  return {
+    ...inbox,
+    items: inbox.items.map((item) =>
+      item.id === notificationId ? { ...item, unread } : item,
+    ),
+    unreadCount: Math.max(0, inbox.unreadCount + (unread ? 1 : -1)),
+  }
+}
+
 export function countUnreadNotifications(items: NotificationItem[]) {
   return items.filter((item) => item.unread).length
 }

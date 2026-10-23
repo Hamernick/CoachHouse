@@ -7,14 +7,11 @@ export const hashGuestCapability = (value: string) => createHash("sha256").updat
 export function guestIntakeConfiguration() {
   const site = process.env.NEXT_PUBLIC_SITE_URL
   const riskSecret = process.env.FISCAL_GUEST_RISK_SECRET
-  const captchaSecret = process.env.HCAPTCHA_SECRET_KEY
-  const siteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY
-  if (process.env.FISCAL_GUEST_INTAKE_ENABLED !== "true" || !site || !riskSecret || riskSecret.length < 32 || !captchaSecret || !siteKey) return null
-  if (process.env.NODE_ENV === "production" && (captchaSecret === "0x0000000000000000000000000000000000000000" || siteKey.includes("ffff-ffff"))) return null
+  if (process.env.FISCAL_GUEST_INTAKE_ENABLED !== "true" || !site || !riskSecret || riskSecret.length < 32) return null
   try {
     const url = new URL(site)
     if (url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) return null
-    return { origin: url.origin, riskSecret, captchaSecret, siteKey }
+    return { origin: url.origin, riskSecret }
   } catch { return null }
 }
 
@@ -62,17 +59,4 @@ export async function readGuestJson(request: Request) {
     }
   } finally { reader.releaseLock() }
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown
-}
-
-export async function verifyGuestCaptcha(config: NonNullable<ReturnType<typeof guestIntakeConfiguration>>, token: string, ip: string) {
-  try {
-    const response = await fetch("https://api.hcaptcha.com/siteverify", {
-      method: "POST", cache: "no-store", signal: AbortSignal.timeout(8000),
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret: config.captchaSecret, sitekey: config.siteKey, response: token, remoteip: ip }),
-    })
-    if (!response.ok) return false
-    const result: unknown = await response.json()
-    return Boolean(result && typeof result === "object" && "success" in result && result.success === true)
-  } catch { return false }
 }

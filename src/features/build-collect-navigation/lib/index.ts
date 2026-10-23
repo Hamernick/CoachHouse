@@ -33,12 +33,12 @@ export const BUILD_NAVIGATION_ITEMS: BuildCollectNavigationItem[] = [
     id: "documentation",
     label: "Documentation",
     description: "Learn the essentials.",
-    href: "/build#documentation",
+    href: "/documentation",
   },
   {
     id: "pricing",
     label: "Pricing",
     description: "Find your plan.",
-    href: "/build#pricing",
+    href: "/pricing",
   },
 ]

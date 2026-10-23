@@ -23,7 +23,7 @@ describe("organization access feature", () => {
         "supabase-reauthentication",
       ]),
     )
-    expect(previews.every((preview) => preview.html.includes("coach-house-logo-light.png"))).toBe(true)
+    expect(previews.every((preview) => preview.html.includes("coach-house-logo-dark.png"))).toBe(true)
   })
 
   it("threads a custom review URL into the existing-user request email html", () => {

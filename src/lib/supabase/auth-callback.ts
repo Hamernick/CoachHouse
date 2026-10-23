@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { DEFAULT_POST_AUTH_REDIRECT, getSafeRedirectPath } from "@/lib/auth/redirects"
+import { getPasswordRecoveryPath } from "@/lib/auth/password-recovery"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 
 export type RecoveryCallbackError = "invalid_or_expired" | "missing_code"
@@ -61,7 +62,7 @@ export function isRecoveryAuthFlow(options: {
 }) {
   return (
     options.type === "recovery" ||
-    options.redirect?.startsWith(UPDATE_PASSWORD_PATH) ||
+    (options.redirect ? new URL(options.redirect, "https://coachhouse.local").pathname === UPDATE_PASSWORD_PATH : false) ||
     false
   )
 }
@@ -73,19 +74,7 @@ export function toUpdatePasswordUrl(
     recoveryError?: RecoveryCallbackError | null
   } = {},
 ) {
-  const destination =
-    options.destination && options.destination.startsWith(UPDATE_PASSWORD_PATH)
-      ? options.destination
-      : UPDATE_PASSWORD_PATH
-  const updatePasswordUrl = new URL(destination, requestUrl.origin)
-
-  if (
-    options.destination &&
-    !options.destination.startsWith(UPDATE_PASSWORD_PATH) &&
-    getSafeRedirectPath(options.destination)
-  ) {
-    updatePasswordUrl.searchParams.set("redirect", options.destination)
-  }
+  const updatePasswordUrl = new URL(getPasswordRecoveryPath(options.destination), requestUrl.origin)
   if (options.recoveryError) {
     updatePasswordUrl.searchParams.set("recovery_error", options.recoveryError)
   }
@@ -102,7 +91,9 @@ export async function handleSupabaseAuthCallback(request: NextRequest) {
   const isRecoveryFlow = isRecoveryAuthFlow({ type, redirect: redirectParam })
 
   const fallback = isRecoveryFlow ? UPDATE_PASSWORD_PATH : DEFAULT_POST_AUTH_REDIRECT
-  const destination = new URL(redirectParam ?? fallback, requestUrl.origin)
+  const destination = isRecoveryFlow
+    ? toUpdatePasswordUrl(requestUrl, { destination: redirectParam })
+    : new URL(redirectParam ?? fallback, requestUrl.origin)
   const response = NextResponse.redirect(destination)
   const supabase = createSupabaseRouteHandlerClient(request, response)
 
@@ -160,7 +151,7 @@ export async function handleSupabaseAuthCallback(request: NextRequest) {
     )
   }
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
     if (isRecoveryFlow) {
@@ -190,5 +181,10 @@ export async function handleSupabaseAuthCallback(request: NextRequest) {
     )
   }
 
+  // A provider Site URL fallback drops our redirect query. The PKCE verifier
+  // still identifies recovery after exchange; retain its session cookies.
+  if (data && "redirectType" in data && data.redirectType === "recovery") {
+    response.headers.set("location", toUpdatePasswordUrl(requestUrl, { destination: redirectParam }).toString())
+  }
   return response
 }

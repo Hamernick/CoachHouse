@@ -142,6 +142,7 @@ export function usePublicMapMarkers({
     if (!map || !mapLoadedRef.current) return
 
     syncPublicMapMarkerSelection({
+      declutter: true,
       activeSameLocationGroupKey,
       map,
       maxRelevanceTier: resolvePublicMapMarkerRelevanceTier(map.getZoom()),
@@ -171,6 +172,7 @@ export function usePublicMapMarkers({
         map.getZoom()
       )
       const { profileImageLoads } = syncPublicMapMarkerArtwork({
+        declutter: true,
         activeSameLocationGroupKey: activeSameLocationGroupKeyRef.current,
         features: pointFeatures,
         map,
@@ -183,6 +185,7 @@ export function usePublicMapMarkers({
 
     const syncMarkerRelevance = () => {
       syncPublicMapMarkerSelection({
+        declutter: true,
         activeSameLocationGroupKey: activeSameLocationGroupKeyRef.current,
         map,
         maxRelevanceTier: resolvePublicMapMarkerRelevanceTier(map.getZoom()),

@@ -9,13 +9,14 @@ import { BuildPublicLanding } from "@/features/build-collect-navigation/componen
 import { BUILD_NAVIGATION_ITEMS } from "@/features/build-collect-navigation/lib"
 
 describe("public Workspace landing", () => {
-  it("renders every menu destination without authentication or async data", () => {
+  it("renders the Build menu anchors and links to the full public pages", () => {
     const markup = renderToStaticMarkup(React.createElement(BuildPublicLanding))
     expect(markup).toContain("Workspace for nonprofits.")
-    for (const item of BUILD_NAVIGATION_ITEMS) {
+    for (const item of BUILD_NAVIGATION_ITEMS.filter((item) => item.href.startsWith("/build#"))) {
       expect(markup).toContain(`id="${item.href.split("#")[1]}"`)
     }
     expect(markup).toContain('href="/documentation"')
+    expect(markup).toContain('href="/pricing"')
     expect(markup).toContain('href="/documentation/fiscal-sponsorship#application"')
     expect(markup).not.toContain("/home-canvas")
   })

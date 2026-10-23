@@ -3,7 +3,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), fetch: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }))
 import { handleGuestFiscalSession, handleGuestFiscalSubmission } from "@/features/fiscal-sponsorship/server/guest-submission"
-import { GUEST_COOKIE, issueGuestCapability, readGuestCapability, verifyGuestCaptcha, guestIntakeConfiguration } from "@/features/fiscal-sponsorship/server/guest-request-security"
+import { GUEST_COOKIE, issueGuestCapability, readGuestCapability, guestIntakeConfiguration } from "@/features/fiscal-sponsorship/server/guest-request-security"
 import { guestApplicationPayload, guestSubmissionSchema } from "@/features/fiscal-sponsorship/lib/guest-submission-schema"
 import { guestSubmissionInput, guestFieldName } from "@/features/fiscal-sponsorship/lib/guest-submission-input"
 import { buildFiscalSponsorshipApplicationDraft } from "@/features/fiscal-sponsorship/lib/application-draft"
@@ -22,12 +22,12 @@ function application() { return {
 function request(options: { body?: unknown; origin?: string; cookie?: string } = {}) {
  return new Request("https://coach.test/api/public/fiscal-sponsorship/applications", {
   method: "POST", headers: { origin: options.origin ?? "https://coach.test", "content-type": "application/json", cookie: `${GUEST_COOKIE}=${options.cookie ?? issueGuestCapability(secret)}` },
-  body: JSON.stringify(options.body ?? { captchaToken: "valid-token", application: application() }),
+  body: JSON.stringify(options.body ?? { application: application() }),
  })
 }
 beforeEach(() => {
  vi.resetAllMocks()
- vi.stubEnv("FISCAL_GUEST_INTAKE_ENABLED", "true")
+  vi.stubEnv("FISCAL_GUEST_INTAKE_ENABLED", "true")
  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://coach.test")
  vi.stubEnv("FISCAL_GUEST_RISK_SECRET", secret)
  vi.stubEnv("HCAPTCHA_SECRET_KEY", "test-captcha-secret")
@@ -37,13 +37,13 @@ beforeEach(() => {
  mocks.fetch.mockImplementation(async () => Response.json({ success: true }))
  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "get_fiscal_guest_receipt" ? null : name === "submit_guest_fiscal_application" ? { submissionId: reference, projectId: "private-project", applicationId: "private-application" } : true, error: null }))
 })
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.useRealTimers() })
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe("guest fiscal submission boundary", () => {
  it("maps the shared editor to a minimal guest payload without internal fields", () => {
   const draft = buildFiscalSponsorshipApplicationDraft({ data: { projectId: "private", projectName: "Garden", applicantName: "" } })
   Object.assign(draft, application(), { fundraisingGoalDollars: "$1,000.50", fundraisingGoalPeriod: "monthly", legalEntityHas501c3: "no", operatesOutsideUnitedStates: "no", engagesInLobbying: "no", hasLegalComplianceFinancialConcerns: "no" })
-  const parsed = guestSubmissionInput(draft,"captcha")
+  const parsed = guestSubmissionInput(draft)
   expect(parsed.success).toBe(true)
   if (!parsed.success) return
   expect(parsed.data.application).not.toHaveProperty("projectId")
@@ -72,7 +72,7 @@ describe("guest fiscal submission boundary", () => {
   expect(call[1].p_application.fundraising_goal).toEqual({ amountCents: 100000, period: "total" })
   expect(call[1].p_application).not.toHaveProperty("status")
  })
- it("reuses a committed receipt without re-verifying a spent captcha or creating another project", async () => {
+ it("reuses a committed receipt without another provider request or creating another project", async () => {
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "get_fiscal_guest_receipt" ? { submissionId: reference } : true, error: null }))
   expect((await handleGuestFiscalSubmission(request())).status).toBe(200)
   expect(mocks.fetch).not.toHaveBeenCalled()
@@ -110,30 +110,30 @@ describe("guest fiscal submission boundary", () => {
   const parsed = guestSubmissionSchema.parse({ ...input, application: { ...input.application, concernsExplanation: "Advocacy work and programs abroad for review." } })
   expect(guestApplicationPayload(parsed.application)).toMatchObject({ engages_in_lobbying: true, operates_outside_united_states: true })
  })
- it("enforces shared durable limits before captcha and submission", async () => {
+ it("enforces shared durable limits before submission", async () => {
   mocks.rpc.mockResolvedValue({ data: false, error: null })
   const result = await handleGuestFiscalSubmission(request())
   expect(result.status).toBe(429)
   expect(result.headers.get("retry-after")).toBe("900")
   expect(mocks.fetch).not.toHaveBeenCalled()
  })
- it.each([false, "true"])("does not accept failed/malformed captcha success %s", async (success) => {
-  mocks.fetch.mockResolvedValue(Response.json({ success }))
-  expect((await handleGuestFiscalSubmission(request())).status).toBe(400)
+ it("submits without CAPTCHA configuration or a provider request", async () => {
+  vi.stubEnv("HCAPTCHA_SECRET_KEY", "")
+  vi.stubEnv("NEXT_PUBLIC_HCAPTCHA_SITE_KEY", "")
+  expect((await handleGuestFiscalSubmission(request())).status).toBe(201)
+  expect(mocks.fetch).not.toHaveBeenCalled()
+ })
+ it("accepts and ignores a legacy token without contacting the CAPTCHA provider", async () => {
+  const result = await handleGuestFiscalSubmission(request({ body: { captchaToken: "old-form-token", application: application() } }))
+  expect(result.status).toBe(201)
+  expect(mocks.fetch).not.toHaveBeenCalled()
+  const call = mocks.rpc.mock.calls.find(([name]) => name === "submit_guest_fiscal_application")!
+  expect(call[1].p_application).not.toHaveProperty("captchaToken")
+ })
+ it("still enforces the email rate limit without creating an application", async () => {
+  mocks.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => ({ data: name === "get_fiscal_guest_receipt" ? null : args.p_limit !== 3, error: null }))
+  expect((await handleGuestFiscalSubmission(request())).status).toBe(429)
   expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_guest_fiscal_application")).toBe(false)
- })
- it("uses form encoding and verifies the configured sitekey", async () => {
-  expect(await verifyGuestCaptcha(guestIntakeConfiguration()!, "token+data", "127.0.0.1")).toBe(true)
-  const [url, init] = mocks.fetch.mock.calls[0]
-  expect(url).toBe("https://api.hcaptcha.com/siteverify")
-  expect(init.body.get("sitekey")).toBe("test-site-key")
-  expect(init.body.get("response")).toBe("token+data")
- })
- it("rejects provider errors without exposing secrets", async () => {
-  mocks.fetch.mockRejectedValue(new Error("sensitive provider detail"))
-  const result = await handleGuestFiscalSubmission(request())
-  expect(result.status).toBe(400)
-  expect(await result.text()).not.toContain("sensitive")
  })
  it("does not falsely claim a failed acknowledgement means no submission occurred", async () => {
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "get_fiscal_guest_receipt" ? null : true, error: name === "submit_guest_fiscal_application" ? { message: "network timeout" } : null }))
@@ -149,9 +149,12 @@ describe("guest fiscal submission boundary", () => {
   expect(cookie).toContain("SameSite=strict")
   expect(readGuestCapability(new Request("https://coach.test", { headers: { cookie: cookie.split(";")[0] } }), secret)).not.toBeNull()
  })
- it("blocks production dummy captcha keys and untrusted IP headers", () => {
+ it("requires production origin and risk signing configuration, with no CAPTCHA keys", () => {
   vi.stubEnv("NODE_ENV", "production")
-  vi.stubEnv("HCAPTCHA_SECRET_KEY", "0x0000000000000000000000000000000000000000")
+  vi.stubEnv("HCAPTCHA_SECRET_KEY", "")
+  vi.stubEnv("NEXT_PUBLIC_HCAPTCHA_SITE_KEY", "")
+  expect(guestIntakeConfiguration()).toEqual({ origin: "https://coach.test", riskSecret: secret })
+  vi.stubEnv("FISCAL_GUEST_RISK_SECRET", "short")
   expect(guestIntakeConfiguration()).toBeNull()
  })
 })

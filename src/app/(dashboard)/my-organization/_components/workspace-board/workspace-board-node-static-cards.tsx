@@ -12,6 +12,7 @@ import { WORKSPACE_TEXT_STYLES } from "@/components/workspace/workspace-typograp
 import { Progress } from "@/components/ui/progress"
 import {
   FiscalSponsorshipWorkspaceCardSummary,
+  FiscalLinkedWorkspaceCard,
   normalizeFiscalSponsorshipBudgetRows,
   summarizeBudgetRows,
   type FiscalSponsorshipApplicationPrefill,
@@ -371,6 +372,7 @@ export function EconomicEngineCard({
 }
 
 export function WorkspaceBoardFiscalSponsorshipCard({
+  organizationId,
   actionRequest = null,
   applicationPrefill,
   fiscalSponsorshipProjectId,
@@ -378,6 +380,7 @@ export function WorkspaceBoardFiscalSponsorshipCard({
   organizationName,
   programs,
 }: {
+  organizationId: string
   actionRequest?: {
     id: number
     phaseId: "application-intake" | "required-documents"
@@ -389,6 +392,7 @@ export function WorkspaceBoardFiscalSponsorshipCard({
   programs?: WorkspaceOrganizationEditorData["programs"]
 }) {
   return (
+    <FiscalLinkedWorkspaceCard key={organizationId} organizationId={organizationId}>
     <FiscalSponsorshipWorkspaceCardSummary
       actionRequest={actionRequest}
       applicationPrefill={applicationPrefill}
@@ -397,5 +401,6 @@ export function WorkspaceBoardFiscalSponsorshipCard({
       organizationName={organizationName}
       programs={mapWorkspaceProgramsToFiscalSponsorshipPrograms(programs)}
     />
+    </FiscalLinkedWorkspaceCard>
   )
 }

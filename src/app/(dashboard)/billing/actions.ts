@@ -25,6 +25,7 @@ export async function createBillingPortalSession() {
   let orgId = user.id
   try {
     const resolved = await resolveActiveOrganization(supabase, user.id)
+    if (resolved.supportAccess) return { error: "Exit the support workspace to manage your own billing. Organization billing stays with its owner." }
     orgId = resolved.orgId
   } catch {
     orgId = user.id

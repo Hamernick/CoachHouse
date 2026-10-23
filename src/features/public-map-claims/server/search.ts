@@ -1,3 +1,4 @@
+import { shouldShowPublicMapResourceRow } from "@/lib/public-map/resource-item-visibility"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 import type { PublicMapClaimListingOption } from "../types"
@@ -22,7 +23,7 @@ export async function searchPublicMapClaimListings(
   const admin = createSupabaseAdminClient()
   const { data, error } = await admin
     .from("resource_map_public_items")
-    .select("organization_id, organization_name, platform_org_id, source_label")
+    .select("organization_id, organization_name, platform_org_id, source_label, title, source_url")
     .is("platform_org_id", null)
     .not("source_label", "is", null)
     .ilike("organization_name", `%${escapeLikePattern(query)}%`)
@@ -36,7 +37,7 @@ export async function searchPublicMapClaimListings(
   for (const row of data ?? []) {
     const id = row.organization_id?.trim()
     const name = row.organization_name?.trim()
-    if (!id || !name || row.platform_org_id || !row.source_label) continue
+    if (!id || !name || row.platform_org_id || !row.source_label || !shouldShowPublicMapResourceRow(row)) continue
     const nameKey = name.toLocaleLowerCase()
     if (!options.has(nameKey)) options.set(nameKey, { id, name })
   }

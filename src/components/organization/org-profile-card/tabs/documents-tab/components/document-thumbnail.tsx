@@ -81,7 +81,7 @@ export function DocumentThumbnail({
             width={320}
             height={320}
             loading="lazy"
-            className="size-full rounded-md object-contain"
+            className="h-auto max-h-full w-auto max-w-full rounded-lg object-contain"
             onError={onError}
           />
         ) : (

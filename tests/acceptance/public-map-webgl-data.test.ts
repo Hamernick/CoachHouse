@@ -7,9 +7,12 @@ import type mapboxgl from "mapbox-gl"
 import {
   buildPublicMapDataVersion,
   buildPublicMapPointFeatures,
+  isPublicMapClusterFeature,
   parsePublicMapOrganizationIds,
   resolvePublicMapMarkerImageKey,
+  type PublicMapPointFeature,
 } from "@/lib/public-map/public-map-geojson"
+import type { PublicMapClusterWorkerApi } from "@/lib/public-map/public-map-cluster.worker"
 import {
   createPublicMapClusterClient,
   shouldUsePublicMapClusterResult,
@@ -996,17 +999,17 @@ describe("public map WebGL data", () => {
       const spriteCache = createPublicMapClusterSpriteCache()
       const organizations = [
         buildOrganization({
-          id: "org-a",
+          id: "org-a", addressStreet: "101 Main Street",
           longitude: -87.6298,
           latitude: 41.8781,
         }),
         buildOrganization({
-          id: "org-b",
+          id: "org-b", addressStreet: "103 Main Street",
           longitude: -87.6299,
           latitude: 41.8782,
         }),
         buildOrganization({
-          id: "org-c",
+          id: "org-c", addressStreet: "105 Main Street",
           longitude: -87.63,
           latitude: 41.8783,
         }),
@@ -1029,9 +1032,7 @@ describe("public map WebGL data", () => {
         spriteCache,
         zoom: 3,
       })
-      const cluster = enriched.features.find(
-        (feature) => "cluster" in feature.properties
-      )
+      const cluster = enriched.features.find(isPublicMapClusterFeature)
 
       expect(cluster?.properties.clusterImageId).toMatch(
         /^public-map-cluster-sprite-/
@@ -1066,7 +1067,7 @@ describe("public map WebGL data", () => {
           latitude: 41.8781,
         }),
       ])
-      const features = [
+      const features: PublicMapPointFeature[] = [
         {
           ...baseFeature!,
           geometry: {
@@ -1124,9 +1125,7 @@ describe("public map WebGL data", () => {
         spriteCache,
         zoom: 3,
       })
-      const cluster = enriched.features.find(
-        (feature) => "cluster" in feature.properties
-      )
+      const cluster = enriched.features.find(isPublicMapClusterFeature)
 
       expect(cluster?.properties.clusterCategoryCounts).toEqual({
         food: 2,
@@ -1184,12 +1183,8 @@ describe("public map WebGL data", () => {
         spriteCache,
         zoom: 3,
       })
-      const firstCluster = first.features.find(
-        (feature) => "cluster" in feature.properties
-      )
-      const secondCluster = second.features.find(
-        (feature) => "cluster" in feature.properties
-      )
+      const firstCluster = first.features.find(isPublicMapClusterFeature)
+      const secondCluster = second.features.find(isPublicMapClusterFeature)
 
       expect(firstCluster?.properties.clusterImageId).toBe(
         secondCluster?.properties.clusterImageId
@@ -1265,9 +1260,7 @@ describe("public map WebGL data", () => {
         spriteCache,
         zoom: 3,
       })
-      const cluster = enriched.features.find(
-        (feature) => "cluster" in feature.properties
-      )
+      const cluster = enriched.features.find(isPublicMapClusterFeature)
 
       expect(cluster?.properties.clusterImageId).toMatch(
         /^public-map-cluster-sprite-/
@@ -1875,16 +1868,16 @@ describe("public map WebGL data", () => {
     const client = createPublicMapClusterClient()
     const organizations = [
       buildOrganization({
-        id: "org-a",
+        id: "org-a", addressStreet: "101 Main Street",
         longitude: -87.6298,
         latitude: 41.8781,
       }),
       buildOrganization({
-        id: "org-b",
+        id: "org-b", addressStreet: "103 Main Street",
         longitude: -87.6299,
         latitude: 41.8782,
       }),
-      buildOrganization({ id: "org-c", longitude: -87.63, latitude: 41.8783 }),
+      buildOrganization({ id: "org-c", addressStreet: "105 Main Street", longitude: -87.63, latitude: 41.8783 }),
     ]
     const dataVersion = buildPublicMapDataVersion(organizations)
     const features = buildPublicMapPointFeatures(organizations)
@@ -1896,9 +1889,7 @@ describe("public map WebGL data", () => {
       dataVersion,
       querySeq: 1,
     })
-    const cluster = result.sourceData.features.find(
-      (feature) => "cluster" in feature.properties
-    )
+    const cluster = result.sourceData.features.find(isPublicMapClusterFeature)
     const clusterId =
       typeof cluster?.properties.cluster_id === "number"
         ? cluster.properties.cluster_id
@@ -1922,12 +1913,12 @@ describe("public map WebGL data", () => {
 
   it("does not build the worker index twice for the same data version", async () => {
     const workerApi = {
-      build: vi.fn(async (_features, dataVersion: string) => ({
+      build: vi.fn<PublicMapClusterWorkerApi["build"]>((_features, dataVersion) => ({
         dataVersion,
         featureCount: 2,
         reused: false,
       })),
-      getClusters: vi.fn(async ({ dataVersion, querySeq }) => ({
+      getClusters: vi.fn<PublicMapClusterWorkerApi["getClusters"]>(({ dataVersion, querySeq }) => ({
         dataVersion,
         querySeq,
         sourceData: {
@@ -1935,8 +1926,8 @@ describe("public map WebGL data", () => {
           features: [],
         },
       })),
-      getExpansionZoom: vi.fn(),
-      getLeaves: vi.fn(),
+      getExpansionZoom: vi.fn<PublicMapClusterWorkerApi["getExpansionZoom"]>(),
+      getLeaves: vi.fn<PublicMapClusterWorkerApi["getLeaves"]>(),
     }
     const client = createPublicMapClusterClient({ workerApi })
     const features = buildPublicMapPointFeatures([
@@ -1953,15 +1944,15 @@ describe("public map WebGL data", () => {
 
   it("passes cluster leaf requests through the worker with the active data version", async () => {
     const workerApi = {
-      build: vi.fn(async (_features, dataVersion: string) => ({
+      build: vi.fn<PublicMapClusterWorkerApi["build"]>((_features, dataVersion) => ({
         dataVersion,
         featureCount: 1,
         reused: false,
       })),
-      getClusters: vi.fn(),
-      getExpansionZoom: vi.fn(),
-      getLeaves: vi.fn(
-        async (_clusterId: number, _limit: number, dataVersion: string) =>
+      getClusters: vi.fn<PublicMapClusterWorkerApi["getClusters"]>(),
+      getExpansionZoom: vi.fn<PublicMapClusterWorkerApi["getExpansionZoom"]>(),
+      getLeaves: vi.fn<PublicMapClusterWorkerApi["getLeaves"]>(
+        (_clusterId, _limit, dataVersion) =>
           dataVersion === "active-version"
             ? buildPublicMapPointFeatures([buildOrganization({ id: "org-a" })])
             : []

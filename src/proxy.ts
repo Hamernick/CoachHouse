@@ -3,8 +3,9 @@ import type { NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
 import { env } from "@/lib/env"
-import { DEFAULT_POST_AUTH_REDIRECT } from "@/lib/auth/redirects"
-import { isCoachRestrictedPath } from "@/features/platform-access"
+import { DEFAULT_POST_AUTH_REDIRECT, getSafePostLoginRedirectPath } from "@/lib/auth/redirects"
+import { getOrganizationInviteRedirect } from "@/lib/auth/organization-invite"
+import { hasCoachCoachingAccess, isCoachRestrictedPath } from "@/features/platform-access"
 import type { Database } from "@/lib/supabase/types"
 
 const PROTECTED_PREFIXES = [
@@ -24,11 +25,21 @@ const PROTECTED_PREFIXES = [
   "/internal",
   "/onboarding",
 ]
-const AUTH_ROUTES = new Set(["/login", "/sign-up", "/forgot-password"])
+// Password recovery and retry must remain accessible with an existing session.
+const AUTH_ROUTES = new Set(["/login", "/sign-up"])
 
 export async function proxy(request: NextRequest) {
-  const response = NextResponse.next()
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set("x-coach-house-request-method", request.method)
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
   const pathname = request.nextUrl.pathname
+  // These same-origin JSON handlers authenticate, refresh cookies and authorize
+  // their explicit organization themselves. Avoid a second Auth request per poll.
+  if (request.method === "POST" && [
+    "/api/account/workspace-support-presence",
+    "/api/account/document-presence",
+    "/api/account/document-collaboration",
+  ].includes(pathname)) return response
   // Public documentation has no account-specific content; mutations still verify auth.
   if ((request.method === "GET" || request.method === "HEAD") &&
       (pathname === "/documentation" || pathname.startsWith("/documentation/"))) {
@@ -84,14 +95,20 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    const redirectResponse = NextResponse.redirect(
-      new URL(DEFAULT_POST_AUTH_REDIRECT, request.url)
-    )
+    const requestedRedirect = request.nextUrl.searchParams.get("redirect")
+    const destination = getOrganizationInviteRedirect(requestedRedirect)
+      ?? (pathname === "/login" ? getSafePostLoginRedirectPath(requestedRedirect) : undefined)
+      ?? DEFAULT_POST_AUTH_REDIRECT
+    const redirectResponse = NextResponse.redirect(new URL(destination, request.url))
     copyCookies(response, redirectResponse)
     return redirectResponse
   }
 
-  if (user && isCoachRestricted) {
+  if (
+    user &&
+    isCoachRestricted &&
+    isCoachRestrictedPath(pathname, hasCoachCoachingAccess(user.app_metadata))
+  ) {
     const { data: platformStaff } = await supabase
       .from("platform_staff_members")
       .select("access_level")

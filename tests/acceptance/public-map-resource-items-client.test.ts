@@ -1,4 +1,5 @@
 import { clearFindResourceQueryCache, loadFindResourceQuery } from "@/features/find-resource-index/lib/client-cache"
+import { clearDirectorySummaryCache, loadDirectorySummary } from "@/features/find-resource-index/lib/directory-summary-client"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
@@ -323,6 +324,40 @@ describe("public map resource items client", () => {
     expect(source).not.toContain('document.addEventListener("visibilitychange"')
     expect(source).toContain("PUBLIC_MAP_RESOURCE_ITEMS_REFRESH_INTERVAL_MS")
     expect(source).not.toContain('cache: "force-cache"')
+  })
+})
+
+describe("directory count recovery", () => {
+  afterEach(() => {
+    clearDirectorySummaryCache()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it("retries a cold-start timeout while coalescing callers and caching the recovered count", async () => {
+    vi.useFakeTimers()
+    const fetch = vi.spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new DOMException("Cold compilation", "TimeoutError"))
+      .mockResolvedValue(buildJsonResponse({ count: 1975765 }))
+    const first = loadDirectorySummary()
+    expect(loadDirectorySummary()).toBe(first)
+    await vi.advanceTimersByTimeAsync(250)
+    await expect(first).resolves.toBe(1975765)
+    await expect(loadDirectorySummary()).resolves.toBe(1975765)
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch.mock.calls.every(([, options]) => options?.signal instanceof AbortSignal)).toBe(true)
+  })
+
+  it("bounds failed retries and permits recovery on a later request", async () => {
+    vi.useFakeTimers()
+    const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"))
+    const failure = expect(loadDirectorySummary()).rejects.toThrow("offline")
+    await vi.advanceTimersByTimeAsync(1000)
+    await failure
+    expect(fetch).toHaveBeenCalledTimes(3)
+    fetch.mockResolvedValue(buildJsonResponse({ count: 42 }))
+    await expect(loadDirectorySummary()).resolves.toBe(42)
+    expect(fetch).toHaveBeenCalledTimes(4)
   })
 })
 

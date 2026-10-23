@@ -10,9 +10,9 @@ type PublicMapMarkerUserCoordinates = {
 }
 
 const PUBLIC_MAP_MARKER_RELEVANCE_LEVELS = [
-  { limit: 1, tier: 0, tileZoom: 3 },
-  { limit: 1, tier: 1, tileZoom: 7 },
-  { limit: 2, tier: 2, tileZoom: 10 },
+  { limit: 8, tier: 0, tileZoom: 4 },
+  { limit: 4, tier: 1, tileZoom: 7 },
+  { limit: 4, tier: 2, tileZoom: 10 },
 ] as const
 
 const MAX_MERCATOR_LATITUDE = 85.051129
@@ -68,15 +68,6 @@ function resolveDistanceScore({
   return latitudeDelta ** 2 + longitudeDelta ** 2
 }
 
-function hashMarkerIdentity(value: string) {
-  let hash = 2166136261
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
-
 function compareRepresentativeCandidates({
   boostCoolingCenters,
   first,
@@ -110,6 +101,38 @@ function compareRepresentativeCandidates({
     Number(first.properties.verificationStatus === "verified_platform")
   if (verificationDifference !== 0) return verificationDifference
   return first.properties.itemId.localeCompare(second.properties.itemId)
+}
+
+// Round-robin finer geographic cells before taking additional pins from a
+// dense neighborhood. Priority still chooses the first pin within each cell.
+function selectRepresentatives(
+  candidates: PublicMapPointFeature[],
+  tileZoom: number,
+  limit: number
+) {
+  const cells = new Map<string, PublicMapPointFeature[]>()
+  for (const feature of candidates) {
+    const key = resolveTileKey({
+      coordinates: feature.geometry.coordinates as [number, number],
+      zoom: tileZoom + 3,
+    })
+    const cell = cells.get(key) ?? []
+    cell.push(feature)
+    cells.set(key, cell)
+  }
+  const selected: PublicMapPointFeature[] = []
+  for (let depth = 0; selected.length < limit; depth += 1) {
+    let found = false
+    for (const cell of cells.values()) {
+      if (cell[depth]) {
+        selected.push(cell[depth])
+        found = true
+        if (selected.length === limit) return selected
+      }
+    }
+    if (!found) break
+  }
+  return selected
 }
 
 function isSavedFeature(
@@ -153,29 +176,44 @@ export function buildPublicMapMarkerRelevance({
     }
 
     for (const candidates of candidatesByBucket.values()) {
-      candidates
-        .sort((first, second) =>
-          compareRepresentativeCandidates({
-            boostCoolingCenters,
-            first,
-            second,
-            userCoordinates,
-          })
-        )
-        .slice(0, level.limit)
-        .forEach((feature) => {
+      const ordered = [...candidates].sort((first, second) =>
+        compareRepresentativeCandidates({
+          boostCoolingCenters,
+          first,
+          second,
+          userCoordinates,
+        })
+      )
+      selectRepresentatives(ordered, level.tileZoom, level.limit).forEach(
+        (feature) => {
           const currentTier =
             relevanceTierByItemId.get(feature.properties.itemId) ?? 3
           relevanceTierByItemId.set(
             feature.properties.itemId,
             Math.min(currentTier, level.tier) as PublicMapMarkerRelevanceTier
           )
-        })
+        }
+      )
     }
   }
 
+  const priorityByItemId = new Map(
+    [...features]
+      .sort((first, second) =>
+        compareRepresentativeCandidates({
+          boostCoolingCenters,
+          first,
+          second,
+          userCoordinates,
+        })
+      )
+      .map((feature, index) => [
+        feature.properties.itemId,
+        index / Math.max(1, features.length),
+      ])
+  )
   return features.map((feature) => {
-    const stableOrder = hashMarkerIdentity(feature.properties.itemId) / 2 ** 32
+    const tier = relevanceTierByItemId.get(feature.properties.itemId) ?? 3
     return {
       ...feature,
       properties: {
@@ -183,7 +221,8 @@ export function buildPublicMapMarkerRelevance({
         isSaved: isSavedFeature(feature, favoriteOrganizationIds),
         markerRelevanceTier:
           relevanceTierByItemId.get(feature.properties.itemId) ?? 3,
-        markerSortKey: stableOrder,
+        markerSortKey:
+          tier * 2 + (priorityByItemId.get(feature.properties.itemId) ?? 0),
       },
     } satisfies PublicMapPointFeature
   })
@@ -192,8 +231,8 @@ export function buildPublicMapMarkerRelevance({
 export function resolvePublicMapMarkerRelevanceTier(
   zoom: number
 ): PublicMapMarkerRelevanceTier {
-  if (!Number.isFinite(zoom) || zoom < 7) return 0
-  if (zoom < 10) return 1
-  if (zoom < 15) return 2
+  if (!Number.isFinite(zoom) || zoom < 5) return 0
+  if (zoom < 8) return 1
+  if (zoom < 12) return 2
   return 3
 }

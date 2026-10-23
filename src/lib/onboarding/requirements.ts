@@ -26,7 +26,8 @@ export function hasRequiredOrganizationSetup(
   )
 }
 
-// Formation status is collected later. Completion still requires saved name and URL.
+// Profile completeness guides setup, but must not revoke completed onboarding.
+// Signup validation and organization authorization are enforced separately.
 export function resolveOnboardingRequirements({
   userId,
   organizationId,
@@ -51,7 +52,7 @@ export function resolveOnboardingRequirements({
       : ("post_signup_access" as const)
   const exempt = isPlatformStaff || organizationId !== userId
   return {
-    required: !exempt && (!completed || (builder && !setupComplete)),
+    required: !exempt && !completed,
     mode,
     organizationSetupComplete: setupComplete,
   }

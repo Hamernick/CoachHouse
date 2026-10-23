@@ -8,6 +8,12 @@ import {
 } from "@/components/onboarding/onboarding-dialog/state-helpers"
 
 describe("onboarding state helpers", () => {
+  it("rejects a username matching the pending workspace URL even when availability passed", () => {
+    const form = new FormData()
+    for (const [key, value] of Object.entries({ intentFocus: "build", onboardingMode: "post_signup_access", onboardingVersion: "workspace_profile", orgSlug: "test", personHandle: "@Test" })) form.set(key, value)
+    expect(validateOnboardingStep({ stepId: "account", form, formationStatus: "", intentFocus: "build", slugStatus: "available", slugHint: null, personHandleStatus: "available", personHandleHint: null, builderPlanTier: "organization" })).toEqual({ personHandle: "Choose a username different from your workspace URL." })
+  })
+
   it("only marks the account step ready when names and username are present", () => {
     expect(
       isOnboardingAccountStepReady({

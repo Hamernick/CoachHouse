@@ -21,7 +21,7 @@ export type AppNotification = {
 }
 
 type NotificationsListResult =
-  | { ok: true; inbox: AppNotification[] }
+  | { ok: true; inbox: AppNotification[]; totalCount: number; unreadCount: number }
   | { error: string }
 
 type NotificationActionResult = { ok: true } | { error: string }
@@ -72,7 +72,7 @@ function normalizeNotificationRow(row: {
   }
 }
 
-export async function listNotificationsAction(): Promise<NotificationsListResult> {
+export async function listNotificationsAction(tab: "all" | "unread" = "all"): Promise<NotificationsListResult> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -86,13 +86,23 @@ export async function listNotificationsAction(): Promise<NotificationsListResult
   const selectColumns =
     "id,title,description,href,tone,created_at,read_at,archived_at,type,metadata" as const
 
-  const inboxResult = await supabase
+  let inboxQuery = supabase
     .from("notifications")
-    .select(selectColumns)
+    .select(selectColumns, { count: "exact" })
     .eq("user_id", user.id)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(50)
+  let countQuery = supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .is("archived_at", null)
+  if (tab === "unread") inboxQuery = inboxQuery.is("read_at", null)
+  else countQuery = countQuery.is("read_at", null)
+
+  const [inboxResult, countResult] = await Promise.all([
+    inboxQuery
     .returns<
       Array<{
         id: string
@@ -106,13 +116,22 @@ export async function listNotificationsAction(): Promise<NotificationsListResult
         type: string | null
         metadata: Json | null
       }>
-    >()
+    >(),
+    countQuery,
+  ])
 
-  if (inboxResult.error) return { error: "Unable to load notifications." }
+  const totalCount = tab === "unread" ? countResult.count : inboxResult.count
+  const unreadCount = tab === "unread" ? inboxResult.count : countResult.count
+  if (inboxResult.error || countResult.error
+    || typeof totalCount !== "number" || !Number.isSafeInteger(totalCount) || totalCount < 0
+    || typeof unreadCount !== "number" || !Number.isSafeInteger(unreadCount) || unreadCount < 0)
+    return { error: "Unable to load notifications." }
 
   return {
     ok: true,
     inbox: (inboxResult.data ?? []).map(normalizeNotificationRow),
+    totalCount,
+    unreadCount,
   }
 }
 
@@ -231,12 +250,12 @@ export async function archiveAllNotificationsAction(): Promise<NotificationActio
 }
 
 export async function markAllNotificationsReadAction(
-  notificationIds: string[]
+  notificationIds?: string[]
 ): Promise<NotificationActionResult> {
-  if (!Array.isArray(notificationIds) || notificationIds.length > 50) {
+  if (notificationIds !== undefined && (!Array.isArray(notificationIds) || notificationIds.length > 50)) {
     return { error: "Invalid notification selection." }
   }
-  if (notificationIds.length === 0) return { ok: true }
+  if (notificationIds?.length === 0) return { ok: true }
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -247,13 +266,14 @@ export async function markAllNotificationsReadAction(
     return { error: "Unable to load user." }
   if (!user) return { error: "Not authenticated." }
 
-  const { error: updateError } = await supabase
+  let query = supabase
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
     .eq("user_id", user.id)
-    .in("id", notificationIds)
     .is("archived_at", null)
     .is("read_at", null)
+  if (notificationIds) query = query.in("id", notificationIds)
+  const { error: updateError } = await query
 
   if (updateError) return { error: "Unable to update notifications." }
   return { ok: true }

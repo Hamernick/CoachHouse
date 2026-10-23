@@ -60,7 +60,7 @@ function buildFeature({
 }
 
 describe("public map marker relevance", () => {
-  it("shows one exact-coordinate category representative on the overview globe", () => {
+  it("reveals several exact-coordinate pins on the overview globe", () => {
     const features = [
       buildFeature({ id: "food-a", latitude: 41.88, longitude: -87.63 }),
       buildFeature({ id: "food-b", latitude: 41.881, longitude: -87.631 }),
@@ -73,9 +73,9 @@ describe("public map marker relevance", () => {
         (feature) => (feature.properties.markerRelevanceTier ?? 3) <= tier
       ).length
 
-    expect(countAtTier(0)).toBe(1)
-    expect(countAtTier(1)).toBe(1)
-    expect(countAtTier(2)).toBe(2)
+    expect(countAtTier(0)).toBe(4)
+    expect(countAtTier(1)).toBe(4)
+    expect(countAtTier(2)).toBe(4)
     expect(countAtTier(3)).toBe(4)
     expect(
       relevant.every(
@@ -108,7 +108,13 @@ describe("public map marker relevance", () => {
   it("chooses the resource nearest the user as the local representative", () => {
     const relevant = buildPublicMapMarkerRelevance({
       features: [
-        buildFeature({ id: "far", latitude: 41.95, longitude: -87.7 }),
+        ...Array.from({ length: 12 }, (_, index) =>
+          buildFeature({
+            id: `far-${index}`,
+            latitude: 41.95,
+            longitude: -87.7,
+          })
+        ),
         buildFeature({ id: "near", latitude: 41.88, longitude: -87.63 }),
       ],
       userCoordinates: { latitude: 41.879, longitude: -87.629 },
@@ -118,52 +124,101 @@ describe("public map marker relevance", () => {
       relevant.find((feature) => feature.properties.itemId === "near")
         ?.properties.markerRelevanceTier
     ).toBe(0)
+    const nearest = relevant.find(
+      (feature) => feature.properties.itemId === "near"
+    )!
+    expect(
+      relevant
+        .filter((feature) => feature !== nearest)
+        .every(
+          (feature) =>
+            feature.properties.markerSortKey! >
+            nearest.properties.markerSortKey!
+        )
+    ).toBe(true)
   })
 
-  it("prioritizes only eligible cooling resources during active heat", () => {
-    const features = [
+  it("prioritizes eligible heat pins without hiding ordinary places", () => {
+    const features = Array.from({ length: 10 }, (_, index) =>
       buildFeature({
-        category: "environment",
-        id: "near-environment",
+        category: index === 9 ? "emergency_cooling_centers" : "environment",
+        id: `place-${index}`,
         latitude: 41.88,
         longitude: -87.63,
-      }),
-      buildFeature({
-        category: "emergency_cooling_centers",
-        id: "eligible-cooling",
-        latitude: 41.9,
-        longitude: -87.65,
-        weatherEligible: true,
-      }),
-    ]
-    const inactive = buildPublicMapMarkerRelevance({
-      features,
-      userCoordinates: { latitude: 41.88, longitude: -87.63 },
-    })
+        weatherEligible: index === 9,
+      })
+    )
+    const inactive = buildPublicMapMarkerRelevance({ features })
     const active = buildPublicMapMarkerRelevance({
-      boostCoolingCenters: true,
       features,
-      userCoordinates: { latitude: 41.88, longitude: -87.63 },
+      boostCoolingCenters: true,
     })
+    expect(
+      inactive.find((f) => f.properties.itemId === "place-9")?.properties
+        .markerRelevanceTier
+    ).toBeGreaterThan(0)
+    expect(
+      active.find((f) => f.properties.itemId === "place-9")?.properties
+        .markerRelevanceTier
+    ).toBe(0)
+    expect(active).toHaveLength(features.length)
+    expect(active.map((f) => f.geometry)).toEqual(
+      features.map((f) => f.geometry)
+    )
+  })
 
+  it("spreads overview choices across neighborhoods with deterministic ordering", () => {
+    const features = Array.from({ length: 20 }, (_, index) =>
+      buildFeature({
+        id: `a-${index.toString().padStart(2, "0")}`,
+        latitude: 41.88,
+        longitude: -87.63,
+      })
+    )
+    features.push(
+      buildFeature({ id: "z-distant", latitude: 43.5, longitude: -88 })
+    )
+    const ranked = buildPublicMapMarkerRelevance({ features })
     expect(
-      inactive.find(
-        (feature) => feature.properties.itemId === "near-environment"
-      )?.properties.markerRelevanceTier
+      ranked.find((f) => f.properties.itemId === "z-distant")?.properties
+        .markerRelevanceTier
     ).toBe(0)
+    const byId = (result: PublicMapPointFeature[]) =>
+      result
+        .map((f) => [
+          f.properties.itemId,
+          f.properties.markerRelevanceTier,
+          f.properties.markerSortKey,
+        ])
+        .sort()
     expect(
-      inactive.find(
-        (feature) => feature.properties.itemId === "eligible-cooling"
-      )?.properties.markerRelevanceTier
-    ).toBeGreaterThan(0)
-    expect(
-      active.find((feature) => feature.properties.itemId === "eligible-cooling")
-        ?.properties.markerRelevanceTier
-    ).toBe(0)
-    expect(
-      active.find((feature) => feature.properties.itemId === "near-environment")
-        ?.properties.markerRelevanceTier
-    ).toBeGreaterThan(0)
+      byId(buildPublicMapMarkerRelevance({ features: [...features].reverse() }))
+    ).toEqual(byId(ranked))
+  })
+
+  it("reveals the whole 4904-place source at neighborhood detail", () => {
+    const features = Array.from({ length: 4904 }, (_, index) =>
+      buildFeature({
+        id: `place-${index}`,
+        latitude: 41.88 + index / 100000,
+        longitude: -87.63,
+      })
+    )
+    const ranked = buildPublicMapMarkerRelevance({ features })
+    expect(ranked).toHaveLength(4904)
+    const counts = [1.5, 5, 8, 12].map(
+      (zoom) =>
+        ranked.filter(
+          (f) =>
+            (f.properties.markerRelevanceTier ?? 3) <=
+            resolvePublicMapMarkerRelevanceTier(zoom)
+        ).length
+    )
+    expect(counts).toEqual([...counts].sort((a, b) => a - b))
+    expect(counts[3]).toBe(4904)
+    expect(ranked.map((f) => f.geometry)).toEqual(
+      features.map((f) => f.geometry)
+    )
   })
 
   it("keeps any saved organization in a same-location marker prioritized", () => {
@@ -185,9 +240,11 @@ describe("public map marker relevance", () => {
 
   it("maps zoom levels to overview, city, neighborhood, and full detail", () => {
     expect(resolvePublicMapMarkerRelevanceTier(4.85)).toBe(0)
-    expect(resolvePublicMapMarkerRelevanceTier(8)).toBe(1)
+    expect(resolvePublicMapMarkerRelevanceTier(5)).toBe(1)
+    expect(resolvePublicMapMarkerRelevanceTier(8)).toBe(2)
     expect(resolvePublicMapMarkerRelevanceTier(11)).toBe(2)
-    expect(resolvePublicMapMarkerRelevanceTier(13)).toBe(2)
+    expect(resolvePublicMapMarkerRelevanceTier(12)).toBe(3)
+    expect(resolvePublicMapMarkerRelevanceTier(13)).toBe(3)
     expect(resolvePublicMapMarkerRelevanceTier(15)).toBe(3)
   })
 

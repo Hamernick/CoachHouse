@@ -193,7 +193,7 @@ export function buildInitialOrganizationProfile({
     name: String(profile["name"] ?? ""),
     description: String(profile["description"] ?? profile["entity"] ?? ""),
     tagline: String(profile["tagline"] ?? ""),
-    ein: String(organization?.ein ?? profile["ein"] ?? ""),
+    ein: String(organization ? organization.ein ?? "" : profile["ein"] ?? ""),
     formationStatus,
     rep: String(profile["rep"] ?? ""),
     email: String(profile["email"] ?? ""),
