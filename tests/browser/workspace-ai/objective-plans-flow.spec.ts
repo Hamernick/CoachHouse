@@ -7,8 +7,8 @@ async function newPlan(page: Page, title: string, steps: string[]) {
   await page.getByRole("button", { name: "Add plan", exact: true }).click()
   await page.getByLabel("Plan name", { exact: true }).fill(title)
   for (const [index, step] of steps.entries()) {
-    await page.getByRole("button", { name: "Add step", exact: true }).click()
-    await page.getByLabel(`Step ${index + 1} title`, { exact: true }).fill(step)
+    await page.getByRole("button", { name: "Add item", exact: true }).click()
+    await page.getByLabel(`Item ${index + 1} title`, { exact: true }).fill(step)
   }
 }
 test.beforeEach(async ({ page }) => {
@@ -18,16 +18,24 @@ test.beforeEach(async ({ page }) => {
 })
 test("save a branched plan, synchronize checklist/tree, edit from tree and reopen", async ({ page }) => {
   await newPlan(page, "Volunteer launch", ["Confirm venue", "Host in person", "Host online"])
-  await page.getByRole("button", { name: "Connections", exact: true }).click()
-  for (const [target, label] of [["Host in person", "Venue available"], ["Host online", "No venue"]]) {
-    await page.getByRole("combobox", { name: "From step" }).click()
-    await page.getByRole("option", { name: "Confirm venue", exact: true }).click()
-    await page.getByRole("combobox", { name: "To step" }).click()
-    await page.getByRole("option", { name: target, exact: true }).click()
-    await page.getByLabel("Connection condition").fill(label)
-    await page.getByRole("button", { name: "Connect", exact: true }).click()
-  }
+  await expect(page.getByRole("button", { name: "Connections", exact: true })).toHaveCount(0)
+  await page.getByRole("button", { name: "Item 1 options", exact: true }).click()
+  await page.getByRole("menuitem", { name: "Status", exact: true }).click()
+  await page.getByRole("menuitemradio", { name: "Blocked", exact: true }).click()
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
+  // Connections remain saved data; the user removed their manual editor.
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem("objective-fixture")!)
+    const plan = data.planning.plans[0]
+    plan.edges = plan.stepIds.slice(1).map((target: string, index: number) => ({
+      id: crypto.randomUUID(), source: plan.stepIds[0], target,
+      label: index === 0 ? "Venue available" : "No venue",
+    }))
+    localStorage.setItem("objective-fixture", JSON.stringify(data))
+  })
+  await page.reload()
+  await page.getByRole("button", { name: "Objectives", exact: true }).click()
+  await page.getByRole("button", { name: "Launch a volunteer program", exact: true }).click()
   await expect(page.getByRole("dialog")).toHaveCount(0)
   await page.getByRole("button", { name: "Show Volunteer launch tree" }).click()
   await expect(page.locator(".react-flow__node-objectivePlanStep")).toHaveCount(3)
@@ -39,7 +47,7 @@ test("save a branched plan, synchronize checklist/tree, edit from tree and reope
   await page.getByRole("button", { name: "Objectives", exact: true }).click()
   await page.getByRole("checkbox", { name: "Complete Host online", exact: true }).check()
   await page.getByRole("button", { name: "Edit plan for Host online", exact: true }).click()
-  await page.getByLabel("Step 3 title", { exact: true }).fill("Host a virtual session")
+  await page.getByLabel("Item 3 title", { exact: true }).fill("Host a virtual session")
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
   await expect(page.getByRole("checkbox", { name: "Complete Host a virtual session", exact: true })).toBeChecked()
   await page.reload(); await openObjective(page)
@@ -53,7 +61,7 @@ test("reuse a shared step without duplication, keep unrelated plans separate, di
   await newPlan(page, "First plan", ["Shared preparation"])
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
   await newPlan(page, "Related plan", [])
-  await page.getByRole("combobox", { name: "Reuse saved step" }).click()
+  await page.getByRole("combobox", { name: "Reuse saved item" }).click()
   await page.getByRole("option", { name: "Shared preparation", exact: true }).click()
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
   await newPlan(page, "Independent plan", ["Unrelated task"])
@@ -82,6 +90,12 @@ test("plan editor fits narrow dark screens and preserves drafts on attempted dis
   await newPlan(page, "Community event", ["Confirm the venue and accessibility requirements"])
   const dialog = page.getByRole("region", { name: "New plan", exact: true })
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await page.getByRole("button", { name: "Add item", exact: true }).click()
+  await page.getByLabel("Item 2 title", { exact: true }).fill("Remove this draft item")
+  await page.getByRole("button", { name: "Item 2 options", exact: true }).click()
+  await page.getByRole("menuitem", { name: "Delete", exact: true }).click()
+  await expect(page.getByLabel("Item 2 title", { exact: true })).toHaveCount(0)
+  await page.getByLabel("Plan name", { exact: true }).focus()
   await page.keyboard.press("Escape")
   await expect(page.getByText("Discard unsaved plan changes?")).toBeVisible()
   await page.getByRole("button", { name: "Keep editing", exact: true }).click()

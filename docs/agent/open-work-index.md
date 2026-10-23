@@ -1,5 +1,7 @@
 # Open Work Index
 
+**October23 user review:** Full AI sprint paused. Requested compact plan editor correction is ready on localhost3008; [current checkpoint](../plans/2026-10-22-workspace-ai-plan.md#user-review-compact-plan-editor--2026-10-23). Older active/next-task entries below are historical, not authorization to resume.
+
 **October23 AI monthly allowance:** Default-off owner assignment and verified current monthly period grants are implemented with local privacy/concurrency/provider-fixture/browser evidence. No production activation. Annual/proration/reassignment/allowance reversal policies and capped refill remain unfinished. [Current continuation](../plans/2026-10-22-workspace-ai-plan.md#explicit-monthly-subscription-allowance--2026-10-23).
 
 **October23 AI Usage:** Account-menu navigation and private paginated member/task history implemented with local database and simulated browser evidence. No shared migration or production activation. [Current continuation](../plans/2026-10-22-workspace-ai-plan.md#usage-navigation-and-scoped-history--2026-10-23); allowance binding and capped refill remain next.

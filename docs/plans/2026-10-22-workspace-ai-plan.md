@@ -712,3 +712,10 @@ Still unfinished: capped opt-in refill; reviewed next-period subscription/org re
 The Usage checkpoint `713d2425c7d4db82c331badd0e67c40fabf86b46` is independently verified on GitHub. Its graph refresh completed23,437nodes/68,704edges (`/tmp/workspace-credit-usage-graph.log`); this slice's single maintenance pass also covers the previous final pending-context guard.
 
 Interaction-lock and raw-button checks pass. One AST refresh is running as session62372 with output `/tmp/workspace-credit-allowance-graph.log`; check that handle/log before another maintenance run. Code is frozen for this checkpoint. No duplicate graph process was launched.
+
+
+#### User review: compact plan editor — 2026-10-23
+
+The broader sprint remains paused. Applied only the requested editor correction: removed the Connections builder and Steps heading; each item now has one three-dot shadcn dropdown with Type/Status radio submenus and Delete. Add/reuse labels use item. Existing saved graph edges, revisions, validation, deletion cleanup and save ownership remain intact. No schema/provider changes.
+
+Focused ESLint and four existing browser scenarios pass (`/tmp/objective-menu-review-tests.log`), covering status/type submenus, draft deletion/discard, save/reload, shared items and retained saved decision trees. Tests seed connections as saved data because their manual builder was deliberately removed. Confirmed the actual localhost3008 editor/menu and left it open without saving user data. Appearance approval and visual baseline updates remain user-owned. One required graph refresh: session54626, `/tmp/objective-menu-graph.log`; do not start a duplicate.

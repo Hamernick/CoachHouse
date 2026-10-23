@@ -7,23 +7,27 @@ test("explicit decisions synchronize list/tree, preserve history, and survive re
   await page.getByRole("button", { name: "Add plan", exact: true }).click()
   await page.getByLabel("Plan name", { exact: true }).fill("Venue plan")
   for (const [index, title] of ["Choose venue", "Host in person", "Host online"].entries()) {
-    await page.getByRole("button", { name: "Add step", exact: true }).click()
-    await page.getByLabel(`Step ${index + 1} title`, { exact: true }).fill(title)
+    await page.getByRole("button", { name: "Add item", exact: true }).click()
+    await page.getByLabel(`Item ${index + 1} title`, { exact: true }).fill(title)
   }
-  await page.getByRole("button", { name: "Step 1 options", exact: true }).click()
-  await page.getByRole("combobox", { name: "Step 1 type", exact: true }).click()
-  await page.getByRole("option", { name: "Decision", exact: true }).click()
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
-  await expect(page.getByRole("alert")).toContainText("at least two uniquely named outcomes")
-  await page.getByRole("button", { name: "Connections", exact: true }).click()
-  for (const [target, label] of [["Host in person", "Venue available"], ["Host online", "No venue"]]) {
-    await page.getByRole("combobox", { name: "From step" }).click()
-    await page.getByRole("option", { name: "Choose venue", exact: true }).click()
-    await page.getByRole("combobox", { name: "To step" }).click()
-    await page.getByRole("option", { name: target, exact: true }).click()
-    await page.getByLabel("Connection condition").fill(label)
-    await page.getByRole("button", { name: "Connect", exact: true }).click()
-  }
+  // Connections remain saved data; the user removed their manual editor.
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem("objective-fixture")!)
+    const plan = data.planning.plans[0]
+    plan.edges = plan.stepIds.slice(1).map((target: string, index: number) => ({
+      id: crypto.randomUUID(), source: plan.stepIds[0], target,
+      label: index === 0 ? "Venue available" : "No venue",
+    }))
+    localStorage.setItem("objective-fixture", JSON.stringify(data))
+  })
+  await page.reload()
+  await page.getByRole("button", { name: "Objectives", exact: true }).click()
+  await page.getByRole("button", { name: "Launch a volunteer program", exact: true }).click()
+  await page.getByRole("button", { name: "Edit Venue plan plan", exact: true }).click()
+  await page.getByRole("button", { name: "Item 1 options", exact: true }).click()
+  await page.getByRole("menuitem", { name: "Type", exact: true }).click()
+  await page.getByRole("menuitemradio", { name: "Decision", exact: true }).click()
   await page.getByRole("button", { name: "Save plan", exact: true }).click()
   await expect(page.getByRole("dialog")).toHaveCount(0)
   await page.getByRole("button", { name: "Venue plan 0/1 · Awaiting a decision", exact: true }).click()
