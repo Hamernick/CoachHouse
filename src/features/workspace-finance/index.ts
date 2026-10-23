@@ -3,6 +3,8 @@ export {
   WorkspaceFinanceStripeConnection,
 } from "./components"
 export { WorkspaceOpportunitiesFeed } from "./components/workspace-opportunities-feed"
+export { opportunitySourcesSchema, readOpportunitySources, sourceKey } from "./lib/opportunity-sources"
+export type { OpportunitySource, OpportunitySourceOption } from "./lib/opportunity-sources"
 export {
   buildWorkspaceFinanceProgramInputs,
   normalizeWorkspaceFinanceInput,

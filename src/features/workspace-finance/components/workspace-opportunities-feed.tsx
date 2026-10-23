@@ -1,24 +1,44 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Check, X, CalendarDays } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { updateWorkspaceFinanceOpportunityStatus } from "@/actions/workspace-finance"
 import type { WorkspaceFinanceDataState, WorkspaceFinanceOpportunityInput, WorkspaceFinanceOpportunityWorkflowStatus } from "../types"
 import { WorkspaceOpportunityForm } from "./workspace-opportunity-form"
+import { getWorkspaceOpportunitySources } from "@/actions/workspace-opportunity-sources"
+import { sourceKey, type OpportunitySourceOption } from "../lib/opportunity-sources"
+import { OpportunitySourcePill } from "./opportunity-source-pill"
 
 const labels = { new: "Opportunity", saved: "Saved", applied: "Applied", awarded: "Awarded", not_awarded: "Not awarded", dismissed: "Dismissed" }
 
-export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange, organizationId }: {
+export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange, organizationId, onOpenSource }: {
   opportunities?: WorkspaceFinanceOpportunityInput[]
   state?: WorkspaceFinanceDataState
   canEdit?: boolean
   onCountChange?: (count: number) => void
   organizationId?: string
+  onOpenSource?: (id: string) => boolean
 }) {
   const [creating, setCreating] = useState(false)
   const [added, setAdded] = useState<WorkspaceFinanceOpportunityInput[]>([])
+  const [sourceOptions, setSourceOptions] = useState<OpportunitySourceOption[]>([])
+  const [sourcesLoading, setSourcesLoading] = useState(false)
+  const [sourcesError, setSourcesError] = useState<string | null>(null)
+  const sourceRequest = useRef(false)
+  const sourcesLoaded = useRef(false)
+  const loadSources = useCallback(() => {
+    if (!organizationId || sourceRequest.current || sourcesLoaded.current) return
+    sourceRequest.current = true; setSourcesLoading(true); setSourcesError(null)
+    void getWorkspaceOpportunitySources(organizationId).then(result => {
+      if ("error" in result) setSourcesError(result.error ?? "Sources couldn’t be loaded.")
+      else { setSourceOptions(result.options); sourcesLoaded.current = true }
+    }).catch(() => setSourcesError("Sources couldn’t be loaded. Try typing @ again."))
+      .finally(() => { sourceRequest.current = false; setSourcesLoading(false) })
+  }, [organizationId])
+  const hasReferences = opportunities.some(item => item.sources?.some(source => source.kind !== "link" && source.kind !== "text"))
+  useEffect(() => { if (hasReferences) loadSources() }, [hasReferences, loadSources])
   const addButton = useRef<HTMLButtonElement>(null)
   const [changes, setChanges] = useState<Record<string, WorkspaceFinanceOpportunityWorkflowStatus>>({})
   const [pending, setPending] = useState<Set<string>>(() => new Set())
@@ -44,7 +64,7 @@ export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle",
   if (state === "loading") return <p role="status" className="px-2 py-6 text-center text-sm text-muted-foreground">Loading opportunities…</p>
   if (state === "error") return <p role="alert" className="px-2 py-6 text-center text-sm text-muted-foreground">Opportunities couldn’t be loaded.</p>
   const closeForm = () => { setCreating(false); requestAnimationFrame(() => addButton.current?.focus()) }
-  if (creating && canEdit && organizationId) return <WorkspaceOpportunityForm organizationId={organizationId} onCancel={closeForm} onCreated={item => { setAdded(value => [item, ...value.filter(existing => existing.id !== item.id)]); closeForm() }} />
+  if (creating && canEdit && organizationId) return <WorkspaceOpportunityForm organizationId={organizationId} sourceOptions={sourceOptions} loadSources={loadSources} sourcesLoading={sourcesLoading} sourcesError={sourcesError} onCancel={closeForm} onCreated={item => { setAdded(value => [item, ...value.filter(existing => existing.id !== item.id)]); closeForm() }} />
   const addControl = canEdit && organizationId && <Button ref={addButton} variant="outline" className="rounded-full shadow-none" onClick={() => setCreating(true)}>Add opportunity</Button>
   if (!visible.length) return <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 px-4 py-6"><p className="text-sm text-muted-foreground">No opportunities yet.</p>{addControl}</div>
   return <div className="space-y-3"><ul aria-label="Opportunities feed" className="space-y-3">
@@ -63,6 +83,7 @@ export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle",
         <div className="space-y-2 rounded-t-2xl border-t border-border/60 bg-background p-3">
           <h3 className="break-words text-sm font-semibold leading-snug">{item.title}</h3>
           {item.source && <p className="break-words text-sm text-muted-foreground">{item.source}</p>}
+          {Boolean(item.sources?.length) && <div className="flex flex-wrap gap-1.5">{item.sources?.map(source => <OpportunitySourcePill key={sourceKey(source)} source={source} organizationId={organizationId} option={sourceOptions.find(option => sourceKey(option.source) === sourceKey(source))} onOpen={onOpenSource} />)}</div>}
           {deadline && <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDays aria-hidden="true" className="size-3.5 shrink-0" /><span>Due <time dateTime={item.dueAt ?? undefined}>{deadline}</time></span></p>}
           {item.attribution === "grants_gov" && <p className="text-xs text-muted-foreground">Source: Grants.gov</p>}
         </div>

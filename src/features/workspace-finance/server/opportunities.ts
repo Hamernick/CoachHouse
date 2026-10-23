@@ -7,6 +7,7 @@ import type {
   WorkspaceFinanceOpportunityStatus,
 } from "../types"
 import { GRANTS_GOV_SOURCE_KEY } from "../lib/grants-gov"
+import { readOpportunitySources } from "../lib/opportunity-sources"
 
 type OrganizationFinanceOpportunityRow =
   Database["public"]["Tables"]["organization_finance_opportunities"]["Row"]
@@ -36,6 +37,7 @@ export function mapOrganizationFinanceOpportunity(
     id: opportunity.id,
     title: opportunity.title,
     source: opportunity.source_label,
+    sources: readOpportunitySources(opportunity.sources),
     dueAt: opportunity.due_at,
     discoveredAt: opportunity.discovered_at,
     status: opportunity.status,
@@ -55,7 +57,7 @@ export async function loadOrganizationFinanceOpportunities({
   const { data, error } = await supabase
     .from("organization_finance_opportunities")
     .select(
-      "id,org_id,title,source_label,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
+      "id,org_id,title,source_label,sources,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
     )
     .eq("org_id", orgId)
     .neq("status", "dismissed")

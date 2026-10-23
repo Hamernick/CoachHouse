@@ -72,6 +72,7 @@ export type WorkspaceFinanceOpportunityInput = {
   id: string
   title: string
   source?: string | null
+  sources?: import("./lib/opportunity-sources").OpportunitySource[]
   dueAt?: string | null
   discoveredAt?: string | null
   status: WorkspaceFinanceOpportunityStatus

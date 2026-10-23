@@ -1,9 +1,12 @@
+import type { Json } from "../json"
+
 export type OrganizationFinanceOpportunitiesTable = {
   Row: {
     id: string
     org_id: string
     title: string
     source_label: string | null
+    sources?: Json
     opportunity_type: string
     due_at: string | null
     status: string
@@ -19,6 +22,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     org_id: string
     title: string
     source_label?: string | null
+    sources?: Json
     opportunity_type?: string
     due_at?: string | null
     status?: string
@@ -34,6 +38,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     org_id?: string
     title?: string
     source_label?: string | null
+    sources?: Json
     opportunity_type?: string
     due_at?: string | null
     status?: string

@@ -55,7 +55,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     </div>
     </TabsContent>
     <TabsContent value="opportunities" forceMount hidden={tab !== "opportunities"} className="m-0">
-      <WorkspaceOpportunitiesFeed organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} />
+      <WorkspaceOpportunitiesFeed key={scope.organizationId} organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} onOpenSource={id => controls.graph?.particles.some(item => item.id === id) ? controls.select(id) : false} />
     </TabsContent>
   </ObjectivesIslandSurface>
   </Tabs>

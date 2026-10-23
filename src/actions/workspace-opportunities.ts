@@ -6,6 +6,8 @@ import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { canManageWorkspaceFinance } from "@/lib/workspace/workspace-finance-access"
 import type { WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance"
+import { opportunitySourcesSchema, readOpportunitySources, sourceKey, type OpportunitySource } from "@/features/workspace-finance"
+import { loadOpportunitySourceOptions } from "@/features/workspace-finance/server"
 
 const inputSchema = z.object({
   id: z.string().uuid(),
@@ -13,10 +15,11 @@ const inputSchema = z.object({
   title: z.string().trim().min(1).max(200),
   source: z.string().trim().max(120),
   deadline: z.union([z.literal(""), z.iso.date()]),
+  sources: opportunitySourcesSchema.optional(),
 }).strict()
 
 export async function createWorkspaceOpportunity(input: {
-  id: string; organizationId: string; title: string; source: string; deadline: string
+  id: string; organizationId: string; title: string; source: string; deadline: string; sources?: OpportunitySource[]
 }): Promise<{ opportunity: WorkspaceFinanceOpportunityInput } | { error: string }> {
   const parsed = inputSchema.safeParse(input)
   if (!parsed.success) return { error: "Check the title, source, and timeline date." }
@@ -29,6 +32,11 @@ export async function createWorkspaceOpportunity(input: {
     return { error: "Only organization owners and Finance managers can add opportunities." }
   }
   try {
+    const sources = parsed.data.sources ?? []
+    if (sources.some(item => item.kind !== "link" && item.kind !== "text")) {
+      const available = new Set((await loadOpportunitySourceOptions(supabase, activeOrg.orgId)).map(item => sourceKey(item.source)))
+      if (sources.some(item => item.kind !== "link" && item.kind !== "text" && !available.has(sourceKey(item)))) return { error: "A source is no longer available. Remove it or choose another." }
+    }
     const admin = createSupabaseAdminClient()
     const { id, title, source, deadline } = parsed.data
     const { error } = await admin.from("organization_finance_opportunities").insert({
@@ -36,6 +44,7 @@ export async function createWorkspaceOpportunity(input: {
       due_at: deadline ? `${deadline}T12:00:00.000Z` : null,
       opportunity_type: "other", status: "new",
       external_provider: "manual", external_opportunity_id: id,
+      ...(sources.length ? { sources } : {}),
     })
     // Retrying the same submission must not create a second card or overwrite it.
     if (error && error.code !== "23505") return { error: "Unable to add this opportunity. Your entries are still here." }
@@ -45,6 +54,7 @@ export async function createWorkspaceOpportunity(input: {
     const opportunity: WorkspaceFinanceOpportunityInput = {
       id: data.id, title: data.title, source: data.source_label, dueAt: data.due_at,
       discoveredAt: data.discovered_at, status: data.status as WorkspaceFinanceOpportunityInput["status"],
+      sources: readOpportunitySources(data.sources),
     }
     revalidatePath("/workspace")
     revalidatePath("/my-organization")

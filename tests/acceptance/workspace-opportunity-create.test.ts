@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ context: vi.fn(), manage: vi.fn(), admin: vi.fn(), revalidate: vi.fn() }))
+const mocks = vi.hoisted(() => ({ context: vi.fn(), manage: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), sources: vi.fn() }))
+vi.mock("@/features/workspace-finance/server", () => ({ loadOpportunitySourceOptions: mocks.sources }))
 vi.mock("@/lib/auth/request-context", () => ({ resolveAuthenticatedAppContext: mocks.context }))
 vi.mock("@/lib/workspace/workspace-finance-access", () => ({ canManageWorkspaceFinance: mocks.manage }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
@@ -23,6 +24,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.context.mockResolvedValue({ activeOrg: { orgId: org, role: "owner" }, supabase: {}, user: { id: org } })
   mocks.manage.mockResolvedValue(true)
+  mocks.sources.mockResolvedValue([])
 })
 describe("manual workspace opportunity creation", () => {
   it("rejects invalid fields before authentication or database access", async () => {
@@ -72,5 +74,29 @@ describe("manual workspace opportunity creation", () => {
     database({ code: "23514" })
     expect(await createWorkspaceOpportunity(input)).toHaveProperty("error")
     expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+  it("rejects unavailable or foreign internal sources before storage", async () => {
+    database()
+    expect(await createWorkspaceOpportunity({ ...input, sources: [{ kind: "person", id }] })).toHaveProperty("error")
+    expect(mocks.sources).toHaveBeenCalledWith({}, org)
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("persists authorized references without copying private previews", async () => {
+    const { query } = database()
+    const sources = [{ kind: "person" as const, id }, { kind: "link" as const, url: "https://example.org/" }]
+    mocks.sources.mockResolvedValue([{ source: sources[0], title: "Authorized person", description: "Private preview" }])
+    expect(await createWorkspaceOpportunity({ ...input, sources })).toHaveProperty("opportunity")
+    expect(query.insert.mock.calls[0][0].sources).toEqual(sources)
+  })
+  it("rejects unsafe, duplicate, oversized, and forged source metadata", async () => {
+    for (const sources of [
+      [{ kind: "link", url: "@" }],
+      [{ kind: "link", url: "javascript:alert(1)" }],
+      [{ kind: "link", url: "https://user:secret@example.org" }],
+      [{ kind: "person", id, title: "Forged" }],
+      [{ kind: "text", label: "same" }, { kind: "text", label: "same" }],
+      Array.from({ length: 21 }, (_, i) => ({ kind: "text", label: String(i) })),
+    ]) expect(await createWorkspaceOpportunity({ ...input, sources } as Parameters<typeof createWorkspaceOpportunity>[0])).toHaveProperty("error")
+    expect(mocks.admin).not.toHaveBeenCalled()
   })
 })
