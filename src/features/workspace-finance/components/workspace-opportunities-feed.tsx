@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, X, CalendarDays } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
@@ -9,14 +9,16 @@ import type { WorkspaceFinanceDataState, WorkspaceFinanceOpportunityInput, Works
 
 const labels = { new: "Opportunity", saved: "Saved", applied: "Applied", awarded: "Awarded", not_awarded: "Not awarded", dismissed: "Dismissed" }
 
-export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false }: {
+export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange }: {
   opportunities?: WorkspaceFinanceOpportunityInput[]
   state?: WorkspaceFinanceDataState
   canEdit?: boolean
+  onCountChange?: (count: number) => void
 }) {
   const [changes, setChanges] = useState<Record<string, WorkspaceFinanceOpportunityWorkflowStatus>>({})
   const [pending, setPending] = useState<Set<string>>(() => new Set())
   const visible = opportunities.filter(item => (changes[item.id] ?? item.status) !== "dismissed")
+  useEffect(() => { onCountChange?.(visible.length) }, [onCountChange, visible.length])
   async function change(item: WorkspaceFinanceOpportunityInput, status: WorkspaceFinanceOpportunityWorkflowStatus) {
     if (!canEdit || pending.has(item.id)) return
     const previous = changes[item.id] ?? item.status

@@ -17,6 +17,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [tab, setTab] = useState("objectives")
+  const [opportunityCount, setOpportunityCount] = useState(() => finance?.opportunities?.filter(item => item.status !== "dismissed").length ?? 0)
   const pressedTab = useRef<string | null>(null)
   const actions = useParticlePlans(scope, controls)
   const objectives = orderedObjectives(controls.graph?.particles ?? [])
@@ -31,12 +32,12 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
   }
   const completed = objectives.filter(item => item.status === "done").length
   return <Tabs value={tab} onValueChange={value => { setTab(value); setOpen(true) }} className="pointer-events-none w-[420px] max-w-full gap-0">
-    <ObjectivesIslandSurface closedWidth={272} header={
+    <ObjectivesIslandSurface closedWidth={336} header={
       <TabsList aria-label="Workspace feeds" className="relative grid h-[42px] w-full grid-cols-2 rounded-full bg-muted/40 p-1 data-[orientation=horizontal]:h-[42px]">
-        <TabsTrigger value="objectives" aria-label="Objectives" aria-expanded={open && tab === "objectives"} aria-description={`${completed} of ${objectives.length} objectives completed`} onPointerDownCapture={() => { pressedTab.current = tab }} onClick={event => { if (event.detail > 0 && pressedTab.current === "objectives") setOpen(value => !value) }} onKeyDown={event => { if (tab === "objectives" && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(value => !value) } }} className="h-full gap-2 rounded-full border-0 px-3 shadow-none data-[state=active]:shadow-none">
-          <CircularProgress decorative value={objectives.length ? completed / objectives.length * 100 : 0} size={16} strokeWidth={2} className="shrink-0" progressClassName={completed === objectives.length && completed > 0 ? "stroke-emerald-600 dark:stroke-emerald-400" : "stroke-orange-600 dark:stroke-orange-400"} />Objectives
+        <TabsTrigger value="objectives" aria-label="Objectives" aria-expanded={open && tab === "objectives"} aria-description={`${completed} of ${objectives.length} objectives completed`} onPointerDownCapture={() => { pressedTab.current = tab }} onClick={event => { if (event.detail > 0 && pressedTab.current === "objectives") setOpen(value => !value) }} onKeyDown={event => { if (tab === "objectives" && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(value => !value) } }} className="h-full justify-start gap-2 rounded-full border-0 px-3 shadow-none data-[state=active]:shadow-none">
+          <CircularProgress decorative value={objectives.length ? completed / objectives.length * 100 : 0} size={16} strokeWidth={2} className="shrink-0" progressClassName={completed === objectives.length && completed > 0 ? "stroke-emerald-600 dark:stroke-emerald-400" : "stroke-orange-600 dark:stroke-orange-400"} /><span>Objectives</span><span className="ml-auto tabular-nums">({objectives.length})</span>
         </TabsTrigger>
-        <TabsTrigger value="opportunities" aria-label="Opportunities" aria-expanded={open && tab === "opportunities"} onPointerDownCapture={() => { pressedTab.current = tab }} onClick={event => { if (event.detail > 0 && pressedTab.current === "opportunities") setOpen(value => !value) }} onKeyDown={event => { if (tab === "opportunities" && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(value => !value) } }} className="h-full rounded-full border-0 px-3 shadow-none data-[state=active]:shadow-none">Opportunities</TabsTrigger>
+        <TabsTrigger value="opportunities" aria-label="Opportunities" aria-description={`${opportunityCount} opportunities`} aria-expanded={open && tab === "opportunities"} onPointerDownCapture={() => { pressedTab.current = tab }} onClick={event => { if (event.detail > 0 && pressedTab.current === "opportunities") setOpen(value => !value) }} onKeyDown={event => { if (tab === "opportunities" && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(value => !value) } }} className="h-full justify-start gap-2 rounded-full border-0 px-3 shadow-none data-[state=active]:shadow-none"><span>Opportunities</span><span className="ml-auto tabular-nums">({opportunityCount})</span></TabsTrigger>
       </TabsList>
     } open={open} onOpenChange={setOpen} completed={objectives.filter(item => item.status === "done").length} total={objectives.length} footer={tab === "objectives" && controls.canEdit && !controls.error && <form onSubmit={async event => { event.preventDefault(); if (title.trim() && await actions.createObjective(title.trim())) setTitle("") }}>
         <InputGroup className="rounded-full bg-muted/30 p-1 shadow-none"><InputGroupInput aria-label="New objective" placeholder="What do you want to accomplish?" value={title} maxLength={240} required onChange={event => setTitle(event.target.value)} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
@@ -54,7 +55,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     </div>
     </TabsContent>
     <TabsContent value="opportunities" forceMount hidden={tab !== "opportunities"} className="m-0">
-      <WorkspaceOpportunitiesFeed opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} />
+      <WorkspaceOpportunitiesFeed opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} />
     </TabsContent>
   </ObjectivesIslandSurface>
   </Tabs>

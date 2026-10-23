@@ -831,3 +831,7 @@ Extended the2px objective rail across the4px inter-card gap and into the next ob
 Status follow-up: Not yet circles now use a dashed border across objective and plan-item rows; progress rings and completion marks remain unchanged. Browser computed styles confirm dashed inactive and solid in-progress rings; scoped lint/diff pass. Reusing in-flight graph refresh38428, /tmp/objectives-continuous-rail-graph.log.
 
 Copy follow-up: changed the shared inactive status label from Not yet to Not started for objectives and plan items. Scoped lint passes. Reusing current graph refresh38428; no behavior changes.
+
+### User review — island tab counts, 2026-10-23
+
+Left-aligned tab contents and restored right-aligned parenthesized objective/opportunity counts. Opportunity count follows the feed's visible rows, including optimistic dismissal/Undo. Closed width336px accommodates both labels and counts; expanded width remains420px. Browser verifies12px left inset and no overflow in both states, displaying Objectives(4) and Opportunities(0). Scoped lint/diff pass. Single graph refresh exec92000, /tmp/workspace-island-counts-graph.log.
