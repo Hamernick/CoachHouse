@@ -17,7 +17,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [tab, setTab] = useState("objectives")
-  const [opportunityCount, setOpportunityCount] = useState(() => finance?.opportunities?.filter(item => item.status !== "dismissed").length ?? 0)
+  const [opportunityCount, setOpportunityCount] = useState(() => finance?.opportunities?.length ?? 0)
   const pressedTab = useRef<string | null>(null)
   const actions = useParticlePlans(scope, controls)
   const objectives = orderedObjectives(controls.graph?.particles ?? [])
@@ -55,7 +55,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     </div>
     </TabsContent>
     <TabsContent value="opportunities" forceMount hidden={tab !== "opportunities"} className="m-0">
-      <WorkspaceOpportunitiesFeed opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} />
+      <WorkspaceOpportunitiesFeed organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} />
     </TabsContent>
   </ObjectivesIslandSurface>
   </Tabs>

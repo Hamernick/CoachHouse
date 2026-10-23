@@ -1,23 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Check, X, CalendarDays } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { Button } from "@/components/ui/button"
 import { updateWorkspaceFinanceOpportunityStatus } from "@/actions/workspace-finance"
 import type { WorkspaceFinanceDataState, WorkspaceFinanceOpportunityInput, WorkspaceFinanceOpportunityWorkflowStatus } from "../types"
+import { WorkspaceOpportunityForm } from "./workspace-opportunity-form"
 
 const labels = { new: "Opportunity", saved: "Saved", applied: "Applied", awarded: "Awarded", not_awarded: "Not awarded", dismissed: "Dismissed" }
 
-export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange }: {
+export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange, organizationId }: {
   opportunities?: WorkspaceFinanceOpportunityInput[]
   state?: WorkspaceFinanceDataState
   canEdit?: boolean
   onCountChange?: (count: number) => void
+  organizationId?: string
 }) {
+  const [creating, setCreating] = useState(false)
+  const [added, setAdded] = useState<WorkspaceFinanceOpportunityInput[]>([])
+  const addButton = useRef<HTMLButtonElement>(null)
   const [changes, setChanges] = useState<Record<string, WorkspaceFinanceOpportunityWorkflowStatus>>({})
   const [pending, setPending] = useState<Set<string>>(() => new Set())
-  const visible = opportunities.filter(item => (changes[item.id] ?? item.status) !== "dismissed")
+  const items = [...new Map([...added, ...opportunities].map(item => [item.id, item])).values()]
+  const visible = items.filter(item => (changes[item.id] ?? item.status) !== "dismissed")
   useEffect(() => { onCountChange?.(visible.length) }, [onCountChange, visible.length])
   async function change(item: WorkspaceFinanceOpportunityInput, status: WorkspaceFinanceOpportunityWorkflowStatus) {
     if (!canEdit || pending.has(item.id)) return
@@ -37,8 +43,11 @@ export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle",
   }
   if (state === "loading") return <p role="status" className="px-2 py-6 text-center text-sm text-muted-foreground">Loading opportunities…</p>
   if (state === "error") return <p role="alert" className="px-2 py-6 text-center text-sm text-muted-foreground">Opportunities couldn’t be loaded.</p>
-  if (!visible.length) return <p className="px-2 py-6 text-center text-sm text-muted-foreground">No opportunities yet.</p>
-  return <ul aria-label="Opportunities feed" className="space-y-3">
+  const closeForm = () => { setCreating(false); requestAnimationFrame(() => addButton.current?.focus()) }
+  if (creating && canEdit && organizationId) return <WorkspaceOpportunityForm organizationId={organizationId} onCancel={closeForm} onCreated={item => { setAdded(value => [item, ...value.filter(existing => existing.id !== item.id)]); closeForm() }} />
+  const addControl = canEdit && organizationId && <Button ref={addButton} variant="outline" className="rounded-full shadow-none" onClick={() => setCreating(true)}>Add opportunity</Button>
+  if (!visible.length) return <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 px-4 py-6"><p className="text-sm text-muted-foreground">No opportunities yet.</p>{addControl}</div>
+  return <div className="space-y-3"><ul aria-label="Opportunities feed" className="space-y-3">
     {visible.map(item => {
       const status = changes[item.id] ?? item.status
       const date = item.dueAt ? new Date(item.dueAt) : null
@@ -59,5 +68,5 @@ export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle",
         </div>
       </li>
     })}
-  </ul>
+  </ul>{addControl && <div className="flex justify-center">{addControl}</div>}</div>
 }

@@ -2,12 +2,19 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 vi.mock("@/actions/workspace-finance", () => ({ updateWorkspaceFinanceOpportunityStatus: vi.fn() }))
+vi.mock("@/actions/workspace-opportunities", () => ({ createWorkspaceOpportunity: vi.fn() }))
 import { WorkspaceOpportunitiesFeed } from "@/features/workspace-finance"
 
 const opportunity = { id: "00000000-0000-4000-8000-000000000001", title: "Community grant", source: "Example Foundation", dueAt: "2027-01-15T17:00:00Z", status: "new" as const }
 const render = (props: Parameters<typeof WorkspaceOpportunitiesFeed>[0]) => renderToStaticMarkup(createElement(WorkspaceOpportunitiesFeed, props))
 
 describe("workspace opportunity feed", () => {
+  it("offers inline creation for an editable empty organization feed", () => {
+    const html = render({ opportunities: [], state: "ready", canEdit: true, organizationId: "00000000-0000-4000-8000-000000000001" })
+    expect(html).toContain("No opportunities yet.")
+    expect(html).toContain("Add opportunity")
+    expect(render({ opportunities: [], state: "ready", organizationId: "00000000-0000-4000-8000-000000000001" })).not.toContain("Add opportunity")
+  })
   it("renders sourced cards and named save/dismiss actions without invented match scores", () => {
     const html = render({ opportunities: [opportunity], state: "ready", canEdit: true })
     expect(html).toContain("Community grant")
