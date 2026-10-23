@@ -1,5 +1,7 @@
 # Open Work Index
 
+**October22 AI spending caps:** Owner organization/member limits are implemented with SQL enforcement and local UI/concurrency evidence. Shared migrations remain unapplied. Refund/dispute handling and auto-refill are next; full sprint remains active. [Checkpoint](../plans/2026-10-22-workspace-ai-plan.md#owner-and-member-spending-limits--2026-10-22).
+
 **October22 AI credit purchases:** Default-off owner purchase UI and bound payment fulfillment are implemented/tested locally. No live billing or shared migration. Refund/dispute controls, spending caps and auto-refill remain launch blockers. The user explicitly continued the full sprint. See the [authoritative checkpoint](../plans/2026-10-22-workspace-ai-plan.md#credit-purchase-checkout-and-fulfillment--2026-10-22).
 
 ## Particle MVP continuation — 2026-10-19

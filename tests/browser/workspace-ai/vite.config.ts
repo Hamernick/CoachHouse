@@ -21,6 +21,7 @@ export default defineConfig({
   plugins: [
     { name: "fixture-server-action-boundary", enforce: "pre", resolveId(source, importer) {
       if (source === "../purchase-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "credit-actions.ts")
+      if (source === "../limit-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "credit-actions.ts")
       if (source === "../actions" && (importer?.includes("workspace-ai/components/") || importer?.includes("workspace-ai/hooks/"))) return actions
       return null
     } },

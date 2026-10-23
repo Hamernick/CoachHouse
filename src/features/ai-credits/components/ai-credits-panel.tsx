@@ -6,6 +6,7 @@ import { aiCreditBalance } from "../lib"
 import { loadCreditPurchases } from "../purchase-actions"
 import type { AiCreditPurchases } from "../purchase-types"
 import { CreditPurchaseControl } from "./credit-purchase-control"
+import { CreditSpendingLimits } from "./credit-spending-limits"
 
 export function AiCreditsPanel({ account, organizationId }: { account: AiCreditAccount; organizationId?: string }) {
   const [fresh, setFresh] = useState<{ account: AiCreditAccount; purchases: AiCreditPurchases } | null>(null)
@@ -43,6 +44,7 @@ export function AiCreditsPanel({ account, organizationId }: { account: AiCreditA
         <dt>Reserved</dt><dd className="text-right tabular-nums">{balance.reserved.toLocaleString()}</dd>
       </dl>
       {organizationId && fresh ? <CreditPurchaseControl key={organizationId} organizationId={organizationId} purchases={fresh.purchases} /> : null}
+      {organizationId ? <CreditSpendingLimits key={`limits:${organizationId}`} organizationId={organizationId} /> : null}
       {error ? <p role="status" className="text-xs text-muted-foreground">{error}</p> : null}
       {current.history.length ? <ul className="flex max-h-52 flex-col gap-2 overflow-auto" aria-label="Your AI usage">
         {current.history.map(run => <li key={run.id} className="flex justify-between gap-3 border-t border-border/60 pt-2 text-xs">

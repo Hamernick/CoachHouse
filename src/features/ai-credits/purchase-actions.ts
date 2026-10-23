@@ -1,22 +1,16 @@
 "use server"
 
 import { z } from "zod"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { resolveActiveOrganization } from "@/lib/organization/active-org"
 import { resolveDevtoolsAudience, resolveTesterMetadata } from "@/lib/devtools/audience"
 import { resolveStripeRuntimeConfigForAudience } from "@/lib/billing/stripe-runtime"
 import { env } from "@/lib/env"
 import { preparePurchase, readPurchases } from "./server/purchase-store"
 import { createCreditCheckout } from "./server/purchase-checkout"
 import { readAiAccount } from "./server/accounting"
+import { requireCreditOrganization } from "./server/credit-context"
 
 async function purchaseContext(organizationId: string) {
-  z.uuid().parse(organizationId)
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Sign in to view credits.")
-  const { orgId } = await resolveActiveOrganization(supabase, user.id)
-  if (orgId !== organizationId) throw new Error("Your organization changed. Reopen usage before continuing.")
+  const { supabase, user, orgId } = await requireCreditOrganization(organizationId)
   const audience = await resolveDevtoolsAudience({ supabase, userId: user.id, fallbackIsTester: resolveTesterMetadata(user.user_metadata ?? null) })
   const runtime = resolveStripeRuntimeConfigForAudience({ isTester: audience.isTester })
   return { orgId, actorId: user.id, runtime }

@@ -81,6 +81,7 @@ try {
   runSql("supabase/migrations/20261022170000_workspace_ai_plans.sql")
   runSql("supabase/migrations/20261022230000_workspace_ai_plan_revisions.sql")
   runSql("supabase/migrations/20261022233000_workspace_ai_credit_purchases.sql")
+  runSql("supabase/migrations/20261022234500_workspace_ai_spending_limits.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
@@ -152,7 +153,19 @@ try {
   const payments = await Promise.all([fulfillConcurrently(), fulfillConcurrently()])
   if (payments.some(result => result.code !== 0)) throw new Error(`Concurrent credit fulfillment failed: ${JSON.stringify(payments)}`)
   run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.ai_credit_lots where operation_key='stripe-credit:test:pi_race'),'concurrent payment delivery grants once');`})
-  console.log("[workspace-ai] Credit purchase binding, access, payment replay/concurrency, plan generation/apply/undo, accounting, cancellation, recovery and concurrent wallet admission passed.")
+  runSql("supabase/tests/workspace-ai-limits.assertions.sql")
+  const reserveWithCaps = n => new Promise(resolve => {
+    const child = spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})
+    let error = ""; child.stderr.on("data",chunk => { error += chunk }); child.stdout.resume()
+    child.on("close",code => resolve({code,error}))
+    child.stdin.end(`begin; set local role service_role;
+      select public.reserve_workspace_ai_run('72000000-0000-4000-8000-00000000001${n}','00000000-0000-0000-0000-000000000004',
+      '00000000-0000-0000-0000-00000000000${n}',repeat('a',64),'{}','cap race','{}',20,80000);
+      select pg_sleep(0.15); commit;`)
+  })
+  const capped = await Promise.all([reserveWithCaps(4),reserveWithCaps(2)])
+  if (capped.filter(result => result.code === 0).length !== 1 || !capped.some(result => result.error.includes("Organization monthly AI credit limit reached"))) throw new Error(`Concurrent limit admission failed: ${JSON.stringify(capped)}`)
+  console.log("[workspace-ai] Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
 } finally {
   if (started) {
     spawnSync(join(postgresDirectory, "pg_ctl"), [
