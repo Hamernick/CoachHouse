@@ -7,8 +7,8 @@ import type { ObjectiveStep } from "../island-types"
 import { planProgress } from "../lib/plan-progress"
 import { PlanDecisionChoice } from "./plan-decision-choice"
 import type { ObjectivePlan } from "../plan-types"
-export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onToggle, onEdit, onCreate, onStep, onChoice, allPlans = plans }: {
-  allPlans?: ObjectivePlan[]; onChoice: (plan: ObjectivePlan, stepId: string, edgeId: string | null) => void; plans: ObjectivePlan[]; steps: ObjectiveStep[]; canEdit: boolean; pending: boolean; visible: string[]
+export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onToggle, onEdit, onCreate, onStep, onChoice, onRevise, allPlans = plans }: {
+  onRevise?: (plan: ObjectivePlan) => void; allPlans?: ObjectivePlan[]; onChoice: (plan: ObjectivePlan, stepId: string, edgeId: string | null) => void; plans: ObjectivePlan[]; steps: ObjectiveStep[]; canEdit: boolean; pending: boolean; visible: string[]
   onToggle: (id: string) => void; onEdit: (plan: ObjectivePlan) => void; onCreate: () => void; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
   return <div className="flex flex-col gap-2">
@@ -31,7 +31,7 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, visible, onT
             </>}
             {applicable !== "active" && <span className="text-xs text-muted-foreground">{applicable === "waiting" ? "Awaiting a decision" : "Not selected"}</span>}
           </li>
-        })}</ul></CollapsibleContent>
+        })}</ul>{canEdit && onRevise && <Button variant="ghost" size="sm" className="rounded-full" disabled={pending} onClick={() => onRevise(plan)}>Revise with AI</Button>}</CollapsibleContent>
       </Collapsible>
     })}
     {canEdit && <Button variant="ghost" size="sm" className="w-fit rounded-full" disabled={pending} onClick={onCreate}><Plus data-icon="inline-start" aria-hidden />Add plan</Button>}

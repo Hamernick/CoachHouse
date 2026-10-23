@@ -19,7 +19,7 @@ beforeEach(() => {
   mocks.objective.mockResolvedValue({ orgId: id(1), userId: id(2), objective: { title: "Community event", description: null } })
   mocks.reserve.mockResolvedValue({ created: true }); mocks.claim.mockResolvedValue(true); mocks.reconcile.mockResolvedValue(undefined)
   mocks.provider.mockImplementation(async ({ onResponse }) => { await onResponse("response-1"); return { text: JSON.stringify(generated), usage: { input: 500, cachedInput: 0, output: 800 }, completed: true } })
-  mocks.settle.mockImplementation(async input => { saved = { id: input.id, actor_id: id(2), org_id: id(1), task: "plan", target: { ...target, kind: "plan", title: "Community event", description: null }, status: input.status, proposal: input.proposal, charged_credits: input.status === "succeeded" ? 5 : 0, max_credits: 100 }; return saved })
+  mocks.settle.mockImplementation(async input => { saved = { id: input.id, actor_id: id(2), org_id: id(1), task: "plan", target: mocks.reserve.mock.calls.at(-1)?.[0].target ?? { ...target, kind: "plan", title: "Community event", description: null }, status: input.status, proposal: input.proposal, charged_credits: input.status === "succeeded" ? 5 : 0, max_credits: 100 }; return saved })
   mocks.read.mockImplementation(async () => ({ proposal: aiPlanProposal(saved) }))
 })
 describe("reviewed metered plan generation", () => {
@@ -114,5 +114,43 @@ describe("bounded typed plan proposals", () => {
   it("allows questions before a plan exists, and rejects empty no-op replies", () => {
     expect(generatedPlanSchema.safeParse({ ...generated, steps: [], edges: [] }).success).toBe(true)
     expect(generatedPlanSchema.safeParse({ ...generated, steps: [], edges: [], questions: [] }).success).toBe(false)
+  })
+})
+
+
+describe("saved plan revisions", () => {
+  const baseline = () => {
+    const draft = bindAiPlan(JSON.stringify(generated), id(50), target.objectiveId, () => crypto.randomUUID()).draft
+    draft.revision = 2; draft.steps[1].status = "done"
+    draft.steps.forEach(step => { step.expectedUpdatedAt = target.revision })
+    draft.decisions![0].selectedEdgeId = draft.edges[0].id
+    return draft
+  }
+  it("binds existing steps, completed work, unchanged edges and explicit choices without trusting provider IDs", () => {
+    const before = baseline()
+    const keys = new Map(generated.steps.map((step, index) => [step.key, `saved_${index}`]))
+    const output = { ...generated, steps: generated.steps.map(step => ({ ...step, key: keys.get(step.key), title: `${step.title} revised` })), edges: generated.edges.map(edge => ({ ...edge, source: keys.get(edge.source), target: keys.get(edge.target) })) }
+    const revised = bindAiPlan(JSON.stringify(output), id(51), target.objectiveId, () => crypto.randomUUID(), before).draft
+    expect(revised.id).toBe(before.id); expect(revised.revision).toBe(2)
+    expect(revised.steps.map(step => step.id)).toEqual(before.steps.map(step => step.id))
+    expect(revised.steps[1].status).toBe("done")
+    expect(revised.edges).toEqual(before.edges); expect(revised.decisions).toEqual(before.decisions)
+    expect(() => bindAiPlan(JSON.stringify({ ...output, steps: [{ key: "saved_999", title: "Unknown", kind: "action" }], edges: [] }), id(51), target.objectiveId, () => crypto.randomUUID(), before)).toThrow("Unknown saved step")
+  })
+  it("loads saved plan context before charging and retains its exact baseline for atomic review", async () => {
+    const before = baseline()
+    mocks.objective.mockResolvedValue({ orgId: id(1), userId: id(2), objective: { title: "Community event", description: null }, baseline: before })
+    const result = await (await handleWorkspaceAiPlan(request({ target: { ...target, plan: { id: before.id, revision: before.revision } } }))).json()
+    expect(result.proposal.content.draft.id).toBe(before.id)
+    expect(result.proposal.baseline).toEqual(before)
+    expect(mocks.reserve.mock.calls[0][0].target.planBaseline).toEqual(before)
+    expect(JSON.parse(mocks.provider.mock.calls[0][0].context).savedPlan.steps[1]).toMatchObject({ key: "saved_1", status: "done" })
+  })
+  it("rejects a stale saved baseline before revising a private proposal", async () => {
+    const before = baseline()
+    mocks.objective.mockResolvedValue({ orgId: id(1), userId: id(2), objective: { title: "Community event" }, baseline: before })
+    mocks.read.mockResolvedValueOnce({ proposal: { id: id(5), target, status: "succeeded", application: null, baseline: { ...before, title: "Older title" } } })
+    expect((await handleWorkspaceAiPlan(request({ reviseRunId: id(5) }))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled()
   })
 })

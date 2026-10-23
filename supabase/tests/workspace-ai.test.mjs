@@ -79,6 +79,7 @@ try {
   runSql("supabase/migrations/20261022130000_workspace_ai_document_application.sql")
   runSql("supabase/migrations/20261022140000_workspace_ai_document_review.sql")
   runSql("supabase/migrations/20261022170000_workspace_ai_plans.sql")
+  runSql("supabase/migrations/20261022230000_workspace_ai_plan_revisions.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
@@ -112,6 +113,7 @@ try {
   runSql("supabase/tests/workspace-ai-recovery.assertions.sql")
   runSql("supabase/tests/workspace-ai-application.assertions.sql")
   runSql("supabase/tests/workspace-ai-plans.assertions.sql")
+  runSql("supabase/tests/workspace-ai-plan-revisions.assertions.sql")
   const applyConcurrently = () => new Promise(resolve => {
     const child = spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})
     let error = ""; child.stderr.on("data",chunk => { error += chunk }); child.stdout.resume()
@@ -125,6 +127,18 @@ try {
   if (applies.some(result => result.code !== 0)) throw new Error(`Concurrent plan apply failed: ${JSON.stringify(applies)}`)
   run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.workspace_ai_plan_applications where run_id='62000000-0000-4000-8000-000000000006'),'concurrent apply commits one receipt');
     select public.assert_ai((select count(*)=1 from public.workspace_objective_plans where id='62000000-0000-4000-8000-000000000006'),'concurrent apply commits one plan');`})
+  const reviseConcurrently = n => new Promise(resolve => {
+    const child = spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})
+    let error = ""; child.stderr.on("data",chunk => { error += chunk }); child.stdout.resume()
+    child.on("close",code => resolve({code,error}))
+    child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+      select public.apply_workspace_ai_plan('00000000-0000-0000-0000-000000000001','62000000-0000-4000-8000-0000000000${n}');
+      select pg_sleep(0.15); commit;`)
+  })
+  const revisions = await Promise.all([reviseConcurrently(25),reviseConcurrently(26)])
+  if (revisions.filter(result => result.code === 0).length !== 1 || !revisions.some(result => result.error.includes("Plan or steps changed"))) throw new Error(`Concurrent revisions failed: ${JSON.stringify(revisions)}`)
+  run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.workspace_ai_plan_applications where run_id in('62000000-0000-4000-8000-000000000025','62000000-0000-4000-8000-000000000026')),'one concurrent revision commits');`})
   console.log("[workspace-ai] Plan generation accounting, atomic apply/replay/concurrent apply, guarded undo, and existing Accounting, access, cancellation, crash recovery, atomic document application/replay/rollback and real concurrent wallet admission passed.")
 } finally {
   if (started) {

@@ -32,6 +32,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [aiObjective, setAiObjective] = useState<WorkspaceObjectiveRecord | null>(null)
+  const [aiPlan, setAiPlan] = useState<ObjectivePlan | null>(null)
   const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null)
   const [title, setTitle] = useState("")
   const id = useId()
@@ -68,14 +69,14 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
             checklistSteps={(state.data?.steps ?? []).filter(step => step.objectiveId === objective.id && !state.data?.planning?.plans.some(plan => plan.objectiveId === objective.id && plan.stepIds.includes(step.id)))} editable={editable} pending={state.pending}
             onEdit={input => state.mutate(() => transport.edit(scope, input))}
             onStep={onStep}>
-            {state.data?.planning?.available && <ObjectivePlanList onChoice={onChoice} allPlans={activePlans} plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
+            {state.data?.planning?.available && <ObjectivePlanList onRevise={transport.ai && state.data.planning.decisionsAvailable ? plan => { setAiPlan(plan); setAiObjective(objective) } : undefined} onChoice={onChoice} allPlans={activePlans} plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
               onToggle={id => { setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]); setOpen(false) }}
               onEdit={editPlan} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
-            {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => setAiObjective(objective)}>Plan with AI</Button>}
+            {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => { setAiPlan(null); setAiObjective(objective) }}>Plan with AI</Button>}
           </ObjectiveIslandCard>)}
     </div>
-    {aiObjective && transport.ai && <AiPlanDialog key={aiObjective.id} scope={scope} objective={aiObjective} transport={transport.ai} onClose={() => setAiObjective(null)} onChanged={() => void state.refresh()} />}
+    {aiObjective && transport.ai && <AiPlanDialog plan={aiPlan ?? undefined} key={`${aiObjective.id}:${aiPlan?.id ?? "new"}`} scope={scope} objective={aiObjective} transport={transport.ai} onClose={() => setAiObjective(null)} onChanged={() => void state.refresh()} />}
     {planDraft && <ObjectivePlanEditor decisionsAvailable={state.data?.planning?.decisionsAvailable} key={planDraft.id} initial={planDraft} connectedStepIds={(state.data?.planning?.plans ?? []).flatMap(plan => plan.stepIds)} allSteps={(state.data?.steps ?? []).filter(step => step.editable && state.data?.objectives.some(objective => objective.id === step.objectiveId && objective.kind === "custom"))}
       pending={state.pending} error={state.error} onClose={() => setPlanDraft(null)} onSave={draft => state.mutate(() => transport.savePlan ? transport.savePlan(scope, draft) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} />}
   </ObjectivesIslandSurface>

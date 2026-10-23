@@ -10,7 +10,7 @@ export function useAiPlan(target: AiPlanTarget, transport: AiPlanTransport, onCh
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const alive = useRef(false); const locked = useRef(false)
-  const storageKey = `workspace-ai-plan:${target.userId}:${target.organizationId}:${target.objectiveId}`
+  const storageKey = `workspace-ai-plan:${target.userId}:${target.organizationId}:${target.objectiveId}${target.plan ? `:plan:${target.plan.id}` : ""}`
   const remember = (id: string | null) => {
     setRunId(id)
     try { if (id) sessionStorage.setItem(storageKey, id); else sessionStorage.removeItem(storageKey) } catch { /* Optional recovery pointer. */ }

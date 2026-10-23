@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label"
 import { AiCreditsPanel, aiCreditBalance } from "@/features/ai-credits/client"
 import type { ObjectiveScope } from "../island-types"
 import type { WorkspaceObjectiveRecord } from "../types"
+import type { ObjectivePlan } from "../plan-types"
 import type { AiPlanTransport } from "../ai-plan-types"
 import { useAiPlan } from "../hooks/use-ai-plan"
 import { AiPlanReview } from "./ai-plan-review"
-export function AiPlanDialog({ scope, objective, transport, onClose, onChanged }: {
-  scope: ObjectiveScope; objective: WorkspaceObjectiveRecord; transport: AiPlanTransport; onClose: () => void; onChanged: () => void
+export function AiPlanDialog({ scope, objective, plan, transport, onClose, onChanged }: {
+  plan?: ObjectivePlan; scope: ObjectiveScope; objective: WorkspaceObjectiveRecord; transport: AiPlanTransport; onClose: () => void; onChanged: () => void
 }) {
-  const target = useMemo(() => ({ ...scope, objectiveId: objective.id, revision: objective.updatedAt }), [scope, objective.id, objective.updatedAt])
+  const target = useMemo(() => ({ ...scope, objectiveId: objective.id, revision: objective.updatedAt, ...(plan ? { plan: { id: plan.id, revision: plan.revision } } : {}) }), [scope, objective.id, objective.updatedAt, plan])
   const state = useAiPlan(target, transport, onChanged)
   const [prompt, setPrompt] = useState(""); const [usage, setUsage] = useState(false); const [closing, setClosing] = useState(false)
   const [documentId, setDocumentId] = useState("none")
@@ -24,20 +25,20 @@ export function AiPlanDialog({ scope, objective, transport, onClose, onChanged }
   return <section aria-label="Plan with AI" className="flex min-w-0 flex-col gap-3" onKeyDown={event => {
     if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); event.stopPropagation(); setClosing(true) }
   }}>
-      <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 truncate text-sm font-medium">{objective.title}</h2><Button variant="ghost" size="sm" className="rounded-full" onClick={() => { if (prompt.trim() || state.pending || state.recoverable || (proposal?.content && !application)) setClosing(true); else onClose() }}>Back</Button></div>
+      <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 truncate text-sm font-medium">{plan?.title ?? objective.title}</h2><Button variant="ghost" size="sm" className="rounded-full" onClick={() => { if (prompt.trim() || state.pending || state.recoverable || (proposal?.content && !application)) setClosing(true); else onClose() }}>Back</Button></div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{state.quote ? `${state.quote.maximumCredits} credits maximum per request` : "AI quote unavailable"}</span>
         <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setUsage(!usage)}>Usage</Button>
       </div>
       {usage && state.quote && <AiCreditsPanel account={state.quote.account} />}
-      {proposal?.content && <AiPlanReview content={proposal.content} objective={objective} />}
+      {proposal?.content && <AiPlanReview baseline={proposal.baseline} content={proposal.content} objective={objective} />}
       {state.pending && <p role="status" className="text-sm text-muted-foreground">Working…</p>}
       {state.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
-      {application && <p role="status" className="text-sm">{application.undone_at ? "Plan removed. Your AI usage is unchanged." : "Plan saved. You can edit its steps in the checklist or tree."}</p>}
+      {application && <p role="status" className="text-sm">{application.undone_at ? plan ? "Previous plan restored. Your AI usage is unchanged." : "Plan removed. Your AI usage is unchanged." : "Plan saved. You can edit its steps in the checklist or tree."}</p>}
       {proposal?.credits != null && <p className="text-xs text-muted-foreground">{proposal.credits} credits charged</p>}
       <div className="flex flex-wrap gap-2">
-        {revise && Boolean(proposal?.content?.draft.steps.length) && <Button className="rounded-full" disabled={state.pending || state.recoverable} onClick={() => void state.apply()}>Add plan</Button>}
-        {application && !application.undone_at && <Button variant="ghost" className="rounded-full" disabled={state.pending} onClick={() => void state.apply(true)}>Undo adding plan</Button>}
+        {revise && Boolean(proposal?.content?.draft.steps.length) && <Button className="rounded-full" disabled={state.pending || state.recoverable} onClick={() => void state.apply()}>{plan ? "Apply changes" : "Add plan"}</Button>}
+        {application && !application.undone_at && <Button variant="ghost" className="rounded-full" disabled={state.pending} onClick={() => void state.apply(true)}>{plan ? "Undo changes" : "Undo adding plan"}</Button>}
         {state.recoverable && <Button variant="secondary" className="rounded-full shadow-none" onClick={() => void state.stop()}>Stop request</Button>}
         {state.runId && <Button variant="ghost" className="rounded-full" disabled={state.pending} onClick={() => void state.refresh()}>Check status</Button>}
         {state.previous && proposal && ["failed", "canceled"].includes(proposal.status) && <Button variant="ghost" className="rounded-full" onClick={state.restorePrevious}>Previous proposal</Button>}

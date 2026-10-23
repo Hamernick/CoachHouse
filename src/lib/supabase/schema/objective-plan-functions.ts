@@ -1,5 +1,6 @@
 import type { Json } from "./json"
 export type ObjectivePlanFunctions = {
+  read_workspace_ai_plan_baseline: { Args: { p_org_id: string; p_plan_id: string }; Returns: Json }
   read_workspace_ai_plan_application: { Args: { p_org_id: string; p_id: string }; Returns: Json }
   apply_workspace_ai_plan: { Args: { p_org_id: string; p_id: string }; Returns: Json }
   undo_workspace_ai_plan: { Args: { p_org_id: string; p_id: string }; Returns: Json }

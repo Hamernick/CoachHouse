@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { planDraftSchema, type PlanDraft } from "../plan-types"
 import { aiPlanContentSchema, aiPlanTargetSchema, aiPlanDocumentSchema, type AiPlanContent, type AiPlanProposal } from "../ai-plan-types"
 
 const key = z.string().regex(/^[a-zA-Z0-9_-]{1,40}$/)
@@ -28,23 +29,35 @@ export const generatedPlanSchema = generatedPlanShape.superRefine((value, ctx) =
   }
   if (value.steps.some(step => cyclic(step.key))) bad()
 })
-export function bindAiPlan(text: string, runId: string, objectiveId: string, uuid: () => string): AiPlanContent {
+export function bindAiPlan(text: string, runId: string, objectiveId: string, uuid: () => string, baseline?: PlanDraft): AiPlanContent {
   const value = generatedPlanSchema.parse(JSON.parse(text))
-  const ids = new Map(value.steps.map(step => [step.key, uuid()]))
+  const existing = new Map((baseline?.steps ?? []).map((step, index) => [`saved_${index}`, step]))
+  if (baseline && value.steps.some(step => step.key.startsWith("saved_") && !existing.has(step.key))) throw new Error("Unknown saved step")
+  const ids = new Map(value.steps.map(step => [step.key, existing.get(step.key)?.id ?? uuid()]))
+  const edges = value.edges.map(edge => {
+    const source = ids.get(edge.source)!, target = ids.get(edge.target)!
+    const prior = baseline?.edges.find(item => item.source === source && item.target === target && item.label === edge.label)
+    return { id: prior?.id ?? uuid(), source, target, label: edge.label }
+  })
+  // Keep explicit connections outside this plan; the model cannot invent external IDs.
+  edges.push(...(baseline?.edges ?? []).filter(edge => [...ids.values()].includes(edge.source) && !baseline!.steps.some(step => step.id === edge.target)))
   return aiPlanContentSchema.parse({ summary: value.summary, assumptions: value.assumptions, questions: value.questions,
-    draft: { id: runId, objectiveId, revision: 0, title: value.title,
-      steps: value.steps.map(step => ({ id: ids.get(step.key), title: step.title, status: "todo", expectedUpdatedAt: null })),
-      edges: value.edges.map(edge => ({ id: uuid(), source: ids.get(edge.source), target: ids.get(edge.target), label: edge.label })),
-      decisions: value.steps.filter(step => step.kind === "decision").map(step => ({ stepId: ids.get(step.key), selectedEdgeId: null })),
+    draft: { id: baseline?.id ?? runId, objectiveId, revision: baseline?.revision ?? 0, title: value.title,
+      steps: value.steps.map(step => ({ id: ids.get(step.key), title: step.title, status: existing.get(step.key)?.status ?? "todo", expectedUpdatedAt: existing.get(step.key)?.expectedUpdatedAt ?? null })),
+      edges,
+      decisions: value.steps.filter(step => step.kind === "decision").map(step => {
+        const stepId = ids.get(step.key)!, previous = baseline?.decisions?.find(item => item.stepId === stepId)
+        return { stepId, selectedEdgeId: edges.some(edge => edge.source === stepId && edge.id === previous?.selectedEdgeId) ? previous!.selectedEdgeId : null }
+      }),
     } })
 }
 export function aiPlanProposal(value: unknown): AiPlanProposal {
   const run = z.object({ id: z.uuid(), task: z.literal("plan"), actor_id: z.uuid(), org_id: z.uuid(),
-    target: aiPlanTargetSchema.extend({ kind: z.literal("plan"), title: z.string(), description: z.string().nullable(), revisionSourceRunId: z.uuid().optional(), document: aiPlanDocumentSchema.optional() }),
+    target: aiPlanTargetSchema.extend({ kind: z.literal("plan"), title: z.string(), description: z.string().nullable(), revisionSourceRunId: z.uuid().optional(), document: aiPlanDocumentSchema.optional(), planBaseline: planDraftSchema.optional() }),
     status: z.enum(["reserved", "running", "reconciling", "succeeded", "failed", "canceled"]), proposal: z.string().nullable(), charged_credits: z.number().nullable(), max_credits: z.number(),
   }).parse(value)
   if (run.target.userId !== run.actor_id || run.target.organizationId !== run.org_id) throw new Error("Invalid proposal scope.")
   const content = run.proposal ? aiPlanContentSchema.parse(JSON.parse(run.proposal)) : null
-  if (content && (content.draft.id !== run.id || content.draft.objectiveId !== run.target.objectiveId)) throw new Error("Invalid proposal target.")
-  return { id: run.id, target: aiPlanTargetSchema.parse({ userId: run.actor_id, organizationId: run.org_id, objectiveId: run.target.objectiveId, revision: run.target.revision }), status: run.status, content, credits: run.charged_credits, maxCredits: run.max_credits, application: null, revisionSourceRunId: run.target.revisionSourceRunId, document: run.target.document }
+  if (content && (content.draft.id !== (run.target.plan?.id ?? run.id) || content.draft.objectiveId !== run.target.objectiveId)) throw new Error("Invalid proposal target.")
+  return { id: run.id, target: aiPlanTargetSchema.parse({ userId: run.actor_id, organizationId: run.org_id, objectiveId: run.target.objectiveId, revision: run.target.revision, ...(run.target.plan ? { plan: run.target.plan } : {}) }), status: run.status, content, credits: run.charged_credits, maxCredits: run.max_credits, application: null, revisionSourceRunId: run.target.revisionSourceRunId, document: run.target.document, baseline: run.target.planBaseline }
 }

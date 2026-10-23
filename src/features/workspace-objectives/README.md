@@ -83,3 +83,7 @@ failed revisions can restore the prior proposal after reload. Closing never appl
 No second wallet or graph store. AI quality/model selection, authenticated runtime
 and user visual acceptance remain unproven. The browser fixture simulates generation
 and persistence without provider calls or production data.
+
+### AI revisions of saved plans
+
+Revise with AI appears inside an expanded saved plan. The authorized server baseline, stable saved-step keys and native canonical plan writer preserve progress and identity. Reviewed application and guarded Undo use the existing durable private receipt owner; concurrent revisions cannot both apply. Additive migration `20261022230000_workspace_ai_plan_revisions.sql` is required and currently verified only in disposable PostgreSQL. Revisions support up to20 steps; larger plans remain manually editable. See the authoritative workspace AI plan checkpoint for provider/runtime/release limitations.
