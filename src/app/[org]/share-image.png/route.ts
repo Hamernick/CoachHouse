@@ -1,4 +1,4 @@
-import { servePublicProfileShareImage } from "@/lib/public-profile-share-image"
+import { servePublicProfileShareImage } from "./_lib/public-profile-share-image"
 
 // A normal Node route keeps renderer imports out of inherited Edge metadata.
 export const runtime = "nodejs"

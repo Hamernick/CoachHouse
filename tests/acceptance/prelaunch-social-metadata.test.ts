@@ -97,11 +97,21 @@ describe("prelaunch social metadata inheritance", () => {
     expect(resolved.alternates?.canonical?.url).toBe("https://coachhouse.app/example")
   })
 
+  it.each([null, "https://storage.test/unavailable.png"])("revises fallback artwork after a rename with logo %s", (avatarUrl) => {
+    const profile = { kind: "organization", handle: "example", displayName: "First Organization", avatarUrl } as PublicProfileView
+    const before = resolvePage(buildPublicProfileMetadata(profile, profile.handle))
+    const renamed = { ...profile, displayName: "Renamed Group" }
+    const after = resolvePage(buildPublicProfileMetadata(renamed, renamed.handle))
+    expect(after.openGraph?.images).not.toEqual(before.openGraph?.images)
+    expect(after.twitter?.images).not.toEqual(before.twitter?.images)
+    expect(after.openGraph?.images).toEqual(resolvePage(buildPublicProfileMetadata(renamed, renamed.handle)).openGraph?.images)
+  })
+
   it("changes the share image URL when the uploaded logo changes", () => {
-    const before = publicOrganizationShareImageUrl("example", "https://storage.test/old.png")
-    const after = publicOrganizationShareImageUrl("example", "https://storage.test/new.png")
+    const before = publicOrganizationShareImageUrl("example", "https://storage.test/old.png", "Example Organization")
+    const after = publicOrganizationShareImageUrl("example", "https://storage.test/new.png", "Example Organization")
     expect(before).not.toBe(after)
-    expect(after).toBe(publicOrganizationShareImageUrl("example", "https://storage.test/new.png"))
+    expect(after).toBe(publicOrganizationShareImageUrl("example", "https://storage.test/new.png", "Example Organization"))
   })
 
 })

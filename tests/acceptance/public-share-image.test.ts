@@ -5,7 +5,7 @@ import sharp from "sharp"
 const { fetchProfile } = vi.hoisted(() => ({ fetchProfile: vi.fn() }))
 vi.mock("@/lib/queries/public-profile", () => ({ fetchPublicProfileByHandle: fetchProfile }))
 
-import { loadPublicShareLogo, servePublicProfileShareImage } from "@/lib/public-profile-share-image"
+import { loadPublicShareLogo, servePublicProfileShareImage } from "@/app/[org]/share-image.png/_lib/public-profile-share-image"
 import { GET } from "@/app/[org]/share-image.png/route"
 
 const storage = "https://vswzhuwjtgzrkxknrmxu.supabase.co"

@@ -1,7 +1,7 @@
 import sharp from "sharp"
 
 import { fetchPublicProfileByHandle } from "@/lib/queries/public-profile"
-import { renderBrandShareImage } from "@/lib/brand-share-image"
+import { renderBrandShareImage } from "./brand-share-image"
 
 const MAX_LOGO_BYTES = 3 * 1024 * 1024
 const LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"])

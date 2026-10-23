@@ -22,9 +22,9 @@ export function buildPublicProfileMetadata(
     `View @${profile.handle} on Coach House.`
   const canonical = `${getPublicSiteOrigin()}/${encodeURIComponent(profile.handle)}`
   const organization = profile.kind === "organization"
-  const imageUrl = organization ? publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl) : profile.avatarUrl
+  const imageUrl = organization ? publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl, profile.displayName) : profile.avatarUrl
   const images = organization
-    ? [{ url: publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl), width: 1200, height: 630, type: "image/png", alt: `${profile.displayName} logo` }]
+    ? [{ url: publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl, profile.displayName), width: 1200, height: 630, type: "image/png", alt: `${profile.displayName} logo` }]
     : profile.avatarUrl
     ? [{ url: profile.avatarUrl, alt: `${profile.displayName} profile image` }]
     : undefined
