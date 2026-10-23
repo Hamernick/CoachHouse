@@ -481,6 +481,7 @@
       "tests/acceptance/public-profile-ein.test.ts",
       "tests/acceptance/public-profile-sitemap.test.ts",
       "tests/acceptance/public-profiles.test.ts",
+      "tests/acceptance/public-share-image.test.ts",
       "tests/acceptance/public-site-origin.test.ts",
       "tests/acceptance/public-status-page.test.ts",
       "tests/acceptance/react-grab-loader.test.ts",

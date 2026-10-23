@@ -12,10 +12,11 @@ vi.mock("@/lib/public-site-origin", () => ({ getPublicSiteOrigin: () => "https:/
 import { metadata as defaults } from "@/app/layout"
 import { metadata as status } from "@/app/(public)/status/page"
 import { buildPublicProfileMetadata } from "@/lib/public-profile-metadata"
+import { publicOrganizationShareImageUrl } from "@/lib/public-share-image-url"
 import type { PublicProfileView } from "@/features/public-profiles"
 
 const defaultImage = {
-  url: "https://coachhouse.app/opengraph-image.png",
+  url: "https://coachhouse.app/brand-share.png",
   width: 1200,
   height: 630,
   alt: "Coach House — The platform for nonprofits",
@@ -70,6 +71,7 @@ describe("prelaunch social metadata inheritance", () => {
 
   it("preserves profile-specific images, copy, and summary card", async () => {
     const profile = {
+      kind: "person",
       handle: "example",
       displayName: "Example Nonprofit",
       description: "A profile-specific mission.",
@@ -86,4 +88,30 @@ describe("prelaunch social metadata inheritance", () => {
       images: [{ url: profile.avatarUrl }],
     })
   })
+  it.each(["https://example.org/wide-logo.png", null])("frames organization branding consistently, including missing logos", async (avatarUrl) => {
+    const profile = { kind: "organization", handle: "example", displayName: "Example Nonprofit", description: "Mission", avatarUrl } as PublicProfileView
+    const resolved = resolvePage(buildPublicProfileMetadata(profile, profile.handle))
+    const url = expect.stringMatching(/^https:\/\/coachhouse\.app\/example\/share-image\.png\?v=1-[a-z0-9]+$/)
+    expect(resolved.openGraph?.images).toEqual([{ url, width: 1200, height: 630, type: "image/png", alt: "Example Nonprofit logo" }])
+    expect(resolved.twitter).toMatchObject({ card: "summary_large_image", images: [{ url }] })
+    expect(resolved.alternates?.canonical?.url).toBe("https://coachhouse.app/example")
+  })
+
+  it.each([null, "https://storage.test/unavailable.png"])("revises fallback artwork after a rename with logo %s", (avatarUrl) => {
+    const profile = { kind: "organization", handle: "example", displayName: "First Organization", avatarUrl } as PublicProfileView
+    const before = resolvePage(buildPublicProfileMetadata(profile, profile.handle))
+    const renamed = { ...profile, displayName: "Renamed Group" }
+    const after = resolvePage(buildPublicProfileMetadata(renamed, renamed.handle))
+    expect(after.openGraph?.images).not.toEqual(before.openGraph?.images)
+    expect(after.twitter?.images).not.toEqual(before.twitter?.images)
+    expect(after.openGraph?.images).toEqual(resolvePage(buildPublicProfileMetadata(renamed, renamed.handle)).openGraph?.images)
+  })
+
+  it("changes the share image URL when the uploaded logo changes", () => {
+    const before = publicOrganizationShareImageUrl("example", "https://storage.test/old.png", "Example Organization")
+    const after = publicOrganizationShareImageUrl("example", "https://storage.test/new.png", "Example Organization")
+    expect(before).not.toBe(after)
+    expect(after).toBe(publicOrganizationShareImageUrl("example", "https://storage.test/new.png", "Example Organization"))
+  })
+
 })
