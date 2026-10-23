@@ -472,6 +472,7 @@
       "tests/acceptance/origin-story-assignment-flow.test.ts",
       "tests/acceptance/page-health-monitor.test.ts",
       "tests/acceptance/particle-editor-header.test.ts",
+      "tests/acceptance/particle-objective-order.test.ts",
       "tests/acceptance/paywall-overlay-config.test.ts",
       "tests/acceptance/people-profile-write-concurrency.test.ts",
       "tests/acceptance/people-roles.test.ts",

@@ -85,6 +85,7 @@ export const particleCalendarEntrySchema = z
 export const particleDataSchemas = {
   objective: z.strictObject({
     planning: particlePlanningSchema.optional(),
+    listOrder: z.number().int().min(0).max(10_000).optional(),
     target: amount.nullable(),
     current: amount.nullable(),
     unit: z.string().max(80),
