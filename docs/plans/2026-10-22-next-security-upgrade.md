@@ -2,7 +2,9 @@
 
 User authorized the DevTools-recommended security upgrade in a separate worktree,
 with independent dependencies and no interruption to another terminal's work.
-This is a narrow workstream02 security follow-up, not the full prelaunch audit.
+User then explicitly authorized fixing the build/CI blockers needed to complete
+the upgrade, superseding the initial leave-existing-tests boundary. This remains
+a narrow workstream02 follow-up, not the full prelaunch audit.
 
 ## Source and isolation
 
@@ -77,11 +79,46 @@ exploitation was not tested; Cache Components is not enabled.
   application merge/deployment and production verification stay user-owned.
   A local safe install does not patch an already-running terminal or production.
 
-## Continuation
+## Authorized unblock continuation
 
-Draft PR354 is the remotely recoverable handoff. Local implementation and graph
-maintenance are complete. Keep hosted quality/review/build and deployment blocked
-until their actual gates pass; fix unrelated tests in their owning scope.
-The56diagnostic logs are byte-identical, including continuation details. Temporary
-baseline dependencies were removed; comparison logs remain in this lane's `.tmp`.
-No database migration or production security remediation is claimed.
+The verification section above records the initial dependency-only revision.
+The following continuation supersedes its build blocker and completion status.
+
+- Fixed all56test diagnostics using complete typed fixtures/mocks and four script
+  JSDoc annotations. Emitted runtime JavaScript for those scripts is byte-identical.
+  Baseline comparison logs remain in `.tmp/next-security-{baseline,candidate}-types.log`.
+- Full production build/types and201static pages now pass. Initial `/admin` bundle
+  was2994.8KB against1000KB. A marked public `member-workspace/server.ts` facade
+  avoids unrelated fiscal/document/client imports from the mixed feature barrel.
+  Both import guards require an explicit root facade with an actual side-effect
+  `server-only` import; private directory fallback/deep imports remain rejected.
+  Admin now937.6KB; public1138.5/1975KB and community561.7/900KB also pass.
+- Prior [CI39891857648](https://github.com/Hamernick/CoachHouse/actions/runs/39891857648)
+  found three stale acceptance contracts. Org switching now exercises successful
+  and denied invalidation behavior; font/finance checks follow current routes and
+  composition. Acceptance project manifest regenerated.
+- Browser DOM reproduced two real bugs. Immediate marketplace filter state ignores
+  older URL snapshots that overwrote newer typing; Back dismisses local Find
+  details rather than leaving results hidden. Direct profile/history behavior kept.
+- Editor tests mock editable capabilities for their synthetic organization and
+  assert focus/editability. Empty documents use the established direct editor
+  contract. Production authorization/editor behavior unchanged.
+- Eight affected local Playwright interactions pass: marketplace; Find1280/390;
+  empty editor; Mission/Vision1440/390 with scrolling, save/discard/reopen. These
+  temporary configs perform no macOS screenshot comparisons. Linux keyboard and
+  canonical visual comparisons remain hosted gates.
+- Three Drive references still show Stripe, intentionally hidden since PR269
+  (`dbdec6c1`; acceptance explicitly requires Calendar/Drive). Prior Ubuntu CI
+  expected/actual/diff images reviewed. Existing canonical Ubuntu reference workflow
+  now includes this spec; retain only three reviewed Drive images from its artifact.
+  No local baseline overwrite, threshold increase or budget weakening.
+- Independent read-only review found no concrete regression/security issue in the
+  server facade, guards, marketplace synchronization or Find dismissal.
+- Final full acceptance/build/performance and one batched Graphify refresh running;
+  exact logs in this lane's `.tmp/next-security-*`. Own3155dev server stopped after
+  interactions; only Next's generated AGENTS suffix removed. Other lanes preserved.
+
+Next: finish checks, commit/push this unblock slice to PR354, obtain canonical
+Ubuntu references, review/retain only three Drive images, push and verify required
+hosted `quality` on the final revision. Merge/deployment remain user-owned. No
+database/provider/calendar/account/credential changes or production fix claimed.

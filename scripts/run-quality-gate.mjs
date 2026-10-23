@@ -138,6 +138,9 @@ export function executePnpmScript(script) {
   })
 }
 
+/**
+ * @param {{ artifactDirectory?: string, executeStage?: (script: string) => Promise<number>, profileName?: string }} [options]
+ */
 export async function runQualityGate({
   artifactDirectory = process.env.QUALITY_GATE_ARTIFACT_DIR?.trim() ||
     DEFAULT_ARTIFACT_DIRECTORY,

@@ -2,7 +2,7 @@
 
 ## Next.js security upgrade — October22
 
-Open draft [PR354](https://github.com/Hamernick/CoachHouse/pull/354), `fix/next-security-upgrade-20261022` from main5d40b7db: Next/eslint16.4.2 and Sharp0.35.5.133focused cases, app types, full lint, native image/runtime HTTP and advisory checks pass. Full build remains blocked by56test-type errors reproduced identically on unchanged main;0introduced. [Canonical checkpoint](../plans/2026-10-22-next-security-upgrade.md) owns source/verification/recovery. Other lanes/listeners and SHIP40 preserved; hosted review/merge/deployment remain user-owned.
+Open draft [PR354](https://github.com/Hamernick/CoachHouse/pull/354), `fix/next-security-upgrade-20261022` from main5d40b7db: Next/eslint16.4.2 and Sharp0.35.5. User authorized CI repairs:56test diagnostics fixed, full build/types pass, admin937.6KB below unchanged1000KB budget; marketplace typing/Find Back and stale test contracts repaired. Final local checks and canonical Ubuntu Drive references in progress. [Canonical checkpoint](../plans/2026-10-22-next-security-upgrade.md) owns source/verification/recovery. Other lanes/listeners and SHIP40 preserved; hosted quality/review/merge/deployment remain separate gates.
 
 Latest completed lane: **Public prototype retirement and prelaunch follow-ups**. PR348–351 are merged and deployed; Caleb confirmed PR351 production deployment. [Authoritative completion receipt and original-list count](../plans/2026-10-22-retire-public-prototypes.md#completion-count-and-original-list-mapping). Five selected scoped tasks shipped; two full original requirements closed by this chat (O124-01, O132-01). Broader B115/B039 work remains partial; no all-chats total asserted.
 

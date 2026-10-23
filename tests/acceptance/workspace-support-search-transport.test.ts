@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { searchSupportOrganizationsOverHttp } from "@/features/organization-workspace-support/lib/search-transport"
 import { handleWorkspaceSupportSearchPost } from "@/features/organization-workspace-support/routes"
 import { searchSupportOrganizations } from "@/features/organization-workspace-support/actions"
+import type { WorkspaceSupportSearchResult } from "@/features/organization-workspace-support/types"
 
 vi.mock("@/features/organization-workspace-support/actions", () => ({ searchSupportOrganizations: vi.fn() }))
-const result = { organizations: [{ orgId: "org", name: "Organization", role: "admin" }], total: 21, hasMore: true }
+const result: WorkspaceSupportSearchResult = { organizations: [{ orgId: "org", name: "Organization", role: "admin", publicSlug: null, imageUrl: null }], total: 21, hasMore: true }
 const request = (body: unknown = { query: "organization", offset: 20 }, origin = "https://coachhouse.app") => new Request("https://coachhouse.app/api/account/workspace-support-search", {
   method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body),
 })
