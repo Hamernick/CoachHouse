@@ -212,6 +212,16 @@ export function applyPreparedParticleBatch(
             ...note, contentEditedAt: changed ? now : previousNote.contentEditedAt ?? existing?.updatedAt ?? now,
           } } } }
         }
+        if (item.type === "objective" && item.data.planning) {
+          const previous = existing?.type === "objective" ? existing.data.planning?.plans ?? [] : []
+          item = { ...item, data: { ...item.data, planning: { ...item.data.planning,
+            plans: item.data.planning.plans.map(plan => {
+              const old = previous.find(value => value.id === plan.id)
+              const unchanged = old && old.title === plan.title && JSON.stringify(old.particleIds) === JSON.stringify(plan.particleIds)
+              return { ...plan, revision: unchanged ? old.revision : revision }
+            }),
+          } } }
+        }
         particles.set(item.id, {
           ...item,
           revision,

@@ -61,3 +61,7 @@ export { useParticleSession, type ParticleSession } from "./hooks/use-particle-s
 export { usePersonPlacements } from "./hooks/use-person-placements"
 
 export { ParticleDiscardDialog } from "./components/particle-discard-dialog"
+
+export type { ParticlePlan, ParticlePlanProposal, ParticlePlanning } from "./lib/particle-plan-schema"
+export { PARTICLE_PRESETS, DEFAULT_PRESET_FIELDS, buildParticlePreset } from "./lib/particle-presets"
+export type { ParticlePreset } from "./lib/particle-presets"

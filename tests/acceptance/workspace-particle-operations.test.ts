@@ -783,3 +783,90 @@ it("lists the clicked connection first and only related links with revision-safe
   expect(choices[0].label).toContain("Fiscal Sponsorship")
   expect(particleConnectionMenuItems(input, ID(999))).toEqual([])
 })
+
+// Particle plans share the graph save/CAS boundary; no second checklist store.
+describe("particle plan membership and review", () => {
+  const plan = { id: ID(70), title: "Workshop", revision: 0, particleIds: [ID(2)] }
+  const setup = () => {
+    const objective = particleSchema.parse({ ...particle(1, "objective"), data: { target: null, current: null, unit: "", planning: { plans: [plan], proposals: [] } } })
+    return graph([objective, particle(2), particle(3)])
+  }
+  const objective = (value: ReturnType<typeof setup>) => {
+    const item = value.particles[0]
+    if (item.type !== "objective" || !item.data.planning) throw Error("Missing objective")
+    return item
+  }
+  it("keeps membership separate from dependency edges and preserves shared particles", async () => {
+    const start = setup()
+    expect(particleConnectionsToFlow(start).map(item => item.id)).toEqual([`plan-member:${ID(1)}:${ID(2)}`])
+    expect(start.connections).toEqual([])
+    const item = objective(start)
+    const result = await applyParticleBatch(start, batch(801, [{ kind: "put_particle", expectedRevision: 0, particle: { ...item, data: { ...item.data, planning: { plans: [{ ...plan, particleIds: [] }], proposals: [] } } } }]), NOW)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.graph.particles.some(item => item.id === ID(2))).toBe(true)
+    expect(particleConnectionsToFlow(result.value.graph)).toEqual([])
+    expect(objective(result.value.graph).data.planning?.plans[0].revision).toBe(1)
+  })
+  it("rejects dangling, duplicate and self membership without deleting content", async () => {
+    const start = setup()
+    const result = await applyParticleBatch(start, batch(802, [{ kind: "remove_particle", id: ID(2), expectedRevision: 0 }]), NOW)
+    expect(result.ok).toBe(false)
+    for (const ids of [[ID(404)], [ID(1)], [ID(2), ID(2)]]) {
+      const item = objective(start)
+      const invalid = await applyParticleBatch(start, batch(803, [{ kind: "put_particle", expectedRevision: 0, particle: { ...item, data: { ...item.data, planning: { plans: [{ ...plan, particleIds: ids }], proposals: [] } } } }]), NOW)
+      expect(invalid.ok).toBe(false)
+    }
+  })
+  it("revisions remain monotonic when undo restores an earlier membership", async () => {
+    const start = setup(), item = objective(start)
+    const first = await applyParticleBatch(start, batch(804, [{ kind: "put_particle", expectedRevision: 0, particle: { ...item, data: { ...item.data, planning: { plans: [{ ...plan, particleIds: [ID(3)] }], proposals: [] } } } }]), NOW)
+    if (!first.ok) throw Error(first.error)
+    const undo = await applyParticleBatch(first.value.graph, batch(805, first.value.inverse, 1), NOW)
+    if (!undo.ok) throw Error(undo.error)
+    expect(objective(undo.value.graph).data.planning?.plans[0]).toMatchObject({ particleIds: [ID(2)], revision: 2 })
+  })
+  it("requires the organization owner, checks proposal base, and retains review history", async () => {
+    const { prepareAuthorizedParticleMutation } = await import("@/features/workspace-particles/lib/authorized-mutation")
+    const start = setup(), item = objective(start)
+    const proposal = { id: ID(90), planId: plan.id, baseRevision: 0, title: "Revised workshop", particleIds: [ID(3)], authorId: ID(500), createdAt: NOW, status: "pending" as const }
+    const submit = await prepareAuthorizedParticleMutation({ input: batch(806, [{ kind: "put_particle", expectedRevision: 0, particle: { ...item, data: { ...item.data, planning: { plans: [plan], proposals: [proposal] } } } }]), workspaceId: start.workspaceId, canEdit: true, now: NOW, planningActor: { userId: ID(500), isOrganizationOwner: false } })
+    if (!submit.ok) throw Error(submit.error)
+    const pending = submit.value(start).graph
+    expect(objective(pending).data.planning?.plans).toEqual([plan])
+    const change = { ...objective(pending), data: { ...item.data, planning: { plans: [{ ...plan, title: proposal.title, particleIds: proposal.particleIds }], proposals: [{ ...proposal, status: "accepted" as const, reviewedAt: NOW, reviewedBy: ID(500) }] } } }
+    const approve = (owner: boolean, saved = pending) => prepareAuthorizedParticleMutation({ input: batch(807, [{ kind: "put_particle", expectedRevision: objective(saved).revision, particle: change }], saved.revision), workspaceId: start.workspaceId, canEdit: true, now: NOW, planningActor: { userId: ID(500), isOrganizationOwner: owner } })
+    const unauthorized = await approve(false)
+    if (!unauthorized.ok) throw Error(unauthorized.error)
+    expect(() => unauthorized.value(pending)).toThrow(/owner/)
+    const accepted = await approve(true)
+    if (!accepted.ok) throw Error(accepted.error)
+    const final = accepted.value(pending).graph
+    expect(objective(final).data.planning?.plans[0].title).toBe(proposal.title)
+    expect(objective(final).data.planning?.proposals[0].status).toBe("accepted")
+    const stale = structuredClone(pending)
+    const staleObjective = objective(stale)
+    stale.revision = 2; staleObjective.revision = 2
+    if (staleObjective.data.planning) staleObjective.data.planning.plans[0].revision = 2
+    const outdated = await approve(true, stale)
+    if (!outdated.ok) throw Error(outdated.error)
+    expect(() => outdated.value(stale)).toThrow(/changed/)
+  })
+})
+
+it("proposal authority rejects forged authors, non-owner rejection and review-history edits", async () => {
+  const { particlePlanningPermissionError: check } = await import("@/features/workspace-particles/lib/particle-plan-authority")
+  const { projectParticlePublicContent } = await import("@/features/workspace-particles/lib/particle-public-content")
+  const proposal = { id: ID(90), planId: ID(91), baseRevision: null, title: "Draft", particleIds: [ID(2)], authorId: ID(500), createdAt: NOW, status: "pending" as const }
+  const start = graph()
+  const make = (proposals: unknown[]) => graph([particleSchema.parse({ ...particle(1, "objective"), data: { target: null, current: null, unit: "", planning: { plans: [], proposals } } }), particle(2)])
+  const member = { userId: ID(501), isOrganizationOwner: false }, owner = { ...member, isOrganizationOwner: true }
+  expect(check(start, make([proposal]), member, NOW)).toMatch(/author/)
+  const pending = make([proposal])
+  const rejected = make([{ ...proposal, status: "rejected", reviewedAt: NOW, reviewedBy: member.userId }])
+  expect(check(pending, rejected, member, NOW)).toMatch(/author|owner/)
+  expect(check(pending, rejected, owner, NOW)).toBeNull()
+  expect(check(rejected, pending, owner, NOW)).toMatch(/Reviewed/)
+  expect(check(rejected, make([]), owner, NOW)).toMatch(/history/)
+  expect(JSON.stringify(projectParticlePublicContent(pending.particles[0]))).not.toContain(proposal.authorId)
+})

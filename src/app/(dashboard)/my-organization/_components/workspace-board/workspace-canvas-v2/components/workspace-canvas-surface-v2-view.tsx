@@ -329,7 +329,7 @@ export function WorkspaceCanvasSurfaceV2View({
           />
           {!tutorialActive && !presentationMode && (
             <div className="pointer-events-none absolute inset-x-2 top-14 z-10 flex justify-center xl:top-2">
-              <ObjectivesIsland scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} canEdit={workspaceDataDrawerCanEdit} onProjection={objectiveCanvas.onProjection} />
+              <ObjectivesIsland particles={particles.controls} scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} canEdit={workspaceDataDrawerCanEdit} onProjection={objectiveCanvas.onProjection} />
             </div>
           )}
           <WorkspaceCanvasSurfaceV2ViewportControls

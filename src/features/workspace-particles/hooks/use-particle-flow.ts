@@ -315,6 +315,7 @@ export function useParticleFlow({
   const controls = useMemo(
     () => ({
       ...session,
+      canEdit,
       images,
       visibleToolIds,
       libraryQuery,
@@ -336,6 +337,7 @@ export function useParticleFlow({
     }),
     [
       session,
+      canEdit,
       images,
       visibleToolIds,
       libraryQuery,

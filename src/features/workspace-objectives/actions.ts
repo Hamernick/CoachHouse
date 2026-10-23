@@ -11,3 +11,9 @@ export async function saveObjectivePlanAction(scope: ObjectiveScope, input: impo
   const { saveObjectivePlan } = await import("./server/plan-actions")
   return saveObjectivePlan(scope, input)
 }
+
+export async function objectivePlanningAccessAction(scope: ObjectiveScope) {
+  const { objectiveActor } = await import("./server/objective-actor")
+  const actor = await objectiveActor(scope)
+  return { isOrganizationOwner: actor.isOrganizationOwner }
+}

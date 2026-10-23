@@ -75,6 +75,18 @@ export function validateParticleGraph(graph: ParticleGraph): string | null {
     return "Entity revision exceeds graph revision."
   if (graph.rootId && particles.get(graph.rootId)?.type !== "objective")
     return "The primary root must reference an Objective."
+  for (const particle of graph.particles) {
+    if (particle.type !== "objective" || !particle.data.planning) continue
+    for (const plan of particle.data.planning.plans) {
+      if (plan.revision > graph.revision) return "Plan revision exceeds graph revision."
+      if (plan.particleIds.some(id => particles.get(id)?.type === "objective" || !particles.has(id)))
+        return "Remove this particle from its plan before deleting it."
+    }
+    for (const proposal of particle.data.planning.proposals.filter(item => item.status === "pending")) {
+      if (proposal.particleIds.some(id => particles.get(id)?.type === "objective" || !particles.has(id)))
+        return "A pending proposal references this particle. Review it before deleting."
+    }
+  }
   const adjacency = new Map<string, string[]>()
   const edgeKeys = new Set<string>()
   for (const edge of graph.connections) {

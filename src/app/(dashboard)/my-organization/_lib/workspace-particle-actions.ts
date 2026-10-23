@@ -69,6 +69,7 @@ export async function applyWorkspaceParticleBatchAction(
     workspaceId: actor.activeOrg.orgId,
     canEdit,
     now: new Date().toISOString(),
+    planningActor: { userId: actor.user.id, isOrganizationOwner: actor.activeOrg.role === "owner" },
   })
   if (!mutation.ok) return mutation
   let supabase = actor.supabase

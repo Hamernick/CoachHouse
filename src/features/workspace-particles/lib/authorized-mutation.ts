@@ -1,3 +1,4 @@
+import { particlePlanningPermissionError, type PlanningActor } from "./particle-plan-authority"
 import type { Json } from "@/lib/supabase"
 import type {
   ParticleCommit,
@@ -28,11 +29,13 @@ export async function prepareAuthorizedParticleMutation({
   workspaceId,
   canEdit,
   now,
+  planningActor,
 }: {
   input: unknown
   workspaceId: string
   canEdit: boolean
   now: string
+  planningActor?: PlanningActor
 }): Promise<ParticleResult<(stored: Json | undefined) => ParticleCommit>> {
   if (!canEdit)
     return {
@@ -59,6 +62,22 @@ export async function prepareAuthorizedParticleMutation({
         now
       )
       if (!result.ok) throw new ParticleMutationError(result.code, result.error)
+      if (!result.value.replayed) {
+        // Review metadata is server-owned; client timestamps are never authority.
+        for (const item of result.value.graph.particles) {
+          if (item.type !== "objective" || !item.data.planning) continue
+          const previous = graph.value.particles.find(value => value.id === item.id)
+          const old = previous?.type === "objective" ? previous.data.planning?.proposals ?? [] : []
+          item.data.planning.proposals = item.data.planning.proposals.map(proposal => {
+            const prior = old.find(value => value.id === proposal.id)
+            return proposal.status !== "pending" && prior?.status === "pending"
+              ? { ...proposal, reviewedAt: now, reviewedBy: planningActor?.userId ?? proposal.reviewedBy }
+              : !prior ? { ...proposal, createdAt: now } : proposal
+          })
+        }
+        const error = particlePlanningPermissionError(graph.value, result.value.graph, planningActor, now)
+        if (error) throw new ParticleMutationError("scope", error)
+      }
       return result.value
     },
   }

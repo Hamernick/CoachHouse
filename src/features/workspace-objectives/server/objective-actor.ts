@@ -12,5 +12,5 @@ export async function objectiveActor(scope: ObjectiveScope, write = false) {
   const active = await resolveActiveOrganization(client, user.id)
   if (active.orgId !== scope.organizationId) throw new Error("Reopen Objectives in your current organization.")
   if (write && !canEditOrganization(active.role)) throw new Error("You do not have permission to edit objectives.")
-  return { client, userId: user.id, orgId: active.orgId }
+  return { client, userId: user.id, orgId: active.orgId, isOrganizationOwner: active.role === "owner" }
 }

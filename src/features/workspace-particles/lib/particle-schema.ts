@@ -1,3 +1,4 @@
+import { particlePlanningSchema } from "./particle-plan-schema"
 import { PARTICLE_SIZE_NAMES, PARTICLE_SIZE_SUPPORT } from "./particle-size"
 import { particleWidgetSchema } from "./particle-widget-schema"
 import { z } from "zod"
@@ -83,6 +84,7 @@ export const particleCalendarEntrySchema = z
   )
 export const particleDataSchemas = {
   objective: z.strictObject({
+    planning: particlePlanningSchema.optional(),
     target: amount.nullable(),
     current: amount.nullable(),
     unit: z.string().max(80),

@@ -1,0 +1,6 @@
+.objective { position: relative; min-width: 0; }
+.branch { margin-left: 16px; padding-left: 15px; border-left: 1px solid var(--border); }
+.plan { position: relative; min-width: 0; padding-block: 3px; }
+.plan::before, .member::before { content: ""; position: absolute; width: 12px; height: 18px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); border-bottom-left-radius: 8px; left: -16px; top: 0; pointer-events: none; }
+.member { position: relative; min-width: 0; }
+.proposal { border-left: 2px solid var(--primary); padding-left: 10px; margin-block: 6px; }

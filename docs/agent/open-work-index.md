@@ -1,6 +1,6 @@
 # Open Work Index
 
-**October23 user review:** Full AI sprint paused. User-directed editor simplifications and vertical timeline are on localhost3008. Owner-reviewed proposal workflow awaits source/reviewer decisions; [current checkpoint](../plans/2026-10-22-workspace-ai-plan.md#user-correction-particle-based-plans-and-inline-editing--2026-10-23). Older active/next-task entries below are historical, not authorization to resume.
+**October23 user review:** Bounded particle-plan attempt implemented on localhost3008: real particle membership, inline editing, searchable add/create and organization-owner proposal review. Broader AI sprint remains paused. [Authoritative checkpoint](../plans/2026-10-22-workspace-ai-plan.md#bounded-particle-plan-attempt--2026-10-23); appearance review, AI generation adapter and accelerator conversion remain separate.
 
 **October23 AI monthly allowance:** Default-off owner assignment and verified current monthly period grants are implemented with local privacy/concurrency/provider-fixture/browser evidence. No production activation. Annual/proration/reassignment/allowance reversal policies and capped refill remain unfinished. [Current continuation](../plans/2026-10-22-workspace-ai-plan.md#explicit-monthly-subscription-allowance--2026-10-23).
 

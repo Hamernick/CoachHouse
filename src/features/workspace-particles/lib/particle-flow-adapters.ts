@@ -19,7 +19,7 @@ export function particleConnectionsToFlow(
   preview: ParticleConnection | null = null
 ): Edge[] {
   const visibleGraph = withPendingParticleConnection(graph, preview)
-  return visibleParticleConnections(visibleGraph, toolIds).map((connection) => {
+  const edges: Edge[] = visibleParticleConnections(visibleGraph, toolIds).map((connection) => {
     const source = graph.particles.find(
       (particle) => particle.id === connection.source
     )
@@ -58,4 +58,17 @@ export function particleConnectionsToFlow(
       },
     }
   })
+  // Membership is a projection, not a dependency or an editable graph edge.
+  for (const objective of graph.particles) {
+    if (objective.type !== "objective" || objective.canvasHidden) continue
+    const members = new Set(objective.data.planning?.plans.flatMap(plan => plan.particleIds) ?? [])
+    for (const id of members) {
+      if (!graph.particles.some(item => item.id === id && !item.canvasHidden)) continue
+      edges.push({ id: `plan-member:${objective.id}:${id}`, source: objective.id, target: id,
+        sourceHandle: "out", targetHandle: "in", type: "smoothstep", selectable: false, deletable: false,
+        ariaLabel: "Plan membership", style: { stroke: "var(--muted-foreground)", strokeWidth: 1, strokeDasharray: "3 5" },
+      })
+    }
+  }
+  return edges
 }
