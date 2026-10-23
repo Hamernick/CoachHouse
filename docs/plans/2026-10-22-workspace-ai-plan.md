@@ -835,3 +835,5 @@ Copy follow-up: changed the shared inactive status label from Not yet to Not sta
 ### User review — island tab counts, 2026-10-23
 
 Left-aligned tab contents and restored right-aligned parenthesized objective/opportunity counts. Opportunity count follows the feed's visible rows, including optimistic dismissal/Undo. Closed width336px accommodates both labels and counts; expanded width remains420px. Browser verifies12px left inset and no overflow in both states, displaying Objectives(4) and Opportunities(0). Scoped lint/diff pass. Single graph refresh exec92000, /tmp/workspace-island-counts-graph.log.
+
+Tab alignment follow-up: expanded labels and their parenthesized counts now center as one group; count spacing is4px. Objectives retains its progress circle12px from the left edge. Closed contents remain left-aligned. Browser measurements: objective group center differs from tab center by less than0.004px, Opportunities by0px; no closed overflow. Scoped lint/diff pass. Graph refresh exec50986, /tmp/workspace-island-centered-labels-graph.log.
