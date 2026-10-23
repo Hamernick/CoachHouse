@@ -4,6 +4,8 @@ import { createDraft,loadRoadmapDraftsFromStorage,persistRoadmapDraftsToStorage 
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { acknowledgeRoadmapDraftSave } from "@/components/roadmap/roadmap-editor/save-acknowledgment"
 
+import { readSelectionRecovery, writeSelectionRecovery, clearSelectionRecovery } from "@/features/workspace-ai/lib/selection-recovery"
+
 function fixture() {
   const section=resolveRoadmapSections({})[0]
   const draft=createDraft(section)
@@ -93,4 +95,34 @@ describe("AI draft application into the existing core editor",() => {
     expect(restored.lastUpdated).toBe(draft.lastUpdated)
   })
 
+})
+
+
+describe("selection recovery pointers", () => {
+  it("isolates actors and organizations, and does not clear a newer editor request", () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal("sessionStorage", { getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) })
+    const first = { id: "first", target: { ...fixture().proposal.target, sectionId: "selection:first" } }
+    writeSelectionRecovery(first)
+    expect(readSelectionRecovery(first.target)).toEqual(first)
+    expect(readSelectionRecovery({ ...first.target, userId: "other" })).toBeNull()
+    expect(readSelectionRecovery({ ...first.target, organizationId: "other" })).toBeNull()
+    const second = { ...first, id: "second" }
+    writeSelectionRecovery(second)
+    clearSelectionRecovery(first)
+    expect(readSelectionRecovery(first.target)).toEqual(second)
+    clearSelectionRecovery(second)
+    expect(values.size).toBe(0)
+  })
+  it("ignores corrupt, wrong-scope and inaccessible browser storage", () => {
+    const scope = fixture().proposal.target
+    for (const value of ["{broken", JSON.stringify({ id: "run", target: { ...scope, userId: "other", sectionId: "selection:old" } }), JSON.stringify({ id: "run", target: scope })]) {
+      vi.stubGlobal("sessionStorage", { getItem: () => value })
+      expect(readSelectionRecovery(scope)).toBeNull()
+    }
+    vi.stubGlobal("sessionStorage", { getItem: () => { throw new Error("Storage blocked") }, setItem: () => { throw new Error("Storage blocked") } })
+    expect(readSelectionRecovery(scope)).toBeNull()
+    expect(() => writeSelectionRecovery({ id: "run", target: scope })).not.toThrow()
+  })
 })

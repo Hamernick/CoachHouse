@@ -1,27 +1,28 @@
 import { test, expect } from "@playwright/test"
 
 test.beforeEach(async ({ request }) => { await request.post("/__fixture/reset") })
-async function selectNeighborhood(page: import("@playwright/test").Page, label = "Mission document") {
+async function selectNeighborhood(page: import("@playwright/test").Page, label = "Mission document", generate = true, text = "neighborhood") {
   const editor = page.getByLabel(label, { exact: true })
   await editor.click()
-  await editor.evaluate(element => {
+  await editor.evaluate((element, text) => {
     // Browser-native text selection avoids macOS/Linux Home-key differences.
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
     let node: Node | null
     while ((node = walker.nextNode())) {
-      const index = node.textContent?.indexOf("neighborhood") ?? -1
+      const index = node.textContent?.indexOf(text) ?? -1
       if (index < 0) continue
       const range = document.createRange()
-      range.setStart(node, index); range.setEnd(node, index + 12)
+      range.setStart(node, index); range.setEnd(node, index + text.length)
       const selection = window.getSelection()!
       selection.removeAllRanges(); selection.addRange(range)
       document.dispatchEvent(new Event("selectionchange"))
       return
     }
     throw new Error("Selection fixture text is missing")
-  })
+  }, text)
   await page.getByRole("group", { name: `${label} selected text formatting`, exact: true }).getByRole("button", { name: "Ask for changes", exact: true }).click()
-  await expect(page.getByRole("region", { name: "Change selected text" }).getByRole("blockquote")).toHaveText("neighborhood")
+  await expect(page.getByRole("region", { name: "Change selected text" }).getByRole("blockquote")).toHaveText(text)
+  if (!generate) return editor
   await page.getByRole("textbox", { name: "Requested changes" }).fill("Make this more inclusive")
   await page.getByRole("button", { name: "Generate selection suggestion" }).click()
   await expect(page.getByRole("button", { name: "Apply", exact: true })).toBeVisible()
@@ -97,4 +98,68 @@ test("collaborator edits block a stale selection; narrow dark review stays insid
   await page.getByLabel("Collaborator document", { exact: true }).fill("A collaborator changed the document.")
   await expect(page.getByRole("button", { name: "Apply", exact: true })).toBeDisabled()
   await expect(shared).toHaveText("A collaborator changed the document.")
+})
+
+
+test("reload recovery requires fresh selection and explicit review without another generation", async ({ page, request }) => {
+  await page.goto("/")
+  await selectNeighborhood(page)
+  const stored = await page.evaluate(() => Object.entries(sessionStorage).filter(([key]) => key.startsWith("workspace-ai:selection:")))
+  expect(stored).toHaveLength(1)
+  expect(stored[0][1]).not.toContain("neighborhood")
+  expect(stored[0][1]).not.toContain("community")
+  await page.reload()
+  await expect(page.getByRole("region", { name: "Change selected text" })).not.toBeVisible()
+  const editor = await selectNeighborhood(page, "Mission document", false)
+  await expect(editor).toHaveText("We support neighborhood gardens.")
+  await page.getByRole("button", { name: "Recover previous suggestion" }).click()
+  await expect(page.getByText("Recovered suggestion. Apply will replace the passage selected above.")).toBeVisible()
+  await page.getByRole("button", { name: "Apply", exact: true }).click()
+  await expect(editor).toHaveText("We support community gardens.")
+  expect((await (await request.get("/__fixture/state")).json()).generations).toBe(1)
+  expect(await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith("workspace-ai:selection:")))).toHaveLength(0)
+})
+
+test("recovery cannot replace different text and survives closing the mismatched review", async ({ page, request }) => {
+  await page.goto("/")
+  await selectNeighborhood(page)
+  await page.reload()
+  const editor = await selectNeighborhood(page, "Mission document", false, "gardens")
+  await page.getByRole("button", { name: "Recover previous suggestion" }).click()
+  await expect(page.getByRole("button", { name: "Apply", exact: true })).toBeDisabled()
+  await expect(editor).toHaveText("We support neighborhood gardens.")
+  await page.getByRole("button", { name: "Close recovered suggestion" }).click()
+  await selectNeighborhood(page, "Mission document", false)
+  await page.getByRole("button", { name: "Recover previous suggestion" }).click()
+  await page.getByRole("button", { name: "Apply", exact: true }).click()
+  await expect(editor).toHaveText("We support community gardens.")
+  expect((await (await request.get("/__fixture/state")).json()).generations).toBe(1)
+})
+
+test("recovery reauthorizes the server request and retains the editor when access is denied", async ({ page, request }) => {
+  await page.goto("/")
+  await selectNeighborhood(page)
+  await page.reload()
+  const editor = await selectNeighborhood(page, "Mission document", false)
+  await page.route("**/__fixture/read", route => route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ error: "Request unavailable" }) }))
+  await page.getByRole("button", { name: "Recover previous suggestion" }).click()
+  await expect(page.getByText("Request unavailable", { exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Apply", exact: true })).not.toBeVisible()
+  await expect(editor).toHaveText("We support neighborhood gardens.")
+  expect((await (await request.get("/__fixture/state")).json()).generations).toBe(1)
+})
+
+test("interrupted selection generation recovers its settled run after reload", async ({ page, request }) => {
+  await request.post("/__fixture/control", { data: { omitTerminal: true } })
+  await page.goto("/")
+  await selectNeighborhood(page, "Mission document", false)
+  await page.getByRole("textbox", { name: "Requested changes" }).fill("Make this inclusive")
+  await page.getByRole("button", { name: "Generate selection suggestion" }).click()
+  await expect(page.getByText("Connection interrupted. Check status before trying again.", { exact: true })).toBeVisible()
+  await page.reload()
+  const editor = await selectNeighborhood(page, "Mission document", false)
+  await page.getByRole("button", { name: "Recover previous suggestion" }).click()
+  await page.getByRole("button", { name: "Apply", exact: true }).click()
+  await expect(editor).toHaveText("We support community gardens.")
+  expect((await (await request.get("/__fixture/state")).json()).generations).toBe(1)
 })

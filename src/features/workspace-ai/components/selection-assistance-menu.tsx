@@ -52,9 +52,11 @@ export function SelectionAssistanceMenu({ editor, active = true, label = "Docume
             {ai.selection ? <section aria-label="Change selected text" className="flex w-[min(360px,calc(100vw-1.5rem))] min-w-0 flex-col gap-2 p-2">
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{ai.quote ? `${ai.quote.maximumCredits} credits maximum` : ai.error ? "Selected text" : "Checking credits…"}</span>
-        <Button variant="ghost" className={iconButton} aria-label="Discard selection suggestion" disabled={ai.pending || ai.unresolved} onClick={ai.discard}><X aria-hidden /></Button>
+        <Button variant="ghost" className={iconButton} aria-label={ai.recoveryMismatch ? "Close recovered suggestion" : "Discard selection suggestion"} disabled={ai.pending || ai.unresolved} onClick={ai.discard}><X aria-hidden /></Button>
       </div>
       <blockquote className="max-h-20 overflow-auto border-l-2 border-border pl-2 text-xs text-muted-foreground whitespace-pre-wrap">{ai.selection.text}</blockquote>
+      {ai.previousRequest && !ai.proposal && <Button variant="ghost" size="sm" className="self-start rounded-full" disabled={ai.pending} onClick={() => void ai.restorePrevious()}>Recover previous suggestion</Button>}
+      {ai.recovered && <p className="text-xs text-muted-foreground">{ai.recoveryMismatch ? "This suggestion was for different text. Close it and select the original passage to apply it." : "Recovered suggestion. Apply will replace the passage selected above."}</p>}
       {(ai.preview || ai.proposal?.content) && <div className="max-h-48 overflow-auto text-sm" aria-label="Suggested replacement">
         {ai.proposal?.content ? <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: ai.proposal.content }} /> : <p className="whitespace-pre-wrap">{ai.preview.replace(/<[^>]*>/g, "")}</p>}
       </div>}
@@ -69,7 +71,7 @@ export function SelectionAssistanceMenu({ editor, active = true, label = "Docume
       <div className="flex flex-wrap items-center gap-1">
         {ai.pending && <Button variant="ghost" size="sm" className="rounded-full" onClick={() => void ai.stop()}>Stop</Button>}
         {!ai.pending && ai.unresolved && <Button variant="ghost" size="sm" className="rounded-full" onClick={() => void ai.recover()}>Check status</Button>}
-        {!ai.pending && !ai.applied && ai.proposal?.status === "succeeded" && <Button size="sm" className="rounded-full shadow-none" disabled={ai.stale} onClick={() => void ai.apply()}>Apply</Button>}
+        {!ai.pending && !ai.applied && ai.proposal?.status === "succeeded" && <Button size="sm" className="rounded-full shadow-none" disabled={ai.stale || ai.recoveryMismatch} onClick={() => void ai.apply()}>Apply</Button>}
         {ai.proposal?.credits != null && <span className="px-2 text-xs text-muted-foreground">{ai.proposal.credits} credits</span>}
       </div>
       <p role="status" aria-live="polite" className="text-xs text-muted-foreground">{ai.applied ? "Applied to editor" : ai.error || (ai.stale ? "The document changed. Select the text again before applying." : ai.pending ? "Drafting…" : ai.proposal && ["failed", "canceled"].includes(ai.proposal.status) ? "No replacement generated. No credits charged." : "")}</p>

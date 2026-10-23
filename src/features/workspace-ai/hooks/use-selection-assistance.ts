@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import type { Editor } from "@tiptap/core"
 import { quoteSelectionAssistance, readDocumentAssistance, stopDocumentAssistance } from "../actions"
 import { captureTextSelection, replaceTextSelection, selectionIsCurrent, type CapturedTextSelection } from "../lib/text-selection"
+import { readSelectionRecovery, writeSelectionRecovery, clearSelectionRecovery, type SelectionRecovery } from "../lib/selection-recovery"
 import type { AiDocumentProposal, AiDocumentTarget, AiStreamPart } from "../types"
 import { aiCreditBalance } from "@/features/ai-credits/client"
 
@@ -18,6 +19,8 @@ export function useSelectionAssistance(editor: Editor) {
   const [applied, setApplied] = useState(false)
   const [preview, setPreview] = useState("")
   const [stale, setStale] = useState(false)
+  const [previousRequest, setPreviousRequest] = useState<SelectionRecovery | null>(null)
+  const [recovered, setRecovered] = useState(false)
   const run = useRef<{ id: string; target: AiDocumentTarget } | null>(null)
   const applying = useRef(false)
   const epoch = useRef(0)
@@ -34,12 +37,26 @@ export function useSelectionAssistance(editor: Editor) {
     if (!captured) return
     setSelection(captured); setError(""); setStale(false)
     const version = ++epoch.current
-    try { const next = await quoteSelectionAssistance(); if (epoch.current === version) setQuote(next) }
+    try { const next = await quoteSelectionAssistance(); if (epoch.current === version) { setQuote(next); setPreviousRequest(readSelectionRecovery(next.scope)) } }
     catch (cause) { if (epoch.current === version) setError(cause instanceof Error ? cause.message : "AI assistance is unavailable.") }
   }
   function discard() {
     if (pending || (run.current && (!proposal || ["running", "reserved", "reconciling"].includes(proposal.status)))) return
+    if (run.current && !(recovered && proposal?.selection?.html !== selection?.html)) clearSelectionRecovery(run.current)
+    setPreviousRequest(null); setRecovered(false)
     epoch.current++; setSelection(null); setQuote(null); setProposal(null); setPrompt(""); setPreview(""); setError(""); setApplied(false); run.current = null
+  }
+  async function restorePrevious() {
+    if (!previousRequest || !selection || pending || run.current) return
+    const version = epoch.current
+    setPending(true); setError("")
+    try {
+      const result = await readDocumentAssistance(previousRequest.id, previousRequest.target)
+      if (version !== epoch.current) return
+      // Explicit recovery previews the prior request, never silently attaches it.
+      run.current = previousRequest; setProposal(result); setRecovered(true); setPreviousRequest(null)
+    } catch (cause) { if (version === epoch.current) setError(cause instanceof Error ? cause.message : "Unable to recover this request.") }
+    finally { if (version === epoch.current) setPending(false) }
   }
   async function recover() {
     if (!run.current) return
@@ -63,7 +80,7 @@ export function useSelectionAssistance(editor: Editor) {
     const previous = proposal
     const target = { ...quote.scope, sectionId: `selection:${selection.id}`, title: "Selected text", revision: selection.id }
     const id = crypto.randomUUID(), version = epoch.current
-    run.current = { id, target }; controller.current = new AbortController()
+    run.current = { id, target }; writeSelectionRecovery(run.current); setPreviousRequest(null); setRecovered(false); controller.current = new AbortController()
     setPending(true); setError(""); setPreview(""); setProposal(null)
     const current = () => version === epoch.current
     try {
@@ -71,12 +88,12 @@ export function useSelectionAssistance(editor: Editor) {
         headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, target, prompt,
           selection: { from: selection.from, to: selection.to, html: selection.html },
           maximumCredits: quote.maximumCredits, tariffVersion: quote.tariffVersion,
-          ...(previous?.status === "succeeded" ? { reviseRunId: previous.id } : {}) }) })
+          ...(previous?.status === "succeeded" && previous.target.revision === selection.id ? { reviseRunId: previous.id } : {}) }) })
       if (response.headers.get("content-type")?.includes("application/json")) {
         const body = await response.json()
         if (!current()) return
         if (!response.ok) {
-          if (body.reserved === false) { run.current = previous ? { id: previous.id, target } : null; setProposal(previous) }
+          if (body.reserved === false) { clearSelectionRecovery({ id, target }); run.current = previous ? { id: previous.id, target: previous.target } : null; if (run.current) writeSelectionRecovery(run.current); setRecovered(Boolean(previous && previous.target.revision !== selection.id)); setProposal(previous) }
           throw new Error(body.error ?? "Unable to start this request.")
         }
         setProposal(body.proposal); return
@@ -113,13 +130,14 @@ export function useSelectionAssistance(editor: Editor) {
       // Reauthorize before exposing a proposal through the actual editor/save owner.
       const verified = await readDocumentAssistance(proposal.id, run.current.target)
       if (version !== epoch.current) return
-      if (verified.status !== "succeeded" || verified.target.revision !== selection.id ||
-          verified.selection?.from !== selection.from || verified.selection?.to !== selection.to ||
+      if (verified.status !== "succeeded" || (recovered ? verified.selection?.html !== selection.html :
+            verified.target.revision !== selection.id || verified.selection?.from !== selection.from || verified.selection?.to !== selection.to) ||
           !replaceTextSelection(editor, selection, verified.content)) throw new Error("The document changed. Your suggestion is retained; select the text again before applying.")
-      setApplied(true); setError("")
+      clearSelectionRecovery(run.current); setApplied(true); setError("")
     } catch (cause) { if (version === epoch.current) setError(cause instanceof Error ? cause.message : "Unable to apply this suggestion.") }
     finally { applying.current = false }
   }
   return { selection, quote, proposal, prompt, setPrompt, error, pending, applied, preview, stale,
-    begin, discard, submit, apply, stop, recover, unresolved: Boolean(run.current && (!proposal || ["running", "reserved", "reconciling"].includes(proposal.status))) }
+    begin, discard, submit, apply, stop, recover, restorePrevious, previousRequest, recovered,
+    recoveryMismatch: recovered && Boolean(proposal?.selection?.html !== selection?.html), unresolved: Boolean(run.current && (!proposal || ["running", "reserved", "reconciling"].includes(proposal.status))) }
 }
