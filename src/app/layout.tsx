@@ -8,6 +8,7 @@ import { ReactGrabLoader } from "@/components/dev/react-grab-loader"
 import { AppProviders } from "@/components/providers/app-providers"
 import { AppTelemetry } from "@/components/providers/app-telemetry"
 import { getPublicSiteOrigin } from "@/lib/public-site-origin"
+import { DEFAULT_SHARE_IMAGE_PATH } from "@/lib/public-share-image-url"
 import { getLocale } from "@/lib/locale.server"
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Coach House",
     images: [{
-      url: new URL("/opengraph-image.png", getPublicSiteOrigin()).href,
+      url: new URL(DEFAULT_SHARE_IMAGE_PATH, getPublicSiteOrigin()).href,
       width: 1200,
       height: 630,
       alt: "Coach House — The platform for nonprofits",

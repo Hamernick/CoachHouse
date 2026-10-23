@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { getPublicSiteOrigin } from "@/lib/public-site-origin"
+import { publicOrganizationShareImageUrl } from "@/lib/public-share-image-url"
 
 import type { PublicProfileView } from "@/features/public-profiles"
 
@@ -20,7 +21,11 @@ export function buildPublicProfileMetadata(
     profile.headline ??
     `View @${profile.handle} on Coach House.`
   const canonical = `${getPublicSiteOrigin()}/${encodeURIComponent(profile.handle)}`
-  const images = profile.avatarUrl
+  const organization = profile.kind === "organization"
+  const imageUrl = organization ? publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl) : profile.avatarUrl
+  const images = organization
+    ? [{ url: publicOrganizationShareImageUrl(profile.handle, profile.avatarUrl), width: 1200, height: 630, type: "image/png", alt: `${profile.displayName} logo` }]
+    : profile.avatarUrl
     ? [{ url: profile.avatarUrl, alt: `${profile.displayName} profile image` }]
     : undefined
 
@@ -36,10 +41,10 @@ export function buildPublicProfileMetadata(
       images,
     },
     twitter: {
-      card: images ? "summary" : undefined,
+      card: organization ? "summary_large_image" : images ? "summary" : undefined,
       title: profile.displayName,
       description,
-      images: profile.avatarUrl ? [profile.avatarUrl] : undefined,
+      images: imageUrl ? [imageUrl] : undefined,
     },
     robots: { index: true, follow: true },
     other: { "profile:username": profile.handle || requestedHandle },
