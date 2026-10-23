@@ -1,6 +1,11 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  read_ai_credit_purchases: { Args: { p_org_id: string; p_actor_id: string; p_mode: string }; Returns: Json }
+  prepare_ai_credit_purchase: { Args: { p_id: string; p_org_id: string; p_actor_id: string; p_pack: string; p_mode: string; p_return_url: string }; Returns: Json }
+  read_ai_credit_purchase_order: { Args: { p_id: string }; Returns: Json }
+  bind_ai_credit_checkout: { Args: { p_id: string; p_session: string }; Returns: undefined }
+  fulfill_ai_credit_purchase: { Args: { p_id: string; p_session: string; p_payment: string; p_mode: string; p_amount: number; p_currency: string }; Returns: string }
   commit_workspace_ai_document: {
     Args: { p_id:string; p_org_id:string; p_actor_id:string; p_expected_updated_at:string; p_expected_section_revision:string | null; p_profile:Json; p_section:Json; p_content_hash:string; p_reviewed_revision?:string }
     Returns: Json

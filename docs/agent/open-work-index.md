@@ -1,5 +1,7 @@
 # Open Work Index
 
+**October22 AI credit purchases:** Default-off owner purchase UI and bound payment fulfillment are implemented/tested locally. No live billing or shared migration. Refund/dispute controls, spending caps and auto-refill remain launch blockers. The user explicitly continued the full sprint. See the [authoritative checkpoint](../plans/2026-10-22-workspace-ai-plan.md#credit-purchase-checkout-and-fulfillment--2026-10-22).
+
 ## Particle MVP continuation — 2026-10-19
 
 **October22 reviewed AI plans:** Custom objectives now support quoted AI proposals, checklist/tree review, revision, explicit atomic application and guarded undo, with recovery/replay protections. Implementation and local-only migration are in the [canonical AI checkpoint](../plans/2026-10-22-workspace-ai-plan.md#reviewed-ai-plan-proposals--2026-10-22). Strict API schemas plus domain validation are implemented; expert planning quality and authenticated/provider proof are not. Next is bounded quality evaluation and scoped grounding; Communications is deferred and Jev is not a new dependency. All production activation remains off.

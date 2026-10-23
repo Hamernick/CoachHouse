@@ -1,4 +1,6 @@
 import { SelectionSessionFixture } from "./selection-session-fixture"
+import { AiCreditsPanel } from "../../../src/features/ai-credits/components/ai-credits-panel"
+import { creditAccount, creditOrg } from "./credit-actions"
 import { ObjectivesFixture } from "./objectives-fixture"
 import { RoadmapConflictReview } from "../../../src/components/roadmap/roadmap-editor/components/roadmap-conflict-review"
 import { WorkspaceWindowHeaderScope,useWorkspaceWindowHeaderActive } from "../../../src/components/workspace/workspace-window-header-slots"
@@ -82,4 +84,4 @@ function Fixture() {
     <Toaster />
   </main>
 }
-createRoot(document.getElementById("root")!).render(<StrictMode>{new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)
+createRoot(document.getElementById("root")!).render(<StrictMode>{new URLSearchParams(window.location.search).has("credits") ? <main className="mx-auto w-full max-w-sm bg-background p-3 text-foreground"><AiCreditsPanel account={creditAccount} organizationId={creditOrg} /></main> : new URLSearchParams(window.location.search).has("fixture-checkout") ? <p>Simulated checkout · no payment</p> : new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)

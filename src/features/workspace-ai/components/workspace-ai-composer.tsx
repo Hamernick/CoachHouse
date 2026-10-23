@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
-import { AiCreditsPanel, aiCreditBalance } from "@/features/ai-credits/client"
+import { AiCreditsPanel } from "@/features/ai-credits/client"
 import { quoteDocumentAssistance, readDocumentAssistance, stopDocumentAssistance } from "../actions"
 import { useAiDocumentEditors } from "../hooks/document-bridge"
 import { availableAiDocumentEditors,selectedAiDocumentEditor,type AiDocumentScope } from "../lib/document-registry"
@@ -103,7 +103,8 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
   async function submit(prompt: string) {
     if (!bridge || !quote || pending) return false
     if (bridge.dirty || bridge.saving) {setError("Save your current edits before generating another draft.");return false}
-    if (aiCreditBalance(quote.account).available < quote.maximumCredits) { setError("Not enough credits for this request. Your text is still here."); return false }
+    // Admission uses the current server ledger. A quote captured before a credit
+    // purchase must not prevent using the freshly verified balance.
     if (runId.current && (!proposal || ["reserved","running","reconciling"].includes(proposal.status))) {
       setError("Check the current request before starting another."); return false
     }
@@ -189,7 +190,7 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
         <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : target ? "Refreshing credits…" : "No document selected"}</Button>
       </div> : null}
       {active && !bridge ? <p className="text-xs text-muted-foreground">Choose a visible core document to include as context.</p> : null}
-      {usage && quote ? <AiCreditsPanel account={quote.account} /> : null}
+      {usage && quote ? <AiCreditsPanel account={quote.account} organizationId={sourceScope.organizationId} /> : null}
       {(preview || proposal?.content || pending) && <div className="h-56 overflow-auto overscroll-contain rounded-xl bg-muted/40 p-3">
         {proposal?.content ? <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proposal.content }} />
           : preview ? <p className="whitespace-pre-wrap text-muted-foreground">{preview.replace(/<[^>]*>/g,"")}</p>
