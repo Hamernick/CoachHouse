@@ -10,6 +10,7 @@ import type { ObjectiveEdit, ObjectiveStep } from "../island-types"
 import type { WorkspaceObjectiveRecord } from "../types"
 import { planProgress } from "../lib/plan-progress"
 import type { ObjectivePlan } from "../plan-types"
+import styles from "./objective-timeline.module.css"
 import { ObjectiveEditForm } from "./objective-edit-form"
 
 export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdit, onStep, children, checklistSteps = steps, plans = [] }: {
@@ -26,17 +27,17 @@ export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdi
   const percent = total > 0 ? Math.round(progress.completed.length / total * 100) : 0
   const progressLabel = complete ? "Complete" : blocked ? "Blocked" : inProgress ? `In progress, ${percent}% complete` : "Not started"
   const canEdit = editable && objective.kind === "custom"
-  return <section className="min-w-0 border-t border-border/50 py-1">
+  return <section className={styles.objective}>
     <Collapsible open={expanded || editing} onOpenChange={setExpanded}>
       <div className="flex flex-col gap-1 px-1 py-1" style={editing ? { display: "none" } : undefined}>
         <div className="flex min-w-0 items-center gap-2">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" aria-description={progressLabel} className="h-auto min-h-11 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left">
               <span className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="flex size-4 shrink-0 items-center justify-center" aria-hidden>
+                <span className={cn("flex size-4 shrink-0 items-center justify-center", styles.marker)} aria-hidden>
                   {complete ? <CircleCheck className="text-emerald-600 dark:text-emerald-400" /> : blocked ? <CircleMinus className="text-destructive" /> : <CircularProgress
                     value={percent} size={16} strokeWidth={2} decorative
-                    trackClassName={inProgress ? "stroke-orange-500/30 dark:stroke-orange-400/30" : undefined}
+                    trackClassName={inProgress ? "stroke-orange-500/30 dark:stroke-orange-400/30" : "stroke-muted-foreground/60 dark:stroke-muted-foreground/60"}
                     progressClassName="stroke-orange-500 dark:stroke-orange-400"
                   />}
                 </span>

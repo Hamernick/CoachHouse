@@ -1,4 +1,6 @@
 "use client"
+import styles from "./objective-timeline.module.css"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -11,12 +13,12 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, onEdit, onCr
   onRevise?: (plan: ObjectivePlan) => void; allPlans?: ObjectivePlan[]; onChoice: (plan: ObjectivePlan, stepId: string, edgeId: string | null) => void; plans: ObjectivePlan[]; steps: ObjectiveStep[]; canEdit: boolean; pending: boolean; visible: string[]
   onToggle: (id: string) => void; onEdit: (plan: ObjectivePlan) => void; onCreate: () => void; onStep: (step: ObjectiveStep, done: boolean) => void
 }) {
-  return <div className="flex flex-col gap-2">
+  return <div className={cn("flex flex-col gap-2", plans.length > 0 && styles.plans)}>
     {plans.map(plan => {
       const members = plan.stepIds.flatMap(id => steps.find(step => step.id === id) ?? [])
       const progress = planProgress(allPlans, members)
       const done = progress.completed.length
-      return <Collapsible key={plan.id} className="min-w-0">
+      return <Collapsible key={plan.id} className={styles.plan}>
         <div className="flex min-w-0 items-center gap-1"><CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-9 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left"><span>{plan.title} <span className="text-xs tabular-nums text-muted-foreground">{done}/{progress.active.length}{progress.waiting > 0 ? " · Awaiting a decision" : ""}</span></span><ChevronDown aria-hidden /></Button></CollapsibleTrigger>
           {canEdit && <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={`Edit ${plan.title} plan`} disabled={pending} onClick={() => onEdit(plan)}><Pencil aria-hidden /></Button>}
         </div>
