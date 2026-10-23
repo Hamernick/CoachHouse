@@ -4,7 +4,7 @@ async function openObjective(page: Page) {
   await page.getByRole("button", { name: "Launch a volunteer program", exact: true }).click()
 }
 async function newPlan(page: Page, title: string, steps: string[]) {
-  await page.getByRole("button", { name: "Add plan", exact: true }).click()
+  await page.getByRole("button", { name: "Add to plan", exact: true }).click()
   await page.getByLabel("Plan name", { exact: true }).fill(title)
   for (const [index, step] of steps.entries()) {
     await page.getByRole("button", { name: "Add item", exact: true }).click()
@@ -101,4 +101,24 @@ test("plan editor fits narrow dark screens and preserves drafts on attempted dis
   await page.getByRole("button", { name: "Keep editing", exact: true }).click()
   await expect(page.getByLabel("Plan name", { exact: true })).toHaveValue("Community event")
   await page.screenshot({ path: "/tmp/workspace-objective-plan-editor-dark.png" })
+})
+
+
+test("rename a plan inline without replacing the objective list, then reload", async ({ page }) => {
+  await newPlan(page, "Workshop plan", ["Keep existing work"])
+  await page.getByRole("button", { name: "Save plan", exact: true }).click()
+  await page.getByRole("button", { name: "Edit Workshop plan plan", exact: true }).click()
+  await expect(page.getByRole("region", { name: "Edit plan", exact: true })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Launch a volunteer program", exact: true })).toBeVisible()
+  await page.getByRole("textbox", { name: "Plan title", exact: true }).fill("Community workshop")
+  await page.getByRole("button", { name: "Save title", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Community workshop", exact: true })).toBeVisible()
+  await page.reload(); await openObjective(page)
+  await page.getByRole("button", { name: "Community workshop", exact: true }).click()
+  await expect(page.getByRole("checkbox", { name: "Keep existing work", exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Edit Community workshop plan", exact: true }).click()
+  await page.getByRole("textbox", { name: "Plan title", exact: true }).fill("Unsaved change")
+  await page.getByRole("textbox", { name: "Plan title", exact: true }).press("Escape")
+  await expect(page.getByRole("button", { name: "Community workshop", exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Objectives", exact: true })).toHaveAttribute("aria-expanded", "true")
 })

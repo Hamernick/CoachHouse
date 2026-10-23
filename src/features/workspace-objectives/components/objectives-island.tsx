@@ -72,7 +72,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
             {state.data?.planning?.available && <ObjectivePlanList onRevise={transport.ai && state.data.planning.decisionsAvailable ? plan => { setAiPlan(plan); setAiObjective(objective) } : undefined} onChoice={onChoice} allPlans={activePlans} plans={state.data.planning.plans.filter(plan => plan.objectiveId === objective.id)} steps={state.data.steps}
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
               onToggle={id => { setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]); setOpen(false) }}
-              onEdit={editPlan} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
+              onRename={(plan, title) => state.mutate(() => transport.savePlan ? transport.savePlan(scope, { ...draftFromPlan(plan, state.data?.steps ?? []), title }) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
             {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => { setAiPlan(null); setAiObjective(objective) }}>Plan with AI</Button>}
           </ObjectiveIslandCard>)}
     </div>
