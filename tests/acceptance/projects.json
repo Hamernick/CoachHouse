@@ -195,6 +195,7 @@
       "tests/acceptance/workspace-ontology-guided-focus.test.ts",
       "tests/acceptance/workspace-ontology-layout-scene.test.ts",
       "tests/acceptance/workspace-ontology-root-layout.test.ts",
+      "tests/acceptance/workspace-opportunities-feed.test.ts",
       "tests/acceptance/workspace-page-loading.test.ts",
       "tests/acceptance/workspace-particle-geometry.test.ts",
       "tests/acceptance/workspace-particles.test.ts",

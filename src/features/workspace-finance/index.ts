@@ -2,6 +2,7 @@ export {
   WorkspaceFinancePanel,
   WorkspaceFinanceStripeConnection,
 } from "./components"
+export { WorkspaceOpportunitiesFeed } from "./components/workspace-opportunities-feed"
 export {
   buildWorkspaceFinanceProgramInputs,
   normalizeWorkspaceFinanceInput,
