@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 
 // Adapted from lab.xevrion.dev/r/dynamic-island: a top-anchored shell with
 // final-size content. Text never scales or reflows while the shell morphs.
-export function ObjectivesIslandSurface({ open, onOpenChange, count, children, actions }: {
-  open: boolean; onOpenChange: (open: boolean) => void; count?: number; children: ReactNode; actions?: ReactNode
+export function ObjectivesIslandSurface({ open, onOpenChange, count, children }: {
+  open: boolean; onOpenChange: (open: boolean) => void; count?: number; children: ReactNode
 }) {
   const host = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
@@ -37,7 +37,6 @@ export function ObjectivesIslandSurface({ open, onOpenChange, count, children, a
       }}>
       <Button ref={trigger} variant="ghost" className="relative h-[42px] w-full gap-2 rounded-full px-3" aria-label="Objectives" aria-expanded={open} aria-controls={id}
         onClick={() => onOpenChange(!open)}>Objectives{count !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{count}</span>}</Button>
-      {open && actions && <div className="absolute top-0.5 right-2">{actions}</div>}
       <div ref={content} className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 pt-[42px]" style={{ width: size.width - 2 }}>
         <motion.div id={id} initial={false} animate={{ opacity: open ? 1 : 0, y: open ? 0 : -4 }}
           transition={{ duration: reduced ? 0 : 0.12, delay: open && !reduced ? 0.06 : 0 }} inert={!open} aria-hidden={!open}

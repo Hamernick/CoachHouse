@@ -1,20 +1,19 @@
 "use client"
 import { useState } from "react"
-import { Plus, MoreHorizontal } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { InputGroup, InputGroupInput, InputGroupAddon } from "@/components/ui/input-group"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import type { ObjectiveScope } from "../island-types"
 import { useParticlePlans, type PlanningControls, type ObjectiveParticle } from "../hooks/use-particle-plans"
 import { ObjectivesIslandSurface } from "./objectives-island-surface"
 import { ParticleObjectiveCard } from "./particle-objective-card"
 
-export function ParticleObjectivesIsland({ scope, controls, onEarlier }: { scope: ObjectiveScope; controls: PlanningControls; onEarlier: () => void }) {
+export function ParticleObjectivesIsland({ scope, controls }: { scope: ObjectiveScope; controls: PlanningControls }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const actions = useParticlePlans(scope, controls)
   const objectives = (controls.graph?.particles ?? []).filter((item): item is ObjectiveParticle => item.type === "objective")
-  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} actions={<DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-9 rounded-full" aria-label="Objectives options"><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={onEarlier}>Earlier objectives</DropdownMenuItem></DropdownMenuContent></DropdownMenu>} count={objectives.filter(item => item.status !== "done").length}>
+  return <ObjectivesIslandSurface open={open} onOpenChange={setOpen} count={objectives.filter(item => item.status !== "done").length}>
     <div aria-busy={controls.pending} className="flex min-w-0 flex-col gap-1">
       {(controls.error || actions.accessError) && <p role="alert" className="px-2 py-1 text-xs text-destructive">{controls.error || actions.accessError}{controls.error && <Button variant="link" size="sm" onClick={() => void controls.retry()}>Retry</Button>}</p>}
       {objectives.map(objective => <ParticleObjectiveCard key={objective.id} objective={objective} controls={controls} actions={actions} userId={scope.userId} />)}
