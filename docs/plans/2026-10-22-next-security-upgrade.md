@@ -107,18 +107,32 @@ The following continuation supersedes its build blocker and completion status.
   empty editor; Mission/Vision1440/390 with scrolling, save/discard/reopen. These
   temporary configs perform no macOS screenshot comparisons. Linux keyboard and
   canonical visual comparisons remain hosted gates.
-- Three Drive references still show Stripe, intentionally hidden since PR269
+- Three Drive references showed Stripe, intentionally hidden since PR269
   (`dbdec6c1`; acceptance explicitly requires Calendar/Drive). Prior Ubuntu CI
   expected/actual/diff images reviewed. Existing canonical Ubuntu reference workflow
-  now includes this spec; retain only three reviewed Drive images from its artifact.
-  No local baseline overwrite, threshold increase or budget weakening.
+  now includes this spec. Canonical Ubuntu24.04 reference generation completed in
+  [run39897666912](https://github.com/Hamernick/CoachHouse/actions/runs/39897666912),
+  artifact12476908888, source2944a179/merge4d27d016. Reviewed and retained only three
+  Drive images. All are byte-identical to the independent prior Ubuntu run's actual
+  renders. ZIP SHA256dfe1063b224c3a89630a22de739acd2d89e7ac7891c0cc6d4120770de96e3006
+  verified. No macOS baseline update, threshold increase or budget weakening.
 - Independent read-only review found no concrete regression/security issue in the
   server facade, guards, marketplace synchronization or Find dismissal.
-- Final full acceptance/build/performance and one batched Graphify refresh running;
-  exact logs in this lane's `.tmp/next-security-*`. Own3155dev server stopped after
-  interactions; only Next's generated AGENTS suffix removed. Other lanes preserved.
+- Implementation2944a179 pushed/independently matched to PR354. Normal Node22
+  pre-push passes81.60s, including full lint (one unchanged warning); outgoing
+  secret scan found0. [CI39897666911](https://github.com/Hamernick/CoachHouse/actions/runs/39897666911)
+  passes static, RLS, production build/types/performance105.70s and full acceptance:
+  4271passed/3skipped,551files passed/2skipped in91.25s. Visual lane still pending.
+- Final local duplicate checks slowed under shared-host load. Search timing failed;
+  four guard fixtures failed only the unchanged5000ms timeout (focused rerun95.48s,
+  imports60.86s; no assertion failures). The same source passes canonical hosted
+  acceptance. Duplicate local build/full acceptance stopped after hosted success;
+  their partial logs are not claimed as passing. No timing limit changed.
+- One batched Graphify AST refresh completed:21934nodes/62954edges/1196communities.
+  Exact log `.tmp/next-security-graphify.log`. Exact code-structure/open-index
+  semantic refresh follows, preserving unrelated data. Own3155dev server stopped;
+  generated AGENTS suffix removed exactly. Other lanes/processes/dependencies preserved.
 
-Next: finish checks, commit/push this unblock slice to PR354, obtain canonical
-Ubuntu references, review/retain only three Drive images, push and verify required
-hosted `quality` on the final revision. Merge/deployment remain user-owned. No
+Next: finish semantic refresh, push reviewed Drive references and verify required hosted
+`quality` on the final revision. Merge/deployment remain user-owned. No
 database/provider/calendar/account/credential changes or production fix claimed.
