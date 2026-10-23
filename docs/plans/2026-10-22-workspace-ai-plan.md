@@ -781,3 +781,9 @@ Completed: merge `a6345f59` is pushed to `origin/feat/particle-system-20261009`;
 ### User review — picker labels, 2026-10-23
 
 Removed the visible New prefix from every PlanParticlePicker creation option, retaining the preset capitalization (Form, Notes, etc.). Search aliases and creation behavior are unchanged. Scoped ESLint passes; no behavioral test needed for this copy-only edit. Graph refresh: `/tmp/particle-picker-labels-graph.log`.
+
+### User review — plan drag sorting, 2026-10-23
+
+Plan members now sort directly with the installed dnd-kit sensors: mouse drag, touch hold, or Space/arrows/Space. Rows shift into position, the dragged preview is portaled outside transformed ancestors, and reduced-motion preferences are respected. Existing Move up/down actions, plan/proposal ownership, and revision-checked persistence remain. No new visible controls. Native incoming particle drops remain supported; sorting gestures are scoped to the current plan.
+
+Authenticated localhost3008 verified mouse last-to-first and keyboard first-to-last sorting, each surviving reload. Restored the original Form, Notes, Resource order. All11 focused tests cover ordering, cancellation, invalid drops, pending/read-only/owner permissions, and proposal isolation; scoped lint and full TypeScript pass. Final type/test logs: `/tmp/particle-plan-sort-types-final.log`, `/tmp/particle-plan-sort-tests.log`. Graph refresh completed successfully: `/tmp/particle-plan-sort-graph.log`, retaining three historical fixture-parser warnings. Touch-device acceptance is not claimed. User sent the menu-style reference prematurely, so that request remains on hold. Broader AI sprint stays paused.

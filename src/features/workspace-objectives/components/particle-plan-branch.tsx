@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { PARTICLE_DRAG_MIME, readParticleDrag, type ParticlePlan, type ParticlePlanProposal, type Particle } from "@/features/workspace-particles/client"
 import { PlanParticlePicker } from "./plan-particle-picker"
 import { PlanParticleRow } from "./plan-particle-row"
+import { PlanParticleList } from "./plan-particle-list"
 import { ObjectiveInlineTitle } from "./objective-inline-title"
 import { planningOf, type ObjectiveParticle, type PlanningControls, type useParticlePlans } from "../hooks/use-particle-plans"
 import styles from "./particle-objectives.module.css"
@@ -79,14 +80,14 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       {stale && <p className="px-2 text-xs text-muted-foreground">Plan changed. Reject this proposal and propose changes from the current plan.</p>}
       {proposal && <p className="px-2 pb-1 text-xs text-muted-foreground">{base ? `${added.length} added · ${removed.length} removed${plan.title !== base.title ? " · Renamed" : ""}` : "New plan"}</p>}
       {removed.length > 0 && <ul aria-label="Proposed removals" className="px-2 text-sm text-muted-foreground">{removed.map(id => <li key={id} className="line-through">{controls.graph?.particles.find(item => item.id === id)?.title ?? "Removed particle"}</li>)}</ul>}
-      <ul className={styles.branch} aria-label={`${plan.title} particles`} onDragOver={event => { if (editable && event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) event.preventDefault() }} onDrop={event => { event.preventDefault(); if (editable) drop(event.dataTransfer.getData(PARTICLE_DRAG_MIME)) }}>
+      <PlanParticleList label={`${plan.title} particles`} particles={plan.particleIds.flatMap(id => controls.graph?.particles.find(particle => particle.id === id) ?? [])} disabled={!editable || controls.pending} onMove={move} onDragOver={event => { if (editable && !controls.pending && event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) event.preventDefault() }} onDrop={event => { event.preventDefault(); if (editable && !controls.pending) drop(event.dataTransfer.getData(PARTICLE_DRAG_MIME)) }}>
         {plan.particleIds.map((id, index) => {
           const particle = controls.graph?.particles.find(item => item.id === id)
           return particle && <PlanParticleRow key={id} particle={particle} controls={controls} canOrganize={editable} first={index === 0} last={index === plan.particleIds.length - 1}
             onRemove={() => void remove(id)}
             onMove={direction => move(id, index + direction)} onDrop={raw => drop(raw, id)} />
         })}
-      </ul>
+      </PlanParticleList>
       {editable && <PlanParticlePicker particles={controls.graph?.particles ?? []} excluded={[objective.id, ...plan.particleIds]} pending={controls.pending} onAdd={add} onCreate={preset => {
         const particle = actions.create(objective, preset)
         return save({ ...plan, particleIds: [...plan.particleIds, particle.id] }, particle)

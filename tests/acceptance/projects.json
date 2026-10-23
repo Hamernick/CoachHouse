@@ -96,6 +96,7 @@
       "tests/acceptance/organization-profile-mutation.test.ts",
       "tests/acceptance/organization-support-document-list.test.ts",
       "tests/acceptance/organization-switch.test.ts",
+      "tests/acceptance/particle-plan-sorting.test.ts",
       "tests/acceptance/people-linkedin-image-refresh.test.ts",
       "tests/acceptance/people-tags.test.ts",
       "tests/acceptance/person-social-links.test.ts",
