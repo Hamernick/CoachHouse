@@ -38,7 +38,7 @@ exploitation was not tested; Cache Components is not enabled.
 - Independent read-only investigation and candidate review found no concrete
   surviving vulnerable dependency path or compatibility regression.
 
-## Verification and release boundary
+## Initial verification and release boundary (superseded below)
 
 - Frozen offline installation passes; `next --version` reports16.4.2.
 - Re-running `next upgrade --agent=security` reports no security update needed.
@@ -130,9 +130,21 @@ The following continuation supersedes its build blocker and completion status.
   their partial logs are not claimed as passing. No timing limit changed.
 - One batched Graphify AST refresh completed:21934nodes/62954edges/1196communities.
   Exact log `.tmp/next-security-graphify.log`. Exact code-structure/open-index
-  semantic refresh follows, preserving unrelated data. Own3155dev server stopped;
+  semantic refresh/readback completed:21953nodes/62997edges/1196communities;
+  unrelated nodes/edges/manifest/cache and community assignments preserved. Receipt
+  `.tmp/next-security-semantic-receipt.json`. Own3155dev server stopped;
   generated AGENTS suffix removed exactly. Other lanes/processes/dependencies preserved.
 
-Next: finish semantic refresh, push reviewed Drive references and verify required hosted
-`quality` on the final revision. Merge/deployment remain user-owned. No
-database/provider/calendar/account/credential changes or production fix claimed.
+## Final handoff
+
+Reviewed Drive references pushed as `07ae051459144c3774996c499280d4e04bd31a81`;
+normal9.07s Node22pre-push and zero-finding secret scan pass. Final documentation
+receipt/index changes follow that source/reference revision; application code is
+unchanged. Required `quality` and review/branch-protection state are live on
+[PR354](https://github.com/Hamernick/CoachHouse/pull/354); inspect its current
+revision before merge. The PR body holds the latest hosted-check outcome.
+
+Source fixes, canonical references and graph maintenance are complete. Merge,
+deployment and live verification remain user-owned. No database/provider/calendar/
+account/credential changes or production remediation claimed. Other terminals'
+files, dependencies and listeners remain preserved; this lane's servers are stopped.
