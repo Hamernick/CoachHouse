@@ -21,7 +21,7 @@ export function ParticleStatusMark({ particle }: { particle: Particle }) {
     return <span aria-hidden="true" className={`inline-flex size-[18px] shrink-0 items-center justify-center rounded-full ${particle.status === "done" ? "bg-emerald-600 text-white dark:bg-emerald-400 dark:text-emerald-950" : "bg-destructive text-destructive-foreground"}`}><Icon className="size-3" strokeWidth={3} /></span>
   }
   if (progress !== null) return <CircularProgress decorative value={progress} size={18} strokeWidth={2} className="shrink-0" progressClassName="stroke-orange-600 dark:stroke-orange-400" />
-  return <span aria-hidden="true" className={`inline-flex size-[18px] shrink-0 rounded-full border-2 ${particle.status === "in_progress" ? "border-orange-600 border-t-orange-600/25 dark:border-orange-400 dark:border-t-orange-400/25" : "border-muted-foreground/45"}`} />
+  return <span aria-hidden="true" className={`inline-flex size-[18px] shrink-0 rounded-full border-2 ${particle.status === "in_progress" ? "border-orange-600 border-t-orange-600/25 dark:border-orange-400 dark:border-t-orange-400/25" : "border-dashed border-muted-foreground/45"}`} />
 }
 
 export function ParticleStatusLabel({ particle }: { particle: Particle }) {
