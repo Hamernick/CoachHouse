@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { previewOpportunityLink } from "@/actions/workspace-opportunity-sources"
 import type { OpportunitySource, OpportunitySourceOption } from "../lib/opportunity-sources"
+import { useOpportunityFilePreview } from "./use-opportunity-file-preview"
 
 export function SourceIcon({ category }: { category: string }) {
   const Icon = /person|people/i.test(category) ? UserRound : /calendar|event/i.test(category) ? CalendarDays : /tool/i.test(category) ? Wrench : /link/i.test(category) ? Globe : FileText
@@ -22,6 +23,8 @@ export function OpportunitySourcePill({ source, option, organizationId, onRemove
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinned = useRef(false)
   const url = source.kind === "link" ? source.url : undefined
+  const file = useOpportunityFilePreview(open, organizationId, source.kind === "file" ? source.id : null)
+  const href = file.url ?? url ?? option?.href
   const title = option?.title ?? (source.kind === "text" ? source.label : url ? new URL(url).hostname.replace(/^www\./, "") : "Unavailable source")
   const category = option?.category ?? (url ? "Link" : "Source")
   const stay = () => { if (timer.current) clearTimeout(timer.current) }
@@ -43,8 +46,8 @@ export function OpportunitySourcePill({ source, option, organizationId, onRemove
         <div className="flex items-center gap-2 text-sm text-muted-foreground"><SourceIcon category={category} /><span className="truncate">{preview?.siteName ?? category}</span></div>
         <p className="break-words text-sm font-medium">{preview?.title ?? title}</p>
         {option?.startsAt && <time dateTime={option.startsAt} className="block text-xs text-muted-foreground">{new Date(option.startsAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</time>}
-        {loading ? <p role="status" className="text-xs text-muted-foreground">Loading preview…</p> : <p className="line-clamp-4 break-words text-sm text-muted-foreground">{preview?.description || option?.description || (url ? url : option ? "Linked workspace source" : source.kind === "text" ? source.label : "This source was removed or is no longer available to you.")}</p>}
-        {(url || option?.href) && <Button asChild variant="secondary" size="sm" className="rounded-full"><a href={url ?? option?.href} target={url ? "_blank" : undefined} rel={url ? "noopener noreferrer" : undefined} onClick={event => { if (source.kind === "particle" && onOpen?.(source.id)) { event.preventDefault(); pinned.current = false; setOpen(false) } }}><Link aria-hidden="true" className="size-3.5" />Open</a></Button>}
+        {loading || file.loading ? <p role="status" className="text-xs text-muted-foreground">Loading preview…</p> : <p className="line-clamp-4 break-words text-sm text-muted-foreground">{file.error || preview?.description || option?.description || (url ? url : option ? "Linked workspace source" : source.kind === "text" ? source.label : "This source was removed or is no longer available to you.")}</p>}
+        {href && <Button asChild variant="secondary" size="sm" className="rounded-full"><a href={href} target={url || file.url ? "_blank" : undefined} rel={url || file.url ? "noopener noreferrer" : undefined} onClick={event => { if (source.kind === "particle" && onOpen?.(source.id)) { event.preventDefault(); pinned.current = false; setOpen(false) } }}><Link aria-hidden="true" className="size-3.5" />Open</a></Button>}
       </PopoverContent>
     </Popover>
     {onRemove && <Button type="button" variant="ghost" size="icon" disabled={disabled} className="mr-0.5 size-7 shrink-0 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Remove ${title}`} onClick={onRemove}><X className="size-3" aria-hidden="true" /></Button>}

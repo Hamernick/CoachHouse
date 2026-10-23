@@ -10,11 +10,13 @@ import styles from "@/components/organization/org-profile-card/profile-edit-fiel
 import type { WorkspaceFinanceOpportunityInput } from "../types"
 import { WorkspaceOpportunityTimeline } from "./workspace-opportunity-timeline"
 import { OpportunitySourcesInput } from "./opportunity-sources-input"
+import { OpportunitySourceDropZone } from "./opportunity-source-drop-zone"
 import { opportunitySourceSchema, sourceKey, type OpportunitySource, type OpportunitySourceOption } from "../lib/opportunity-sources"
 
-export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel, sourceOptions, loadSources, sourcesLoading, sourcesError }: {
+export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel, sourceOptions, loadSources, sourcesLoading, sourcesError, onSourceOptionsAdded }: {
   organizationId: string; onCreated: (item: WorkspaceFinanceOpportunityInput) => void; onCancel: () => void
   sourceOptions: OpportunitySourceOption[]; loadSources: () => void; sourcesLoading: boolean; sourcesError: string | null
+  onSourceOptionsAdded: (options: OpportunitySourceOption[]) => void
 }) {
   const prefix = useId()
   const [title, setTitle] = useState("")
@@ -22,11 +24,12 @@ export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel, 
   const [sourceQuery, setSourceQuery] = useState("")
   const [deadline, setDeadline] = useState("")
   const [pending, setPending] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submission = useRef<{ key: string; id: string } | null>(null)
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (pending) return
+    if (pending || uploading) return
     let submittedSources = sources
     if (sourceQuery.trim()) {
       const text = sourceQuery.trim()
@@ -47,16 +50,16 @@ export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel, 
     } catch { setError("Unable to add this opportunity. Your entries are still here.") }
     finally { setPending(false) }
   }
-  return <form aria-label="Add opportunity" onSubmit={submit} className="space-y-3" aria-busy={pending}>
-    <div className="flex items-center justify-between gap-2 pl-3"><h3 className="text-sm font-medium">Add opportunity</h3><Button type="button" size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label="Cancel adding opportunity" disabled={pending} onClick={onCancel}><X className="size-4" aria-hidden="true" /></Button></div>
-    <fieldset disabled={pending} className="space-y-3">
+  return <form aria-label="Add opportunity" onSubmit={submit} className="space-y-3" aria-busy={pending || uploading}>
+    <div className="flex items-center justify-between gap-2 pl-3"><h3 className="text-sm font-medium">Add opportunity</h3><Button type="button" size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label="Cancel adding opportunity" disabled={pending || uploading} onClick={onCancel}><X className="size-4" aria-hidden="true" /></Button></div>
+    <fieldset disabled={pending || uploading} className="space-y-3">
       <div className={styles.group}>
         <div className={`${styles.row} ${styles.stacked} !py-2`}><Label className="sr-only" htmlFor={`${prefix}-title`}>Opportunity</Label><Input autoFocus id={`${prefix}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} placeholder="Opportunity" /></div>
-        <div className={`${styles.row} ${styles.stacked} !py-2`}><OpportunitySourcesInput value={sources} onChange={setSources} query={sourceQuery} onQueryChange={setSourceQuery} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} disabled={pending} /></div>
+        <div className={`${styles.row} ${styles.stacked} !py-2`}><OpportunitySourceDropZone organizationId={organizationId} value={sources} onChange={setSources} onOptionsAdded={onSourceOptionsAdded} disabled={pending || uploading} onBusyChange={setUploading}>{openFiles => <OpportunitySourcesInput value={sources} onChange={setSources} query={sourceQuery} onQueryChange={setSourceQuery} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} disabled={pending || uploading} onAttachFiles={openFiles} />}</OpportunitySourceDropZone></div>
         <WorkspaceOpportunityTimeline value={deadline} onChange={setDeadline} disabled={pending} />
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full rounded-full" disabled={!title.trim()}>{pending ? "Adding…" : "Add opportunity"}</Button>
+      <Button type="submit" className="w-full rounded-full" disabled={!title.trim() || uploading}>{pending ? "Adding…" : uploading ? "Attaching…" : "Add opportunity"}</Button>
     </fieldset>
   </form>
 }

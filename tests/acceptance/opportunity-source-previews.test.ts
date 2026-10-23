@@ -48,3 +48,33 @@ describe("opportunity source previews", () => {
     expect(sources.find(item => item.title === "Bylaws")?.source).toEqual({ kind: "document", id: "upload:bylaws" })
   })
 })
+
+import { opportunityDocumentDrop } from "@/features/workspace-finance/lib/opportunity-document-drop"
+import { createLibraryDocumentParticle, type ParticleLibraryDocument } from "@/features/workspace-particles/lib/particle-library-document"
+import { ID, NOW, WORKSPACE } from "./fixtures/particle-fixtures"
+import { opportunitySourceSchema, type OpportunitySourceOption } from "@/features/workspace-finance/lib/opportunity-sources"
+
+describe("opportunity document attachments", () => {
+  const request = (document: ParticleLibraryDocument) => ({ kind: "preset" as const, particle: createLibraryDocumentParticle(WORKSPACE, document, ID(1), NOW) })
+  it("links library uploads by file id and rejects another organization", () => {
+    const item = request({ name: "Brief.pdf", mimeType: "application/pdf", fileId: ID(2) })
+    expect(opportunityDocumentDrop(item, WORKSPACE, [])).toEqual({ kind: "file", id: ID(2) })
+    expect(opportunityDocumentDrop(item, ID(3), [])).toBeNull()
+    expect(opportunitySourceSchema.safeParse({ kind: "file", id: ID(2) }).success).toBe(true)
+    expect(opportunitySourceSchema.safeParse({ kind: "file", id: "../private" }).success).toBe(false)
+  })
+  it("links original core documents, policies, and Drive resources", () => {
+    const base = { name: "Document", mimeType: "application/pdf" }
+    expect(opportunityDocumentDrop(request({ ...base, source: { kind: "upload", documentKind: "bylaws" } }), WORKSPACE, [])).toEqual({ kind: "document", id: "upload:bylaws" })
+    expect(opportunityDocumentDrop(request({ ...base, source: { kind: "policy", id: ID(4) } }), WORKSPACE, [])).toEqual({ kind: "document", id: `policy:${ID(4)}` })
+    expect(opportunityDocumentDrop(request({ ...base, source: { kind: "roadmap", sectionId: "vision" } }), WORKSPACE, [])).toEqual({ kind: "document", id: "roadmap:vision" })
+    expect(opportunityDocumentDrop(request({ ...base, source: { kind: "drive", id: "drive-file", webViewLink: "https://docs.google.com/document/d/drive-file/edit" } }), WORKSPACE, [])).toEqual({ kind: "link", url: "https://docs.google.com/document/d/drive-file/edit" })
+  })
+  it("requires an authorized personal-note reference and preserves existing workspace notes", () => {
+    const item = request({ name: "Module notes", mimeType: "text/plain", source: { kind: "module_note", moduleId: ID(5) } })
+    const option: OpportunitySourceOption = { source: { kind: "document", id: `module:${ID(6)}:${ID(5)}` }, title: "Notes", category: "Document" }
+    expect(opportunityDocumentDrop(item, WORKSPACE, [])).toBeNull()
+    expect(opportunityDocumentDrop(item, WORKSPACE, [option])).toEqual(option.source)
+    expect(opportunityDocumentDrop({ kind: "existing", drag: { kind: "particle", workspaceId: WORKSPACE, id: ID(7) } }, WORKSPACE, [])).toEqual({ kind: "particle", id: ID(7) })
+  })
+})

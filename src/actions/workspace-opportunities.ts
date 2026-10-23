@@ -34,7 +34,7 @@ export async function createWorkspaceOpportunity(input: {
   try {
     const sources = parsed.data.sources ?? []
     if (sources.some(item => item.kind !== "link" && item.kind !== "text")) {
-      const available = new Set((await loadOpportunitySourceOptions(supabase, activeOrg.orgId)).map(item => sourceKey(item.source)))
+      const available = new Set((await loadOpportunitySourceOptions(supabase, activeOrg.orgId, user.id)).map(item => sourceKey(item.source)))
       if (sources.some(item => item.kind !== "link" && item.kind !== "text" && !available.has(sourceKey(item)))) return { error: "A source is no longer available. Remove it or choose another." }
     }
     const admin = createSupabaseAdminClient()

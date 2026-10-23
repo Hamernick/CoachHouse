@@ -27,5 +27,9 @@ export function opportunityProfileSources(value: unknown): OpportunitySourceOpti
     source: { kind: "document", id: `roadmap:${section.id}` }, title: section.title, category: "Document",
     description: section.content.replace(/<[^>]*>/g, " ").slice(0, 500), href: getDocumentEditorHref(section.slug),
   }))
-  return [...people, ...uploads, ...core]
+  const policies: OpportunitySourceOption[] = (profile.policies ?? []).flatMap(raw => {
+    const policy = z.object({ id: z.string(), title: z.string(), summary: z.string().optional(), document: z.object({ path: z.string().min(1) }) }).safeParse(raw)
+    return policy.success ? [{ source: { kind: "document" as const, id: `policy:${policy.data.id}` }, title: policy.data.title, category: "Document", description: policy.data.summary, href: getWorkspaceDrawerPath({ tab: "documents", focus: policy.data.id }) }] : []
+  })
+  return [...people, ...uploads, ...core, ...policies]
 }

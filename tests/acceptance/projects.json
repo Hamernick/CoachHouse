@@ -446,6 +446,7 @@
       "tests/acceptance/onboarding-requirements.test.ts",
       "tests/acceptance/onboarding-steps.test.ts",
       "tests/acceptance/onboarding.test.ts",
+      "tests/acceptance/opportunity-document-drop.test.ts",
       "tests/acceptance/opportunity-source-previews.test.ts",
       "tests/acceptance/org-documents-upload-limit.test.ts",
       "tests/acceptance/org-profile-edit-fields.test.ts",

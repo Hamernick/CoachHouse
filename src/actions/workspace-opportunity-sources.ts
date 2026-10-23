@@ -9,9 +9,9 @@ const previewWindows = new Map<string, { expires: number; count: number }>()
 export async function getWorkspaceOpportunitySources(organizationId: string) {
   try {
     if (!z.uuid().safeParse(organizationId).success) return { error: "Invalid organization." } as const
-    const { activeOrg, supabase } = await resolveAuthenticatedAppContext()
+    const { activeOrg, supabase, user } = await resolveAuthenticatedAppContext()
     if (activeOrg.orgId !== organizationId) return { error: "Your organization changed. Reopen Sources." } as const
-    return { options: await loadOpportunitySourceOptions(supabase, organizationId) }
+    return { options: await loadOpportunitySourceOptions(supabase, organizationId, user.id) }
   } catch { return { error: "Sources couldn’t be loaded. Try typing @ again." } as const }
 }
 

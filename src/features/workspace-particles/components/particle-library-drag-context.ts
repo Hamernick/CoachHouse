@@ -31,6 +31,7 @@ export function particleLibraryDragId(request: ParticleLibraryDragRequest) {
   return request.kind === "preset" ? request.particle.id : request.drag.id
 }
 export type ParticleLibraryDragController = {
+  registerDropTarget?: (element: HTMLElement, handler: (item: ParticleLibraryDragItem) => Promise<boolean> | boolean) => () => void
   workspaceId?: string
   enabled?: boolean
   place?: (request: ParticleLibraryDragRequest) => Promise<boolean>

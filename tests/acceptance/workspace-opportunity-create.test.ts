@@ -77,8 +77,8 @@ describe("manual workspace opportunity creation", () => {
   })
   it("rejects unavailable or foreign internal sources before storage", async () => {
     database()
-    expect(await createWorkspaceOpportunity({ ...input, sources: [{ kind: "person", id }] })).toHaveProperty("error")
-    expect(mocks.sources).toHaveBeenCalledWith({}, org)
+    for (const kind of ["person", "file"] as const) expect(await createWorkspaceOpportunity({ ...input, sources: [{ kind, id }] })).toHaveProperty("error")
+    expect(mocks.sources).toHaveBeenCalledWith({}, org, org)
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("persists authorized references without copying private previews", async () => {

@@ -166,6 +166,31 @@ function dragHarness(
 }
 
 describe("Particle drag persistence and reduced motion", () => {
+  it("attaches to a registered source target without placing a canvas copy", async () => {
+    const { actions, source, item, onPlace } = dragHarness()
+    const target = { contains: () => true, setAttribute: vi.fn(), removeAttribute: vi.fn() } as unknown as HTMLElement
+    const attach = vi.fn(async (_item: unknown) => true)
+    const onPlacement = vi.fn()
+    const unregister = actions.registerDropTarget!(target, attach)
+    actions.begin({ ...item, onPlacement }, source, point)
+    actions.move(point)
+    expect(target.setAttribute).toHaveBeenCalledWith("data-library-drag-over", "true")
+    actions.drop(point)
+    actions.drop(point)
+    await tick()
+    expect(attach).toHaveBeenCalledTimes(1)
+    expect(attach.mock.calls[0]?.[0]).toMatchObject({ request: item.request })
+    expect(onPlace).not.toHaveBeenCalled()
+    expect(onPlacement).not.toHaveBeenCalled()
+    expect(source.style.opacity).toBe("0.8")
+    expect(target.removeAttribute).toHaveBeenCalled()
+    unregister()
+    actions.begin(item, source, point)
+    actions.drop(point)
+    await tick()
+    expect(onPlace).toHaveBeenCalledTimes(1)
+  })
+
   it("hands off to the optimistic canvas card while the save is still unresolved", async () => {
     let confirm: (value: boolean) => void = () => {}
     const pending = new Promise<boolean>((resolve) => {

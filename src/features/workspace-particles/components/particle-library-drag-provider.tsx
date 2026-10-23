@@ -10,6 +10,7 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import { animate, motion, useMotionValue, useReducedMotion } from "motion/react"
+import { useParticleLibraryDropTargets } from "../hooks/use-particle-library-drop-targets"
 import {
   PARTICLE_DRAG_MOTION,
   particleDragAnchor,
@@ -33,13 +34,7 @@ type Drag = {
   width: number
   phase: "dragging" | "placing" | "landing"
 }
-export function ParticleLibraryDragProvider({
-  children,
-  canvas,
-  onPlace,
-  workspaceId,
-  enabled = true,
-}: {
+type ParticleLibraryDragProviderProps = {
   children: ReactNode
   canvas: HTMLElement | null
   workspaceId?: string
@@ -48,9 +43,17 @@ export function ParticleLibraryDragProvider({
     request: ParticleLibraryDragRequest,
     position: ParticleDragPoint
   ) => Promise<boolean>
-}) {
+}
+export function ParticleLibraryDragProvider({
+  children,
+  canvas,
+  onPlace,
+  workspaceId,
+  enabled = true,
+}: ParticleLibraryDragProviderProps) {
   const [drag, setDrag] = useState<Drag | null>(null)
   const [message, setMessage] = useState("")
+  const { registerDropTarget, find: findDropTarget, hover: hoverDropTarget, clearHover } = useParticleLibraryDropTargets()
   const current = useRef<Drag | null>(null)
   const latest = useRef({ canvas, onPlace })
   latest.current = { canvas, onPlace }
@@ -70,11 +73,12 @@ export function ParticleLibraryDragProvider({
   }, [])
   const clear = useCallback(() => {
     stop()
+    clearHover()
     const active = current.current
     if (active) active.source.style.opacity = originalOpacity.current
     current.current = null
     if (mounted.current) setDrag(null)
-  }, [stop])
+  }, [stop, clearHover])
   useEffect(() => {
     mounted.current = true
     return () => {
@@ -184,12 +188,13 @@ export function ParticleLibraryDragProvider({
       if (current.current?.phase !== "dragging") return
       const active = current.current
       if (!active) return
+      hoverDropTarget(document.elementFromPoint(point.x, point.y))
       // Motion batches DOM writes to its animation frame; no second RAF or state update.
       const origin = particleDragOrigin(point, active.anchor)
       x.set(origin.x)
       y.set(origin.y)
     },
-    [x, y]
+    [x, y, hoverDropTarget]
   )
   const drop = useCallback(
     (point: ParticleDragPoint) => {
@@ -197,6 +202,14 @@ export function ParticleLibraryDragProvider({
       const host = latest.current.canvas
       if (!active || active.phase !== "dragging" || !host) return
       const hit = document.elementFromPoint(point.x, point.y)
+      const attachmentTarget = findDropTarget(hit)
+      if (attachmentTarget) {
+        clear()
+        void Promise.resolve().then(() => attachmentTarget[1](active.item)).then(ok => {
+          if (mounted.current) setMessage(ok ? `${active.item.title} attached.` : `${active.item.title} could not be attached.`)
+        }).catch(() => { if (mounted.current) setMessage(`${active.item.title} could not be attached.`) })
+        return
+      }
       const flow = host.querySelector(".react-flow")
       if (!hit || !flow?.contains(hit)) {
         cancel()
@@ -315,7 +328,7 @@ export function ParticleLibraryDragProvider({
       }
       void settle()
     },
-    [cancel, stop, x, y, tween, clear, reduced]
+    [cancel, stop, x, y, tween, clear, reduced, findDropTarget]
   )
   const controller = useMemo(
     () => ({
@@ -325,6 +338,7 @@ export function ParticleLibraryDragProvider({
       cancel,
       workspaceId,
       enabled,
+      registerDropTarget,
       place: async (request: ParticleLibraryDragRequest) => {
         const host = latest.current.canvas
         if (!enabled || !host) return false
@@ -335,7 +349,7 @@ export function ParticleLibraryDragProvider({
         })
       },
     }),
-    [begin, move, drop, cancel, workspaceId, enabled]
+    [begin, move, drop, cancel, workspaceId, enabled, registerDropTarget]
   )
   return (
     <ParticleLibraryDragContext.Provider value={controller}>

@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const opportunitySourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("particle"), id: z.uuid() }),
+  z.strictObject({ kind: z.literal("file"), id: z.uuid() }),
   z.strictObject({ kind: z.literal("person"), id: z.uuid() }),
   z.strictObject({ kind: z.literal("calendar"), id: z.uuid() }),
   z.strictObject({ kind: z.literal("document"), id: z.string().min(1).max(240) }),

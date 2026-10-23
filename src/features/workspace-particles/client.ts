@@ -56,6 +56,9 @@ export {
 
 export { ParticleLibraryDragProvider } from "./components/particle-library-drag-provider"
 export type { ParticleLibraryDragRequest } from "./components/particle-library-drag-context"
+export { useParticleLibraryDropTarget } from "./hooks/use-particle-library-drop-targets"
+export type { ParticleLibraryDragItem } from "./components/particle-library-drag-context"
+export { uploadParticleFile, particleFileError, PARTICLE_FILE_ACCEPT } from "./lib/particle-file"
 
 export { useParticleSession, type ParticleSession } from "./hooks/use-particle-session"
 export { usePersonPlacements } from "./hooks/use-person-placements"
