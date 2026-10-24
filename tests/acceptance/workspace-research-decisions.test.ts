@@ -12,7 +12,7 @@ import { graph, particle, measurements, ID, WORKSPACE, NOW } from "./fixtures/pa
 
 const target={organizationId:WORKSPACE,objectiveId:ID(1),revision:0}
 function draft() {
- return {title:"Choose an approach",summary:"A choice, not a completed action",questions:[],
+ return {title:"Choose an approach",summary:"A choice, not a completed action",questions:[],removeReferences:[],
   items:[
    {key:"choice",kind:"decision" as const,title:"Venue available?",description:"Confirm availability",referenceId:null,evidenceIds:[],dependsOn:[]},
    {key:"yes",kind:"note" as const,title:"Use venue",description:"Confirm the booking",referenceId:null,evidenceIds:[],dependsOn:[]},

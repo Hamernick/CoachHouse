@@ -17,8 +17,12 @@ export function particlePlanningPermissionError(before: ParticleGraph, after: Pa
       return "Only the organization owner can change the accepted plan. Submit a proposal."
     for (const plan of old?.plans ?? []) {
       const updated = value?.plans.find(item => item.id === plan.id)
-      if (updated && updated.researchRunId !== plan.researchRunId)
-        return "An accepted plan's research origin cannot be changed."
+      if (updated && updated.researchRunId !== plan.researchRunId) {
+        const acceptedRevision = Boolean(updated.researchRunId) && old?.proposals.some(proposal => proposal.planId === plan.id && proposal.status === "pending" &&
+          proposal.baseRevision === plan.revision && proposal.researchRunId === updated.researchRunId &&
+          value?.proposals.some(review => review.id === proposal.id && review.status === "accepted"))
+        if (!acceptedRevision) return "An accepted plan's research origin cannot be changed."
+      }
     }
     for (const proposal of old?.proposals ?? []) {
       const updated = value?.proposals.find(item => item.id === proposal.id)

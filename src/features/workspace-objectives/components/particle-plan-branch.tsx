@@ -14,8 +14,8 @@ import { planningOf, type ObjectiveParticle, type PlanningControls, type usePart
 import styles from "./particle-objectives.module.css"
 
 type Actions = ReturnType<typeof useParticlePlans>
-export function ParticlePlanBranch({ objective, plan, proposal, controls, actions, userId }: {
-  objective: ObjectiveParticle; plan: ParticlePlan; proposal?: ParticlePlanProposal; controls: PlanningControls; actions: Actions; userId: string
+export function ParticlePlanBranch({ objective, plan, proposal, controls, actions, userId, onRevise }: {
+  objective: ObjectiveParticle; plan: ParticlePlan; proposal?: ParticlePlanProposal; controls: PlanningControls; actions: Actions; userId: string; onRevise?: () => void
 }) {
   const [rename, setRename] = useState(false)
   const [open, setOpen] = useState(true)
@@ -74,6 +74,9 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const base = planning.plans.find(item => item.id === plan.id)
   const added = proposal ? plan.particleIds.filter(id => !base?.particleIds.includes(id)) : []
   const removed = proposal ? (base?.particleIds ?? []).filter(id => !plan.particleIds.includes(id)) : []
+  const linkKey = (link: NonNullable<ParticlePlan["links"]>[number]) => `${link.source}:${link.target}:${link.outcome ?? ""}`
+  const addedLinks = (plan.links ?? []).filter(link => !(base?.links ?? []).some(value => linkKey(value) === linkKey(link)))
+  const removedLinks = (base?.links ?? []).filter(link => !(plan.links ?? []).some(value => linkKey(value) === linkKey(link)))
   const unchanged = proposal && base && plan.title === base.title && JSON.stringify(plan.particleIds) === JSON.stringify(base.particleIds) && JSON.stringify(plan.links) === JSON.stringify(base.links) && plan.summary === base.summary && JSON.stringify(plan.sources) === JSON.stringify(base.sources)
   const stale = proposal && (planning.plans.find(item => item.id === proposal.planId)?.revision ?? null) !== proposal.baseRevision
   return <Collapsible open={open} onOpenChange={setOpen} className={`${styles.plan} ${proposal ? styles.proposal : ""}`}>
@@ -83,13 +86,16 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${plan.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         {editable && <DropdownMenuItem onSelect={() => setRename(true)}>Rename</DropdownMenuItem>}
         {!proposal && <DropdownMenuItem onSelect={() => void actions.propose(objective, plan)}>Propose changes</DropdownMenuItem>}
+        {!proposal && onRevise && <DropdownMenuItem onSelect={onRevise}>Revise with AI</DropdownMenuItem>}
       </DropdownMenuContent></DropdownMenu>}
     </div>
     <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up motion-reduce:animate-none">
       {plan.summary && <p className="px-2 pb-2 text-xs text-muted-foreground">{plan.summary}</p>}
       {plan.sources?.length ? <ul aria-label="Research sources" className="flex flex-wrap gap-1 px-2 pb-2">{plan.sources.map(source=><li key={source.id}><a href={source.href} target={source.kind === "web" ? "_blank" : undefined} rel="noreferrer" className="inline-block max-w-60 truncate rounded-full bg-muted px-2 py-1 text-xs underline-offset-2 hover:underline" title={`${source.title} · Checked ${new Date(source.checkedAt).toLocaleDateString()}`}>{source.title}</a></li>)}</ul> : null}
       {stale && <p className="px-2 text-xs text-muted-foreground">Plan changed. Reject this proposal and propose changes from the current plan.</p>}
-      {proposal && <p className="px-2 pb-1 text-xs text-muted-foreground">{base ? `${added.length} added · ${removed.length} removed${plan.title !== base.title ? " · Renamed" : ""}` : "New plan"}</p>}
+      {proposal && <p className="px-2 pb-1 text-xs text-muted-foreground">{base ? `${added.length} added · ${removed.length} removed from plan · ${addedLinks.length + removedLinks.length} relationship changes${plan.title !== base.title ? " · Renamed" : ""}` : "New plan"}</p>}
+      {proposal && base && <p className="px-2 pb-1 text-xs text-muted-foreground">Existing content and completion stay unchanged. Removed items remain in the workspace.</p>}
+      {proposal && base && (addedLinks.length > 0 || removedLinks.length > 0) && <ul aria-label="Proposed relationship changes" className="px-2 pb-1 text-xs text-muted-foreground">{[...addedLinks.map(link=>({link,change:"Add"})),...removedLinks.map(link=>({link,change:"Remove"}))].map(({link,change})=><li key={`${change}:${linkKey(link)}`}>{change}: {controls.graph?.particles.find(item=>item.id===link.source)?.title ?? "Item"} → {controls.graph?.particles.find(item=>item.id===link.target)?.title ?? "Item"}{link.outcome ? ` (${controls.graph?.particles.flatMap(item=>item.type === "decision" ? item.data.outcomes : []).find(outcome=>outcome.id===link.outcome)?.label ?? "Decision outcome"})` : ""}</li>)}</ul>}
       {removed.length > 0 && <ul aria-label="Proposed removals" className="px-2 text-sm text-muted-foreground">{removed.map(id => <li key={id} className="line-through">{controls.graph?.particles.find(item => item.id === id)?.title ?? "Removed particle"}</li>)}</ul>}
       <PlanParticleList label={`${plan.title} particles`} particles={plan.particleIds.flatMap(id => controls.graph?.particles.find(particle => particle.id === id) ?? [])} disabled={!editable || controls.pending} onMove={move} onDragOver={event => { if (editable && !controls.pending && event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) event.preventDefault() }} onDrop={event => { event.preventDefault(); if (editable && !controls.pending) drop(event.dataTransfer.getData(PARTICLE_DRAG_MIME)) }}>
         {plan.particleIds.map((id, index) => {

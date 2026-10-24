@@ -18,6 +18,9 @@ export async function loadResearchContext(target: ResearchTarget, requireRevisio
     return objective?.type === "objective" ? [{ graph: parsed.value, objective, canvasId: canvas.id }] : []
   })
   if (matches.length !== 1 || (requireRevision && matches[0].objective.revision !== target.revision)) throw new Error("This objective changed. Reopen research from the current objective.")
+  const selectedPlan = target.plan ? matches[0].objective.data.planning?.plans.find(plan => plan.id === target.plan!.id) : undefined
+  if (requireRevision && target.plan && (!selectedPlan || selectedPlan.revision !== target.plan.revision))
+    throw new Error("This plan changed. Reopen research from the current plan.")
   return { ...actor, ...matches[0], target }
 }
 export type ResearchContext = Awaited<ReturnType<typeof loadResearchContext>>

@@ -8,7 +8,7 @@ import { requireOrganizationDocumentStorage, resolveOrganizationDocumentStorageA
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 
 import { getSelectedGoogleDriveFile } from "@/features/google-drive"
-import { readAiDocumentApplication,commitAiDocumentApplication } from "@/features/workspace-ai"
+import { readAiDocumentApplication,commitAiDocumentApplication } from "@/features/workspace-ai/server"
 import type { AiDocumentApplication } from "@/features/workspace-ai/client"
 import { normalizeCoreDocumentDriveSource } from "@/lib/roadmap/core-document-source"
 

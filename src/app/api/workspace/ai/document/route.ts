@@ -1,4 +1,4 @@
-import { handleWorkspaceAiDocument } from "@/features/workspace-ai"
+import { handleWorkspaceAiDocument } from "@/features/workspace-ai/server"
 
 export const runtime = "nodejs"
 export const maxDuration = 120

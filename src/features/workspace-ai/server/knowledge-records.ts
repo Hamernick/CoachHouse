@@ -3,12 +3,20 @@ import { z } from "zod"
 import { resolveRoadmapSections } from "@/lib/roadmap/sections"
 import { resolveOrganizationDocumentStorageAccess } from "@/lib/organization/document-storage-access"
 import { getDocumentEditorHref } from "@/lib/workspace/editor-navigation"
+import type { Particle } from "@/features/workspace-particles"
 import type { KnowledgeKind, KnowledgeRecord } from "../research-types"
 import type { ResearchContext } from "./research-context"
 
 const plain = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 const text = (value: unknown) => typeof value === "string" ? value : ""
 const record = (id: string, kind: KnowledgeKind, title: string, content: string, revision: string | null, href = "/workspace", contentAvailable = true): KnowledgeRecord => ({ id, kind, title: title.slice(0,240), content: content.slice(0,20000), revision, href, contentAvailable })
+
+export function particleKnowledgeRecord(particle: Particle): KnowledgeRecord {
+  return record(`particle:${particle.id}`, "particle", particle.title,
+    plain([particle.description, particle.type === "activity" && particle.data.widget?.kind === "notes" && particle.data.widget.source.kind === "workspace" ? particle.data.widget.source.content : "",
+      particle.type === "objective" ? JSON.stringify(particle.data.planning?.plans ?? []) : "",
+      particle.type === "decision" ? JSON.stringify(particle.data) : ""].join(" ")), String(particle.revision))
+}
 
 /** Request-local adapters. No global private-data cache; every run uses actor RLS. */
 export function knowledgeLoader(context: ResearchContext) {
@@ -22,8 +30,7 @@ export function knowledgeLoader(context: ResearchContext) {
   return async (kind: KnowledgeKind, query: string): Promise<KnowledgeRecord[]> => {
     // PostgREST filters are values, not interpolated filter expressions.
     const pattern = `%${query.replace(/[%_\\]/g, " ").trim()}%`
-    if (kind === "particle") return graph.particles.map(p => record(`particle:${p.id}`, kind, p.title,
-      plain([p.description, p.type === "activity" && p.data.widget?.kind === "notes" && p.data.widget.source.kind === "workspace" ? p.data.widget.source.content : "", p.type === "objective" ? JSON.stringify(p.data.planning?.plans ?? []) : ""].join(" ")), String(p.revision)))
+    if (kind === "particle") return graph.particles.map(particleKnowledgeRecord)
     if (kind === "organization" || kind === "person" || kind === "document") {
       const result = await profile()
       if (kind === "organization") return [record(`organization:${target.organizationId}`, kind, text(result.profile.name) || "Organization", JSON.stringify(Object.fromEntries(["name", "mission", "vision", "description", "city", "state", "website", "serviceArea", "programs"].flatMap(key => typeof result.profile[key] === "string" ? [[key,result.profile[key]]] : []))), result.revision)]

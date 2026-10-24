@@ -11,7 +11,7 @@ import type { ResearchResult, KnowledgeRecord } from "@/features/workspace-ai/re
 const now="2026-10-24T01:00:00.000Z"
 const target={organizationId:WORKSPACE,objectiveId:ID(1),revision:0}
 const source={id:`particle:${ID(2)}`,kind:"workspace" as const,title:"Existing research",href:"/workspace",revision:"0",checkedAt:now}
-const draft={title:"Proposed plan",summary:"Reuse existing evidence",questions:[],decisions:[],items:[{key:"existing",kind:"reference" as const,title:"Existing research",description:"Use the existing source",referenceId:source.id,evidenceIds:[source.id],dependsOn:[]},{key:"followup",kind:"note" as const,title:"Discuss options",description:"A proposal, not a completed action",referenceId:null,evidenceIds:[],dependsOn:["existing"]}]}
+const draft={title:"Proposed plan",summary:"Reuse existing evidence",questions:[],removeReferences:[],decisions:[],items:[{key:"existing",kind:"reference" as const,title:"Existing research",description:"Use the existing source",referenceId:source.id,evidenceIds:[source.id],dependsOn:[]},{key:"followup",kind:"note" as const,title:"Discuss options",description:"A proposal, not a completed action",referenceId:null,evidenceIds:[],dependsOn:["existing"]}]}
 const result:ResearchResult={...draft,sources:[source],runId:ID(9),target}
 describe("permission-aware research contracts",()=>{
   it("ranks exact titles, limits excerpts and omits irrelevant records",()=>{

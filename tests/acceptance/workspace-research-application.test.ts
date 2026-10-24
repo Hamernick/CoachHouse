@@ -24,7 +24,7 @@ function result(): ResearchResult {
     items: [{ key: "first", kind: "note", title: "Confirm availability", description: "Ask the venue", referenceId: null, evidenceIds: [], dependsOn: [] }] }
 }
 function run(value = result()) {
-  return { id: ID(8), status: "succeeded", target: { ...target, kind: "particle_research", userId: ID(90), canvasId: null }, proposal: JSON.stringify(value), charged_credits: 2, cancel_requested_at: null }
+  return { id: ID(8), status: "succeeded", target: { ...value.target, kind: "particle_research", userId: ID(90), canvasId: null }, proposal: JSON.stringify(value), charged_credits: 2, cancel_requested_at: null }
 }
 beforeEach(() => {
   vi.resetAllMocks()
@@ -141,5 +141,41 @@ describe("research application session", () => {
     expect(await retry).toEqual(saved)
     expect(session.getCurrentGraph()?.revision).toBe(1)
     expect(transport.mock.calls.map(call => call[0])).toEqual([input, input])
+  })
+})
+
+describe("server-owned revision application", () => {
+  function revision() {
+    const objective = particle(1, "objective"), member = particle(2)
+    if (objective.type !== "objective") throw Error()
+    objective.data.planning = { plans: [{ id: ID(50), revision: 2, title: "Accepted", particleIds: [member.id] }], proposals: [] }
+    const current = { ...graph([objective, member]), revision: 2 }
+    const value: ResearchResult = { ...result(), target: { ...target, plan: { id: ID(50), revision: 2 } }, items: [], removeReferences: [`particle:${member.id}`], sources: [{ id: `particle:${member.id}`, title: member.title, href: "/workspace", revision: "0", checkedAt: NOW, kind: "workspace" }] }
+    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: current, objective, canvasId: null })
+    mocks.read.mockResolvedValue(run(value))
+    mocks.load.mockResolvedValue([{ id: `particle:${member.id}`, revision: "0" }])
+    return { current, objective, value }
+  }
+  it("applies saved removals as membership changes and checks the removed source revision", async () => {
+    revision()
+    const prepared = await prepareResearchApplication(input)
+    const operation = prepared.batch!.operations.at(-1)!
+    expect(operation.kind === "put_particle" && operation.particle.type === "objective" && operation.particle.data.planning?.proposals[0]).toMatchObject({ planId: ID(50), baseRevision: 2, particleIds: [] })
+    expect(prepared.batch!.operations).toHaveLength(1)
+    mocks.load.mockResolvedValue([{ id: `particle:${ID(2)}`, revision: "1" }])
+    await expect(prepareResearchApplication(input)).rejects.toThrow(/source changed/)
+  })
+  it("rejects changed plan revisions even when objective revision still matches", async () => {
+    const { objective } = revision()
+    objective.data.planning!.plans[0].revision++
+    await expect(prepareResearchApplication(input)).rejects.toThrow(/plan changed/i)
+  })
+  it.each(["missing", "id", "revision"])("rejects %s plan provenance before application", async kind => {
+    const { value } = revision(), saved = run(value)
+    if (kind === "missing") delete saved.target.plan
+    else saved.target.plan = { id: kind === "id" ? ID(51) : ID(50), revision: kind === "revision" ? 3 : 2 }
+    mocks.read.mockResolvedValue(saved)
+    await expect(prepareResearchApplication(input)).rejects.toThrow(/provenance/)
+    expect(mocks.load).not.toHaveBeenCalled()
   })
 })

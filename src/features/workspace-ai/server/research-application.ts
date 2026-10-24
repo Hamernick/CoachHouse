@@ -19,16 +19,19 @@ export async function prepareResearchApplication(input: unknown) {
     throw new Error("This research is unavailable for this objective.")
   const result = researchResultSchema.parse(JSON.parse(run.proposal))
   if (result.runId !== run.id || result.target.organizationId !== run.target.organizationId ||
-      result.target.objectiveId !== run.target.objectiveId || result.target.revision !== run.target.revision)
+      result.target.objectiveId !== run.target.objectiveId || result.target.revision !== run.target.revision ||
+      result.target.plan?.id !== run.target.plan?.id || result.target.plan?.revision !== run.target.plan?.revision)
     throw new Error("Research provenance does not match its saved run.")
   const operations = researchPlanOperations(context.graph, result, context.user.id, new Date().toISOString(), randomUUID)
   if (!operations.length) return { context, batch: null, runId: run.id }
   const load = knowledgeLoader(context)
   const kinds: Record<string, KnowledgeKind> = { organization: "organization", person: "person", document: "document", file: "document", particle: "particle", calendar: "calendar", opportunity: "opportunity" }
+  const particleSources = result.sources.some(source => source.kind === "workspace" && source.id.startsWith("particle:"))
+    ? new Map((await load("particle", "")).map(source => [source.id, source])) : new Map()
   // Recheck actor-visible evidence and versions before entering the canonical writer.
   for (const source of result.sources.filter(value => value.kind === "workspace")) {
     const kind = kinds[source.id.split(":")[0]]
-    const current = kind ? (await load(kind, source.title)).find(value => value.id === source.id) : undefined
+    const current = kind === "particle" ? particleSources.get(source.id) : kind ? (await load(kind, source.title)).find(value => value.id === source.id) : undefined
     if (!current || current.revision !== source.revision)
       throw new Error("A research source changed or is no longer accessible. Research again before adding this proposal.")
   }

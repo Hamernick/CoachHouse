@@ -22,7 +22,7 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
 }) {
   const [open, setOpen] = useState(true)
   const [rename, setRename] = useState(false)
-  const [research, setResearch] = useState(false)
+  const [research, setResearch] = useState<{ plan?: ParticlePlan; revision: number } | null>(null)
   const [newPlan, setNewPlan] = useState(false)
   const canDrag = controls.canEdit && !controls.pending && !controls.error && !rename
   const reducedMotion = useReducedMotion()
@@ -42,14 +42,14 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
       {rename ? <ObjectiveInlineTitle initial={objective.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...objective, title })} /> : <CollapsibleTrigger asChild><Button ref={sortable.setActivatorNodeRef} {...(canDrag ? sortable.attributes : {})} {...sortable.listeners} variant="ghost" className={`touch-manipulation select-none ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} h-auto min-h-11 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-xl px-2 text-left`}><ParticleStatusMark particle={objective} /><span className="min-w-0 flex-1 break-words">{objective.title}</span><ParticleStatusLabel particle={objective} /></Button></CollapsibleTrigger>}
       {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${objective.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => setRename(true)}>Rename</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => { setResearch(true); setOpen(true) }}>Research & develop</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { setResearch({ revision: objective.revision }); setOpen(true) }}>Research & develop</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => { setNewPlan(true); setOpen(true) }}>New plan</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => controls.select(objective.id)}>Open on canvas</DropdownMenuItem>
         {actions.owner && <><DropdownMenuSeparator />{(["backlog", "in_progress", "blocked", "done"] as const).map((status, index) => <DropdownMenuItem key={status} onSelect={() => void controls.edit({ ...objective, status })}>{["Not started", "In progress", "Blocked", "Complete"][index]}</DropdownMenuItem>)}</>}
       </DropdownMenuContent></DropdownMenu>}
     </div>
     <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up motion-reduce:animate-none">
-      {research && <WorkspaceResearch userId={userId} target={{organizationId:objective.workspaceId,objectiveId:objective.id,revision:objective.revision}} onClose={()=>setResearch(false)} onProposal={async result=>{
+      {research && <WorkspaceResearch stale={objective.revision !== research.revision || Boolean(research.plan && planning.plans.find(plan=>plan.id===research.plan?.id)?.revision !== research.plan.revision)} userId={userId} target={{organizationId:objective.workspaceId,objectiveId:objective.id,revision:research.revision,...(research.plan ? {plan:{id:research.plan.id,revision:research.plan.revision}} : {})}} planContext={research.plan ? {title:research.plan.title,members:research.plan.particleIds.map(id=>({id,title:controls.graph?.particles.find(item=>item.id===id)?.title ?? "Existing item"}))} : undefined} onClose={()=>setResearch(null)} onProposal={async result=>{
         const graph=controls.getCurrentGraph()
         if(!graph)return false
         const previous=new Set(graph.particles.map(item=>item.id))
@@ -59,7 +59,7 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
         return Boolean(saved)
       }} />}
       <div className={styles.branch}>
-        {planning.plans.map(plan => <ParticlePlanBranch key={plan.id} objective={objective} plan={plan} controls={controls} actions={actions} userId={userId} />)}
+        {planning.plans.map(plan => <ParticlePlanBranch key={plan.id} objective={objective} plan={plan} controls={controls} actions={actions} userId={userId} onRevise={()=>{setResearch({plan,revision:objective.revision});setOpen(true)}} />)}
         {planning.proposals.filter(proposal => proposal.status === "pending").map(proposal => <ParticlePlanBranch key={proposal.id} objective={objective} plan={planFromProposal(proposal)} proposal={proposal} controls={controls} actions={actions} userId={userId} />)}
         {newPlan && <ObjectiveInlineTitle initial="" pending={controls.pending} onCancel={() => setNewPlan(false)} onSave={title => store({ id: crypto.randomUUID(), title, revision: 0, particleIds: [] })} />}
         {!planning.plans.length && !planning.proposals.some(item => item.status === "pending") && controls.canEdit && !controls.error && !newPlan && <PlanParticlePicker particles={controls.graph?.particles ?? []} excluded={[objective.id]} pending={controls.pending} onAdd={add} onCreate={preset => add(actions.create(objective, preset), true)} />}

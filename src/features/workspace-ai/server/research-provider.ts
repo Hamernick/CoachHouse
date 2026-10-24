@@ -1,15 +1,18 @@
 import "server-only"
 import OpenAI from "openai"
+import { randomUUID } from "node:crypto"
+import { researchPlanOperations } from "@/features/workspace-particles"
 import { zodTextFormat } from "openai/helpers/zod"
 import type { ResponseInputItem, Tool } from "openai/resources/responses/responses"
 import { z } from "zod"
 import type { AiUsage } from "@/features/ai-credits"
 import { generatedResearchSchema, knowledgeSearchSchema, knowledgeReadSchema, type ResearchRequest, type ResearchSource } from "../research-types"
-import { researchInstructions, researchSkills } from "../lib/research-skills"
+import { researchInstructions } from "../lib/research-skills"
 import { bindResearch } from "../lib/research-contract"
 import type { researchConfig } from "./research-config"
 import type { ResearchContext } from "./research-context"
 import { createKnowledgeTools } from "./knowledge-tools"
+import { researchPrompt } from "./research-prompt"
 
 export async function runResearchProvider(input: {
   request: ResearchRequest; context: ResearchContext; config: ReturnType<typeof researchConfig>;
@@ -20,9 +23,9 @@ export async function runResearchProvider(input: {
   const sources=knowledge.sources
   const tools:Tool[]=[
     {type:"function",name:"search_workspace",description:"Search authorized workspace records. Return short excerpts and IDs. Narrow kinds and query. No external transmission.",parameters:z.toJSONSchema(knowledgeSearchSchema),strict:true},
-    {type:"function",name:"read_workspace",description:"Read up to four records already found by search. Some files have metadata only.",parameters:z.toJSONSchema(knowledgeReadSchema),strict:true},
+    {type:"function",name:"read_workspace",description:"Read up to four records from the selected plan or already found by search. Some files have metadata only.",parameters:z.toJSONSchema(knowledgeReadSchema),strict:true},
   ]
-  const messages:ResponseInputItem[]=[{role:"user",content:JSON.stringify({task:input.request.prompt,objective:{title:input.context.objective.title,description:input.context.objective.description,plans:input.context.objective.data.planning?.plans.slice(0,4).map(plan=>({title:plan.title,particleIds:plan.particleIds.slice(0,8)})),pendingProposals:input.context.objective.data.planning?.proposals.filter(proposal=>proposal.status==="pending").map(proposal=>proposal.title).slice(0,4)},skill:researchSkills[input.request.skill]})}]
+  const messages:ResponseInputItem[]=[{role:"user",content:researchPrompt(input.context,input.request)}]
   const usage:AiUsage={input:0,cachedInput:0,output:0,webSearchCalls:0}
   let responseId:string|null=null, toolCalls=0
   const deadline=AbortSignal.timeout(90000)
@@ -60,7 +63,17 @@ export async function runResearchProvider(input: {
     const calls=terminal.output.filter(item=>item.type==="function_call")
     if(!calls.length) {
       let result=null
-      try {result=bindResearch(terminal.output.flatMap(item=>item.type==="message"?item.content.flatMap(part=>part.type==="output_text"?[part.text]:[]):[]).join(""),[...sources.values()],input.request.target,input.request.id)} catch { /* Invalid output is never billable to the member. */ }
+      try {
+        const text=terminal.output.flatMap(item=>item.type==="message"?item.content.flatMap(part=>part.type==="output_text"?[part.text]:[]):[]).join("")
+        const draft=generatedResearchSchema.parse(JSON.parse(text))
+        const ids=[...draft.removeReferences,...draft.items.flatMap(item=>[...item.evidenceIds,...(item.referenceId?[item.referenceId]:[])])]
+        const decisions=new Map(input.context.graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[]))
+        const candidate=bindResearch(text,knowledge.evidence(ids),input.request.target,input.request.id,decisions)
+        // Validate the full merged plan before a change proposal can be billed as successful.
+        if(candidate.items.length || candidate.removeReferences?.length)
+          researchPlanOperations(input.context.graph,candidate,input.context.user.id,new Date().toISOString(),randomUUID)
+        result=candidate
+      } catch { /* Invalid output is never billable to the member. */ }
       return {canceled:false,usage,responseId,result}
     }
     messages.push(...terminal.output)

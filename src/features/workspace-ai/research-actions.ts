@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { cancelAiRun, readAiAccount } from "@/features/ai-credits"
 import { loadResearchContext } from "./server/research-context"
+import { assertResearchContextFits } from "./server/research-prompt"
 import { researchConfig } from "./server/research-config"
 import { readResearchRun } from "./server/research-run"
 import { createKnowledgeTools } from "./server/knowledge-tools"
@@ -10,6 +11,7 @@ import { knowledgeSearchSchema, type ResearchTarget } from "./research-types"
 export async function quoteWorkspaceResearch(target:ResearchTarget) {
   try {
     const context=await loadResearchContext(target),config=researchConfig()
+    assertResearchContextFits(context,{target,prompt:"",skill:"planning"},config.maxInputBytes)
     const account=await readAiAccount(target.organizationId,context.user.id)
     if(!account.enabled || account.paymentReview) throw new Error("Research is not enabled for this organization.")
     return {maximumCredits:config.maxCredits,tariffVersion:config.tariff.version}

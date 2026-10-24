@@ -2,15 +2,26 @@ import "server-only"
 import { knowledgeSearchSchema, knowledgeReadSchema, type KnowledgeRecord, type ResearchSource } from "../research-types"
 import { searchKnowledge } from "../lib/research-contract"
 import { readKnowledgeFile } from "./knowledge-file"
-import { knowledgeLoader } from "./knowledge-records"
+import { knowledgeLoader, particleKnowledgeRecord } from "./knowledge-records"
 import type { ResearchContext } from "./research-context"
 
 export function createKnowledgeTools(context: ResearchContext) {
   const load = knowledgeLoader(context), discovered = new Map<string,KnowledgeRecord>(), sources = new Map<string,ResearchSource>()
   const cache = new Map<string, unknown>()
   const remember = (item: KnowledgeRecord) => { discovered.set(item.id,item); sources.set(item.id,{ id:item.id,title:item.title,href:item.href,revision:item.revision,checkedAt:new Date().toISOString(),kind:"workspace",...(item.file?{file:item.file}:{}) }) }
+  const selected = context.target.plan ? context.objective.data.planning?.plans.find(plan => plan.id === context.target.plan!.id) : undefined
+  const members = new Set(selected?.particleIds ?? [])
+  for (const particle of context.graph.particles) if (members.has(particle.id)) {
+    const item = particleKnowledgeRecord(particle)
+    discovered.set(item.id, item)
+  }
   return {
     sources,
+    evidence(ids: readonly string[]) {
+      // Baseline metadata was supplied in full; only used members enter the evidence budget.
+      for (const id of ids) { const item = discovered.get(id); if (item) remember(item) }
+      return [...sources.values()]
+    },
     async execute(name: string, args: unknown) {
       const key = JSON.stringify([name,args])
       if(cache.has(key)) return cache.get(key)

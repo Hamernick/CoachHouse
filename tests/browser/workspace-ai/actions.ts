@@ -20,12 +20,16 @@ export const readFixture = () => request("state")
 
 // Next navigation and uploads are intentionally unavailable in this isolated runtime.
 export const usePathname = () => "/workspace"
+export const useRouter = () => ({ push: () => undefined, replace: () => undefined, refresh: () => undefined, back: () => undefined, prefetch: async () => undefined })
+export const useSearchParams = () => new URLSearchParams(location.search)
+export const useParams = () => ({})
 export const validateOrgMediaFile = () => "Uploads are unavailable in this fixture."
 export const uploadOrgMedia = async () => { throw new Error("Uploads are unavailable in this fixture.") }
 
 export const quoteSelectionAssistance = () => request("quote-selection")
 
-// Research is tested separately; prevent server modules entering this browser fixture.
-export const quoteWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })
-export const getWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })
-export const stopWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })
+// Deterministic revision fixture; other routes keep research unavailable.
+export const quoteWorkspaceResearch = async () => new URLSearchParams(location.search).has("revisions") ? {maximumCredits:10,tariffVersion:"fixture-v1"} : { error: "Research is unavailable in this fixture." }
+export const getWorkspaceResearch = async (id: string, target: unknown) => request("revision-read", {id,target})
+export const stopWorkspaceResearch = async () => ({error:"Stopping is unavailable in this deterministic fixture."})
+export const objectivePlanningAccessAction = async () => ({isOrganizationOwner:true})

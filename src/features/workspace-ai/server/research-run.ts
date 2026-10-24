@@ -2,18 +2,21 @@ import "server-only"
 import { createHash } from "node:crypto"
 import { z } from "zod"
 import { reserveAiRun,claimAiRun,settleAiRun,correlateAiResearchResponse,reconcileAiRun,readAiRun } from "@/features/ai-credits"
-import { researchRequestSchema, researchResultSchema, type ResearchTarget } from "../research-types"
+import { researchRequestSchema, researchResultSchema, researchTargetSchema, type ResearchTarget } from "../research-types"
 import { loadResearchContext } from "./research-context"
 import { researchConfig } from "./research-config"
 import { runResearchProvider } from "./research-provider"
 import { readAiRequestBody } from "./request-body"
+import { assertResearchContextFits } from "./research-prompt"
 
-export const researchRunSchema=z.object({id:z.uuid(),status:z.string(),target:z.object({kind:z.literal("particle_research"),organizationId:z.uuid(),objectiveId:z.uuid(),revision:z.number(),canvasId:z.string().nullable().optional(),userId:z.uuid().optional()}),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable()})
+export const researchRunSchema=z.object({id:z.uuid(),status:z.string(),target:researchTargetSchema.extend({kind:z.literal("particle_research"),canvasId:z.string().nullable().optional(),userId:z.uuid().optional()}),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable()})
 export async function readResearchRun(id:string,target:ResearchTarget) {
   z.uuid().parse(id)
   const context=await loadResearchContext(target,false)
   const run=researchRunSchema.parse(await readAiRun(id,target.organizationId,context.user.id))
-  if(run.target.objectiveId!==target.objectiveId || run.target.organizationId!==target.organizationId) throw new Error("Research belongs to another objective.")
+  if(run.id!==id || run.target.objectiveId!==target.objectiveId || run.target.organizationId!==target.organizationId ||
+    run.target.plan?.id!==target.plan?.id ||
+    (run.target.userId!==undefined && run.target.userId!==context.user.id) || (run.target.canvasId!==undefined && run.target.canvasId!==context.canvasId)) throw new Error("Research belongs to another objective.")
   return {id:run.id,status:run.status,credits:run.charged_credits,result:run.status==="succeeded"&&run.proposal?researchResultSchema.parse(JSON.parse(run.proposal)):null}
 }
 export async function handleWorkspaceResearch(request:Request) {
@@ -23,6 +26,7 @@ export async function handleWorkspaceResearch(request:Request) {
   try {
     const input=researchRequestSchema.parse(await readAiRequestBody(request)), context=await loadResearchContext(input.target), config=researchConfig()
     if(input.tariffVersion!==config.tariff.version || input.maximumCredits!==config.maxCredits) throw new Error("Research pricing changed. Review the current maximum.")
+    assertResearchContextFits(context,input,config.maxInputBytes)
     const target={...input.target,kind:"particle_research",userId:context.user.id,canvasId:context.canvasId}
     const hash=createHash("sha256").update(JSON.stringify({target,prompt:input.prompt,skill:input.skill,tariff:config.tariff})).digest("hex")
     const reservation=await reserveAiRun({id:input.id,organizationId:input.target.organizationId,actorId:context.user.id,hash,target,task:"research",prompt:input.prompt,tariff:config.tariff,maxCredits:config.maxCredits,maxCost:config.maxCost})
