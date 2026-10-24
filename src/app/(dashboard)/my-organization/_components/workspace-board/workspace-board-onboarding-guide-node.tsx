@@ -1,11 +1,12 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import Link from "next/link"
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import XIcon from "lucide-react/dist/esm/icons/x"
 import { memo, useRef } from "react"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
 import { Button } from "@/components/ui/button"
 import { resolveWorkspaceBoardHandleClassName } from "@/lib/workspace-canvas/handle-styles"
@@ -39,7 +40,7 @@ export const WorkspaceBoardOnboardingGuideNode = memo(
   function WorkspaceBoardOnboardingGuideNode({
     id,
     data,
-  }: NodeProps<WorkspaceBoardOnboardingNodeData>) {
+  }: NodeProps<ReactFlowNode<WorkspaceBoardOnboardingNodeData>>) {
     const stageKey = data.stage
     const stageDefinition =
       WORKSPACE_ONBOARDING_STAGE_DEFINITIONS[stageKey] ??

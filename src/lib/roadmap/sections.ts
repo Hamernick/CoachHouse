@@ -1,3 +1,6 @@
+import { PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS } from "./public-organization-profile-sections"
+import { resolveLegacyPublicProfileSectionContent } from "./public-profile-publication-state"
+
 import { SECTION_DEFINITIONS, SECTION_MAP } from "./definitions"
 import {
   buildRoadmapSection,
@@ -10,7 +13,7 @@ import {
 } from "./helpers"
 import type { RoadmapSection, StoredSection } from "./types"
 
-export function resolveRoadmapSections(
+function resolveStoredRoadmapSections(
   profile: Record<string, unknown> | null | undefined,
 ): RoadmapSection[] {
   const storedRoadmap = getStoredRoadmap(profile)
@@ -60,6 +63,21 @@ export function resolveRoadmapSections(
   }
 
   return ensureUniqueSlugs(defaultRoadmapSections())
+}
+
+// Legacy profile text was already public. Reflect that in both editors until
+// the organization explicitly changes its publication status; no data rewrite.
+export function resolveRoadmapSections(
+  profile: Record<string, unknown> | null | undefined
+): RoadmapSection[] {
+  return resolveStoredRoadmapSections(profile).map((section) => {
+    if (!section.publicProfileStatusControlled &&
+      PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS.has(section.id) &&
+      resolveLegacyPublicProfileSectionContent(profile ?? {}, section).trim()) {
+      return { ...section, status: "complete" }
+    }
+    return section
+  })
 }
 
 export function cleanupRoadmapTestSections(

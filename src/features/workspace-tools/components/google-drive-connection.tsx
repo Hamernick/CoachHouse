@@ -6,7 +6,6 @@ import type { ReactNode } from "react"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +30,6 @@ import type {
 } from "@/features/google-drive"
 
 const GOOGLE_DRIVE_TOOLS_RETURN_PATH = "/workspace?drawer=tools"
-const GOOGLE_DRIVE_ERROR_OWNER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-tools:google-drive-error",
-  component: "GoogleDriveConnectionError",
-  source: "src/features/workspace-tools/components/google-drive-connection.tsx",
-  slot: "alert",
-  primitiveImport: "@/components/ui/alert",
-})
 
 type ConnectionResponse = {
   ok?: boolean
@@ -356,7 +348,7 @@ export function GoogleDriveConnection({
       {loadError ? (
         <div className="px-4 pb-4">
           <Alert
-            {...GOOGLE_DRIVE_ERROR_OWNER_PROPS}
+
             variant="destructive"
             className="border-destructive/25 bg-destructive/5 rounded-2xl shadow-xs"
           >

@@ -12,17 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  getReactGrabOwnerProps,
-  getReactGrabLinkedSurfaceProps,
-} from "@/components/dev/react-grab-surface"
+
 import { GoogleDriveMark } from "./google-drive-mark"
 
-const owner = {
-  ownerId: "core-document:actions",
-  component: "CoreDocumentMenu",
-  source: "src/components/roadmap/core-document-source/core-document-menu.tsx",
-}
 export function CoreDocumentMenu({
   canEditContent = true,
   title,
@@ -44,7 +36,7 @@ export function CoreDocumentMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          {...getReactGrabOwnerProps({ ...owner, slot: "trigger" })}
+
           type="button"
           variant="ghost"
           size="icon"
@@ -56,10 +48,7 @@ export function CoreDocumentMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        {...getReactGrabLinkedSurfaceProps({
-          ...owner,
-          surfaceKind: "content",
-        })}
+
         align="end"
       >
         <DropdownMenuGroup>

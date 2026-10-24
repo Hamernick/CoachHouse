@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider"
 
 import type { BrandIdentityDraft } from "../../types"
-import { BRAND_FONT_GROUPS, brandFontStack } from "../../lib/brand-fonts"
+import { BRAND_FONT_GROUPS, BRAND_FONT_OPTIONS, brandFontStack } from "../../lib/brand-fonts"
 import { typeScale } from "../../lib/brand-identity"
 import { BrandIdentitySection } from "./brand-identity-section"
 
@@ -53,7 +53,9 @@ const TYPE_EXAMPLES = [
 export function TypographySection({
   draft,
   updateDraft,
+  disabled = false,
 }: {
+  disabled?: boolean
   draft: BrandIdentityDraft
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
 }) {
@@ -70,6 +72,7 @@ export function TypographySection({
         <div>
           <Label htmlFor="heading-font">Heading font</Label>
           <Select
+            disabled={disabled}
             value={draft.headingFont}
             onValueChange={(headingFont) => updateDraft({ headingFont })}
           >
@@ -77,6 +80,9 @@ export function TypographySection({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {!BRAND_FONT_OPTIONS.some(font => font.value === draft.headingFont) ? (
+                <SelectItem value={draft.headingFont}>{draft.headingFont}</SelectItem>
+              ) : null}
               {BRAND_FONT_GROUPS.map((group) => (
                 <SelectGroup key={group.label}>
                   <SelectLabel>{group.label}</SelectLabel>
@@ -97,6 +103,7 @@ export function TypographySection({
         <div>
           <Label htmlFor="body-font">Body font</Label>
           <Select
+            disabled={disabled}
             value={draft.bodyFont}
             onValueChange={(bodyFont) => updateDraft({ bodyFont })}
           >
@@ -104,6 +111,9 @@ export function TypographySection({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {!BRAND_FONT_OPTIONS.some(font => font.value === draft.bodyFont) ? (
+                <SelectItem value={draft.bodyFont}>{draft.bodyFont}</SelectItem>
+              ) : null}
               {BRAND_FONT_GROUPS.map((group) => (
                 <SelectGroup key={group.label}>
                   <SelectLabel>{group.label}</SelectLabel>
@@ -145,6 +155,7 @@ export function TypographySection({
           <div className="grid gap-3 sm:grid-cols-[5rem_1fr_4rem] sm:items-center">
             <Label htmlFor="base-size">Base size</Label>
             <Slider
+              disabled={disabled}
               id="base-size"
               min={14}
               max={20}
@@ -159,6 +170,7 @@ export function TypographySection({
           <div className="grid gap-3 sm:grid-cols-[5rem_1fr_4rem] sm:items-center">
             <Label htmlFor="type-ratio">Ratio</Label>
             <Slider
+              disabled={disabled}
               id="type-ratio"
               min={1.125}
               max={1.5}

@@ -1,3 +1,4 @@
+import { loadOrganizationBrandIdentity } from "@/lib/organization/brand-identity-persistence"
 import { cleanupOrgProfileHtml } from "@/lib/organization/profile-cleanup"
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
@@ -33,6 +34,8 @@ export async function loadMyOrganizationProfileContext({
   const profile = cleanupOrgProfileHtml(orgRow?.profile ?? {}).nextProfile
 
   const initialProfile = buildInitialOrganizationProfile({
+    organizationId: orgId,
+    brandIdentity: await loadOrganizationBrandIdentity(supabase, orgId),
     profile,
     organization: orgRow ?? null,
   })

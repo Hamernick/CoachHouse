@@ -228,7 +228,7 @@ export function StepBasicInfo({
   return (
     <section className="grid gap-4 sm:grid-cols-2">
       <div className="grid gap-1.5 sm:col-span-2">
-        <Label htmlFor="programTitle">Activity name</Label>
+        <Label htmlFor="programTitle">Resource name</Label>
         <Input
           id="programTitle"
           value={form.title}
@@ -248,7 +248,7 @@ export function StepBasicInfo({
           onChange={(event) =>
             update({ oneSentence: event.currentTarget.value })
           }
-          placeholder="Describe the activity in one clear sentence."
+          placeholder="Describe the resource in one clear sentence."
           className="min-h-[96px] text-base"
         />
         {errors.oneSentence ? (
@@ -267,10 +267,10 @@ export function StepBasicInfo({
       </div>
       <div className="sm:col-span-2">
         <ProgramMediaField
-          label="Activity banner (optional)"
+          label="Resource banner (optional)"
           value={form.bannerImageUrl}
           placeholder="Paste a wide banner image URL or upload a file"
-          helpText="Used for the wide activity header on larger cards and previews."
+          helpText="Used for the wide resource header on larger cards and previews."
           previewClassName="h-32"
           isUploading={isUploadingBanner}
           isRemoving={isRemovingBanner}
@@ -280,7 +280,7 @@ export function StepBasicInfo({
               file,
               field: "bannerImageUrl",
               setUploading: setIsUploadingBanner,
-              label: "Activity banner",
+              label: "Resource banner",
             })
           }
           onRemove={() =>
@@ -293,10 +293,10 @@ export function StepBasicInfo({
         />
       </div>
       <ProgramMediaField
-        label="Activity profile image (optional)"
+        label="Resource profile image (optional)"
         value={form.imageUrl}
         placeholder="Paste a profile image URL or upload a file"
-        helpText="Used for compact activity cards and thumbnail surfaces."
+        helpText="Used for compact resource cards and thumbnail surfaces."
         previewClassName="h-32"
         isUploading={isUploadingImage}
         isRemoving={isRemovingImage}
@@ -306,7 +306,7 @@ export function StepBasicInfo({
             file,
             field: "imageUrl",
             setUploading: setIsUploadingImage,
-            label: "Activity profile image",
+            label: "Resource profile image",
           })
         }
         onRemove={() =>

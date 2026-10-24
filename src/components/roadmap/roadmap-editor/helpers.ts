@@ -73,6 +73,7 @@ export function isRoadmapDraftDirty(
 ): boolean {
   const baseline = getRoadmapSectionBaseline(section)
   return (
+    draft.requiresPrivateSave === true ||
     draft.title !== baseline.title ||
     draft.subtitle !== baseline.subtitle ||
     draft.content !== baseline.content ||
@@ -165,18 +166,12 @@ export function loadRoadmapDraftsFromStorage(
     }
     const storageUpdatedAtMs = timestampMs(parsed.updatedAt)
     const latestServerUpdatedAtMs = latestSectionUpdatedAtMs(sections)
-    if (
-      storageUpdatedAtMs !== null &&
-      latestServerUpdatedAtMs !== null &&
-      storageUpdatedAtMs < latestServerUpdatedAtMs
-    ) {
-      return next
-    }
+    const serverIsNewer = storageUpdatedAtMs !== null && latestServerUpdatedAtMs !== null && storageUpdatedAtMs < latestServerUpdatedAtMs
 
     sections.forEach((section) => {
       const draft = parsed.drafts[section.id]
-      if (!draft) return
-      if (hasSavedSectionValue(section) && isBlankStoredDraft(draft)) return
+      if (!draft || (serverIsNewer && !draft.aiRunId && draft.lastUpdated === undefined)) return
+      if (!draft.aiRunId && hasSavedSectionValue(section) && isBlankStoredDraft(draft)) return
       next[section.id] = {
         ...next[section.id],
         title: draft.title ?? next[section.id].title,
@@ -187,6 +182,10 @@ export function loadRoadmapDraftsFromStorage(
             ? next[section.id].budgetRows
             : normalizeRoadmapBudgetRows(draft.budgetRows),
         imageUrl: draft.imageUrl ?? next[section.id].imageUrl,
+        requiresPrivateSave: draft.requiresPrivateSave === true,
+        aiRunId: typeof draft.aiRunId === "string" ? draft.aiRunId : undefined,
+        reviewedAiRevision:typeof draft.reviewedAiRevision === "string" ? draft.reviewedAiRevision : undefined,
+        lastUpdated:typeof draft.lastUpdated === "string" || draft.lastUpdated === null ? draft.lastUpdated : next[section.id].lastUpdated,
       }
     })
   } catch {
@@ -222,6 +221,10 @@ export function persistRoadmapDraftsToStorage({
       content: draft.content,
       budgetRows: draft.budgetRows,
       imageUrl: draft.imageUrl,
+      requiresPrivateSave: draft.requiresPrivateSave === true,
+      aiRunId:draft.aiRunId,
+      reviewedAiRevision:draft.reviewedAiRevision,
+      lastUpdated:draft.lastUpdated,
     }
   })
 

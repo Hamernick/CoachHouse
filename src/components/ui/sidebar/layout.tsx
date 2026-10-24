@@ -6,11 +6,6 @@ import { cva, type VariantProps } from "class-variance-authority"
 import PanelLeftCloseIcon from "lucide-react/dist/esm/icons/panel-left-close"
 import PanelLeftOpenIcon from "lucide-react/dist/esm/icons/panel-left-open"
 
-import {
-  buildReactGrabDebugSurfaceRecord,
-  debugSurfaceClass,
-  type ReactGrabDebugSurfaceAttributes,
-} from "@/lib/react-grab-debug-surface"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,9 +19,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 import { SIDEBAR_WIDTH_MOBILE } from "./constants"
 import { useSidebar } from "./context"
-
-const SIDEBAR_LAYOUT_SOURCE = "src/components/ui/sidebar/layout.tsx"
-const SIDEBAR_IMPORT = "@/components/ui/sidebar"
 
 export {
   SidebarContent,
@@ -247,18 +239,8 @@ export function SidebarMenuButton({
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button"
   const { isMobile, state } = useSidebar()
-  const reactGrabAttributes = props as ReactGrabDebugSurfaceAttributes
+
   const resolvedClassName = cn(sidebarMenuButtonVariants({ variant, size }), className)
-  const debugRecord = buildReactGrabDebugSurfaceRecord({
-    attributes: reactGrabAttributes,
-    fallbackComponent: "SidebarMenuButton",
-    fallbackSource: SIDEBAR_LAYOUT_SOURCE,
-    defaultSlot: "sidebar-menu-button-trigger",
-    defaultSurfaceKind: "trigger",
-    className: resolvedClassName,
-    classAssemblyFile: SIDEBAR_LAYOUT_SOURCE,
-    primitiveImport: SIDEBAR_IMPORT,
-  })
 
   const button = (
     <Comp
@@ -266,7 +248,7 @@ export function SidebarMenuButton({
       data-sidebar="menu-button"
       data-size={size}
       data-active={isActive}
-      className={debugRecord ? debugSurfaceClass(debugRecord) : resolvedClassName}
+      className={resolvedClassName}
       {...props}
     />
   )

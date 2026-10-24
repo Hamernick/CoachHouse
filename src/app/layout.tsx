@@ -1,10 +1,11 @@
+import Script from "next/script"
+import reactGrabPackage from "react-grab/package.json"
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import "@fontsource-variable/inter/wght.css"
 import "@fontsource-variable/jetbrains-mono/wght.css"
 import "./globals.css"
 
-import { ReactGrabLoader } from "@/components/dev/react-grab-loader"
 import { AppProviders } from "@/components/providers/app-providers"
 import { AppTelemetry } from "@/components/providers/app-telemetry"
 import { getPublicSiteOrigin } from "@/lib/public-site-origin"
@@ -62,9 +63,16 @@ export default async function RootLayout({
 
   return (
     <html lang={language} suppressHydrationWarning>
-      <head />
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src={`https://unpkg.com/react-grab@${reactGrabPackage.version}/dist/index.global.js`}
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
       <body className="bg-background min-h-screen font-sans antialiased">
-        <ReactGrabLoader />
         <AppProviders>{children}</AppProviders>
         <AppTelemetry />
       </body>

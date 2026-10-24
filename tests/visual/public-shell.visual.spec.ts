@@ -1,3 +1,4 @@
+import { prepareVisualPage } from "./reviewed-platform-screenshot"
 import { expect, test } from "@playwright/test"
 import { mockPublicResourceDirectory } from "./fixtures/public-resource-directory"
 
@@ -63,7 +64,7 @@ for (const width of [390, 768, 1024, 1440]) {
   test(`public Resources keeps its map and search dock reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
     await mockPublicResourceDirectory(page)
-    await page.goto("/resources?react-grab=0")
+    await page.goto("/resources")
     const map = page.locator("[data-public-map-card]")
     const dock = page.getByRole("navigation", { name: "Resource search and collection" })
     await expect(map).toBeVisible()
@@ -82,7 +83,7 @@ for (const width of [390, 768, 1024, 1440]) {
 
 test("public Resources searches and clears from its floating dock", async ({ page }) => {
   await mockPublicResourceDirectory(page)
-  await page.goto("/resources?react-grab=0")
+  await page.goto("/resources")
   const search = page.getByRole("searchbox", { name: "Find organizations and resources" })
   await expect(search).toBeVisible()
   await search.fill("food")
@@ -92,4 +93,8 @@ test("public Resources searches and clears from its floating dock", async ({ pag
   await expect(search).toHaveValue("")
   await search.press("Escape")
   await expect(page.getByRole("heading", { name: "Find Nearby" })).toBeVisible()
+})
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
 })

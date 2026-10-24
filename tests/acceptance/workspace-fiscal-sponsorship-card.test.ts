@@ -142,48 +142,51 @@ describe("workspace fiscal sponsorship card", () => {
     expect(activityAction).not.toContain("String(criterion.met)")
   })
 
-  it.each(["United States", "Canada"])("accepts a known %s location for application readiness", (country) => {
-    const ready = analyzeFiscalSponsorshipActivityEligibility({
-      activity: {
-        title: "Youth Stewardship Fellows",
-        description: "Youth leaders coordinate neighborhood food access.",
-        addressCity: "Chicago",
-        addressState: "IL",
-        addressCountry: country,
-        focusArea: "Training & Capacity Building",
-        goalCents: 1400000,
-        publicBenefit: "Residents get reliable resource-night support.",
-      },
-      organization: {
-        ein: "12-3456789",
-        mission: "Support neighborhood leaders.",
-        addressStreet: "100 Main St",
-        addressCity: "Chicago",
-        addressState: "IL",
-        addressPostal: "60601",
-        addressCountry: country,
-      },
-      prefill: null,
-    })
-    const missing = analyzeFiscalSponsorshipActivityEligibility({
-      activity: { title: "Untitled" },
-      organization: null,
-      prefill: null,
-    })
+  it.each(["United States", "Canada"])(
+    "accepts a known %s location for application readiness",
+    (country) => {
+      const ready = analyzeFiscalSponsorshipActivityEligibility({
+        activity: {
+          title: "Youth Stewardship Fellows",
+          description: "Youth leaders coordinate neighborhood food access.",
+          addressCity: "Chicago",
+          addressState: "IL",
+          addressCountry: country,
+          focusArea: "Training & Capacity Building",
+          goalCents: 1400000,
+          publicBenefit: "Residents get reliable resource-night support.",
+        },
+        organization: {
+          ein: "12-3456789",
+          mission: "Support neighborhood leaders.",
+          addressStreet: "100 Main St",
+          addressCity: "Chicago",
+          addressState: "IL",
+          addressPostal: "60601",
+          addressCountry: country,
+        },
+        prefill: null,
+      })
+      const missing = analyzeFiscalSponsorshipActivityEligibility({
+        activity: { title: "Untitled" },
+        organization: null,
+        prefill: null,
+      })
 
-    expect(ready.eligible).toBe(true)
-    expect(ready.state).toBe("lit")
-    expect(ready.completedCount).toBe(5)
-    expect(ready.criteria.map((criterion) => criterion.label)).toEqual([
-      "Impact narrative",
-      "Operating location",
-      "Funding use",
-      "Mission fit signal",
-      "Tax ID + mailing",
-    ])
-    expect(missing.eligible).toBe(false)
-    expect(missing.state).toBe("inactive")
-  })
+      expect(ready.eligible).toBe(true)
+      expect(ready.state).toBe("lit")
+      expect(ready.completedCount).toBe(5)
+      expect(ready.criteria.map((criterion) => criterion.label)).toEqual([
+        "Impact narrative",
+        "Operating location",
+        "Funding use",
+        "Mission fit signal",
+        "Tax ID + mailing",
+      ])
+      expect(missing.eligible).toBe(false)
+      expect(missing.state).toBe("inactive")
+    }
+  )
 
   it("opens the handbook-aligned user sidebar flow with saved application data when available", () => {
     const cardSummaryController = readSource(
@@ -223,104 +226,25 @@ describe("workspace fiscal sponsorship card", () => {
 
     expect(cardSummary).toContain("Sheet")
     expect(cardSummary).toContain("FiscalSponsorshipWorkflowDrawer")
-    expect(cardSummary).not.toContain("FiscalSponsorshipStepDrawer")
     expect(cardSummary).toContain("FiscalSponsorshipApplicationDrawer")
+    expect(cardSummary).toContain("FiscalSponsorshipStartDialog")
     expect(cardSummary).toContain("buildFiscalSponsorshipProjectWorkbenchData")
-    expect(cardSummary).toContain("applicationPrefill")
-    expect(cardSummary).toContain("ownerName: selectedProgramPrefill")
     expect(cardSummary).toContain("FISCAL_SPONSORSHIP_HANDBOOK_HREF")
-    expect(cardSummary).toContain("Handbook")
-    expect(cardSummary).toContain("primaryActionLabel")
     expect(cardSummary).toContain("Start application")
-    expect(cardSummary).toContain("Open workflow")
-    expect(cardSummary).toContain(
-      "flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
-    )
-    expect(cardSummary).toContain("rounded-full px-3 py-1 sm:ml-auto")
-    expect(cardSummary).not.toContain(
-      "text-muted-foreground mt-1 line-clamp-2 text-sm leading-snug"
-    )
-    expect(cardSummary).not.toContain(
-      "Intake, required uploads, DocuSeal agreement, and grant requests."
-    )
-    expect(cardSummary).toContain("Activity source")
-    expect(cardSummary).toContain("selectedProgramId")
-    expect(cardSummary).toContain("buildSelectedProgramPrefill")
-    expect(cardSummary).toContain("sourceActivityId: program.id")
-    expect(cardSummary).toContain("sourceActivityTitle")
-    expect(cardSummary).toContain("resolveProgramHeroImageUrl")
-    expect(cardSummary).toContain(
-      "firstText(program.bannerImageUrl, program.imageUrl)"
-    )
-    expect(cardSummary).toContain("ImageIcon")
-    expect(cardSummary).toContain("size-12 shrink-0")
-    expect(cardSummary).toContain("overflow-hidden rounded-xl ring-1")
-    expect(cardSummary).toContain('sizes="48px"')
-    expect(cardSummary).toContain(
-      "FISCAL_SPONSORSHIP_WORKFLOW_ITEM_ROW_CLASSNAME"
-    )
-    expect(cardSummary).toContain(
-      "group -mx-1 flex min-w-0 items-center gap-2 rounded-xl border border-transparent px-3 py-2.5 transition-[background-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-    )
-    expect(cardSummary).toContain(
-      "FISCAL_SPONSORSHIP_WORKFLOW_ITEM_ACTION_PILL_CLASSNAME"
-    )
-    expect(cardSummary).toContain(
-      "text-muted-foreground ml-auto inline-flex h-6 shrink-0 items-center justify-center rounded-md px-2"
-    )
-    expect(cardSummary).toContain(
-      "transition-colors group-hover:bg-accent group-hover:text-foreground group-focus-visible:bg-accent group-focus-visible:text-foreground"
-    )
-    expect(cardSummary).not.toContain(
-      "border-border/70 bg-background/70 text-muted-foreground ml-auto"
-    )
-    expect(cardSummary).not.toContain(
-      "group-hover:border-primary/30 group-hover:bg-background"
-    )
-    expect(cardSummary).toContain("resolveWorkflowItemActionLabel")
-    expect(cardSummary).toContain('if (item.complete) return "View"')
-    expect(cardSummary).toContain(
-      'if (item.actionType === "application") return "Start"'
-    )
-    expect(cardSummary).toContain(
-      'if (item.actionType === "signature") return "Sign"'
-    )
-    expect(cardSummary).toContain('return "Upload"')
-    expect(cardSummary).toContain('return "Edit"')
-    expect(cardSummary).toContain("mt-3 flex flex-col gap-1.5")
-    expect(cardSummary).toContain(
-      "text-foreground text-xs leading-snug font-medium break-words"
-    )
-    expect(cardSummary).not.toContain(
-      "text-foreground truncate text-xs font-medium"
-    )
-    expect(cardSummary).toContain("size-4 shrink-0")
-    expect(cardSummary).toContain(
-      "const actionLabel = resolveWorkflowItemActionLabel(item)"
-    )
-    expect(cardSummary).toContain("{actionLabel}")
-    expect(cardSummary).not.toContain("items-start gap-3 rounded-xl")
-    expect(cardSummary).not.toContain("items-start gap-2 rounded-xl")
-    expect(cardSummary).not.toContain("mt-0.5 size-4 shrink-0")
-    expect(cardSummary).not.toContain("mt-3 flex flex-col gap-2")
-    expect(cardSummary).toContain('item.complete && "bg-muted/55"')
-    expect(cardSummary).toContain(
-      "text-left outline-none hover:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-2"
-    )
-    expect(cardSummary).not.toContain(
-      "text-muted-foreground mt-0.5 line-clamp-2 text-[11px] leading-snug"
-    )
-    expect(cardSummary).not.toContain("hover:bg-muted/60")
-    expect(cardSummary).toContain("No activity selected")
-    expect(cardSummary).not.toContain("No project selected")
-    expect(cardSummary).not.toContain("Open flow")
-    expect(cardSummary).not.toContain("mapped")
-    expect(cardSummary).toContain("onOpenApplication")
+    expect(cardSummary).toContain("WORKSPACE_PARTICLE_CHROME.body")
+    expect(cardSummary).toContain("loadFiscalWorkspaceApplications")
+    expect(cardSummary).toContain("startFiscalWorkspaceApplication")
+    expect(cardSurface).toContain("Sponsorship applications")
+    expect(cardSurface).toContain("application.projectId")
+    expect(cardSurface).toContain("status.label")
+    expect(cardSurface).not.toContain("Activity source")
+    expect(cardSurface).not.toContain("activities ready")
+    expect(cardSurface).not.toContain("<Progress")
+    expect(cardSurface).not.toContain("workflowItems.map")
     expect(cardSummary).toContain("setSheetOpen(false)")
     expect(cardSummary).toContain("setApplicationOpen(true)")
     expect(cardSummary).not.toContain('href="/projects"')
-    expect(cardSummary).not.toContain("Project workbench")
-    expect(cardSummary).not.toContain("ownerName: null")
+    expect(cardSummary).not.toContain("FiscalSponsorshipStepDrawer")
 
     expect(workflowDrawer).toContain(
       "FiscalSponsorshipRequiredDocumentsUploadPanel"

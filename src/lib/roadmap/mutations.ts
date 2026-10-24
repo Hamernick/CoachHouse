@@ -66,7 +66,12 @@ export function updateRoadmapSection(
     const nextSubtitle = effectiveSubtitle || templateSubtitle || ""
 
     const nextContent =
-      typeof updates.content === "string" ? updates.content : current.content
+      typeof updates.content === "string"
+        ? updates.content
+        : current.content || (!current.publicProfileStatusControlled &&
+            PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS.has(current.id)
+          ? resolveLegacyPublicProfileSectionContent(nextProfile, current)
+          : "")
     const nextBudgetRows =
       updates.budgetRows === undefined
         ? (current.budgetRows ?? [])
@@ -93,16 +98,9 @@ export function updateRoadmapSection(
       PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS.has(current.id)
     ) {
       nextPublicProfileStatusControlled = true
-      if (nextStatus === "complete" || nextStatus === "not_started") {
-        nextPublishedContent = undefined
-      } else if (!current.publicProfileStatusControlled) {
-        nextPublishedContent = resolveLegacyPublicProfileSectionContent(
-          nextProfile,
-          current
-        )
-      } else if (current.status === "complete") {
-        nextPublishedContent = current.content
-      }
+      // Draft and Not started unpublish immediately. Keep the editable content,
+      // but never retain a second public copy behind an off switch.
+      nextPublishedContent = undefined
     }
     const nextCtaLabel =
       typeof updates.ctaLabel === "string" ? updates.ctaLabel : current.ctaLabel

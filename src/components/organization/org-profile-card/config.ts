@@ -1,6 +1,3 @@
-import BuildingIcon from "lucide-react/dist/esm/icons/building-2"
-import ClipboardListIcon from "lucide-react/dist/esm/icons/clipboard-list"
-
 import { normalizeOrganizationLocationFields } from "@/lib/location/organization-location"
 import type {
   BrandTypographyConfig,
@@ -12,10 +9,10 @@ import type {
 export const ORG_PROFILE_TABS: Array<{
   value: ProfileTab
   label: string
-  icon: typeof BuildingIcon
 }> = [
-  { value: "company", label: "About", icon: BuildingIcon },
-  { value: "programs", label: "Activity", icon: ClipboardListIcon },
+  { value: "company", label: "Organization" },
+  { value: "programs", label: "Resource" },
+  { value: "brand-kit", label: "Brand kit" },
 ]
 
 function isTrackingValue(value: unknown): value is BrandTypographyTracking {
@@ -87,6 +84,9 @@ function normalizeTypography(source: OrgProfile): BrandTypographyConfig | null {
 }
 
 export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
+  const website =
+    source.publicUrl?.trim() ||
+    (source.locationType === "online" ? source.locationUrl ?? "" : "")
   const normalizedLocation = normalizeOrganizationLocationFields({
     street: source.addressStreet,
     city: source.addressCity,
@@ -116,11 +116,12 @@ export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
     addressPostal: normalizedLocation.postal,
     addressCountry: normalizedLocation.country,
     locationType: source.locationType === "online" ? "online" : "in_person",
-    locationUrl: source.locationUrl ?? "",
+    locationUrl:
+      source.locationType === "online" ? website : source.locationUrl ?? "",
     logoUrl: source.logoUrl ?? "",
     brandMarkUrl: source.brandMarkUrl ?? "",
     headerUrl: source.headerUrl ?? "",
-    publicUrl: source.publicUrl ?? "",
+    publicUrl: website,
     donateUrl: source.donateUrl ?? "",
     twitter: source.twitter ?? "",
     facebook: source.facebook ?? "",
@@ -145,6 +146,9 @@ export function normalizeCompanyProfile(source: OrgProfile): OrgProfile {
     brandVoicePersonality: source.brandVoicePersonality ?? "",
     brandVoiceGuidelines: source.brandVoiceGuidelines ?? "",
     brandVoiceAvoid: source.brandVoiceAvoid ?? "",
+    brandIdentity: source.brandIdentity,
+    expectedOrganizationId: source.expectedOrganizationId,
+    coreDocumentPublication: source.coreDocumentPublication,
     narrativeRevisions: source.narrativeRevisions ?? {
       mission: null,
       vision: null,

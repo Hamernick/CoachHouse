@@ -1,0 +1,31 @@
+begin;
+update public.ai_credit_policy set daily_provider_microdollars=10000000;
+insert into public.organization_workspace_boards(org_id,state) values('00000000-0000-0000-0000-000000000004','{"particleGraph":{"particles":[{"id":"00000000-0000-4000-8000-000000000091","type":"objective","revision":2}]}}');
+insert into public.ai_credit_wallets(org_id,enabled) values('00000000-0000-0000-0000-000000000004',true);
+insert into public.ai_credit_lots(org_id,operation_key,kind,credits) values('00000000-0000-0000-0000-000000000004','research-fixture','adjustment',100);
+set local role authenticated;
+do $$ begin
+  begin perform * from public.workspace_ai_research_calls; raise exception 'Research receipts leaked'; exception when insufficient_privilege then null; end;
+  begin perform public.correlate_workspace_ai_research_response(gen_random_uuid(),'forged'); raise exception 'Research call forged'; exception when insufficient_privilege then null; end;
+  begin perform public.reserve_workspace_ai_research_run(gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),repeat('a',64),'{}','research','{}',1,1); raise exception 'Research reservation forged'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare scope jsonb := '{"kind":"particle_research","userId":"00000000-0000-0000-0000-000000000004","organizationId":"00000000-0000-0000-0000-000000000004","objectiveId":"00000000-0000-4000-8000-000000000091","revision":2,"canvasId":null}'; result jsonb;
+begin
+  begin perform public.reserve_workspace_ai_research_run('30000000-0000-4000-8000-000000000091','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000004',repeat('a',64),scope||'{"revision":1}','research','{}',10,50000); raise exception 'Stale research admitted'; exception when serialization_failure then null; end;
+  result:=public.reserve_workspace_ai_research_run('30000000-0000-4000-8000-000000000091','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000004',repeat('a',64),scope,'research','{}',10,50000);
+  perform public.assert_ai((result->>'created')::boolean and result->'run'->>'task'='plan','research uses existing plan ledger');
+  result:=public.reserve_workspace_ai_research_run('30000000-0000-4000-8000-000000000091','00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000004',repeat('a',64),scope,'research','{}',10,50000);
+  perform public.assert_ai(not (result->>'created')::boolean,'research retry does not reserve twice');
+  perform public.claim_workspace_ai_run('30000000-0000-4000-8000-000000000091','00000000-0000-0000-0000-000000000004');
+  perform public.correlate_workspace_ai_research_response('30000000-0000-4000-8000-000000000091','response1');
+  perform public.correlate_workspace_ai_research_response('30000000-0000-4000-8000-000000000091','response1');
+  perform public.correlate_workspace_ai_research_response('30000000-0000-4000-8000-000000000091','response2');
+  perform public.correlate_workspace_ai_research_response('30000000-0000-4000-8000-000000000091','response3');
+  begin perform public.correlate_workspace_ai_research_response('30000000-0000-4000-8000-000000000091','response4'); raise exception 'Call cap bypassed'; exception when raise_exception then if sqlerrm<>'Research call budget exhausted' then raise; end if; end;
+  perform public.record_workspace_ai_result('30000000-0000-4000-8000-000000000091','succeeded',12000,6,'{"items":[]}','{"webSearchCalls":1}','response3');
+  perform public.settle_recorded_workspace_ai_run('30000000-0000-4000-8000-000000000091');
+  perform public.assert_ai((select count(*)=3 from public.workspace_ai_research_calls where run_id='30000000-0000-4000-8000-000000000091'),'provider identities retained');
+  perform public.assert_ai((select charged_credits=6 and status='succeeded' from public.workspace_ai_runs where id='30000000-0000-4000-8000-000000000091'),'aggregate research receipt settled');
+end $$;
+rollback;

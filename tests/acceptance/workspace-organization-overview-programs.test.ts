@@ -159,14 +159,14 @@ describe("workspace organization overview programs", () => {
     expect(workspaceProgramsCard).toContain('"Untitled activity"')
     expect(workspaceProgramsCard).toContain("Open activity")
     expect(workspaceProgramsCard).toContain(
-      'className="bg-background min-h-[148px] rounded-xl px-4 py-6 shadow-none"'
+      'className="bg-background rounded-[25px] p-3 shadow-none"'
     )
     expect(workspaceProgramsCard).not.toContain('<div className="pb-3">')
     expect(workspaceProgramsCard).not.toContain(
       "bg-background mb-3 min-h-[148px]"
     )
     expect(workspaceProgramsCard).toContain(
-      'className="flex min-h-0 flex-col gap-3 pb-0"'
+      'className="flex min-h-0 flex-col gap-2"'
     )
     expect(workspaceProgramsCard).not.toContain(
       'className="flex min-h-0 flex-col gap-3 pb-0.5"'
@@ -216,14 +216,12 @@ describe("workspace organization overview programs", () => {
     expect(workspaceProgramsRenderer).toContain(
       "footer={renderProgramsFooterAction({"
     )
-    expect(workspaceProgramsRenderer).toContain(
-      'shellInsetClassName="px-3 pt-3 pb-3"'
-    )
+    expect(workspaceProgramsRenderer).toContain("compact")
     expect(workspaceProgramsRenderer).not.toContain(
       'shellInsetClassName="px-3 pt-3 pb-0"'
     )
     expect(workspaceProgramsRenderer).toContain(
-      'footerClassName="justify-center px-3 pt-2 pb-3"'
+      'footerClassName="justify-center"'
     )
     expect(workspaceProgramsRenderer).toContain('aria-label="Add program"')
     expect(workspaceProgramsRenderer).toContain("<PlusIcon aria-hidden />")
@@ -245,7 +243,7 @@ describe("workspace organization overview programs", () => {
     expect(workspaceProgramsCard).toContain(
       "h-full min-h-0 max-w-none border shadow-none"
     )
-    expect(workspaceProgramsCard).not.toContain("contentFill={false}")
+    expect(workspaceProgramsCard).toContain("contentFill={false}")
     expect(workspaceProgramsCard).not.toContain("group/activity-preview")
     expect(workspaceProgramsCard).not.toContain("formatWorkspaceActivityMoney")
     expect(workspaceProgramsCard).not.toContain("top-3 right-3")
@@ -267,14 +265,14 @@ describe("workspace organization overview programs", () => {
     expect(orgProfileNavigation).toContain(
       'data-org-profile-tabs-separator="true"'
     )
-    expect(orgProfileNavigation).toContain(
-      "flex w-full border-b px-6"
-    )
+    expect(orgProfileNavigation).toContain("flex w-full border-b px-6")
     expect(orgProfileNavigation).toContain(
       "h-10 w-fit max-w-full group-data-[orientation=horizontal]/tabs:h-10 items-end justify-start gap-1"
     )
     expect(orgProfileNavigation).toContain("h-10 flex-none items-center")
-    expect(orgProfileNavigation).toContain("group-data-[orientation=horizontal]/tabs:after:bottom-[-1px] after:z-10")
+    expect(orgProfileNavigation).toContain(
+      "group-data-[orientation=horizontal]/tabs:after:bottom-[-1px] after:z-10"
+    )
     expect(orgProfileNavigation).not.toContain(
       "h-10 w-full items-end justify-start gap-3"
     )
@@ -286,7 +284,9 @@ describe("workspace organization overview programs", () => {
     )
     expect(orgProfileNavigation).not.toContain("shadow-sm")
     expect(programsTab).toContain("canEdit: boolean")
-    expect(programsTab).toContain('<ProgramsCarousel heading={heading} introduction={introduction}>')
+    expect(programsTab).toContain(
+      "<ProgramsCarousel heading={heading} introduction={introduction}>"
+    )
     expect(orgProfileShared).toContain('layout = "split"')
     expect(orgProfileShared).toContain('layout?: "split" | "stacked"')
     expect(orgProfileShared).toContain(
@@ -323,7 +323,9 @@ describe("workspace organization overview programs", () => {
       "canEdit ? () => onProgramEdit(program) : undefined"
     )
     expect(programsTab).toContain("Untitled activity")
-    expect(programsTab).toContain('title={editMode ? "No activity yet" : "No activity to display"}')
+    expect(programsTab).toContain(
+      'title={editMode ? "No activity yet" : "No activity to display"}'
+    )
     expect(orgProfileConfig).toContain('{ value: "programs", label: "Activity"')
     expect(publicCardSections).toContain(
       '<h2 className="text-lg font-semibold">Activity</h2>'

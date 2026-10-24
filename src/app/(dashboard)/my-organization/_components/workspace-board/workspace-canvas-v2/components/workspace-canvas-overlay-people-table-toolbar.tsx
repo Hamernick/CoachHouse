@@ -1,5 +1,11 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import {
+  WorkspaceWindowHeaderPortal,
+  useWorkspaceWindowHeader,
+  WORKSPACE_HEADER_BUTTON,
+} from "@/components/workspace/workspace-window-header-slots"
 import type { ReactNode } from "react"
 import Columns3Icon from "lucide-react/dist/esm/icons/columns-3"
 import FolderOpenIcon from "lucide-react/dist/esm/icons/folder-open"
@@ -36,6 +42,7 @@ import type {
 } from "./workspace-canvas-overlay-people-table-sizing"
 
 type WorkspacePeopleDrawerTableToolbarProps = {
+  addControls?: ReactNode
   segmentControls?: ReactNode
   controls?: ReactNode
   peopleCount: number
@@ -64,6 +71,7 @@ type WorkspacePeopleDrawerTableToolbarProps = {
 
 export function WorkspacePeopleDrawerTableToolbar({
   segmentControls,
+  addControls,
   controls,
   peopleCount,
   selectedCount,
@@ -88,6 +96,7 @@ export function WorkspacePeopleDrawerTableToolbar({
   onAddToSegment,
   onRemoveFromSegment,
 }: WorkspacePeopleDrawerTableToolbarProps) {
+  const inWindowHeader = useWorkspaceWindowHeader()
   const hideableColumns = table
     .getAllLeafColumns()
     .filter((column) => column.getCanHide())
@@ -99,167 +108,179 @@ export function WorkspacePeopleDrawerTableToolbar({
     .rows.map((row) => row.original)
 
   return (
-    <div
-      data-setup-guide-target="people"
-      className="border-border/60 flex min-h-11 min-w-0 shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2"
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        {segmentControls}
-        <p
-          className={
-            segmentControls
-              ? "sr-only"
-              : "text-muted-foreground max-w-52 min-w-0 truncate text-xs font-medium"
-          }
+    <>
+      {inWindowHeader && segmentControls ? (
+        <WorkspaceWindowHeaderPortal slot="accessory">
+          <div data-workspace-people-header-segments="true" className="flex w-full min-w-0">
+            {segmentControls}
+          </div>
+        </WorkspaceWindowHeaderPortal>
+      ) : null}
+      <WorkspaceWindowHeaderPortal>
+        <div
+          data-setup-guide-target="people"
+          className={cn(
+            "flex min-w-0 flex-wrap items-center justify-between gap-2",
+            inWindowHeader
+              ? "w-full"
+              : "border-border/60 min-h-11 shrink-0 border-b px-3 py-2"
+          )}
         >
-          {selectedCount > 0
-            ? `${selectedCount} selected`
-            : `${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
-        </p>
-      </div>
+          <div className={cn("flex min-w-0 flex-1 items-center gap-2", inWindowHeader && segmentControls && "sr-only")}>
+            {!inWindowHeader && segmentControls}
+            <p
+              className={
+                segmentControls
+                  ? "sr-only"
+                  : "text-muted-foreground max-w-52 min-w-0 truncate text-xs font-medium"
+              }
+            >
+              {selectedCount > 0
+                ? `${selectedCount} selected`
+                : `${peopleCount} ${peopleCount === 1 ? "person" : "people"}`}
+            </p>
+          </div>
 
-      <div className="ml-auto flex w-auto min-w-0 flex-wrap items-center justify-end gap-1.5">
-        {controls}
-        <div className="w-auto empty:hidden">
-          <WorkspacePeopleDrawerSelectionActions
-            selectedPeople={selectedPeople}
-            allPeople={allPeople}
-            viewerId={viewerId}
-            placedPersonIds={placedPersonIds}
-            customSegment={customSegment}
-            customSegmentMemberIds={customSegmentMemberIds}
-            canEdit={canEdit}
-            onAddPeopleToCanvas={onAddPeopleToCanvas}
-            onAddToSegment={onAddToSegment}
-            onRemoveFromSegment={onRemoveFromSegment}
-            onClearSelection={() => table.resetRowSelection()}
-          />
-        </div>
-        {hideableColumns.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-foreground hover:text-foreground h-8 w-auto shrink-0 gap-1.5 rounded-xl px-2.5"
-              >
-                <Columns3Icon aria-hidden />
-                <span>Columns</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuGroup>
-                {hideableColumns.map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(Boolean(value))
-                    }
+          <div className="ml-auto flex w-auto min-w-0 flex-wrap items-center justify-end gap-1.5">
+            {controls}
+            <div className="w-auto empty:hidden">
+              <WorkspacePeopleDrawerSelectionActions
+                selectedPeople={selectedPeople}
+                allPeople={allPeople}
+                viewerId={viewerId}
+                placedPersonIds={placedPersonIds}
+                customSegment={customSegment}
+                customSegmentMemberIds={customSegmentMemberIds}
+                canEdit={canEdit}
+                onAddPeopleToCanvas={onAddPeopleToCanvas}
+                onAddToSegment={onAddToSegment}
+                onRemoveFromSegment={onRemoveFromSegment}
+                onClearSelection={() => table.resetRowSelection()}
+              />
+            </div>
+            {hideableColumns.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "text-foreground hover:text-foreground h-8 w-auto shrink-0 gap-1.5 rounded-xl px-2.5",
+                      inWindowHeader && WORKSPACE_HEADER_BUTTON
+                    )}
                   >
-                    {WORKSPACE_PEOPLE_DRAWER_COLUMN_LABELS[column.id] ??
-                      column.id}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Row height</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={rowHeight}
-                  onValueChange={(value) =>
-                    onRowHeightChange(value as WorkspacePeopleTableRowHeight)
-                  }
-                >
-                  <DropdownMenuRadioItem value="compact">
-                    Compact
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="standard">
-                    Default
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="spacious">
-                    Spacious
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Cell content</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={contentMode}
-                  onValueChange={(value) =>
-                    onContentModeChange(
-                      value as WorkspacePeopleTableContentMode
-                    )
-                  }
-                >
-                  <DropdownMenuRadioItem value="wrap">
-                    Wrap previews
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="truncate">
-                    Truncate previews
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={onAutoSizeColumns}
-              >
-                <ScanLineIcon aria-hidden />
-                Auto-fit columns
-              </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  Reset one column
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-44">
-                  {resizableColumns.map((column) => (
-                    <DropdownMenuItem
-                      key={column.id}
-                      onSelect={() => column.resetSize()}
+                    <Columns3Icon aria-hidden />
+                    <span>Columns</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuGroup>
+                    {hideableColumns.map((column) => (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(Boolean(value))
+                        }
+                      >
+                        {WORKSPACE_PEOPLE_DRAWER_COLUMN_LABELS[column.id] ??
+                          column.id}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Row height</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={rowHeight}
+                      onValueChange={(value) =>
+                        onRowHeightChange(value as WorkspacePeopleTableRowHeight)
+                      }
                     >
-                      {WORKSPACE_PEOPLE_DRAWER_COLUMN_LABELS[column.id] ??
-                        column.id}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem
-                onSelect={onResetColumnWidths}
-              >
-                <RotateCcwIcon aria-hidden />
-                Reset column widths
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>
-                Saved layout
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onSelect={onSaveLayout}
-              >
-                <SaveIcon aria-hidden />
-                Save current layout
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!hasSavedLayout}
-                onSelect={onApplySavedLayout}
-              >
-                <FolderOpenIcon aria-hidden />
-                Apply saved layout
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                disabled={!hasSavedLayout}
-                onSelect={onClearSavedLayout}
-              >
-                <Trash2Icon aria-hidden />
-                Clear saved layout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
-    </div>
+                      <DropdownMenuRadioItem value="compact">
+                        Compact
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="standard">
+                        Default
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="spacious">
+                        Spacious
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Cell content</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={contentMode}
+                      onValueChange={(value) =>
+                        onContentModeChange(
+                          value as WorkspacePeopleTableContentMode
+                        )
+                      }
+                    >
+                      <DropdownMenuRadioItem value="wrap">
+                        Wrap previews
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="truncate">
+                        Truncate previews
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={onAutoSizeColumns}>
+                    <ScanLineIcon aria-hidden />
+                    Auto-fit columns
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      Reset one column
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-44">
+                      {resizableColumns.map((column) => (
+                        <DropdownMenuItem
+                          key={column.id}
+                          onSelect={() => column.resetSize()}
+                        >
+                          {WORKSPACE_PEOPLE_DRAWER_COLUMN_LABELS[column.id] ??
+                            column.id}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem onSelect={onResetColumnWidths}>
+                    <RotateCcwIcon aria-hidden />
+                    Reset column widths
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Saved layout</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={onSaveLayout}>
+                    <SaveIcon aria-hidden />
+                    Save current layout
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!hasSavedLayout}
+                    onSelect={onApplySavedLayout}
+                  >
+                    <FolderOpenIcon aria-hidden />
+                    Apply saved layout
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    disabled={!hasSavedLayout}
+                    onSelect={onClearSavedLayout}
+                  >
+                    <Trash2Icon aria-hidden />
+                    Clear saved layout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            {addControls}
+          </div>
+        </div>
+      </WorkspaceWindowHeaderPortal>
+    </>
   )
 }

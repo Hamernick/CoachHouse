@@ -1,3 +1,5 @@
+import { selectWorkspaceState, mergeWorkspaceState } from "@/features/workspace-management"
+
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { Database, Json } from "@/lib/supabase"
@@ -11,6 +13,7 @@ export const WORKSPACE_BOARD_WRITE_CONFLICT_ERROR =
   "Workspace changed while you were saving. Refresh and try again."
 
 type WorkspaceBoardSnapshot = {
+  stored?: Json
   exists: boolean
   revision: string | null
   state: WorkspaceBoardState | null
@@ -30,10 +33,12 @@ export async function commitWorkspaceBoardState({
   maxAttempts = MAX_WORKSPACE_BOARD_WRITE_ATTEMPTS,
   readSnapshot,
   writeSnapshot,
+  updateParticleGraph,
 }: {
   buildState: (
     persistedState: WorkspaceBoardState | null
   ) => WorkspaceBoardState
+  updateParticleGraph?: (stored: Json | undefined) => Json | Promise<Json>
   maxAttempts?: number
   readSnapshot: () => Promise<WorkspaceBoardSnapshotReadResult>
   writeSnapshot: (
@@ -45,8 +50,18 @@ export async function commitWorkspaceBoardState({
     const readResult = await readSnapshot()
     if ("error" in readResult) return readResult
 
+    const candidate = buildState(readResult.snapshot.state)
+    // Whole-board clients never own this field. Preserve even unknown versions;
+    // only the dedicated authenticated mutation path may replace it.
+    const { particleGraph: _untrustedParticleGraph, particles: _untrustedLegacyParticles, ...boardFields } = candidate
+    const particleGraph = updateParticleGraph
+      ? await updateParticleGraph(readResult.snapshot.state?.particleGraph)
+      : readResult.snapshot.state?.particleGraph
+    const legacyParticles = readResult.snapshot.state?.particles
     const boardState = {
-      ...buildState(readResult.snapshot.state),
+      ...boardFields,
+      ...(legacyParticles !== undefined ? { particles: legacyParticles } : {}),
+      ...(particleGraph !== undefined ? { particleGraph } : {}),
       updatedAt: new Date().toISOString(),
     }
     const writeResult = await writeSnapshot(readResult.snapshot, boardState)
@@ -72,18 +87,23 @@ function isUniqueViolation(error: { code?: string } | null) {
 export async function persistWorkspaceBoardState({
   buildState,
   orgId,
+  workspaceCanvasId,
   supabase,
   userId,
+  updateParticleGraph,
 }: {
   buildState: (
     persistedState: WorkspaceBoardState | null
   ) => WorkspaceBoardState
+  updateParticleGraph?: (stored: Json | undefined) => Json | Promise<Json>
   orgId: string
+  workspaceCanvasId?: string
   supabase: SupabaseClient<Database>
   userId: string
 }) {
   return commitWorkspaceBoardState({
     buildState,
+    updateParticleGraph,
     readSnapshot: async () => {
       const { data, error } = await supabase
         .from("organization_workspace_boards")
@@ -92,16 +112,23 @@ export async function persistWorkspaceBoardState({
         .maybeSingle<{ state: unknown; updated_at: string }>()
 
       if (error) return { error: "Unable to save workspace layout." }
-      return {
-        snapshot: {
-          exists: Boolean(data),
-          revision: data?.updated_at ?? null,
-          state: data?.state ? readWorkspaceBoardStateValue(data.state) : null,
-        },
+      try {
+        return {
+          snapshot: {
+            stored: data?.state as Json | undefined,
+            exists: Boolean(data),
+            revision: data?.updated_at ?? null,
+            state: data?.state || workspaceCanvasId
+              ? readWorkspaceBoardStateValue(selectWorkspaceState(data?.state, workspaceCanvasId))
+              : null,
+          },
+        }
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "Unable to load workspace." }
       }
     },
     writeSnapshot: async (snapshot, nextState) => {
-      const state = nextState as unknown as Json
+      const state = mergeWorkspaceState(snapshot.stored, nextState, workspaceCanvasId)
 
       if (!snapshot.exists) {
         const insertWithActor = (updatedBy: string | null) =>

@@ -65,6 +65,12 @@ async function copyInviteLink(link: string) {
 }
 
 export function WorkspaceBoardInviteSheet({
+  open: controlledOpen,
+  onOpenChange,
+  restoreFocus,
+  workspaceName,
+  initialAudience = "team",
+  initialAccessLevel = "viewer",
   canInvite,
   members,
   invites,
@@ -77,6 +83,12 @@ export function WorkspaceBoardInviteSheet({
   triggerSize = "sm",
   triggerVariant = "outline",
 }: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  restoreFocus?: () => void
+  workspaceName?: string
+  initialAudience?: WorkspaceInviteAudience
+  initialAccessLevel?: WorkspaceInviteAccessLevel
   canInvite: boolean
   members: WorkspaceMemberOption[]
   invites: WorkspaceCollaborationInvite[]
@@ -89,12 +101,14 @@ export function WorkspaceBoardInviteSheet({
   triggerSize?: "sm" | "icon" | "default"
   triggerVariant?: "outline" | "ghost" | "secondary" | "default"
 }) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const triggerRef = useRef<HTMLButtonElement>(null)
   const [inviteAudience, setInviteAudience] =
-    useState<WorkspaceInviteAudience>("team")
+    useState<WorkspaceInviteAudience>(initialAudience)
   const [inviteAccessLevel, setInviteAccessLevel] =
-    useState<WorkspaceInviteAccessLevel>("viewer")
+    useState<WorkspaceInviteAccessLevel>(initialAccessLevel)
   const [selectedMemberId, setSelectedMemberId] = useState<string>("")
   const [teamInviteEmail, setTeamInviteEmail] = useState("")
   const [durationValue, setDurationValue] = useState<number>(4)
@@ -339,12 +353,12 @@ export function WorkspaceBoardInviteSheet({
   if (!canOpenInviteSheet) {
     return (
       <>
-        {trigger}
+        {controlledOpen === undefined ? trigger : null}
         {requiresUpgrade ? (
           <PaywallOverlay
             open={open}
             onOpenChange={setOpen}
-            restoreFocus={() => triggerRef.current?.focus({ preventScroll: true })}
+            restoreFocus={restoreFocus ?? (() => triggerRef.current?.focus({ preventScroll: true }))}
           />
         ) : null}
       </>
@@ -353,16 +367,16 @@ export function WorkspaceBoardInviteSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md">
+      {controlledOpen === undefined ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
+      <SheetContent side="right" className={cn("w-full sm:max-w-md", workspaceName && "rounded-l-3xl border-border/70 shadow-none [&_button[data-slot=button]]:rounded-full [&_button[data-slot=button]]:shadow-none")} onCloseAutoFocus={restoreFocus ? (event) => { event.preventDefault(); restoreFocus() } : undefined}>
         <SheetHeader>
           <SheetTitle>
-            {manageAccess
+            {workspaceName ? `Invite people to ${workspaceName}` : manageAccess
               ? "Manage workspace access"
               : "Workspace collaboration"}
           </SheetTitle>
           <SheetDescription>
-            {manageAccess
+            {workspaceName ? "Access applies to all workspaces in this organization." : manageAccess
               ? "Invite people, manage team roles, or grant temporary collaboration."
               : "Choose between full team access and timed workspace collaboration."}
           </SheetDescription>

@@ -44,6 +44,7 @@ export function WorkspaceBoardOrganizationCardShell({
   return (
     <WorkspaceBoardNodeCardShell
       cardId="organization-overview"
+      compact
       title={title}
       subtitle={subtitle}
       headerMeta={headerMeta}
@@ -57,6 +58,7 @@ export function WorkspaceBoardOrganizationCardShell({
       onEditorOpen={onEditorOpen}
       menuActions={menuActions}
       contentClassName={contentClassName}
+      contentPanelClassName="overflow-hidden p-0"
       isCanvasFullscreen={isCanvasFullscreen}
       onToggleCanvasFullscreen={onToggleCanvasFullscreen}
     >

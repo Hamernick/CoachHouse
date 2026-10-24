@@ -1,6 +1,6 @@
 "use client"
 
-import type { Connection, Edge } from "reactflow"
+import type { Connection, Edge } from "@xyflow/react"
 
 import {
   ACCELERATOR_STEP_EDGE_ID,

@@ -6,20 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
-import { getReactGrabOwnerProps, getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
+
 import StatusIndicator from "@/components/8starlabs-ui/status-indicator"
 import { cn } from "@/lib/utils"
 import { PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME } from "./sidebar-theme"
-
-function statusSurface(slot: string) {
-  return getReactGrabLinkedSurfaceProps({
-    ownerId: "public-map-directory-status:active",
-    component: "PublicMapDirectoryStatusPill",
-    source: "src/components/public/public-map-index/directory-status-pill.tsx",
-    slot,
-    surfaceKind: "content",
-  })
-}
 
 export function resolvePublicMapDirectoryStatusCount(count: number) {
   const normalizedCount = Number.isFinite(count) ? Math.max(0, count) : 0
@@ -105,14 +95,7 @@ export function PublicMapDirectoryStatusPill({
             <Button
               type="button"
               variant="ghost"
-              {...getReactGrabOwnerProps({
-                ownerId: "public-map-directory-status:active",
-                component: "PublicMapDirectoryStatusPill",
-                source: "src/components/public/public-map-index/directory-status-pill.tsx",
-                slot: "status",
-                tokenSource: "src/components/public/public-map-index/sidebar-theme.ts",
-                notes: "Active public directory listing count, independent of visible map pins.",
-              })}
+
               className={cn(
                 "hover:bg-transparent hover:text-inherit dark:hover:bg-transparent pointer-events-auto relative isolate inline-flex h-8 shrink-0 touch-manipulation items-center gap-2 rounded-full px-0 text-xs font-medium after:absolute after:-z-10 after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2",
                 !unstyled && [PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME, "rounded-full border px-2.5"],
@@ -127,7 +110,7 @@ export function PublicMapDirectoryStatusPill({
               <span aria-hidden="true" className="inline-flex shrink-0">
                 <StatusIndicator state="active" size="sm" className="shrink-0 gap-0" />
               </span>
-              <Badge {...statusSurface("label")} variant="secondary" className="rounded-full">nfp&apos;s</Badge>
+              <Badge  variant="secondary" className="rounded-full">nfp&apos;s</Badge>
               {countLabel === null ? (
                 <span
                   data-public-map-directory-count-loading="true"
@@ -135,7 +118,7 @@ export function PublicMapDirectoryStatusPill({
                   aria-hidden="true"
                 />
               ) : (
-                <span {...statusSurface("count")} className="tabular-nums">{countLabel}</span>
+                <span  className="tabular-nums">{countLabel}</span>
               )}
             </Button>
           </PopoverTrigger>

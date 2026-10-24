@@ -1,7 +1,8 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo, useLayoutEffect, useRef } from "react"
-import { type NodeProps } from "reactflow"
+import { type NodeProps } from "@xyflow/react"
 
 import { useWorkspaceNodeInternalsSync } from "@/lib/workspace-canvas/node-internals-sync"
 
@@ -16,7 +17,7 @@ export const WorkspaceCanvasTutorialNode = memo(
   function WorkspaceCanvasTutorialNode({
     id,
     data,
-  }: NodeProps<WorkspaceCanvasTutorialNodeData>) {
+  }: NodeProps<ReactFlowNode<WorkspaceCanvasTutorialNodeData>>) {
     const nodeRef = useRef<HTMLDivElement>(null)
     const lastReportedShellHeightRef = useRef<number | null>(null)
     const lastReportedHeightRef = useRef<number | null>(null)

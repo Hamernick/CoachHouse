@@ -1,9 +1,9 @@
 "use client"
 
-import "reactflow/dist/style.css"
+import "@xyflow/react/dist/style.css"
 
 import { useMemo } from "react"
-import ReactFlow, { Background, BackgroundVariant, type Node } from "reactflow"
+import { ReactFlow, Background, BackgroundVariant, type Node } from "@xyflow/react"
 
 import { WorkspaceOntologyNode } from "./workspace-ontology-node"
 import { resolveWorkspaceOntologyNodeSize } from "../lib"

@@ -15,7 +15,7 @@ import TargetIcon from "lucide-react/dist/esm/icons/target"
 import ShieldCheckIcon from "lucide-react/dist/esm/icons/shield-check"
 import UsersIcon from "lucide-react/dist/esm/icons/users"
 import type { CSSProperties } from "react"
-import { Handle, Position } from "reactflow"
+import { Handle, Position } from "@xyflow/react"
 
 import { cn } from "@/lib/utils"
 

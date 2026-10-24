@@ -28,7 +28,7 @@ export function WorkspaceMapPreviewButton({
     <div className="relative shrink-0">
       {highlighted ? (
         <WorkspaceTutorialCallout
-          reactGrabOwnerId="workspace-map-preview-button:callout"
+          calloutId="workspace-map-preview-button:callout"
           mode="indicator"
           tapHereLabel="Open the Map"
           indicatorOffsetY={-2}

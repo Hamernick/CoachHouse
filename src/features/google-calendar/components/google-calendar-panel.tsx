@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { calendarErrorMessage } from "../lib"
 import { useGoogleCalendarController } from "../hooks/use-google-calendar-controller"
 import { GoogleCalendarDialog } from "./google-calendar-dialog"
@@ -63,13 +63,7 @@ export function GoogleCalendarPanel({
   }
   return (
     <div
-      {...getReactGrabOwnerProps({
-        ownerId: "google-calendar:connection",
-        component: "GoogleCalendarPanel",
-        source:
-          "src/features/google-calendar/components/google-calendar-panel.tsx",
-        slot: compact ? "calendar" : "tools",
-      })}
+
       className={
         compact
           ? "flex flex-wrap items-center justify-between gap-2 pt-3"

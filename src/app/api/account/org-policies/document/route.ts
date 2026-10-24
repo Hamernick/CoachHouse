@@ -1,4 +1,5 @@
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
+import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
@@ -137,7 +138,10 @@ async function requireOrgEditor(request: NextRequest) {
   return { supabase, orgId, userId: user.id }
 }
 
-async function requireOrgMember(request: NextRequest) {
+async function requireOrgMember(request: NextRequest): Promise<
+  | { error: NextResponse }
+  | { supabase: ReturnType<typeof createSupabaseRouteHandlerClient>; orgId: string }
+> {
   const response = NextResponse.next()
   const supabase = createSupabaseRouteHandlerClient(request, response)
   const {
@@ -146,8 +150,24 @@ async function requireOrgMember(request: NextRequest) {
   } = await supabase.auth.getUser()
   if (error || !user) {
     return {
-      error: NextResponse.json({ error: error?.message ?? "Unauthorized" }, { status: 401 }),
+      error: NextResponse.json(
+        { error: error?.message ?? "Unauthorized" },
+        { status: 401 }
+      ),
     }
+  }
+  const organizationId = request.nextUrl.searchParams.get("organizationId")
+  if (organizationId) {
+    const access = await resolveOrganizationDocumentAccess(
+      supabase,
+      user.id,
+      organizationId
+    )
+    if ("error" in access)
+      return {
+        error: NextResponse.json({ error: access.error }, { status: 403 }),
+      }
+    return { supabase: access.supabase, orgId: access.orgId }
   }
   const { orgId } = await resolveActiveOrganization(supabase, user.id)
   return { supabase, orgId }

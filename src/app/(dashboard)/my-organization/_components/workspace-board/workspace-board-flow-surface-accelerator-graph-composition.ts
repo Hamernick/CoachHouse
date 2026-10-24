@@ -1,6 +1,6 @@
 "use client"
 
-import { Position, type Edge } from "reactflow"
+import { Position, type Edge } from "@xyflow/react"
 
 import type {
   WorkspaceAcceleratorCardRuntimeActions,

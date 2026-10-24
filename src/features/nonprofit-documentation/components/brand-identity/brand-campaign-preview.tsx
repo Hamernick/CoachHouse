@@ -6,7 +6,6 @@ import { foregroundFor, normalizeHex } from "../../lib/brand-identity"
 import { brandFontStack } from "../../lib/brand-fonts"
 import type { BrandIdentityDraft } from "../../types"
 import { BrandAssetExample } from "./brand-asset-example"
-import { brandIdentityOwner } from "./brand-identity-owner"
 
 export function BrandCampaignPreview({
   draft,
@@ -26,12 +25,7 @@ export function BrandCampaignPreview({
       role="group"
       aria-label={portrait ? "Vertical post composition" : "Social composition"}
       className="overflow-hidden rounded-xl border"
-      {...brandIdentityOwner(
-        "brand-campaign-preview",
-        "BrandCampaignPreview",
-        id,
-        "composition"
-      )}
+
     >
       <div
         className={cn(

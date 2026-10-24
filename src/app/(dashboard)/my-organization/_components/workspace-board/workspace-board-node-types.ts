@@ -24,6 +24,7 @@ import type {
 } from "./workspace-board-types"
 
 export type WorkspaceBoardNodeData = {
+  onReturnToLibrary?: () => void
   cardId: WorkspaceCardId
   size: WorkspaceCardSize
   canEdit: boolean

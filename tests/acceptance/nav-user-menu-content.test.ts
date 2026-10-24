@@ -15,10 +15,13 @@ describe("nav user menu content", () => {
   it.each([true, false])("renders the optional upgrade button in the account menu (%s)", (showUpgrade) => {
     vi.stubGlobal("document", { body: {} })
     const markup = renderToStaticMarkup(createElement(NavUserMenuContent, {
+      accountMenuContent: createElement("button", null, "Switch organization marker"),
       open: true, menuRef: { current: null }, menuStyle: null, user: {}, displayName: "Ada", displayEmail: "ada@example.test", avatarFallback: "A",
       isAdmin: false, showOrgAdmin: false, canAccessOrgAdmin: false, signOutPending: false, showUpgrade, planLabel: showUpgrade ? "Free" : "Paid plan",
       onOpenUpgrade: () => undefined, onCloseMenu: () => undefined, onOpenSettings: () => undefined, onSignOut: () => undefined,
     }))
+    expect(markup).toContain("Switch organization marker")
+    expect(markup.indexOf("Switch organization marker")).toBeLessThan(markup.indexOf("Public profile"))
     expect(markup.includes("Upgrade")).toBe(showUpgrade)
     expect(markup.includes("lucide-gift")).toBe(showUpgrade)
     expect(markup).not.toContain("source=sidebar_upgrade")

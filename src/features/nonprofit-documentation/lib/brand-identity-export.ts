@@ -153,9 +153,8 @@ export async function buildBrandPackage(
   ]
 
   for (const asset of assets) {
-    const extension = asset.name.includes(".")
-      ? `.${asset.name.split(".").at(-1)?.toLowerCase()}`
-      : ""
+    const suffix = asset.name.includes(".") ? asset.name.split(".").at(-1)?.toLowerCase() : ""
+    const extension = suffix && /^[a-z0-9]{1,10}$/.test(suffix) ? `.${suffix}` : ""
     entries.push({
       name: `assets/${asset.id}${extension}`,
       data: new Uint8Array(await asset.blob.arrayBuffer()),

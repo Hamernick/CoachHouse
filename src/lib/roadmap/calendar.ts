@@ -21,6 +21,7 @@ export type RoadmapCalendarRecurrence = {
 
 export type RoadmapCalendarEvent = {
   id: string
+  source?: { kind: "workspace_particle"; particleId: string; workspaceCanvasId?: string }
   orgId: string
   title: string
   description: string | null

@@ -3,7 +3,6 @@
 import { useCallback, useRef } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { BudgetTable } from "@/components/training/module-detail/budget-table"
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -81,13 +80,7 @@ export function RoadmapBudgetTableEditor({
   return (
     <div
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pb-4"
-      {...getReactGrabOwnerProps({
-        ownerId: "roadmap-budget:table-editor",
-        component: "RoadmapBudgetTableEditor",
-        source: "src/components/roadmap/roadmap-budget-table-editor.tsx",
-        slot: "table",
-        primitiveImport: "@/components/training/module-detail/budget-table",
-      })}
+
     >
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground max-w-2xl text-sm text-pretty">

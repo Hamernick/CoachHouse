@@ -6,12 +6,11 @@ import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import { cn } from "@/lib/utils"
 
 import { PublicMapMediaImage } from "./media-image"
-import { buildPublicMapOrganizationListCardSurfaceProps } from "./react-grab"
+
 import { PUBLIC_MAP_SIDEBAR_MEDIA_SURFACE_CLASSNAME } from "./sidebar-theme"
 
 type OrganizationListActivityPreviewProps = {
   constrainedLayout: boolean
-  ownerId: string
   previewPrograms: PublicMapOrganization["programs"]
   programPreview: PublicMapOrganization["programPreview"]
 }
@@ -24,7 +23,6 @@ function resolveFeaturedActivityHref(
 
 export function OrganizationListActivityPreview({
   constrainedLayout,
-  ownerId,
   previewPrograms,
   programPreview,
 }: OrganizationListActivityPreviewProps) {
@@ -35,12 +33,7 @@ export function OrganizationListActivityPreview({
       {programPreview?.title ? (
         <div
           className="border-border/60 bg-background/80 relative z-10 min-w-0 rounded-xl border px-2.5 py-2 shadow-none backdrop-blur-sm"
-          {...buildPublicMapOrganizationListCardSurfaceProps({
-            ownerId,
-            slot: "featured-program",
-            notes:
-              "Featured activity summary card shown above the preview grid.",
-          })}
+
         >
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0">
@@ -104,11 +97,7 @@ export function OrganizationListActivityPreview({
             "relative z-10 grid gap-1.5",
             constrainedLayout ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"
           )}
-          {...buildPublicMapOrganizationListCardSurfaceProps({
-            ownerId,
-            slot: "program-preview-grid",
-            notes: "Responsive grid of public program preview media cards.",
-          })}
+
         >
           {previewPrograms.map((program) => (
             <div
@@ -117,12 +106,7 @@ export function OrganizationListActivityPreview({
                 "overflow-hidden rounded-lg",
                 PUBLIC_MAP_SIDEBAR_MEDIA_SURFACE_CLASSNAME
               )}
-              {...buildPublicMapOrganizationListCardSurfaceProps({
-                ownerId,
-                slot: "program-preview-card",
-                notes:
-                  "Individual preview card within the organization program media grid.",
-              })}
+
             >
               <PublicMapMediaImage
                 src={program.imageUrl ?? ""}

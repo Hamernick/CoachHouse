@@ -11,7 +11,6 @@ import LocateFixedIcon from "lucide-react/dist/esm/icons/locate-fixed"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 import RefreshCwIcon from "lucide-react/dist/esm/icons/refresh-cw"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,14 +27,6 @@ import type {
 const MAP_STYLE = "mapbox://styles/mapbox/satellite-v9"
 const FALLBACK_CENTER: [number, number] = [-98.5795, 39.8283]
 const FALLBACK_ZOOM = 1.85
-const WORKSPACE_MAP_ERROR_OWNER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-map-card:error",
-  component: "WorkspaceMapCardError",
-  source:
-    "src/features/workspace-map-card/components/workspace-map-card-panel.tsx",
-  slot: "alert",
-  primitiveImport: "@/components/ui/alert",
-})
 
 type MapboxApi = (typeof import("mapbox-gl"))["default"]
 
@@ -69,7 +60,7 @@ function WorkspaceMapErrorState({
   return (
     <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_24%,rgba(148,163,184,0.18),transparent_28%),linear-gradient(160deg,rgba(15,23,42,0.95)_0%,rgba(30,41,59,0.92)_100%)]">
       <Alert
-        {...WORKSPACE_MAP_ERROR_OWNER_PROPS}
+
         className="mx-4 max-w-sm rounded-2xl border-white/12 bg-slate-950/72 text-white shadow-[0_24px_60px_-30px_rgba(2,6,23,0.9)] backdrop-blur-xl"
       >
         <MapPinIcon aria-hidden="true" />

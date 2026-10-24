@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, type ReactNode } from "react"
 import { motion, useIsPresent, useReducedMotion } from "motion/react"
 import XIcon from "lucide-react/dist/esm/icons/x"
 import { Button } from "@/components/ui/button"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 
 export type DecisionEditorContent = {
   id: string
@@ -71,14 +70,7 @@ export function DecisionCanvasEditor({
         duration: reducedMotion ? 0 : present ? 0.28 : 0.18,
         ease: [0.22, 1, 0.36, 1],
       }}
-      {...getReactGrabLinkedSurfaceProps({
-        ownerId: "documentation:decision-canvas",
-        component: "DecisionCanvasEditor",
-        source:
-          "src/features/documentation-decision-canvas/components/decision-canvas-editor.tsx",
-        slot: "expanded-node",
-        surfaceKind: "content",
-      })}
+
     >
       <header className="flex shrink-0 items-start justify-between gap-3 border-b px-4 py-3 sm:px-5">
         <div className="min-w-0 space-y-1">

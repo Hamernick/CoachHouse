@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu"
-import { getReactGrabOwnerProps, getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
+
 import { pasteEditorClipboard } from "../clipboard"
 
 export function RichTextPasteMenu({ editor }: { editor: Editor }) {
@@ -31,13 +31,7 @@ export function RichTextPasteMenu({ editor }: { editor: Editor }) {
     >
       <DropdownMenuTrigger asChild>
         <Button
-          {...getReactGrabOwnerProps({
-            ownerId: "rich-text:paste",
-            component: "RichTextPasteMenu",
-            source:
-              "src/components/rich-text-editor/components/rich-text-paste-menu.tsx",
-            slot: "trigger",
-          })}
+
           type="button"
           variant="ghost"
           size="sm"
@@ -51,7 +45,7 @@ export function RichTextPasteMenu({ editor }: { editor: Editor }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        {...getReactGrabLinkedSurfaceProps({ ownerId: "rich-text:paste", component: "RichTextPasteMenu", source: "src/components/rich-text-editor/components/rich-text-paste-menu.tsx", surfaceKind: "content" })}
+
         align="start"
         className="max-w-[calc(100vw-2rem)] shadow-none"
         onCloseAutoFocus={(event) => {

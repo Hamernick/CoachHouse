@@ -1,107 +1,94 @@
 "use client"
 
-import { PROVIDER_ICON } from "@/components/shared/provider-icons"
-
-import { FormRow, ProfileField, InputWithIcon } from "@/components/organization/org-profile-card/shared"
+import { Input } from "@/components/ui/input"
+import {
+  FormRow,
+  ProfileField,
+} from "@/components/organization/org-profile-card/shared"
+import { OrganizationSocialBrandIcon } from "../../../social-brand-icon"
+import styles from "../../../profile-edit-fields.module.css"
 import type { CompanyEditProps } from "../types"
 
-export function SocialSection({ company, errors, onInputChange }: CompanyEditProps) {
-  const errorRecord = errors as Record<string, string>
+const SOCIAL_FIELDS = [
+  {
+    name: "twitter",
+    label: "X (Twitter)",
+    placeholder: "https://x.com/yourhandle",
+  },
+  {
+    name: "facebook",
+    label: "Facebook",
+    placeholder: "https://facebook.com/yourpage",
+  },
+  {
+    name: "linkedin",
+    label: "LinkedIn",
+    placeholder: "https://linkedin.com/company/yourorg",
+  },
+  {
+    name: "instagram",
+    label: "Instagram",
+    placeholder: "https://instagram.com/yourorg",
+  },
+  {
+    name: "youtube",
+    label: "YouTube",
+    placeholder: "https://youtube.com/@yourorg",
+  },
+  {
+    name: "tiktok",
+    label: "TikTok",
+    placeholder: "https://tiktok.com/@yourorg",
+  },
+  {
+    name: "github",
+    label: "GitHub",
+    placeholder: "https://github.com/yourorg",
+  },
+] as const
 
+export function SocialSection({
+  company,
+  errors,
+  onInputChange,
+}: CompanyEditProps) {
   return (
-    <FormRow title="Socials" description="Share how supporters can follow you.">
-      <div className="grid gap-4 md:grid-cols-2">
-        <ProfileField label="Twitter / X">
-          <InputWithIcon
-            icon={PROVIDER_ICON.link}
-            inputProps={{
-              name: "twitter",
-              value: company.twitter ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errors.twitter),
-              placeholder: "https://x.com/yourhandle",
-            }}
-          />
-          {errors.twitter ? <p className="text-xs text-destructive">{errors.twitter}</p> : null}
-        </ProfileField>
-        <ProfileField label="Facebook">
-          <InputWithIcon
-            icon={PROVIDER_ICON.facebook}
-            inputProps={{
-              name: "facebook",
-              value: company.facebook ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errors.facebook),
-              placeholder: "https://facebook.com/yourpage",
-            }}
-          />
-          {errors.facebook ? <p className="text-xs text-destructive">{errors.facebook}</p> : null}
-        </ProfileField>
-        <ProfileField label="LinkedIn">
-          <InputWithIcon
-            icon={PROVIDER_ICON.linkedin}
-            inputProps={{
-              name: "linkedin",
-              value: company.linkedin ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errors.linkedin),
-              placeholder: "https://linkedin.com/company/yourorg",
-            }}
-          />
-          {errors.linkedin ? <p className="text-xs text-destructive">{errors.linkedin}</p> : null}
-        </ProfileField>
-        <ProfileField label="Instagram">
-          <InputWithIcon
-            icon={PROVIDER_ICON.instagram}
-            inputProps={{
-              name: "instagram",
-              value: company.instagram ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errorRecord.instagram),
-              placeholder: "https://instagram.com/yourorg",
-            }}
-          />
-          {errorRecord.instagram ? <p className="text-xs text-destructive">{errorRecord.instagram}</p> : null}
-        </ProfileField>
-        <ProfileField label="YouTube">
-          <InputWithIcon
-            icon={PROVIDER_ICON.youtube}
-            inputProps={{
-              name: "youtube",
-              value: company.youtube ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errorRecord.youtube),
-              placeholder: "https://youtube.com/@yourorg",
-            }}
-          />
-          {errorRecord.youtube ? <p className="text-xs text-destructive">{errorRecord.youtube}</p> : null}
-        </ProfileField>
-        <ProfileField label="TikTok">
-          <InputWithIcon
-            icon={PROVIDER_ICON.link}
-            inputProps={{
-              name: "tiktok",
-              value: company.tiktok ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errorRecord.tiktok),
-              placeholder: "https://tiktok.com/@yourorg",
-            }}
-          />
-          {errorRecord.tiktok ? <p className="text-xs text-destructive">{errorRecord.tiktok}</p> : null}
-        </ProfileField>
-        <ProfileField label="GitHub">
-          <InputWithIcon
-            icon={PROVIDER_ICON.github}
-            inputProps={{
-              name: "github",
-              value: company.github ?? "",
-              onChange: onInputChange,
-              "aria-invalid": Boolean(errorRecord.github),
-              placeholder: "https://github.com/yourorg",
-            }}
-          />
-          {errorRecord.github ? <p className="text-xs text-destructive">{errorRecord.github}</p> : null}
-        </ProfileField>
+    <FormRow
+      title="Socials"
+      description="Share how supporters can follow you."
+      layout="stacked"
+      inset={false}
+    >
+      <div className={styles.group}>
+        {SOCIAL_FIELDS.map(({ name, label, placeholder }) => (
+          <ProfileField
+            key={name}
+            focusKey={name}
+            label={
+              <>
+                <span className={styles.icon}>
+                  <OrganizationSocialBrandIcon platform={name} />
+                </span>
+                {label}
+              </>
+            }
+          >
+            <Input
+              id={name}
+              name={name}
+              value={company[name] ?? ""}
+              onChange={onInputChange}
+              aria-invalid={Boolean(errors[name])}
+              aria-describedby={errors[name] ? `${name}-error` : undefined}
+              placeholder={placeholder}
+            />
+            {errors[name] ? (
+              <p id={`${name}-error`} className="text-destructive text-xs">
+                {errors[name]}
+              </p>
+            ) : null}
+          </ProfileField>
+        ))}
       </div>
     </FormRow>
   )

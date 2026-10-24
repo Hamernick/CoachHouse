@@ -166,6 +166,8 @@ export function reconcileWorkspaceBoardSaveResult({
   return {
     ...current,
     nodes: persisted.nodes,
+    particleGraph: persisted.particleGraph,
+    particles: persisted.particles,
     forwardCompatibility: persisted.forwardCompatibility,
     updatedAt: persisted.updatedAt,
   }

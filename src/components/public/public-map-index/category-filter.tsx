@@ -7,7 +7,7 @@ import {
 import type { CSSProperties } from "react"
 
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { ScrollFadeEffect } from "@/components/scroll-fade-effect"
 import {
   PUBLIC_MAP_RESOURCE_CATEGORY_COLORS,
@@ -24,9 +24,6 @@ import {
 } from "./resource-category-icon"
 import { PUBLIC_MAP_FILTER_PILL_CLASSNAME } from "./sidebar-theme"
 
-const PUBLIC_MAP_CATEGORY_FILTER_SOURCE =
-  "src/components/public/public-map-index/category-filter.tsx"
-
 export type PublicMapGroupFilterKey = PublicMapResourceCategoryKey | "all"
 
 export type PublicMapGroupFilterCounts = Record<PublicMapGroupFilterKey, number>
@@ -35,7 +32,6 @@ export const PUBLIC_MAP_GROUP_FILTER_ORDER = [
   "all",
   ...PUBLIC_MAP_RESOURCE_CATEGORY_ORDER,
 ] satisfies PublicMapGroupFilterKey[]
-
 
 function resolvePublicMapGroupFilterLabel(key: PublicMapGroupFilterKey) {
   return key === "all" ? "All" : PUBLIC_MAP_RESOURCE_CATEGORY_LABELS[key]
@@ -103,15 +99,7 @@ export function PublicMapCategoryFilter({
 
         return (
           <Button
-            {...getReactGrabOwnerProps({
-              ownerId: `public-map-category-filter:${key}`,
-              component: "PublicMapCategoryFilterButton",
-              source: PUBLIC_MAP_CATEGORY_FILTER_SOURCE,
-              slot: "button",
-              variant: selected ? "selected" : "default",
-              primitiveImport: "@/components/ui/button",
-              notes: "Filters the public Find directory by resource category.",
-            })}
+
             key={key}
             type="button"
             variant="ghost"

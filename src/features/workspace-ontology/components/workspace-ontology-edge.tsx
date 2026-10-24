@@ -1,5 +1,6 @@
 "use client"
 
+import type { Edge as ReactFlowEdge } from "@xyflow/react"
 import type { CSSProperties } from "react"
 import {
   BaseEdge,
@@ -7,7 +8,7 @@ import {
   getSmoothStepPath,
   Position,
   type EdgeProps,
-} from "reactflow"
+} from "@xyflow/react"
 
 import { cn } from "@/lib/utils"
 
@@ -45,7 +46,7 @@ export function WorkspaceOntologyEdge({
   markerEnd,
   style,
   data,
-}: EdgeProps<WorkspaceOntologyEdgeData>) {
+}: EdgeProps<ReactFlowEdge<WorkspaceOntologyEdgeData>>) {
   const transitionPhase = data?.transitionPhase ?? "stable"
   const transitionDelayMs = data?.transitionDelayMs ?? 0
   const transitionStyle = {

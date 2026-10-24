@@ -2112,8 +2112,8 @@ describe("finance release planning graph", () => {
       "utf8"
     )
 
-    expect(canvasSource).toContain('from "reactflow"')
-    expect(canvasSource).toContain('import "reactflow/dist/style.css"')
+    expect(canvasSource).toContain('from "@xyflow/react"')
+    expect(canvasSource).toContain('import "@xyflow/react/dist/style.css"')
     expect(toolbarSource).toContain("activeView.navigation")
     expect(toolbarSource).toContain("FINANCE_PLANNING_VIEWS")
     expect(canvasSource).toContain("useFinancePlanningViewUrlState")

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 import { resolvePrototypeLabSidebarOpenFolderIds } from "@/lib/prototype-lab-sidebar-tree"
 import { cn } from "@/lib/utils"
-import { buildMainNavItemReactGrabProps, type NavMainItem } from "./item"
+import { type NavMainItem } from "./item"
 import { PrototypeTreeEntry } from "./prototype-tree-entry"
 import { PrototypeTreeFolder } from "./prototype-tree-folder"
 import { CollapsedNavGroupMenu } from "./collapsed-group-menu"
@@ -39,8 +39,6 @@ function NavMainTreeSubItem({
   const defaultOpenFolderIds =
     resolvePrototypeLabSidebarOpenFolderIds(activeEntryId)
   const [treeOpen, setTreeOpen] = useState(isActive)
-  const reactGrabProps = buildMainNavItemReactGrabProps(item)
-
   useEffect(() => {
     if (isActive) setTreeOpen(true)
   }, [isActive])
@@ -53,7 +51,7 @@ function NavMainTreeSubItem({
             asChild
             isActive={isActive}
             className="h-8 pr-8"
-            {...reactGrabProps.ownerProps}
+
           >
             <Link
               href={item.href ?? "#"}
@@ -130,8 +128,6 @@ export function NavMainGroupItem({
     item.href === activeHref ||
     (item.children?.some((child) => child.href === activeHref) ?? false)
   const [open, setOpen] = useState(isActive)
-  const reactGrabProps = buildMainNavItemReactGrabProps(item)
-
   useEffect(() => {
     if (isActive) setOpen(true)
   }, [isActive])
@@ -154,9 +150,9 @@ export function NavMainGroupItem({
           <SidebarMenuButton
             asChild
             isActive={isActive}
-            tooltip={reactGrabProps.tooltipProps}
+            tooltip={{ children: item.title }}
             className="justify-start gap-2 pr-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 md:pr-8"
-            {...reactGrabProps.ownerProps}
+
           >
             <Link
               href={item.href ?? "#"}
@@ -207,14 +203,13 @@ export function NavMainGroupItem({
                 )
               }
 
-              const childReactGrabProps = buildMainNavItemReactGrabProps(child)
               return (
                 <SidebarMenuSubItem key={child.title}>
                   <SidebarMenuSubButton
                     asChild
                     isActive={childIsActive}
                     className="h-8"
-                    {...childReactGrabProps.ownerProps}
+
                   >
                     <Link
                       href={child.href ?? "#"}

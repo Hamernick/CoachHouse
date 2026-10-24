@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import ChevronsUpDownIcon from "lucide-react/dist/esm/icons/chevrons-up-down"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Drawer,
   DrawerContent,
@@ -24,9 +25,10 @@ import type {
 } from "../../types"
 
 import { OrganizationList } from "./member-workspace-org-switcher-list"
-import { formatRole, getOrganizationInitials } from "./member-workspace-org-switcher-utils"
+import { getOrganizationInitials } from "./member-workspace-org-switcher-utils"
 
 type MemberWorkspaceOrgSwitcherProps = {
+  presentation?: "sidebar" | "account-menu"
   canSearchSupport?: boolean
   activeOrganization: MemberWorkspaceAccessibleOrganization
   organizations: MemberWorkspaceAccessibleOrganization[]
@@ -36,28 +38,24 @@ type MemberWorkspaceOrgSwitcherProps = {
 }
 
 export function MemberWorkspaceOrgSwitcher({
+  presentation = "sidebar",
   canSearchSupport = false,
   activeOrganization,
   organizations,
   setActiveOrganizationAction = switchOrganization,
 }: MemberWorkspaceOrgSwitcherProps) {
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [switchingTo, setSwitchingTo] = useState<string | null>(null)
   const switching = useRef(false)
   const isPending = switchingTo !== null
 
-  const subtitle = useMemo(() => {
-    if (organizations.length <= 1) {
-      return formatRole(activeOrganization.role)
-    }
-    return `${organizations.length} organizations`
-  }, [activeOrganization.role, organizations.length])
-
   const handleSelect = async (organization: MemberWorkspaceAccessibleOrganization) => {
     if (switching.current) return
     if (organization.orgId === activeOrganization.orgId) {
       setOpen(false)
+      if (presentation === "account-menu") triggerRef.current?.focus()
       return
     }
 
@@ -89,15 +87,16 @@ export function MemberWorkspaceOrgSwitcher({
 
   const trigger = (
     <Button
+      ref={triggerRef}
       type="button"
       variant="ghost"
       aria-label="Switch organization"
-      className="h-auto w-full justify-between gap-2 rounded-xl border border-transparent bg-transparent px-1 py-2 text-left md:py-px has-[>svg]:px-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:has-[>svg]:px-0"
+      className="h-auto w-full justify-between gap-2 rounded-xl border border-transparent bg-transparent px-1 py-2 text-left md:py-1 has-[>svg]:px-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:has-[>svg]:px-0"
       disabled={isPending}
       aria-busy={isPending}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:min-w-auto group-data-[collapsible=icon]:gap-0">
-        <Avatar className="size-9 rounded-xl border border-transparent md:self-start group-data-[collapsible=icon]:size-10">
+        <Avatar className="size-9 rounded-xl border border-transparent group-data-[collapsible=icon]:size-10">
           <AvatarImage alt={activeOrganization.name} src={activeOrganization.imageUrl ?? undefined} />
           <AvatarFallback className="rounded-xl text-[11px] font-semibold">
             {getOrganizationInitials(activeOrganization.name)}
@@ -107,12 +106,27 @@ export function MemberWorkspaceOrgSwitcher({
           <p className="line-clamp-2 whitespace-normal break-words text-sm font-semibold text-foreground" title={activeOrganization.name}>
             {activeOrganization.name}
           </p>
-          <p className="truncate text-xs text-muted-foreground" role="status">{switchingTo ? `Switching to ${switchingTo}…` : subtitle}</p>
         </div>
       </div>
       {isPending ? <LoaderCircleIcon className="size-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden /> : <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden />}
     </Button>
   )
+
+  if (presentation === "account-menu") {
+    return (
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>{trigger}</CollapsibleTrigger>
+        <CollapsibleContent className="pt-2" inert={isPending || undefined}>
+          <OrganizationList
+            canSearchSupport={canSearchSupport}
+            activeOrganization={activeOrganization}
+            organizations={organizations}
+            onSelect={handleSelect}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+    )
+  }
 
   if (isMobile) {
     return (

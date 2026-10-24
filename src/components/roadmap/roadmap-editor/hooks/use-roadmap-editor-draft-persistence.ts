@@ -8,6 +8,7 @@ import { createDraftMap, isRoadmapDraftDirty, persistRoadmapDraftsToStorage } fr
 import { type RoadmapDraft } from "../types"
 
 type UseRoadmapEditorDraftPersistenceArgs = {
+  hydrated:boolean
   sections: RoadmapSection[]
   drafts: Record<string, RoadmapDraft>
   setDrafts: Dispatch<SetStateAction<Record<string, RoadmapDraft>>>
@@ -17,6 +18,7 @@ type UseRoadmapEditorDraftPersistenceArgs = {
 }
 
 export function useRoadmapEditorDraftPersistence({
+  hydrated,
   sections,
   drafts,
   setDrafts,
@@ -48,6 +50,7 @@ export function useRoadmapEditorDraftPersistence({
   }, [onRegisterDiscard, discardDrafts])
 
   useEffect(() => {
+    if (!hydrated) return
     persistRoadmapDraftsToStorage({ storageKey, sections, drafts })
-  }, [drafts, sections, storageKey])
+  }, [drafts, sections, storageKey, hydrated])
 }

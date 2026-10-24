@@ -8,6 +8,7 @@ type FormationSummaryProps = {
   formationStatus: FormationStatusOption
   className?: string
   contained?: boolean
+  ein?: string | null
   radioId?: string
 }
 
@@ -16,6 +17,7 @@ export function OrganizationFormationStatusSummary({
   className,
   contained = true,
   radioId,
+  ein,
 }: FormationSummaryProps) {
   return (
     <div
@@ -41,6 +43,9 @@ export function OrganizationFormationStatusSummary({
         <span className="block text-sm font-medium text-foreground">
           {formationStatus.label}
         </span>
+        {formationStatus.value === "approved" && ein?.trim() ? (
+          <span className="mt-0.5 block text-xs text-foreground">EIN: {ein.trim()}</span>
+        ) : null}
         <span className="mt-0.5 block text-xs text-muted-foreground">
           {formationStatus.description}
         </span>

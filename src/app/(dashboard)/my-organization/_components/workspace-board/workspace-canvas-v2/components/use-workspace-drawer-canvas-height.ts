@@ -31,7 +31,7 @@ export function useWorkspaceDrawerCanvasSize(container: HTMLElement | null) {
     return () => observer.disconnect()
   }, [container])
 
-  return measurement?.container === container
+  return measurement?.container === container && measurement
     ? measurement
-    : null
+    : { width: 0, height: 0 }
 }

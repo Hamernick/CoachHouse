@@ -10,10 +10,6 @@ import Link from "next/link"
 import { withEditorReturnTo } from "@/lib/workspace/editor-navigation"
 
 import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
-import {
   buildRoadmapTocItems,
   isFrameworkSection,
   resolveRoadmapSectionStatus,
@@ -37,13 +33,6 @@ import {
   getWorkspaceDrawerPath,
   WORKSPACE_ROADMAP_PATH,
 } from "@/lib/workspace/routes"
-
-const owner = {
-  ownerId: "roadmap-navigator-dropdown",
-  component: "RoadmapNavigatorDropdown",
-  source: "src/components/roadmap/roadmap-navigator-dropdown.tsx",
-  tokenSource: "src/components/workspace/workspace-tutorial-theme.ts",
-}
 
 export function RoadmapNavigatorDropdown({
   sections,
@@ -82,10 +71,7 @@ export function RoadmapNavigatorDropdown({
           aria-label={`Strategic roadmap, ${completionLabel}`}
           title={completionLabel}
           className={cn(WORKSPACE_COMPACT_PICKER_CLASSNAME, "gap-1.5 text-sm")}
-          {...getReactGrabOwnerProps({
-            ...owner, slot: "trigger",
-            primitiveImport: "@/components/ui/dropdown-menu",
-          })}
+
         >
           <CircularProgress
             value={(completedCount / items.length) * 100}
@@ -102,10 +88,7 @@ export function RoadmapNavigatorDropdown({
         align="start"
         className="max-h-[min(30rem,70dvh,var(--radix-dropdown-menu-content-available-height))] w-80 max-w-[calc(100vw-2rem)] overscroll-contain rounded-xl border-border/70 bg-popover p-1.5 text-popover-foreground"
         aria-label="Strategic roadmap"
-        {...getReactGrabLinkedSurfaceProps({
-          ...owner, slot: "content", surfaceKind: "content",
-          primitiveImport: "@/components/ui/dropdown-menu",
-        })}
+
       >
         <DropdownMenuLabel className="flex items-center justify-between gap-3 px-3 py-2.5">
           <span className="text-sm font-semibold">Your roadmap</span>

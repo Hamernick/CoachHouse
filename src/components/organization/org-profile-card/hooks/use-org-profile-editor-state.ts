@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import {
   useCallback,
   useEffect,
@@ -11,6 +13,8 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 import { getOrganizationLaunchReturnHref } from "@/lib/workspace/editor-navigation"
+
+import { prepareOrgProfileSave, acknowledgeOrgProfileSave } from "./use-org-profile-editor-state-helpers"
 
 import { updateOrganizationProfileAction } from "@/actions/organization"
 import { toast } from "@/lib/toast"
@@ -43,6 +47,7 @@ export function useOrgProfileEditorState({
   initialTab,
   initialProgramId,
   initialEditMode,
+  navigationRequestId,
 }: UseOrgProfileEditorStateArgs): UseOrgProfileEditorStateResult {
   const normalizedInitial = useMemo(
     () => normalizeCompanyProfile(initial),
@@ -52,11 +57,15 @@ export function useOrgProfileEditorState({
   const [editMode, setEditMode] = useState(canEdit && initialEditMode === true)
   const [isPending, startTransition] = useTransition()
   const [dirty, setDirty] = useState(false)
-  const { tab, setTab, handleTabChange } = useOrgProfileTabState({ initialTab })
+  const { tab, setTab, handleTabChange } = useOrgProfileTabState({
+    initialTab,
+    navigationRequestId,
+  })
   const [company, setCompany] = useState<OrgProfile>(() => normalizedInitial)
   const [savedCompany, setSavedCompany] = useState<OrgProfile>(
     () => normalizedInitial
   )
+  const latestCompanyRef = useRef(company)
   const initialProfileRef = useRef(normalizedInitial)
   useEffect(() => {
     if (initialProfileRef.current === normalizedInitial || dirty) return
@@ -70,28 +79,51 @@ export function useOrgProfileEditorState({
   const [errors, setErrors] = useState<OrgProfileErrors>({})
   const [editProgram, setEditProgram] = useState<OrgProgram | null>(null)
   const [editOpen, setEditOpen] = useState(false)
-  const hasUnsavedChanges = dirty
+  useWorkspaceEditorStatus({
+    label: "Organization",
+    dirty,
+    pending: dirty && isPending,
+  })
   const [slugStatus, setSlugStatus] = useState<SlugStatus>(null)
-  const didOpenProgramRef = useRef(false)
+  const openedProgramRequestRef = useRef<string | null>(null)
 
   useEffect(() => {
     savedCompanyRef.current = savedCompany
-  }, [savedCompany])
+    latestCompanyRef.current = company
+  }, [savedCompany, company])
 
   useEffect(() => {
-    if (!initialProgramId || !canEdit || didOpenProgramRef.current) return
+    if (canEdit && initialEditMode) setEditMode(true)
+  }, [canEdit, initialEditMode, navigationRequestId])
+
+  useEffect(() => {
+    const requestKey = `${navigationRequestId ?? "initial"}:${initialProgramId}`
+    if (
+      !initialProgramId ||
+      !canEdit ||
+      openedProgramRequestRef.current === requestKey ||
+      editOpen
+    )
+      return
     const match =
       programs.find((program) => program.id === initialProgramId) ?? null
     if (!match) return
     setTab("programs")
     setEditProgram(match)
     setEditOpen(true)
-    didOpenProgramRef.current = true
-  }, [canEdit, initialProgramId, programs, setTab])
+    openedProgramRequestRef.current = requestKey
+  }, [
+    canEdit,
+    initialProgramId,
+    programs,
+    setTab,
+    navigationRequestId,
+    editOpen,
+  ])
 
   useOrgProfileUnsavedGuards({
     canEdit,
-    hasUnsavedChanges,
+    hasUnsavedChanges: dirty,
     pendingNavigationRef,
     setConfirmDiscardOpen,
   })
@@ -179,10 +211,9 @@ export function useOrgProfileEditorState({
         const nextErrors = mapOrgProfileFieldErrors(
           parsed.error.flatten().fieldErrors
         )
-        const firstError = Object.values(nextErrors).find(
-          (value) => value.trim().length > 0
-        )
+        const firstError = Object.values(nextErrors).find((value) => value.trim())
         setErrors(nextErrors)
+        if (nextErrors.ein) setTab("company")
         toast.error(firstError ?? "Please fix the highlighted fields.")
         return
       }
@@ -274,7 +305,8 @@ export function useOrgProfileEditorState({
 
       let res: Awaited<ReturnType<typeof updateOrganizationProfileAction>>
       try {
-        res = await updateOrganizationProfileAction(company)
+        const payload = prepareOrgProfileSave(company, savedCompanyRef.current)
+        res = await updateOrganizationProfileAction(payload)
       } catch {
         toast.error(
           "The organization could not save. Your edits are still available; retry or refresh."
@@ -286,21 +318,26 @@ export function useOrgProfileEditorState({
         return
       }
       toast.success("Organization updated")
-      const narrativeRevisions = (
-        res as { narrativeRevisions?: OrgProfile["narrativeRevisions"] }
-      ).narrativeRevisions
-      const savedCompany = narrativeRevisions
-        ? { ...company, narrativeRevisions }
-        : company
+      const savedCompany = acknowledgeOrgProfileSave(company, "ok" in res ? res : {})
+      setSavedCompany(savedCompany)
+      if (
+        JSON.stringify(latestCompanyRef.current) !== JSON.stringify(company)
+      ) {
+        if ("brandIdentity" in res && res.brandIdentity) {
+          const revision = res.brandIdentity.revision
+          setCompany(prev => prev.brandIdentity ? { ...prev, brandIdentity: { ...prev.brandIdentity, revision } } : prev)
+        }
+        toast.info("Earlier changes saved. Your newer edits are still unsaved.")
+        return
+      }
       setEditMode(false)
       setDirty(false)
       setCompany(savedCompany)
-      setSavedCompany(savedCompany)
       const returnHref = getOrganizationLaunchReturnHref(window.location.search)
       if (returnHref) router.push(returnHref)
       else router.refresh()
     })
-  }, [company, canEdit, slugStatus, router])
+  }, [company, canEdit, slugStatus, router, setTab])
 
   const handleProgramEdit = useCallback(
     (program: OrgProgram) => {
@@ -312,13 +349,13 @@ export function useOrgProfileEditorState({
   )
 
   const handleCancelEdit = useCallback(() => {
-    if (!hasUnsavedChanges) {
+    if (!dirty) {
       discardChanges()
       return
     }
     pendingNavigationRef.current = null
     setConfirmDiscardOpen(true)
-  }, [hasUnsavedChanges, discardChanges])
+  }, [dirty, discardChanges])
 
   const handleDiscardConfirm = useCallback(() => {
     const nextUrl = pendingNavigationRef.current
@@ -336,7 +373,7 @@ export function useOrgProfileEditorState({
 
   const currentTabLabel = useMemo(
     () =>
-      ORG_PROFILE_TABS.find((entry) => entry.value === tab)?.label ?? "About",
+      ORG_PROFILE_TABS.find((entry) => entry.value === tab)?.label ?? "Organization",
     [tab]
   )
   const publicLink =

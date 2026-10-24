@@ -1,16 +1,17 @@
 "use client"
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import ReactFlow, {
+import {
+  ReactFlow,
   applyNodeChanges,
   Background,
   Controls,
   MiniMap,
   type NodeChange,
-  type NodeDragHandler,
+  type OnNodeDrag,
   type ReactFlowInstance,
-} from "reactflow"
-import "reactflow/dist/style.css"
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 
 import { toast } from "@/lib/toast"
 import { useTheme } from "next-themes"
@@ -90,7 +91,7 @@ function OrgChartCanvasComponent({ people, extras = false, canEdit = true }: Pro
     setNodes((previousNodes) => applyNodeChanges(changes, previousNodes) as FlowNode[])
   }, [])
 
-  const onNodeDragStop = useCallback<NodeDragHandler>(
+  const onNodeDragStop = useCallback<OnNodeDrag>(
     (_, node) => {
       if (!canEdit) return
       setNodes((previousNodes) => {

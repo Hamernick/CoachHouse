@@ -1,3 +1,4 @@
+import { BRAND_FONT_OPTIONS as DOCUMENTATION_FONTS } from "@/features/nonprofit-documentation"
 import type {
   BrandTypographyConfig,
   BrandTypographySlot,
@@ -407,7 +408,7 @@ export function sanitizeBrandTypographyConfig(
   const fallback = createBrandTypographyFromPreset(presetId)
   if (!config || typeof config !== "object") return fallback
 
-  const headingsFamily = BRAND_FONT_OPTION_MAP.has(config.headings?.family ?? "")
+  const headingsFamily = (BRAND_FONT_OPTION_MAP.has(config.headings?.family ?? "") || DOCUMENTATION_FONTS.some(font => font.value === config.headings?.family))
     ? config.headings.family
     : fallback.headings.family
   const headingsWeight = BRAND_FONT_WEIGHT_OPTIONS.includes(
@@ -418,7 +419,7 @@ export function sanitizeBrandTypographyConfig(
   const headingsTracking = isTrackingValue(config.headings?.tracking)
     ? config.headings.tracking
     : fallback.headings.tracking
-  const bodyFamily = BRAND_FONT_OPTION_MAP.has(config.body?.family ?? "")
+  const bodyFamily = (BRAND_FONT_OPTION_MAP.has(config.body?.family ?? "") || DOCUMENTATION_FONTS.some(font => font.value === config.body?.family))
     ? config.body.family
     : fallback.body.family
   const bodyWeight = BRAND_FONT_WEIGHT_OPTIONS.includes(

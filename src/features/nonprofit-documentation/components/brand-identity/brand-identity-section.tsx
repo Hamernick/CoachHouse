@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 import density from "../documentation-density.module.css"
-import { brandIdentityOwner } from "./brand-identity-owner"
 
 export function BrandIdentitySection({
   id,
@@ -23,12 +22,7 @@ export function BrandIdentitySection({
     <section
       id={id}
       className={cn("scroll-mt-24 pb-14 font-sans sm:pb-20", className)}
-      {...brandIdentityOwner(
-        "brand-identity-section",
-        "BrandIdentitySection",
-        id,
-        "section"
-      )}
+
       aria-labelledby={`${id}-title`}
     >
       <div className={density.heading}>

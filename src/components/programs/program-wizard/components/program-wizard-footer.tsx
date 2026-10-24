@@ -63,7 +63,7 @@ export function ProgramWizardFooter({
                 ? "Creating..."
                 : "Saving..."
               : mode === "create"
-                ? "Create activity"
+                ? "Create resource"
                 : "Save activity"}
           </Button>
         )}

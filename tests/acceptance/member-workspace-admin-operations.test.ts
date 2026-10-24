@@ -242,9 +242,7 @@ describe("member workspace admin operations", () => {
     expect(markup).toContain("75%")
     expect(markup).toContain("9 of 12 setup items complete")
     expect(markup).toContain('data-slot="hover-card-trigger"')
-    expect(markup).toContain(
-      'data-react-grab-owner-component="MemberWorkspaceProjectOrganizationCard"'
-    )
+
     expect(markup).toContain(
       'aria-describedby="organization-setup-description-org-1"'
     )
@@ -256,16 +254,9 @@ describe("member workspace admin operations", () => {
     expect(markup).toContain("Complete: Add organization name")
     expect(markup).toContain("User completeness")
     expect(markup).toContain('aria-expanded="false"')
-    expect(markup).toContain(
-      'data-react-grab-owner-slot="user-completeness-trigger"'
-    )
+
     expect(markup).toContain('data-slot="hover-card-trigger"')
-    expect(markup).toContain(
-      'data-react-grab-surface-slot="user-completeness-details"'
-    )
-    expect(markup).toContain(
-      'data-react-grab-owner-slot="user-completeness-member"'
-    )
+
     expect(markup).toContain("Missing headline, profile photo")
   })
 

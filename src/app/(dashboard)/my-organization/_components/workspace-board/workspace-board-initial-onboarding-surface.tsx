@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { Background, BackgroundVariant, ReactFlow } from "reactflow"
+import { Background, BackgroundVariant, ReactFlow } from "@xyflow/react"
 
 import { OnboardingWorkspaceCard } from "@/components/onboarding/onboarding-workspace-card"
 

@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import Maximize2Icon from "lucide-react/dist/esm/icons/maximize-2"
 import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
@@ -11,12 +12,11 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
-  type Node,
   type NodeTypes,
   type ReactFlowInstance,
   useNodesState,
-} from "reactflow"
-import "reactflow/dist/style.css"
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 
 import { Button } from "@/components/ui/button"
 import { WorkspaceReactFlowErrorBootstrap } from "@/components/workspace/workspace-reactflow-error-bootstrap"
@@ -53,7 +53,7 @@ type FinancePlanNodeTarget = {
   viewId: FinancePlanningViewId
 }
 
-function getMiniMapColor(node: Node<FinanceReleasePlanNodeData>) {
+function getMiniMapColor(node: ReactFlowNode<FinanceReleasePlanNodeData>) {
   return getFinanceReleasePlanNodeColor(
     node.data ?? {
       kind: "lane" as FinanceReleasePlanNodeKind,
@@ -125,11 +125,11 @@ function FinancePlanningViewCanvas({
   responseTargetId: string | null
 }) {
   const reducedMotion = useReducedMotion()
-  const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
+  const flowInstanceRef = useRef<ReactFlowInstance<ReactFlowNode<FinanceReleasePlanNodeData>> | null>(null)
   const initialNodes = useMemo(() => activeView.buildNodes(), [activeView])
   const edges = useMemo(() => activeView.buildEdges(), [activeView])
   const [nodes, , onNodesChange] =
-    useNodesState<FinanceReleasePlanNodeData>(initialNodes)
+    useNodesState<ReactFlowNode<FinanceReleasePlanNodeData>>(initialNodes)
   const viewportDuration = reducedMotion ? 0 : 180
 
   const focusNodes = useCallback(
@@ -138,7 +138,7 @@ function FinancePlanningViewCanvas({
       if (!instance) return
       const targetNodes = nodeIds
         .map((nodeId) => instance.getNode(nodeId))
-        .filter((node): node is Node => Boolean(node))
+        .filter((node) => node !== undefined)
       if (!targetNodes.length) return
 
       void instance.fitView({

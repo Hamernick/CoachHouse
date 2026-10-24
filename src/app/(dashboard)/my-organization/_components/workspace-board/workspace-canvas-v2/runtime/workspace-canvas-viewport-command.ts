@@ -1,10 +1,10 @@
 import { setupGuideStackViewport } from "@/features/workspace-canvas-tutorial"
 
 import {
-  getRectOfNodes,
+  getNodesBounds,
   getViewportForBounds,
   type ReactFlowInstance,
-} from "reactflow"
+} from "@xyflow/react"
 
 import type { WorkspaceCardId } from "../../workspace-board-types"
 import { resolveWorkspaceCanvasFallbackFocusTarget } from "./workspace-canvas-focus-policy"
@@ -312,7 +312,7 @@ export function executeWorkspaceCanvasViewportCommand({
       focusViewportSize === undefined
         ? resolveWorkspaceCanvasFocusViewportSize()
         : focusViewportSize
-    const focusedBounds = getRectOfNodes(focusedNodes)
+    const focusedBounds = getNodesBounds(focusedNodes)
 
     // Tour focus reserves screen space for both surfaces, rather than magnifying
     // the node alone and leaving the guide to overlap it afterward.

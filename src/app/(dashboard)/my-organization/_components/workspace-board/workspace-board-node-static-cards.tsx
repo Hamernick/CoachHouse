@@ -5,7 +5,9 @@ import { useEffect, useState } from "react"
 import ImageIcon from "lucide-react/dist/esm/icons/image"
 
 import { normalizeToList } from "@/components/organization/org-profile-card/utils"
-import { GridBackground } from "@/components/ui/grid-background"
+import { OrgProfileHeaderLinks } from "@/components/organization/org-profile-card/header-links"
+import { GridPattern } from "@/components/ui/shadcn-io/grid-pattern/index"
+import { ORG_BANNER_ASPECT_RATIO } from "@/lib/organization/banner-spec"
 import { WORKSPACE_TEXT_STYLES } from "@/components/workspace/workspace-typography"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -24,8 +26,6 @@ import type {
   WorkspaceOrganizationEditorData,
   WorkspaceSeedData,
 } from "./workspace-board-types"
-
-const ORGANIZATION_OVERVIEW_PREVIEW_BANNER_ASPECT_RATIO = 3.7 / 1
 
 function compactUsd(cents: number) {
   const dollars = Math.max(0, cents) / 100
@@ -182,36 +182,33 @@ export function OrganizationOverviewCard({
   presentationMode: boolean
   organizationEditorData?: WorkspaceOrganizationEditorData
 }) {
-  const headerUrl = safeText(seed.initialProfile.headerUrl)
-  const logoUrl = safeText(seed.initialProfile.logoUrl)
+  const profile = organizationEditorData?.initialProfile ?? seed.initialProfile
+  const headerUrl = safeText(profile.headerUrl)
+  const logoUrl = safeText(profile.logoUrl)
   const displayTitle = seed.organizationTitle.trim() || "Title"
   const displaySubtitle = seed.organizationSubtitle.trim() || "Subtitle"
   const headerImage = useImageLoaded(headerUrl)
   const logoImage = useImageLoaded(logoUrl)
-  const displayProgramsCount = resolveOrganizationOverviewDisplayPrograms({
-    programsCount:
-      organizationEditorData?.programs.length ?? seed.programsCount,
-    legacyProgramsValue: organizationEditorData?.initialProfile.programs,
-  })
 
   return (
-    <div className="flex min-h-0 flex-col gap-3 pb-0.5">
+    <div className="flex min-h-0 flex-col gap-0">
       <div
-        className="bg-muted/30 ring-border/50 relative min-h-[124px] w-full overflow-hidden rounded-[18px] ring-1"
+        className="border-border/60 bg-background relative w-full overflow-hidden border-b"
         style={{
-          aspectRatio: ORGANIZATION_OVERVIEW_PREVIEW_BANNER_ASPECT_RATIO,
+          aspectRatio: ORG_BANNER_ASPECT_RATIO,
         }}
       >
         {headerUrl ? (
           <>
             <Image
               src={headerUrl}
+              draggable={false}
               alt=""
               fill
               priority
               sizes="(max-width: 768px) 92vw, (max-width: 1280px) 520px, 760px"
               className={cn(
-                "object-cover object-center transition-opacity duration-300",
+                "object-cover object-center transition-opacity duration-200 motion-reduce:transition-none",
                 headerImage.loaded ? "opacity-100" : "opacity-0"
               )}
               onLoad={() => headerImage.setLoaded(true)}
@@ -219,28 +216,35 @@ export function OrganizationOverviewCard({
             <div
               aria-hidden
               className={cn(
-                "from-muted/70 via-muted/40 absolute inset-0 bg-gradient-to-br to-transparent transition-opacity duration-300",
+                "from-background/5 via-background/10 to-background/40 absolute inset-0 bg-gradient-to-b transition-opacity duration-200 motion-reduce:transition-none",
                 headerImage.loaded ? "opacity-0" : "opacity-100"
               )}
             />
           </>
         ) : (
-          <GridBackground className="rounded-[18px]" />
+          <>
+            <div
+              aria-hidden
+              className="from-background/5 via-background/10 to-background/40 absolute inset-0 bg-gradient-to-b"
+            />
+            <GridPattern className="inset-x-0 inset-y-[-30%] h-[200%] skew-y-12 [mask-image:radial-gradient(320px_circle_at_center,white,transparent)] opacity-70" />
+          </>
         )}
       </div>
 
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="bg-background ring-border/60 relative size-12 shrink-0 overflow-hidden rounded-[14px] ring-1">
+      <div className="bg-background relative min-w-0 px-3 pt-11 pb-3">
+        <div className="border-border bg-background absolute -top-8 left-3 size-16 overflow-hidden rounded-xl border">
           {logoUrl ? (
             <>
               <Image
                 src={logoUrl}
+                draggable={false}
                 alt=""
                 fill
                 priority
-                sizes="44px"
+                sizes="64px"
                 className={cn(
-                  "object-cover transition-opacity duration-300",
+                  "object-cover transition-opacity duration-200 motion-reduce:transition-none",
                   logoImage.loaded ? "opacity-100" : "opacity-0"
                 )}
                 onLoad={() => logoImage.setLoaded(true)}
@@ -248,7 +252,7 @@ export function OrganizationOverviewCard({
               <div
                 aria-hidden
                 className={cn(
-                  "bg-muted/55 absolute inset-0 transition-opacity duration-300",
+                  "bg-muted/55 absolute inset-0 transition-opacity duration-200 motion-reduce:transition-none",
                   logoImage.loaded ? "opacity-0" : "opacity-100"
                 )}
               />
@@ -259,48 +263,24 @@ export function OrganizationOverviewCard({
             </div>
           )}
         </div>
-        <div className="min-w-0 space-y-0.5">
+        <div className="min-w-0 space-y-1">
           <h3
             className={cn(
-              "text-foreground line-clamp-2",
-              WORKSPACE_TEXT_STYLES.surfaceTitle
+              "text-foreground text-xl leading-tight font-semibold tracking-tight break-words"
             )}
           >
             {displayTitle}
           </h3>
           <p
             className={cn(
-              "line-clamp-1",
-              WORKSPACE_TEXT_STYLES.surfaceSubtitle
+              "text-muted-foreground text-sm leading-snug break-words"
             )}
           >
             {displaySubtitle}
           </p>
+          <OrgProfileHeaderLinks company={profile} />
         </div>
       </div>
-
-      <dl className="border-border/50 grid grid-cols-3 gap-3 border-t pt-3">
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>Objects</dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {displayProgramsCount}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>
-            {seed.peopleCount === 1 ? "Person" : "People"}
-          </dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {seed.peopleCount}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className={WORKSPACE_TEXT_STYLES.statLabel}>Raising</dt>
-          <dd className={cn("mt-1 truncate", WORKSPACE_TEXT_STYLES.statValue)}>
-            {compactUsd(seed.fundingGoalCents)}
-          </dd>
-        </div>
-      </dl>
     </div>
   )
 }

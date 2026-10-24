@@ -145,6 +145,26 @@ describe("workspace board UI preferences", () => {
     )
   })
 
+  it("restores the Particles destination only within the saved organization/viewer scope", () => {
+    stubLocalStorage()
+    const scope = { orgId: "org-1", viewerId: "viewer-1" }
+    patchWorkspaceBoardUiPreferences(scope, {
+      dataDrawerTab: "particles",
+      dataDrawerSnapPoint: 0.48,
+    })
+    expect(readWorkspaceBoardUiPreferences(scope).dataDrawerTab).toBe(
+      "particles"
+    )
+    expect(
+      readWorkspaceBoardUiPreferences({ ...scope, orgId: "org-2" })
+        .dataDrawerTab
+    ).toBe("organization")
+    expect(
+      readWorkspaceBoardUiPreferences({ ...scope, viewerId: "viewer-2" })
+        .dataDrawerTab
+    ).toBe("organization")
+  })
+
   it("keeps the collapsed drawer tall enough for its tab row", () => {
     expect(normalizeWorkspaceDataDrawerSnapPointPreference(0.06)).toBe("68px")
     expect(normalizeWorkspaceDataDrawerSnapPointPreference("44px")).toBe("68px")
@@ -199,7 +219,10 @@ describe("workspace board UI preferences", () => {
     expect(viewSource).toContain("onMoveEnd={onMoveEnd}")
     expect(cameraEffectsSource).toContain("if (suppressInitialFit) return")
     expect(drawerSource).toContain("dataDrawerSnapPoint: storedSnapPoint")
-    expect(drawerSource).toContain("dataDrawerTab: nextTab")
+    const navigationSource = readSource(
+      "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/use-workspace-drawer-navigation.ts"
+    )
+    expect(navigationSource).toContain("dataDrawerTab: next.tab")
     expect(drawerSource).toContain(
       "if (request || guideState) return"
     )

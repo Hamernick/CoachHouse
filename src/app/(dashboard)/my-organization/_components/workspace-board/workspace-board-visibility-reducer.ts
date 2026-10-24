@@ -36,7 +36,7 @@ export type WorkspaceBoardVisibilityAction =
 
 export function normalizeWorkspaceBoardAcceleratorUiState(
   value: unknown,
-  fallbackActiveStepId: string | null,
+  fallbackActiveStepId: string | null
 ): WorkspaceBoardAcceleratorUiState {
   if (!value || typeof value !== "object") {
     return {
@@ -49,19 +49,20 @@ export function normalizeWorkspaceBoardAcceleratorUiState(
   return {
     stepOpen: record.stepOpen === true,
     lastStepId:
-      typeof record.lastStepId === "string" && record.lastStepId.trim().length > 0
+      typeof record.lastStepId === "string" &&
+      record.lastStepId.trim().length > 0
         ? record.lastStepId
         : fallbackActiveStepId,
   }
 }
 
 function withAcceleratorUiState(
-  state: WorkspaceBoardState,
+  state: WorkspaceBoardState
 ): WorkspaceBoardState & { acceleratorUi: WorkspaceBoardAcceleratorUiState } {
   const existing = state.acceleratorUi
   const normalized = normalizeWorkspaceBoardAcceleratorUiState(
     state.acceleratorUi,
-    state.accelerator.activeStepId,
+    state.accelerator.activeStepId
   )
   if (
     existing &&
@@ -80,7 +81,9 @@ function withAcceleratorUiState(
 }
 
 function closeAcceleratorStepNode(
-  state: WorkspaceBoardState & { acceleratorUi: WorkspaceBoardAcceleratorUiState },
+  state: WorkspaceBoardState & {
+    acceleratorUi: WorkspaceBoardAcceleratorUiState
+  }
 ): WorkspaceBoardState {
   if (!state.acceleratorUi.stepOpen) return state
   return {
@@ -92,11 +95,20 @@ function closeAcceleratorStepNode(
   }
 }
 
-function ensureHiddenCardsNormalized(state: WorkspaceBoardState): WorkspaceBoardState {
-  const normalizedHiddenCardIds = normalizeWorkspaceHiddenCardIds(state.hiddenCardIds)
+function ensureHiddenCardsNormalized(
+  state: WorkspaceBoardState
+): WorkspaceBoardState {
+  const normalizedHiddenCardIds = normalizeWorkspaceHiddenCardIds(
+    state.hiddenCardIds,
+    {
+      enforceFixedVisibleCards: !state.visibility?.organizationHiddenExplicitly,
+    }
+  )
   if (
     normalizedHiddenCardIds.length === state.hiddenCardIds.length &&
-    normalizedHiddenCardIds.every((cardId, index) => cardId === state.hiddenCardIds[index])
+    normalizedHiddenCardIds.every(
+      (cardId, index) => cardId === state.hiddenCardIds[index]
+    )
   ) {
     return state
   }
@@ -108,26 +120,39 @@ function ensureHiddenCardsNormalized(state: WorkspaceBoardState): WorkspaceBoard
 
 function toggleDockCardVisibility(
   state: WorkspaceBoardState,
-  cardId: WorkspaceCardId,
+  cardId: WorkspaceCardId
 ): WorkspaceBoardState {
   if (cardId === "organization-overview") return state
 
-  const hiddenSet = new Set(normalizeWorkspaceHiddenCardIds(state.hiddenCardIds))
+  const hiddenSet = new Set(
+    normalizeWorkspaceHiddenCardIds(state.hiddenCardIds, {
+      enforceFixedVisibleCards: !state.visibility?.organizationHiddenExplicitly,
+    })
+  )
   if (hiddenSet.has(cardId)) {
     hiddenSet.delete(cardId)
   } else {
     hiddenSet.add(cardId)
   }
 
-  const nextHiddenCardIds = normalizeWorkspaceHiddenCardIds(Array.from(hiddenSet))
+  const nextHiddenCardIds = normalizeWorkspaceHiddenCardIds(
+    Array.from(hiddenSet),
+    {
+      enforceFixedVisibleCards: !state.visibility?.organizationHiddenExplicitly,
+    }
+  )
   const nextVisibility = {
+    ...state.visibility,
     allCardsHiddenExplicitly: false,
   }
 
   if (
     nextHiddenCardIds.length === state.hiddenCardIds.length &&
-    nextHiddenCardIds.every((nextCardId, index) => nextCardId === state.hiddenCardIds[index]) &&
-    (state.visibility?.allCardsHiddenExplicitly ?? false) === nextVisibility.allCardsHiddenExplicitly
+    nextHiddenCardIds.every(
+      (nextCardId, index) => nextCardId === state.hiddenCardIds[index]
+    ) &&
+    (state.visibility?.allCardsHiddenExplicitly ?? false) ===
+      nextVisibility.allCardsHiddenExplicitly
   ) {
     return state
   }
@@ -141,13 +166,13 @@ function toggleDockCardVisibility(
 
 export function reduceWorkspaceBoardVisibility(
   state: WorkspaceBoardState,
-  action: WorkspaceBoardVisibilityAction,
+  action: WorkspaceBoardVisibilityAction
 ): WorkspaceBoardState {
   const stateWithUi = withAcceleratorUiState(state)
 
   if (action.type === "hydrate_legacy_visibility") {
     return sanitizeWorkspaceBoardHiddenState(
-      ensureHiddenCardsNormalized(stateWithUi),
+      ensureHiddenCardsNormalized(stateWithUi)
     )
   }
 

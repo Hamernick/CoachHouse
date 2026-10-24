@@ -14,11 +14,11 @@ export function Field({ className, orientation = "vertical", ...props }: FieldRo
       : orientation === "responsive"
       ? "grid grid-cols-1 gap-2 sm:grid-cols-3 sm:items-start sm:gap-3"
       : "grid grid-cols-1 gap-1"
-  return <div className={cn("w-full", orient, className)} {...props} />
+  return <div data-slot="field" className={cn("w-full", orient, className)} {...props} />
 }
 
 export function FieldLabel({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("text-sm font-medium leading-none", className)} {...props} />
+  return <label data-slot="field-label" className={cn("text-sm font-medium leading-none", className)} {...props} />
 }
 
 export function FieldControl({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -34,14 +34,14 @@ export function FieldMessage({ className, ...props }: React.HTMLAttributes<HTMLP
 }
 
 export function FieldGroup({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("grid gap-3", className)} {...props} />
+  return <div data-slot="field-group" className={cn("grid gap-3", className)} {...props} />
 }
 
 export function FieldSet({ className, ...props }: React.HTMLAttributes<HTMLFieldSetElement>) {
-  return <fieldset className={cn("grid gap-3", className)} {...props} />
+  return <fieldset data-slot="field-set" className={cn("grid gap-3", className)} {...props} />
 }
 
 export function FieldLegend({ className, ...props }: React.HTMLAttributes<HTMLLegendElement>) {
-  return <legend className={cn("text-sm font-semibold", className)} {...props} />
+  return <legend data-slot="field-legend" className={cn("text-sm font-semibold", className)} {...props} />
 }
 

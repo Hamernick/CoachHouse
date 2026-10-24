@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, type CSSProperties, type ReactNode } from "react"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 
 export function DocumentationArticleWorkspace({
   guide,
@@ -41,13 +40,7 @@ export function DocumentationArticleWorkspace({
 
   return (
     <div
-      {...getReactGrabOwnerProps({
-        ownerId: "documentation:article-workspace",
-        component: "DocumentationArticleWorkspace",
-        source:
-          "src/features/nonprofit-documentation/components/documentation-article-workspace.tsx",
-        slot: "article-workspace",
-      })}
+
       className="flex w-full min-w-0 flex-col gap-4"
       style={{ "--documentation-anchor-offset": "7rem" } as CSSProperties}
     >

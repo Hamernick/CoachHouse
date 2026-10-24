@@ -1,12 +1,15 @@
+import type { WorkspaceSelectionDragHandler } from "@/lib/workspace-canvas/drag-events"
+import type { WorkspaceBoardNodeData } from "../../workspace-board-node-types"
+import type { WorkspaceToolId, ParticleSession } from "@/features/workspace-particles/client"
+import type { PlaceWorkspaceTool } from "../../workspace-board-tool-placement"
 import type { KeyboardEventHandler } from "react"
 import type {
-  NodeDragHandler,
+  OnNodeDrag,
   NodeMouseHandler,
   OnMoveEnd,
   OnNodesChange,
   ReactFlowInstance,
-  SelectionDragHandler,
-} from "reactflow"
+} from "@xyflow/react"
 
 import type { DocumentsTabData } from "@/components/organization/org-profile-card/tabs/documents-tab/data"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
@@ -26,6 +29,10 @@ import type {
 import type { WorkspaceCanvasNode } from "./workspace-canvas-surface-v2-helpers"
 
 export type WorkspaceCanvasSurfaceV2ViewProps = {
+  particleSession: ParticleSession
+  libraryCardData: Record<WorkspaceToolId, WorkspaceBoardNodeData>
+  hiddenToolIds: readonly string[]
+  onPlaceWorkspaceTool: PlaceWorkspaceTool
   nodes: WorkspaceCanvasNode[]
   edges: ReturnType<typeof useWorkspaceCanvasConnectionsController>["edges"]
   allowEditing: boolean
@@ -58,8 +65,8 @@ export type WorkspaceCanvasSurfaceV2ViewProps = {
   onNodeClick: NodeMouseHandler
   onNodeDoubleClick: NodeMouseHandler
   onKeyDownCapture: KeyboardEventHandler<HTMLDivElement>
-  onNodeDragStop: NodeDragHandler
-  onSelectionDragStop: SelectionDragHandler
+  onNodeDragStop: OnNodeDrag
+  onSelectionDragStop: WorkspaceSelectionDragHandler
   onMoveStart: () => void
   onMoveEnd: OnMoveEnd
   onConnect: ReturnType<

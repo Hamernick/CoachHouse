@@ -41,10 +41,7 @@ describe("workspace roadmap card title", () => {
     )
     expect(navigator).toContain("ROADMAP_TOC_TITLE_CLASS_NAME")
     expect(navigator).toContain("ROADMAP_NAVIGATOR_HEADER_BUTTON_CLASS_NAME")
-    expect(navigator).toContain("getReactGrabLinkedSurfaceProps")
-    expect(navigator).toContain("RoadmapNavigatorHeaderButton")
-    expect(navigator).toContain("roadmap-navigator-section:header-button")
-    expect(navigator).toContain('primitiveImport: "@/components/ui/button"')
+
     expect(navigator).toContain("<header")
     expect(navigator).toContain(
       '<span className="truncate">Core Documents</span>'

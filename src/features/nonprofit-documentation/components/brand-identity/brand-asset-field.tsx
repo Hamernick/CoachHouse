@@ -6,14 +6,14 @@ import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import UploadIcon from "lucide-react/dist/esm/icons/upload"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { BrandAssetId, StoredBrandAsset } from "../../types"
+import type { BrandAssetId, BrandAssetPreview } from "../../types"
 import { downloadBlob } from "../../lib/brand-identity-export"
 import {
   BRAND_ASSET_ACCEPT,
   brandAssetError,
 } from "../../lib/brand-asset-validation"
 import { BrandAssetExample } from "./brand-asset-example"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 export function BrandAssetField({
   id,
   label,
@@ -22,16 +22,18 @@ export function BrandAssetField({
   previewUrl,
   onUpload,
   onDelete,
+  onDownload,
   aspect = "wide",
   disabled = false,
 }: {
   id: BrandAssetId
   label: string
   guidance: string
-  asset?: StoredBrandAsset
+  asset?: BrandAssetPreview
   previewUrl?: string
   onUpload: (id: BrandAssetId, file: File) => Promise<boolean>
   onDelete: (id: BrandAssetId) => Promise<void>
+  onDownload?: (id: BrandAssetId) => Promise<void>
   aspect?: "wide" | "square" | "portrait"
   disabled?: boolean
 }) {
@@ -41,14 +43,7 @@ export function BrandAssetField({
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const owner = (slot: string) =>
-    brandIdentityOwner(
-      "brand-asset-field",
-      "BrandAssetField",
-      id,
-      slot,
-      `${label}: this tile replaces only ${id}.`
-    )
+
   async function upload(files: File[]) {
     if (disabled || pending.current) return
     const invalid = brandAssetError(files)
@@ -81,7 +76,7 @@ export function BrandAssetField({
     }
   }
   return (
-    <figure className="min-w-0" {...owner("asset")}>
+    <figure className="min-w-0" >
       <div
         role="group"
         aria-label={`${label} dropzone`}
@@ -113,7 +108,7 @@ export function BrandAssetField({
           setDragging(false)
           void upload(Array.from(event.dataTransfer.files))
         }}
-        {...owner("dropzone")}
+
       >
         <Button
           type="button"
@@ -130,7 +125,7 @@ export function BrandAssetField({
                 ? "aspect-[4/5]"
                 : "aspect-[16/9]"
           )}
-          {...owner("upload-trigger")}
+
         >
           <span className="pointer-events-none absolute inset-0">
             {previewUrl ? (
@@ -159,7 +154,7 @@ export function BrandAssetField({
             <span
               role="status"
               className="bg-background/90 text-foreground absolute inset-0 flex items-center justify-center text-sm"
-              {...owner("upload-status")}
+
             >
               {busy ? "Saving image…" : "Drop image"}
             </span>
@@ -172,7 +167,7 @@ export function BrandAssetField({
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0 group-focus-within/asset:pointer-events-auto group-focus-within/asset:opacity-100 group-hover/asset:pointer-events-auto group-hover/asset:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100"
           )}
-          {...owner("image-actions")}
+
         >
           {!asset ? (
             <Button
@@ -183,7 +178,7 @@ export function BrandAssetField({
               disabled={disabled || busy}
               aria-label={`Choose ${label.toLowerCase()} file`}
               onClick={() => input.current?.click()}
-              {...owner("choose-file-trigger")}
+
             >
               <UploadIcon aria-hidden />
             </Button>
@@ -196,8 +191,11 @@ export function BrandAssetField({
                 variant="secondary"
                 className="size-8 shadow-none [@media(hover:none)]:size-11"
                 aria-label={`Download ${label.toLowerCase()}`}
-                onClick={() => downloadBlob(asset.blob, asset.name)}
-                {...owner("download-trigger")}
+                onClick={() => {
+                  if (asset.blob) downloadBlob(asset.blob, asset.name)
+                  else void onDownload?.(id).catch(() => setError("The image could not be downloaded. Try again."))
+                }}
+
               >
                 <DownloadIcon aria-hidden />
               </Button>
@@ -209,7 +207,7 @@ export function BrandAssetField({
                 disabled={disabled || busy}
                 aria-label={`Remove ${label.toLowerCase()}`}
                 onClick={() => void remove()}
-                {...owner("remove-trigger")}
+
               >
                 <Trash2Icon aria-hidden />
               </Button>
@@ -217,7 +215,7 @@ export function BrandAssetField({
           ) : null}
         </div>
       </div>
-      <figcaption className="mt-2" {...owner("caption")}>
+      <figcaption className="mt-2" >
         <p className="text-sm font-medium">{label}</p>
         <p
           id={`asset-${id}-help`}

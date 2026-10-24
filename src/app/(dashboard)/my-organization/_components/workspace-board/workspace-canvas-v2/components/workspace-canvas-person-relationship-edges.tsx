@@ -1,5 +1,6 @@
 "use client"
 
+import type { Edge as ReactFlowEdge } from "@xyflow/react"
 import { memo, useCallback } from "react"
 import {
   BaseEdge,
@@ -10,8 +11,9 @@ import {
   type Edge,
   type EdgeProps,
   type Node,
+  type InternalNode,
   type XYPosition,
-} from "reactflow"
+} from "@xyflow/react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { PersonCategory } from "@/lib/people/categories"
@@ -61,8 +63,8 @@ function resolveNodeNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
-function resolveNodePosition(node: Node): XYPosition {
-  return node.positionAbsolute ?? node.position
+function resolveNodePosition(node: Node | InternalNode): XYPosition {
+  return "internals" in node ? node.internals.positionAbsolute : node.position
 }
 
 function resolveFloatingNodeRect(node: Node): WorkspaceFloatingNodeRect {
@@ -72,10 +74,12 @@ function resolveFloatingNodeRect(node: Node): WorkspaceFloatingNodeRect {
     x: position.x,
     y: position.y,
     width:
+      resolveNodeNumber(node.measured?.width) ??
       resolveNodeNumber(node.width) ??
       resolveNodeNumber(style.width) ??
       WORKSPACE_CANVAS_PERSON_NODE_SIZE.width,
     height:
+      resolveNodeNumber(node.measured?.height) ??
       resolveNodeNumber(node.height) ??
       resolveNodeNumber(style.height) ??
       resolveNodeNumber(style.minHeight) ??
@@ -171,15 +175,15 @@ export const WorkspaceCanvasPersonRelationshipEdge = memo(
     markerEnd,
     style,
     interactionWidth,
-  }: EdgeProps<WorkspaceCanvasPersonRelationshipEdgeData>) {
+  }: EdgeProps<ReactFlowEdge<WorkspaceCanvasPersonRelationshipEdgeData>>) {
     const selectSourceNode = useCallback(
-      (state: { nodeInternals: Map<string, Node> }) =>
-        state.nodeInternals.get(source),
+      (state: { nodeLookup: Map<string, InternalNode> }) =>
+        state.nodeLookup.get(source),
       [source]
     )
     const selectTargetNode = useCallback(
-      (state: { nodeInternals: Map<string, Node> }) =>
-        state.nodeInternals.get(target),
+      (state: { nodeLookup: Map<string, InternalNode> }) =>
+        state.nodeLookup.get(target),
       [target]
     )
     const sourceNode = useStore(selectSourceNode)

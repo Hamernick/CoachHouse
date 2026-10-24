@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     <WorkspaceOrganizationScope organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
       <FrameEscape />
       <AppShell
-        sidebarHeaderContent={
+        accountMenuContent={
           <MemberWorkspaceSidebarHeader state={state.memberWorkspaceHeader} />
         }
         sidebarTree={state.sidebarTree}

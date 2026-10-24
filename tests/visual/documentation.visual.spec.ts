@@ -79,7 +79,7 @@ test("library search supports keyboard, deep links, browser history, and empty r
 }) => {
   const errors: string[] = []
   page.on("pageerror", (error) => errors.push(error.message))
-  await page.goto("/documentation?react-grab=0", {
+  await page.goto("/documentation", {
     waitUntil: "domcontentloaded",
   })
   await ready(page)
@@ -291,7 +291,7 @@ test("mobile navigation closes after choosing a guide and contents links reach s
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ reducedMotion: "reduce" })
-  await page.goto("/documentation?react-grab=0", {
+  await page.goto("/documentation", {
     waitUntil: "domcontentloaded",
   })
   await ready(page)
@@ -502,7 +502,7 @@ for (const mode of ["light", "dark"] as const) {
 
 test("documentation home and article desktop baselines", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await page.goto("/documentation?react-grab=0", {
+  await page.goto("/documentation", {
     waitUntil: "domcontentloaded",
   })
   await ready(page)

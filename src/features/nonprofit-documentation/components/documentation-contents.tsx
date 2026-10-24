@@ -1,6 +1,5 @@
 "use client"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import {
   Accordion,
   AccordionContent,
@@ -65,13 +64,7 @@ export function DocumentationMobileContents({
       type="single"
       collapsible
       className={cn("border-b xl:hidden print:hidden", className)}
-      {...getReactGrabOwnerProps({
-        ownerId: "documentation-contents:mobile",
-        component: "DocumentationMobileContents",
-        source:
-          "src/features/nonprofit-documentation/components/documentation-contents.tsx",
-        slot: "mobile-contents",
-      })}
+
     >
       <AccordionItem value="contents">
         <AccordionTrigger className="min-h-11 py-2">On this page</AccordionTrigger>
@@ -88,14 +81,7 @@ export function DocumentationDesktopContents({ items }: { items: Contents }) {
     <aside
       className="hidden xl:block print:hidden"
       aria-label="On this page"
-      {...getReactGrabOwnerProps({
-        ownerId: "documentation-contents:desktop",
-        component: "DocumentationDesktopContents",
-        source:
-          "src/features/nonprofit-documentation/components/documentation-contents.tsx",
-        slot: "desktop-contents",
-        tokenSource: "src/app/globals.css",
-      })}
+
     >
       <div className="sticky top-6 max-h-[calc(100svh-8rem)] overflow-y-auto">
         <p className="mb-2 pl-5 text-xs font-semibold">On this page</p>

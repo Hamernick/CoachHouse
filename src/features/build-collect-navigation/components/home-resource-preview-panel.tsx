@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import UserRoundIcon from "lucide-react/dist/esm/icons/user-round"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { useResourceDirectory } from "@/features/find-resource-index/client"
 import type { ExternalResourceMapItem } from "@/lib/public-map/resource-map-items"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -46,9 +46,7 @@ export function HomeResourcePreviewPanel({ organizations }: { organizations: Hom
   const more = rows.length > visibleCount || directory.pagination?.hasMore
   const exploreHref = `/resources${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`
 
-  return <div className="w-full min-w-0 space-y-3" data-home-resource-preview {...getReactGrabOwnerProps({
-    ownerId: "public-home:resource-preview", component: "HomeResourcePreviewPanel", source: "src/features/build-collect-navigation/components/home-resource-preview-panel.tsx", slot: "resource-preview", tokenSource: "src/components/public/home-canvas-dock-slot.tsx",
-  })}>
+  return <div className="w-full min-w-0 space-y-3" data-home-resource-preview >
     <div className="relative h-[22rem] w-full min-w-0 overflow-hidden rounded-3xl border border-border/70 bg-muted/30 sm:aspect-video sm:h-auto sm:min-h-[22rem] sm:rounded-[40px]">
       <div ref={results} hidden={saved.authOpen} className="absolute inset-0 overflow-y-auto overscroll-y-auto px-3 py-3 sm:px-5 sm:py-4" aria-busy={directory.pending}>
         <header className="mb-1 flex items-center justify-between gap-3 px-2">

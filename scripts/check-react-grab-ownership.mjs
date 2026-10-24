@@ -1,159 +1,35 @@
 #!/usr/bin/env node
 
-import { promises as fs } from "node:fs"
+import { readFile, readdir } from "node:fs/promises"
 import path from "node:path"
-import * as ts from "typescript"
 
-const ROOT = process.cwd()
-const SRC_ROOT = path.join(ROOT, "src")
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"])
-const ATTRIBUTE_ALLOWLIST = new Set(["data-react-grab-role"])
-const OWNER_HELPER_PATH = "src/components/dev/react-grab-surface.ts"
-const REQUIRED_REACT_GRAB_COVERAGE = [
-  {
-    file:
-      "src/features/member-workspace/components/projects/member-workspace-project-card-react-grab.ts",
-    requiredFragments: [
-      "getReactGrabOwnerProps({",
-      "getReactGrabLinkedSurfaceProps({",
-      "member-workspace-project-card:${variant}:${projectId}",
-      "canonicalOwnerSource: PROJECT_CARD_REACT_GRAB_SOURCE",
-      "canonicalOwnerReason: PROJECT_CARD_REACT_GRAB_REASON",
-    ],
-  },
-  {
-    file:
-      "src/features/member-workspace/components/projects/member-workspace-project-card.tsx",
-    requiredFragments: [
-      "getMemberWorkspaceProjectCardReactGrabOwnerProps",
-      'reactGrabSurface("status-pill", "indicator")',
-      'reactGrabSurface("date-priority-row", "content")',
-      'reactGrabSurface("priority", "indicator")',
-      'reactGrabSurface("footer-separator", "content")',
-      'reactGrabSurface("progress-row", "content")',
-      'reactGrabSurface("assignee-avatar", "content")',
-    ],
-  },
-]
-
-function toRepoRelative(absolutePath) {
-  return path.relative(ROOT, absolutePath).split(path.sep).join("/")
+// Keep the existing CI entry point, guarding the stock integration instead of
+// requiring the custom ownership layer removed at the user's request.
+const root = process.cwd()
+const layout = await readFile(path.join(root, "src/app/layout.tsx"), "utf8")
+const errors = []
+for (const fragment of [
+  'process.env.NODE_ENV === "development"',
+  'strategy="beforeInteractive"',
+  'crossOrigin="anonymous"',
+  'https://unpkg.com/react-grab@${reactGrabPackage.version}/dist/index.global.js',
+]) {
+  if (!layout.includes(fragment)) errors.push(`Missing stock development setup: ${fragment}`)
 }
-
-async function walkFiles(dir) {
-  const entries = await fs.readdir(dir, { withFileTypes: true })
-  const files = []
-
-  for (const entry of entries) {
-    const next = path.join(dir, entry.name)
-    if (entry.isDirectory()) {
-      files.push(...(await walkFiles(next)))
-      continue
-    }
-    files.push(next)
-  }
-
-  return files
-}
-
-function resolveScriptKind(extension) {
-  switch (extension) {
-    case ".ts":
-      return ts.ScriptKind.TS
-    case ".tsx":
-      return ts.ScriptKind.TSX
-    case ".js":
-      return ts.ScriptKind.JS
-    case ".jsx":
-      return ts.ScriptKind.JSX
-    default:
-      return ts.ScriptKind.Unknown
-  }
-}
-
-function collectReactGrabJsxAttributes(sourceFile) {
-  const attributes = []
-
-  function visit(node) {
-    if (
-      ts.isJsxAttribute(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text.startsWith("data-react-grab")
-    ) {
-      attributes.push(node.name.text)
-    }
-
-    ts.forEachChild(node, visit)
-  }
-
-  visit(sourceFile)
-  return attributes
-}
-
-async function checkRequiredReactGrabCoverage(errors) {
-  for (const contract of REQUIRED_REACT_GRAB_COVERAGE) {
-    let sourceText = ""
-    try {
-      sourceText = await fs.readFile(path.join(ROOT, contract.file), "utf8")
-    } catch {
-      errors.push(
-        `${contract.file}: required React Grab coverage file is missing.`,
-      )
-      continue
-    }
-
-    for (const fragment of contract.requiredFragments) {
-      if (!sourceText.includes(fragment)) {
-        errors.push(
-          `${contract.file}: required React Grab coverage fragment is missing: ${fragment}`,
-        )
+async function check(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name)
+    if (entry.isDirectory()) await check(file)
+    else if (/\.(tsx?|jsx?)$/.test(file)) {
+      const source = await readFile(file, "utf8")
+      if (/data-react-grab-|__REACT_GRAB_SURFACES__|coachhouse-semantic-targeting|react-grab-loader|react-grab-surface/.test(source)) {
+        errors.push(`${path.relative(root, file)}: custom React Grab integration must stay removed`)
       }
     }
   }
 }
-
-async function run() {
-  const files = await walkFiles(SRC_ROOT)
-  const errors = []
-
-  for (const absolutePath of files) {
-    const extension = path.extname(absolutePath)
-    if (!SOURCE_EXTENSIONS.has(extension)) continue
-
-    const repoRelative = toRepoRelative(absolutePath)
-    if (repoRelative === OWNER_HELPER_PATH) continue
-
-    const sourceText = await fs.readFile(absolutePath, "utf8")
-    const sourceFile = ts.createSourceFile(
-      repoRelative,
-      sourceText,
-      ts.ScriptTarget.Latest,
-      true,
-      resolveScriptKind(extension),
-    )
-
-    for (const attributeName of collectReactGrabJsxAttributes(sourceFile)) {
-      if (ATTRIBUTE_ALLOWLIST.has(attributeName)) continue
-      errors.push(
-        `${repoRelative}: raw '${attributeName}' authoring is not allowed. Use src/components/dev/react-grab-surface.ts helpers.`,
-      )
-    }
-  }
-
-  await checkRequiredReactGrabCoverage(errors)
-
-  if (errors.length > 0) {
-    console.error("React Grab ownership check failed:\n")
-    for (const error of errors) {
-      console.error(`- ${error}`)
-    }
-    process.exit(1)
-  }
-
-  console.log("React Grab ownership check passed.")
-}
-
-run().catch((error) => {
-  console.error("Unable to run React Grab ownership check", error)
-  process.exit(1)
-})
+await check(path.join(root, "src"))
+if (errors.length) {
+  console.error(errors.join("\n"))
+  process.exitCode = 1
+} else console.log("React Grab stock development integration check passed")

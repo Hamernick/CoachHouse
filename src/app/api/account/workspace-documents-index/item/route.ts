@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { listUserModuleNotesIndex } from "@/lib/modules/notes-index"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
+import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
@@ -45,8 +46,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Roadmap item id is required." }, { status: 400 })
       }
 
-      const { orgId } = await resolveActiveOrganization(supabase, user.id)
-      const { data: orgRow, error: orgError } = await supabase
+      const organizationId = searchParams.get("organizationId")
+      const access = organizationId
+        ? await resolveOrganizationDocumentAccess(
+            supabase,
+            user.id,
+            organizationId
+          )
+        : { ...(await resolveActiveOrganization(supabase, user.id)), supabase }
+      if ("error" in access)
+        return NextResponse.json({ error: access.error }, { status: 403 })
+      const { orgId } = access
+      const { data: orgRow, error: orgError } = await access.supabase
         .from("organizations")
         .select("profile")
         .eq("user_id", orgId)

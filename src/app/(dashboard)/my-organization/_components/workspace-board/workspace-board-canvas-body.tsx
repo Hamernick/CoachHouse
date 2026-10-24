@@ -1,5 +1,6 @@
 "use client"
 
+import type { PlaceWorkspaceTool } from "./workspace-board-tool-placement"
 import {
   WorkspaceSetupGuide,
 } from "@/features/workspace-canvas-tutorial"
@@ -60,6 +61,7 @@ export function WorkspaceBoardCanvasBody({
   onFocusCard,
   onOnboardingFlowChange,
   onPersistNodePosition,
+  onPlaceWorkspaceTool,
   onToggleCardVisibility,
   onConnectCards,
   onDisconnectConnection,
@@ -102,6 +104,7 @@ export function WorkspaceBoardCanvasBody({
   onFocusCard: (cardId: WorkspaceCardId) => void
   onOnboardingFlowChange: (next: WorkspaceBoardOnboardingFlowState) => void
   onPersistNodePosition: (cardId: WorkspaceCardId, x: number, y: number) => void
+  onPlaceWorkspaceTool: PlaceWorkspaceTool
   onToggleCardVisibility: (
     cardId: WorkspaceCardId,
     context?: WorkspaceBoardToggleContext
@@ -162,7 +165,7 @@ export function WorkspaceBoardCanvasBody({
           allowEditing={allowEditing}
           workspaceDataDrawerCanEdit={workspaceDataDrawerCanEdit}
           presentationMode={seed.presentationMode}
-          workspaceRoomName={`org:${seed.orgId}:workspace`}
+          workspaceRoomName={`org:${seed.orgId}:workspace${boardState.workspaceCanvasId ? `:${boardState.workspaceCanvasId}` : ""}`}
           layoutFitRequestKey={layoutFitRequestKey}
           acceleratorFocusRequestKey={acceleratorFocusRequestKey}
           tutorialRestartRequestKey={tutorialRestartRequestKey}
@@ -183,6 +186,7 @@ export function WorkspaceBoardCanvasBody({
           onFocusCard={onFocusCard}
           onOnboardingFlowChange={onOnboardingFlowChange}
           onPersistNodePosition={onPersistNodePosition}
+          onPlaceWorkspaceTool={onPlaceWorkspaceTool}
           onToggleCardVisibility={onToggleCardVisibility}
           onConnectCards={onConnectCards}
           onDisconnectConnection={onDisconnectConnection}

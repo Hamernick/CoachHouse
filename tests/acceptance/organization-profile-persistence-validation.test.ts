@@ -9,6 +9,9 @@ import {
   organizationProfilePersistencePatchSchema,
   validateOrganizationProfilePersistencePatch,
 } from "@/lib/organization/profile-persistence-validation"
+import { resolveCoreDocumentPublication, prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
+import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
+import { resolvePublicOrganizationProfileNarratives, resolveOrganizationCoreDocuments, updateRoadmapSection } from "@/lib/roadmap"
 import { resolveOrganizationNarrativePlainText } from "@/lib/roadmap"
 
 import { resetTestMocks, revalidatePathMock, revalidateTagMock } from "./test-utils"
@@ -28,13 +31,14 @@ vi.mock("@/lib/organization/active-org", () => ({
   canEditOrganization: authMocks.canEditOrganization,
 }))
 
-function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string } = {}) {
+function prepareOrganizationSave(existingProfile: Record<string, unknown>, options: { isPublic?: boolean; writeError?: string; ein?: string; brandIdentity?: unknown } = {}) {
   let updatedRow: Record<string, unknown> | null = null
+  let savedBrand: unknown = null
   const selectQuery = {
     eq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({
       data: {
-        ein: null,
+        ein: options.ein ?? null,
         profile: existingProfile,
         location_lat: null,
         location_lng: null,
@@ -61,6 +65,7 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
     }),
   }
   const from = vi.fn((table: string) => {
+    if (table === "organization_brand_kits") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: options.brandIdentity ? { identity: options.brandIdentity } : null, error: null }) }) }) }
     if (table !== "organizations") {
       throw new Error(`Unexpected table: ${table}`)
     }
@@ -68,7 +73,12 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
   })
 
   authMocks.requireServerSession.mockResolvedValue({
-    supabase: { from },
+    supabase: { from, rpc: vi.fn(async (_name, args) => {
+      if (options.writeError) return { data: false, error: { message: options.writeError } }
+      updatedRow = args.p_profile_patch
+      savedBrand = args.p_identity
+      return { data: true, error: null }
+    }) },
     session: { user: { id: "user-1" } },
   })
   authMocks.resolveActiveOrganization.mockResolvedValue({
@@ -78,6 +88,7 @@ function prepareOrganizationSave(existingProfile: Record<string, unknown>, optio
   authMocks.canEditOrganization.mockReturnValue(true)
 
   return {
+    getSavedBrand() { return savedBrand },
     getUpdatedProfile() {
       return (updatedRow?.profile ?? null) as Record<string, unknown> | null
     },
@@ -90,6 +101,64 @@ describe("organization profile persistence validation", () => {
     authMocks.requireServerSession.mockReset()
     authMocks.resolveActiveOrganization.mockReset()
     authMocks.canEditOrganization.mockReset()
+  })
+
+  it.each(Object.entries(ORGANIZATION_CORE_DOCUMENT_SECTION_IDS))(
+    "saves the %s switch through canonical document status without losing content",
+    async (key, id) => {
+      const initial = updateRoadmapSection({ unrelated: "preserved" }, id, { content: "<p>Story</p>", status: "complete" }).nextProfile
+      const state = resolveCoreDocumentPublication(initial)
+      const save = prepareOrganizationSave(initial)
+      const result = await updateOrganizationProfileAction({ coreDocumentPublication: {
+        [key]: { lastUpdated: state[key as keyof typeof state].lastUpdated, status: "in_progress" },
+      } })
+      expect(result).toMatchObject({ ok: true, coreDocumentPublication: { [key]: { status: "in_progress" } } })
+      const stored = save.getUpdatedProfile()
+      expect(stored).toMatchObject({ unrelated: "preserved" })
+      expect(stored).not.toHaveProperty("coreDocumentPublication")
+      expect(resolveOrganizationCoreDocuments(stored)[key as keyof typeof state]).toBe("<p>Story</p>")
+      const publicKey = key === "need" ? "needStatement" : key
+      const visible = resolvePublicOrganizationProfileNarratives(stored)
+      expect(visible[publicKey as keyof typeof visible]).toBe("")
+      const next = resolveCoreDocumentPublication(stored)
+      const republish = prepareOrganizationSave(stored!)
+      expect(await updateOrganizationProfileAction({ coreDocumentPublication: {
+        [key]: { lastUpdated: next[key as keyof typeof next].lastUpdated, status: "complete" },
+      } })).toMatchObject({ ok: true })
+      expect(resolvePublicOrganizationProfileNarratives(republish.getUpdatedProfile())[publicKey as keyof typeof visible]).toBe("<p>Story</p>")
+    }
+  )
+
+  it("rejects a stale switch without overwriting another editor's document", async () => {
+    const initial = updateRoadmapSection({}, "origin_story", { content: "Newer story", status: "complete" }).nextProfile
+    const save = prepareOrganizationSave(initial)
+    expect(await updateOrganizationProfileAction({ coreDocumentPublication: {
+      originStory: { lastUpdated: null, status: "in_progress" },
+    } })).toMatchObject({ conflict: "originStory" })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("rejects invalid publication states and revisions", () => {
+    for (const entry of [{ status: "public", lastUpdated: null }, { status: "complete" }, { status: "complete", lastUpdated: 42 }]) {
+      expect(validateOrganizationProfilePersistencePatch({ coreDocumentPublication: { mission: entry } })).toMatchObject({ success: false, field: "coreDocumentPublication" })
+    }
+  })
+
+  it("preserves newer document status and text when saving an unrelated profile edit", async () => {
+    const original = updateRoadmapSection({}, "mission_vision_values", { content: "<p>Original</p>", status: "complete" }).nextProfile
+    const company = { name: "Before", mission: "<p>Original</p>", coreDocumentPublication: resolveCoreDocumentPublication(original) }
+    const newer = updateRoadmapSection(original, "mission_vision_values", { content: "<p>Newer draft</p>", status: "in_progress" }).nextProfile
+    const save = prepareOrganizationSave(newer)
+    expect(await updateOrganizationProfileAction(prepareCoreDocumentProfileSave({ ...company, name: "After" }, company))).toMatchObject({ ok: true })
+    expect(resolveCoreDocumentPublication(save.getUpdatedProfile()).mission.status).toBe("in_progress")
+    expect(resolveOrganizationCoreDocuments(save.getUpdatedProfile()).mission).toBe("<p>Newer draft</p>")
+  })
+
+  it("requires organization edit permission for publication switches", async () => {
+    const save = prepareOrganizationSave({})
+    authMocks.canEditOrganization.mockReturnValue(false)
+    expect(await updateOrganizationProfileAction({ coreDocumentPublication: { mission: { status: "complete", lastUpdated: null } } })).toEqual({ error: "Forbidden" })
+    expect(save.getUpdatedProfile()).toBeNull()
   })
 
   it.each([true, false])("immediately expires public reads after saving visibility %s", async (isPublic) => {
@@ -151,6 +220,7 @@ describe("organization profile persistence validation", () => {
       await updateOrganizationProfileAction({
         name: `  ${"R".repeat(120)}  `,
         formationStatus: "approved",
+        ein: "12-3456789",
       })
     ).toMatchObject({ ok: true })
     expect(save.getUpdatedProfile()).toMatchObject({
@@ -158,6 +228,41 @@ describe("organization profile persistence validation", () => {
       name: "R".repeat(120),
       formationStatus: "approved",
     })
+  })
+
+  it.each([undefined, "", "123", "letters"])("rejects approval without a valid EIN: %s", async (ein) => {
+    const save = prepareOrganizationSave({ formationStatus: "in_progress" })
+    const result = await updateOrganizationProfileAction({ formationStatus: "approved", ein })
+    expect(result).toMatchObject({ field: "ein", error: expect.any(String) })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("accepts approval with the stored canonical EIN", async () => {
+    const save = prepareOrganizationSave({}, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "approved" })).toMatchObject({ ok: true })
+    expect(save.getUpdatedProfile()).toMatchObject({ formationStatus: "approved" })
+  })
+
+  it("accepts a legacy profile EIN when the canonical column is empty", async () => {
+    prepareOrganizationSave({ ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "approved" })).toMatchObject({ ok: true })
+  })
+
+  it("rejects clearing an approved organization's EIN", async () => {
+    const save = prepareOrganizationSave({ formationStatus: "approved" }, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ ein: "" })).toMatchObject({ field: "ein" })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+
+  it("preserves unrelated saves for legacy approved profiles without an EIN", async () => {
+    prepareOrganizationSave({ formationStatus: "approved" })
+    expect(await updateOrganizationProfileAction({ tagline: "Updated tagline" })).toMatchObject({ ok: true })
+  })
+
+  it("allows switching away from approval without deleting a stored EIN", async () => {
+    const save = prepareOrganizationSave({ formationStatus: "approved", ein: "12-3456789" }, { ein: "12-3456789" })
+    expect(await updateOrganizationProfileAction({ formationStatus: "in_progress" })).toMatchObject({ ok: true })
+    expect(save.getUpdatedProfile()).toMatchObject({ formationStatus: "in_progress", ein: "12-3456789" })
   })
 
   it("accepts the complete Brand Kit and MVV persistence contract", () => {
@@ -337,5 +442,55 @@ describe("organization profile persistence validation", () => {
     expect(
       resolveOrganizationNarrativePlainText(updatedProfile, "mission")
     ).toBe("Updated mission")
+  })
+})
+
+describe("organization brand identity persistence", () => {
+  const orgId = "11111111-1111-4111-8111-111111111111"
+  async function kit() {
+    const { resolveWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    return resolveWorkspaceBrandIdentity({ name: "Test organization" })
+  }
+  it("saves a kit with a new revision and preserves unrelated data", async () => {
+    const save = prepareOrganizationSave({ unrelated: "retained" })
+    authMocks.resolveActiveOrganization.mockResolvedValue({ orgId, role: "owner" })
+    const result = await updateOrganizationProfileAction({ expectedOrganizationId: orgId, brandIdentity: await kit() })
+    expect(result).toMatchObject({ ok: true, brandIdentity: { revision: expect.any(String) } })
+    expect(save.getUpdatedProfile()).toMatchObject({ unrelated: "retained" })
+    expect(save.getUpdatedProfile()).not.toHaveProperty("brandIdentity")
+    expect(save.getSavedBrand()).toMatchObject({ draft: { organizationName: "Test organization" } })
+    expect(save.getUpdatedProfile()).not.toHaveProperty("expectedOrganizationId")
+  })
+  it("rejects stale organization context and stale kit revisions without writing", async () => {
+    const initial = { ...await kit(), revision: "22222222-2222-4222-8222-222222222222" }
+    const save = prepareOrganizationSave({}, { brandIdentity: initial })
+    authMocks.resolveActiveOrganization.mockResolvedValue({ orgId, role: "owner" })
+    expect(await updateOrganizationProfileAction({ brandIdentity: initial })).toHaveProperty("error")
+    expect(await updateOrganizationProfileAction({ expectedOrganizationId: orgId, brandIdentity: { ...initial, revision: null } })).toMatchObject({ error: expect.stringContaining("updated elsewhere") })
+    expect(save.getUpdatedProfile()).toBeNull()
+  })
+  it("rejects embedded files and malformed palette data", async () => {
+    const initial = await kit()
+    expect(validateOrganizationProfilePersistencePatch({ brandIdentity: { ...initial, assets: { "primary-logo": { url: "data:image/png;base64,invalid" } } } }).success).toBe(false)
+    expect(validateOrganizationProfilePersistencePatch({ brandIdentity: { ...initial, draft: { ...initial.draft, colors: [initial.draft.colors[0]] } } }).success).toBe(false)
+  })
+  it("verifies private file ownership, canonical metadata, and unavailable files", async () => {
+    const { prepareOrganizationBrandIdentitySave } = await import("@/lib/organization/brand-identity-persistence")
+    const fileId = "33333333-3333-4333-8333-333333333333"
+    const incoming = { ...await kit(), assets: { "primary-logo": { fileId, name: "Untrusted name", type: "image/png" as const, size: 1, updatedAt: "" } } }
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), then: vi.fn() }
+    const canonical = { id: fileId, name: "Original.svg", mime_type: "image/svg+xml", size_bytes: 200, updated_at: "2026-10-21T00:00:00Z", storage_path: `${orgId}/library/logo.svg` }
+    query.then.mockImplementation(resolve => resolve({ data: [canonical], error: null }))
+    const supabase = { from: vi.fn((table: string) => table === "organization_brand_kits"
+      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }
+      : query) } as never
+    const result = await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })
+    expect(query.eq).toHaveBeenCalledWith("org_id", orgId)
+    expect(query.is).toHaveBeenCalledWith("deleted_at", null)
+    expect(result).toMatchObject({ value: { assets: { "primary-logo": { name: "Original.svg", type: "image/svg+xml", size: 200 } } } })
+    query.then.mockImplementation(resolve => resolve({ data: [], error: null }))
+    expect(await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })).toHaveProperty("error")
+    query.then.mockImplementation(resolve => resolve({ data: [{ ...canonical, storage_path: "other-org/library/logo.svg" }], error: null }))
+    expect(await prepareOrganizationBrandIdentitySave({ supabase, orgId, incoming })).toHaveProperty("error")
   })
 })

@@ -10,10 +10,9 @@ export function useWorkspaceDrawerGuideState() {
   return useMemo(() => resolveWorkspaceDrawerGuideState(new URLSearchParams(search)), [search])
 }
 
-export function useWorkspaceDrawerGuide({ state, setOpen, setHasOpened, setTab, setSnap }: {
+export function useWorkspaceDrawerGuide({ state, setOpen, setTab, setSnap }: {
   state: ReturnType<typeof resolveWorkspaceDrawerGuideState>
   setOpen: (open: boolean) => void
-  setHasOpened: (opened: boolean) => void
   setTab: (tab: "people" | "accelerator" | "organization") => void
   setSnap: (snap: number | string) => void
 }) {
@@ -21,8 +20,7 @@ export function useWorkspaceDrawerGuide({ state, setOpen, setHasOpened, setTab, 
     if (!state) return
     // Set both values before mounting Vaul; tour navigation must not save preferences.
     setOpen(true)
-    setHasOpened(true)
     setTab(state.tab)
     setSnap(state.snapPoint)
-  }, [state, setOpen, setHasOpened, setTab, setSnap])
+  }, [state, setOpen, setTab, setSnap])
 }

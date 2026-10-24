@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import Maximize2Icon from "lucide-react/dist/esm/icons/maximize-2"
 import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
@@ -16,8 +17,8 @@ import {
   type NodeTypes,
   type ReactFlowInstance,
   useNodesState,
-} from "reactflow"
-import "reactflow/dist/style.css"
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 
 import { Button } from "@/components/ui/button"
 
@@ -74,7 +75,7 @@ function shouldPreventUserJourneyAtlasTouchZoom(touchCount: number) {
 function UserJourneyFlowNode({
   data,
   isConnectable,
-}: NodeProps<UserJourneyFlowNodeData>) {
+}: NodeProps<ReactFlowNode<UserJourneyFlowNodeData>>) {
   const { node } = data
 
   return (
@@ -207,10 +208,10 @@ function buildUserJourneyFlowEdges(input: UserJourneyAtlasInput): Edge[] {
 
 export function UserJourneyAtlasPanel({ input }: UserJourneyAtlasPanelProps) {
   const surfaceRef = useRef<HTMLElement | null>(null)
-  const flowInstanceRef = useRef<ReactFlowInstance | null>(null)
+  const flowInstanceRef = useRef<ReactFlowInstance<ReactFlowNode<UserJourneyFlowNodeDataByType>> | null>(null)
   const initialNodes = useMemo(() => buildUserJourneyFlowNodes(input), [input])
   const [nodes, setNodes, onNodesChange] =
-    useNodesState<UserJourneyFlowNodeDataByType>(initialNodes)
+    useNodesState<ReactFlowNode<UserJourneyFlowNodeDataByType>>(initialNodes)
   const edges = useMemo(() => buildUserJourneyFlowEdges(input), [input])
 
   useEffect(() => {
@@ -258,7 +259,7 @@ export function UserJourneyAtlasPanel({ input }: UserJourneyAtlasPanelProps) {
     void flowInstanceRef.current?.fitView(USER_JOURNEY_ATLAS_FIT_VIEW_OPTIONS)
   }, [])
 
-  const handleFlowInit = useCallback((instance: ReactFlowInstance) => {
+  const handleFlowInit = useCallback((instance: ReactFlowInstance<ReactFlowNode<UserJourneyFlowNodeDataByType>>) => {
     flowInstanceRef.current = instance
     window.requestAnimationFrame(() => {
       void instance.fitView(USER_JOURNEY_ATLAS_FIT_VIEW_OPTIONS)

@@ -32,10 +32,7 @@ import {
   resolveWorkspaceTutorialPresentationFrameOverflowClass,
   resolveWorkspaceTutorialPresentationSlotClass,
 } from "./workspace-canvas-tutorial-panel-layout"
-import {
-  getWorkspaceTutorialPanelOwnerProps,
-  getWorkspaceTutorialPanelSurfaceProps,
-} from "./workspace-canvas-tutorial-panel-react-grab"
+
 import { WorkspaceTutorialPresentationSkeleton } from "./workspace-canvas-tutorial-panel-skeleton"
 import { resolveWorkspaceTutorialPresentationHandoffDelayMs, resolveWorkspaceTutorialPresentationMotionPreset, resolveWorkspaceTutorialPresentationTransitionKey, shouldWorkspaceTutorialAnimateInitialPresentation, type WorkspaceTutorialPresentationMotionPreset } from "./workspace-canvas-tutorial-panel-motion"
 
@@ -211,11 +208,7 @@ function WorkspaceTutorialPresentationFrame({
 
   return (
     <div
-      {...getWorkspaceTutorialPanelSurfaceProps({
-        stepId,
-        slot: "presentation-shell",
-        surfaceKind: "root",
-      })}
+
       className={cn(
         "grid min-h-0 justify-items-center overflow-visible",
         presentationSurface.heightMode === "fill"
@@ -226,11 +219,7 @@ function WorkspaceTutorialPresentationFrame({
     >
       <AnimatePresence initial={animateInitialPresentation} mode="wait">
         <motion.div
-          {...getWorkspaceTutorialPanelSurfaceProps({
-            stepId,
-            slot: "presentation-frame",
-            surfaceKind: "content",
-          })}
+
           key={presentationKey ?? stepId}
           data-workspace-tutorial-mask-for={presentationSurface.cardId}
           initial={presentationFrameMotion.initial}
@@ -266,11 +255,7 @@ function WorkspaceTutorialPresentationFrame({
           />
           <div
             key="presentation-card-content"
-            {...getWorkspaceTutorialPanelSurfaceProps({
-              stepId,
-              slot: "presentation-card-content",
-              surfaceKind: "content",
-            })}
+
             data-workspace-tutorial-card-content
             className="relative flex justify-center"
             style={{
@@ -394,7 +379,7 @@ export function WorkspaceCanvasTutorialPanel({
   return (
     <div className="pointer-events-none relative h-full w-full">
         <Card
-          {...getWorkspaceTutorialPanelOwnerProps(step.id)}
+
           data-workspace-tutorial-shell
           className={cn(
           "border-border/70 nopan pointer-events-auto mx-auto flex w-full min-h-0 flex-col overflow-hidden rounded-[30px] border bg-transparent !shadow-none",
@@ -487,12 +472,7 @@ export function WorkspaceCanvasTutorialPanel({
         </CardHeader>
 
         <CardContent
-          {...getWorkspaceTutorialPanelSurfaceProps({
-            stepId: step.id,
-            slot: "card-content",
-            surfaceKind: "content",
-            primitiveImport: "@/components/ui/card",
-          })}
+
           className={cn(
             "relative min-h-0 overflow-hidden rounded-b-[28px] bg-background/70 px-0 py-0 supports-[backdrop-filter]:bg-background/28 backdrop-blur-[26px] dark:bg-background/38 dark:supports-[backdrop-filter]:bg-background/20",
             fillPresentationSurface ? "flex-1" : "flex-none",
@@ -501,11 +481,7 @@ export function WorkspaceCanvasTutorialPanel({
           )}
         >
           <div
-            {...getWorkspaceTutorialPanelSurfaceProps({
-              stepId: step.id,
-              slot: "body-shell",
-              surfaceKind: "root",
-            })}
+
             className={cn(
               "relative flex min-h-0 flex-col overflow-hidden border-t border-white/10 dark:border-white/6",
               fillPresentationSurface ? "h-full" : "h-auto",
@@ -517,11 +493,7 @@ export function WorkspaceCanvasTutorialPanel({
               className="pointer-events-none absolute inset-x-4 top-0 h-px bg-white/18 blur-[0.2px] dark:bg-white/10"
             />
             <div
-              {...getWorkspaceTutorialPanelSurfaceProps({
-                stepId: step.id,
-                slot: "body-grid",
-                surfaceKind: "root",
-              })}
+
               className={cn(
                 resolveWorkspaceTutorialBodyGridClass({
                   presentationSurface,
@@ -568,11 +540,7 @@ export function WorkspaceCanvasTutorialPanel({
 
             {presentationSurface && presentationContent ? (
               <div
-                {...getWorkspaceTutorialPanelSurfaceProps({
-                  stepId: step.id,
-                  slot: "presentation-slot",
-                  surfaceKind: "root",
-                })}
+
                 className={cn(
                   resolveWorkspaceTutorialPresentationSlotClass({
                     presentationSurface,

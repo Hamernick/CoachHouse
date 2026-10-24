@@ -122,6 +122,6 @@ export const BRAND_FONT_OPTIONS = BRAND_FONT_GROUPS.reduce<BrandFontOption[]>(
 export function brandFontStack(value: string) {
   return (
     BRAND_FONT_OPTIONS.find((option) => option.value === value)?.stack ??
-    BRAND_FONT_OPTIONS[0].stack
+    `${JSON.stringify(value)}, ${BRAND_FONT_OPTIONS[0].stack}`
   )
 }

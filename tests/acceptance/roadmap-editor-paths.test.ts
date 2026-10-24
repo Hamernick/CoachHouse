@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { listenForWorkspaceRoadmapDrawerRequests, requestWorkspaceRoadmapDrawer } from "@/lib/workspace/data-drawer-events"
+import { listenForWorkspaceAcceleratorDrawerRequests, requestWorkspaceAcceleratorDrawer, listenForWorkspaceRoadmapDrawerRequests, requestWorkspaceRoadmapDrawer } from "@/lib/workspace/data-drawer-events"
 import { getDocumentEditorHref, getOrganizationLaunchReturnHref, resolveEditorReturnDestination, withEditorReturnTo } from "@/lib/workspace/editor-navigation"
 
 import { resolveRoadmapBasePath } from "@/components/roadmap/roadmap-editor/paths"
@@ -58,6 +58,32 @@ describe("editor return links", () => {
 
 describe("roadmap drawer navigation", () => {
   afterEach(() => vi.unstubAllGlobals())
+
+  it("opens the Accelerator window without changing pages and preserves the current canvas", () => {
+    const browser = Object.assign(new EventTarget(), {
+      location: { href: "https://workspace.local/workspace?canvas=board&drawer=documents&step=old&guide=1" },
+      history: { pushState: vi.fn() },
+    })
+    vi.stubGlobal("window", browser)
+    const opened = vi.fn(() => true)
+    const dispose = listenForWorkspaceAcceleratorDrawerRequests(opened)
+    expect(requestWorkspaceAcceleratorDrawer("module-1")).toBe(true)
+    expect(opened).toHaveBeenCalledWith("module-1")
+    expect(browser.history.pushState).toHaveBeenCalledWith(null, "", "/workspace?canvas=board&drawer=accelerator&module=module-1")
+    dispose()
+    browser.history.pushState.mockClear()
+    expect(requestWorkspaceAcceleratorDrawer("module-1")).toBe(false)
+    expect(browser.history.pushState).not.toHaveBeenCalled()
+  })
+
+  it("leaves Notes open when the workspace cannot resolve the associated lesson", () => {
+    const browser = Object.assign(new EventTarget(), { history: { pushState: vi.fn() } })
+    vi.stubGlobal("window", browser)
+    const dispose = listenForWorkspaceAcceleratorDrawerRequests(() => false)
+    expect(requestWorkspaceAcceleratorDrawer("missing-module")).toBe(false)
+    expect(browser.history.pushState).not.toHaveBeenCalled()
+    dispose()
+  })
 
   it("records a copyable section URL and a concrete Accelerator return destination", () => {
     const browser = Object.assign(new EventTarget(), {

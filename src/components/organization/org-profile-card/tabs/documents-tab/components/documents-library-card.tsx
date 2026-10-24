@@ -11,6 +11,8 @@ import {
   IconTrash,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { ParticleDocumentLibrarySource } from "@/features/workspace-particles/client"
+import { documentParticleReference } from "./documents-particle-reference"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,7 +76,7 @@ export function DocumentsLibraryCard({
   const drop = useDocumentSlotDrop(onDropFile)
   const dropDescriptionId = useId()
   const cardDate = formatCardDate(item.deletedAt ?? item.updatedAt)
-  return (
+  const card = (
     <article
       {...(missingUpload ? drop.handlers : {})}
       data-document-id={item.id}
@@ -88,12 +90,13 @@ export function DocumentsLibraryCard({
         missingUpload &&
           "hover:bg-muted/40 dark:hover:bg-muted/40 bg-transparent ring-0 hover:shadow-none dark:bg-transparent",
         viewMode === "list" &&
-          "aspect-auto min-h-20 flex-row items-center gap-3 rounded-2xl px-4 pr-24 sm:min-h-20"
+          "aspect-auto min-h-20 flex-row items-center gap-3 rounded-2xl px-4 pr-24 sm:min-h-20 group-data-[can-add-to-canvas=true]/document-source:pr-36"
       )}
     >
       {actions}
       <Button
         type="button"
+        data-particle-drag-surface="true"
         variant="ghost"
         className={cn(
           "absolute inset-0 z-0 h-auto w-auto rounded-xl border-2 border-transparent p-0 hover:bg-transparent focus-visible:ring-2",
@@ -297,5 +300,14 @@ export function DocumentsLibraryCard({
         </Button>
       ) : null}
     </article>
+  )
+  return (
+    <ParticleDocumentLibrarySource
+      document={documentParticleReference(item)}
+      layout={viewMode}
+      disabled={pending || uploading || selecting}
+    >
+      {card}
+    </ParticleDocumentLibrarySource>
   )
 }

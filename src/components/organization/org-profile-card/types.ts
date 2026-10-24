@@ -1,3 +1,5 @@
+import type { OrganizationBrandIdentity } from "@/lib/organization/brand-identity-schema"
+import type { CoreDocumentPublication } from "@/lib/roadmap/core-document-publication"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { OrganizationNarrativeRevisions } from "@/lib/roadmap"
 
@@ -25,6 +27,8 @@ export type BrandTypographyConfig = {
 }
 
 export type OrgProfile = {
+  brandIdentity?: OrganizationBrandIdentity
+  expectedOrganizationId?: string
   name?: string | null
   description?: string | null
   tagline?: string | null
@@ -77,6 +81,7 @@ export type OrgProfile = {
   brandTypography?: BrandTypographyConfig | null
   publicSlug?: string | null
   isPublic?: boolean | null
+  coreDocumentPublication?: CoreDocumentPublication
   narrativeRevisions?: OrganizationNarrativeRevisions
 }
 
@@ -134,7 +139,7 @@ export type OrgProgram = {
   wizard_snapshot?: Record<string, unknown> | null
 }
 
-export type ProfileTab = "company" | "programs" | "people" | "supporters"
+export type ProfileTab = "company" | "programs" | "people" | "supporters" | "brand-kit"
 
 export type SlugStatus = {
   available: boolean
@@ -153,4 +158,6 @@ export interface OrgProfileCardProps {
   initialProgramStep?: number | null
   initialFocus?: string | null
   initialEditMode?: boolean
+  navigationRequestId?: number
+  onProgramEditorOpenChange?: (open: boolean) => void
 }

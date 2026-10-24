@@ -3,7 +3,6 @@
 import { PUBLIC_MAP_GROUP_LABELS } from "@/lib/public-map/groups"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
 import { cn } from "@/lib/utils"
-import { buildPublicMapOrganizationListCardSurfaceProps } from "./react-grab"
 
 export const PUBLIC_MAP_LIST_CARD_PERF_STYLE = {
   contentVisibility: "auto",
@@ -66,15 +65,11 @@ export function PublicMapListMetadataStrip({
   className,
   itemKeyPrefix,
   items,
-  notes,
-  ownerId,
   query,
 }: {
   className?: string
   itemKeyPrefix: string
   items: string[]
-  notes: string
-  ownerId: string
   query?: string
 }) {
   return (
@@ -84,19 +79,11 @@ export function PublicMapListMetadataStrip({
         "text-muted-foreground mt-0.5 flex max-w-full items-center gap-2 text-sm leading-snug",
         className
       )}
-      {...buildPublicMapOrganizationListCardSurfaceProps({
-        ownerId,
-        slot: "meta-row",
-        notes,
-      })}
+
     >
       <div
         className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5"
-        {...buildPublicMapOrganizationListCardSurfaceProps({
-          ownerId,
-          slot: "location",
-          notes,
-        })}
+
       >
         {items.map((item, index) => (
           <span

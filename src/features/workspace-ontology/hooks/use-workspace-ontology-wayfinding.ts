@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef } from "react"
-import type { ReactFlowInstance } from "reactflow"
+import type { ReactFlowInstance } from "@xyflow/react"
 
 import type { WorkspaceOntologyMode, WorkspaceOntologyRootId } from "../types"
 

@@ -1,0 +1,48 @@
+.objective {
+  --tree-line: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+  position: relative;
+  min-width: 0;
+}
+.objectiveHeader, .planHeader { position: relative; }
+.objective + .objective > .objectiveHeader::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: -4px;
+  width: 2px;
+  height: calc(50% - 5px);
+  background: var(--tree-line);
+  pointer-events: none;
+}
+.objective[data-state="open"] > .objectiveHeader::after,
+.objective:not(:last-child) > .objectiveHeader::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  bottom: 0;
+  width: 2px;
+  height: calc(50% - 9px);
+  background: var(--tree-line);
+  pointer-events: none;
+}
+.branch {
+  margin-left: 16px;
+  padding-left: 14px;
+  border-left: 2px solid var(--tree-line);
+}
+.plan { position: relative; min-width: 0; padding-block: 3px; }
+.planHeader::before, .member::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 0;
+  width: 24px;
+  height: calc(50% + 1px);
+  border-left: 2px solid var(--tree-line);
+  border-bottom: 2px solid var(--tree-line);
+  border-bottom-left-radius: 10px;
+  pointer-events: none;
+}
+.member { position: relative; min-width: 0; }
+.proposal { border-left: 2px solid var(--primary); padding-left: 10px; margin-block: 6px; }
+.proposal > .planHeader::before { left: -28px; width: 36px; }

@@ -7,7 +7,7 @@ import {
   useState,
   type MutableRefObject,
 } from "react"
-import type { OnMoveEnd, ReactFlowInstance } from "reactflow"
+import type { OnMoveEnd, ReactFlowInstance } from "@xyflow/react"
 
 import {
   normalizeWorkspaceCanvasViewportPreference,
@@ -27,12 +27,14 @@ export function useWorkspaceCanvasViewportPreferences({
   flowInstanceRef,
   isFlowReady,
   orgId,
+  workspaceCanvasId,
   tutorialActive,
   viewerId,
 }: {
   flowInstanceRef: MutableRefObject<ReactFlowInstance | null>
   isFlowReady: boolean
   orgId: string
+  workspaceCanvasId?: string
   tutorialActive: boolean
   viewerId: string
 }) {
@@ -40,8 +42,9 @@ export function useWorkspaceCanvasViewportPreferences({
     () => ({
       orgId,
       viewerId,
+      workspaceCanvasId,
     }),
-    [orgId, viewerId]
+    [orgId, viewerId, workspaceCanvasId]
   )
   const [canvasViewportPreferenceState, setCanvasViewportPreferenceState] =
     useState<WorkspaceCanvasViewportPreferenceState>({

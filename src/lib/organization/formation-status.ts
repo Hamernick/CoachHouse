@@ -36,3 +36,13 @@ export function resolveFormationStatusOption(value: unknown) {
   if (!isFormationStatus(value)) return null
   return FORMATION_STATUS_LOOKUP.get(value) ?? null
 }
+
+export function getApprovedFormationEinError(status: unknown, ein: unknown): string | null {
+  if (status !== "approved") return null
+  if (typeof ein !== "string" || !ein.trim()) {
+    return "Enter an EIN to save an approved organization."
+  }
+  return /^[0-9]{2}-?[0-9]{7}$/.test(ein.trim())
+    ? null
+    : "EIN must be 9 digits (e.g., 12-3456789)"
+}

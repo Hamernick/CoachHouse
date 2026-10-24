@@ -1,0 +1,296 @@
+/* Rhea reference: compact, filled controls and rounded geometry. Scoped to
+ * editor fields; canvas cards and their drag previews keep their shared skin. */
+.editor {
+  container: particle-editor / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  gap: 0;
+}
+
+.form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+  scrollbar-gutter: stable;
+}
+
+.fields :global([data-slot="field"]) {
+  min-width: 0;
+  gap: 0.375rem;
+}
+
+.fields :global([data-slot="field-label"]),
+.fields :global([data-slot="field-legend"]) {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.fields :global([data-slot="field-label"]) {
+  padding-block: 0.125rem;
+}
+
+.fields :global(:where([data-slot="input"]:not([type="color"]):not([type="file"]))),
+.fields :global(:where([data-slot="select-trigger"])) {
+  height: 2rem;
+  min-height: 2rem;
+  padding-inline: 0.75rem;
+  border-color: transparent;
+  border-radius: var(--particle-editor-field-radius, 1rem);
+  background: color-mix(in oklch, var(--input) 50%, transparent);
+  font-size: 0.875rem;
+  box-shadow: none;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.fields :global(:where([data-slot="textarea"])) {
+  padding: 0.75rem;
+  border-color: transparent;
+  border-radius: var(--particle-editor-field-radius, 0.875rem);
+  background: color-mix(in oklch, var(--input) 50%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  box-shadow: none;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.fields :global([aria-invalid="true"]) {
+  border-color: var(--destructive);
+}
+
+.identity,
+.details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.details:empty {
+  display: none;
+}
+
+.collectionItem {
+  --particle-editor-field-radius: 0.75rem;
+  border-radius: 1.5rem;
+  padding: 0.75rem;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+}
+
+.description :global(textarea) {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.fields .property {
+  display: grid;
+  grid-template-columns: minmax(4rem, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.property :global([data-slot="select-trigger"]) {
+  width: auto;
+  min-width: 9rem;
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  background: var(--background);
+}
+
+.feedback {
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.feedback:empty {
+  display: none;
+}
+
+.submit,
+.rowAction {
+  height: 2rem;
+  min-height: 2rem;
+  flex-shrink: 0;
+  border-radius: 1rem;
+  box-shadow: none;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.submit {
+  margin-inline-start: auto;
+}
+
+.rowAction {
+  width: 2rem;
+}
+
+
+
+.presetLayout {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.presetSurface {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  margin: 0 0.75rem 0.75rem;
+  overflow: hidden;
+}
+
+.presetFields {
+  flex: none;
+  overflow: visible;
+  padding: 0 0 0.75rem;
+  scrollbar-gutter: auto;
+}
+
+.preview {
+  width: 100%;
+  max-width: 32rem;
+  min-width: 0;
+}
+
+@container particle-editor (max-width: 20rem) {
+  .fields .property {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+  }
+  .property :global([data-slot="select-trigger"]) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  .fields :global([data-slot="input"]:not([type="color"])),
+  .fields :global([data-slot="select-trigger"]) {
+    height: auto;
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+  .fields :global([data-slot="textarea"]) {
+    font-size: 1rem;
+  }
+  .submit,
+  .rowAction {
+    min-height: 2.75rem;
+  }
+  .rowAction {
+    width: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor :global(input),
+  .editor :global(textarea),
+  .editor :global(button) {
+    transition: none;
+  }
+}
+
+/* Editable rows share the compact, soft pill treatment of workbench badges.
+ * Input targets remain 32px desktop / 44px touch, independent of text size. */
+.presetFields {
+  gap: 0;
+}
+
+.presetFields > :global([data-slot="field"]),
+.optionalDetails {
+  padding-block: 0.625rem;
+}
+
+.presetFields > :global([data-slot="field"]) + :global([data-slot="field"]) {
+  border-top: 1px dashed color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+.presetFields :global([data-slot="input"]),
+.presetFields :global([data-slot="textarea"]) {
+  background: color-mix(in oklch, var(--background) 75%, transparent);
+}
+
+.presetFields :global(input):hover,
+.presetFields :global(textarea):hover {
+  background: var(--background);
+}
+
+.presetFields .titleInput {
+  height: 2.5rem;
+  padding-inline: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.optionalDetails {
+  min-width: 0;
+}
+
+.detailTrigger {
+  height: 2rem;
+  border-radius: 999px;
+}
+
+.descriptionContent {
+  padding-top: 0.5rem;
+}
+
+.longProperty {
+  min-width: 0;
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  .presetFields .titleInput,
+  .detailTrigger {
+    min-height: 2.75rem;
+  }
+}
+
+.formFields .titleInput,
+.formFields :global(textarea) {
+  border-color: var(--input);
+  box-shadow: none;
+}
+.formFields :global([aria-invalid="true"]) {
+  border-color: var(--destructive);
+}
+.formHeaderAction {
+  height: 1.75rem;
+  padding-inline: 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+@media (pointer: coarse) {
+  .formHeaderAction { min-height: 2.75rem; }
+}

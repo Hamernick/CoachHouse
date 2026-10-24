@@ -4,6 +4,12 @@ import type { ReactNode } from "react"
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import {
+  WorkspaceNodeFrameRoot,
+  WorkspaceNodeFrameBody,
+  WorkspaceNodeFrameFooter,
+} from "@/components/workspace/workspace-node-frame"
+import { WORKSPACE_PARTICLE_CHROME } from "@/components/workspace/workspace-particle-chrome"
 
 import { WORKSPACE_CARD_LAYOUT_SYSTEM } from "./workspace-board-card-layout-system"
 import { WorkspaceBoardCardHeader } from "./workspace-board-card-header"
@@ -32,8 +38,11 @@ export function WorkspaceBoardNodeCardShell({
   onEditorOpen,
   menuActions = [],
   shellInsetClassName = "p-3",
+  compact = false,
   shellClassName,
   contentClassName,
+  contentInsetClassName,
+  contentPanelClassName,
   contentSurface = "default",
   footer,
   footerClassName,
@@ -55,8 +64,11 @@ export function WorkspaceBoardNodeCardShell({
   onEditorOpen?: () => void
   menuActions?: WorkspaceCardOverflowAction[]
   shellInsetClassName?: string
+  compact?: boolean
   shellClassName?: string
   contentClassName?: string
+  contentInsetClassName?: string
+  contentPanelClassName?: string
   contentSurface?: "default" | "plain"
   footer?: ReactNode
   footerClassName?: string
@@ -69,14 +81,18 @@ export function WorkspaceBoardNodeCardShell({
     cardId,
     isCanvasFullscreen,
   })
+  const Root = compact ? WorkspaceNodeFrameRoot : Card
+  const Body = compact ? WorkspaceNodeFrameBody : CardContent
+  const Footer = compact ? WorkspaceNodeFrameFooter : CardFooter
 
   return (
-    <Card
+    <Root
       data-workspace-card={cardId}
       style={canvasShellStyle}
       className={cn(
-        "border-border/60 bg-muted relative w-full max-w-[42rem] rounded-[2rem] shadow-sm",
-        shellInsetClassName,
+        "border-border/60 bg-muted relative w-full max-w-[42rem]",
+        compact ? WORKSPACE_PARTICLE_CHROME.root : "rounded-[2rem] shadow-sm",
+        !compact && shellInsetClassName,
         resolveWorkspaceCardCanvasShellClassName({
           size,
           cardId,
@@ -100,24 +116,29 @@ export function WorkspaceBoardNodeCardShell({
         isCanvasFullscreen={isCanvasFullscreen}
         onToggleCanvasFullscreen={onToggleCanvasFullscreen}
         surface="card"
+        compact={compact}
       />
-      <CardContent
+      <Body
         className={cn(
-          contentSurface === "plain" ? "px-3" : "px-0",
-          contentSurface === "plain" || !footer ? "pb-3" : "pb-0"
+          compact ? "px-0 pb-0" : contentSurface === "plain" ? "px-3" : "px-0",
+          !compact && (contentSurface === "plain" || !footer ? "pb-3" : "pb-0"),
+          contentInsetClassName
         )}
       >
         <div
           className={cn(
-            contentSurface === "plain"
-              ? "mx-0 p-0"
-              : "bg-background border-border/60 mx-3 rounded-[1.45rem] border p-3",
-            isCanvasFullscreen && "overflow-y-auto"
+            compact && contentSurface !== "plain"
+              ? WORKSPACE_PARTICLE_CHROME.body
+              : contentSurface === "plain"
+                ? "mx-0 p-0"
+                : "bg-background border-border/60 mx-3 rounded-[1.45rem] border p-3",
+            isCanvasFullscreen && "overflow-y-auto",
+            contentPanelClassName
           )}
         >
           <div
             className={cn(
-              "nodrag nopan flex flex-col",
+              "nopan flex flex-col",
               WORKSPACE_CARD_LAYOUT_SYSTEM.flexColumn,
               presentationMode && "px-0 pt-0 pb-0",
               contentClassName
@@ -126,17 +147,20 @@ export function WorkspaceBoardNodeCardShell({
             {children}
           </div>
         </div>
-      </CardContent>
+      </Body>
       {footer ? (
-        <CardFooter
+        <Footer
           className={cn(
-            "nodrag nopan items-center justify-between gap-3 px-3 py-3",
+            "nopan items-center",
+            compact
+              ? WORKSPACE_PARTICLE_CHROME.footer
+              : "justify-between gap-3 px-3 py-3",
             footerClassName
           )}
         >
           {footer}
-        </CardFooter>
+        </Footer>
       ) : null}
-    </Card>
+    </Root>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, type MutableRefObject } from "react"
-import type { ReactFlowInstance } from "reactflow"
+import type { ReactFlowInstance } from "@xyflow/react"
 
 import { WORKSPACE_CANVAS_EVENTS } from "../contracts/workspace-canvas-events"
 import { logWorkspaceCanvasEvent } from "./workspace-canvas-logger"

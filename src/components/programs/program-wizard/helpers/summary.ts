@@ -23,10 +23,10 @@ export function summaryText(form: ProgramWizardFormState) {
   const feasibility = computeFeasibility(form)
 
   return [
-    `Activity Brief: ${form.title.trim() || "Untitled activity"}`,
+    `Resource Brief: ${form.title.trim() || "Untitled resource"}`,
     ``,
     `Summary: ${form.oneSentence.trim() || "Not set"}`,
-    `Activity type: ${form.objectKind}`,
+    `Resource type: ${form.objectKind}`,
     `Public benefit focus: ${form.programType}`,
     `Delivery: ${form.coreFormat}${form.formatAddons.length > 0 ? ` + ${form.formatAddons.join(", ")}` : ""}`,
     ``,

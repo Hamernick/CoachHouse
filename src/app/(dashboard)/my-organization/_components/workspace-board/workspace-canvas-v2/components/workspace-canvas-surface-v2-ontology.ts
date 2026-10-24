@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { MarkerType, type Edge, type Node } from "reactflow"
+import { MarkerType, type Edge, type Node } from "@xyflow/react"
 
 import {
   resolveWorkspaceOntologyNodeActivation,

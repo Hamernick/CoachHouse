@@ -4,7 +4,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
 import type { Step } from "../types"
@@ -52,12 +52,7 @@ export function StepHeader({
           )}
         </div>
         <Progress
-          {...getReactGrabOwnerProps({
-            ownerId: "onboarding:progress",
-            component: "StepHeader",
-            source: "src/components/onboarding/onboarding-dialog/components/step-header.tsx",
-            slot: "progress",
-          })}
+
           value={progress}
           aria-label="Setup progress"
           aria-valuenow={progress}

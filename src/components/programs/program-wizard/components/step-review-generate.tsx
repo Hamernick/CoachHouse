@@ -23,7 +23,7 @@ export function StepReviewGenerate({
       <article className="space-y-4 rounded-xl border p-4">
         <div>
           <h3 className="text-lg font-semibold">
-            {form.title || "Untitled activity"}
+            {form.title || "Untitled resource"}
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
             {form.oneSentence ||
@@ -34,7 +34,7 @@ export function StepReviewGenerate({
         <Separator />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <SummaryBlock label="Activity type" value={form.objectKind} />
+          <SummaryBlock label="Resource type" value={form.objectKind} />
           <SummaryBlock label="Public benefit focus" value={form.programType} />
           <SummaryBlock
             label="Format"
@@ -98,7 +98,7 @@ export function StepReviewGenerate({
       </article>
 
       <aside className="bg-muted/25 space-y-3 rounded-xl border p-4">
-        <h3 className="text-sm font-semibold">Activity brief actions</h3>
+        <h3 className="text-sm font-semibold">Resource brief actions</h3>
         <Button
           type="button"
           variant="outline"

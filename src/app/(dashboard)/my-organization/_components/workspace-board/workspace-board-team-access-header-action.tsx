@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { PaywallOverlay } from "@/components/paywall/paywall-overlay"
 import { HeaderActionsPortal } from "@/components/header-actions-portal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,6 +12,7 @@ import { WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME } from "@/components/works
 import { cn } from "@/lib/utils"
 
 import { useWorkspaceBoardOrganizationAccessState } from "./workspace-board-organization-access-state"
+import { WorkspaceSidebarInviteBridge } from "./workspace-sidebar-invite-bridge"
 import { WorkspaceBoardTeamAccessHoverCard } from "./workspace-board-team-access-hover-card"
 import {
   buildWorkspaceAccessPeople,
@@ -27,20 +27,6 @@ import type {
   WorkspaceMemberOption,
 } from "./workspace-board-types"
 import { WorkspaceTutorialCallout } from "./workspace-tutorial-callout"
-
-const WORKSPACE_TEAM_ACCESS_HEADER_ACTION_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-team-access-header-action.tsx"
-
-const WORKSPACE_TEAM_ACCESS_TRIGGER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-board:team-access-header-action",
-  component: "WorkspaceBoardTeamAccessHeaderAction",
-  source: WORKSPACE_TEAM_ACCESS_HEADER_ACTION_SOURCE,
-  slot: "trigger",
-  canonicalOwnerSource: WORKSPACE_TEAM_ACCESS_HEADER_ACTION_SOURCE,
-  canonicalOwnerReason:
-    "The workspace owns the team-access data and its shell-level header trigger.",
-  primitiveImport: "@/components/ui/hover-card",
-})
 
 type WorkspaceBoardTeamAccessHeaderActionProps = {
   canInvite: boolean
@@ -157,14 +143,14 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
 
   const trigger = (
     <Button
-      {...WORKSPACE_TEAM_ACCESS_TRIGGER_PROPS}
+
       ref={triggerRef}
       onClick={requiresUpgrade ? () => setUpgradeOpen(true) : undefined}
       aria-haspopup={requiresUpgrade ? "dialog" : undefined}
       type="button"
       variant="ghost"
       size="sm"
-      className="border-border/65 bg-card hover:bg-muted/20 mr-2 h-9 max-w-[13rem] min-w-0 rounded-full border px-2 py-1 text-left transition-colors"
+      className="border-border/65 bg-card hover:bg-muted/20 mr-2 h-9 max-w-[13rem] min-w-0 rounded-full border py-1 pr-2 pl-1 text-left transition-colors"
       aria-label={`Team access. ${summaryText}. ${realtimeLabel}.`}
     >
       <span className="flex min-w-0 items-center">
@@ -240,7 +226,7 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
             <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
           </TooltipTrigger>
           <WorkspaceTutorialCallout
-            reactGrabOwnerId="workspace-board-team-access-header-action:callout"
+            calloutId="workspace-board-team-access-header-action:callout"
             title={tutorialCallout.title}
             instruction={tutorialCallout.instruction}
             side="bottom"
@@ -278,8 +264,11 @@ export function WorkspaceBoardTeamAccessHeaderAction(
   props: WorkspaceBoardTeamAccessHeaderActionProps
 ) {
   return (
-    <HeaderActionsPortal slot="right">
-      <WorkspaceBoardTeamAccessHeaderActionContent {...props} />
-    </HeaderActionsPortal>
+    <>
+      <HeaderActionsPortal slot="right">
+        <WorkspaceBoardTeamAccessHeaderActionContent {...props} />
+      </HeaderActionsPortal>
+      <WorkspaceSidebarInviteBridge {...props} />
+    </>
   )
 }

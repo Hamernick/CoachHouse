@@ -1,8 +1,16 @@
 "use client"
 
+import { useRef } from "react"
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
+import ImagePlus from "lucide-react/dist/esm/icons/image-plus"
+import { cn } from "@/lib/utils"
+import {
+  WorkspaceWindowHeaderPortal,
+  useWorkspaceWindowHeader,
+  WORKSPACE_HEADER_BUTTON,
+} from "@/components/workspace/workspace-window-header-slots"
 import Link from "next/link"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
-import PencilLine from "lucide-react/dist/esm/icons/pencil-line"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +25,8 @@ import {
   ORG_BANNER_MIN_DIMENSIONS_LABEL,
   ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL,
 } from "@/lib/organization/banner-spec"
+
+const IMAGE_ACTION_BUTTON_CLASS = "relative size-7 rounded-full border-border/70 bg-card/95 p-0 shadow-none backdrop-blur-sm dark:bg-card/95 dark:hover:bg-muted after:absolute after:-inset-2"
 
 type OrgProfileHeaderBannerControlsProps = {
   canEdit: boolean
@@ -41,12 +51,23 @@ export function OrgProfileHeaderBannerControls({
   onAdjustHeader,
   onRemoveHeader,
 }: OrgProfileHeaderBannerControlsProps) {
-  if (!canEdit || !editMode) return null
+  const inputRef = useRef<HTMLInputElement>(null)
+  if (!canEdit) return null
 
   return (
-    <>
-      <div className="absolute right-4 top-4 flex items-center gap-2">
+    <div
+      aria-hidden={!editMode}
+      inert={!editMode ? true : undefined}
+      className={cn("absolute top-2 right-4 left-4 flex flex-col items-end gap-2 transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
+    >
+      <div id={`${headerInputId}-hint`} className="border-border/60 bg-background/85 text-muted-foreground max-w-full text-right rounded-md border px-2 py-1 text-[10px] backdrop-blur-sm">
+        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
+        {ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
+        {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
+      </div>
+      <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           id={headerInputId}
           type="file"
           accept="image/*"
@@ -63,11 +84,13 @@ export function OrgProfileHeaderBannerControls({
             <DropdownMenuTrigger asChild>
               <Button
                 size="icon"
-                variant="secondary"
+                variant="outline"
+                className={IMAGE_ACTION_BUTTON_CLASS}
+                aria-describedby={`${headerInputId}-hint`}
                 disabled={headerBusy}
                 aria-label="Header image actions"
               >
-                <PencilLine className="h-4 w-4" aria-hidden />
+                <ImagePlus className="size-4" aria-hidden />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -78,11 +101,19 @@ export function OrgProfileHeaderBannerControls({
                 Adjust banner
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild disabled={headerBusy} className="cursor-pointer">
-                <label htmlFor={headerInputId} className="flex w-full cursor-pointer items-center gap-2">
+              <DropdownMenuItem
+                asChild
+                disabled={headerBusy}
+                className="cursor-pointer"
+              >
+                <label
+                  htmlFor={headerInputId}
+                  className="flex w-full cursor-pointer items-center gap-2"
+                >
                   {isUploadingHeader ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                      <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                      Uploading…
                     </>
                   ) : (
                     "Replace banner"
@@ -91,8 +122,9 @@ export function OrgProfileHeaderBannerControls({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled className="opacity-100">
-                <span className="text-xs text-muted-foreground">
-                  Banner: {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px ({ORG_BANNER_ASPECT_LABEL})
+                <span className="text-muted-foreground text-xs">
+                  Banner: {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px (
+                  {ORG_BANNER_ASPECT_LABEL})
                 </span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -106,24 +138,24 @@ export function OrgProfileHeaderBannerControls({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild size="sm" variant="secondary" disabled={headerBusy}>
-            <label htmlFor={headerInputId} className="cursor-pointer">
-              {isUploadingHeader ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
-                </span>
-              ) : (
-                "Upload banner"
-              )}
-            </label>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={IMAGE_ACTION_BUTTON_CLASS}
+            disabled={headerBusy}
+            aria-label={isUploadingHeader ? "Uploading banner" : "Add banner image"}
+            aria-describedby={`${headerInputId}-hint`}
+            onClick={() => inputRef.current?.click()}
+          >
+            {isUploadingHeader
+              ? <Loader2 className="size-4 animate-spin" aria-hidden />
+              : <ImagePlus className="size-4" aria-hidden />}
           </Button>
         )}
       </div>
-      <div className="absolute right-4 top-14 rounded-md border border-border/60 bg-background/85 px-2 py-1 text-[10px] text-muted-foreground backdrop-blur-sm">
-        Banner {ORG_BANNER_RECOMMENDED_DIMENSIONS_LABEL}px ({ORG_BANNER_ASPECT_LABEL}) recommended · min{" "}
-        {ORG_BANNER_MIN_DIMENSIONS_LABEL}px
-      </div>
-    </>
+
+    </div>
   )
 }
 
@@ -148,11 +180,17 @@ export function OrgProfileHeaderLogoControls({
   onUploadLogo,
   onRemoveLogo,
 }: OrgProfileHeaderLogoControlsProps) {
-  if (!canEdit || !editMode) return null
+  const inputRef = useRef<HTMLInputElement>(null)
+  if (!canEdit) return null
 
   return (
-    <div className="flex items-center">
+    <div
+      aria-hidden={!editMode}
+      inert={!editMode ? true : undefined}
+      className={cn("absolute right-1 bottom-1 transition-opacity duration-150 motion-reduce:transition-none", editMode ? "opacity-100" : "pointer-events-none opacity-0")}
+    >
       <input
+        ref={inputRef}
         id={logoInputId}
         type="file"
         accept="image/*"
@@ -170,18 +208,27 @@ export function OrgProfileHeaderLogoControls({
             <Button
               size="icon"
               variant="outline"
+              className={IMAGE_ACTION_BUTTON_CLASS}
               disabled={logoBusy}
               aria-label="Logo image actions"
             >
-              <PencilLine className="h-4 w-4" aria-hidden />
+              <ImagePlus className="size-4" aria-hidden />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem asChild disabled={logoBusy} className="cursor-pointer">
-              <label htmlFor={logoInputId} className="flex w-full cursor-pointer items-center gap-2">
+            <DropdownMenuItem
+              asChild
+              disabled={logoBusy}
+              className="cursor-pointer"
+            >
+              <label
+                htmlFor={logoInputId}
+                className="flex w-full cursor-pointer items-center gap-2"
+              >
                 {isUploadingLogo ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
+                    <Loader2 className="size-4 animate-spin" aria-hidden />{" "}
+                    Uploading…
                   </>
                 ) : (
                   "Replace logo"
@@ -199,16 +246,18 @@ export function OrgProfileHeaderLogoControls({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button asChild size="sm" variant="outline" disabled={logoBusy}>
-          <label htmlFor={logoInputId} className="cursor-pointer">
-            {isUploadingLogo ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" aria-hidden /> Uploading…
-              </span>
-            ) : (
-              "Upload"
-            )}
-          </label>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className={IMAGE_ACTION_BUTTON_CLASS}
+          disabled={logoBusy}
+          aria-label={isUploadingLogo ? "Uploading logo" : "Add logo image"}
+          onClick={() => inputRef.current?.click()}
+        >
+          {isUploadingLogo
+            ? <Loader2 className="size-4 animate-spin" aria-hidden />
+            : <ImagePlus className="size-4" aria-hidden />}
         </Button>
       )}
     </div>
@@ -236,31 +285,65 @@ export function OrgProfileHeaderActions({
   onCancelEdit,
   onSave,
 }: OrgProfileHeaderActionsProps) {
+  const inWindowHeader = useWorkspaceWindowHeader()
   if (!canEdit && (!publicLink || editMode)) return null
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 pb-3">
-      {publicLink && !editMode ? (
-        <Button asChild size="sm" variant="secondary">
-          <Link href={publicLink}>View map profile</Link>
-        </Button>
-      ) : null}
-      {canEdit ? (
-        editMode ? (
-          <>
-            <Button size="sm" variant="ghost" onClick={onCancelEdit} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={onSave} disabled={isSaving || !isDirty}>
-              {isSaving ? "Saving…" : "Save changes"}
-            </Button>
-          </>
-        ) : (
-          <Button size="sm" onClick={onEnterEdit} data-tour="org-profile-edit">
-            Edit
+    <WorkspaceWindowHeaderPortal>
+      <div
+        key={editMode ? "edit" : "view"}
+        className={cn(
+          "flex flex-wrap items-center justify-end gap-2 animate-in fade-in duration-150 motion-reduce:animate-none",
+          !inWindowHeader && "pb-3"
+        )}
+      >
+        {publicLink && !editMode ? (
+          <Button
+            asChild
+            size="sm"
+            className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+            variant="secondary"
+          >
+            <Link href={publicLink} target="_blank" rel="noopener noreferrer">
+              View Public Profile
+              <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </Link>
           </Button>
-        )
-      ) : null}
-    </div>
+        ) : null}
+        {canEdit ? (
+          editMode ? (
+            <>
+              <Button
+                size="sm"
+                className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+                variant="ghost"
+                onClick={onCancelEdit}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+                onClick={onSave}
+                disabled={isSaving || !isDirty}
+              >
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              className={inWindowHeader ? WORKSPACE_HEADER_BUTTON : undefined}
+              onClick={onEnterEdit}
+              data-tour="org-profile-edit"
+            >
+              Edit
+            </Button>
+          )
+        ) : null}
+      </div>
+    </WorkspaceWindowHeaderPortal>
   )
 }

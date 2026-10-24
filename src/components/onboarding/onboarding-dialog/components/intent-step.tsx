@@ -2,7 +2,6 @@
 
 import { useId } from "react"
 
-import { getReactGrabOwnerProps, getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { INTENT_OPTIONS } from "../constants"
@@ -16,12 +15,6 @@ type IntentStepProps = {
   onSelectIntent: (value: IntentFocus) => void
 }
 
-const owner = {
-  ownerId: "onboarding:intent",
-  component: "IntentStep",
-  source: "src/components/onboarding/onboarding-dialog/components/intent-step.tsx",
-}
-
 export function IntentStep({ step, attemptedStep, errors, intentFocus, onSelectIntent }: IntentStepProps) {
   const id = useId()
   const errorId = `${id}-error`
@@ -32,7 +25,7 @@ export function IntentStep({ step, attemptedStep, errors, intentFocus, onSelectI
       <FieldLabel htmlFor={id}>Your focus</FieldLabel>
       <Select value={intentFocus} onValueChange={(value) => onSelectIntent(value as IntentFocus)}>
         <SelectTrigger
-          {...getReactGrabOwnerProps({ ...owner, slot: "trigger" })}
+
           id={id}
           data-onboarding-primary-focus="true"
           aria-invalid={showError}
@@ -41,7 +34,7 @@ export function IntentStep({ step, attemptedStep, errors, intentFocus, onSelectI
         >
           <SelectValue placeholder="Choose your focus" />
         </SelectTrigger>
-        <SelectContent {...getReactGrabLinkedSurfaceProps({ ...owner, surfaceKind: "content" })}>
+        <SelectContent >
           <SelectGroup>
             {INTENT_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value} disabled={!option.available}>

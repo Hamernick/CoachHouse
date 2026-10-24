@@ -1,0 +1,80 @@
+.objective {
+  position: relative;
+  min-width: 0;
+  padding-block: 4px;
+}
+
+.objective::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: 16px;
+  top: 30px;
+  bottom: -12px;
+  width: 2px;
+  background: var(--border);
+}
+
+.objective:last-of-type::before {
+  bottom: 24px;
+}
+
+.marker {
+  position: relative;
+  background: var(--card);
+  box-shadow: 0 0 0 4px var(--card);
+  border-radius: 999px;
+}
+
+.plans {
+  position: relative;
+  margin-left: 12px;
+  padding-left: 24px;
+}
+
+.plans::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: -8px;
+  left: 0;
+  width: 24px;
+  height: 26px;
+  border-left: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-bottom-left-radius: 20px;
+}
+
+.plan {
+  position: relative;
+  min-width: 0;
+  padding-left: 16px;
+}
+
+.plan::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: 18px;
+  bottom: -26px;
+  left: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.plan:last-of-type::before {
+  display: none;
+}
+
+.plan::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: 14px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--foreground);
+  box-shadow: 0 0 0 4px var(--card);
+}

@@ -1,0 +1,11 @@
+.editor {
+  width: 100%;
+  min-width: 0;
+  max-width: 680px;
+  margin-inline: auto;
+}
+.editor > fieldset > section { padding-bottom: 2rem; }
+.editor > fieldset > section > section { margin-top: 1.5rem; }
+.editor [data-read-only] :is(input, textarea, button):disabled { opacity: 1; }
+.editor [data-read-only] :is(input, textarea):disabled { cursor: default; }
+.editor :is(input, textarea, button) { box-shadow: none; }

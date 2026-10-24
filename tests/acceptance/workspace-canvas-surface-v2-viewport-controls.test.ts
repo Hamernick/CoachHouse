@@ -10,18 +10,6 @@ function readSource(relativePath: string) {
 }
 
 describe("workspace canvas v2 viewport controls", () => {
-  it("documents the current canvas gestures", () => {
-    const helpSource = readSource(
-      "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-help-overlay.tsx"
-    )
-
-    expect(helpSource).toContain("swipe with two fingers on a trackpad")
-    expect(helpSource).toContain("Double-click a card to center it")
-    expect(helpSource).toContain(
-      "Pinch to zoom, or hold Meta or Control while scrolling."
-    )
-  })
-
   it("keeps the reset view action removed from the viewport control path", () => {
     const hookSource = readSource(
       "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-viewport-controls.ts"
@@ -82,6 +70,8 @@ describe("workspace canvas v2 viewport controls", () => {
     expect(panelSource).toContain(
       "ownerId: `workspace-canvas:viewport-${control}`"
     )
+    expect(panelSource).not.toContain("WorkspaceCanvasSurfaceV2HelpOverlay")
+    expect(panelSource).not.toContain("particleActions")
     expect(panelSource).not.toContain("RotateCcwIcon")
     expect(panelSource).not.toContain("MyOrganizationCalendarView")
     expect(panelSource).not.toContain("ListTreeIcon")
@@ -94,5 +84,20 @@ describe("workspace canvas v2 viewport controls", () => {
     expect(viewSource).not.toContain("onOntologyModeChange")
     expect(panelSource).not.toContain('aria-label="Reset view"')
     expect(panelSource).not.toContain('title="Reset view"')
+  })
+
+  it("preserves keyboard-only canvas focus styling", () => {
+    const globalsSource = readSource("src/app/globals.css")
+
+    expect(globalsSource).toContain(
+      ".workspace-flow .react-flow__node:focus-visible [data-workspace-card]"
+    )
+    expect(globalsSource).not.toContain(
+      ".workspace-flow .react-flow__node.selected [data-workspace-card]"
+    )
+    expect(globalsSource).toContain("outline-offset: 3px;")
+    expect(globalsSource).not.toContain(
+      "0 0 0 6px color-mix(in srgb, var(--ring)"
+    )
   })
 })

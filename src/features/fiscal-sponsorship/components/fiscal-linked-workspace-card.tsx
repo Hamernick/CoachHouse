@@ -20,15 +20,14 @@ export function FiscalLinkedWorkspaceCard({ organizationId, children }: { organi
     return () => { current = false }
   }, [organizationId, attempt])
   const result = loaded?.organizationId === organizationId ? loaded.result : null
-  if (!result) return <FiscalSponsorshipWorkspaceCardSurface draggable applicationSummary={{ name: "Fiscal sponsorship", status: "Loading application…" }} workflowItems={[]} primaryActionLabel="Loading…" />
-  if (result.error) return <FiscalSponsorshipWorkspaceCardSurface draggable applicationSummary={{ name: "Fiscal sponsorship", status: result.error }} workflowItems={[]}
+  if (!result) return <FiscalSponsorshipWorkspaceCardSurface draggable applicationSummary={{ name: "Fiscal sponsorship", status: "Loading application…" }} primaryActionLabel="Loading…" />
+  if (result.error) return <FiscalSponsorshipWorkspaceCardSurface draggable applicationSummary={{ name: "Fiscal sponsorship", status: result.error }}
     applicationLinks={<Button variant="outline" className="mx-4 mt-3" onClick={() => { setLoaded(null); setAttempt((value) => value + 1) }}>Retry</Button>} primaryActionLabel="Application unavailable" />
   const application = result.applications[0]
   if (!application) return children
   const status = FISCAL_SPONSORSHIP_APPLICATION_STATUS_OPTIONS.find((option) => option.value === application.status)?.label ?? application.status
   return <FiscalSponsorshipWorkspaceCardSurface draggable
     applicationSummary={{ name: application.projectName, status }}
-    workflowItems={[{ id: "application-intake", label: `Application · ${status}`, description: "Your submitted fiscal sponsorship application.", complete: true, actionType: "application" }]}
     primaryActionLabel={application.status === "needs_info" ? "Update application" : "View application"}
     openFlowHref={guestFollowupHref(application.reference)} />
 }

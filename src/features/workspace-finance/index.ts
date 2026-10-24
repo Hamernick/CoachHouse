@@ -2,6 +2,10 @@ export {
   WorkspaceFinancePanel,
   WorkspaceFinanceStripeConnection,
 } from "./components"
+export { WorkspaceOpportunityPreview } from "./components/workspace-opportunity-preview"
+export { WorkspaceOpportunitiesFeed } from "./components/workspace-opportunities-feed"
+export { opportunitySourcesSchema, readOpportunitySources, sourceKey } from "./lib/opportunity-sources"
+export type { OpportunitySource, OpportunitySourceOption } from "./lib/opportunity-sources"
 export {
   buildWorkspaceFinanceProgramInputs,
   normalizeWorkspaceFinanceInput,
@@ -34,3 +38,6 @@ export type {
   WorkspaceFinanceStripeConnectionInput,
   WorkspaceFinanceView,
 } from "./types"
+
+export { opportunityReportSchema, readOpportunityReport, opportunityReportSources } from "./lib/opportunity-report"
+export type { OpportunityReport } from "./lib/opportunity-report"

@@ -5,10 +5,6 @@ import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 
-import {
-  getReactGrabOwnerProps,
-  getReactGrabLinkedSurfaceProps,
-} from "@/components/dev/react-grab-surface"
 import { listPeopleRolesAction } from "@/actions/people-roles"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,11 +51,6 @@ export function PersonRolePicker({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const listId = useId()
-  const owner = {
-    ownerId: `person-role-picker:${listId}`,
-    component: "PersonRolePicker",
-    source: "src/features/people-roles/components/person-role-picker.tsx",
-  }
 
   useEffect(() => {
     if (!open) return
@@ -140,7 +131,7 @@ export function PersonRolePicker({
     >
       <PopoverTrigger asChild>
         <Button
-          {...getReactGrabOwnerProps({ ...owner, slot: "trigger" })}
+
           type="button"
           variant="outline"
           role="combobox"
@@ -172,11 +163,7 @@ export function PersonRolePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        {...getReactGrabLinkedSurfaceProps({
-          ...owner,
-          slot: "content",
-          surfaceKind: "content",
-        })}
+
         align="start"
         className="w-64 max-w-[calc(100vw-2rem)] rounded-lg p-0"
       >

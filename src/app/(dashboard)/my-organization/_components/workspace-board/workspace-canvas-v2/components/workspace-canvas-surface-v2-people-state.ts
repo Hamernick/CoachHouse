@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, type MutableRefObject } from "react"
-import type { ReactFlowInstance } from "reactflow"
+import type { ReactFlowInstance } from "@xyflow/react"
 
 import type { WorkspaceBoardUiPreferenceScope } from "../../workspace-board-ui-preferences"
 import { useWorkspaceCanvasPeoplePlacementController } from "./workspace-canvas-people-placement-controller"

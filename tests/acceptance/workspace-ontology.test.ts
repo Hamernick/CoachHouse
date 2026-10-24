@@ -1049,8 +1049,9 @@ describe("workspace ontology integration contract", () => {
     expect(nodeSource).not.toContain("data.onOpenAction")
     expect(ontologyInteractionsSource).toContain("activateNode(node.id)")
     expect(ontologyInteractionsSource).toContain("handleKeyDownCapture")
-    expect(viewSource).toContain("onNodeClick={onNodeClick}")
-    expect(viewSource).toContain("onKeyDownCapture={onKeyDownCapture}")
+    expect(viewSource).toContain("createWorkspaceParticleFlowHandlers(particles, {")
+    expect(viewSource).toContain("onNodeClick,")
+    expect(viewSource).toContain("onKeyDownCapture,")
     expect(nodeSource).not.toContain("workspace-ontology-node-drag-handle")
     expect(branchToggleSource).not.toContain("backdrop-blur-md")
     expect(branchToggleSource).toContain(
@@ -1170,9 +1171,8 @@ describe("workspace ontology integration contract", () => {
     )
     expect(sheetSource).toContain("motion-reduce:animate-none")
     expect(sheetSource).toContain("motion-reduce:transition-none")
-    expect(fiscalSummarySource).toContain(
-      'actionRequest.phaseId === "application-intake"'
-    )
+    expect(fiscalSummarySource).toContain("openExisting(target, actionRequest.phaseId)")
+    expect(fiscalSummarySource).toContain('phaseId === "application-intake"')
     expect(layoutSceneSource).toContain("mergeDepartingItems")
     expect(layoutSceneSource).toContain("buildTransitionPhases")
     expect(nodeSource).toContain('transitionPhase === "exiting"')

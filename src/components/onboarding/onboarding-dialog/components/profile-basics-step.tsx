@@ -4,7 +4,7 @@ import { useEffect, useState, type RefObject } from "react"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { normalizePublicHandle, type PublicHandleAvailabilityStatus } from "@/features/public-profiles/client"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,7 @@ export function ProfileBasicsStep({ values, avatarPreview, avatarInputRef, submi
           </Tooltip>
           {avatarPreview ? (
             <Button
-              {...getReactGrabOwnerProps({ ownerId: "onboarding:remove-photo", component: "ProfileBasicsStep", source: "src/components/onboarding/onboarding-dialog/components/profile-basics-step.tsx", slot: "remove-photo" })}
+
               type="button" variant="outline" size="icon"
               onClick={onRemoveAvatar} disabled={submitting}
               aria-label="Remove profile photo" title="Remove photo"

@@ -6,6 +6,7 @@ import { supabaseErrorToError } from "@/lib/supabase/errors"
 type ParsedNotesPayload = {
   content: string
   format: "markdown"
+  editedAt?: string
 }
 
 type ModuleNotesIndexQueryRow = {
@@ -45,7 +46,7 @@ function parseNotes(value: Json | null | undefined): ParsedNotesPayload | null {
     const record = value as Record<string, unknown>
     const content = typeof record.content === "string" ? record.content.trim() : ""
     if (!content) return null
-    return { content, format: "markdown" }
+    return { content, format: "markdown", ...(typeof record.editedAt === "string" ? { editedAt: record.editedAt } : {}) }
   }
   return null
 }
@@ -67,8 +68,11 @@ export async function listUserModuleNotesIndex({
 }: {
   supabase: SupabaseClient<Database, "public">
   userId: string
-  limit?: number
+  limit?: number | null
 }): Promise<ModuleNoteIndexEntry[]> {
+  const rows: ModuleNotesIndexQueryRow[] = []
+  for (let offset = 0; ; offset += 500) {
+  const size = limit === null ? 500 : limit
   const { data, error } = await supabase
     .from("module_progress" satisfies keyof Database["public"]["Tables"])
     .select(
@@ -77,13 +81,17 @@ export async function listUserModuleNotesIndex({
     .eq("user_id", userId)
     .not("notes", "is", null)
     .order("updated_at", { ascending: false })
-    .limit(limit)
+    .order("module_id", { ascending: true })
+    .range(offset, offset + size - 1)
 
   if (error) {
     throw supabaseErrorToError(error, "Unable to load module notes.")
   }
 
-  const rows = Array.isArray(data) ? (data as unknown as ModuleNotesIndexQueryRow[]) : []
+  const page = Array.isArray(data) ? (data as unknown as ModuleNotesIndexQueryRow[]) : []
+  rows.push(...page)
+  if (limit !== null || page.length < size) break
+  }
 
   return rows
     .map((row) => {
@@ -96,7 +104,7 @@ export async function listUserModuleNotesIndex({
         moduleIndex: typeof row.modules?.idx === "number" ? row.modules.idx : null,
         classTitle: row.modules?.classes?.title?.trim() || null,
         classSlug: row.modules?.classes?.slug?.trim() || null,
-        updatedAt: row.updated_at,
+        updatedAt: parsed.editedAt ?? row.updated_at,
         content: parsed.content,
         href: buildModuleHref(row),
       } satisfies ModuleNoteIndexEntry

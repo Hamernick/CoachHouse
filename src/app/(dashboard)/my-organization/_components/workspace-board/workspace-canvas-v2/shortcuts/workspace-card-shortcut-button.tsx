@@ -2,10 +2,6 @@
 
 import type { ComponentProps, SyntheticEvent } from "react"
 
-import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -23,10 +19,6 @@ const WORKSPACE_SHORTCUT_SELECTED_BUTTON_CLASSNAME =
   "bg-accent text-accent-foreground shadow-none hover:bg-accent"
 const WORKSPACE_SHORTCUT_TUTORIAL_TOOLS_BUTTON_CLASSNAME =
   "border-sky-300/70 bg-sky-50/85 text-sky-700 shadow-none hover:bg-sky-100/90 dark:border-sky-400/45 dark:bg-sky-500/14 dark:text-sky-100 dark:hover:bg-sky-500/20"
-const WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/shortcuts/workspace-card-shortcut-button.tsx"
-const WORKSPACE_TUTORIAL_THEME_SOURCE =
-  "src/components/workspace/workspace-tutorial-theme.ts"
 
 export function renderWorkspaceCardShortcutTooltipContent({
   title,
@@ -67,7 +59,7 @@ export function WorkspaceCardShortcutButton({
     tutorialCallout && item.id === "accelerator"
       ? "Open the Accelerator"
       : undefined
-  const reactGrabOwnerId = `workspace-card-shortcut:${item.id}`
+  const calloutId = `workspace-card-shortcut:${item.id}`
   const isTutorialToolsStepHighlight = tutorialHighlighted && tutorialCallout === null
   const stopShortcutInteractionPropagation = (event: SyntheticEvent) => {
     event.stopPropagation()
@@ -103,15 +95,7 @@ export function WorkspaceCardShortcutButton({
       aria-label={item.title}
       aria-pressed={item.selected}
       aria-disabled={comingSoon}
-      {...getReactGrabOwnerProps({
-        ownerId: reactGrabOwnerId,
-        component: "WorkspaceCardShortcutButton",
-        source: WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE,
-        slot: "trigger",
-        variant: item.id,
-        tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-        primitiveImport: "@/components/ui/button",
-      })}
+
       className={cn(
         "nodrag nopan size-9 h-9 w-9 rounded-xl",
         item.visible && WORKSPACE_SHORTCUT_VISIBLE_BUTTON_CLASSNAME,
@@ -131,7 +115,7 @@ export function WorkspaceCardShortcutButton({
     return (
       <div className="relative inline-flex overflow-visible">
         <WorkspaceTutorialCallout
-          reactGrabOwnerId={`${reactGrabOwnerId}:callout`}
+          calloutId={`${calloutId}:callout`}
           mode="indicator"
           tapHereLabel={tutorialIndicatorLabel}
           tooltipContentClassName={WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME}
@@ -146,15 +130,7 @@ export function WorkspaceCardShortcutButton({
             side={tooltipSide}
             align="center"
             sideOffset={12}
-            {...getReactGrabLinkedSurfaceProps({
-            ownerId: reactGrabOwnerId,
-            component: "WorkspaceCardShortcutButton",
-            source: WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE,
-            slot: "tooltip-content",
-            surfaceKind: "content",
-            tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-            primitiveImport: "@/components/ui/tooltip",
-          })}
+
             className={WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME}
           >
             {renderWorkspaceCardShortcutTooltipContent({
@@ -174,15 +150,7 @@ export function WorkspaceCardShortcutButton({
         side={tooltipSide}
         align="center"
         sideOffset={12}
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: reactGrabOwnerId,
-          component: "WorkspaceCardShortcutButton",
-          source: WORKSPACE_CARD_SHORTCUT_BUTTON_SOURCE,
-          slot: "tooltip-content",
-          surfaceKind: "content",
-          tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-          primitiveImport: "@/components/ui/tooltip",
-        })}
+
         className={WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME}
       >
         {renderWorkspaceCardShortcutTooltipContent({

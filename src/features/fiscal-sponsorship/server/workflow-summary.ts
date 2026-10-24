@@ -364,59 +364,37 @@ export async function loadFiscalSponsorshipProjectWorkflowSummary(
     }
   }
 
-  const { data: agreementDocument, error: agreementDocumentError } =
-    await loadLatestFiscalDocument({
+  // Authorization and application lookup above remain gates. These reads
+  // depend only on that resolved context, not on each other.
+  const [
+    { data: agreementDocument, error: agreementDocumentError },
+    { data: executedAgreementDocument, error: executedDocumentError },
+    { data: auditCertificateDocument, error: auditDocumentError },
+    { data: requiredDocuments, error: requiredDocumentsError },
+    { data: signaturePacket, error: signaturePacketError },
+    { data: events, error: eventsError },
+    canViewCoachSigningLink,
+  ] = await Promise.all([
+    loadLatestFiscalDocument({
       applicationId: application.id,
       kind: "agreement",
       supabase: context.supabase,
-    })
-
-  if (agreementDocumentError) {
-    return isMissingFiscalWorkflowTableError(agreementDocumentError)
-      ? buildWorkflowTableError()
-      : { error: "Unable to load fiscal sponsorship agreement status." }
-  }
-
-  const { data: executedAgreementDocument, error: executedDocumentError } =
-    await loadLatestFiscalDocument({
+    }),
+    loadLatestFiscalDocument({
       applicationId: application.id,
       kind: "executed_agreement",
       supabase: context.supabase,
-    })
-
-  if (executedDocumentError) {
-    return isMissingFiscalWorkflowTableError(executedDocumentError)
-      ? buildWorkflowTableError()
-      : { error: "Unable to load executed fiscal sponsorship agreement." }
-  }
-
-  const { data: auditCertificateDocument, error: auditDocumentError } =
-    await loadLatestFiscalDocument({
+    }),
+    loadLatestFiscalDocument({
       applicationId: application.id,
       kind: "audit_certificate",
       supabase: context.supabase,
-    })
-
-  if (auditDocumentError) {
-    return isMissingFiscalWorkflowTableError(auditDocumentError)
-      ? buildWorkflowTableError()
-      : { error: "Unable to load fiscal sponsorship audit certificate." }
-  }
-
-  const { data: requiredDocuments, error: requiredDocumentsError } =
-    await loadRequiredFiscalDocuments({
+    }),
+    loadRequiredFiscalDocuments({
       applicationId: application.id,
       supabase: context.supabase,
-    })
-
-  if (requiredDocumentsError) {
-    return isMissingFiscalWorkflowTableError(requiredDocumentsError)
-      ? buildWorkflowTableError()
-      : { error: "Unable to load required fiscal sponsorship documents." }
-  }
-
-  const { data: signaturePacket, error: signaturePacketError } =
-    await context.supabase
+    }),
+    context.supabase
       .from("fiscal_sponsorship_signature_packets")
       .select(
         [
@@ -435,7 +413,44 @@ export async function loadFiscalSponsorshipProjectWorkflowSummary(
       .eq("application_id", application.id)
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle<SignaturePacketSummaryRow>()
+      .maybeSingle<SignaturePacketSummaryRow>(),
+    loadFiscalWorkflowEvents({
+      orgId: context.project.org_id,
+      projectId: context.project.id,
+      supabase: context.supabase,
+    }),
+    canManageFiscalSponsorshipForOrganization({
+      accessLevel: context.profileAudience.platformAccessLevel,
+      organizationId: context.project.org_id,
+      projectId: context.project.id,
+      supabase: context.supabase,
+      userId: context.user.id,
+    }),
+  ])
+
+  if (agreementDocumentError) {
+    return isMissingFiscalWorkflowTableError(agreementDocumentError)
+      ? buildWorkflowTableError()
+      : { error: "Unable to load fiscal sponsorship agreement status." }
+  }
+
+  if (executedDocumentError) {
+    return isMissingFiscalWorkflowTableError(executedDocumentError)
+      ? buildWorkflowTableError()
+      : { error: "Unable to load executed fiscal sponsorship agreement." }
+  }
+
+  if (auditDocumentError) {
+    return isMissingFiscalWorkflowTableError(auditDocumentError)
+      ? buildWorkflowTableError()
+      : { error: "Unable to load fiscal sponsorship audit certificate." }
+  }
+
+  if (requiredDocumentsError) {
+    return isMissingFiscalWorkflowTableError(requiredDocumentsError)
+      ? buildWorkflowTableError()
+      : { error: "Unable to load required fiscal sponsorship documents." }
+  }
 
   if (signaturePacketError) {
     return isMissingFiscalWorkflowTableError(signaturePacketError)
@@ -443,26 +458,11 @@ export async function loadFiscalSponsorshipProjectWorkflowSummary(
       : { error: "Unable to load fiscal sponsorship signature status." }
   }
 
-  const { data: events, error: eventsError } = await loadFiscalWorkflowEvents({
-    orgId: context.project.org_id,
-    projectId: context.project.id,
-    supabase: context.supabase,
-  })
-
   if (eventsError) {
     return isMissingFiscalWorkflowTableError(eventsError)
       ? buildWorkflowTableError()
       : { error: "Unable to load fiscal sponsorship activity." }
   }
-
-  const canViewCoachSigningLink =
-    await canManageFiscalSponsorshipForOrganization({
-      accessLevel: context.profileAudience.platformAccessLevel,
-      organizationId: context.project.org_id,
-      projectId: context.project.id,
-      supabase: context.supabase,
-      userId: context.user.id,
-    })
 
   return {
     applicationId: application.id,

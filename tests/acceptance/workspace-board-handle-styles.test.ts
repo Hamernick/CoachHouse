@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { Position } from "reactflow"
+import { Position } from "@xyflow/react"
 
 import { isWorkspaceNodeAutoHeightCard } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-node-class-name"
 import { resolveWorkspaceBoardHandleClassName } from "@/lib/workspace-canvas/handle-styles"

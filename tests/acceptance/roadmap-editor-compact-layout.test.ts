@@ -31,6 +31,7 @@ vi.mock("@/components/roadmap/roadmap-budget-table-editor", () => ({ RoadmapBudg
 vi.mock("@/components/roadmap/roadmap-editor/components/roadmap-editor-breadcrumb", () => ({ RoadmapEditorBreadcrumb: () => null }))
 vi.mock("@/components/rich-text-editor/extensions", () => ({ buildRichTextExtensions: () => [] }))
 vi.mock("@/components/rich-text-editor/components/rich-text-toolbar", () => ({ RichTextToolbar: () => createElement("div", { role: "toolbar" }) }))
+vi.mock("@/features/workspace-ai/components/selection-assistance-menu", () => ({ SelectionAssistanceMenu: () => null }))
 vi.mock("@tiptap/react", () => ({
   useEditor: (options: NonNullable<typeof mocks.editorOptions>) => {
     mocks.editorOptions = options

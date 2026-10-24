@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useWorkspaceWindowPreferredWidth } from "@/components/workspace/workspace-window-size"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 import { ProgramWizardLazy } from "@/components/programs/program-wizard-lazy"
@@ -8,6 +9,7 @@ import { ProgramWizardLazy } from "@/components/programs/program-wizard-lazy"
 import { ORG_PROFILE_TABS } from "./config"
 import { OrgProfileDiscardDialog } from "./org-profile-discard-dialog"
 import { OrgProfileHeader } from "./header"
+import { OrgProfileHeaderVisibility } from "./header-visibility"
 import { OrgProfileHeaderActions } from "./header-controls"
 import { OrgProfileDonationLink } from "./org-profile-donation-link"
 import { OrgProfileHeaderLinks } from "./header-links"
@@ -17,6 +19,7 @@ import { OrgProfileTabNavigation } from "./org-profile-tab-navigation"
 import { CompanyTab } from "./tabs/company-tab"
 import { PeopleTab } from "./tabs/people-tab"
 import { ProgramsTab } from "./tabs/programs-tab"
+import { BrandKitTab } from "./tabs/brand-kit-tab"
 import { SupportersTab } from "./tabs/supporters-tab"
 import type { OrgProfileCardProps, OrgProgram } from "./types"
 
@@ -30,7 +33,10 @@ export function OrgProfileEditor({
   initialProgramStep,
   initialFocus,
   initialEditMode,
+  navigationRequestId,
+  onProgramEditorOpenChange,
 }: OrgProfileCardProps) {
+  const [brandBusy, setBrandBusy] = useState(false)
   const editorRootRef = useRef<HTMLDivElement>(null)
   const {
     tab,
@@ -62,60 +68,78 @@ export function OrgProfileEditor({
     initial,
     programs: programs as OrgProgram[],
     canEdit,
-    initialTab,
+    initialTab: initialFocus?.startsWith("brand") ? "brand-kit" : initialTab,
     initialProgramId,
     initialEditMode,
+    navigationRequestId,
   })
+  useWorkspaceWindowPreferredWidth(tab === "brand-kit" ? 760 : undefined)
   useOrgProfileEditorDeepLinkFocus({
     canEdit,
     editMode,
     focusKey: initialFocus,
+    requestId: navigationRequestId,
     rootRef: editorRootRef,
     setEditMode,
     tab,
   })
 
+  useEffect(() => {
+    onProgramEditorOpenChange?.(editOpen)
+  }, [editOpen, onProgramEditorOpenChange])
+
   const tabsIdBase = "org-profile-tabs"
 
   return (
-    <div ref={editorRootRef}>
+    <div ref={editorRootRef} className="[&_[data-slot=input]]:shadow-none [&_[data-slot=textarea]]:shadow-none [&_[data-slot=select-trigger]]:shadow-none">
       <OrgProfileHeaderActions
         publicLink={publicLink}
         editMode={editMode}
         canEdit={canEdit}
-        isSaving={isPending}
+        isSaving={isPending || brandBusy}
         isDirty={dirty}
         onEnterEdit={() => canEdit && setEditMode(true)}
         onCancelEdit={handleCancelEdit}
         onSave={handleSave}
       />
-      <div className="border-border/60 bg-background overflow-hidden rounded-[22px] border pb-6">
-        <OrgProfileHeader
-          name={company.name || "Organization"}
-          tagline={company.tagline || "—"}
-          logoUrl={company.logoUrl ?? ""}
-          headerUrl={company.headerUrl ?? ""}
-          editMode={editMode}
-          isSaving={isPending}
-          canEdit={canEdit}
-          links={<OrgProfileHeaderLinks company={company} />}
-          donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
-          onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
-          onHeaderChange={(url) => persistProfileUpdates({ headerUrl: url })}
+      <Tabs
+        value={tab}
+        onValueChange={(value) => { if (!brandBusy) handleTabChange(value) }}
+        className="w-full min-w-0 gap-3"
+      >
+        <OrgProfileTabNavigation
+          tabs={ORG_PROFILE_TABS}
+          tabsIdBase={tabsIdBase}
         />
+        <div className="w-full min-w-0 pb-6">
+          {tab !== "brand-kit" ? <OrgProfileHeader
+            name={company.name || "Organization"}
+            tagline={company.tagline || "—"}
+            logoUrl={company.logoUrl ?? ""}
+            editMode={editMode}
+            isSaving={isPending || brandBusy}
+            canEdit={canEdit}
+            visibilityControl={editMode && canEdit ? (
+              <OrgProfileHeaderVisibility
+                isPublic={Boolean(company.isPublic)}
+                disabled={isPending}
+                onCheckedChange={(isPublic) => {
+                  handleCompanyUpdate({ isPublic })
+                  markDirty()
+                }}
+              />
+            ) : null}
+            links={<OrgProfileHeaderLinks company={company} centered />}
+            donationAction={<OrgProfileDonationLink href={company.donateUrl} />}
+            onLogoChange={(url) => persistProfileUpdates({ logoUrl: url })}
+          /> : null}
 
-        <div className="p-0">
-          <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
-            <OrgProfileTabNavigation
-              tabs={ORG_PROFILE_TABS}
-              tabsIdBase={tabsIdBase}
-            />
-
+          <div className="p-0">
             <TabsContent
               value="company"
               id={`${tabsIdBase}-content-company`}
               aria-labelledby={`${tabsIdBase}-trigger-company`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <CompanyTab
                 company={company}
@@ -134,7 +158,7 @@ export function OrgProfileEditor({
               value="programs"
               id={`${tabsIdBase}-content-programs`}
               aria-labelledby={`${tabsIdBase}-trigger-programs`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <ProgramsTab
                 programs={programs as OrgProgram[]}
@@ -146,10 +170,27 @@ export function OrgProfileEditor({
             </TabsContent>
 
             <TabsContent
+              value="brand-kit"
+              id={`${tabsIdBase}-content-brand-kit`}
+              aria-labelledby={`${tabsIdBase}-trigger-brand-kit`}
+              className="min-w-0 py-6"
+            >
+              <BrandKitTab
+                company={company}
+                errors={errors}
+                editMode={editMode}
+                onBusyChange={setBrandBusy}
+                onUpdate={handleCompanyUpdate}
+                onDirty={markDirty}
+                onAutoSave={persistProfileUpdates}
+              />
+            </TabsContent>
+
+            <TabsContent
               value="people"
               id={`${tabsIdBase}-content-people`}
               aria-labelledby={`${tabsIdBase}-trigger-people`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <PeopleTab editMode={editMode} people={people} />
             </TabsContent>
@@ -158,13 +199,13 @@ export function OrgProfileEditor({
               value="supporters"
               id={`${tabsIdBase}-content-supporters`}
               aria-labelledby={`${tabsIdBase}-trigger-supporters`}
-              className="grid gap-8 p-6"
+              className="grid min-w-0 gap-8 py-6"
             >
               <SupportersTab editMode={editMode} people={people} />
             </TabsContent>
-          </Tabs>
+          </div>
         </div>
-      </div>
+      </Tabs>
 
       <OrgProfileDiscardDialog
         open={confirmDiscardOpen}

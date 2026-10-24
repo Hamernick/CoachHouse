@@ -1,3 +1,4 @@
+import { prepareVisualPage } from "./reviewed-platform-screenshot"
 import { expect, test } from "@playwright/test"
 import { COACH_HOUSE_DONATE_URL } from "../../src/lib/public-links"
 
@@ -50,7 +51,7 @@ test("Donate is a direct external link and fits beside public navigation", async
 
 test("public Build landing and hover navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/build?react-grab=0")
+  await page.goto("/build")
 
   await expect(
     page.getByRole("heading", {
@@ -80,7 +81,7 @@ test("public navigation menu layers above Documentation content", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/documentation?react-grab=0")
+  await page.goto("/documentation")
 
   const buildMenu = page.getByRole("button", { name: "Build", exact: true })
   await expect(page.getByRole("button", { name: /Toggle theme \(currently/ })).toBeVisible()
@@ -129,7 +130,7 @@ test("public navigation menu opens and closes with the keyboard", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/build?react-grab=0")
+  await page.goto("/build")
   const trigger = page
     .locator('[data-slot="navigation-menu-trigger"]')
     .filter({ hasText: "Build" })
@@ -152,7 +153,7 @@ for (const route of ["/", "/documentation"] as const) {
       page,
     }) => {
       await page.setViewportSize({ width: 1440, height: 900 })
-      await page.goto(`${route}?react-grab=0`)
+      await page.goto(`${route}`)
       const trigger = page
         .locator('[data-slot="navigation-menu-trigger"]')
         .filter({ hasText: menuName })
@@ -184,7 +185,7 @@ for (const route of ["/", "/documentation"] as const) {
 }
 
 test("public Build header stays minimal", async ({ page }) => {
-  await page.goto("/build?react-grab=0")
+  await page.goto("/build")
   await expect(page.getByRole("heading", { name: "Workspace for nonprofits." })).toBeVisible()
   await expect(page.getByPlaceholder("Start searching")).toHaveCount(0)
   await expect(page.getByRole("link", { name: "See plans", exact: true })).toHaveAttribute("href", "/build#pricing")
@@ -194,7 +195,7 @@ test("public Build landing stays within a mobile viewport", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto("/build?react-grab=0")
+  await page.goto("/build")
 
   await expect(page.getByRole("button", { name: "Collect", exact: true })).toBeVisible()
   await expect(
@@ -217,4 +218,8 @@ test("public Build landing stays within a mobile viewport", async ({
     maxDiffPixelRatio: 0.02,
     scale: "css",
   })
+})
+
+test.beforeEach(async ({ page }) => {
+  await prepareVisualPage(page)
 })

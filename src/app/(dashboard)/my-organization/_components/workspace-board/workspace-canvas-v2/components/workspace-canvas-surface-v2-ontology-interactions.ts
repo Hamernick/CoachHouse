@@ -1,5 +1,6 @@
 "use client"
 
+import type { WorkspaceSelectionDragHandler } from "@/lib/workspace-canvas/drag-events"
 import {
   useCallback,
   useMemo,
@@ -10,12 +11,11 @@ import {
 } from "react"
 import type {
   NodeChange,
-  NodeDragHandler,
+  OnNodeDrag,
   NodeMouseHandler,
   OnNodesChange,
   ReactFlowInstance,
-  SelectionDragHandler,
-} from "reactflow"
+} from "@xyflow/react"
 
 import {
   useWorkspaceOntologyWayfinding,
@@ -28,7 +28,7 @@ import { applyWorkspaceOntologySelectionChanges } from "./workspace-canvas-ontol
 import type { useWorkspaceCanvasOntology } from "./workspace-canvas-surface-v2-ontology"
 
 function resolveNodeChangeId(change: NodeChange) {
-  return change.type === "add" || change.type === "reset"
+  return change.type === "add" || change.type === "replace"
     ? change.item.id
     : change.id
 }
@@ -61,8 +61,8 @@ export function useWorkspaceCanvasOntologyInteractions({
   tutorialActive: boolean
   renderNodes: WorkspaceCanvasNode[]
   onNodesChange: OnNodesChange
-  onNodeDragStop: NodeDragHandler
-  onSelectionDragStop: SelectionDragHandler
+  onNodeDragStop: OnNodeDrag
+  onSelectionDragStop: WorkspaceSelectionDragHandler
   flowInstanceRef: MutableRefObject<ReactFlowInstance | null>
   isFlowReady: boolean
 }) {
@@ -224,7 +224,7 @@ export function useWorkspaceCanvasOntologyInteractions({
     },
     [cancelPendingFit, onNodesChange]
   )
-  const handleNodeDragStop = useCallback<NodeDragHandler>(
+  const handleNodeDragStop = useCallback<OnNodeDrag>(
     (event, node, draggedNodes) => {
       if (node.id.startsWith("ontology:")) {
         return
@@ -233,7 +233,7 @@ export function useWorkspaceCanvasOntologyInteractions({
     },
     [onNodeDragStop]
   )
-  const handleSelectionDragStop = useCallback<SelectionDragHandler>(
+  const handleSelectionDragStop = useCallback<WorkspaceSelectionDragHandler>(
     (event, draggedNodes) => {
       const workspaceNodes = draggedNodes.filter(
         (node) => !node.id.startsWith("ontology:")

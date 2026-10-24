@@ -10,6 +10,7 @@ import type { WorkspaceBoardUiPreferenceScope } from "../../workspace-board-ui-p
 import type { WorkspaceCustomPeopleSegment } from "./workspace-canvas-people-segment-types"
 
 export type WorkspacePeopleDrawerTableProps = {
+  addControls?: ReactNode
   segmentControls?: ReactNode
   controls?: ReactNode
   emptyMessage?: string

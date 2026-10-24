@@ -1,4 +1,4 @@
-import type { Node } from "reactflow"
+import type { Node, InternalNode } from "@xyflow/react"
 
 import {
   WORKSPACE_CANVAS_PERSON_NODE_SIZE,
@@ -16,18 +16,20 @@ function resolveNodeNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
-function resolveNodePosition(node: Node) {
-  return node.positionAbsolute ?? node.position
+function resolveNodePosition(node: Node | InternalNode) {
+  return "internals" in node ? node.internals.positionAbsolute : node.position
 }
 
 function resolveNodeSize(node: Node) {
   const style = node.style ?? {}
   const width =
-    resolveNodeNumber(node.width) ??
+    resolveNodeNumber(node.measured?.width) ??
+      resolveNodeNumber(node.width) ??
     resolveNodeNumber(style.width) ??
     WORKSPACE_CANVAS_PERSON_NODE_SIZE.width
   const height =
-    resolveNodeNumber(node.height) ??
+    resolveNodeNumber(node.measured?.height) ??
+      resolveNodeNumber(node.height) ??
     resolveNodeNumber(style.height) ??
     resolveNodeNumber(style.minHeight) ??
     WORKSPACE_CANVAS_PERSON_NODE_SIZE.height

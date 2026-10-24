@@ -29,10 +29,8 @@ import {
 } from "@/components/ui/sidebar"
 import { useInternalRoutePrefetch } from "@/hooks/use-internal-route-prefetch"
 import { cn } from "@/lib/utils"
-import {
-  buildMainNavItemReactGrabProps,
-  type NavMainItem,
-} from "./nav-main/item"
+import { type NavMainItem } from "./nav-main/item"
+import { NavMainWorkspaceItem } from "./nav-main/workspace-group"
 import { PrototypeTreeEntry } from "./nav-main/prototype-tree-entry"
 import { PrototypeTreeFolder } from "./nav-main/prototype-tree-folder"
 
@@ -86,8 +84,6 @@ function NavMainTreeItem({
   const [treeOpen, setTreeOpen] = useState(isActive)
   const previousIsActiveRef = useRef(isActive)
   const isTreeExpanded = isActive && treeOpen
-  const reactGrabProps = buildMainNavItemReactGrabProps(item)
-
   useEffect(() => {
     if (!previousIsActiveRef.current && isActive) {
       setTreeOpen(true)
@@ -101,9 +97,9 @@ function NavMainTreeItem({
         <SidebarMenuButton
           asChild
           isActive={isActive}
-          tooltip={reactGrabProps.tooltipProps}
+          tooltip={{ children: item.title }}
           className="justify-start gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-          {...reactGrabProps.ownerProps}
+
         >
           <Link
             href={item.href ?? "#"}
@@ -229,7 +225,6 @@ export function NavMain({
             const isOrganizationItem = Boolean(
               item.href && isWorkspaceHref(item.href)
             )
-            const reactGrabProps = buildMainNavItemReactGrabProps(item)
             const tourId = isOrganizationItem
               ? "nav-organization"
               : item.href === "/organization/documents"
@@ -256,9 +251,9 @@ export function NavMain({
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={reactGrabProps.tooltipProps}
+                    tooltip={{ children: item.title }}
                     className="cursor-default justify-start gap-2 opacity-90 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:bg-transparent"
-                    {...reactGrabProps.ownerProps}
+
                   >
                     <div
                       aria-disabled
@@ -309,14 +304,20 @@ export function NavMain({
               )
             }
 
+            if (item.href === "/workspace") {
+              return <NavMainWorkspaceItem key={item.title} item={item} isActive={isActive}
+                namedWorkspaceSelected={searchParams.has("workspace")} showControls={pathname === "/workspace"}
+                onPrefetch={prefetchHref} tourId={tourId} />
+            }
+
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
                   isActive={isActive}
-                  tooltip={reactGrabProps.tooltipProps}
+                  tooltip={{ children: item.title }}
                   className="justify-start gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-                  {...reactGrabProps.ownerProps}
+
                 >
                   <Link
                     href={item.href}

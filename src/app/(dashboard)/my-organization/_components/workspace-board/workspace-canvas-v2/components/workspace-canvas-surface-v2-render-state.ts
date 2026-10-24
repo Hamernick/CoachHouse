@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import {
   type MutableRefObject,
   useCallback,
@@ -7,7 +8,7 @@ import {
   useMemo,
   useRef,
 } from "react"
-import { applyNodeChanges, useNodesState, type NodeChange } from "reactflow"
+import { applyNodeChanges, useNodesState, type NodeChange } from "@xyflow/react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { WorkspaceBoardNodeData } from "../../workspace-board-node-types"
@@ -256,7 +257,7 @@ export function useWorkspaceCanvasRenderState({
       workspacePersonPlacements,
     ]
   )
-  const [nodes, setNodes] = useNodesState<WorkspaceCanvasNodeData>(initialNodes)
+  const [nodes, setNodes] = useNodesState<ReactFlowNode<WorkspaceCanvasNodeData>>(initialNodes)
   const latestInitialNodesRef = useRef(initialNodes)
   const previousTutorialSceneRequestSeedRef = useRef(tutorialSceneRequestSeed)
   const previousTutorialActiveRef = useRef(tutorialActive)

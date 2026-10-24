@@ -3,7 +3,7 @@
 import Image from "next/image"
 import artwork from "../../assets/heroes/tools-brand-identity.webp"
 import { brandFontStack } from "../../lib/brand-fonts"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,7 +14,11 @@ import { BrandIdentitySection } from "./brand-identity-section"
 export function FoundationSection({
   draft,
   updateDraft,
+  audienceMaxLength,
+  taglineMaxLength,
 }: {
+  audienceMaxLength?: number
+  taglineMaxLength?: number
   draft: BrandIdentityDraft
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
 }) {
@@ -26,12 +30,7 @@ export function FoundationSection({
     >
       <div
         className="relative mb-6 flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg text-center text-white"
-        {...brandIdentityOwner(
-          "foundation-section",
-          "FoundationSection",
-          "introduction",
-          "preview"
-        )}
+
       >
         <Image
           src={artwork}
@@ -58,6 +57,7 @@ export function FoundationSection({
         <Field label="Organization name" htmlFor="brand-organization-name">
           <Input
             id="brand-organization-name"
+            maxLength={120}
             value={draft.organizationName}
             onChange={(event) =>
               updateDraft({ organizationName: event.target.value })
@@ -67,6 +67,7 @@ export function FoundationSection({
         <Field label="Tagline" htmlFor="brand-tagline">
           <Input
             id="brand-tagline"
+            maxLength={taglineMaxLength}
             value={draft.tagline}
             onChange={(event) => updateDraft({ tagline: event.target.value })}
           />
@@ -92,6 +93,7 @@ export function FoundationSection({
         <Field label="Primary audience" htmlFor="brand-audience">
           <Textarea
             id="brand-audience"
+            maxLength={audienceMaxLength}
             rows={4}
             value={draft.audience}
             onChange={(event) => updateDraft({ audience: event.target.value })}
@@ -99,13 +101,7 @@ export function FoundationSection({
         </Field>
         <fieldset
           className="min-w-0"
-          {...brandIdentityOwner(
-            "foundation-section",
-            "FoundationSection",
-            "actionables",
-            "fields",
-            "Three editable calls to action below Primary audience."
-          )}
+
         >
           <legend className="text-sm font-medium">Actionables</legend>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">
@@ -124,13 +120,7 @@ export function FoundationSection({
                   actionables[index] = event.target.value
                   updateDraft({ actionables })
                 }}
-                {...brandIdentityOwner(
-                  "foundation-section",
-                  "FoundationSection",
-                  `brand-actionable-${index + 1}`,
-                  "field",
-                  `Actionable ${index + 1}`
-                )}
+
               />
             ))}
           </div>
@@ -154,23 +144,11 @@ function Field({
   return (
     <div
       className={wide ? "min-w-0" : undefined}
-      {...brandIdentityOwner(
-        "foundation-section",
-        "FoundationSection",
-        htmlFor,
-        "field",
-        label
-      )}
+
     >
       <Label
         htmlFor={htmlFor}
-        {...brandIdentityOwner(
-          "foundation-section",
-          "FoundationSection",
-          htmlFor,
-          "label",
-          label
-        )}
+
       >
         {label}
       </Label>
