@@ -214,3 +214,24 @@ describe("proxy auth route redirects", () => {
     expect(source).not.toContain('new URL("/projects"')
   })
 })
+
+
+describe("public crawler route boundaries", () => {
+  beforeEach(() => {
+    getUserMock.mockReset().mockResolvedValue({ data: { user: null } })
+    createServerClientMock.mockReset().mockReturnValue({ auth: { getUser: getUserMock } })
+  })
+
+  it.each(["/classical-foundation", "/workspace-for-youth", "/people-first", "/internal-resources", "/billing-assistance"])("does not mistake public handle %s for a private route", async (path) => {
+    for (const method of ["GET", "HEAD"]) {
+      const response = await proxy(new NextRequest(`https://coachhouse.test${path}`, { method, headers: { "user-agent": "Googlebot" } }))
+      expect(response.headers.get("location")).toBeNull()
+    }
+  })
+
+  it.each(["/class", "/class/example", "/workspace", "/workspace/documents", "/people", "/admin", "/internal", "/billing"])("still requires a session at %s for crawlers", async (path) => {
+    const response = await proxy(new NextRequest(`https://coachhouse.test${path}`, { headers: { "user-agent": "Googlebot" } }))
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/login")
+    expect(getUserMock).toHaveBeenCalledOnce()
+  })
+})

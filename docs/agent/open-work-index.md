@@ -92,4 +92,4 @@ Before a new lane: inspect branch/upstream/dirt/listeners and refresh its releva
 
 ## Launch Route Hygiene — Active Sequential Lane
 
-`fix/launch-route-hygiene-20261024` in `coach-house-platform-launch-route-hygiene-20261024`; [checkpoint](../plans/2026-10-24-launch-route-hygiene.md). O123/O173 complete locally; O176 active, then O133/O127. Stacked on documentation PR358. User owns hosted checks, review, merge/deploy and live acceptance.
+`fix/launch-route-hygiene-20261024` in `coach-house-platform-launch-route-hygiene-20261024`; [checkpoint](../plans/2026-10-24-launch-route-hygiene.md). O123/O173/O176 complete locally; O133 active, then O127. Stacked on documentation PR358. User owns hosted checks, review, merge/deploy and live acceptance.

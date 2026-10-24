@@ -17,6 +17,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Confirm Your Email",
   description: "Verify your email to continue with your Coach House account.",
 }

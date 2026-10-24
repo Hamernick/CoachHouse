@@ -22,6 +22,7 @@ import type { Database } from "@/lib/supabase"
 import { CheckoutActivationStatus } from "./_components/checkout-activation-status"
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Activate Your Plan",
   description: "Review the activation of your Coach House plan.",
 }

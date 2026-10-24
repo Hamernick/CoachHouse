@@ -17,6 +17,7 @@ const TOPIC_LABELS: Record<string, string> = {
 }
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   description: "Manage your Coach House email preferences.",
   title: "Email preferences",
 }

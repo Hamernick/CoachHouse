@@ -166,3 +166,25 @@ describe("page metadata coverage", () => {
     expect(resolvePage(buildPublicProfileMetadata(profile, profile.handle)).description).toBe("View @example on Coach House.")
   })
 })
+
+
+describe("private route indexing", () => {
+  it.each([
+    "(auth)/layout.tsx", "(dashboard)/layout.tsx", "(admin)/layout.tsx", "(internal)/layout.tsx",
+    "(platform-lab)/internal/platform-lab/layout.tsx", "(public)/visual-regression/layout.tsx",
+    "auth/confirm/page.tsx", "(public)/pricing/success/page.tsx", "(public)/unsubscribe/page.tsx",
+  ])("resolves noindex for %s", (file) => {
+    const source = readFileSync(path.join("src/app", file), "utf8")
+    const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+    const declaration = ast.statements.filter(ts.isVariableStatement)
+      .flatMap((statement) => [...statement.declarationList.declarations])
+      .find((entry) => entry.name.getText(ast) === "metadata")
+    const initializer = declaration?.initializer
+    if (!initializer || !ts.isObjectLiteralExpression(initializer)) throw new Error(`Missing static metadata: ${file}`)
+    const robots = initializer.properties.find((property) => property.name?.getText(ast) === "robots")
+    if (!robots || !ts.isPropertyAssignment(robots)) throw new Error(`Missing robots policy: ${file}`)
+    // The private policy is a literal; resolve it through Next's real metadata API.
+    const policy = JSON.parse(robots.initializer.getText(ast).replace(/(index|follow):/g, '"$1":'))
+    expect(resolvePage({ robots: policy }).robots?.basic).toBe("noindex, nofollow")
+  })
+})
