@@ -8,7 +8,7 @@ import { researchConfig } from "./research-config"
 import { runResearchProvider } from "./research-provider"
 import { readAiRequestBody } from "./request-body"
 
-export const researchRunSchema=z.object({id:z.uuid(),status:z.string(),target:z.object({kind:z.literal("particle_research"),organizationId:z.uuid(),objectiveId:z.uuid(),revision:z.number()}),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable()})
+export const researchRunSchema=z.object({id:z.uuid(),status:z.string(),target:z.object({kind:z.literal("particle_research"),organizationId:z.uuid(),objectiveId:z.uuid(),revision:z.number(),canvasId:z.string().nullable().optional(),userId:z.uuid().optional()}),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable()})
 export async function readResearchRun(id:string,target:ResearchTarget) {
   z.uuid().parse(id)
   const context=await loadResearchContext(target,false)

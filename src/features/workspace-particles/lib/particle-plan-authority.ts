@@ -15,13 +15,18 @@ export function particlePlanningPermissionError(before: ParticleGraph, after: Pa
     if (!actor) return "Planning changes require an authenticated organization member."
     if (!actor.isOrganizationOwner && !same(old?.plans ?? [], value?.plans ?? []))
       return "Only the organization owner can change the accepted plan. Submit a proposal."
+    for (const plan of old?.plans ?? []) {
+      const updated = value?.plans.find(item => item.id === plan.id)
+      if (updated && updated.researchRunId !== plan.researchRunId)
+        return "An accepted plan's research origin cannot be changed."
+    }
     for (const proposal of old?.proposals ?? []) {
       const updated = value?.proposals.find(item => item.id === proposal.id)
       if (!updated) return "Proposal history cannot be removed."
       if (same(updated, proposal)) continue
       if (proposal.status !== "pending") return "Reviewed proposals cannot be changed."
-      if (updated.authorId !== proposal.authorId || updated.createdAt !== proposal.createdAt || updated.planId !== proposal.planId || updated.baseRevision !== proposal.baseRevision)
-        return "Proposal authorship and base revision cannot be changed."
+      if (updated.authorId !== proposal.authorId || updated.createdAt !== proposal.createdAt || updated.planId !== proposal.planId || updated.baseRevision !== proposal.baseRevision || updated.researchRunId !== proposal.researchRunId)
+        return "Proposal authorship, research origin, and base revision cannot be changed."
       if (!actor.isOrganizationOwner && proposal.authorId !== actor.userId)
         return "Only the author or organization owner can edit this proposal."
       if (updated.status === "pending") continue

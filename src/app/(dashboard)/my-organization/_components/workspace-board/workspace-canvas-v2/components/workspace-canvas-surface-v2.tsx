@@ -12,11 +12,13 @@ import {
   type WorkspaceCanvasV2CardId,
 } from "./workspace-canvas-surface-v2-helpers"
 import * as Runtime from "./workspace-canvas-surface-v2-runtime"
-import { useParticleSession } from "@/features/workspace-particles/client"
+import { useParticleSession, type ResearchTransport } from "@/features/workspace-particles/client"
 import {
   applyWorkspaceParticleBatchAction,
   loadWorkspaceParticleGraphAction,
 } from "../../../../_lib/workspace-particle-actions"
+
+import { applyWorkspaceResearchAction } from "../../../../_lib/workspace-research-actions"
 
 const WORKSPACE_LIVE_CANVAS_ONTOLOGY_ENABLED = false
 
@@ -86,6 +88,7 @@ function WorkspaceCanvasSurfaceV2Session({
     stored: boardState.particleGraph,
     canEdit: allowEditing && !tutorialActiveFromBoard,
     transport: useCallback((batch) => applyWorkspaceParticleBatchAction(batch, boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
+    researchTransport: useCallback<ResearchTransport>((input) => applyWorkspaceResearchAction(input, boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
     load: useCallback(() => loadWorkspaceParticleGraphAction(boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
   })
   const {

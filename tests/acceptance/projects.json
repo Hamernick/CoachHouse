@@ -627,6 +627,7 @@
       "tests/acceptance/workspace-particle-ui.test.ts",
       "tests/acceptance/workspace-plan-progress.test.ts",
       "tests/acceptance/workspace-presence-target.test.ts",
+      "tests/acceptance/workspace-research-application.test.ts",
       "tests/acceptance/workspace-research-decisions.test.ts",
       "tests/acceptance/workspace-research-knowledge.test.ts",
       "tests/acceptance/workspace-research-provider.test.ts",

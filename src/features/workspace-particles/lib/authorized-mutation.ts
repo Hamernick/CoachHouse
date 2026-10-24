@@ -30,12 +30,14 @@ export async function prepareAuthorizedParticleMutation({
   canEdit,
   now,
   planningActor,
+  authorizedResearch,
 }: {
   input: unknown
   workspaceId: string
   canEdit: boolean
   now: string
   planningActor?: PlanningActor
+  authorizedResearch?: { runId: string; objectiveId: string }
 }): Promise<ParticleResult<(stored: Json | undefined) => ParticleCommit>> {
   if (!canEdit)
     return {
@@ -63,6 +65,17 @@ export async function prepareAuthorizedParticleMutation({
       )
       if (!result.ok) throw new ParticleMutationError(result.code, result.error)
       if (!result.value.replayed) {
+        for (const item of result.value.graph.particles) {
+          if (item.type !== "objective") continue
+          const previous = graph.value.particles.find(value => value.id === item.id)
+          const old = previous?.type === "objective" ? previous.data.planning : undefined
+          const known = new Set([...(old?.plans ?? []), ...(old?.proposals ?? [])].map(value => value.researchRunId).filter(Boolean))
+          for (const value of [...(item.data.planning?.plans ?? []), ...(item.data.planning?.proposals ?? [])]) {
+            if (value.researchRunId && !known.has(value.researchRunId) &&
+                (authorizedResearch?.runId !== value.researchRunId || authorizedResearch.objectiveId !== item.id))
+              throw new ParticleMutationError("scope", "Add research through its saved proposal.")
+          }
+        }
         // Review metadata is server-owned; client timestamps are never authority.
         for (const item of result.value.graph.particles) {
           if (item.type !== "objective" || !item.data.planning) continue

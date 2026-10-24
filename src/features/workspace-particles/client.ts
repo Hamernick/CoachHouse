@@ -75,3 +75,5 @@ export { planFromProposal } from "./lib/particle-plan-schema"
 
 export { particlePlanBranchStates, particlePlanBranchLabel, particlePlanOutcomeReferences } from "./lib/particle-plan-branches"
 export type { PlanBranchState } from "./lib/particle-plan-branches"
+
+export type { ResearchTransport } from "./hooks/use-particle-research"

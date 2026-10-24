@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast"
 import { notifyNotesChanged } from "@/lib/modules/notes-events"
 import { getParticleNotes } from "../lib/particle-notes"
 import { particleCreationConflict } from "../lib/particle-event"
+import { useParticleResearch, type ResearchTransport } from "./use-particle-research"
 import { useParticleCalendarInvalidation } from "./use-particle-calendar-invalidation"
 import { applyParticleBatch } from "../lib/graph-operations"
 import { readParticleGraph } from "../lib/graph-validation"
@@ -33,12 +34,14 @@ export function useParticleSession({
   stored,
   canEdit,
   transport,
+  researchTransport,
   load,
 }: {
   workspaceId: string
   stored: unknown
   canEdit: boolean
   transport: ParticleTransport
+  researchTransport?: ResearchTransport
   load: () => Promise<ParticleResult<ParticleGraph>>
 }) {
   const initial = useMemo(
@@ -216,6 +219,11 @@ export function useParticleSession({
     [canEdit, send, workspaceId]
   )
 
+  const applyResearch = useParticleResearch({
+    researchTransport, canEdit, workspaceId, current, inFlight, retryBatch,
+    history, setPending, setError, setSaved, setResult,
+  })
+
   const edit = useCallback(
     (particle: Particle, options: { optimistic?: boolean } = {}) =>
       commit(
@@ -325,10 +333,7 @@ export function useParticleSession({
       setPending(false)
     }
   }, [load, send, workspaceId])
-  const getCurrentGraph = useCallback(
-    () => (current.current.ok ? current.current.value : null),
-    []
-  )
+  const getCurrentGraph = useCallback(() => (current.current.ok ? current.current.value : null), [])
   return useMemo(
     () => ({
       graph:
@@ -348,7 +353,7 @@ export function useParticleSession({
       add,
       commit,
       getCurrentGraph,
-      commitBatch,
+      commitBatch, applyResearch,
       travel,
       undoLabel: historyState.undoLabel,
       redoLabel: historyState.redoLabel,
@@ -370,7 +375,7 @@ export function useParticleSession({
       add,
       commit,
       getCurrentGraph,
-      commitBatch,
+      commitBatch, applyResearch,
       travel,
       historyState.undoLabel,
       historyState.redoLabel,

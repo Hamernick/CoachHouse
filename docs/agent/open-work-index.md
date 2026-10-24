@@ -1,6 +1,6 @@
 # Open Work Index
 
-**October24 full AI workspace goal resumed:** Existing particle branch/PR357; named research decision branches and editable conditions implemented. [Current evidence and remaining requirements](../plans/2026-10-22-workspace-ai-plan.md#resumed-full-goal--named-research-decision-branches-2026-10-24). This supersedes earlier paused-status notes; production boundaries remain unchanged.
+**October24 full AI workspace goal resumed:** Existing particle branch/PR357; server-owned research application now joins the typed decision branches. [Current evidence and remaining requirements](../plans/2026-10-22-workspace-ai-plan.md#resumed-full-goal--server-owned-research-application-2026-10-24). Full goal remains active; provider and controlled-release gates remain open.
 
 **October23 authorized main sync complete:** Main `6e940b13` merged/pushed into `feat/particle-system-20261009` at `a6345f59`. Localhost3008 runs Next16.4.2 with fresh cache; saved Objectives and Notes verified in-browser. Build, full types, focused tests and normal pre-push gates pass; no deployment/shared migration. [Checkpoint](../plans/2026-10-22-workspace-ai-plan.md#development-main-synchronization--2026-10-23). This supersedes the older preservation-only restriction on merging main.
 

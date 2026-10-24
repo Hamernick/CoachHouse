@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useReducedMotion } from "motion/react"
 import { WorkspaceResearch } from "@/features/workspace-ai/client"
-import { researchPlanOperations, planFromProposal } from "@/features/workspace-particles/client"
+import { planFromProposal } from "@/features/workspace-particles/client"
 import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
@@ -52,10 +52,9 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
       {research && <WorkspaceResearch userId={userId} target={{organizationId:objective.workspaceId,objectiveId:objective.id,revision:objective.revision}} onClose={()=>setResearch(false)} onProposal={async result=>{
         const graph=controls.getCurrentGraph()
         if(!graph)return false
-        const operations=researchPlanOperations(graph,result,userId,new Date().toISOString(),()=>crypto.randomUUID())
-        if(!operations.length)return true
-        const added=operations.flatMap(operation=>operation.kind==="put_particle"&&operation.expectedRevision===null?[operation.particle.id]:[])
-        const saved=await controls.commit(operations,{optimistic:true})
+        const previous=new Set(graph.particles.map(item=>item.id))
+        const saved=await controls.applyResearch(result.runId,objective.id)
+        const added=saved?.graph.particles.filter(item=>!previous.has(item.id)).map(item=>item.id)??[]
         if(saved&&added.length) void controls.layout.run(false,added)
         return Boolean(saved)
       }} />}

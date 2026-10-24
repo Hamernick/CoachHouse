@@ -21,3 +21,5 @@ export {
 } from "./lib/authorized-mutation"
 
 export { handleNotesGet, handleNotesPost } from "./server/note-route"
+
+export { researchPlanOperations } from "./lib/research-plan"
