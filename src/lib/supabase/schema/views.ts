@@ -71,5 +71,10 @@ export type ResourceMapPublicItemsView = {
 }
 
 export type PublicViews = {
+  // Existing SQL projection; service-only reads preserve the publication filters.
+  nonprofit_directory_public: {
+    Row: { ein: string; name: string; state: string | null; search_document: unknown; item: Json }
+    Relationships: []
+  }
   resource_map_public_items: ResourceMapPublicItemsView
 }

@@ -117,6 +117,7 @@
       "tests/acceptance/public-pricing-surface-data.test.ts",
       "tests/acceptance/public-resource-summary.test.ts",
       "tests/acceptance/public-roadmap-analytics-route.test.ts",
+      "tests/acceptance/public-sitemap-pagination.test.ts",
       "tests/acceptance/public-storage-image-transform.test.ts",
       "tests/acceptance/readiness-checklist.test.ts",
       "tests/acceptance/resource-map-brooklyn-nonprofit-directory.test.ts",

@@ -45,7 +45,7 @@ describe("community search visibility follows its public-access gate", () => {
     expect(metadata.robots).toEqual({ index: enabled, follow: true })
     expect(metadata.title).toBe("Community")
     expect(urls).toContain("https://coachhouse.app/resources")
-    expect(urls).toContain("https://coachhouse.app/published-profile")
+    expect(urls).not.toContain("https://coachhouse.app/published-profile") // Profiles live in paginated sitemaps.
     expect(urls).toContain("https://coachhouse.app/documentation")
   })
 

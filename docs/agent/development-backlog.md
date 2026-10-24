@@ -8,8 +8,8 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 | Development status | Requirements |
 | --- | ---: |
-| Done | 41 |
-| In progress | 80 |
+| Done | 42 |
+| In progress | 79 |
 | To do | 0 |
 | Needs verification | 49 |
 | Deferred | 5 |
@@ -18,7 +18,7 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 - **Done:** the requested development outcome or one-time operation has specific implementation/verification evidence. Release, legal, provider and user acceptance limits remain in its row. This is not a shipped/accepted count.
 - **In progress:** part of the requested outcome is evidenced, or an essential integration/verification step remains. Includes the explicitly identified standing authorization rule.
-- This does not mean 80 concurrently active workstreams: partial implementations stay here even when their implementation branch is closed; the open-work index identifies active ownership.
+- This does not mean 79 concurrently active workstreams: partial implementations stay here even when their implementation branch is closed; the open-work index identifies active ownership.
 - **To do:** the current checkpoint explicitly leaves that outcome planned/unimplemented.
 - **Needs verification:** no sufficient requirement-specific completion or active-implementation receipt was found in this reconciliation. This does **not** mean absent or unimplemented. Verify before rebuilding.
 - **Deferred:** explicitly excluded from the current user-approved slice, while the original request remains preserved. Do not execute merely because it is unfinished.
@@ -128,7 +128,7 @@ The October23 Desktop master predates newer Particle/AI work and PR356 merge. It
 | O168-01 | Register two spare email-sending domains | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O169-01 | SPF/DKIM/DMARC on sending domains | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O170-01 | All app email through Resend from spare domains, never main domain | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
-| O173-01 | Sitemap covering all intended public pages | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. Active sequential implementation: [route hygiene checkpoint](../plans/2026-10-24-launch-route-hygiene.md). |
+| O173-01 | Sitemap covering all intended public pages | Done | [2026-10-24 implementation and checks](../plans/2026-10-24-launch-route-hygiene.md#o173-evidence-and-catalog-decision). Static routes plus paginated published profiles, resources and roadmaps; visibility filters, failure handling and provider row limits covered. 45 focused tests and rendered sitemap samples passed. Hosted CI/review/merge/deploy remain. |
 | O174-01 | robots.txt points to sitemap | Done | [launch](../runlog/2026-10.md#2026-10-22--five-launch-requirements-and-telemetry-url-privacy). Existing favicon URLs / robots sitemap reference verified locally. Production acceptance remains separate. |
 | O175-01 | Submit sitemap in Google Search Console | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O176-01 | Public pages accessible to crawlers without login | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [publicrelease](../runlog/2026-10.md#2026-10-12-1427-edt--public-release-deployed-fiscal-activation-held). Public pages and authenticated-only sitemap exclusion checked; full intended-public-route crawler inventory remains. |
