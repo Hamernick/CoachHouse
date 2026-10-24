@@ -30,6 +30,7 @@ test("image alt text saves without replacing the source and survives editor relo
   await page.setContent('<div id="root"></div>')
   await page.addScriptTag({ content: await buildRichTextEditabilityFixture('<p>Photo</p><img src="https://example.org/photo.jpg" alt="Before">') })
   await page.getByRole("button", { name: "Toggle access" }).click()
+  await page.getByAltText("Before", { exact: true }).click()
   await page.getByRole("button", { name: "Image options" }).click()
   await page.getByRole("menuitem", { name: "Replace Image" }).click()
   await page.getByLabel("Alt text", { exact: true }).fill("Volunteers packing food")

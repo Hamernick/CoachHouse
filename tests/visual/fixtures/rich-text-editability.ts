@@ -30,6 +30,8 @@ export async function buildRichTextEditabilityFixture(initialValue = "<p>Existin
               key: version,
               value,
               applyExternalValue: false,
+              preserveImages: true,
+              onImageUpload: async () => "https://example.org/photo.jpg",
               ariaLabel: "Document",
               readOnly,
               onChange: html => { setValue(html); setUpdates(value => value + 1); },

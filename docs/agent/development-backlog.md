@@ -8,8 +8,8 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 | Development status | Requirements |
 | --- | ---: |
-| Done | 44 |
-| In progress | 77 |
+| Done | 45 |
+| In progress | 76 |
 | To do | 0 |
 | Needs verification | 49 |
 | Deferred | 5 |
@@ -74,7 +74,7 @@ The October23 Desktop master predates newer Particle/AI work and PR356 merge. It
 | O124-01 | OG/social preview image | Done | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Original requirement explicitly closed and deployed in PR348–351; user confirmation recorded. |
 | O125-01 | Favicon | Done | [launch](../runlog/2026-10.md#2026-10-22--five-launch-requirements-and-telemetry-url-privacy). Existing favicon URLs / robots sitemap reference verified locally. Production acceptance remains separate. |
 | O126-01 | sitemap.xml and robots.txt | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. |
-| O127-01 | Alt text on all images | In progress | [2026-10-24 image inventory and implementation](../plans/2026-10-24-launch-route-hygiene.md#o127-implementation-and-handoff). All142 JSX sites inventoried; three missing alternatives fixed; alt-only editor save/persistence implemented. Inventory and8 collaboration cases pass; browser save/reload verification remains before completion. Author-content quality and hosted/live acceptance remain separate. |
+| O127-01 | Alt text on all images | Done | [2026-10-24 inventory and verification, PR359](../plans/2026-10-24-launch-route-hygiene.md#o127-implementation-and-handoff). All142 JSX sites inventoried; three missing alternatives fixed; alt-only editor save/persistence/reload verified. Inventory guard,8 collaboration cases, browser save/reload and316 rendered image occurrences verified. Author-content quality, final full types/hosted checks and live acceptance remain separate. |
 | O128-01 | Compress images | In progress | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed); [docs](../runlog/2026-09.md#2026-09-23--prepare-isolated-public-documentation-release). Scoped image/accessibility/keyboard/mobile fixes recorded. Universal wording requires a complete affected-surface inventory and remaining findings. |
 | O129-01 | Check page-load speed | In progress | [mapcost](../runlog/2026-10.md#2026-10-07--audit-public-map-provider-cost-and-data-transfer); [mapbound](../runlog/2026-10.md#2026-10-07--bound-resource-requests-reuse-query-data-and-reduce-provider-transfer); [security](../runlog/2026-10.md#2026-10-22--authorized-next-upgrade-unblock). Map requests/caching/assets and build budgets improved. Complete site-wide endpoint/asset inventory and production measurement; no blanket egress guarantee. |
 | O130-01 | Fix color-contrast issues | In progress | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed); [docs](../runlog/2026-09.md#2026-09-23--prepare-isolated-public-documentation-release). Scoped image/accessibility/keyboard/mobile fixes recorded. Universal wording requires a complete affected-surface inventory and remaining findings. |
