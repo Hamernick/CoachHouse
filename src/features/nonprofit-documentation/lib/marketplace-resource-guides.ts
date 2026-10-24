@@ -218,14 +218,14 @@ export const MARKETPLACE_RESOURCE_GUIDES: Record<
     ],
     steps: [
       {
-        title: "Create an assessment account",
+        title: "Confirm assessment availability",
         description:
-          "Sign up for the Digital Assessment Tool, verify your email, and complete the organization profile. This account is separate from a TechSoup marketplace account.",
+          "Read TechSoup’s overview and confirm that the assessment is currently available before registering. If access is unavailable, use the overview to discuss your technology priorities with your team.",
       },
       {
         title: "Answer with the people doing the work",
         description:
-          "Complete the introductory assessment and invite relevant teammates. Use actual workflows and limitations rather than guessing what a policy says.",
+          "If assessment access is available, complete it with relevant teammates. Otherwise, review the same technology areas together using actual workflows and limitations.",
       },
       {
         title: "Turn findings into one experiment",
@@ -238,8 +238,8 @@ export const MARKETPLACE_RESOURCE_GUIDES: Record<
     ],
     sources: [
       {
-        title: "TechSoup assessment and account FAQ",
-        href: "https://assessment.techsoup.org/",
+        title: "TechSoup assessment overview",
+        href: "https://blog.techsoup.org/en-us/posts/introducing-techsoups-digital-assessment-tool",
       },
     ],
   },

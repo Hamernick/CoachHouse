@@ -8,8 +8,8 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 | Development status | Requirements |
 | --- | ---: |
-| Done | 43 |
-| In progress | 78 |
+| Done | 44 |
+| In progress | 77 |
 | To do | 0 |
 | Needs verification | 49 |
 | Deferred | 5 |
@@ -80,7 +80,7 @@ The October23 Desktop master predates newer Particle/AI work and PR356 merge. It
 | O130-01 | Fix color-contrast issues | In progress | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed); [docs](../runlog/2026-09.md#2026-09-23--prepare-isolated-public-documentation-release). Scoped image/accessibility/keyboard/mobile fixes recorded. Universal wording requires a complete affected-surface inventory and remaining findings. |
 | O131-01 | Verify mobile responsiveness | In progress | [mvpclose](../runlog/2026-10.md#2026-10-12-2105-edt--internal-mvp-workstream-closeout-and-loose-end-audit); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Scoped mobile checks and AppShell release recorded; no complete integrated mobile sweep established. |
 | O132-01 | Custom 404 page | Done | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Original requirement explicitly closed and deployed in PR348–351; user confirmation recorded. |
-| O133-01 | Fix broken links | In progress | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed); [security](../runlog/2026-10.md#2026-10-22--authorized-next-upgrade-unblock). Scoped obsolete routes, auth destinations and interaction defects fixed. Full release/dead-end/broken-link inventory has not been closed. |
+| O133-01 | Fix broken links | Done | [2026-10-24 inventory and checks](../plans/2026-10-24-launch-route-hygiene.md#o133-evidence). Fixed three dead external destinations, three placeholder help links and one invalid route; 387 owned destinations, 279 rendered anchors and42 Documentation cases pass. Provider-blocked URLs and authenticated/live acceptance limits are explicit in the checkpoint; hosted review/release remain. |
 | O134-01 | Form validation on all inputs | In progress | [fiscalsecurity](../runlog/2026-10.md#2026-10-10--guest-fiscal-submission-boundary-and-receipt-worker); [fiscalreceipt](../runlog/2026-10.md#2026-10-15--fiscal-receipt-copy-and-cross-device-email-confirmation). Scoped validation and abuse controls exist; fiscal CAPTCHA was explicitly removed with other controls retained. Complete all-form coverage, not a blanket CAPTCHA reintroduction. |
 | O135-01 | Spam protection on forms | In progress | [fiscalsecurity](../runlog/2026-10.md#2026-10-10--guest-fiscal-submission-boundary-and-receipt-worker); [fiscalreceipt](../runlog/2026-10.md#2026-10-15--fiscal-receipt-copy-and-cross-device-email-confirmation). Scoped validation and abuse controls exist; fiscal CAPTCHA was explicitly removed with other controls retained. Complete all-form coverage, not a blanket CAPTCHA reintroduction. |
 | O136-01 | Analytics installed | Done | [launch](../runlog/2026-10.md#2026-10-22--five-launch-requirements-and-telemetry-url-privacy). Installed providers and hydrated callbacks verified; privacy correction merged PR355. Provider ingestion/production acceptance not established. |

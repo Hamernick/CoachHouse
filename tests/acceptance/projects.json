@@ -219,6 +219,7 @@
       "tests/acceptance/fiscal-sponsorship.test.ts",
       "tests/acceptance/home-canvas-scroll-logic.test.ts",
       "tests/acceptance/large-file-guard.test.ts",
+      "tests/acceptance/launch-navigation.test.ts",
       "tests/acceptance/member-workspace-paid-access-migration.test.ts",
       "tests/acceptance/member-workspace-people-read-safety.test.ts",
       "tests/acceptance/member-workspace-project-asset-integrity.test.ts",

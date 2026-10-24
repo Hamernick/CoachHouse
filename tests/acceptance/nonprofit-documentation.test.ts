@@ -822,7 +822,7 @@ describe("nonprofit documentation feature", () => {
         "Coach House",
         "Centers for Disease Control and Prevention",
         "AmeriCorps",
-        "U.S. Agency for International Development",
+        "National Charter School Resource Center, U.S. Department of Education",
         "Minnesota Department of Health",
       ])
     )

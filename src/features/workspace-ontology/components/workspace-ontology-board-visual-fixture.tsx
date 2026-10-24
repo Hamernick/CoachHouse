@@ -120,7 +120,7 @@ const INPUT: WorkspaceOntologyInput = {
           status: "in-progress",
           statusLabel: "In progress",
           relationshipLabel: "operates",
-          href: "/workspace/programs",
+          href: "/workspace",
           actionLabel: "Open program",
           ownerLabel: "Program director",
         },
