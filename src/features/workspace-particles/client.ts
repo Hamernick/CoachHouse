@@ -72,3 +72,6 @@ export type { ParticlePreset } from "./lib/particle-presets"
 export { researchPlanOperations } from "./lib/research-plan"
 
 export { planFromProposal } from "./lib/particle-plan-schema"
+
+export { particlePlanBranchStates, particlePlanBranchLabel, particlePlanOutcomeReferences } from "./lib/particle-plan-branches"
+export type { PlanBranchState } from "./lib/particle-plan-branches"

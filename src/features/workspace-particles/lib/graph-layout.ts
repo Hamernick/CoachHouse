@@ -220,9 +220,9 @@ export async function layoutParticleGraph(
         ...(objective.data.planning?.plans ?? []),
         ...(objective.data.planning?.proposals ?? []).filter(proposal=>proposal.status === "pending"),
       ].flatMap(plan=>[
-        ...plan.particleIds.filter(id=>!(plan.links ?? []).some(link=>link.target===id)).map(id=>({source:objective.id,target:id})),
+        ...plan.particleIds.filter(id=>!(plan.links ?? []).some(link=>link.target===id)).map(id=>({source:objective.id,target:id,outcome:undefined})),
         ...(plan.links ?? []),
-      ].filter(link=>particles.some(p=>p.id===link.source)&&particles.some(p=>p.id===link.target)).map((link,index)=>({id:`planning:${plan.id}:${index}`,sources:[portId(link.source,"out")],targets:[portId(link.target,"in")]}))) : [])],
+      ].filter(link=>particles.some(p=>p.id===link.source)&&particles.some(p=>p.id===link.target)).map((link,index)=>({id:`planning:${plan.id}:${index}`,sources:[portId(link.source,link.outcome?`outcome:${link.outcome}`:"out")],targets:[portId(link.target,"in")]}))) : [])],
   }
   if (signal?.aborted)
     return { ok: false, code: "unavailable", error: "Layout cancelled." }

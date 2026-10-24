@@ -5,7 +5,7 @@ import { MoreHorizontal, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { PARTICLE_DRAG_MIME, readParticleDrag, type ParticlePlan, type ParticlePlanProposal, type Particle } from "@/features/workspace-particles/client"
+import { particlePlanBranchStates, particlePlanBranchLabel, PARTICLE_DRAG_MIME, readParticleDrag, type ParticlePlan, type ParticlePlanProposal, type Particle } from "@/features/workspace-particles/client"
 import { PlanParticlePicker } from "./plan-particle-picker"
 import { PlanParticleRow } from "./plan-particle-row"
 import { PlanParticleList } from "./plan-particle-list"
@@ -20,6 +20,7 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const [rename, setRename] = useState(false)
   const [open, setOpen] = useState(true)
   const planning = planningOf(objective)
+  const branchStates=particlePlanBranchStates(plan,controls.graph?.particles ?? [])
   const editable = controls.canEdit && !controls.error && (proposal ? actions.owner || proposal.authorId === userId : actions.owner)
   const save = (value: ParticlePlan, created?: Particle) => proposal
     ? actions.update(objective, { ...planning, proposals: planning.proposals.map(item => item.id === proposal.id ? { ...item, title: value.title, particleIds: value.particleIds, ...(value.links ? { links: value.links } : {}) } : item) }, created)
@@ -40,6 +41,13 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       if (proposal) void actions.update(current, { ...latest, proposals: latest.proposals.map(item => item.id === proposal.id ? { ...item, particleIds: ids, ...(links.length ? { links } : {}) } : item) })
       else void actions.savePlan(current, { ...plan, ...target, particleIds: ids, ...(links.length ? { links } : {}) })
     } } })
+  }
+  const setCondition = (id:string,source:string,outcome:string,selected:boolean) => {
+    if(!editable || controls.pending)return
+    // A named branch replaces an unconditional relationship from the same decision.
+    const links=(plan.links ?? []).filter(link=>!(link.source===source && link.target===id && (!link.outcome || link.outcome===outcome)))
+    if(selected)links.push({source,target:id,outcome})
+    void save({...plan,links})
   }
   const move = (id: string, target: number) => {
     const ids = plan.particleIds.filter(value => value !== id)
@@ -86,7 +94,12 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       <PlanParticleList label={`${plan.title} particles`} particles={plan.particleIds.flatMap(id => controls.graph?.particles.find(particle => particle.id === id) ?? [])} disabled={!editable || controls.pending} onMove={move} onDragOver={event => { if (editable && !controls.pending && event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) event.preventDefault() }} onDrop={event => { event.preventDefault(); if (editable && !controls.pending) drop(event.dataTransfer.getData(PARTICLE_DRAG_MIME)) }}>
         {plan.particleIds.map((id, index) => {
           const particle = controls.graph?.particles.find(item => item.id === id)
-          return particle && <PlanParticleRow key={id} particle={particle} controls={controls} canOrganize={editable} first={index === 0} last={index === plan.particleIds.length - 1}
+          return particle && <PlanParticleRow branchState={branchStates.get(id)} branchLabel={particlePlanBranchLabel(plan,id,controls.graph?.particles ?? [])} key={id} particle={particle} controls={controls} canOrganize={editable} first={index === 0} last={index === plan.particleIds.length - 1}
+            conditions={plan.particleIds.filter(source=>source!==id).flatMap(source=>{
+              const decision=controls.graph?.particles.find(item=>item.id===source)
+              return decision?.type === "decision" ? decision.data.outcomes.map(outcome=>({source,outcome:outcome.id,label:`${decision.title}: ${outcome.label}`,selected:Boolean(plan.links?.some(link=>link.source===source&&link.target===id&&link.outcome===outcome.id))})) : []
+            })}
+            onCondition={(source,outcome,selected)=>setCondition(id,source,outcome,selected)}
             onRemove={() => void remove(id)}
             onMove={direction => move(id, index + direction)} onDrop={raw => drop(raw, id)} />
         })}

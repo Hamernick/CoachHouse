@@ -28,8 +28,8 @@ function render(overrides: Partial<Props> = {}) {
     actions: { owner: true, savePlan: vi.fn().mockResolvedValue(true), update: vi.fn().mockResolvedValue(true) } as unknown as Props["actions"],
     ...overrides,
   }
-  renderToStaticMarkup(createElement(ParticlePlanBranch, props))
-  return props
+  const markup=renderToStaticMarkup(createElement(ParticlePlanBranch, props))
+  return {...props,markup}
 }
 function drop(from: number, to: number | null) {
   drag.end!({ active: { id: ID(from) }, over: to === null ? null : { id: ID(to) } } as DragEndEvent)
@@ -72,5 +72,24 @@ describe("plan drag sorting", () => {
     drop(2, 4)
     expect(props.actions.savePlan).not.toHaveBeenCalled()
     expect(props.actions.update).toHaveBeenCalledExactlyOnceWith(objective, { plans: [initial.plan], proposals: [{ ...proposal, particleIds: [ID(3), ID(4), ID(2)] }] }, undefined)
+  })
+})
+
+
+describe("plan branch presentation",()=>{
+  it("shows named conditions and unknown choices without marking alternatives complete",()=>{
+    const initial=render()
+    const decision=particle(2,"decision")
+    const controls={...initial.controls,graph:{...initial.controls.graph!,particles:[initial.objective,decision,particle(3),particle(4)]}}
+    const plan={...initial.plan,links:[{source:ID(2),target:ID(3),outcome:"yes"},{source:ID(2),target:ID(4),outcome:"no"}]}
+    const result=render({controls,plan})
+    expect(result.markup).toContain("Needs decision")
+    expect(result.markup).toContain("If ")
+    expect(result.markup).toContain("Yes")
+    expect(result.markup).not.toContain("Not selected")
+    if(decision.type!=="decision")throw Error()
+    const chosen=render({plan,controls:{...controls,graph:{...controls.graph,particles:controls.graph.particles.map(item=>item.id===decision.id?{...decision,data:{...decision.data,selectedOutcome:"yes"}}:item)}}})
+    expect(chosen.markup).toContain("Not selected")
+    expect(chosen.markup).not.toContain("Needs decision")
   })
 })

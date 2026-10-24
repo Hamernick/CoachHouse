@@ -20,6 +20,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { particleSchema } from "../lib/particle-schema"
+import type { DecisionBranchReference } from "../lib/particle-decision"
 import type { Particle, ParticleConnection } from "../types"
 import { ParticleWidgetFields } from "./particle-widget-fields"
 import { ParticleWorkFields } from "./particle-work-fields"
@@ -67,11 +68,13 @@ function ParticleMetadataInspector({
   calendarEntryRequest,
   activities,
   connections = [],
+  decisionLinks = [],
 }: {
   particle: Particle
   calendarEntryRequest?: CalendarEntryRequest
   activities?: readonly CalendarActivity[]
   connections?: readonly ParticleConnection[]
+  decisionLinks?: readonly DecisionBranchReference[]
   editable: boolean
   pending: boolean
   onSave: (particle: Particle) => Promise<boolean>
@@ -283,7 +286,7 @@ function ParticleMetadataInspector({
               {draft.type === "decision" ? (
                 <ParticleDecisionEditor
                   particle={draft}
-                  connections={connections}
+                  connections={[...connections,...decisionLinks]}
                   disabled={!editable}
                   onChange={setDraft}
                 />

@@ -25,6 +25,10 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     particle.description=[item.description,...sources.map(source=>`${source.title}: ${source.href}`)].join("\n\n").slice(0,10000)
     particle.position={x:objective.position.x+380,y:objective.position.y+index*280}
     particle.positionMode="managed"
+    if(particle.type === "decision") {
+      const decision = result.decisions?.find(value=>value.itemKey===item.key)
+      if(decision) particle.data={criteria:[],outcomes:decision.outcomes.map(outcome=>({id:outcome.key,label:outcome.label})),selectedOutcome:null}
+    }
     if(person && particle.type==="people") particle.data={personIds:[person],presentation:"person",segment:""}
     if(particle.type==="activity") {
       if(item.referenceId?.startsWith("document:")) particle.data.widget={kind:"document",source:{kind:"roadmap",sectionId:item.referenceId.slice(9)},format:"roadmap",name:item.title}
@@ -41,6 +45,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     created.push(particle);byKey.set(item.key,id)
   }
   const links=result.items.flatMap(item=>item.dependsOn.map(parent=>({source:byKey.get(parent)!,target:byKey.get(item.key)!})))
-  const proposal:ParticlePlanProposal={id:uuid(),planId:uuid(),baseRevision:null,title:result.title,particleIds:[...byKey.values()],links,authorId:actorId,createdAt:now,status:"pending",researchRunId:result.runId,summary:result.summary,sources:result.sources}
+  const decisionLinks=(result.decisions ?? []).flatMap(decision=>decision.outcomes.flatMap(outcome=>outcome.next.map(target=>({source:byKey.get(decision.itemKey)!,target:byKey.get(target)!,outcome:outcome.key}))))
+  const proposal:ParticlePlanProposal={id:uuid(),planId:uuid(),baseRevision:null,title:result.title,particleIds:[...byKey.values()],links:[...links,...decisionLinks],authorId:actorId,createdAt:now,status:"pending",researchRunId:result.runId,summary:result.summary,sources:result.sources}
   return [...revealed.map(particle=>({kind:"put_particle" as const,particle,expectedRevision:particle.revision})),...created.map(particle=>({kind:"put_particle" as const,particle,expectedRevision:null})),{kind:"put_particle",particle:{...objective,data:{...objective.data,planning:{plans:objective.data.planning?.plans??[],proposals:[...(objective.data.planning?.proposals??[]),proposal]}}},expectedRevision:objective.revision}]
 }

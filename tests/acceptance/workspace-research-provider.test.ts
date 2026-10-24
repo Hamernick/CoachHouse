@@ -9,7 +9,7 @@ const target={organizationId:WORKSPACE,objectiveId:ID(1),revision:0}
 const request={id:ID(9),target,prompt:"Find evidence for the objective",skill:"research" as const,tariffVersion:"test",maximumCredits:20}
 const config={tariff:{version:"test",model:"fixture",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,webSearchMicrodollarsPerCall:10000,microdollarsPerCredit:2000},maxSearchCalls:2,maxRounds:3,maxOutputTokens:1500,maxInputBytes:20000,maxCredits:20,maxCost:40000}
 const context={objective:particle(1,"objective"),target} as ResearchContext
-const draft={title:"Next decisions",summary:"Evidence supports a next decision.",questions:[],items:[{key:"review",title:"Review source",kind:"resource",description:"An unconfirmed lead",referenceId:null,evidenceIds:["https://example.org/source"],dependsOn:[]}]}
+const draft={title:"Next decisions",summary:"Evidence supports a next decision.",questions:[],decisions:[],items:[{key:"review",title:"Review source",kind:"resource",description:"An unconfirmed lead",referenceId:null,evidenceIds:["https://example.org/source"],dependsOn:[]}]}
 const message={type:"message",id:"msg",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify(draft),annotations:[{type:"url_citation",url:"https://example.org/source",title:"Original source",start_index:0,end_index:5}]}]}
 function stream(id:string,output:unknown[],status="completed") {
   return (async function*(){yield {type:"response.created",response:{id}};yield {type:`response.${status}`,response:{id,status,output,usage:{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:10}}}}})()

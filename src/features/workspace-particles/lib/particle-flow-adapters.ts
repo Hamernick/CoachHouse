@@ -1,3 +1,4 @@
+import { particlePlanBranchStates } from "./particle-plan-branches"
 import { visibleParticleConnections } from "./particle-placement"
 import type { Edge } from "@xyflow/react"
 import type { ParticleLayout } from "./graph-layout"
@@ -64,13 +65,17 @@ export function particleConnectionsToFlow(
     const branches = [...(objective.data.planning?.plans ?? []).map(plan=>({plan,pending:false})),...(objective.data.planning?.proposals ?? []).filter(proposal=>proposal.status === "pending").map(proposal=>({plan:proposal,pending:true}))]
     for(const {plan,pending} of branches) {
       const links=plan.links ?? []
-      const pairs=[...plan.particleIds.filter(id=>!links.some(link=>link.target===id)).map(id=>({source:objective.id,target:id})),...links]
+      const states=particlePlanBranchStates(plan,graph.particles)
+      const pairs=[...plan.particleIds.filter(id=>!links.some(link=>link.target===id)).map(id=>({source:objective.id,target:id,outcome:undefined})),...links]
       for(const pair of pairs) {
         if(![pair.source,pair.target].every(id=>graph.particles.some(item=>item.id===id&&!item.canvasHidden)))continue
-        edges.push({id:`plan-member:${objective.id}:${plan.id}:${pair.source}:${pair.target}`,source:pair.source,target:pair.target,
-          sourceHandle:"out",targetHandle:"in",type:"smoothstep",selectable:false,deletable:false,
+        const decision=graph.particles.find(item=>item.id===pair.source)
+        const outcome=decision?.type === "decision" ? decision.data.outcomes.find(item=>item.id===pair.outcome) : undefined
+        const inactive=states.get(pair.target)==="inactive" || Boolean(pair.outcome && decision?.type === "decision" && decision.data.selectedOutcome && decision.data.selectedOutcome!==pair.outcome)
+        edges.push({id:`plan-member:${objective.id}:${plan.id}:${pair.source}:${pair.target}${pair.outcome ? `:${pair.outcome}` : ""}`,source:pair.source,target:pair.target,
+          sourceHandle:pair.outcome?`outcome:${pair.outcome}`:"out",label:outcome?.label,targetHandle:"in",type:"smoothstep",selectable:false,deletable:false,
           ariaLabel:pending?"Proposed plan relationship":"Plan membership",
-          style:{stroke:pending?"var(--chart-3)":"var(--muted-foreground)",strokeWidth:2,...(pending?{strokeDasharray:"4 5"}:{})},
+          style:{stroke:pending?"var(--chart-3)":"var(--muted-foreground)",strokeWidth:2,opacity:inactive?0.3:states.get(pair.target)==="waiting"?0.65:1,...(pending?{strokeDasharray:"4 5"}:{})},
         })
       }
     }

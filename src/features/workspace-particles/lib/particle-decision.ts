@@ -1,5 +1,7 @@
 import type { Particle, ParticleConnection } from "../types"
 
+export type DecisionBranchReference = Pick<ParticleConnection,"source"> & Partial<Pick<ParticleConnection,"outcome" | "sourceHandle">>
+
 export type DecisionParticle = Extract<Particle, { type: "decision" }>
 export type DecisionCriterion = DecisionParticle["data"]["criteria"][number]
 export type DecisionOutcome = DecisionParticle["data"]["outcomes"][number]
@@ -57,7 +59,7 @@ export function moveDecisionItem(
 export function decisionOutcomeRemovalReason(
   particle: DecisionParticle,
   outcomeId: string,
-  connections: readonly ParticleConnection[]
+  connections: readonly DecisionBranchReference[]
 ): string | null {
   if (
     connections.some(
@@ -75,7 +77,7 @@ export function decisionOutcomeRemovalReason(
 export function removeDecisionOutcome(
   particle: DecisionParticle,
   outcomeId: string,
-  connections: readonly ParticleConnection[]
+  connections: readonly DecisionBranchReference[]
 ): DecisionParticle {
   if (
     decisionOutcomeRemovalReason(particle, outcomeId, connections) ||

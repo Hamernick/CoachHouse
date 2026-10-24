@@ -15,7 +15,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
-import type { ParticleConnection } from "../types"
+import type { DecisionBranchReference } from "../lib/particle-decision"
 import {
   createDecisionOutcome,
   decisionOutcomeRemovalReason,
@@ -36,7 +36,7 @@ export function ParticleDecisionEditor({
   onChange,
 }: {
   particle: DecisionParticle
-  connections: readonly ParticleConnection[]
+  connections: readonly DecisionBranchReference[]
   disabled: boolean
   onChange: (particle: DecisionParticle) => void
 }) {

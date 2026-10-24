@@ -80,6 +80,13 @@ export function validateParticleGraph(graph: ParticleGraph): string | null {
     for (const plan of [...particle.data.planning.plans,...particle.data.planning.proposals.filter(item=>item.status === "pending")]) {
       const links = plan.links ?? [], members = new Set(plan.particleIds)
       if (links.some(link=>link.source===link.target || !members.has(link.source) || !members.has(link.target))) return "Plan relationships must connect its members."
+      if (new Set(links.map(link=>`${link.source}:${link.target}:${link.outcome ?? ""}`)).size !== links.length) return "Plan relationships must be unique."
+      for (const link of links) {
+        if (!link.outcome) continue
+        const decision=particles.get(link.source)
+        if (decision?.type !== "decision" || !decision.data.outcomes.some(outcome=>outcome.id===link.outcome)) return "Plan branch must reference a declared decision outcome."
+        if (links.some(other=>other.source===link.source && other.target===link.target && !other.outcome)) return "A plan branch cannot also be unconditional."
+      }
       const visiting = new Set<string>(), visited = new Set<string>()
       const cyclic = (id:string):boolean => {
         if(visiting.has(id)) return true

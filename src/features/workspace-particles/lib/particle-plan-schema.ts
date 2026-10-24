@@ -2,7 +2,7 @@ import { z } from "zod"
 
 const members = z.array(z.uuid()).max(250).refine(ids => new Set(ids).size === ids.length, "Plan members must be unique.")
 const contents = { title: z.string().trim().min(1).max(240), particleIds: members,
-  links: z.array(z.strictObject({ source: z.uuid(), target: z.uuid() })).max(60).optional(),
+  links: z.array(z.strictObject({ source: z.uuid(), target: z.uuid(), outcome: z.string().regex(/^[a-z][a-z0-9_-]{0,47}$/).optional() })).max(60).optional(),
   researchRunId: z.uuid().optional(),
   summary: z.string().max(1500).optional(),
   sources: z.array(z.strictObject({ id:z.string().max(200), title:z.string().max(240), href:z.string().max(2000).refine(value => /^\/(?!\/)/.test(value) || /^https?:\/\//.test(value), "Invalid source link"), revision:z.string().nullable(), checkedAt:z.iso.datetime(), kind:z.enum(["workspace","web"]), file:z.strictObject({size:z.number().int().positive().max(15728640),format:z.enum(["pdf","md","docx","doc","csv","txt","image"])}).optional() })).max(40).optional(),

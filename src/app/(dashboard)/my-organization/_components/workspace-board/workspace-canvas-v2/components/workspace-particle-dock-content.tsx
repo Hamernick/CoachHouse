@@ -5,6 +5,7 @@ import { WorkspaceAiComposer } from "@/features/workspace-ai/client"
 
 import {
   ParticleComposer,
+  particlePlanOutcomeReferences,
   ParticleLayoutActions,
   ParticleHistoryActions,
   ParticleLibrary,
@@ -38,6 +39,7 @@ export function WorkspaceParticleInspectorSlot({ session }: Props) {
       onDirtyChange={session.setDirty}
       calendarEntryRequest={session.calendarEntryRequest}
       connections={session.graph?.connections}
+      decisionLinks={particlePlanOutcomeReferences(session.graph)}
       activities={session.graph?.particles.filter(
         (particle) => particle.type === "activity"
       )}
