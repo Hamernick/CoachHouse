@@ -1,6 +1,8 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  reserve_workspace_ai_research_run: { Args: { p_id:string; p_org_id:string; p_actor_id:string; p_hash:string; p_target:Json; p_prompt:string; p_tariff:Json; p_max_credits:number; p_max_cost:number }; Returns:Json }
+  correlate_workspace_ai_research_response: { Args:{p_id:string;p_response_id:string}; Returns:undefined }
   read_ai_credit_allowance_setup: { Args: { p_org_id: string; p_actor_id: string; p_mode: string }; Returns: Json }
   bind_ai_credit_subscription: { Args: { p_org_id: string; p_actor_id: string; p_mode: string; p_subscription: string; p_customer: string; p_operation_id: string }; Returns: undefined }
   find_ai_credit_subscription_binding: { Args: { p_mode: string; p_subscription: string }; Returns: Json }

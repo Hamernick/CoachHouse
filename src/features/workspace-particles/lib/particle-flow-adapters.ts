@@ -61,13 +61,18 @@ export function particleConnectionsToFlow(
   // Membership is a projection, not a dependency or an editable graph edge.
   for (const objective of graph.particles) {
     if (objective.type !== "objective" || objective.canvasHidden) continue
-    const members = new Set(objective.data.planning?.plans.flatMap(plan => plan.particleIds) ?? [])
-    for (const id of members) {
-      if (!graph.particles.some(item => item.id === id && !item.canvasHidden)) continue
-      edges.push({ id: `plan-member:${objective.id}:${id}`, source: objective.id, target: id,
-        sourceHandle: "out", targetHandle: "in", type: "smoothstep", selectable: false, deletable: false,
-        ariaLabel: "Plan membership", style: { stroke: "var(--muted-foreground)", strokeWidth: 1, strokeDasharray: "3 5" },
-      })
+    const branches = [...(objective.data.planning?.plans ?? []).map(plan=>({plan,pending:false})),...(objective.data.planning?.proposals ?? []).filter(proposal=>proposal.status === "pending").map(proposal=>({plan:proposal,pending:true}))]
+    for(const {plan,pending} of branches) {
+      const links=plan.links ?? []
+      const pairs=[...plan.particleIds.filter(id=>!links.some(link=>link.target===id)).map(id=>({source:objective.id,target:id})),...links]
+      for(const pair of pairs) {
+        if(![pair.source,pair.target].every(id=>graph.particles.some(item=>item.id===id&&!item.canvasHidden)))continue
+        edges.push({id:`plan-member:${objective.id}:${plan.id}:${pair.source}:${pair.target}`,source:pair.source,target:pair.target,
+          sourceHandle:"out",targetHandle:"in",type:"smoothstep",selectable:false,deletable:false,
+          ariaLabel:pending?"Proposed plan relationship":"Plan membership",
+          style:{stroke:pending?"var(--chart-3)":"var(--muted-foreground)",strokeWidth:2,...(pending?{strokeDasharray:"4 5"}:{})},
+        })
+      }
     }
   }
   return edges

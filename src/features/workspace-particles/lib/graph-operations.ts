@@ -217,7 +217,7 @@ export function applyPreparedParticleBatch(
           item = { ...item, data: { ...item.data, planning: { ...item.data.planning,
             plans: item.data.planning.plans.map(plan => {
               const old = previous.find(value => value.id === plan.id)
-              const unchanged = old && old.title === plan.title && JSON.stringify(old.particleIds) === JSON.stringify(plan.particleIds)
+              const unchanged = old && old.title === plan.title && JSON.stringify(old.particleIds) === JSON.stringify(plan.particleIds) && JSON.stringify(old.links) === JSON.stringify(plan.links) && JSON.stringify(old.sources) === JSON.stringify(plan.sources) && old.summary === plan.summary && old.researchRunId === plan.researchRunId
               return { ...plan, revision: unchanged ? old.revision : revision }
             }),
           } } }

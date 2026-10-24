@@ -24,6 +24,7 @@ export function ParticleWidgetFields({
   const id = useId()
   if (particle.type !== "activity" || !particle.data.widget) return null
   const widget = particle.data.widget
+  if (widget.kind === "opportunity") return <p className="text-sm text-muted-foreground">Edit this report in Opportunities. Changes appear here automatically.</p>
   if (widget.kind === "form")
     return <OrganizationFormBuilder definition={widget.definition} disabled={disabled} onChange={definition => onChange({ ...particle, data: { ...particle.data, widget: { ...widget, definition } } })}/>
   if (widget.kind === "notes") {

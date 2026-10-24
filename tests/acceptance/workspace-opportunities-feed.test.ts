@@ -56,7 +56,7 @@ describe("workspace opportunity feed", () => {
 
 it("shows edit instead of suggestion controls for manually created reports", () => {
   const html = render({ opportunities: [{ ...opportunity, origin: "manual" }], canEdit: true, organizationId: opportunity.id })
-  expect(html).toContain('aria-label="Edit Community grant"')
+  expect(html).toContain('aria-label="Options for Community grant"')
   expect(html).not.toContain('aria-label="Save Community grant"')
   expect(html).not.toContain('aria-label="Dismiss Community grant"')
 })

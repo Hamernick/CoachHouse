@@ -798,7 +798,7 @@ describe("particle plan membership and review", () => {
   }
   it("keeps membership separate from dependency edges and preserves shared particles", async () => {
     const start = setup()
-    expect(particleConnectionsToFlow(start).map(item => item.id)).toEqual([`plan-member:${ID(1)}:${ID(2)}`])
+    expect(particleConnectionsToFlow(start).map(item => item.id)).toEqual([`plan-member:${ID(1)}:${ID(70)}:${ID(1)}:${ID(2)}`])
     expect(start.connections).toEqual([])
     const item = objective(start)
     const result = await applyParticleBatch(start, batch(801, [{ kind: "put_particle", expectedRevision: 0, particle: { ...item, data: { ...item.data, planning: { plans: [{ ...plan, particleIds: [] }], proposals: [] } } } }]), NOW)

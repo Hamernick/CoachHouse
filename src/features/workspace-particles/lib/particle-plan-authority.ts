@@ -32,7 +32,7 @@ export function particlePlanningPermissionError(before: ParticleGraph, after: Pa
       if ((base?.revision ?? null) !== proposal.baseRevision)
         return "The accepted plan changed. Create a fresh proposal before accepting."
       const accepted = value?.plans.find(item => item.id === proposal.planId)
-      if (!accepted || accepted.title !== updated.title || !same(accepted.particleIds, updated.particleIds))
+      if (!accepted || accepted.title !== updated.title || !same(accepted.particleIds, updated.particleIds) || !same(accepted.links, updated.links) || !same(accepted.sources, updated.sources) || accepted.researchRunId !== updated.researchRunId || accepted.summary !== updated.summary)
         return "Accept the proposal and its plan changes together."
     }
     for (const proposal of value?.proposals ?? []) {

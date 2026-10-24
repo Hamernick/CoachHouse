@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({ context: vi.fn(), manage: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), sources: vi.fn() }))
-vi.mock("@/features/workspace-finance/server", () => ({ loadOpportunitySourceOptions: mocks.sources }))
+vi.mock("@/features/workspace-finance/server", async importOriginal => ({ ...await importOriginal<typeof import("@/features/workspace-finance/server")>(), loadOpportunitySourceOptions: mocks.sources }))
 vi.mock("@/lib/auth/request-context", () => ({ resolveAuthenticatedAppContext: mocks.context }))
 vi.mock("@/lib/workspace/workspace-finance-access", () => ({ canManageWorkspaceFinance: mocks.manage }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
@@ -151,4 +151,119 @@ it("bounds versioned components and rejects duplicate IDs or executable custom m
   expect(readOpportunityReport(undefined)).toEqual({ version: 1, blocks: [] })
   expect(hasReportContent({ id, title: "Empty", kind: "text", text: " " })).toBe(false)
   expect(hasReportContent({ id, title: "Image", kind: "image", fileId: null, alt: "" })).toBe(false)
+})
+
+
+import { deleteWorkspaceOpportunity, getWorkspaceOpportunity } from "@/actions/workspace-opportunity-lifecycle"
+describe("opportunity lifecycle", () => {
+  const deletion = { organizationId: org, id, updatedAt: "2026-10-23T12:00:00.000Z" }
+  it("rejects malformed deletion before auth", async () => {
+    expect(await deleteWorkspaceOpportunity({ ...deletion, updatedAt: "" })).toHaveProperty("error")
+    expect(mocks.context).not.toHaveBeenCalled()
+  })
+  it("rejects signed-out, wrong-organization and unauthorized deletions", async () => {
+    mocks.context.mockRejectedValueOnce(new Error("signed out"))
+    expect(await deleteWorkspaceOpportunity(deletion)).toHaveProperty("error")
+    expect(await deleteWorkspaceOpportunity({ ...deletion, organizationId: id })).toHaveProperty("error")
+    mocks.manage.mockResolvedValueOnce(false)
+    expect(await deleteWorkspaceOpportunity(deletion)).toHaveProperty("error")
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("deletes only the exact manual report revision in the active organization", async () => {
+    const { query, from } = database()
+    const del = vi.fn().mockReturnValue(query)
+    mocks.admin.mockReturnValue({ from: vi.fn().mockReturnValue({ ...query, delete: del }) })
+    expect(await deleteWorkspaceOpportunity(deletion)).toEqual({ ok: true })
+    expect(del).toHaveBeenCalledOnce()
+    expect(query.eq.mock.calls).toEqual([["id", id], ["org_id", org], ["external_provider", "manual"], ["updated_at", deletion.updatedAt]])
+    expect(from).not.toHaveBeenCalled() // No file deletion or unrelated writes.
+  })
+  it("refuses stale or unavailable deletions", async () => {
+    const { query } = database(null, false)
+    mocks.admin.mockReturnValue({ from: vi.fn().mockReturnValue({ ...query, delete: vi.fn().mockReturnValue(query) }) })
+    expect(await deleteWorkspaceOpportunity(deletion)).toHaveProperty("error")
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+  it("reads linked reports through actor RLS and exact organization scope", async () => {
+    const { query, from } = database()
+    mocks.context.mockResolvedValueOnce({ activeOrg: { orgId: org }, user: { id: org }, supabase: { from } })
+    mocks.admin.mockClear()
+    expect(await getWorkspaceOpportunity({ organizationId: org, id })).toHaveProperty("opportunity.id", id)
+    expect(mocks.admin).not.toHaveBeenCalled()
+    expect(query.eq.mock.calls).toEqual([["org_id", org], ["id", id]])
+  })
+  it("does not read foreign-organization reports", async () => {
+    expect(await getWorkspaceOpportunity({ organizationId: id, id })).toHaveProperty("error")
+    expect(mocks.sources).not.toHaveBeenCalled()
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+})
+
+
+import { assertParticleSourceReferenceAccess } from "@/features/workspace-particles/server/particle-source-access"
+import { createParticle } from "@/features/workspace-particles/lib/particle-registry"
+import type { ParticleGraph } from "@/features/workspace-particles/types"
+describe("opportunity canvas reference authorization", () => {
+  const graph = { workspaceId: org, revision: 0, rootId: null, particles: [], connections: [] } as unknown as ParticleGraph
+  const linked = () => {
+    const p = createParticle("activity", { id, workspaceId: org, now: "2026-10-23T12:00:00.000Z" })
+    if (p.type !== "activity") throw new Error("Expected activity")
+    p.data.widget = { kind: "opportunity", organizationId: org, opportunityId: id }
+    return p
+  }
+  function actor(rows: { id: string }[]) {
+    const query = { select: vi.fn(), eq: vi.fn(), in: vi.fn(), abortSignal: vi.fn().mockResolvedValue({ data: rows, error: null }) }
+    query.select.mockReturnValue(query); query.eq.mockReturnValue(query); query.in.mockReturnValue(query)
+    const from = vi.fn().mockReturnValue(query)
+    return { client: { from } as unknown as Parameters<typeof assertParticleSourceReferenceAccess>[0]["supabase"], query, from }
+  }
+  it("checks newly placed references using actor RLS in the graph organization", async () => {
+    const db = actor([{ id }])
+    await assertParticleSourceReferenceAccess({ supabase: db.client, previous: graph, next: { ...graph, particles: [linked()] } })
+    expect(db.from).toHaveBeenCalledWith("organization_finance_opportunities")
+    expect(db.query.eq).toHaveBeenCalledWith("org_id", org)
+  })
+  it("rejects forged organization and unreadable opportunity references", async () => {
+    const db = actor([]), p = linked()
+    await expect(assertParticleSourceReferenceAccess({ supabase: db.client, previous: graph, next: { ...graph, particles: [p] } })).rejects.toThrow("unavailable")
+    p.data.widget = { kind: "opportunity", organizationId: id, opportunityId: id }
+    db.from.mockClear()
+    await expect(assertParticleSourceReferenceAccess({ supabase: db.client, previous: graph, next: { ...graph, particles: [p] } })).rejects.toThrow("another organization")
+    expect(db.from).not.toHaveBeenCalled()
+  })
+  it("keeps a deleted report reference movable without bypassing new-reference checks", async () => {
+    const db = actor([]), p = linked()
+    await assertParticleSourceReferenceAccess({ supabase: db.client, previous: { ...graph, particles: [p] }, next: { ...graph, particles: [{ ...p, position: { x: 200, y: 100 } }] } })
+    expect(db.from).not.toHaveBeenCalled()
+  })
+})
+
+
+import { opportunityCostsSchema, opportunityCostTotal, parseOpportunityCost } from "@/features/workspace-finance/lib/opportunity-costs"
+describe("opportunity cost breakdowns", () => {
+  const costs = { currency: "USD" as const, items: [{ id, title: "Materials", type: "variable" as const, amountCents: 125050 }] }
+  it("persists typed cost items inside facts without replacing legacy text", async () => {
+    const { query } = database()
+    const report = { version: 1 as const, blocks: [{ id, title: "Facts", kind: "facts" as const, items: [{ id, label: "Budget", value: "$2,500 proposed", costs }] }] }
+    expect(await createWorkspaceOpportunity({ ...input, report })).toHaveProperty("opportunity")
+    expect(query.insert.mock.calls[0][0].report).toEqual(report)
+    expect(readOpportunityReport(report)).toEqual(report)
+    expect(hasReportContent(report.blocks[0])).toBe(true)
+  })
+  it("uses integer cents and handles blanks and zero without inventing a total", () => {
+    expect(parseOpportunityCost("0.10")).toBe(10)
+    expect(parseOpportunityCost("0.20")).toBe(20)
+    expect(parseOpportunityCost("1250.50")).toBe(125050)
+    expect(parseOpportunityCost("")).toBeNull()
+    expect(opportunityCostTotal({ ...costs, items: [] })).toBeNull()
+    expect(opportunityCostTotal({ ...costs, items: [{ ...costs.items[0], amountCents: 0 }] })).toBe(0)
+    expect(opportunityCostTotal({ ...costs, items: [{ ...costs.items[0], amountCents: 10 }, { ...costs.items[0], id: org, amountCents: 20 }] })).toBe(30)
+  })
+  it("rejects negative, fractional-cent, nonfinite, oversized and malformed costs", () => {
+    for (const text of ["-1", "1.005", "NaN", "Infinity", "1e2", "1000000000.01"]) expect(parseOpportunityCost(text)).toBeUndefined()
+    for (const amountCents of [-1, 1.5, Infinity, 100_000_000_001]) expect(opportunityCostsSchema.safeParse({ ...costs, items: [{ ...costs.items[0], amountCents }] }).success).toBe(false)
+    expect(opportunityCostsSchema.safeParse({ ...costs, items: [{ ...costs.items[0], type: "unknown" }] }).success).toBe(false)
+    expect(opportunityCostsSchema.safeParse({ ...costs, items: [costs.items[0], costs.items[0]] }).success).toBe(false)
+    expect(opportunityCostsSchema.safeParse({ ...costs, items: Array.from({ length: 21 }, () => ({ ...costs.items[0], id: crypto.randomUUID() })) }).success).toBe(false)
+  })
 })

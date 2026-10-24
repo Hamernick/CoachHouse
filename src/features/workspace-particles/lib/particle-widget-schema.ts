@@ -38,6 +38,7 @@ export const particleDocumentSourceSchema = z.discriminatedUnion("kind", [
 ])
 
 export const particleWidgetSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("opportunity"), organizationId: z.uuid(), opportunityId: z.uuid() }),
   z.strictObject({ kind: z.literal("form"), definition: formDefinitionSchema }),
   z.strictObject({
     kind: z.literal("notes"),

@@ -68,7 +68,7 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
   return (
     <ParticleMenuProvider value={menuState}><div
 
-      className="group/particle-node workspace-card-drag-handle relative h-full cursor-grab active:cursor-grabbing"
+      className="group/particle-node workspace-card-drag-handle relative h-full cursor-grab active:cursor-grabbing motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
       onMouseDownCapture={protectWorkspaceControlDrag}
       onTouchStartCapture={protectWorkspaceControlDrag}
       onContextMenu={(event) => {

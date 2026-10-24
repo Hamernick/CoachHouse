@@ -12,7 +12,10 @@ export function priceAiUsage(usage: AiUsage, tariff: AiRateCard) {
     throw new Error("Invalid AI usage or tariff")
   const numerator = natural((usage.input - usage.cachedInput) * tariff.inputMicrodollarsPerMillion
     + usage.cachedInput * tariff.cachedMicrodollarsPerMillion + usage.output * tariff.outputMicrodollarsPerMillion)
-  const microdollars = Math.ceil(numerator / 1_000_000)
+  const searchCalls = natural(usage.webSearchCalls ?? 0)
+  if (searchCalls && !tariff.webSearchMicrodollarsPerCall) throw new Error("Missing web search tariff")
+  const searchCost = natural(searchCalls * natural(tariff.webSearchMicrodollarsPerCall ?? 0))
+  const microdollars = natural(Math.ceil(numerator / 1_000_000) + searchCost)
   return { microdollars, credits: Math.ceil(microdollars / tariff.microdollarsPerCredit) }
 }
 export function aiCreditBalance(account: AiCreditAccount) {

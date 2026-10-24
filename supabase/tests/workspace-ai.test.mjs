@@ -85,7 +85,9 @@ try {
   runSql("supabase/migrations/20261023001500_workspace_ai_payment_restrictions.sql")
   runSql("supabase/migrations/20261023010000_workspace_ai_usage_history.sql")
   runSql("supabase/migrations/20261023020000_workspace_ai_subscription_allowances.sql")
+  runSql("supabase/migrations/20261024010000_workspace_particle_research.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
+  runSql("supabase/tests/workspace-research.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
     update public.ai_credit_policy set daily_provider_microdollars=10000000;

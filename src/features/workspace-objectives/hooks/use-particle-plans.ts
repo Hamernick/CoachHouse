@@ -29,7 +29,7 @@ export function useParticlePlans(scope: ObjectiveScope, controls: PlanningContro
     const planning = planningOf(objective)
     return update(objective, { ...planning, proposals: [...planning.proposals, {
       id: crypto.randomUUID(), planId: plan.id, baseRevision: planning.plans.find(item => item.id === plan.id)?.revision ?? null,
-      title: plan.title, particleIds: plan.particleIds, authorId: scope.userId, createdAt: new Date().toISOString(), status: "pending",
+      title: plan.title, particleIds: plan.particleIds, links: plan.links, summary: plan.summary, sources: plan.sources, researchRunId: plan.researchRunId, authorId: scope.userId, createdAt: new Date().toISOString(), status: "pending",
     }] })
   }
   const create = (objective: ObjectiveParticle, preset: ParticlePreset): Particle => ({

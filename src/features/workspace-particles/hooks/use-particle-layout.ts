@@ -119,7 +119,7 @@ export function useParticleLayout({
     }
   }, [geometry, phase, session.graph, flow])
 
-  const run = useCallback(async (selectionOnly = false) => {
+  const run = useCallback(async (selectionOnly = false, requestedIds?: readonly string[]) => {
     const input = latest.current
     if (!input.session.editable || active.current) return
     if (input.dirty.current) {
@@ -174,6 +174,7 @@ export function useParticleLayout({
           (item) =>
             !item.canvasHidden &&
             !item.locked &&
+            (!requestedIds || requestedIds.includes(item.id)) &&
             (!selectionOnly || selected.has(item.id))
         )
         .map((item) => item.id)

@@ -22,11 +22,11 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const planning = planningOf(objective)
   const editable = controls.canEdit && !controls.error && (proposal ? actions.owner || proposal.authorId === userId : actions.owner)
   const save = (value: ParticlePlan, created?: Particle) => proposal
-    ? actions.update(objective, { ...planning, proposals: planning.proposals.map(item => item.id === proposal.id ? { ...item, title: value.title, particleIds: value.particleIds } : item) }, created)
+    ? actions.update(objective, { ...planning, proposals: planning.proposals.map(item => item.id === proposal.id ? { ...item, title: value.title, particleIds: value.particleIds, ...(value.links ? { links: value.links } : {}) } : item) }, created)
     : actions.savePlan(objective, value, created)
   const add = (particle: Particle) => save({ ...plan, particleIds: [...plan.particleIds.filter(id => id !== particle.id), particle.id] }, particle.canvasHidden ? particle : undefined)
   const remove = async (id: string) => {
-    if (!await save({ ...plan, particleIds: plan.particleIds.filter(value => value !== id) })) return
+    if (!await save({ ...plan, particleIds: plan.particleIds.filter(value => value !== id), links: plan.links?.filter(link=>link.source!==id && link.target!==id) })) return
     toast.success("Removed from plan", { action: { label: "Undo", onClick: () => {
       const graph = controls.getCurrentGraph()
       const current = graph?.particles.find(item => item.id === objective.id)
@@ -36,8 +36,9 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       if (!target || target.particleIds.includes(id)) return
       const ids = [...target.particleIds]
       ids.splice(Math.min(plan.particleIds.indexOf(id), ids.length), 0, id)
-      if (proposal) void actions.update(current, { ...latest, proposals: latest.proposals.map(item => item.id === proposal.id ? { ...item, particleIds: ids } : item) })
-      else void actions.savePlan(current, { ...plan, ...target, particleIds: ids })
+      const links = [...(target.links ?? []), ...(plan.links ?? []).filter(link => (link.source === id || link.target === id) && ids.includes(link.source) && ids.includes(link.target))]
+      if (proposal) void actions.update(current, { ...latest, proposals: latest.proposals.map(item => item.id === proposal.id ? { ...item, particleIds: ids, ...(links.length ? { links } : {}) } : item) })
+      else void actions.savePlan(current, { ...plan, ...target, particleIds: ids, ...(links.length ? { links } : {}) })
     } } })
   }
   const move = (id: string, target: number) => {
@@ -65,7 +66,7 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const base = planning.plans.find(item => item.id === plan.id)
   const added = proposal ? plan.particleIds.filter(id => !base?.particleIds.includes(id)) : []
   const removed = proposal ? (base?.particleIds ?? []).filter(id => !plan.particleIds.includes(id)) : []
-  const unchanged = proposal && base && plan.title === base.title && JSON.stringify(plan.particleIds) === JSON.stringify(base.particleIds)
+  const unchanged = proposal && base && plan.title === base.title && JSON.stringify(plan.particleIds) === JSON.stringify(base.particleIds) && JSON.stringify(plan.links) === JSON.stringify(base.links) && plan.summary === base.summary && JSON.stringify(plan.sources) === JSON.stringify(base.sources)
   const stale = proposal && (planning.plans.find(item => item.id === proposal.planId)?.revision ?? null) !== proposal.baseRevision
   return <Collapsible open={open} onOpenChange={setOpen} className={`${styles.plan} ${proposal ? styles.proposal : ""}`}>
     <div className={`${styles.planHeader} flex min-h-10 min-w-0 items-center gap-1`}>
@@ -77,6 +78,8 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
       </DropdownMenuContent></DropdownMenu>}
     </div>
     <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up motion-reduce:animate-none">
+      {plan.summary && <p className="px-2 pb-2 text-xs text-muted-foreground">{plan.summary}</p>}
+      {plan.sources?.length ? <ul aria-label="Research sources" className="flex flex-wrap gap-1 px-2 pb-2">{plan.sources.map(source=><li key={source.id}><a href={source.href} target={source.kind === "web" ? "_blank" : undefined} rel="noreferrer" className="inline-block max-w-60 truncate rounded-full bg-muted px-2 py-1 text-xs underline-offset-2 hover:underline" title={`${source.title} · Checked ${new Date(source.checkedAt).toLocaleDateString()}`}>{source.title}</a></li>)}</ul> : null}
       {stale && <p className="px-2 text-xs text-muted-foreground">Plan changed. Reject this proposal and propose changes from the current plan.</p>}
       {proposal && <p className="px-2 pb-1 text-xs text-muted-foreground">{base ? `${added.length} added · ${removed.length} removed${plan.title !== base.title ? " · Renamed" : ""}` : "New plan"}</p>}
       {removed.length > 0 && <ul aria-label="Proposed removals" className="px-2 text-sm text-muted-foreground">{removed.map(id => <li key={id} className="line-through">{controls.graph?.particles.find(item => item.id === id)?.title ?? "Removed particle"}</li>)}</ul>}

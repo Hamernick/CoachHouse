@@ -1,5 +1,6 @@
 "use client"
 import { useRef, useState } from "react"
+import { createParticle } from "@/features/workspace-particles/client"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -55,7 +56,22 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     </div>
     </TabsContent>
     <TabsContent value="opportunities" forceMount hidden={tab !== "opportunities"} className="m-0">
-      <WorkspaceOpportunitiesFeed key={scope.organizationId} organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} onOpenSource={id => controls.graph?.particles.some(item => item.id === id) ? controls.select(id) : false} />
+      <WorkspaceOpportunitiesFeed key={scope.organizationId} organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} onAddToWorkspace={async item => {
+        const graph = controls.getCurrentGraph()
+        if (!graph || !controls.canEdit || controls.pending) return false
+        const existing = graph.particles.find(p => p.type === "activity" && p.data.widget?.kind === "opportunity" && p.data.widget.opportunityId === item.id && p.data.widget.organizationId === scope.organizationId)
+        if (existing) {
+          if (existing.canvasHidden && !await controls.commit([{ kind: "put_particle", particle: { ...existing, canvasHidden: false }, expectedRevision: existing.revision }])) return false
+          controls.select(existing.id); return true
+        }
+        const particle = createParticle("activity", { id: crypto.randomUUID(), workspaceId: graph.workspaceId, title: item.title, now: new Date().toISOString() })
+        if (particle.type !== "activity") return false
+        particle.size = "large"
+        particle.data.widget = { kind: "opportunity", organizationId: scope.organizationId, opportunityId: item.id }
+        const canvas = document.querySelector("[data-workspace-canvas-flow-frame]")?.getBoundingClientRect()
+        const position = canvas && controls.flow.current ? controls.flow.current.screenToFlowPosition({ x: canvas.left + canvas.width * 0.75, y: canvas.top + canvas.height / 2 }) : { x: 100, y: 100 }
+        return controls.add("activity", item.title, position, particle, { inspect: false, optimistic: true })
+      }} onOpenSource={id => controls.graph?.particles.some(item => item.id === id) ? controls.select(id) : false} />
     </TabsContent>
   </ObjectivesIslandSurface>
   </Tabs>

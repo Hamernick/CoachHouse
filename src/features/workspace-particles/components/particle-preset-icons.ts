@@ -36,6 +36,7 @@ export const PARTICLE_PRESET_ICONS = {
 export function particlePresetIcon(particle: Particle) {
   if (particle.type === "activity" && particle.data.widget) {
     const kind = particle.data.widget.kind
+    if (kind === "opportunity") return FileIcon
     if (kind === "document") return FileIcon
     if (kind === "image" || kind === "image_placeholder") return ImageIcon
     return kind === "calculate" ? CalculatorIcon : PARTICLE_PRESET_ICONS[kind]

@@ -209,14 +209,20 @@ export async function layoutParticleGraph(
       "elk.randomSeed": "1",
     },
     children,
-    edges: connections
+    edges: [...connections
       .filter(isParticleHierarchyEdge)
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((edge) => ({
         id: edge.id,
         sources: [portId(edge.source, edge.sourceHandle)],
         targets: [portId(edge.target, edge.targetHandle)],
-      })),
+      })), ...graph.particles.flatMap(objective=>objective.type === "objective" ? [
+        ...(objective.data.planning?.plans ?? []),
+        ...(objective.data.planning?.proposals ?? []).filter(proposal=>proposal.status === "pending"),
+      ].flatMap(plan=>[
+        ...plan.particleIds.filter(id=>!(plan.links ?? []).some(link=>link.target===id)).map(id=>({source:objective.id,target:id})),
+        ...(plan.links ?? []),
+      ].filter(link=>particles.some(p=>p.id===link.source)&&particles.some(p=>p.id===link.target)).map((link,index)=>({id:`planning:${plan.id}:${index}`,sources:[portId(link.source,"out")],targets:[portId(link.target,"in")]}))) : [])],
   }
   if (signal?.aborted)
     return { ok: false, code: "unavailable", error: "Layout cancelled." }

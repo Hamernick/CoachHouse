@@ -1,2 +1,7 @@
 import "server-only"
+export { opportunitySourcesSchema, readOpportunitySources, sourceKey } from "./lib/opportunity-sources"
+export type { OpportunitySource, OpportunitySourceOption } from "./lib/opportunity-sources"
+export { opportunityReportSchema, readOpportunityReport, opportunityReportSources } from "./lib/opportunity-report"
+export type { OpportunityReport } from "./lib/opportunity-report"
+export type { WorkspaceFinanceOpportunityInput } from "./types"
 export { loadOpportunitySourceOptions } from "./server/opportunity-sources"

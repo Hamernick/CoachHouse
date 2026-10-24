@@ -1,15 +1,14 @@
 "use client"
 
 import { useCallback, useId, useRef, useState } from "react"
-import { X } from "lucide-react"
+import { LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { createWorkspaceOpportunity, updateWorkspaceOpportunity } from "@/actions/workspace-opportunities"
-import styles from "@/components/organization/org-profile-card/profile-edit-fields.module.css"
 import type { WorkspaceFinanceOpportunityInput } from "../types"
 import { WorkspaceOpportunityTimeline } from "./workspace-opportunity-timeline"
-import { OpportunityReportEditor } from "./opportunity-report-editor"
+import { OpportunityReportEditor, OpportunityReportAddMenu } from "./opportunity-report-editor"
 import { readOpportunityReport } from "../lib/opportunity-report"
 import { OpportunitySourcesInput } from "./opportunity-sources-input"
 import { OpportunitySourceDropZone } from "./opportunity-source-drop-zone"
@@ -56,17 +55,29 @@ export function WorkspaceOpportunityForm({ organizationId, onCreated, onCancel, 
     } catch { setError("Unable to add this opportunity. Your entries are still here.") }
     finally { setPending(false) }
   }
-  return <form aria-label={initial ? "Edit opportunity" : "Add opportunity"} onSubmit={submit} className="space-y-3" aria-busy={pending || uploading}>
-    <div className="flex items-center justify-between gap-2 pl-3"><h3 className="text-sm font-medium">{initial ? "Edit opportunity" : "Add opportunity"}</h3><Button type="button" size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label={initial ? "Cancel editing opportunity" : "Cancel adding opportunity"} disabled={pending || uploading} onClick={onCancel}><X className="size-4" aria-hidden="true" /></Button></div>
-    <fieldset disabled={pending || uploading} className="space-y-3">
-      <div className={styles.group}>
-        <div className={`${styles.row} ${styles.stacked} !py-2`}><Label className="sr-only" htmlFor={`${prefix}-title`}>Opportunity</Label><Input autoFocus id={`${prefix}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} placeholder="Opportunity" /></div>
-        <div className={`${styles.row} ${styles.stacked} !py-2`}><OpportunitySourceDropZone organizationId={organizationId} value={sources} onChange={setSources} onOptionsAdded={onSourceOptionsAdded} disabled={pending || uploading} onBusyChange={setUploading}>{openFiles => <OpportunitySourcesInput value={sources} onChange={setSources} query={sourceQuery} onQueryChange={setSourceQuery} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} disabled={pending || uploading} onAttachFiles={openFiles} />}</OpportunitySourceDropZone></div>
-        <WorkspaceOpportunityTimeline value={deadline} onChange={setDeadline} disabled={pending} />
+  return <form aria-label={initial ? "Edit opportunity" : "Add opportunity"} onSubmit={submit} className="relative min-w-0" aria-busy={pending || uploading} onKeyDown={event => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.requestSubmit() }
+  }}>
+    <fieldset disabled={pending || uploading} className="min-w-0">
+      <div className="space-y-5 px-4 pt-4 pb-5">
+        <div className="space-y-2">
+          <Label className="sr-only" htmlFor={`${prefix}-title`}>Opportunity</Label>
+          <Textarea autoFocus rows={1} id={`${prefix}-title`} value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} placeholder="Opportunity" className="min-h-10 resize-none border-0 bg-transparent px-1 py-1 text-lg font-semibold leading-snug shadow-none dark:bg-transparent md:text-lg" />
+          <WorkspaceOpportunityTimeline value={deadline} onChange={setDeadline} disabled={pending || uploading} />
+          <OpportunitySourceDropZone organizationId={organizationId} value={sources} onChange={setSources} onOptionsAdded={onSourceOptionsAdded} disabled={pending || uploading} onBusyChange={setUploading}>{openFiles => <OpportunitySourcesInput value={sources} onChange={setSources} query={sourceQuery} onQueryChange={setSourceQuery} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} disabled={pending || uploading} onAttachFiles={openFiles} />}</OpportunitySourceDropZone>
+        </div>
+        <OpportunityReportEditor addControlId={`${prefix}-add`} value={report} onChange={setReport} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} onOptionsAdded={onSourceOptionsAdded} onBusyChange={setUploading} disabled={pending || uploading} />
       </div>
-      <OpportunityReportEditor value={report} onChange={setReport} organizationId={organizationId} options={sourceOptions} loadOptions={loadSources} loading={sourcesLoading} error={sourcesError} onOptionsAdded={onSourceOptionsAdded} onBusyChange={setUploading} disabled={pending || uploading} />
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full rounded-full" disabled={!title.trim() || uploading}>{pending ? "Saving…" : uploading ? "Attaching…" : initial ? "Save changes" : "Add opportunity"}</Button>
     </fieldset>
+    <div className="sticky bottom-0 z-10 space-y-2 rounded-b-2xl border-t border-border/60 bg-card px-3 py-2">
+      {error && <p role="alert" className="px-1 text-sm text-destructive">{error}</p>}
+      <div className="flex items-center gap-1">
+        <OpportunityReportAddMenu id={`${prefix}-add`} value={report} onChange={setReport} disabled={pending || uploading} />
+        <div className="ml-auto flex items-center gap-1">
+          <Button type="button" variant="ghost" size="sm" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" aria-label={initial ? "Cancel editing opportunity" : "Cancel adding opportunity"} disabled={pending || uploading} onClick={onCancel}>Cancel</Button>
+          <Button type="submit" size="sm" className="min-h-9 rounded-lg px-3 [@media(pointer:coarse)]:min-h-11" disabled={pending || !title.trim() || uploading}>{(pending || uploading) && <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin motion-reduce:animate-none" />}{pending ? "Saving…" : uploading ? "Attaching…" : initial ? "Save changes" : "Add opportunity"}</Button>
+        </div>
+      </div>
+    </div>
   </form>
 }

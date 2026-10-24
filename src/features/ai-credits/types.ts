@@ -4,9 +4,10 @@ export type AiRateCard = {
   inputMicrodollarsPerMillion: number
   cachedMicrodollarsPerMillion: number
   outputMicrodollarsPerMillion: number
+  webSearchMicrodollarsPerCall?: number
   microdollarsPerCredit: number
 }
-export type AiUsage = { input: number; cachedInput: number; output: number }
+export type AiUsage = { input: number; cachedInput: number; output: number; webSearchCalls?: number }
 export type AiCreditAccount = {
   enabled: boolean
   paymentReview?: boolean

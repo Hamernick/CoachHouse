@@ -1,5 +1,6 @@
 "use client"
 
+import { WorkspaceOpportunityPreview } from "@/features/workspace-finance"
 import { ParticleFormPreview } from "./particle-form-preview"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,7 @@ export function ParticleWidgetPreview({
 }: ParticlePreviewProps) {
   if (particle.type !== "activity" || !particle.data.widget) return null
   const widget = particle.data.widget
+  if (widget.kind === "opportunity") return <WorkspaceOpportunityPreview organizationId={widget.organizationId} opportunityId={widget.opportunityId} />
   if (widget.kind === "form")
     return <ParticleFormPreview definition={widget.definition} />
   if (widget.kind === "notes") {

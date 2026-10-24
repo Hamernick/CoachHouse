@@ -2,6 +2,7 @@ export {
   WorkspaceFinancePanel,
   WorkspaceFinanceStripeConnection,
 } from "./components"
+export { WorkspaceOpportunityPreview } from "./components/workspace-opportunity-preview"
 export { WorkspaceOpportunitiesFeed } from "./components/workspace-opportunities-feed"
 export { opportunitySourcesSchema, readOpportunitySources, sourceKey } from "./lib/opportunity-sources"
 export type { OpportunitySource, OpportunitySourceOption } from "./lib/opportunity-sources"

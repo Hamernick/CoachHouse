@@ -77,6 +77,19 @@ export function validateParticleGraph(graph: ParticleGraph): string | null {
     return "The primary root must reference an Objective."
   for (const particle of graph.particles) {
     if (particle.type !== "objective" || !particle.data.planning) continue
+    for (const plan of [...particle.data.planning.plans,...particle.data.planning.proposals.filter(item=>item.status === "pending")]) {
+      const links = plan.links ?? [], members = new Set(plan.particleIds)
+      if (links.some(link=>link.source===link.target || !members.has(link.source) || !members.has(link.target))) return "Plan relationships must connect its members."
+      const visiting = new Set<string>(), visited = new Set<string>()
+      const cyclic = (id:string):boolean => {
+        if(visiting.has(id)) return true
+        if(visited.has(id)) return false
+        visiting.add(id)
+        if(links.some(link=>link.source===id && cyclic(link.target))) return true
+        visiting.delete(id);visited.add(id);return false
+      }
+      if(plan.particleIds.some(cyclic)) return "Plan relationships cannot contain cycles."
+    }
     for (const plan of particle.data.planning.plans) {
       if (plan.revision > graph.revision) return "Plan revision exceeds graph revision."
       if (plan.particleIds.some(id => particles.get(id)?.type === "objective" || !particles.has(id)))

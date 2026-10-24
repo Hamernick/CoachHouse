@@ -1,10 +1,14 @@
 import { z } from "zod"
+import { opportunityCostsSchema } from "./opportunity-costs"
 import { opportunitySourcesSchema, type OpportunitySource } from "./opportunity-sources"
+
+export const opportunityReportFactSchema = z.strictObject({ id: z.uuid(), label: z.string().trim().max(80), value: z.string().trim().max(500), costs: opportunityCostsSchema.optional() })
+export type OpportunityReportFact = z.infer<typeof opportunityReportFactSchema>
 
 const base = { id: z.uuid(), title: z.string().trim().max(80) }
 export const opportunityReportBlockSchema = z.discriminatedUnion("kind", [
   z.strictObject({ ...base, kind: z.literal("text"), text: z.string().max(6000) }),
-  z.strictObject({ ...base, kind: z.literal("facts"), items: z.array(z.strictObject({ id: z.uuid(), label: z.string().trim().max(80), value: z.string().trim().max(500) })).max(12) }),
+  z.strictObject({ ...base, kind: z.literal("facts"), items: z.array(opportunityReportFactSchema).max(12) }),
   z.strictObject({ ...base, kind: z.literal("sources"), sources: opportunitySourcesSchema }),
   z.strictObject({ ...base, kind: z.literal("image"), fileId: z.uuid().nullable(), alt: z.string().max(240) }),
 ])
@@ -20,7 +24,7 @@ export function opportunityReportSources(report: OpportunityReport): Opportunity
   return report.blocks.flatMap((block): OpportunitySource[] => block.kind === "sources" ? block.sources : block.kind === "image" && block.fileId ? [{ kind: "file", id: block.fileId }] : [])
 }
 export function hasReportContent(block: OpportunityReportBlock): boolean {
-  return block.kind === "text" ? Boolean(block.text.trim()) : block.kind === "facts" ? block.items.some(item => item.label || item.value) : block.kind === "sources" ? block.sources.length > 0 : Boolean(block.fileId)
+  return block.kind === "text" ? Boolean(block.text.trim()) : block.kind === "facts" ? block.items.some(item => item.label || item.value || item.costs?.items.length) : block.kind === "sources" ? block.sources.length > 0 : Boolean(block.fileId)
 }
 export const opportunityReportComponents = { text: "Text", facts: "Facts", sources: "People & sources", image: "Image" } as const
 export function createOpportunityReportBlock(kind: OpportunityReportBlock["kind"]): OpportunityReportBlock {

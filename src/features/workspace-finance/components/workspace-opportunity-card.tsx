@@ -1,6 +1,6 @@
 "use client"
 import { useRef, useState, type ComponentProps } from "react"
-import { CalendarDays, Check, Pencil, X } from "lucide-react"
+import { CalendarDays, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { WorkspaceFinanceOpportunityInput, WorkspaceFinanceOpportunityWorkflowStatus } from "../types"
@@ -8,18 +8,19 @@ import { hasReportContent, readOpportunityReport } from "../lib/opportunity-repo
 import { sourceKey } from "../lib/opportunity-sources"
 import { OpportunitySourcePill } from "./opportunity-source-pill"
 import { OpportunityReportContent } from "./opportunity-report-content"
+import { WorkspaceOpportunityMenu } from "./workspace-opportunity-menu"
 import { WorkspaceOpportunityForm } from "./workspace-opportunity-form"
 
 type FormContext = Omit<ComponentProps<typeof WorkspaceOpportunityForm>, "initial" | "onCancel" | "onCreated">
 const labels = { new: "Suggested", saved: "Saved", applied: "Applied", awarded: "Awarded", not_awarded: "Not awarded", dismissed: "Dismissed" }
-export function WorkspaceOpportunityCard({ item, status, canEdit, pending, onStatus, onSaved, onOpenSource, form }: {
+export function WorkspaceOpportunityCard({ item, status, canEdit, pending, onStatus, onSaved, onOpenSource, onAdd, onDelete, form }: {
   item: WorkspaceFinanceOpportunityInput; status: WorkspaceFinanceOpportunityWorkflowStatus; canEdit: boolean; pending: boolean
   onStatus: (status: WorkspaceFinanceOpportunityWorkflowStatus) => void; onSaved: (item: WorkspaceFinanceOpportunityInput) => void
-  onOpenSource?: (id: string) => boolean; form: FormContext
+  onOpenSource?: (id: string) => boolean; onAdd?: () => Promise<void>; onDelete: () => Promise<boolean>; form: FormContext
 }) {
   const [editing, setEditing] = useState(false)
   const [open, setOpen] = useState(false)
-  const editButton = useRef<HTMLButtonElement>(null)
+  const editButton = useRef<HTMLSpanElement>(null)
   const manual = item.origin === "manual"
   const report = readOpportunityReport(item.report)
   const text = report.blocks.find(block => block.kind === "text" && hasReportContent(block))
@@ -27,12 +28,12 @@ export function WorkspaceOpportunityCard({ item, status, canEdit, pending, onSta
   const hasDetails = report.blocks.some(hasReportContent) || sources.length > 0
   const date = item.dueAt ? new Date(item.dueAt) : null
   const deadline = date && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date) : null
-  const closeEditor = () => { setEditing(false); requestAnimationFrame(() => editButton.current?.focus()) }
-  if (editing) return <li className="rounded-2xl border border-border/60 bg-background p-3"><WorkspaceOpportunityForm {...form} initial={item} onCancel={closeEditor} onCreated={value => { onSaved(value); closeEditor() }} /></li>
+  const closeEditor = () => { setEditing(false); requestAnimationFrame(() => editButton.current?.querySelector("button")?.focus()) }
+  if (editing) return <li className="rounded-2xl border border-border/60 bg-card"><WorkspaceOpportunityForm {...form} initial={item} onCancel={closeEditor} onCreated={value => { onSaved(value); closeEditor() }} /></li>
   return <li className="overflow-hidden rounded-2xl border border-border/60 bg-muted/40 p-3">
     <Collapsible open={open} onOpenChange={setOpen} className="space-y-3">
       <div className="flex items-start justify-between gap-2"><h3 className="min-w-0 break-words pt-1.5 text-sm font-semibold leading-snug">{item.title}</h3>
-        {canEdit && (manual ? <Button ref={editButton} type="button" size="icon" variant="ghost" className="size-9 shrink-0 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Edit ${item.title}`} onClick={() => { form.loadSources(); setEditing(true) }}><Pencil className="size-4" aria-hidden="true" /></Button> : <div className="flex shrink-0 items-center gap-1"><Button size="icon" variant="ghost" className="size-9 rounded-full text-destructive [@media(pointer:coarse)]:size-11" disabled={pending} aria-label={`Dismiss ${item.title}`} onClick={() => onStatus("dismissed")}><X className="size-4" aria-hidden="true" /></Button>{(status === "new" || status === "saved") && <Button size="icon" variant="ghost" className="size-9 rounded-full text-emerald-700 dark:text-emerald-400 [@media(pointer:coarse)]:size-11" disabled={pending || status === "saved"} aria-label={`${status === "saved" ? "Saved" : "Save"} ${item.title}`} onClick={() => onStatus("saved")}><Check className="size-4" aria-hidden="true" /></Button>}</div>)}
+        {canEdit && (manual ? <span ref={editButton} tabIndex={-1} className="shrink-0"><WorkspaceOpportunityMenu title={item.title} pending={pending} onEdit={() => { form.loadSources(); setEditing(true) }} onAdd={onAdd} onArchive={() => onStatus("dismissed")} onDelete={onDelete} /></span> : <div className="flex shrink-0 items-center gap-1"><Button size="icon" variant="ghost" className="size-9 rounded-full text-destructive [@media(pointer:coarse)]:size-11" disabled={pending} aria-label={`Dismiss ${item.title}`} onClick={() => onStatus("dismissed")}><X className="size-4" aria-hidden="true" /></Button>{(status === "new" || status === "saved") && <Button size="icon" variant="ghost" className="size-9 rounded-full text-emerald-700 dark:text-emerald-400 [@media(pointer:coarse)]:size-11" disabled={pending || status === "saved"} aria-label={`${status === "saved" ? "Saved" : "Save"} ${item.title}`} onClick={() => onStatus("saved")}><Check className="size-4" aria-hidden="true" /></Button>}</div>)}
       </div>
       {!manual && <p className="text-xs text-muted-foreground">{labels[status]}</p>}
       {item.source && <p className="break-words text-sm text-muted-foreground">{item.source}</p>}

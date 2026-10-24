@@ -7,6 +7,7 @@ import { getParticleNotes } from "../lib/particle-notes"
 import { assertProfileParticleSourceAccess } from "./profile-reference-access"
 
 type ParticleSourceReference =
+  | { kind: "opportunity"; id: string; organizationId: string }
   | { kind: "file"; id: string }
   | { kind: "person"; id: string }
   | ParticleDocumentSource
@@ -16,6 +17,7 @@ function references(particle: Particle): ParticleSourceReference[] {
     return particle.data.personIds.map((id) => ({ kind: "person", id }))
   if (particle.type !== "activity") return []
   const widget = particle.data.widget
+  if (widget?.kind === "opportunity") return [{ kind: "opportunity", id: widget.opportunityId, organizationId: widget.organizationId }]
   if (widget?.kind === "notes" && widget.source.kind === "module")
     return [{ kind: "module_note", moduleId: widget.source.moduleId }]
   if (widget?.kind === "image") return [{ kind: "file", id: widget.fileId }]
@@ -87,6 +89,18 @@ export async function assertParticleSourceReferenceAccess({
   // Bound query URL size when a batch places many documents.
   for (let offset = 0; offset < sources.length; offset += 100) {
     const chunk = sources.slice(offset, offset + 100)
+    const opportunities = chunk.filter(source => source.kind === "opportunity")
+    if (opportunities.length) {
+      if (opportunities.some(source => source.organizationId !== next.workspaceId))
+        throw new ParticleMutationError("scope", "Opportunity belongs to another organization.")
+      const { data, error } = await supabase.from("organization_finance_opportunities").select("id")
+        .eq("org_id", next.workspaceId).in("id", opportunities.map(source => source.id))
+        .abortSignal(AbortSignal.timeout(15_000))
+      if (error) throw new ParticleMutationError("unavailable", "Could not verify this opportunity. Try again.")
+      const available = new Set((data ?? []).map(row => row.id))
+      if (opportunities.some(source => !available.has(source.id)))
+        throw new ParticleMutationError("scope", "This opportunity is unavailable.")
+    }
     const files = chunk.filter((source) => source.kind === "file")
     const drive = chunk.filter((source) => source.kind === "drive")
     const modules = chunk.filter((source) => source.kind === "module_note")

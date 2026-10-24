@@ -5,9 +5,9 @@ import { z } from "zod"
 import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { canManageWorkspaceFinance } from "@/lib/workspace/workspace-finance-access"
-import type { WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance"
-import { opportunitySourcesSchema, readOpportunitySources, sourceKey, type OpportunitySource } from "@/features/workspace-finance"
-import { opportunityReportSchema, readOpportunityReport, opportunityReportSources, type OpportunityReport } from "@/features/workspace-finance"
+import type { WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance/server"
+import { opportunitySourcesSchema, readOpportunitySources, sourceKey, type OpportunitySource } from "@/features/workspace-finance/server"
+import { opportunityReportSchema, readOpportunityReport, opportunityReportSources, type OpportunityReport } from "@/features/workspace-finance/server"
 import { loadOpportunitySourceOptions } from "@/features/workspace-finance/server"
 
 const inputSchema = z.object({

@@ -8,10 +8,10 @@ import type { AiCreditAccount, AiRateCard, AiUsage } from "../types"
 // actorId is always supplied by a server-verified session. SQL independently
 // checks organization membership; these helpers are not public server actions.
 export async function reserveAiRun(input: {
-  id: string; organizationId: string; actorId: string; hash: string; task?: "plan";
+  id: string; organizationId: string; actorId: string; hash: string; task?: "plan" | "research";
   target: Json; prompt: string; tariff: AiRateCard; maxCredits: number; maxCost: number
 }) {
-  const { data, error } = await createSupabaseAdminClient({ actorId: input.actorId }).rpc(input.task === "plan" ? "reserve_workspace_ai_plan_run" : "reserve_workspace_ai_run", {
+  const { data, error } = await createSupabaseAdminClient({ actorId: input.actorId }).rpc(input.task === "research" ? "reserve_workspace_ai_research_run" : input.task === "plan" ? "reserve_workspace_ai_plan_run" : "reserve_workspace_ai_run", {
     p_id: input.id, p_org_id: input.organizationId, p_actor_id: input.actorId, p_hash: input.hash,
     p_target: input.target, p_prompt: input.prompt, p_tariff: input.tariff,
     p_max_credits: input.maxCredits, p_max_cost: input.maxCost,
@@ -68,4 +68,9 @@ export async function readAiAccount(organizationId: string, actorId: string): Pr
   })), history: z.array(z.object({ id: z.uuid(), status: z.string(), created_at: z.string(),
     charged_credits: z.number().nullable(), max_credits: z.number(), settled_at: z.string().nullable(),
   })) }).parse(data)
+}
+
+export async function correlateAiResearchResponse(id: string, responseId: string) {
+  const { error } = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).rpc("correlate_workspace_ai_research_response", { p_id: id, p_response_id: responseId })
+  if (error) throw new Error("Unable to record research response.")
 }
