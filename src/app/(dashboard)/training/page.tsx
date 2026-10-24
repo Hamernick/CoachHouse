@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { TrainingShell } from "@/components/training/training-shell"
@@ -5,6 +6,12 @@ import { fetchSidebarTree } from "@/lib/academy"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
+
+export const metadata: Metadata = {
+  title: "Training",
+  description: "Explore nonprofit training and continue your lessons.",
+}
+
 
 export default async function TrainingPage() {
   const supabase = await createSupabaseServerClient()

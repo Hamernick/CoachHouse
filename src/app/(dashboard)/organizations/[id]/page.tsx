@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { AdminCoachingCreditsPanel, loadAdminCoachingCredits, loadCoachingCreditsAction, issueCoachingCreditsAction, manageStaffCoachingBookingAction } from "@/features/coaching-booking"
 import { loadOrganizationCoachAssignmentData, OrganizationCoachAssignmentControl, updateOrganizationCoachAssignmentAction } from "@/features/organization-coach-assignments"
 
@@ -41,6 +42,12 @@ import {
 } from "@/features/member-workspace"
 import { requirePlatformCapability } from "@/lib/admin/auth"
 import type { ProjectDetails } from "@/features/platform-admin-dashboard"
+
+export const metadata: Metadata = {
+  title: "Organization Details",
+  description: "Review an organization and its workspace activity.",
+}
+
 
 type PageProps = {
   params: Promise<{ id: string }>

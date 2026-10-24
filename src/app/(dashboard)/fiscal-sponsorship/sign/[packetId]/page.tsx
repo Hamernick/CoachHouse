@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -6,6 +7,12 @@ import {
   loadFiscalSponsorshipSigningSession,
 } from "@/features/fiscal-sponsorship"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
+
+export const metadata: Metadata = {
+  title: "Fiscal Sponsorship Agreement",
+  description: "Review and sign your fiscal sponsorship agreement.",
+}
+
 
 export const dynamic = "force-dynamic"
 

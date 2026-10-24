@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { OrganizationAccessManager } from "@/components/account-settings/sections/organization-access-manager"
@@ -5,6 +6,12 @@ import { createSupabaseServerClient } from "@/lib/supabase"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
+
+export const metadata: Metadata = {
+  title: "Organization Administration",
+  description: "Manage membership and access for your organization.",
+}
+
 
 export default async function OrganizationAdminPage() {
   const supabase = await createSupabaseServerClient()

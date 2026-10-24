@@ -1,7 +1,14 @@
+import type { Metadata } from "next"
 import {
   CoachDashboardPanel,
   loadCoachDashboard,
 } from "@/features/coach-dashboard"
+
+export const metadata: Metadata = {
+  title: "Coach Dashboard",
+  description: "Review assigned organizations, progress, and coaching activity.",
+}
+
 
 export default async function CoachDashboardPage({
   searchParams,

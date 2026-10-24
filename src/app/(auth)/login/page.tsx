@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 type SearchParams = Record<string, string | string[] | undefined>
 
 export const metadata: Metadata = {
+  description: "Sign in to your Coach House account and continue your work.",
   title: "Sign in",
   robots: { index: false, follow: false },
 }

@@ -1,4 +1,11 @@
+import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+export const metadata: Metadata = {
+  title: "Academy Module",
+  description: "View this module of the Coach House nonprofit academy.",
+}
+
 
 type Params = { section: string; index: string }
 

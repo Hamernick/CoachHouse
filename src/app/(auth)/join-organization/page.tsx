@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -8,6 +9,12 @@ import { createSupabaseServerClient } from "@/lib/supabase"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { JoinOrganizationForm } from "./_components/join-organization-form"
+
+export const metadata: Metadata = {
+  title: "Join an Organization",
+  description: "Review and accept your invitation to a Coach House organization.",
+}
+
 
 export const dynamic = "force-dynamic"
 

@@ -1,6 +1,13 @@
+import type { Metadata } from "next"
 import { AuthCard } from "@/components/auth/auth-card"
 import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
+
+export const metadata: Metadata = {
+  title: "Reset Your Password",
+  description: "Request a secure link to reset your Coach House password.",
+}
+
 
 type SearchParams = Record<string, string | string[] | undefined>
 

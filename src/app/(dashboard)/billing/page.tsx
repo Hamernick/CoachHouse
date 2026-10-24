@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import CalendarClockIcon from "lucide-react/dist/esm/icons/calendar-clock"
 import CheckCircle2Icon from "lucide-react/dist/esm/icons/check-circle-2"
@@ -22,6 +23,12 @@ import {
 
 import { BillingPlanCard } from "./_components/billing-plan-card"
 import { BillingPortalCard } from "./_components/billing-portal-card"
+
+export const metadata: Metadata = {
+  title: "Billing",
+  description: "Manage your Coach House plan, subscriptions, and coaching credits.",
+}
+
 
 function formatDate(dateValue: string | null) {
   if (!dateValue) return null

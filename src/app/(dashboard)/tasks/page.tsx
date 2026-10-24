@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import {
   clearMemberWorkspaceStarterDataAction,
   createDirectoryTaskAction,
@@ -11,6 +12,12 @@ import {
 import { hasPlatformCapability } from "@/features/platform-access"
 import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { requireMemberWorkspacePageAccess } from "@/lib/workspace/member-workspace-access"
+
+export const metadata: Metadata = {
+  title: "Tasks",
+  description: "Plan, assign, and track work across your projects.",
+}
+
 
 export default async function TasksPage() {
   await requireMemberWorkspacePageAccess("tasks")

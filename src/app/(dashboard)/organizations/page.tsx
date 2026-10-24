@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { loadProjectTimelineAction, saveProjectTimelineDatesAction, saveProjectTimelineStatusAction } from "@/features/member-workspace"
 import { defaultOrganizationCoachFilter, loadOrganizationCoachAssignmentData } from "@/features/organization-coach-assignments"
 import {
@@ -16,6 +17,12 @@ import {
 } from "@/features/member-workspace"
 import { requirePlatformCapability } from "@/lib/admin/auth"
 import { loadOrganizationCoachActorScope } from "@/lib/admin/organization-coach-scope"
+
+export const metadata: Metadata = {
+  title: "Organizations",
+  description: "Review the organizations you can access.",
+}
+
 
 export default async function OrganizationsPage() {
   const staff = await requirePlatformCapability("organizations", {

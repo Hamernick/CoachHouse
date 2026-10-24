@@ -89,3 +89,7 @@ Documentation handoff [PR330](https://github.com/Hamernick/CoachHouse/pull/330) 
 The October16inventory recorded124worktrees,10dirty worktrees and2stashes; it was not a backup or cleanup. Root, Particle, private enrichment state, ignored credentials, process ownership and deferred fiscal proxy patch remain protected. Historical drafts229/231/235/237/238/239/240need the per-item [cleanup assessment](../plans/2026-10-16-worktree-cleanup-assessment.md), not blanket merging/closing. No current claim that all worktrees are clean is supported.
 
 Before a new lane: inspect branch/upstream/dirt/listeners and refresh its relevant refs. Before release: required hosted quality/review and branch protection remain necessary. Do not infer CI, deployment, provider or product success from merged code. No deletion, cache cleanup, stash application, role change or migration replay is authorized by this index.
+
+## Launch Route Hygiene — Active Sequential Lane
+
+`fix/launch-route-hygiene-20261024` in `coach-house-platform-launch-route-hygiene-20261024`; [checkpoint](../plans/2026-10-24-launch-route-hygiene.md). O123 complete locally; O173 active, then O176/O133/O127. Stacked on documentation PR358. User owns hosted checks, review, merge/deploy and live acceptance.

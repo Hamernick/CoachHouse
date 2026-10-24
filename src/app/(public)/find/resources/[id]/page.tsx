@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!item) return { title: "Resource not found", robots: { index: false, follow: false } }
   return {
     title: item.title,
-    description: item.description || undefined,
+    description: item.description?.trim() || `Learn about ${item.title} and how to access this community resource.`,
     alternates: { canonical: publicResourceProfileHref(item.id) },
   }
 }

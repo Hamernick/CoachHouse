@@ -1,3 +1,6 @@
+import { existsSync, readFileSync, readdirSync } from "node:fs"
+import path from "node:path"
+import ts from "typescript"
 import { execFileSync } from "node:child_process"
 import { describe, expect, it, vi } from "vitest"
 import type { ResolvedMetadata } from "next/dist/lib/metadata/types/metadata-interface"
@@ -114,4 +117,52 @@ describe("prelaunch social metadata inheritance", () => {
     expect(after).toBe(publicOrganizationShareImageUrl("example", "https://storage.test/new.png", "Example Organization"))
   })
 
+})
+
+// Check every route, not only the public pages sampled by social-preview tests.
+describe("page metadata coverage", () => {
+  const redirects = new Set([
+    "(accelerator)/accelerator/class/[slug]", "(accelerator)/accelerator/roadmap/[slug]", "(accelerator)/accelerator/roadmap",
+    "(admin)/admin/platform/user-journeys", "(auth)/tester/login", "(auth)/tester/sign-up",
+    "(dashboard)/marketplace", "(dashboard)/my-organization/documents", "(dashboard)/my-organization",
+    "(dashboard)/my-organization/roadmap", "(dashboard)/my-tasks", "(dashboard)/organization",
+    "(dashboard)/organization/workspace", "(dashboard)/organization/workspace/present", "(dashboard)/roadmap/[slug]",
+    "(dashboard)/roadmap", "(dashboard)/strategic-roadmap", "(dashboard)/workspace/present", "(internal)/internal/supabase",
+    "(public)/documentation/toolbox/brand-identity", "(public)/find/[slug]", "(public)/find", "(public)/fiscalsponsorship",
+    "(public)/home", "(public)/home-canvas", "(public)/legacy-home", "(public)/map", "[org]/program/[programId]",
+  ])
+  const root = path.resolve("src/app")
+  const pages = readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name === "page.tsx")
+    .map((entry) => path.join(entry.parentPath, entry.name))
+    .filter((file) => !path.relative(root, file).split(path.sep).some((part) => part.startsWith("@")))
+
+  it.each(pages)("gives %s a title and description or an explicit redirect", (file) => {
+    const route = path.relative(root, path.dirname(file))
+    const source = readFileSync(file, "utf8")
+    if (redirects.has(route)) {
+      expect(source).toMatch(/\b(?:redirect|permanentRedirect|notFound)\(/)
+      return
+    }
+    if (source.includes("export async function generateMetadata")) return
+    const metadataSources = [source]
+    for (let dir = path.dirname(file); dir !== root; dir = path.dirname(dir)) {
+      const layout = path.join(dir, "layout.tsx")
+      if (existsSync(layout)) metadataSources.push(readFileSync(layout, "utf8"))
+    }
+    const properties = metadataSources.flatMap((text) => {
+      const ast = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+      return ast.statements.flatMap((statement) => ts.isVariableStatement(statement)
+        ? statement.declarationList.declarations.flatMap((declaration) =>
+          declaration.name.getText(ast) === "metadata" && declaration.initializer && ts.isObjectLiteralExpression(declaration.initializer)
+            ? declaration.initializer.properties.map((property) => property.name?.getText(ast)) : []) : [])
+    })
+    expect(properties, route).toContain("title")
+    expect(properties, route).toContain("description")
+  })
+
+  it.each(["", "   "])("uses useful profile copy when the saved description is blank", (description) => {
+    const profile = { kind: "person", handle: "example", displayName: "Example", description, headline: "" } as PublicProfileView
+    expect(resolvePage(buildPublicProfileMetadata(profile, profile.handle)).description).toBe("View @example on Coach House.")
+  })
 })

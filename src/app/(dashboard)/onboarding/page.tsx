@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { OnboardingWorkspaceCard } from "@/components/onboarding/onboarding-workspace-card"
@@ -8,6 +9,12 @@ import type { Json } from "@/lib/supabase"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 import { completeOnboardingAction } from "./actions"
+
+export const metadata: Metadata = {
+  title: "Set Up Your Account",
+  description: "Complete your Coach House account and organization setup.",
+}
+
 
 export const dynamic = "force-dynamic"
 

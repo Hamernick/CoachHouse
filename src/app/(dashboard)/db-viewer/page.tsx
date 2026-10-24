@@ -1,7 +1,14 @@
+import type { Metadata } from "next"
 import {
   InternalDbViewerPanel,
   loadInternalDbViewerSnapshot,
 } from "@/features/internal-db-viewer"
+
+export const metadata: Metadata = {
+  title: "Database Viewer",
+  description: "Inspect authorized platform data and database records.",
+}
+
 
 type DbViewerPageSearchParams = {
   table?: string | string[]

@@ -8,8 +8,8 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 | Development status | Requirements |
 | --- | ---: |
-| Done | 40 |
-| In progress | 81 |
+| Done | 41 |
+| In progress | 80 |
 | To do | 0 |
 | Needs verification | 49 |
 | Deferred | 5 |
@@ -18,7 +18,7 @@ The original requests remain private in the selected plans root (`--plans-root`,
 
 - **Done:** the requested development outcome or one-time operation has specific implementation/verification evidence. Release, legal, provider and user acceptance limits remain in its row. This is not a shipped/accepted count.
 - **In progress:** part of the requested outcome is evidenced, or an essential integration/verification step remains. Includes the explicitly identified standing authorization rule.
-- This does not mean 81 concurrently active workstreams: partial implementations stay here even when their implementation branch is closed; the open-work index identifies active ownership.
+- This does not mean 80 concurrently active workstreams: partial implementations stay here even when their implementation branch is closed; the open-work index identifies active ownership.
 - **To do:** the current checkpoint explicitly leaves that outcome planned/unimplemented.
 - **Needs verification:** no sufficient requirement-specific completion or active-implementation receipt was found in this reconciliation. This does **not** mean absent or unimplemented. Verify before rebuilding.
 - **Deferred:** explicitly excluded from the current user-approved slice, while the original request remains preserved. Do not execute merely because it is unfinished.
@@ -70,7 +70,7 @@ The October23 Desktop master predates newer Particle/AI work and PR356 merge. It
 | O120-01 | No frontend secrets/API keys | In progress | [security](../runlog/2026-10.md#2026-10-22--authorized-next-upgrade-unblock); [fiscalguest](../runlog/2026-10.md#2026-10-10--guest-fiscal-submission-ui-and-explicit-email-proof). Scoped server-only/privacy fixes and secret scans recorded; no complete client-bundle/key audit against every path established. |
 | O121-01 | Force HTTPS everywhere | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O122-01 | Cookie consent banner | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
-| O123-01 | Meta titles and descriptions on every page | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. |
+| O123-01 | Meta titles and descriptions on every page | Done | [2026-10-24 implementation and checks](../plans/2026-10-24-launch-route-hygiene.md). Rendering-route inventory, redirect/inheritance exceptions, blank dynamic descriptions, 154 checks and six rendered HTML samples verified locally. Hosted CI, review, merge/deploy and live acceptance remain. |
 | O124-01 | OG/social preview image | Done | [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Original requirement explicitly closed and deployed in PR348–351; user confirmation recorded. |
 | O125-01 | Favicon | Done | [launch](../runlog/2026-10.md#2026-10-22--five-launch-requirements-and-telemetry-url-privacy). Existing favicon URLs / robots sitemap reference verified locally. Production acceptance remains separate. |
 | O126-01 | sitemap.xml and robots.txt | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. |
@@ -128,7 +128,7 @@ The October23 Desktop master predates newer Particle/AI work and PR356 merge. It
 | O168-01 | Register two spare email-sending domains | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O169-01 | SPF/DKIM/DMARC on sending domains | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O170-01 | All app email through Resend from spare domains, never main domain | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
-| O173-01 | Sitemap covering all intended public pages | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. |
+| O173-01 | Sitemap covering all intended public pages | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [launchclose](../runlog/2026-10.md#2026-10-22--prelaunch-and-prototype-retirement-release-closed). Default/status metadata, canonical origin, robots and selected sitemap routes fixed. Every intended public page still needs audit. Active sequential implementation: [route hygiene checkpoint](../plans/2026-10-24-launch-route-hygiene.md). |
 | O174-01 | robots.txt points to sitemap | Done | [launch](../runlog/2026-10.md#2026-10-22--five-launch-requirements-and-telemetry-url-privacy). Existing favicon URLs / robots sitemap reference verified locally. Production acceptance remains separate. |
 | O175-01 | Submit sitemap in Google Search Console | Needs verification | Find requirement-specific completion evidence before choosing implementation. |
 | O176-01 | Public pages accessible to crawlers without login | In progress | [indexing](../runlog/2026-10.md#2026-10-13t1407000000--implement-first-public-indexing-correction); [publicrelease](../runlog/2026-10.md#2026-10-12-1427-edt--public-release-deployed-fiscal-activation-held). Public pages and authenticated-only sitemap exclusion checked; full intended-public-route crawler inventory remains. |
