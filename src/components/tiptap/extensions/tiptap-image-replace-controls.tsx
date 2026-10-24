@@ -1,6 +1,6 @@
 "use client"
 
-import type { ChangeEvent, RefObject } from "react"
+import { useId, type ChangeEvent, type RefObject } from "react"
 import { ImageIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ type TiptapImageReplaceControlsProps = {
   altText: string
   setAltText: (value: string) => void
   handleImageUrlSubmit: () => void
+  saveAltText: () => void
 }
 
 export function TiptapImageReplaceControls({
@@ -33,7 +34,9 @@ export function TiptapImageReplaceControls({
   altText,
   setAltText,
   handleImageUrlSubmit,
+  saveAltText,
 }: TiptapImageReplaceControlsProps) {
+  const altId = useId()
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
@@ -74,6 +77,7 @@ export function TiptapImageReplaceControls({
             <p className="mb-2 text-xs font-medium">Or use URL</p>
             <div className="space-y-2">
               <Input
+                aria-label="Image URL"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="Enter image URL..."
@@ -92,13 +96,16 @@ export function TiptapImageReplaceControls({
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-medium">Alt Text</p>
+            <label htmlFor={altId} className="mb-2 block text-xs font-medium">Alt text</label>
             <Input
+              id={altId}
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
-              placeholder="Alt text (optional)"
+              placeholder="Describe the image"
               className="text-xs"
             />
+            <p className="mt-1 text-xs text-muted-foreground">Leave blank only for decorative images.</p>
+            <Button type="button" size="sm" className="mt-2 w-full" onClick={saveAltText}>Save alt text</Button>
           </div>
         </div>
       </DropdownMenuSubContent>

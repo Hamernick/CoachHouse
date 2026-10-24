@@ -10,7 +10,7 @@ import type { DOMOutputSpec, Node as ProseMirrorNode } from "@tiptap/pm/model"
 // Structural equivalent of the existing rich-text editor; no browser node views.
 const DocumentImage = Image.extend({
   addAttributes() {
-    return Object.fromEntries(Object.entries({ src: null, alt: null, title: null,
+    return Object.fromEntries(Object.entries({ src: null, alt: "", title: null,
       width: "100%", height: null, align: "center", caption: "", aspectRatio: null,
       uploading: null, uploadId: null }).map(([name, value]) => [name, { default: value }]))
   },

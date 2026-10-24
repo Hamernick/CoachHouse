@@ -194,7 +194,7 @@ export function TiptapImage(props: NodeViewProps) {
           <img
             ref={imageRef}
             src={node.attrs.src}
-            alt={node.attrs.alt}
+            alt={node.attrs.alt ?? ""}
             title={node.attrs.title}
             className={cn("rounded-lg transition-shadow duration-200 hover:shadow-lg", isUploading && "opacity-60")}
             onLoad={(e) => {
@@ -287,9 +287,9 @@ export function TiptapImage(props: NodeViewProps) {
               <AlignRight className="size-4" />
             </Button>
             <Separator orientation="vertical" className="h-[20px]" />
-            <DropdownMenu open={openedMore} onOpenChange={setOpenedMore}>
+            <DropdownMenu open={openedMore} onOpenChange={(open) => { if (open) setAltText(node.attrs.alt ?? ""); setOpenedMore(open) }}>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" className="size-7" variant="ghost">
+                <Button size="icon" className="size-7" variant="ghost" aria-label="Image options">
                   <MoreVertical className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -307,6 +307,7 @@ export function TiptapImage(props: NodeViewProps) {
                   altText={altText}
                   setAltText={setAltText}
                   handleImageUrlSubmit={handleImageUrlSubmit}
+                  saveAltText={() => { updateAttributes({ alt: altText.trim() }); setOpenedMore(false) }}
                 />
                 <DropdownMenuItem
                   onClick={() => {

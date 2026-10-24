@@ -24,3 +24,17 @@ test("connected editor accepts typing and respects later read-only changes", asy
   await expect(editor).toHaveText("Existing text edited")
   await expect(updates).toHaveText(afterTyping!)
 })
+
+
+test("image alt text saves without replacing the source and survives editor reload", async ({ page }) => {
+  await page.setContent('<div id="root"></div>')
+  await page.addScriptTag({ content: await buildRichTextEditabilityFixture('<p>Photo</p><img src="https://example.org/photo.jpg" alt="Before">') })
+  await page.getByRole("button", { name: "Toggle access" }).click()
+  await page.getByRole("button", { name: "Image options" }).click()
+  await page.getByRole("menuitem", { name: "Replace Image" }).click()
+  await page.getByLabel("Alt text", { exact: true }).fill("Volunteers packing food")
+  await page.getByRole("button", { name: "Save alt text" }).click()
+  await expect(page.getByTestId("saved-html")).toContainText('alt="Volunteers packing food"')
+  await page.getByRole("button", { name: "Reload editor" }).click()
+  await expect(page.getByAltText("Volunteers packing food")).toHaveAttribute("src", "https://example.org/photo.jpg")
+})

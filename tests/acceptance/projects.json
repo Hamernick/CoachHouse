@@ -218,6 +218,7 @@
       "tests/acceptance/fiscal-sponsorship-workflow-schema-contract.test.ts",
       "tests/acceptance/fiscal-sponsorship.test.ts",
       "tests/acceptance/home-canvas-scroll-logic.test.ts",
+      "tests/acceptance/image-alternatives.test.ts",
       "tests/acceptance/large-file-guard.test.ts",
       "tests/acceptance/launch-navigation.test.ts",
       "tests/acceptance/member-workspace-paid-access-migration.test.ts",

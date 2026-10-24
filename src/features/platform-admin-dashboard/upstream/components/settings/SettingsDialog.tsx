@@ -143,7 +143,7 @@ function TeammatesSettingsPane() {
                         <div key={mate.id} className="grid grid-cols-12 items-center px-4 py-4">
                             <div className="col-span-6 flex items-center gap-3">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={mate.avatar} />
+                                    <AvatarImage src={mate.avatar} alt="" />
                                     <AvatarFallback>KD</AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
@@ -296,7 +296,7 @@ function AccountSettingsPane() {
                 <SettingRow label="Profile photo" description="This image appears across your workspace.">
                     <div className="flex flex-wrap items-center gap-4">
                         <Avatar className="h-16 w-16">
-                            <AvatarImage src={photoPreview} />
+                            <AvatarImage src={photoPreview} alt="Your profile photo" />
                             <AvatarFallback>JD</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-wrap items-center gap-2">

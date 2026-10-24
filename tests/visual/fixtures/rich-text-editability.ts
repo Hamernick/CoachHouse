@@ -1,7 +1,7 @@
 import path from "node:path"
 import { build } from "vite"
 
-export async function buildRichTextEditabilityFixture() {
+export async function buildRichTextEditabilityFixture(initialValue = "<p>Existing text</p>") {
   const entry = path.resolve("virtual-rich-text-editability.js")
   const result = await build({
     configFile: false,
@@ -19,15 +19,20 @@ export async function buildRichTextEditabilityFixture() {
         function App() {
           const [readOnly, setReadOnly] = React.useState(true);
           const [updates, setUpdates] = React.useState(0);
+          const [value, setValue] = React.useState(${JSON.stringify(initialValue)});
+          const [version, setVersion] = React.useState(0);
           return React.createElement(React.Fragment, null,
             React.createElement("button", { onClick: () => setReadOnly(value => !value) }, "Toggle access"),
             React.createElement("output", null, String(updates)),
+            React.createElement("button", { onClick: () => setVersion(value => value + 1) }, "Reload editor"),
+            React.createElement("pre", { "data-testid": "saved-html" }, value),
             React.createElement(RichTextEditor, {
-              value: "<p>Existing text</p>",
+              key: version,
+              value,
               applyExternalValue: false,
               ariaLabel: "Document",
               readOnly,
-              onChange: () => setUpdates(value => value + 1),
+              onChange: html => { setValue(html); setUpdates(value => value + 1); },
             })
           );
         }
