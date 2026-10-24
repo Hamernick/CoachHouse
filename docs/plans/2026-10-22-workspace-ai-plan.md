@@ -990,3 +990,12 @@ Remaining release proof: signed Stripe test-mode setup/payment/SCA/decline/refun
 Full goal remains active. Next product work is AI revision of existing particle plans, then resource-specific eligibility/value matching and the original Accelerator output mapping. Configured live research quality/cost/privacy evaluation, original curriculum reconciliation and controlled-release gates remain open. Existing boards and app runtime are preserved. No main merge or deployment.
 
 Graphify refresh completed; final SQL race fix is included in the follow-up AST refresh at `/tmp/credit-refill-graph-final.log`. The same three historical test-parser warnings remain. Final TypeScript and declined-card provider test reruns passed. No production/provider activation.
+
+
+### Public feature boundary repair — 2026-10-24
+
+User selected a three-minute release-readiness repair. All six feature-contract violations are fixed without relaxing the checker: AI research/generation and particle note/source handlers now use explicit public `server.ts` entrypoints marked `server-only`; client-facing note/sharing mutations use root `use server` action facades. Callers and test mocks follow those boundaries. Existing authorization, persistence and mutation implementations remain unchanged.
+
+`check:features` and `check:boundaries` pass. Six planning/note/sharing suites pass116 tests (`/tmp/workspace-feature-facade-tests.log`), research application passes16 (`/tmp/workspace-feature-research-tests.log`), and scoped lint passes (`/tmp/workspace-feature-facade-lint.log`). This supersedes the six feature-contract failures above. Full TypeScript passed for the prior auto-refill checkpoint; it has not been rerun for this import-only repair. Existing structure violations, hosted CI and live acceptance remain open.
+
+Time-box recovery: auto-refill commit4229d0c5 is in the normal pre-push hook, session21224, log `/tmp/credit-refill-push.log`. Its follow-up Graphify refresh is session77434, `/tmp/credit-refill-graph-final.log`; the later facade changes require a subsequent refresh after that job completes. Do not start duplicate refreshes or pushes. Preserve localhost3008 and all existing boards. No deployment or production changes.

@@ -4,7 +4,7 @@ import { handleWorkspaceAiPlan } from "@/features/workspace-objectives/server/ai
 const mocks = vi.hoisted(() => ({ objective: vi.fn(), read: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), correlate: vi.fn(), reconcile: vi.fn(), provider: vi.fn(), document: vi.fn() }))
 vi.mock("@/features/workspace-objectives/server/ai-plan-context", () => ({ loadPlanObjective: mocks.objective, loadAiPlan: mocks.read }))
 vi.mock("@/features/ai-credits", () => ({ reserveAiRun: mocks.reserve, claimAiRun: mocks.claim, settleAiRun: mocks.settle, correlateAiResponse: mocks.correlate, reconcileAiRun: mocks.reconcile }))
-vi.mock("@/features/workspace-ai/generation", async () => ({ ...await vi.importActual("@/features/workspace-ai/server/request-body"), streamWorkspaceDraft: mocks.provider, loadAiDocument: mocks.document, workspaceAiConfig: () => ({ tariff: { version: "fixture", model: "fixture" }, maxInputBytes: 70000, maxOutputTokens: 6000, maxCredits: 100, maxCost: 200000 }) }))
+vi.mock("@/features/workspace-ai/server", async () => ({ ...await vi.importActual("@/features/workspace-ai/server/request-body"), streamWorkspaceDraft: mocks.provider, loadAiDocument: mocks.document, workspaceAiConfig: () => ({ tariff: { version: "fixture", model: "fixture" }, maxInputBytes: 70000, maxOutputTokens: 6000, maxCredits: 100, maxCost: 200000 }) }))
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
 const target = { organizationId: id(1), userId: id(2), objectiveId: id(3), revision: "2026-10-22T12:00:00Z" }
 const generated = { title: "Event plan", summary: "Choose a venue, then prepare the event.", assumptions: ["Venue access is not confirmed."], questions: ["Is a venue available?"],

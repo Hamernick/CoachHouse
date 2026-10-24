@@ -1,6 +1,6 @@
 "use server"
 
-import { prepareResearchApplication } from "@/features/workspace-ai"
+import { prepareResearchApplication } from "@/features/workspace-ai/server"
 import type { ParticleCommit, ParticleResult } from "@/features/workspace-particles"
 import { writeWorkspaceParticleBatch } from "./workspace-particle-write"
 

@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ context: vi.fn(), read: vi.fn(), load: vi.fn()
 vi.mock("@/features/workspace-ai/server/research-context", () => ({ loadResearchContext: mocks.context }))
 vi.mock("@/features/ai-credits", () => ({ readAiRun: mocks.read }))
 vi.mock("@/features/workspace-ai/server/knowledge-records", () => ({ knowledgeLoader: () => mocks.load }))
-vi.mock("@/features/workspace-ai", async () => ({ prepareResearchApplication: (await import("@/features/workspace-ai/server/research-application")).prepareResearchApplication }))
+vi.mock("@/features/workspace-ai/server", async () => ({ prepareResearchApplication: (await import("@/features/workspace-ai/server/research-application")).prepareResearchApplication }))
 vi.mock("@/app/(dashboard)/my-organization/_lib/workspace-particle-write", () => ({ writeWorkspaceParticleBatch: mocks.write }))
 import { applyWorkspaceResearchAction } from "@/app/(dashboard)/my-organization/_lib/workspace-research-actions"
 import { prepareResearchApplication } from "@/features/workspace-ai/server/research-application"

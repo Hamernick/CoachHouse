@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGro
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
 
-import { loadWorkspacePageEditorAction } from "../server/actions"
+import { loadWorkspacePageEditorAction } from "../actions"
 import { usePageEditor } from "../hooks/use-page-editor"
 import type { PageEditorData } from "../lib/page-editor"
 import type { WorkspacePage } from "../types"

@@ -1,3 +1,4 @@
+import { assertParticleSourceReferenceAccess } from "@/features/workspace-particles/server"
 import "server-only"
 
 import { workspaceIdSchema } from "@/features/workspace-management"
@@ -6,7 +7,6 @@ import { revalidatePath } from "next/cache"
 import {
   readParticleGraph,
   particleCalendarChanged,
-  assertParticleSourceReferenceAccess,
   type ParticleCommit,
   type ParticleResult,
 } from "@/features/workspace-particles"

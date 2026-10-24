@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { applyAiPlan } from "@/features/workspace-objectives/server/ai-plan-actions"
 const mocks = vi.hoisted(() => ({ read: vi.fn(), document: vi.fn(), rpc: vi.fn() }))
 vi.mock("@/features/workspace-objectives/server/ai-plan-context", () => ({ loadAiPlan: mocks.read }))
-vi.mock("@/features/workspace-ai/generation", () => ({ loadAiDocument: mocks.document }))
+vi.mock("@/features/workspace-ai/server", () => ({ loadAiDocument: mocks.document }))
 vi.mock("@/features/ai-credits", () => ({}))
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
 const target = { userId: id(1), organizationId: id(2), objectiveId: id(3), revision: "2026-10-22T12:00:00Z" }

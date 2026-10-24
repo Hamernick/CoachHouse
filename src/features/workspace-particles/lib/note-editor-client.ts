@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { NoteContent } from "@/lib/modules/note-content"
-import { loadPersonalNote, writePersonalNote } from "../server/note-module-actions"
+import { loadPersonalNote, writePersonalNote } from "../note-actions"
 import { getParticleNotes, type NoteDocument } from "./particle-notes"
 import { particleSchema, particleGraphSchema } from "./particle-schema"
 import type { Particle } from "../types"

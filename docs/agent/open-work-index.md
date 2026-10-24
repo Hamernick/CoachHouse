@@ -1,5 +1,7 @@
 # Open Work Index
 
+**October24 feature-boundary repair:** All six feature-contract violations fixed; feature/import checks,132 focused tests and scoped lint pass. Structure/hosted/live gates remain. [Current checkpoint and pending-job recovery](../plans/2026-10-22-workspace-ai-plan.md#public-feature-boundary-repair--2026-10-24).
+
 **October24 capped auto-refill:** Explicit owner consent, capped payment admission and recovery are implemented locally, default-off. No Stripe activation or persistent/shared migration. [Authoritative continuation](../plans/2026-10-22-workspace-ai-plan.md#capped-auto-refill-consent-and-recovery--2026-10-24). Full AI goal remains active; live provider and release acceptance remain open.
 
 **October24 full AI workspace goal resumed:** Existing particle branch/PR357; server-owned research application now joins the typed decision branches. [Current evidence and remaining requirements](../plans/2026-10-22-workspace-ai-plan.md#resumed-full-goal--server-owned-research-application-2026-10-24). Full goal remains active; provider and controlled-release gates remain open.

@@ -1,6 +1,4 @@
 export * from "./lib"
-export { readWorkspaceNoteDocuments } from "./server/note-documents"
-export { assertParticleSourceReferenceAccess } from "./server/particle-source-access"
 export type {
   Particle,
   ParticleType,
@@ -20,6 +18,5 @@ export {
   ParticleMutationError,
 } from "./lib/authorized-mutation"
 
-export { handleNotesGet, handleNotesPost } from "./server/note-route"
 
 export { researchPlanOperations } from "./lib/research-plan"

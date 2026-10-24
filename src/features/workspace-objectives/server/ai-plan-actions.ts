@@ -1,6 +1,6 @@
 import "server-only"
 import { cancelAiRun, readAiAccount } from "@/features/ai-credits"
-import { workspaceAiConfig, listAiDocuments, loadAiDocument } from "@/features/workspace-ai/generation"
+import { workspaceAiConfig, listAiDocuments, loadAiDocument } from "@/features/workspace-ai/server"
 import { aiPlanApplicationSchema, type AiPlanTarget } from "../ai-plan-types"
 import { loadAiPlan, loadPlanObjective } from "./ai-plan-context"
 export async function quoteAiPlan(target: AiPlanTarget) {
