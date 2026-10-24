@@ -1,6 +1,8 @@
 # Open Work Index
 
-Current sharing follow-up: **Consistent organization and homepage brand previews**, `fix/branded-share-previews-20261023`, original02 stage5/O124/O123. White1200x630 artwork, centered logo tiles, bounded public-only image rendering and large-card organization metadata are implemented. [Canonical checkpoint](../plans/2026-10-23-branded-share-previews.md). Open [PR356](https://github.com/Hamernick/CoachHouse/pull/356), reconciled with maincc3d145a/mergedPR354–355. Review corrections move the renderer into the route and include display names in image revisions;103focused tests pass. Full-build/preview receipt is in the checkpoint. Hosted quality, review, merge, deployment and iOS acceptance remain pending.
+**Original to-do list:** [Development backlog status](development-backlog.md) is the single current status table for all 176 original requirements. Read it before selecting work; update affected IDs and evidence at every usable handoff. This index tracks lanes, runlogs track history, and private packets preserve scope. Do not maintain competing completion counts here or infer missing work from old checkboxes. The initial reconciliation includes partial, unverified, deferred and superseded scope separately from development completed; release and acceptance limits remain explicit.
+
+Sharing implementation merged: **Consistent organization and homepage brand previews**, original02 stage5/O124/O123. [PR356](https://github.com/Hamernick/CoachHouse/pull/356) is present in main `6e940b13`, verified October24. White1200x630 artwork, centered logo tiles, bounded public-only image rendering and large-card metadata are implemented. [Canonical checkpoint](../plans/2026-10-23-branded-share-previews.md) retains 103 focused tests and full-build/preview evidence. Production readback and native iOS/Messages acceptance remain separate; do not reopen the old merge step.
 
 ## Next.js security upgrade — October22
 
