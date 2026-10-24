@@ -17,13 +17,13 @@ export function verifyCreditPayment(order: PurchaseOrder, payment: Stripe.Paymen
       payment.metadata?.kind !== "ai_credit_pack" || payment.metadata.order_id !== order.id ||
       (order.payment_intent_id && order.payment_intent_id !== payment.id)) throw new Error("Credit adjustment payment mismatch.")
 }
-export async function syncCreditPaymentRestrictions(order: PurchaseOrder, payment: string, stripe: Stripe, evidence: Evidence) {
+export async function syncCreditPaymentRestrictions(order: PurchaseOrder, payment: string, stripe: Stripe, evidence: Evidence, options?: Stripe.RequestOptions) {
   // Start with a fail-closed hold. Provider/network/DB failures leave it in place
   // until this same verified event retries successfully; no new charge is made.
   await verification(order, payment, evidence, "pending")
   const [refunds, disputes] = await Promise.all([
-    stripe.refunds.list({ payment_intent: payment, limit: 100 }),
-    stripe.disputes.list({ payment_intent: payment, limit: 100 }),
+    stripe.refunds.list({ payment_intent: payment, limit: 100 }, ...(options ? [options] : [])),
+    stripe.disputes.list({ payment_intent: payment, limit: 100 }, ...(options ? [options] : [])),
   ])
   if (refunds.has_more || disputes.has_more) throw new Error("Credit payment needs manual reconciliation.")
   for (const refund of refunds.data) {

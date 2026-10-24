@@ -1,5 +1,6 @@
 import "server-only"
 
+import { processCreditRefills } from "./refill-worker"
 import { timingSafeEqual } from "node:crypto"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
@@ -18,6 +19,7 @@ export async function handleAiRecovery(request: Request) {
   try {
     const { data,error } = await createSupabaseAdminClient({ requestTimeoutMs: 20000 }).rpc("recover_workspace_ai_runs",{})
     if (error || !Number.isInteger(data) || data < 0 || data > 100) throw new Error("Recovery unavailable")
-    return Response.json({ recovered: data,morePossible: data === 100 },{ headers })
+    const refills = process.env.WORKSPACE_AI_REFILL_RECOVERY_ENABLED === "true" ? await processCreditRefills() : 0
+    return Response.json({ recovered: data, ...(process.env.WORKSPACE_AI_REFILL_RECOVERY_ENABLED === "true" ? { refills } : {}), morePossible: data === 100 },{ headers })
   } catch { return Response.json({ error: "AI recovery unavailable" },{ status: 503,headers }) }
 }

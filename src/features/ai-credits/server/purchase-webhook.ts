@@ -1,5 +1,6 @@
 import "server-only"
 import type Stripe from "stripe"
+import { processCreditRefillEvent } from "./refill-webhook"
 import { z } from "zod"
 import { readPurchase, fulfillPurchase } from "./purchase-store"
 import { processAiCreditReversal, syncCreditPaymentRestrictions, verifyCreditPayment } from "./payment-restrictions"
@@ -7,6 +8,7 @@ import { processAiCreditReversal, syncCreditPaymentRestrictions, verifyCreditPay
 // Called only by the existing signature-verified Stripe webhook. Fulfillment
 // remains available when new checkout is disabled, so paid orders cannot strand.
 export async function processAiCreditPurchase(event: Stripe.Event, stripe: Stripe, mode: "test" | "live") {
+  if (await processCreditRefillEvent(event, stripe, mode)) return true
   if (await processAiCreditReversal(event, stripe, mode)) return true
   if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") return false
   const incoming = event.data.object as Stripe.Checkout.Session

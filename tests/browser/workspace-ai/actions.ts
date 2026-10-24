@@ -24,3 +24,8 @@ export const validateOrgMediaFile = () => "Uploads are unavailable in this fixtu
 export const uploadOrgMedia = async () => { throw new Error("Uploads are unavailable in this fixture.") }
 
 export const quoteSelectionAssistance = () => request("quote-selection")
+
+// Research is tested separately; prevent server modules entering this browser fixture.
+export const quoteWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })
+export const getWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })
+export const stopWorkspaceResearch = async () => ({ error: "Research is unavailable in this fixture." })

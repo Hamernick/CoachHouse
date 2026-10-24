@@ -9,7 +9,7 @@ const store = vi.hoisted(() => ({ bindCheckout: vi.fn(), readPurchase: vi.fn(), 
 const restrictions = vi.hoisted(() => ({ processAiCreditReversal: vi.fn(), syncCreditPaymentRestrictions: vi.fn(), verifyCreditPayment: vi.fn() }))
 vi.mock("@/features/ai-credits/server/payment-restrictions", () => restrictions)
 const auth = vi.hoisted(() => ({ getUser: vi.fn(), active: vi.fn(), runtime: vi.fn() }))
-vi.mock("@/features/ai-credits/server/purchase-store", () => store)
+vi.mock("@/features/ai-credits/server/purchase-store", async importOriginal => ({...await importOriginal<typeof import("@/features/ai-credits/server/purchase-store")>(),...store}))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: auth.getUser } }) }))
 vi.mock("@/lib/organization/active-org", () => ({ resolveActiveOrganization: auth.active }))
 vi.mock("@/lib/billing/stripe-runtime", () => ({ resolveStripeRuntimeConfigForAudience: auth.runtime }))

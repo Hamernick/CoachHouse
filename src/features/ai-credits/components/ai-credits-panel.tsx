@@ -6,6 +6,7 @@ import type { AiCreditAccount } from "../types"
 import { aiCreditBalance } from "../lib"
 import { loadCreditPurchases } from "../purchase-actions"
 import type { AiCreditPurchases } from "../purchase-types"
+import { CreditAutoRefill } from "./credit-auto-refill"
 import { CreditPurchaseControl } from "./credit-purchase-control"
 import { CreditSpendingLimits } from "./credit-spending-limits"
 import { CreditSubscriptionAllowance } from "./credit-subscription-allowance"
@@ -59,6 +60,7 @@ function AiCreditsPanelContent({ account, organizationId, documentContexts }: Pr
       {expires ? <p className="text-xs text-muted-foreground">Included credits expire {new Date(expires).toLocaleDateString()}.</p> : null}
       {current.paymentReview ? <p role="status" className="text-xs text-muted-foreground">A credit purchase needs payment review.</p> : null}
       {organizationId && fresh ? <CreditPurchaseControl key={organizationId} organizationId={organizationId} purchases={fresh.purchases} /> : null}
+      {organizationId && fresh ? <CreditAutoRefill key={`refill:${organizationId}`} organizationId={organizationId} packs={fresh.purchases.packs} onChanged={() => setRetry(value => value + 1)} /> : null}
       {organizationId ? <CreditSubscriptionAllowance key={`allowance:${organizationId}`} organizationId={organizationId} onAssigned={() => setRetry(value => value + 1)} /> : null}
       {organizationId && current.enabled ? <CreditSpendingLimits key={`limits:${organizationId}`} organizationId={organizationId} /> : null}
       {error ? <p role="status" className="text-xs text-muted-foreground">{error}</p> : null}

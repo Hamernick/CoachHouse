@@ -86,6 +86,8 @@ try {
   runSql("supabase/migrations/20261023010000_workspace_ai_usage_history.sql")
   runSql("supabase/migrations/20261023020000_workspace_ai_subscription_allowances.sql")
   runSql("supabase/migrations/20261024010000_workspace_particle_research.sql")
+  runSql("supabase/migrations/20261024020000_workspace_ai_refill_setup.sql")
+  runSql("supabase/migrations/20261024021000_workspace_ai_refill_execution.sql")
   runSql("supabase/tests/workspace-ai.assertions.sql")
   runSql("supabase/tests/workspace-research.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
@@ -184,6 +186,20 @@ try {
   const allowanceRace=await Promise.all([grantConcurrently(),grantConcurrently()])
   if(allowanceRace.some(result=>result.code!==0)) throw new Error(`Allowance race failed: ${JSON.stringify(allowanceRace)}`)
   run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.ai_credit_allowance_grants where subscription_id='sub_allowance_four'),'concurrent webhook/bind grants once');`})
+
+  runSql("supabase/tests/workspace-ai-refills.assertions.sql")
+  const refillConcurrently=()=>new Promise(resolve=>{
+    const child=spawn(join(postgresDirectory,"psql"),args,{stdio:["pipe","pipe","pipe"]})
+    let error="";child.stderr.on("data",chunk=>{error+=chunk});child.stdout.resume()
+    child.on("close",code=>resolve({code,error}))
+    child.stdin.end(`begin; set local role service_role; select public.prepare_next_ai_credit_refill('test','primary'); select pg_sleep(0.1); commit;`)
+  })
+  const refillRace=await Promise.all([refillConcurrently(),refillConcurrently()])
+  if(refillRace.some(result=>result.code!==0))throw new Error(`Refill admission race failed: ${JSON.stringify(refillRace)}`)
+  run("psql",args,{input:`select public.assert_ai((select count(*)=1 from public.ai_credit_refill_attempts where state='queued'),'concurrent refill admission creates one pending charge');
+    insert into public.ai_credit_lots(org_id,operation_key,kind,credits) values('90000000-0000-4000-8000-000000000090','refill-concurrent-topup','included',500);
+    select public.assert_ai(not public.start_ai_credit_refill_charge(id),'late balance restoration prevents automatic charge') from public.ai_credit_refill_attempts where state='queued';
+    select public.assert_ai((select count(*)=0 from public.ai_credit_refill_attempts where state='queued'),'restored balance releases pending refill');`})
 
   console.log("[workspace-ai] Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
 } finally {
