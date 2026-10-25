@@ -37,8 +37,10 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({
   },
 }) }))
 
-import { publicSitemapIndexGET, publicSitemapPageGET } from "@/lib/queries/public-sitemap"
-const page = (kind: string, page = "0") => publicSitemapPageGET(new Request("https://coachhouse.app"), { params: Promise.resolve({ kind, page }) })
+import { publicSitemapIndexGET } from "@/lib/queries/public-sitemap"
+import { GET as publicSitemapPageGET } from "@/app/public-sitemap.xml/route"
+const page = (kind: string, page = "0") => publicSitemapPageGET(new Request(`https://coachhouse.app/public-sitemap.xml?${new URLSearchParams({ kind, page })}`))
+const locations = (xml: string) => [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => new URL(match[1].replaceAll("&amp;", "&")))
 
 beforeEach(() => {
   state.sharing = true; state.resources = "true"; state.error = false; state.records = []; state.batches = []; state.calls = []
@@ -51,10 +53,27 @@ describe("public sitemap pagination", () => {
     const body = await result.text()
     expect(result.status).toBe(200)
     expect(body).toContain("/sitemap.xml")
-    expect(body).toContain("/profiles/2")
-    expect(body).not.toContain("/profiles/3")
-    expect(body).toContain("/nonprofits/1")
+    expect(body).toContain("/public-sitemap.xml?kind=profiles&amp;page=2")
+    expect(body).not.toContain("kind=profiles&amp;page=3")
+    expect(body).toContain("kind=nonprofits&amp;page=1")
     expect(body.match(/<sitemap>/g)).toHaveLength(20_006)
+  })
+  it("serves every catalog at a location authorized to describe its public URLs", async () => {
+    const shards = locations(await (await publicSitemapIndexGET()).text()).filter((url) => url.searchParams.get("page") === "0")
+    expect(shards).toHaveLength(4)
+    state.records = [{ ein: "000000001", item_id: "00000000-0000-4000-8000-000000000001", title: "Food Pantry", public_slug: "published-org" }]
+    for (const shard of shards) {
+      expect(shard.pathname).toBe("/public-sitemap.xml")
+      const result = await publicSitemapPageGET(new Request(shard))
+      expect(result.status).toBe(200)
+      const urls = locations(await result.text())
+      expect(urls.length).toBeGreaterThan(0)
+      const scope = new URL("./", shard)
+      for (const url of urls) {
+        expect(url.origin).toBe(scope.origin)
+        expect(url.pathname.startsWith(scope.pathname)).toBe(true)
+      }
+    }
   })
   it("uses the publication-filtered nonprofit view and deterministic page boundaries", async () => {
     state.records = [{ ein: "000123456" }]
@@ -104,14 +123,20 @@ describe("public sitemap pagination", () => {
   it("does not advertise disabled resource or roadmap pages", async () => {
     state.sharing = false; state.resources = "false"
     const body = await (await publicSitemapIndexGET()).text()
-    expect(body).not.toContain("/roadmaps/")
-    expect(body).not.toContain("/resources/")
+    expect(body).not.toContain("kind=roadmaps")
+    expect(body).not.toContain("kind=resources")
     expect((await page("roadmaps")).status).toBe(404)
     expect((await page("resources")).status).toBe(404)
   })
   it.each(["-1", "1.5", "01", "Infinity", "10000000"])("rejects invalid page %s before querying", async (value) => {
     expect((await page("nonprofits", value)).status).toBe(404)
     expect(state.calls).toEqual([])
+  })
+  it.each(["", "kind=profiles", "page=0", "kind=unknown&page=0", "kind=profiles&page=", "kind=profiles&kind=nonprofits&page=0", "kind=profiles&page=0&page=1"])("rejects incomplete or ambiguous query %s before querying", async (query) => {
+    const response = await publicSitemapPageGET(new Request(`https://coachhouse.app/public-sitemap.xml?${query}`))
+    expect(response.status).toBe(404)
+    expect(state.calls).toEqual([])
+    expect(state.profiles).not.toHaveBeenCalled()
   })
   it("returns an uncached failure instead of publishing an empty sitemap on database errors", async () => {
     state.error = true

@@ -3,7 +3,7 @@
 import type { ChangeEvent, KeyboardEvent, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { NodeViewProps } from "@tiptap/react"
-import { NodeViewWrapper } from "@tiptap/react"
+import { NodeViewWrapper, useEditorState } from "@tiptap/react"
 import {
   AlignCenter,
   AlignLeft,
@@ -30,9 +30,17 @@ import { cn } from "@/lib/utils"
 import { TiptapImageReplaceControls } from "./tiptap-image-replace-controls"
 
 export function TiptapImage(props: NodeViewProps) {
-  const { node, editor, selected, deleteNode, updateAttributes, extension } = props
+  const { node, editor, selected, deleteNode, updateAttributes: commitAttributes, extension } = props
+  const isEditable = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) => currentEditor?.isEditable ?? false,
+  })
   const imageRef = useRef<HTMLImageElement | null>(null)
   const nodeRef = useRef<HTMLDivElement | null>(null)
+  const captionButtonRef = useRef<HTMLButtonElement | null>(null)
+  const captionInputRef = useRef<HTMLInputElement | null>(null)
+  const captionFocusRequestedRef = useRef(false)
+  const cancelCaptionRef = useRef(false)
   const isUploading = node.attrs.uploading === true || node.attrs.uploading === "true"
   const [resizing, setResizing] = useState(false)
   const [resizingPosition, setResizingPosition] = useState<"left" | "right">("left")
@@ -43,6 +51,10 @@ export function TiptapImage(props: NodeViewProps) {
   const [openedMore, setOpenedMore] = useState(false)
   const [imageUrl, setImageUrl] = useState("")
   const [altText, setAltText] = useState(node.attrs.alt || "")
+
+  function updateAttributes(attributes: Record<string, unknown>) {
+    if (editor.isEditable) commitAttributes(attributes)
+  }
 
   const { fileInputRef, handleFileChange, handleRemove, uploading, error } = useImageUpload({
     uploadFile: extension?.options?.uploadImage ?? undefined,
@@ -139,13 +151,24 @@ export function TiptapImage(props: NodeViewProps) {
   }
 
   function handleCaptionBlur() {
-    updateAttributes({ caption })
+    if (!cancelCaptionRef.current) updateAttributes({ caption })
     setEditingCaption(false)
   }
 
-  function handleCaptionKeyDown(e: KeyboardEvent) {
-    if (e.key === "Enter") {
-      handleCaptionBlur()
+  function beginCaptionEdit() {
+    if (!editor.isEditable) return
+    cancelCaptionRef.current = false
+    setCaption(node.attrs.caption || "")
+    setEditingCaption(true)
+  }
+
+  function handleCaptionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "Escape") {
+      e.preventDefault()
+      e.stopPropagation()
+      cancelCaptionRef.current = e.key === "Escape"
+      e.currentTarget.blur()
+      requestAnimationFrame(() => captionButtonRef.current?.focus())
     }
   }
 
@@ -209,7 +232,7 @@ export function TiptapImage(props: NodeViewProps) {
               <Loader2 className="relative h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : null}
-          {editor?.isEditable && (
+          {isEditable && (
             <>
               <div
                 className="absolute inset-y-0 z-20 flex w-[25px] cursor-col-resize items-center justify-start p-2"
@@ -235,34 +258,43 @@ export function TiptapImage(props: NodeViewProps) {
           )}
         </figure>
 
-        {editingCaption ? (
+        {editingCaption && isEditable ? (
           <Input
+            ref={captionInputRef}
+            aria-label="Image caption"
             value={caption}
             onChange={handleCaptionChange}
             onBlur={handleCaptionBlur}
             onKeyDown={handleCaptionKeyDown}
-            className="mt-2 text-center text-sm text-muted-foreground focus:ring-0"
-            placeholder="Add a caption..."
+            className="mt-2 text-center text-base text-muted-foreground sm:text-sm"
+            placeholder="Add a caption…"
             autoFocus
           />
-        ) : (
-          <div
-            className="mt-2 cursor-text text-center text-sm text-muted-foreground"
-            onClick={() => editor?.isEditable && setEditingCaption(true)}
+        ) : isEditable ? (
+          <Button
+            ref={captionButtonRef}
+            type="button"
+            variant="ghost"
+            aria-label={node.attrs.caption ? "Edit image caption" : "Add image caption"}
+            className="mt-2 h-auto min-h-11 whitespace-normal break-words text-center text-sm font-normal text-muted-foreground sm:min-h-6"
+            onClick={beginCaptionEdit}
           >
-            {caption || "Add a caption..."}
-          </div>
-        )}
+            {node.attrs.caption || "Add a caption…"}
+          </Button>
+        ) : node.attrs.caption ? <p className="mt-2 break-words text-center text-sm text-muted-foreground">{node.attrs.caption}</p> : null}
 
-        {editor?.isEditable && !isUploading && (
+        {isEditable && !isUploading && (
           <div
             className={cn(
-              "absolute right-4 top-4 flex items-center gap-1 rounded-md border bg-background/80 p-1 opacity-0 backdrop-blur transition-opacity",
+              "absolute right-4 top-4 flex items-center gap-1 rounded-md border bg-background/80 p-1 opacity-0 backdrop-blur transition-opacity focus-within:opacity-100",
               !resizing && "group-hover:opacity-100",
               openedMore && "opacity-100",
             )}
           >
             <Button
+              type="button"
+              aria-label="Align image left"
+              aria-pressed={node.attrs.align === "left"}
               size="icon"
               className={cn("size-7", node.attrs.align === "left" && "bg-accent")}
               variant="ghost"
@@ -271,6 +303,9 @@ export function TiptapImage(props: NodeViewProps) {
               <AlignLeft className="size-4" />
             </Button>
             <Button
+              type="button"
+              aria-label="Align image center"
+              aria-pressed={node.attrs.align === "center"}
               size="icon"
               className={cn("size-7", node.attrs.align === "center" && "bg-accent")}
               variant="ghost"
@@ -279,6 +314,9 @@ export function TiptapImage(props: NodeViewProps) {
               <AlignCenter className="size-4" />
             </Button>
             <Button
+              type="button"
+              aria-label="Align image right"
+              aria-pressed={node.attrs.align === "right"}
               size="icon"
               className={cn("size-7", node.attrs.align === "right" && "bg-accent")}
               variant="ghost"
@@ -289,12 +327,21 @@ export function TiptapImage(props: NodeViewProps) {
             <Separator orientation="vertical" className="h-[20px]" />
             <DropdownMenu open={openedMore} onOpenChange={(open) => { if (open) setAltText(node.attrs.alt ?? ""); setOpenedMore(open) }}>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" className="size-7" variant="ghost" aria-label="Image options">
+                <Button type="button" size="icon" className="size-7" variant="ghost" aria-label="Image options">
                   <MoreVertical className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" alignOffset={-90} className="mt-1 text-sm">
-                <DropdownMenuItem onClick={() => setEditingCaption(true)}>
+              <DropdownMenuContent
+                align="start" alignOffset={-90} className="mt-1 text-sm"
+                onCloseAutoFocus={(event) => {
+                  if (!captionFocusRequestedRef.current) return
+                  captionFocusRequestedRef.current = false
+                  if (!editor.isEditable) return
+                  event.preventDefault()
+                  requestAnimationFrame(() => captionInputRef.current?.focus())
+                }}
+              >
+                <DropdownMenuItem onSelect={() => { captionFocusRequestedRef.current = true; beginCaptionEdit() }}>
                   <Edit className="mr-2 size-4" /> Edit Caption
                 </DropdownMenuItem>
                 <TiptapImageReplaceControls
@@ -311,8 +358,11 @@ export function TiptapImage(props: NodeViewProps) {
                 />
                 <DropdownMenuItem
                   onClick={() => {
-                    const aspectRatio = node.attrs.aspectRatio;
-                    if (aspectRatio) {
+                    const image = imageRef.current
+                    const aspectRatio = image?.naturalWidth && image.naturalHeight
+                      ? image.naturalWidth / image.naturalHeight
+                      : Number(node.attrs.aspectRatio)
+                    if (Number.isFinite(aspectRatio) && aspectRatio > 0) {
                       const parentWidth = nodeRef.current?.parentElement?.offsetWidth ?? 0
                       updateAttributes({
                         width: parentWidth,

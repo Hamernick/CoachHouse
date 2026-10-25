@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
 import type { FormationStatusOption } from "@/lib/organization/formation-status"
 import type { PublicMapOrganization } from "@/lib/queries/public-map-index"
+import { buildPublicImageTransformUrl } from "@/lib/storage/public-url"
 import { cn } from "@/lib/utils"
 
 import { PublicMapMediaImage } from "./media-image"
@@ -105,6 +106,21 @@ export function OrganizationDetailBrandKitSection({
   )
 }
 
+function brandKitPreviewImageUrl(imageUrl: string) {
+  try {
+    const pathname = decodeURIComponent(new URL(imageUrl).pathname)
+    if (/\.svg(?:\+xml)?$/i.test(pathname)) return imageUrl
+  } catch {
+    return imageUrl
+  }
+  // The preview is 64px tall; retain a 2x allowance without downloading the original.
+  return buildPublicImageTransformUrl(imageUrl, {
+    width: 640,
+    height: 128,
+    resize: "contain",
+  }) ?? imageUrl
+}
+
 function OrganizationDetailLogoCard({
   label,
   imageUrl,
@@ -118,7 +134,7 @@ function OrganizationDetailLogoCard({
     <div className={cn("p-3", PUBLIC_MAP_SIDEBAR_SECTION_ALT_CLASSNAME)}>
       <p className="text-muted-foreground text-xs font-medium">{label}</p>
       <PublicMapMediaImage
-        src={imageUrl}
+        src={brandKitPreviewImageUrl(imageUrl)}
         alt={alt}
         wrapperClassName={cn(
           "mt-2 flex h-16 items-center justify-center rounded-xl p-2",

@@ -54,7 +54,9 @@ export async function publicSitemapIndexGET() {
     const signal = AbortSignal.timeout(10_000)
     const groups = await Promise.all(kinds.filter(enabled).map(async (kind) => {
       const pages = await countPages(kind, signal)
-      return Array.from({ length: pages }, (_, page) => `${origin}/public-sitemaps/${kind}/${page}`)
+      // Root-level sitemap locations may describe URLs anywhere on this host.
+      // Nested shard paths would restrict their URLs to that directory.
+      return Array.from({ length: pages }, (_, page) => `${origin}/public-sitemap.xml?kind=${kind}&page=${page}`)
     }))
     const urls = [`${origin}/sitemap.xml`, ...groups.flat()]
     if (urls.length > 50_000) throw new Error("Sitemap index capacity exceeded")
@@ -106,9 +108,11 @@ async function pagePaths(kind: Kind, page: number) {
   return (data ?? []).flatMap(({ public_slug }) => public_slug ? [`/${encodeURIComponent(public_slug)}/roadmap`] : [])
 }
 
-export async function publicSitemapPageGET(_request: Request, { params }: { params: Promise<{ kind: string; page: string }> }) {
-  const { kind, page } = await params
-  if (!kinds.includes(kind as Kind) || !/^(0|[1-9]\d{0,6})$/.test(page) || !enabled(kind as Kind) || (kind === "nonprofits" && Number(page) >= EIN_SITEMAP_COUNT)) {
+export async function publicSitemapPageGET(request: Request) {
+  const query = new URL(request.url).searchParams
+  const kind = query.get("kind") ?? ""
+  const page = query.get("page") ?? ""
+  if (query.getAll("kind").length !== 1 || query.getAll("page").length !== 1 || !kinds.includes(kind as Kind) || !/^(0|[1-9]\d{0,6})$/.test(page) || !enabled(kind as Kind) || (kind === "nonprofits" && Number(page) >= EIN_SITEMAP_COUNT)) {
     return new Response("Not found", { status: 404 })
   }
   try {
