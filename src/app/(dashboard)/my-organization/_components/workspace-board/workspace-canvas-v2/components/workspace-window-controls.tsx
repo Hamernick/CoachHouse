@@ -1,0 +1,71 @@
+"use client"
+
+import XIcon from "lucide-react/dist/esm/icons/x"
+import Maximize2Icon from "lucide-react/dist/esm/icons/maximize-2"
+import Minimize2Icon from "lucide-react/dist/esm/icons/minimize-2"
+import { Button } from "@/components/ui/button"
+
+import { useWorkspaceWindowStatus } from "@/components/workspace/workspace-editor-status"
+import type { WorkspaceContentWindowState } from "./workspace-content-window"
+import styles from "./workspace-dock.module.css"
+
+export function WorkspaceWindowControls({
+  windowState,
+}: {
+  windowState?: WorkspaceContentWindowState
+}) {
+  const status = useWorkspaceWindowStatus()
+  const controls = [
+    {
+      id: "close",
+      label: "Close content window",
+      title: status.text ? `Close — ${status.text}` : "Close",
+      action: windowState?.onClose,
+      Icon: XIcon,
+    },
+    {
+      id: "maximize",
+      label: windowState?.maximized
+        ? "Restore content window"
+        : "Maximize content window",
+      title: windowState?.maximized ? "Restore" : "Maximize",
+      action: windowState?.onToggleMaximize,
+      Icon: windowState?.maximized ? Minimize2Icon : Maximize2Icon,
+    },
+  ] as const
+  return (
+    <div
+      className={styles.windowControls}
+      role="group"
+      aria-label="Window controls"
+    >
+      {controls.map(({ id, label, title, action, Icon }) => (
+        <Button
+          key={id}
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={styles.windowControl}
+          data-window-action={id}
+          data-unsaved={
+            id === "close" && status.outstanding ? "true" : undefined
+          }
+          aria-label={
+            id === "close" && status.text ? `${label}. ${status.text}` : label
+          }
+          title={title}
+          onClick={action}
+
+        >
+          <span className={styles.windowDot} aria-hidden="true">
+            <Icon />
+            <span className={styles.unsavedDot} />
+          </span>
+        </Button>
+      ))}
+      <span className="sr-only" role="status" aria-live="polite">
+        {status.text}
+      </span>
+    </div>
+  )
+}

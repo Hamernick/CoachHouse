@@ -1,6 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { calendarParticleHref } from "@/lib/roadmap/calendar-particle-link"
+import { useCalendarRefresh } from "./roadmap-calendar/use-calendar-refresh"
 
 import {
   createRoadmapCalendarEvent,
@@ -48,6 +51,7 @@ type RoadmapCalendarProps = {
   hideHeaderCopy?: boolean
   initialView?: RoadmapCalendarView
   onViewChange?: (view: RoadmapCalendarView) => void
+  onOpenParticle?: () => void
 }
 
 function RoadmapCalendarHeader({ hidden }: { hidden: boolean }) {
@@ -69,7 +73,11 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
     hideHeaderCopy = false,
     initialView,
     onViewChange,
+    onOpenParticle,
   } = props
+  const router = useRouter()
+  const [orgId, setOrgId] = useState<string | null>(null)
+  const calendarRevision = useCalendarRefresh(orgId)
   const calendarType: RoadmapCalendarType = "internal"
   const [month, setMonth] = useState(() => initialView?.month ?? new Date())
   const personalEvents = usePersonalCalendarEvents(month)
@@ -154,6 +162,7 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
 
   useEffect(() => {
     const range = getMonthRange(month)
+    let canceled = false
     setIsLoading(true)
     startTransition(async () => {
       const result = await listRoadmapCalendarEvents({
@@ -161,16 +170,22 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
         from: range.from,
         to: range.to,
       })
+      if (canceled) return
       if ("error" in result) {
+        setEvents([])
+        setCanManageCalendar(false)
+        setOrgId(null)
         toast.error(result.error)
         setIsLoading(false)
         return
       }
       setEvents(result.events)
+      setOrgId(result.orgId)
       setCanManageCalendar(result.canManageCalendar)
       setIsLoading(false)
     })
-  }, [calendarType, month, startTransition])
+    return () => { canceled = true }
+  }, [calendarType, month, startTransition, calendarRevision])
 
   useEffect(() => {
     if (isLoading || selectedDate || events.length === 0) return
@@ -216,11 +231,16 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
 
   const handleEditEvent = useCallback(
     (event: RoadmapCalendarEvent) => {
+      if (event.source?.kind === "workspace_particle") {
+        onOpenParticle?.()
+        router.push(calendarParticleHref(event.source.particleId, event.source.workspaceCanvasId), { scroll: false })
+        return
+      }
       resetDraft(event)
       setEditingEvent(event)
       setDrawerOpen(true)
     },
-    [resetDraft]
+    [resetDraft, router, onOpenParticle]
   )
 
   const handleSave = useCallback(() => {

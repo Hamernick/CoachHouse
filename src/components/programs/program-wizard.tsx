@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import {
   useCallback,
   useEffect,
@@ -11,7 +13,11 @@ import {
 import Plus from "lucide-react/dist/esm/icons/plus"
 
 import { buildProgramUpdatePatch } from "@/lib/programs/update-patch"
-import { createProgramAction, updateProgramAction, type UpdateProgramPayload } from "@/actions/programs"
+import {
+  createProgramAction,
+  updateProgramAction,
+  type UpdateProgramPayload,
+} from "@/actions/programs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +29,7 @@ import { resolveOrganizationActivityKind } from "@/lib/organization/primary-obje
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
+import { saveProgramBeforeClose } from "./program-wizard/save-before-close"
 import { DRAFT_STORAGE_KEY, STEPS } from "./program-wizard/constants"
 import {
   computeFeasibility,
@@ -82,27 +89,81 @@ export function ProgramWizard({
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydratedRef = useRef(false)
   const editedRef = useRef(false)
+  const editRevisionRef = useRef(0)
+  const closingRef = useRef(false)
   const savedPayloadRef = useRef<UpdateProgramPayload>({})
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const saveProgram = useCallback((payload: UpdateProgramPayload) => {
-    const run = async () => {
-      const patch = organizationId ? buildProgramUpdatePatch(savedPayloadRef.current, payload) : payload
-      if (!Object.keys(patch).length) return { ok: true }
-      const response = await updateProgramAction(program?.id ?? "", patch, organizationId)
-      if (!("error" in response)) savedPayloadRef.current = payload
-      return response
-    }
-    const result = saveQueueRef.current.then(run, run)
-    saveQueueRef.current = result.then(() => undefined, () => undefined)
-    return result
-  }, [organizationId, program?.id])
+  useWorkspaceEditorStatus({
+    label: "Resource",
+    dirty:
+      isOpen &&
+      hydratedRef.current &&
+      (mode === "create"
+        ? editedRef.current
+        : JSON.stringify(serializePayload(form)) !==
+          JSON.stringify(savedPayloadRef.current)),
+    pending: isOpen && (isPending || isAutoSaving),
+  })
+  const saveProgram = useCallback(
+    (payload: UpdateProgramPayload) => {
+      const run = async () => {
+        const patch = organizationId
+          ? buildProgramUpdatePatch(savedPayloadRef.current, payload)
+          : payload
+        if (!Object.keys(patch).length) return { ok: true }
+        const response = await updateProgramAction(
+          program?.id ?? "",
+          patch,
+          organizationId
+        )
+        if (!("error" in response)) savedPayloadRef.current = payload
+        return response
+      }
+      const result = saveQueueRef.current.then(run, run)
+      saveQueueRef.current = result.then(
+        () => undefined,
+        () => undefined
+      )
+      return result
+    },
+    [organizationId, program?.id]
+  )
 
   const setOpen = useCallback(
     (value: boolean) => {
-      if (isControlled) onOpenChange?.(value)
-      else setInternalOpen(value)
+      const applyOpen = () => {
+        if (isControlled) onOpenChange?.(value)
+        else setInternalOpen(value)
+      }
+      if (value || mode !== "edit" || !program?.id || !editedRef.current) {
+        applyOpen()
+        return
+      }
+      if (closingRef.current) return
+      closingRef.current = true
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+      setIsAutoSaving(true)
+      void saveProgramBeforeClose({
+        save: async () => {
+          const response = await saveProgram(serializePayload(form))
+          return "error" in response ? response.error : null
+        },
+        getRevision: () => editRevisionRef.current,
+        close: applyOpen,
+      })
+        .then((result) => {
+          if (result.status === "failed") toast.error(result.error)
+          if (result.status === "changed")
+            toast.info(
+              "You made more changes while saving. Close again to save them."
+            )
+        })
+        .finally(() => {
+          closingRef.current = false
+          setIsAutoSaving(false)
+        })
     },
-    [isControlled, onOpenChange]
+    [isControlled, onOpenChange, mode, program?.id, saveProgram, form]
   )
 
   const feasibility = useMemo(() => computeFeasibility(form), [form])
@@ -178,7 +239,13 @@ export function ProgramWizard({
   }, [form, isOpen, mode])
 
   useEffect(() => {
-    if (!isOpen || mode !== "edit" || !program?.id || !hydratedRef.current || !editedRef.current)
+    if (
+      !isOpen ||
+      mode !== "edit" ||
+      !program?.id ||
+      !hydratedRef.current ||
+      !editedRef.current
+    )
       return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
 
@@ -188,7 +255,7 @@ export function ProgramWizard({
         const response = await saveProgram(serializePayload(form))
         if ("error" in response) toast.error(response.error)
       } catch {
-        toast.error("Could not save activity. Try again.")
+        toast.error("Could not save resource. Try again.")
       } finally {
         setIsAutoSaving(false)
       }
@@ -202,6 +269,7 @@ export function ProgramWizard({
   }, [form, isOpen, mode, program?.id, saveProgram])
 
   const update = (patch: Partial<ProgramWizardFormState>) => {
+    editRevisionRef.current++
     editedRef.current = true
     setForm((current) => {
       const next = {
@@ -273,7 +341,8 @@ export function ProgramWizard({
         window.localStorage.removeItem(DRAFT_STORAGE_KEY)
       }
 
-      toast.success(mode === "create" ? "Activity created" : "Activity updated")
+      toast.success(mode === "create" ? "Resource created" : "Resource updated")
+      editedRef.current = false
       setOpen(false)
       setForm(defaultProgramWizardForm)
       setCurrentStep(0)
@@ -284,16 +353,16 @@ export function ProgramWizard({
   const copyBrief = async () => {
     try {
       await navigator.clipboard.writeText(summaryText(form))
-      toast.success("Activity brief copied")
+      toast.success("Resource brief copied")
     } catch {
-      toast.error("Could not copy activity brief")
+      toast.error("Could not copy resource brief")
     }
   }
 
   const resolvedTrigger = triggerLabel ?? (
     <span className="inline-flex items-center gap-2">
       <Plus className="h-4 w-4" aria-hidden />
-      New activity
+      New resource
     </span>
   )
 
@@ -321,7 +390,7 @@ export function ProgramWizard({
               "bg-background/98 absolute max-h-[calc(100%-1rem)] w-[calc(100%-1rem)] shadow-[0_24px_70px_-42px_hsl(var(--foreground)/0.55)] backdrop-blur-xl sm:max-h-[calc(100%-2rem)] sm:w-[min(calc(100%-2rem),56rem)]"
           )}
         >
-          <DialogTitle className="sr-only">Activity builder</DialogTitle>
+          <DialogTitle className="sr-only">Resource builder</DialogTitle>
 
           <ProgramWizardHeader
             mode={mode}

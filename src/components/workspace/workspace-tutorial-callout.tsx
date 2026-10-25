@@ -7,10 +7,6 @@ import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 
-import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
 import { buttonVariants } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { WORKSPACE_TUTORIAL_OUTLINE_BUTTON_SURFACE_CLASSNAME } from "@/components/workspace/workspace-tutorial-theme"
@@ -18,13 +14,9 @@ import { cn } from "@/lib/utils"
 
 const WORKSPACE_TUTORIAL_CALLOUT_SETTLE_DELAY_MS = 420
 const WORKSPACE_TUTORIAL_CALLOUT_REDUCED_MOTION_DELAY_MS = 120
-const WORKSPACE_TUTORIAL_CALLOUT_SOURCE =
-  "src/components/workspace/workspace-tutorial-callout.tsx"
-const WORKSPACE_TUTORIAL_THEME_SOURCE =
-  "src/components/workspace/workspace-tutorial-theme.ts"
 
 type WorkspaceTutorialCalloutProps = {
-  reactGrabOwnerId?: string
+  calloutId?: string
   title?: string
   instruction?: string
   emphasis?: "default" | "tap-here"
@@ -64,10 +56,10 @@ export function WorkspaceTutorialCallout({
   sideOffset = 4,
   alignOffset = 0,
   mode = "tooltip",
-  reactGrabOwnerId,
+  calloutId,
 }: WorkspaceTutorialCalloutProps) {
-  const resolvedReactGrabOwnerId = React.useMemo(() => {
-    if (reactGrabOwnerId) return reactGrabOwnerId
+  const resolvedCalloutId = React.useMemo(() => {
+    if (calloutId) return calloutId
 
     const descriptorSeed = [
       mode,
@@ -94,7 +86,7 @@ export function WorkspaceTutorialCallout({
     indicatorIconPosition,
     instruction,
     mode,
-    reactGrabOwnerId,
+    calloutId,
     side,
     tapHereLabel,
     title,
@@ -103,7 +95,7 @@ export function WorkspaceTutorialCallout({
   const calloutSettleKey = React.useMemo(
     () =>
       [
-        resolvedReactGrabOwnerId,
+        resolvedCalloutId,
         mode,
         title,
         instruction,
@@ -119,7 +111,7 @@ export function WorkspaceTutorialCallout({
       indicatorIconPosition,
       instruction,
       mode,
-      resolvedReactGrabOwnerId,
+      resolvedCalloutId,
       side,
       tapHereLabel,
       title,
@@ -207,15 +199,7 @@ export function WorkspaceTutorialCallout({
       <div
         aria-hidden="true"
         className={cn("pointer-events-none absolute z-50", className)}
-        {...getReactGrabOwnerProps({
-          ownerId: resolvedReactGrabOwnerId,
-          component: "WorkspaceTutorialCallout",
-          source: WORKSPACE_TUTORIAL_CALLOUT_SOURCE,
-          slot: "indicator-anchor",
-          variant: tapHereLabel ? "labeled" : "icon",
-          tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-          primitiveImport: "@/components/ui/tooltip",
-        })}
+
         style={{
           ...indicatorAnchorStyle,
           ...indicatorVerticalAnchorStyle,
@@ -238,16 +222,7 @@ export function WorkspaceTutorialCallout({
               calloutVisibilityClassName,
               tooltipContentClassName,
             )}
-            {...getReactGrabLinkedSurfaceProps({
-              ownerId: resolvedReactGrabOwnerId,
-              component: "WorkspaceTutorialCallout",
-              source: WORKSPACE_TUTORIAL_CALLOUT_SOURCE,
-              slot: "indicator-bubble",
-              surfaceKind: "content",
-              tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-              primitiveImport: "@/components/ui/tooltip",
-            })}
-            data-react-grab-role="workspace-tutorial-callout-bubble"
+
             data-workspace-tutorial-callout-ready={calloutReady ? "true" : "false"}
           >
             <div
@@ -283,16 +258,7 @@ export function WorkspaceTutorialCallout({
       align={align}
       sideOffset={sideOffset}
       alignOffset={alignOffset}
-      {...getReactGrabOwnerProps({
-        ownerId: resolvedReactGrabOwnerId,
-        component: "WorkspaceTutorialCallout",
-        source: WORKSPACE_TUTORIAL_CALLOUT_SOURCE,
-        slot: "tooltip-content",
-        variant: emphasis,
-        tokenSource: WORKSPACE_TUTORIAL_THEME_SOURCE,
-        primitiveImport: "@/components/ui/tooltip",
-      })}
-      data-react-grab-role="workspace-tutorial-callout-bubble"
+
       data-workspace-tutorial-callout-ready={calloutReady ? "true" : "false"}
       className={cn(
         calloutVisibilityClassName,

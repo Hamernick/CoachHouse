@@ -104,7 +104,7 @@ export function WorkspaceBoardCardFrame({
             "flex flex-col overflow-hidden px-4",
             contentCanDrag
               ? "workspace-card-drag-handle cursor-grab touch-manipulation active:cursor-grabbing"
-              : "nodrag nopan",
+              : "nopan",
             WORKSPACE_CARD_LAYOUT_SYSTEM.flexColumn,
             cardId === "organization-overview" ? "pt-0" : "pt-1",
             cardId === "calendar" ? "pb-3" : "pb-4",
@@ -119,7 +119,7 @@ export function WorkspaceBoardCardFrame({
           {children}
         </FrameBody>
         {footer ? (
-          <FrameFooter className="nodrag nopan mt-auto px-4 pt-3 pb-4">
+          <FrameFooter className="nopan mt-auto px-4 pt-3 pb-4">
             {footer}
           </FrameFooter>
         ) : null}

@@ -1,55 +1,12 @@
 import * as React from "react"
 
-import {
-  buildReactGrabDebugSurfaceRecord,
-  debugSurfaceClass,
-  type ReactGrabDebugSurfaceAttributes,
-} from "@/lib/react-grab-debug-surface"
 import { cn } from "@/lib/utils"
-
-const CARD_SOURCE = "src/components/ui/card.tsx"
-const CARD_IMPORT = "@/components/ui/card"
-
-function resolveCardSurfaceClassName({
-  props,
-  className,
-  baseClassName,
-  fallbackComponent,
-  defaultSlot,
-}: {
-  props: React.ComponentProps<"div">
-  className: string | undefined
-  baseClassName: string
-  fallbackComponent: string
-  defaultSlot: string
-}) {
-  const resolvedClassName = cn(baseClassName, className)
-  const debugRecord = buildReactGrabDebugSurfaceRecord({
-    attributes: props as ReactGrabDebugSurfaceAttributes,
-    fallbackComponent,
-    fallbackSource: CARD_SOURCE,
-    defaultSlot,
-    defaultSurfaceKind: "root",
-    className: resolvedClassName,
-    classAssemblyFile: CARD_SOURCE,
-    primitiveImport: CARD_IMPORT,
-  })
-
-  return debugRecord ? debugSurfaceClass(debugRecord) : resolvedClassName
-}
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
-      className={resolveCardSurfaceClassName({
-        props,
-        className,
-        baseClassName:
-          "bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm",
-        fallbackComponent: "Card",
-        defaultSlot: "card",
-      })}
+      className={cn("bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm", className)}
       {...props}
     />
   )
@@ -59,14 +16,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-header"
-      className={resolveCardSurfaceClassName({
-        props,
-        className,
-        baseClassName:
-          "@container/card-header rounded-t-[inherit] bg-inherit grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 pt-4 pb-3 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
-        fallbackComponent: "CardHeader",
-        defaultSlot: "card-header",
-      })}
+      className={cn("@container/card-header rounded-t-[inherit] bg-inherit grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 pt-4 pb-3 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6", className)}
       {...props}
     />
   )
@@ -109,13 +59,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={resolveCardSurfaceClassName({
-        props,
-        className,
-        baseClassName: "px-6 pb-4 first:pt-4",
-        fallbackComponent: "CardContent",
-        defaultSlot: "card-content",
-      })}
+      className={cn("px-6 pb-4 first:pt-4", className)}
       {...props}
     />
   )

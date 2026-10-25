@@ -42,6 +42,6 @@ export function InputGroupInput({ className, ...props }: React.InputHTMLAttribut
   return <Input className={cn("flex-1", className)} {...props} />
 }
 
-export function InputGroupTextarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function InputGroupTextarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return <Textarea className={cn("w-full", className)} {...props} />
 }

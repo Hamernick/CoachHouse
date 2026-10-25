@@ -45,6 +45,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: access.error }, { status: 403 })
     supabase = access.supabase
     const { orgId, role } = access
+    const expectedOrganizationId = request.nextUrl.searchParams.get("expectedOrganizationId")
+    if (expectedOrganizationId && expectedOrganizationId !== orgId)
+      return NextResponse.json({ error: "Your active organization changed. Reload before using brand files." }, { status: 409 })
     const fileId = request.nextUrl.searchParams.get("id")?.trim()
 
     if (fileId) {
@@ -207,6 +210,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: access.error }, { status: 403 })
     supabase = access.supabase
     const { orgId, role } = access
+    const expectedOrganizationId = request.nextUrl.searchParams.get("expectedOrganizationId")
+    if (expectedOrganizationId && expectedOrganizationId !== orgId)
+      return NextResponse.json({ error: "Your active organization changed. Reload before using brand files." }, { status: 409 })
     if (!canEditOrganization(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }

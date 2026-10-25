@@ -1,5 +1,9 @@
 "use client"
 
+import {
+  WorkspaceWindowHeaderPortal,
+  useWorkspaceWindowHeader,
+} from "@/components/workspace/workspace-window-header-slots"
 import { IconLayoutGrid, IconList, IconSearch } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,45 +21,62 @@ const TABS: Array<{ value: DocumentsLibraryTab; label: string }> = [
 ]
 
 export function DocumentsToolbar(props: DocumentsToolbarProps) {
+  const inWindowHeader = useWorkspaceWindowHeader()
   return (
-    <header className="mb-6 space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <h1
-            id="documents-title"
-            className="text-2xl font-semibold tracking-tight"
-          >
-            Documents
-          </h1>
-        </div>
-        <div className="flex w-full min-w-0 items-center gap-2 lg:w-auto">
-          <div className="relative w-44 min-w-0">
-            <IconSearch
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden
-            />
-            <Input
-              value={props.searchQuery}
-              onChange={(event) =>
-                props.onSearchQueryChange(event.target.value)
-              }
-              placeholder="Search…"
-              className="border-border/70 bg-muted/70 hover:bg-muted focus-visible:bg-background h-11 rounded-full pr-3 pl-9 text-base shadow-none transition-[background-color,border-color,box-shadow] sm:h-9 sm:text-sm dark:bg-white/10 dark:hover:bg-white/15"
-              aria-label="Search documents"
-              data-tour="documents-search"
+    <header className={inWindowHeader ? undefined : "mb-6 space-y-5"}>
+      <WorkspaceWindowHeaderPortal>
+        <div
+          className={cn(
+            "flex min-w-0",
+            inWindowHeader
+              ? "flex-wrap items-center gap-2"
+              : "flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+          )}
+        >
+          {!inWindowHeader && (
+            <div className="min-w-0">
+              <h1
+                id="documents-title"
+                className="text-2xl font-semibold tracking-tight"
+              >
+                Documents
+              </h1>
+            </div>
+          )}
+          <div className="flex w-full min-w-0 items-center justify-end gap-2 lg:w-auto">
+            <div className="relative w-44 max-w-full min-w-0">
+              <IconSearch
+                className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden
+              />
+              <Input
+                value={props.searchQuery}
+                onChange={(event) =>
+                  props.onSearchQueryChange(event.target.value)
+                }
+                placeholder="Search…"
+                className={cn(
+                  "border-border/70 bg-muted/70 hover:bg-muted focus-visible:bg-background rounded-full pr-3 pl-9 text-base shadow-none transition-[background-color,border-color,box-shadow] dark:bg-white/10 dark:hover:bg-white/15",
+                  inWindowHeader
+                    ? "h-7 text-xs [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:text-base"
+                    : "h-11 sm:h-9 sm:text-sm"
+                )}
+                aria-label="Search documents"
+                data-tour="documents-search"
+              />
+            </div>
+            <DocumentsNewMenu
+              canEdit={props.canEdit}
+              canUpload={props.canUpload}
+              editMode={props.editMode}
+              driveConnected={props.driveConnected}
+              drivePending={props.drivePending}
+              onUploadFiles={props.onUploadFiles}
+              onGoogleDrive={props.onGoogleDrive}
             />
           </div>
-          <DocumentsNewMenu
-            canEdit={props.canEdit}
-            canUpload={props.canUpload}
-            editMode={props.editMode}
-            driveConnected={props.driveConnected}
-            drivePending={props.drivePending}
-            onUploadFiles={props.onUploadFiles}
-            onGoogleDrive={props.onGoogleDrive}
-          />
         </div>
-      </div>
+      </WorkspaceWindowHeaderPortal>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div

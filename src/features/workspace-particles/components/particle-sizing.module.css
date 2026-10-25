@@ -1,0 +1,57 @@
+.frame {
+  container-type: inline-size;
+}
+:global([data-particle-size]) > .frame {
+  height: 100%;
+  min-height: 0;
+}
+:global([data-particle-size]) > .frame > .body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+:global([data-particle-size]) > .frame :global(.particle-file-figure) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+:global([data-particle-size]) > .frame :global(.particle-file-preview) {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: auto !important;
+}
+:global([data-particle-size]) > .frame figcaption {
+  flex-shrink: 0;
+}
+@container (max-width: 220px) {
+  .body {
+    padding: 0.5rem;
+  }
+}
+@container (min-width: 600px) {
+  .body > :global(.particle-detail-columns) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: start;
+    gap: 1rem;
+  }
+}
+
+.formHeader {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.formActions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 0.25rem;
+}

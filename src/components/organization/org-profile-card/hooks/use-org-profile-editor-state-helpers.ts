@@ -1,3 +1,4 @@
+import { prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
 import type { OrgProfile, OrgProfileErrors } from "../types"
 
 export function applyOrgProfileUpdates(
@@ -46,4 +47,22 @@ export function mapOrgProfileFieldErrors(
     }
   }
   return nextErrors
+}
+
+export function prepareOrgProfileSave(company: OrgProfile, saved: OrgProfile) {
+  const payload = prepareCoreDocumentProfileSave(company, saved)
+  if (JSON.stringify(company.brandIdentity) === JSON.stringify(saved.brandIdentity)) delete payload.brandIdentity
+  return payload
+}
+
+export function acknowledgeOrgProfileSave(company: OrgProfile, result: {
+  brandIdentity?: OrgProfile["brandIdentity"]
+  narrativeRevisions?: OrgProfile["narrativeRevisions"]
+  coreDocumentPublication?: OrgProfile["coreDocumentPublication"]
+}): OrgProfile {
+  return { ...company,
+    ...(result.brandIdentity ? { brandIdentity: result.brandIdentity } : {}),
+    ...(result.narrativeRevisions ? { narrativeRevisions: result.narrativeRevisions } : {}),
+    ...(result.coreDocumentPublication ? { coreDocumentPublication: result.coreDocumentPublication } : {}),
+  }
 }

@@ -65,6 +65,7 @@ export type WorkspaceJourneyReadiness = {
 }
 
 export type WorkspaceSeedData = {
+  workspaceCatalog?: Array<{ id: string | null; name: string }>
   orgId: string
   viewerId: string
   viewerName: string

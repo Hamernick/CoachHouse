@@ -1,0 +1,38 @@
+.root {
+  container: notes-editor / inline-size;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--foreground);
+  background: var(--background);
+}
+.toolbar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.formatting { min-width: 0; flex: 1; overflow-x: auto; }
+.search { width: 180px; flex-shrink: 0; }
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 0; flex: 1; }
+.list { min-height: 0; overflow: hidden; border-right: 1px solid var(--border); background: color-mix(in oklab, var(--muted) 30%, transparent); }
+.detail { display: flex; min-height: 0; min-width: 0; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+.back { display: none; }
+@container notes-editor (max-width: 640px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .root:has([data-detail="true"]) .list { display: none; }
+  .layout[data-detail="false"] .detail { display: none; }
+  .back { display: inline-flex; }
+  .root:has([data-detail="false"]) .back,
+  .root:has([data-detail="false"]) .formatting,
+  .root:has([data-detail="false"]) [data-note-edit-control] { display: none; }
+  .search { width: 100%; order: -1; }
+  .list { border: 0; }
+}

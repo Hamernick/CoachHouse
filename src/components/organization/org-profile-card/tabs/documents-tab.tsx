@@ -1,12 +1,15 @@
 "use client"
 
+import { useWorkspaceWindowHeader } from "@/components/workspace/workspace-window-header-slots"
+import { Button } from "@/components/ui/button"
+
 import { FeatureUpgradeNotice } from "@/components/paywall/feature-upgrade-notice"
 
 import { useMemo, useRef, useState } from "react"
 
 import { useCoreDocumentSource } from "@/components/roadmap/core-document-source/use-core-document-source"
 import type { DocumentsRoadmapSection } from "./documents-tab/types"
-import { DocumentsNotesPanel } from "../../documents-notes-right-rail"
+import { useNoteDocuments } from "@/features/workspace-particles/client"
 import { useOrganizationDeepLinkFocus } from "../organization-deep-link-focus"
 import {
   DocumentsBanner,
@@ -54,8 +57,9 @@ function ScopedDocumentsTab({
   editMode,
   canEdit,
   initialFocusKey,
-  notes,
+  focusRequestId,
 }: DocumentsTabProps) {
+  const noteDocuments = useNoteDocuments(organizationId)
   const [coreOverrides, setCoreOverrides] = useState<
     Record<string, DocumentsRoadmapSection>
   >({})
@@ -71,6 +75,7 @@ function ScopedDocumentsTab({
       ? coreOverrides[section.id]
       : section
   )
+  const inWindowHeader = useWorkspaceWindowHeader()
   const documentsRootRef = useRef<HTMLElement>(null)
   const controller = useDocumentsTabController({
     userId,
@@ -87,7 +92,7 @@ function ScopedDocumentsTab({
   const [libraryFileType, setLibraryFileType] =
     useState<DocumentsLibraryFileType>("all")
   const [showDeleted, setShowDeleted] = useState(false)
-  const googleDrive = useGoogleDriveLibrary({ enabled: canEdit && editMode })
+  const googleDrive = useGoogleDriveLibrary({ enabled: canEdit && editMode, inWorkspace: inWindowHeader })
   const storageRefreshKey = JSON.stringify([
     controller.documentsState,
     controller.policiesState.map((policy) => policy.document),
@@ -103,6 +108,7 @@ function ScopedDocumentsTab({
 
   useOrganizationDeepLinkFocus({
     focusKey: initialFocusKey,
+    requestId: focusRequestId,
     rootRef: documentsRootRef,
   })
 
@@ -118,7 +124,8 @@ function ScopedDocumentsTab({
     <section
       ref={documentsRootRef}
       className="pb-6"
-      aria-labelledby="documents-title"
+      aria-labelledby={inWindowHeader ? undefined : "documents-title"}
+      aria-label={inWindowHeader ? "Documents" : undefined}
     >
       <DocumentsBanner canEdit={canEdit} uploading={documentFiles.uploading}>
         <DocumentsToolbar
@@ -145,7 +152,11 @@ function ScopedDocumentsTab({
         />
 
         {documentFiles.hasStorageAccess ? (
-          <DocumentsStorageUsage usedBytes={documentFiles.usedBytes} limitBytes={documentFiles.limitBytes} loading={documentFiles.loading} />
+          <DocumentsStorageUsage
+            usedBytes={documentFiles.usedBytes}
+            limitBytes={documentFiles.limitBytes}
+            loading={documentFiles.loading}
+          />
         ) : !documentFiles.loading ? (
           <FeatureUpgradeNotice title="Your files, connected">
             Use Google Drive for free. Upgrade to create and edit documents.
@@ -154,6 +165,8 @@ function ScopedDocumentsTab({
 
         <div id="documents-index" className="mt-4" aria-live="polite">
           <DocumentsLibraryGrid
+            organizationId={organizationId}
+            notes={noteDocuments.notes}
             coreSource={coreSource}
             hasStorageAccess={documentFiles.hasStorageAccess}
             viewMode={viewMode}
@@ -219,7 +232,14 @@ function ScopedDocumentsTab({
           />
         </div>
 
-        {notes ? <DocumentsNotesPanel notes={notes} /> : null}
+        {noteDocuments.error && (
+          <p role="status" className="mt-2 text-sm">
+            {noteDocuments.error}{" "}
+            <Button variant="ghost" size="sm" onClick={noteDocuments.reload}>
+              Retry
+            </Button>
+          </p>
+        )}
       </DocumentsBanner>
 
       <PolicyEditorDialog

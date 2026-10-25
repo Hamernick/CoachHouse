@@ -66,7 +66,7 @@ function expectBlocked(output: React.ReactNode, status: string) {
   expect(surface.type).toBe(FiscalSponsorshipWorkspaceCardSurface)
   expect(surface.props.applicationSummary?.status).toBe(status)
   expect(surface.props.openFlowHref).toBeUndefined()
-  expect(surface.props.workflowItems).toEqual([])
+  expect(surface.props.onStart).toBeUndefined()
 }
 beforeEach(() => {
   hooks.cursor = 0; hooks.slots = []; hooks.effects = []; hooks.cleanups.clear()
@@ -95,7 +95,7 @@ describe("fiscal workspace card organization isolation", () => {
     expect(output.props.applicationSummary).toEqual({ name: "B", status: "Needs info" })
     expect(output.props.openFlowHref).toBe(guestFollowupHref("B-reference"))
     expect(output.props.primaryActionLabel).toBe("Update application")
-    expect(output.props.workflowItems).toEqual([expect.objectContaining({ label: "Application · Needs info", complete: true })])
+    expect(output.props.onStart).toBeUndefined()
   })
 
   it("ignores a late A response after B has loaded", async () => {

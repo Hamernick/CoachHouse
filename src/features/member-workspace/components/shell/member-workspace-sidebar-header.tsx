@@ -12,6 +12,7 @@ export function MemberWorkspaceSidebarHeader({
   return (
     <>
     <MemberWorkspaceOrgSwitcher
+      presentation="account-menu"
       canSearchSupport={state.canSearchSupport}
       activeOrganization={state.activeOrganization}
       organizations={state.accessibleOrganizations}

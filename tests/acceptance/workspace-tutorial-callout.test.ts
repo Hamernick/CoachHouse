@@ -22,14 +22,7 @@ describe("workspace tutorial callout", () => {
     expect(markup).toContain("aria-describedby=")
     expect(markup).toContain('data-state="instant-open"')
     expect(markup).toContain('aria-hidden="true"')
-    expect(markup).toContain(
-      'data-react-grab-anchor="WorkspaceTutorialCallout"'
-    )
-    expect(markup).toContain("data-react-grab-owner-id=")
-    expect(markup).toContain(
-      'data-react-grab-owner-source="src/components/workspace/workspace-tutorial-callout.tsx"'
-    )
-    expect(markup).toContain("data-react-grab-link-id=")
+
     expect(TOOLTIP_ARROW_CLASSNAME).toContain("rotate-45")
     expect(TOOLTIP_ARROW_CLASSNAME).toContain("rounded-[2px]")
     expect(TOOLTIP_ARROW_CLASSNAME).toContain("bg-foreground")

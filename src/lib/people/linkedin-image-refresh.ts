@@ -254,9 +254,8 @@ function defaultPublicResourceRequest(
         })
       }
     )
-    request.setTimeout(timeoutMs, () => {
-      request.destroy(new Error("Request timed out"))
-    })
+    const deadline = setTimeout(() => request.destroy(new Error("Request timed out")), timeoutMs)
+    request.once("close", () => clearTimeout(deadline))
     request.once("error", reject)
     request.end()
   })
@@ -387,6 +386,19 @@ function extractLinkedInImageUrl(html: string) {
     if (match?.[1]) return match[1].replaceAll("&amp;", "&")
   }
   return null
+}
+
+/** Bounded public HTML using the existing DNS-pinned, redirect-checked transport. */
+export async function fetchPublicPreviewHtml(href: string, dependencies: LinkedInImageRefreshDependencies = {}) {
+  if (href.length > 2048) throw new Error("URL too long")
+  const page = await readPublicResource({
+    initialUrl: new URL(href), maxBytes: 256 * 1024,
+    request: dependencies.request ?? defaultPublicResourceRequest,
+    resolveAddresses: dependencies.resolveAddresses ?? defaultAddressResolver,
+    validateUrl: url => !url.port && ["http:", "https:"].includes(url.protocol),
+  })
+  if (!["text/html", "application/xhtml+xml"].includes(page.contentType)) throw new Error("Not an HTML page")
+  return new TextDecoder().decode(page.bytes)
 }
 
 export async function fetchLinkedInProfileImage(

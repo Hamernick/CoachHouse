@@ -409,10 +409,7 @@ export function WorkspaceAcceleratorCardPanel({
   ])
 
   const handleCloseModuleViewer = () => {
-    if (onModuleViewerClose) {
-      onModuleViewerClose()
-      return
-    }
+    if (onModuleViewerClose) return onModuleViewerClose()
     setIsModuleViewerOpen(false)
     if (tutorialCallout?.focus === "close-module") {
       onTutorialActionComplete?.("complete-and-advance")
@@ -545,18 +542,18 @@ export function WorkspaceAcceleratorCardPanel({
             className={cn(
               "flex min-h-0 flex-col gap-2",
               workspaceDrawerEmbedded &&
-                "mx-auto grid w-full min-w-0 max-w-[1200px] auto-rows-max grid-cols-1 content-start items-start gap-6 pt-6 pb-2 sm:pb-3 touch-pan-y overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
-              workspaceDrawerEmbedded && workspaceDrawerHeader && "@min-[900px]/accelerator-overview:grid-cols-[420px_minmax(0,1fr)]"
+                "mx-auto grid w-full min-w-0 max-w-[1200px] auto-rows-max grid-cols-1 content-start items-start gap-4 pt-2 pb-2 sm:pb-3 touch-pan-y overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
+              workspaceDrawerEmbedded && workspaceDrawerHeader && "@min-[640px]/accelerator-overview:grid-cols-2"
             )}
           >
             {workspaceDrawerEmbedded ? workspaceDrawerHeader : null}
-            <div className={cn("flex min-w-0 flex-col gap-3", workspaceDrawerEmbedded && "mx-auto w-full max-w-3xl")}>
+            <div className={cn("flex min-w-0 flex-col gap-3", workspaceDrawerEmbedded && "@container/accelerator-lessons w-full")}>
               {workspaceOverviewNotice}
               <div inert={overviewOnly || undefined} aria-label={overviewOnly ? "Accelerator preview — upgrade to access" : undefined}>
                 <WorkspaceAcceleratorCardSidebar
                   {...sidebarProps}
                   className={
-                    workspaceDrawerEmbedded ? "mx-auto w-full max-w-3xl" : undefined
+                    workspaceDrawerEmbedded ? "w-full min-w-0" : undefined
                   }
                   showProgressSummary={false}
                   fillAvailableHeight={!workspaceDrawerEmbedded}
@@ -615,6 +612,7 @@ export function WorkspaceAcceleratorCardPanel({
             onVideoComplete={tutorialMode ? undefined : () => void completeVideo()}
             onComplete={handleCompleteModuleStep}
             onClose={handleCloseModuleViewer}
+            onNavigateOverview={setOpenModuleId}
             tutorialCallout={
               tutorialCallout?.focus === "close-module" ? tutorialCallout : null
             }

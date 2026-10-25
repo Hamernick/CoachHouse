@@ -1,7 +1,11 @@
 "use client"
 
+import { RoadmapConflictReview } from "./roadmap-editor/components/roadmap-conflict-review"
+import { useWorkspaceWindowHeaderActive } from "@/components/workspace/workspace-window-header-slots"
 import { useEffect, useState } from "react"
 import SparklesIcon from "lucide-react/dist/esm/icons/sparkles"
+import { useMemo } from "react"
+import { useAiDocumentBridge } from "@/features/workspace-ai/client"
 
 import { ROADMAP_SECTION_ICONS } from "@/components/roadmap/roadmap-icons"
 import { RoadmapEditorShell } from "@/components/roadmap/roadmap-editor/components"
@@ -39,8 +43,20 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     isDirty,
     savingId,
     handleStatusChange,
+    applyAiProposal,
+    aiApplication,
+    saveConflict,
+    resolveSaveConflict,
     handleSavedSection,
   } = useRoadmapEditorState({ ...props, onDirtyChange: setLegacyPending })
+
+  const contextActive=useWorkspaceWindowHeaderActive()
+  const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
+    ...props.sourceScope, sectionId: activeSection.id, title: activeSection.title, revision: activeSection.lastUpdated,
+  } : null,[props.sourceScope,activeSection])
+  useAiDocumentBridge(contextActive && aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
+    target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,application:aiApplication,
+  } : null)
 
   if (!activeSection || !activeDraft) {
     return null
@@ -49,8 +65,10 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
   const SectionIcon = ROADMAP_SECTION_ICONS[activeSection.id] ?? SparklesIcon
 
   return (
+    <>
+    <RoadmapConflictReview key={`conflict:${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`} conflict={saveConflict} draft={activeDraft} onResolve={resolveSaveConflict} />
     <RoadmapEditorShell
-      key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`}
+      key={`editor:${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${activeSection.id}`}
       sourceScope={props.sourceScope}
       sections={props.sections}
       activeSection={activeSection}
@@ -82,5 +100,6 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
       savingId={savingId}
       sectionIcon={SectionIcon}
     />
+    </>
   )
 }

@@ -114,6 +114,7 @@ export async function saveWorkspaceBoardStateAction(
         persisted,
       }),
     orgId: activeOrg.orgId,
+    workspaceCanvasId: incomingBoardState.workspaceCanvasId,
     supabase: persistenceClient,
     userId: user.id,
   })
@@ -171,6 +172,7 @@ export async function saveWorkspaceNodePositionAction(
         y: Math.round(input.y),
       }),
     orgId: activeOrg.orgId,
+    workspaceCanvasId: input.boardState.workspaceCanvasId,
     supabase: persistenceClient,
     userId: user.id,
   })

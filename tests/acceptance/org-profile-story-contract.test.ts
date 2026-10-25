@@ -162,9 +162,11 @@ describe("organization profile story contract", () => {
 
     expect(previewMarkup).toContain("Origin story")
     expect(previewMarkup).toContain("Theory of change")
-    expect(previewMarkup).toContain("Started in a church basement.")
+    expect(previewMarkup.match(/data-slot="accordion-trigger"/g)).toHaveLength(6)
+    expect(previewMarkup.match(/aria-expanded="false"/g)).toHaveLength(6)
+    expect(previewMarkup).not.toContain("Started in a church basement.")
     expect(publicMarkup).toContain("Origin story")
-    expect(previewMarkup).toContain(">Need</")
+    expect(previewMarkup).toContain(">Need<")
     expect(publicMarkup).toContain(">Need</")
     expect(previewMarkup).not.toContain("Need statement")
     expect(publicMarkup).not.toContain("Need statement")

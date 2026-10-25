@@ -7,7 +7,7 @@ import CircleIcon from "lucide-react/dist/esm/icons/circle"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { getReactGrabLinkedSurfaceProps, getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import type { AcceleratorReadinessChecklistItem, AcceleratorReadinessSummary } from "@/lib/accelerator/readiness"
 
 function ReadinessChecklistButton({ label, items, qualified = false }: {
@@ -18,17 +18,12 @@ function ReadinessChecklistButton({ label, items, qualified = false }: {
   const titleId = useId()
   const available = Boolean(items?.length)
   const count = items?.filter((item) => item.complete).length ?? 0
-  const owner = {
-    ownerId: `accelerator-readiness:${titleId}`,
-    component: "WorkspaceAcceleratorReadinessControls",
-    source: "src/features/workspace-accelerator-card/components/workspace-accelerator-readiness-controls.tsx",
-  }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          {...getReactGrabOwnerProps({ ...owner, slot: "trigger" })}
+
           variant="ghost"
           size="sm"
           type="button"
@@ -41,7 +36,7 @@ function ReadinessChecklistButton({ label, items, qualified = false }: {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        {...getReactGrabLinkedSurfaceProps({ ...owner, slot: "content", surfaceKind: "content" })}
+
         align="start"
         aria-labelledby={titleId}
         className="max-h-[min(24rem,var(--radix-popover-content-available-height))] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl p-3"

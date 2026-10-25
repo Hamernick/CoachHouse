@@ -36,7 +36,7 @@ export function WorkspaceCanvasOverlayRoadmapPanel({
     <div
       data-workspace-roadmap-drawer-panel="true"
       data-workspace-roadmap-section={requestedSectionSlug ?? undefined}
-      className="box-border flex h-full min-h-0 w-full min-w-0 flex-col gap-3 p-2 sm:p-3"
+      className="box-border flex h-full min-h-0 w-full min-w-0 flex-col gap-3 p-2 sm:py-3"
     >
       {access.capabilities?.reason === "upgrade" ? <FeatureUpgradeNotice title="Build your roadmap">Your saved roadmap stays readable. Upgrade to edit it in Coach House, or link Google Drive files from Documents.</FeatureUpgradeNotice> : null}
       {access.error ? <div role="alert" className="text-sm"><p>{access.error}</p><Button size="sm" variant="outline" onClick={access.retry}>Retry access check</Button></div> : null}

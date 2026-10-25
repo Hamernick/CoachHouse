@@ -3,7 +3,7 @@ import { CoachingCreditHistory } from "./coaching-credit-history"
 
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -90,17 +90,7 @@ export function AdminCoachingCreditsPanel({
   return (
     <section
       className="border-border bg-card/80 min-w-0 space-y-3 rounded-lg border p-4"
-      {...getReactGrabOwnerProps({
-        ownerId: `admin-coaching-credits:${data.orgId}`,
-        component: "AdminCoachingCreditsPanel",
-        source:
-          "src/features/coaching-booking/components/admin-coaching-credits-panel.tsx",
-        slot: "credits-card",
-        canonicalOwnerSource:
-          "src/features/coaching-booking/components/admin-coaching-credits-panel.tsx",
-        canonicalOwnerReason:
-          "Owns the participant credit balance, issuance and history panel.",
-      })}
+
     >
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Coaching credits</h2>

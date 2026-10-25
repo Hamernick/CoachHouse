@@ -11,7 +11,7 @@ import WrenchIcon from "lucide-react/dist/esm/icons/wrench"
 import LibraryIcon from "lucide-react/dist/esm/icons/library"
 
 import { Badge } from "@/components/ui/badge"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -45,9 +45,6 @@ const SECTION_STYLE = {
 const RAIL_LINK_CLASS =
   "relative h-auto min-h-11 justify-start gap-2 rounded-lg py-1 bg-transparent text-sm font-normal text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground active:bg-sidebar-accent data-[active=true]:bg-transparent data-[active=true]:hover:bg-sidebar-accent data-[active=true]:focus-visible:bg-sidebar-accent data-[active=true]:active:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-foreground md:h-auto md:min-h-8 motion-reduce:transition-none [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-normal"
 
-const DOCUMENTATION_RAIL_SOURCE =
-  "src/features/nonprofit-documentation/components/documentation-rail.tsx"
-
 export function DocumentationRail({
   contextual = false,
 }: {
@@ -64,16 +61,7 @@ export function DocumentationRail({
           "border-border/60 mt-2 border-t pt-3 group-data-[collapsible=icon]:hidden"
       )}
       aria-label="Documentation navigation"
-      {...getReactGrabOwnerProps({
-        ownerId: "nonprofit-documentation:rail",
-        component: "DocumentationRail",
-        source: DOCUMENTATION_RAIL_SOURCE,
-        slot: contextual ? "authenticated-context" : "public-primary",
-        canonicalOwnerSource: DOCUMENTATION_RAIL_SOURCE,
-        canonicalOwnerReason:
-          "The documentation feature owns its section labels, route availability, and active state.",
-        primitiveImport: "@/components/ui/sidebar",
-      })}
+
     >
       <SidebarGroup className="py-0">
         <SidebarGroupContent>

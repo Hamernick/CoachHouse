@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { OrganizationLaunchPanel, type OrganizationLaunchInput } from "@/features/organization-launch/client"
-import { Button } from "@/components/ui/button"
-import { WorkspaceAcceleratorBanner } from "@/features/workspace-accelerator-card"
+import { WorkspaceAcceleratorBanner, isWorkspaceAcceleratorControllerStepVisible } from "@/features/workspace-accelerator-card"
 import type {
   WorkspaceAcceleratorCardInput,
   WorkspaceAcceleratorCardRuntimeSnapshot,
@@ -50,19 +49,20 @@ export function WorkspaceCanvasOverlayAcceleratorPanel({
     useMemo<WorkspaceAcceleratorOpenStepRequest | null>(() => {
       if (
         !hasAccess || guideOverview || request?.tab !== "accelerator" ||
-        !request.acceleratorStepId ||
         !request.acceleratorModuleId
       ) {
         return null
       }
 
+      const stepId = request.acceleratorStepId ?? input.steps.find((step) => step.moduleId === request.acceleratorModuleId && isWorkspaceAcceleratorControllerStepVisible(step))?.id
+      if (!stepId) return null
       return {
         id: request.id,
-        stepId: request.acceleratorStepId,
+        stepId,
         moduleId: request.acceleratorModuleId,
         lessonGroupKey: request.acceleratorLessonGroupKey ?? null,
       }
-    }, [request, guideOverview, hasAccess])
+    }, [request, guideOverview, hasAccess, input.steps])
   const requestedModuleId =
     hasAccess && !guideOverview && request?.tab === "accelerator"
       ? (request.acceleratorModuleId ?? null)
@@ -96,12 +96,12 @@ export function WorkspaceCanvasOverlayAcceleratorPanel({
       dismissed: readWorkspaceBoardUiPreferences({ orgId, viewerId }).acceleratorIntroductionDismissed,
     })
   }, [preferenceKey, orgId, viewerId])
-  const introductionActionRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const introductionFocusRequested = useRef(false)
   useEffect(() => {
     if (!introductionFocusRequested.current) return
     introductionFocusRequested.current = false
-    introductionActionRef.current?.focus({ preventScroll: true })
+    panelRef.current?.focus({ preventScroll: true })
   }, [introduction])
   const setIntroductionDismissed = (dismissed: boolean) => {
     introductionFocusRequested.current = true
@@ -111,6 +111,8 @@ export function WorkspaceCanvasOverlayAcceleratorPanel({
 
   return (
     <div
+      ref={panelRef}
+      tabIndex={-1}
       data-workspace-accelerator-drawer-panel="true"
       data-workspace-accelerator-request-step={
         openStepRequest?.stepId ?? undefined
@@ -118,7 +120,7 @@ export function WorkspaceCanvasOverlayAcceleratorPanel({
       data-workspace-accelerator-request-module={requestedModuleId ?? undefined}
       className={isModuleViewerOpen && drawerContainer
         ? "hidden"
-        : "box-border flex h-full min-h-0 w-full min-w-0 flex-col px-2 sm:px-3"}
+        : "box-border flex h-full min-h-0 w-full min-w-0 flex-col px-2"}
     >
       <div className="flex min-h-0 flex-1">
         <WorkspaceBoardLazyAcceleratorCardPanel
@@ -143,16 +145,8 @@ export function WorkspaceCanvasOverlayAcceleratorPanel({
           workspaceDrawerHeader={
             showBanner ? (
               <div className="contents">
-                {introduction?.key === preferenceKey ? (
-                  introduction.dismissed ? (
-                    <div className="col-span-full mx-auto flex w-full max-w-[420px] justify-end @min-[900px]/accelerator-overview:max-w-none">
-                      <Button ref={introductionActionRef} type="button" variant="ghost" size="sm" className="min-h-11 text-muted-foreground sm:min-h-8" onClick={() => setIntroductionDismissed(false)}>
-                        About Accelerator
-                      </Button>
-                    </div>
-                  ) : (
-                    <WorkspaceAcceleratorBanner dismissButtonRef={introductionActionRef} onDismiss={() => setIntroductionDismissed(true)} />
-                  )
+                {introduction?.key === preferenceKey && !introduction.dismissed ? (
+                  <WorkspaceAcceleratorBanner onDismiss={() => setIntroductionDismissed(true)} />
                 ) : null}
                 <OrganizationLaunchPanel input={organizationLaunch} hasAccess={hasAccess} />
               </div>

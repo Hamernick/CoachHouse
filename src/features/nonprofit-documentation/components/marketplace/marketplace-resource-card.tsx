@@ -6,7 +6,7 @@ import BookmarkIcon from "lucide-react/dist/esm/icons/bookmark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import {
   marketplaceCostLabel,
   marketplaceTypeLabel,
@@ -29,17 +29,7 @@ export function MarketplaceResourceCard({
     <Card
       className="h-full min-w-0 gap-0 rounded-2xl py-0 shadow-none"
       data-marketplace-resource={resource.id}
-      {...getReactGrabOwnerProps({
-        ownerId: `marketplace-resource:${resource.id}:card`,
-        component: "MarketplaceResourceCard",
-        source:
-          "src/features/nonprofit-documentation/components/marketplace/marketplace-resource-card.tsx",
-        canonicalOwnerSource:
-          "src/features/nonprofit-documentation/components/marketplace/marketplace-resource-card.tsx",
-        canonicalOwnerReason:
-          "Owns Marketplace card content and layout; equal row sizing is set by marketplace-directory.tsx.",
-        slot: "card",
-      })}
+
     >
       <CardHeader className="gap-2 p-4 pb-0 sm:p-4 sm:pb-0">
         <div className="flex flex-wrap items-center justify-between gap-2">

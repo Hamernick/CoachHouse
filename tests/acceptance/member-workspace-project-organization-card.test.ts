@@ -85,7 +85,7 @@ describe("member workspace organization card", () => {
     expect(source).toContain('title="Complete"')
     expect(source).toContain("max-h-72")
     expect(source).toContain("overscroll-contain")
-    expect(source).toContain("getReactGrabLinkedSurfaceProps")
+
   })
 
   it("shows hover previews on individual users while retaining inline disclosure", () => {
@@ -97,16 +97,12 @@ describe("member workspace organization card", () => {
       "utf8"
     )
 
-    expect(source).not.toContain('slot: "user-completeness-preview"')
-    expect(source).toContain('slot: "user-completeness-member"')
-    expect(source).toContain('slot: "user-completeness-member-preview"')
     expect(source).toContain("<HoverCardTrigger asChild>")
     expect(source).toContain("<CollapsibleTrigger asChild>")
     expect(source).toContain("<UserCompletenessMemberRows")
     expect(source).toContain("Preview completeness for ${member.name}")
     expect(source).toContain("Needs attention")
     expect(source).toContain("Profile complete")
-    expect(source).toContain("ownerId={userCompletenessOwnerId}")
-    expect(source).toContain('slot: "user-completeness-details"')
+
   })
 })

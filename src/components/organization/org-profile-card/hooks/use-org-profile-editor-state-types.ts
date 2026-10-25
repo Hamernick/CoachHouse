@@ -10,6 +10,7 @@ import type {
 } from "../types"
 
 export type UseOrgProfileEditorStateArgs = {
+  navigationRequestId?: number
   initial: OrgProfileCardProps["initial"]
   programs: OrgProgram[]
   canEdit: boolean

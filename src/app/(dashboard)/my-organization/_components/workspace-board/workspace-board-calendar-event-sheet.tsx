@@ -22,6 +22,7 @@ import {
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 import type { RoadmapCalendarEventInput } from "@/lib/roadmap/calendar"
+import { calendarParticleHref } from "@/lib/roadmap/calendar-particle-link"
 
 import type { UpcomingEvent } from "../../_lib/types"
 import {
@@ -149,6 +150,17 @@ export function WorkspaceBoardCalendarEventSheet({
       router.refresh()
     })
   }
+
+  const particleTarget = event?.source?.particleId
+  if (particleTarget && event)
+    return (
+      <Button type="button" variant={triggerVariant} size="sm"
+        className={cn("h-9", triggerClassName)}
+        aria-label={`Open ${event.title} on canvas`}
+        onClick={() => router.push(calendarParticleHref(particleTarget), { scroll: false })}>
+        Open Event
+      </Button>
+    )
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>

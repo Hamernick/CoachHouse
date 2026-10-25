@@ -654,3 +654,5 @@ export type StoredBrandAsset = {
   blob: Blob
   updatedAt: string
 }
+
+export type BrandAssetPreview = Omit<StoredBrandAsset, "blob"> & { blob?: Blob }

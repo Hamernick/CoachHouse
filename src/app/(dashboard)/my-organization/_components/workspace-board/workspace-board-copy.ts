@@ -22,7 +22,7 @@ export const WORKSPACE_CARD_META: Record<WorkspaceCardId, WorkspaceCardMeta> = {
     fullHref: WORKSPACE_PATH,
   },
   programs: {
-    title: "Activity",
+    title: "Resource",
     subtitle: "Projects, programs, events, services, and grant requests",
     fullHref: "",
   },

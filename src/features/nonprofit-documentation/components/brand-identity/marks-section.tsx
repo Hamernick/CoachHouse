@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type {
   BrandAssetId,
   BrandIdentityDraft,
-  StoredBrandAsset,
+  BrandAssetPreview,
 } from "../../types"
 import { foregroundFor, normalizeHex } from "../../lib/brand-identity"
 import { BrandAssetField } from "./brand-asset-field"
@@ -14,7 +14,7 @@ import {
   BrandIdentitySection,
   BrandIdentitySubsection,
 } from "./brand-identity-section"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 export function MarksSection({
   draft,
   assets,
@@ -23,13 +23,15 @@ export function MarksSection({
   uploadAsset,
   deleteAsset,
   disabled = false,
+  downloadAsset,
 }: {
   draft: BrandIdentityDraft
-  assets: StoredBrandAsset[]
+  assets: BrandAssetPreview[]
   assetUrls: Partial<Record<BrandAssetId, string>>
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
   uploadAsset: (id: BrandAssetId, file: File) => Promise<boolean>
   deleteAsset: (id: BrandAssetId) => Promise<void>
+  downloadAsset?: (id: BrandAssetId) => Promise<void>
   disabled?: boolean
 }) {
   const logo = assets.find((asset) => asset.id === "primary-logo")
@@ -51,6 +53,7 @@ export function MarksSection({
         previewUrl={src}
         onUpload={uploadAsset}
         onDelete={deleteAsset}
+        onDownload={downloadAsset}
         disabled={disabled}
       />
       <BrandIdentitySubsection
@@ -136,25 +139,16 @@ export function MarksSection({
             previewUrl={assetUrls["brand-mark"]}
             onUpload={uploadAsset}
             onDelete={deleteAsset}
+        onDownload={downloadAsset}
             aspect="square"
             disabled={disabled}
           />
           <div
-            {...brandIdentityOwner(
-              "marks-section",
-              "MarksSection",
-              "logo-guidance",
-              "field"
-            )}
+
           >
             <Label
               htmlFor="logo-guidance"
-              {...brandIdentityOwner(
-                "marks-section",
-                "MarksSection",
-                "logo-guidance",
-                "label"
-              )}
+
             >
               Usage guidance
             </Label>

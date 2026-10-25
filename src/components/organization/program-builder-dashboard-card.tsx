@@ -184,7 +184,7 @@ export function ProgramBuilderDashboardCard({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ClipboardListIcon className="h-4 w-4" aria-hidden />
-                Activity
+                Resource
               </CardTitle>
               <CardDescription>
                 Track {ORGANIZATION_ACTIVITY_KIND_SUMMARY}
@@ -200,7 +200,7 @@ export function ProgramBuilderDashboardCard({
                 }}
               >
                 <FolderPlusIcon className="h-4 w-4" aria-hidden />
-                Add activity
+                Add resource
               </Button>
             </div>
           </div>
@@ -230,7 +230,7 @@ export function ProgramBuilderDashboardCard({
             <Empty
               className="h-full w-full rounded-xl"
               size="sm"
-              title="No activity to display"
+              title="No resources to display"
               description="Initiatives, projects, programs, events, and services you create will appear here."
               actions={
                 <Button
@@ -251,7 +251,7 @@ export function ProgramBuilderDashboardCard({
               <div className={PROGRAM_CARD_PANEL_CLASS}>
                 {sortedPrograms.map((program, index) => {
                   const displayTitle =
-                    program.title?.trim() || "Untitled activity"
+                    program.title?.trim() || "Untitled resource"
                   const displayObjectKind = parseObjectKind(program)
                   const displayType = parseProgramType(program)
                   const statusLabel = program.status_label?.trim() || "Draft"
@@ -298,7 +298,7 @@ export function ProgramBuilderDashboardCard({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-foreground truncate text-base font-semibold">
-                        {activeProgram.title?.trim() || "Untitled activity"}
+                        {activeProgram.title?.trim() || "Untitled resource"}
                       </p>
                       <p className="text-muted-foreground mt-1 truncate text-sm">
                         {locationSummary(activeProgram) || "Location pending"}

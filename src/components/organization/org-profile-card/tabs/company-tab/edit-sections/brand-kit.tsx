@@ -11,7 +11,7 @@ export function BrandKitSection({
   onUpdate,
   onDirty,
   onAutoSave,
-}: CompanyEditProps) {
+}: Pick<CompanyEditProps, "company" | "errors" | "onUpdate" | "onDirty" | "onAutoSave">) {
   return (
     <FormRow
       title="Brand Kit"

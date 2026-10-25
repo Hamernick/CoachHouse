@@ -1,5 +1,7 @@
 "use client"
 
+import styles from "../../../profile-edit-fields.module.css"
+
 import { Input } from "@/components/ui/input"
 
 import {
@@ -15,10 +17,12 @@ export function ContactSection({
 }: CompanyEditProps) {
   return (
     <FormRow
+      layout="stacked"
+      inset={false}
       title="Contact"
       description="Primary point of contact and ways to reach you."
     >
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={styles.group}>
         <ProfileField label="Representative" focusKey="rep">
           <Input
             id="rep"

@@ -21,6 +21,8 @@ type BuildRichTextExtensionsParams = {
   isReadOnly: boolean
   enableImages: boolean
   onImageUpload?: (file: File) => Promise<string>
+  fileSession?: boolean
+  collaborativeHistory?: boolean
 }
 
 export function buildRichTextExtensions({
@@ -28,11 +30,13 @@ export function buildRichTextExtensions({
   isReadOnly,
   enableImages,
   onImageUpload,
+  fileSession = false,
+  collaborativeHistory = false,
 }: BuildRichTextExtensionsParams): AnyExtension[] {
   return [
     StarterKit.configure({
       heading: {
-        levels: [1, 2, 3],
+        levels: fileSession ? [1, 2, 3, 4, 5, 6] : [1, 2, 3],
       },
       orderedList: {
         HTMLAttributes: {
@@ -48,7 +52,8 @@ export function buildRichTextExtensions({
       underline: false,
       hardBreak: false,
       horizontalRule: false,
-      codeBlock: false,
+      codeBlock: fileSession ? {} : false,
+      ...(collaborativeHistory ? { undoRedo: false } : {}),
     }),
     TextAlign.configure({
       types: ["heading", "paragraph"],
@@ -78,7 +83,7 @@ export function buildRichTextExtensions({
       showOnlyCurrent: false,
       includeChildren: false,
     }),
-    Typography,
+    ...(fileSession ? [] : [Typography]),
     CharacterCount.configure(),
     HardBreak.configure({
       keepMarks: true,

@@ -5,10 +5,6 @@ import { CircleNotch } from "@phosphor-icons/react/dist/ssr"
 import ExternalLinkIcon from "lucide-react/dist/esm/icons/external-link"
 
 import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,11 +30,6 @@ import type {
 } from "../types"
 import { useAdminOrganizationBillingController } from "../hooks/use-admin-organization-billing-controller"
 
-const BILLING_PANEL_SOURCE =
-  "src/features/admin-organization-billing/components/admin-organization-billing-panel.tsx"
-const BILLING_PANEL_REASON =
-  "The admin organization billing panel owns live billing information, plan changes, refund controls, and their confirmation surfaces."
-
 function statusLabel(status: string) {
   return status
     .replaceAll("_", " ")
@@ -48,24 +39,14 @@ function statusLabel(status: string) {
 function BillingFallback({
   description,
   label,
-  orgId,
 }: {
   description: string
   label: string
-  orgId: string
 }) {
-  const ownerId = `admin-organization-billing:${orgId}`
 
   return (
     <section
-      {...getReactGrabOwnerProps({
-        ownerId,
-        component: "AdminOrganizationBillingPanel",
-        source: BILLING_PANEL_SOURCE,
-        slot: "billing-card",
-        canonicalOwnerSource: BILLING_PANEL_SOURCE,
-        canonicalOwnerReason: BILLING_PANEL_REASON,
-      })}
+
       className="border-border bg-card/80 space-y-3 rounded-lg border p-4"
     >
       <div className="space-y-1">
@@ -111,7 +92,6 @@ export function AdminOrganizationBillingPanel({
       <BillingFallback
         description="No paid Stripe subscription is linked to this organization."
         label="Open Stripe Customers"
-        orgId={orgId}
       />
     )
   }
@@ -120,13 +100,11 @@ export function AdminOrganizationBillingPanel({
       <BillingFallback
         description={billing.message}
         label="Open Stripe Customers"
-        orgId={orgId}
       />
     )
   }
 
   const { summary } = billing
-  const ownerId = `admin-organization-billing:${summary.orgId}`
   const planLabel =
     summary.plan === "unknown"
       ? "Unknown Stripe Plan"
@@ -155,14 +133,7 @@ export function AdminOrganizationBillingPanel({
 
   return (
     <section
-      {...getReactGrabOwnerProps({
-        ownerId,
-        component: "AdminOrganizationBillingPanel",
-        source: BILLING_PANEL_SOURCE,
-        slot: "billing-card",
-        canonicalOwnerSource: BILLING_PANEL_SOURCE,
-        canonicalOwnerReason: BILLING_PANEL_REASON,
-      })}
+
       className="border-border bg-card/80 space-y-4 rounded-lg border p-4"
     >
       <div className="flex items-start justify-between gap-3">
@@ -259,17 +230,7 @@ export function AdminOrganizationBillingPanel({
         }}
       >
         <AlertDialogContent
-          {...getReactGrabLinkedSurfaceProps({
-            ownerId,
-            component: "AdminOrganizationBillingPanel",
-            source: BILLING_PANEL_SOURCE,
-            slot: "change-plan-dialog",
-            surfaceKind: "content",
-            canonicalOwnerSource: BILLING_PANEL_SOURCE,
-            canonicalOwnerReason: BILLING_PANEL_REASON,
-            tokenSource: "src/app/globals.css",
-            primitiveImport: "@/components/ui/alert-dialog",
-          })}
+
         >
           <AlertDialogHeader>
             <AlertDialogTitle className="text-balance">
@@ -312,17 +273,7 @@ export function AdminOrganizationBillingPanel({
         }}
       >
         <AlertDialogContent
-          {...getReactGrabLinkedSurfaceProps({
-            ownerId,
-            component: "AdminOrganizationBillingPanel",
-            source: BILLING_PANEL_SOURCE,
-            slot: "refund-dialog",
-            surfaceKind: "content",
-            canonicalOwnerSource: BILLING_PANEL_SOURCE,
-            canonicalOwnerReason: BILLING_PANEL_REASON,
-            tokenSource: "src/app/globals.css",
-            primitiveImport: "@/components/ui/alert-dialog",
-          })}
+
         >
           <AlertDialogHeader>
             <AlertDialogTitle className="text-balance">

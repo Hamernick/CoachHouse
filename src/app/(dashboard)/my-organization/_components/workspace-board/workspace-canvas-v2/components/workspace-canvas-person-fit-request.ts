@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, type MutableRefObject } from "react"
-import { getRectOfNodes, getViewportForBounds, type Node, type ReactFlowInstance } from "reactflow"
+import { getNodesBounds, getViewportForBounds, type Node, type ReactFlowInstance } from "@xyflow/react"
 import {
   resolveWorkspaceCanvasCameraDuration,
   resolveWorkspaceCanvasFocusViewportSize,
@@ -22,7 +22,7 @@ export function focusWorkspaceCanvasPeople(
   const duration = resolveWorkspaceCanvasCameraDuration(260)
   if (viewportSize) {
     const viewport = getViewportForBounds(
-      getRectOfNodes(measuredNodes), viewportSize.width, viewportSize.height, 0.24, 0.78, 0.22
+      getNodesBounds(measuredNodes), viewportSize.width, viewportSize.height, 0.24, 0.78, 0.22
     )
     void flowInstance.setViewport(viewport, { duration })
   } else {

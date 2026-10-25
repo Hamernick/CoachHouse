@@ -1,5 +1,19 @@
 "use server"
 
+import {
+  loadFiscalWorkspaceApplications as loadFiscalWorkspaceApplicationsImpl,
+  startFiscalWorkspaceApplication as startFiscalWorkspaceApplicationImpl,
+} from "./server/workspace-applications"
+
+export async function loadFiscalWorkspaceApplications() {
+  return loadFiscalWorkspaceApplicationsImpl()
+}
+
+export async function startFiscalWorkspaceApplication(
+  input: Parameters<typeof startFiscalWorkspaceApplicationImpl>[0]
+) {
+  return startFiscalWorkspaceApplicationImpl(input)
+}
 import { loadFiscalOrganizationApplications as loadFiscalOrganizationApplicationsImpl, loadLinkedFiscalApplications as loadLinkedFiscalApplicationsImpl } from "./server/linked-applications"
 export async function loadLinkedFiscalApplications() { return loadLinkedFiscalApplicationsImpl() }
 export async function loadFiscalOrganizationApplications(organizationId: string) { return loadFiscalOrganizationApplicationsImpl(organizationId) }

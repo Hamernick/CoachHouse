@@ -1,3 +1,5 @@
+import { after } from "next/server"
+
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { measureServerStep } from "@/lib/performance/server-timing"
 import { trackUserJourneyMilestone } from "@/lib/user-journey"
@@ -11,23 +13,25 @@ export default async function WorkspacePage({
 }: {
   searchParams?: Promise<MyOrganizationSearchParams>
 }) {
-  const [state, content] = await Promise.all([
-    measureServerStep(
-      "workspace.page.resolve_layout_state",
-      () => resolveDashboardLayoutState(),
-      { thresholdMs: 250 }
-    ),
+  // These readers share request-scoped auth; none depends on another's result.
+  const [content, state, context] = await Promise.all([
     measureServerStep(
       "workspace.page.render_organization_content",
       () => MyOrganizationPageContent({ searchParams }),
       { thresholdMs: 1_000 }
     ),
+    measureServerStep(
+      "workspace.page.resolve_layout_state",
+      () => resolveDashboardLayoutState(),
+      { thresholdMs: 250 }
+    ),
+    resolveOptionalAuthenticatedAppContext(),
   ])
 
-  if (state.userPresent && !state.isAdmin) {
-    const context = await resolveOptionalAuthenticatedAppContext()
-    if (context) {
-      await measureServerStep(
+  if (state.userPresent && !state.isAdmin && context) {
+    // Capture request data during render; only analytics runs after the response.
+    after(() =>
+      measureServerStep(
         "workspace.page.track_user_journey",
         () =>
           trackUserJourneyMilestone({
@@ -49,8 +53,8 @@ export default async function WorkspacePage({
             },
           }),
         { thresholdMs: 250 }
-      )
-    }
+      ).then(() => undefined)
+    )
   }
 
   return content

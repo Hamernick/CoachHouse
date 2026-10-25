@@ -137,7 +137,7 @@ describe("workspace accelerator header picker", () => {
     expect(markup).toContain("sm:justify-between")
     expect(markup).toContain("sm:max-w-lg")
     expect(markup).toContain("14% lessons complete")
-    expect(markup).toContain('data-react-grab-surface-slot="progress-rail"')
+
     expect(markup.indexOf("14% lessons complete")).toBeLessThan(
       markup.indexOf(
         'aria-label="Choose a class track. Current selection: Formation"'
@@ -193,12 +193,7 @@ describe("workspace accelerator header picker", () => {
     expect(triggerMarkup).toContain(
       'aria-label="Choose a class track. Current selection: Formation"'
     )
-    expect(triggerMarkup).toContain(
-      'data-react-grab-owner-component="WorkspaceAcceleratorHeaderPicker"'
-    )
-    expect(triggerMarkup).toContain(
-      'data-react-grab-owner-source="src/features/workspace-accelerator-card/components/workspace-accelerator-header-picker.tsx"'
-    )
+
     expect(triggerMarkup).toContain("text-sm")
     expect(triggerMarkup).not.toContain("text-xs")
     expect(triggerMarkup).toContain("w-[196px]")
@@ -757,8 +752,6 @@ describe("workspace accelerator header picker", () => {
     expect(markup).not.toContain(
       'data-slot="workspace-accelerator-progress-percent"'
     )
-    expect(markup).not.toContain(
-      'data-react-grab-owner-id="workspace-accelerator-checklist:workspace-onboarding-welcome:lesson"'
-    )
+
   })
 })

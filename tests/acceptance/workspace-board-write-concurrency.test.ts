@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { buildDefaultBoardState } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-layout"
 import { mergeNewerPersistedWorkspaceNodeState } from "@/app/(dashboard)/my-organization/_lib/workspace-board-state-persistence"
@@ -11,6 +11,17 @@ import {
 } from "@/app/(dashboard)/my-organization/_lib/workspace-board-state-write"
 
 describe("workspace board write concurrency", () => {
+  it("awaits calendar authorization and never writes an unauthorized graph", async () => {
+    const write = vi.fn(async () => ({ status: "written" as const }))
+    const defaults = buildDefaultBoardState()
+    await expect(commitWorkspaceBoardState({
+      readSnapshot: async () => ({ snapshot: { exists: true, revision: "1", state: defaults } }),
+      buildState: () => defaults,
+      updateParticleGraph: async () => { await Promise.resolve(); throw new Error("Calendar permission denied") },
+      writeSnapshot: write,
+    })).rejects.toThrow("Calendar permission denied")
+    expect(write).not.toHaveBeenCalled()
+  })
   it("retries a stale save and preserves the concurrent node position", async () => {
     const defaults = buildDefaultBoardState()
     const incoming = {

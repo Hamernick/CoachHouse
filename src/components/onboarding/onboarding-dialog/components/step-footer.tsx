@@ -3,7 +3,6 @@
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { PricingPlanTier } from "@/lib/billing/plan-tier"
@@ -75,12 +74,7 @@ export function StepFooter({
 
         <div className="flex min-w-0 items-center gap-2">
           <Button
-            {...getReactGrabOwnerProps({
-              ownerId: "onboarding:continue",
-              component: "StepFooter",
-              source: "src/components/onboarding/onboarding-dialog/components/step-footer.tsx",
-              slot: "continue",
-            })}
+
             type={isLastStep ? "submit" : "button"}
             onClick={
               isLastStep

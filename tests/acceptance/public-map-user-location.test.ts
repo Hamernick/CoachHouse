@@ -240,11 +240,7 @@ describe("public map user location", () => {
     expect(locationControlSource).toContain("data-public-map-location-controls")
     expect(locationControlSource).toContain("absolute inset-0 z-[60]")
     expect(locationControlSource).toContain("Location timed out")
-    expect(locationControlSource).toContain(
-      "public-map-location-card:current-location"
-    )
-    expect(locationControlSource).toContain("getReactGrabOwnerProps")
-    expect(locationControlSource).toContain("getReactGrabLinkedSurfaceProps")
+
     expect(locationControlSource).toContain("PublicMapDirectoryStatusPill")
     expect(locationControlSource).toContain(
       "PUBLIC_MAP_OVERLAY_GLASS_CLASSNAME"

@@ -9,9 +9,17 @@ import { IconWorld } from "@tabler/icons-react"
 import { CoreDocumentChoices } from "@/components/roadmap/core-document-source/core-document-choices"
 import { CoreDocumentMenu } from "@/components/roadmap/core-document-source/core-document-menu"
 import type { useCoreDocumentSource } from "@/components/roadmap/core-document-source/use-core-document-source"
-import { Dialog, DialogContent,
-  DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import {
+  ParticleNoteDocumentDialog,
+  type NoteDocument,
+} from "@/features/workspace-particles/client"
 import { Empty } from "@/components/ui/empty"
 import { DocumentsLibraryCard } from "./documents-library-card"
 import { ORGANIZATION_DOCUMENT_ACCEPT } from "@/lib/organization/document-storage"
@@ -48,6 +56,8 @@ const DocumentPreviewDialog = dynamic(
 )
 
 type DocumentsLibraryGridProps = {
+  organizationId?: string
+  notes?: readonly NoteDocument[]
   hasStorageAccess: boolean
   coreSource: ReturnType<typeof useCoreDocumentSource>
   viewMode?: "grid" | "list"
@@ -97,6 +107,8 @@ type DocumentsLibraryGridProps = {
 }
 
 export function DocumentsLibraryGrid({
+  organizationId,
+  notes = [],
   coreSource,
   hasStorageAccess,
   viewMode = "grid",
@@ -133,28 +145,33 @@ export function DocumentsLibraryGrid({
   onReset,
 }: DocumentsLibraryGridProps) {
   const [coreChoice, setCoreChoice] = useState<LibraryItem | null>(null)
+  const [selectedNote, setSelectedNote] = useState<NoteDocument | null>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetRef = useRef<LibraryItem | null>(null)
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null)
   const items = useMemo(() => {
-    return buildLibraryItems(rows, driveDocuments, uploadedFiles, true).filter(
-      (item) => {
-        if (
-          !item.row &&
-          !item.name
-            .toLocaleLowerCase()
-            .includes(searchQuery.trim().toLocaleLowerCase())
-        )
-          return false
-        if (item.deleted !== showDeleted) return false
-        if (tab === "images" && item.fileType !== "image") return false
-        if (tab === "documents" && item.fileType === "image") return false
-        if (source !== "all" && item.source !== source) return false
-        if (fileType !== "all" && item.fileType !== fileType) return false
-        return true
-      }
-    )
+    return buildLibraryItems(
+      rows,
+      driveDocuments,
+      uploadedFiles,
+      true,
+      notes
+    ).filter((item) => {
+      if (
+        !item.row &&
+        !(item.note ? `${item.name} ${item.description}` : item.name)
+          .toLocaleLowerCase()
+          .includes(searchQuery.trim().toLocaleLowerCase())
+      )
+        return false
+      if (item.deleted !== showDeleted) return false
+      if (tab === "images" && item.fileType !== "image") return false
+      if (tab === "documents" && item.fileType === "image") return false
+      if (source !== "all" && item.source !== source) return false
+      if (fileType !== "all" && item.fileType !== fileType) return false
+      return true
+    })
   }, [
     driveDocuments,
     fileType,
@@ -164,6 +181,7 @@ export function DocumentsLibraryGrid({
     source,
     tab,
     uploadedFiles,
+    notes,
   ])
   const selection = useDocumentsLibrarySelection({
     items,
@@ -199,6 +217,10 @@ export function DocumentsLibraryGrid({
   }
 
   function openItem(item: LibraryItem, trigger: HTMLButtonElement) {
+    if (item.note) {
+      setSelectedNote(item.note)
+      return
+    }
     if (item.coreDriveSource) {
       window.open(
         item.coreDriveSource.webViewLink,
@@ -288,39 +310,12 @@ export function DocumentsLibraryGrid({
 
   return (
     <>
-      <Dialog
-        open={Boolean(coreChoice)}
-        onOpenChange={(open) => {
-          if (!open && !coreSource.pending) setCoreChoice(null)
-        }}
-      >
-        <DialogContent>
-          <DialogTitle className="sr-only">
-            Choose a source for {coreChoice?.name}
-          </DialogTitle>
-          <DialogDescription className="sr-only">Start a draft in Coach House or link a file from Google Drive.</DialogDescription>
-          {coreChoice?.row?.source === "roadmap" ? (
-            <CoreDocumentChoices
-              title={coreChoice.name}
-              canWrite={hasStorageAccess}
-              pending={coreSource.pending}
-              error={coreSource.error}
-              onWrite={() => {
-                window.location.assign(
-                  getDocumentEditorHref(coreChoice.row!.source === "roadmap" ? coreChoice.row!.section.slug : "", true)
-                )
-              }}
-              onDrive={() => {
-                if (coreChoice.row?.source === "roadmap") {
-                  const section = coreChoice.row.section
-                  setCoreChoice(null)
-                  void coreSource.change(section, "drive")
-                }
-              }}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <CoreChoiceDialog
+        item={coreChoice}
+        source={coreSource}
+        canWrite={hasStorageAccess}
+        onClose={() => setCoreChoice(null)}
+      />
       <input
         ref={uploadInputRef}
         type="file"
@@ -342,6 +337,14 @@ export function DocumentsLibraryGrid({
           onClose={() => setPreviewItem(null)}
         />
       ) : null}
+      {selectedNote && organizationId && (
+        <ParticleNoteDocumentDialog
+          note={selectedNote}
+          organizationId={organizationId}
+          editable={canEdit}
+          onClose={() => setSelectedNote(null)}
+        />
+      )}
       {selection.selectedItems.length > 0 ? (
         <DocumentsSelectionToolbar
           count={selection.selectedItems.length}
@@ -372,13 +375,20 @@ export function DocumentsLibraryGrid({
                 !selection.selectedIds.length ? (
                   <CoreDocumentMenu
                     title={item.name}
-                    canEditContent={hasStorageAccess || Boolean(item.coreDriveSource)}
+                    canEditContent={
+                      hasStorageAccess || Boolean(item.coreDriveSource)
+                    }
                     pending={coreSource.pending}
                     className="absolute top-1 right-1 z-20 size-11 sm:size-8"
                     onEdit={() => {
                       window.open(
                         item.coreDriveSource?.webViewLink ??
-                          getDocumentEditorHref(item.row?.source === "roadmap" ? item.row.section.slug : "", true),
+                          getDocumentEditorHref(
+                            item.row?.source === "roadmap"
+                              ? item.row.section.slug
+                              : "",
+                            true
+                          ),
                         item.coreDriveSource ? "_blank" : "_self",
                         "noopener,noreferrer"
                       )
@@ -410,7 +420,12 @@ export function DocumentsLibraryGrid({
                 (item.row?.source === "roadmap" &&
                   uploadingCoreSectionId === item.row.section.id)
               }
-              canEdit={canEdit && (hasStorageAccess || Boolean(item.driveDocument) || item.row?.source === "roadmap")}
+              canEdit={
+                canEdit &&
+                (hasStorageAccess ||
+                  Boolean(item.driveDocument) ||
+                  item.row?.source === "roadmap")
+              }
               editMode={editMode}
               onOpen={(trigger) => openItem(item, trigger)}
               onDropFile={
@@ -429,5 +444,51 @@ export function DocumentsLibraryGrid({
         })}
       </div>
     </>
+  )
+}
+
+function CoreChoiceDialog({
+  item,
+  source,
+  canWrite,
+  onClose,
+}: {
+  item: LibraryItem | null
+  source: ReturnType<typeof useCoreDocumentSource>
+  canWrite: boolean
+  onClose: () => void
+}) {
+  const section = item?.row?.source === "roadmap" ? item.row.section : null
+  return (
+    <Dialog
+      open={Boolean(item)}
+      onOpenChange={(open) => {
+        if (!open && !source.pending) onClose()
+      }}
+    >
+      <DialogContent>
+        <DialogTitle className="sr-only">
+          Choose a source for {item?.name}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Start a draft in Coach House or link a file from Google Drive.
+        </DialogDescription>
+        {section && item && (
+          <CoreDocumentChoices
+            title={item.name}
+            canWrite={canWrite}
+            pending={source.pending}
+            error={source.error}
+            onWrite={() =>
+              window.location.assign(getDocumentEditorHref(section.slug, true))
+            }
+            onDrive={() => {
+              onClose()
+              void source.change(section, "drive")
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

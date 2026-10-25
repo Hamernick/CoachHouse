@@ -22,10 +22,16 @@ export function ProfileField({
   label,
   children,
   focusKey,
+  hideLabel = false,
+  labelAction,
+  className,
 }: {
   label: ReactNode
   children: ReactNode
   focusKey?: string
+  labelAction?: ReactNode
+  hideLabel?: boolean
+  className?: string
 }) {
   const childArray = Children.toArray(children).filter((child) => {
     if (child == null) return false
@@ -38,15 +44,29 @@ export function ProfileField({
   return (
     <div
       data-slot="organization-profile-field"
+      data-label-hidden={hideLabel || undefined}
       {...(focusKey ? getOrganizationFocusTargetProps(focusKey) : {})}
       className={cn(
         "grid min-w-0 content-start gap-1 self-start",
-        focusKey && ORGANIZATION_FOCUS_TARGET_CLASSNAME
+        focusKey && ORGANIZATION_FOCUS_TARGET_CLASSNAME,
+        className
       )}
     >
-      <Label htmlFor={focusKey} className="text-muted-foreground text-xs">
-        {label}
-      </Label>
+      {labelAction ? (
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <Label htmlFor={focusKey} className="text-muted-foreground text-[13px] font-normal">
+            {label}
+          </Label>
+          {labelAction}
+        </div>
+      ) : (
+        <Label
+          htmlFor={focusKey}
+          className={cn("text-muted-foreground text-xs", hideLabel && "sr-only")}
+        >
+          {label}
+        </Label>
+      )}
       {children}
     </div>
   )
@@ -127,8 +147,8 @@ export function FormRow({
   const insetClass = inset ? "px-6 md:px-0" : "px-0"
   const rowClass =
     layout === "stacked"
-      ? "grid gap-4"
-      : "grid gap-4 md:grid-cols-[minmax(180px,240px)_minmax(0,1fr)] md:items-start md:gap-6"
+      ? "grid gap-2"
+      : "grid gap-x-4 gap-y-2 md:grid-cols-[minmax(180px,240px)_minmax(0,1fr)] md:items-start md:gap-x-6"
 
   return (
     <div

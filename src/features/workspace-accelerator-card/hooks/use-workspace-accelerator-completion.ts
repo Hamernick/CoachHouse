@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef } from "react"
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 import type { WorkspaceAcceleratorCardInput } from "../types"
@@ -14,6 +15,13 @@ export function useWorkspaceAcceleratorCompletion({
   onModuleComplete: WorkspaceAcceleratorCardInput["onModuleComplete"]
 }) {
   const saving = useRef(false)
+  const [status, setStatus] = useState<"clean" | "saving" | "error">("clean")
+  useWorkspaceEditorStatus({
+    label: "Lesson progress",
+    dirty: status === "error",
+    pending: status === "saving",
+    error: status === "error",
+  })
   const completeModule = async () => {
     if (!controller.currentStep || saving.current) return false
     if (!onModuleComplete) {
@@ -21,15 +29,19 @@ export function useWorkspaceAcceleratorCompletion({
       return false
     }
     saving.current = true
+    setStatus("saving")
     try {
       const result = await onModuleComplete(controller.currentStep.moduleId)
       if (result && "error" in result) {
+        setStatus("error")
         toast.error(result.error)
         return false
       }
+      setStatus("clean")
       controller.markCurrentStepComplete(true)
       return true
     } catch {
+      setStatus("error")
       toast.error("Unable to save lesson progress. Try Complete again.")
       return false
     } finally {
@@ -38,7 +50,9 @@ export function useWorkspaceAcceleratorCompletion({
   }
 
   const completeVideo = async () => {
-    if (controller.currentModuleSteps.every((step) => step.stepKind === "video")) {
+    if (
+      controller.currentModuleSteps.every((step) => step.stepKind === "video")
+    ) {
       await completeModule()
     } else {
       controller.markCurrentStepComplete()

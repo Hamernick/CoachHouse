@@ -1,5 +1,9 @@
 "use client"
 
+import {
+  placeWorkspaceTool,
+  type PlaceWorkspaceTool,
+} from "./workspace-board-tool-placement"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
 
@@ -231,6 +235,15 @@ export function WorkspaceBoardCanvas({
       requestKey: (previous?.requestKey ?? 0) + 1,
     }))
   }, [])
+  const handlePlaceWorkspaceTool = useCallback<PlaceWorkspaceTool>(
+    (id, visible, position) => {
+      if (!allowEditing || tutorialActive) return
+      setBoardState((previous) =>
+        placeWorkspaceTool(previous, id, visible, position)
+      )
+    },
+    [allowEditing, tutorialActive]
+  )
   const handleToggleCardVisibility = useMemo(
     () =>
       buildToggleCardVisibilityHandler({
@@ -373,6 +386,7 @@ export function WorkspaceBoardCanvas({
         onFocusCard={handleFocusCard}
         onOnboardingFlowChange={handleOnboardingFlowChange}
         onPersistNodePosition={handlePersistNodePosition}
+        onPlaceWorkspaceTool={handlePlaceWorkspaceTool}
         onToggleCardVisibility={handleToggleCardVisibility}
         onConnectCards={handleConnectCards}
         onDisconnectConnection={handleDisconnectConnection}

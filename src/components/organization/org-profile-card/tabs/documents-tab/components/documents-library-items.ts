@@ -4,6 +4,7 @@ import { stripHtml } from "@/lib/markdown/convert"
 import type { DriveLibraryDocument } from "../hooks/use-google-drive-library"
 import type { OrganizationDocumentFile } from "../hooks/use-organization-document-files"
 import type { DocumentIndexRow } from "../types"
+import type { NoteDocument } from "@/features/workspace-particles/client"
 
 export type DocumentsLibraryTab = "all" | "images" | "documents"
 export type DocumentsLibrarySource = "all" | "uploaded" | "generated"
@@ -31,6 +32,7 @@ export type LibraryItem = {
   previewPath?: string
   previewVersion?: string
   row?: DocumentIndexRow
+  note?: NoteDocument
   uploadedFile?: OrganizationDocumentFile
   driveDocument?: DriveLibraryDocument
   coreDriveSource?: import("@/lib/roadmap/types").CoreDocumentDriveSource | null
@@ -64,7 +66,8 @@ export function buildLibraryItems(
   rows: DocumentIndexRow[],
   driveDocuments: DriveLibraryDocument[],
   uploadedFiles: OrganizationDocumentFile[],
-  includeMissing = false
+  includeMissing = false,
+  notes: readonly NoteDocument[] = []
 ) {
   const attachedFileIds = new Set<string>()
   const localItems: LibraryItem[] = rows.flatMap((row) => {
@@ -187,7 +190,19 @@ export function buildLibraryItems(
         : `/api/account/organization-document-files?id=${encodeURIComponent(file.id)}`,
       previewVersion: file.updatedAt,
     }))
-  return [...uploadedItems, ...driveItems, ...localItems]
+  const noteItems: LibraryItem[] = notes.map((note) => ({
+    id: note.id,
+    name: note.title,
+    description: note.summary,
+    contentPreview: note.summary,
+    hasContent: true,
+    source: "generated",
+    fileType: "document",
+    updatedAt: note.updatedAt,
+    deleted: false,
+    note,
+  }))
+  return [...uploadedItems, ...driveItems, ...localItems, ...noteItems]
 }
 
 export function isEmptyDocumentSlot(item: LibraryItem) {

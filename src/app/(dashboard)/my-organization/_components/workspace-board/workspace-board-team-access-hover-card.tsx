@@ -68,7 +68,7 @@ export function WorkspaceBoardTeamAccessHoverCard({
     <HoverCardContent
       align="end"
       side="bottom"
-      className="w-[22rem] rounded-xl p-0"
+      className="w-[22rem] rounded-xl p-0 shadow-none"
     >
       <div className="border-border/60 border-b px-3 py-2.5">
         <p className="text-sm font-semibold">Team access</p>

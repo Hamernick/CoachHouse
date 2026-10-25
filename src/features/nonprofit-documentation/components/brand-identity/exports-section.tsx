@@ -7,7 +7,7 @@ import PrinterIcon from "lucide-react/dist/esm/icons/printer"
 
 import { Button } from "@/components/ui/button"
 
-import type { BrandIdentityDraft, StoredBrandAsset } from "../../types"
+import type { BrandIdentityDraft, BrandAssetPreview, StoredBrandAsset } from "../../types"
 import { buildBrandTokens } from "../../lib/brand-identity"
 import {
   buildBrandPackage,
@@ -19,9 +19,13 @@ export function ExportsSection({
   draft,
   assets,
   ready = false,
+  loadAssets,
+  showPrint = true,
 }: {
   draft: BrandIdentityDraft
-  assets: StoredBrandAsset[]
+  assets: BrandAssetPreview[]
+  loadAssets?: () => Promise<StoredBrandAsset[]>
+  showPrint?: boolean
   ready?: boolean
 }) {
   const [status, setStatus] = useState("Ready to export")
@@ -32,7 +36,10 @@ export function ExportsSection({
     setWorking(true)
     setStatus("Building brand package")
     try {
-      const result = await buildBrandPackage(draft, assets)
+      const originals = loadAssets ? await loadAssets() : assets.filter(
+        (asset): asset is StoredBrandAsset => Boolean(asset.blob)
+      )
+      const result = await buildBrandPackage(draft, originals)
       downloadBlob(result.blob, result.filename)
       setStatus("Brand package downloaded")
     } catch {
@@ -55,7 +62,7 @@ export function ExportsSection({
     <BrandIdentitySection
       id="exports"
       title="Export assets"
-      description="Download your brand kit, copy its CSS tokens, or print the guide."
+      description={showPrint ? "Download your brand kit, copy its CSS tokens, or print the guide." : "Download your brand kit or copy its CSS tokens."}
       className="pb-0 sm:pb-0"
     >
       <div className="flex flex-col gap-2">
@@ -78,6 +85,7 @@ export function ExportsSection({
           <CopyIcon data-icon="inline-start" aria-hidden />
           Copy CSS tokens
         </Button>
+        {showPrint ? (
         <Button
           type="button"
           variant="outline"
@@ -88,6 +96,7 @@ export function ExportsSection({
           <PrinterIcon data-icon="inline-start" aria-hidden />
           Print guide
         </Button>
+        ) : null}
       </div>
       <p className="text-muted-foreground mt-4 text-xs leading-5">
         ZIP includes brand data, CSS tokens, usage notes, and every uploaded original.

@@ -71,6 +71,7 @@ function createProps(
     onOnboardingFlowChange: vi.fn(),
     onPersistNodePosition: vi.fn(),
     onToggleCardVisibility: vi.fn(),
+    onPlaceWorkspaceTool: vi.fn(),
     onConnectCards: vi.fn(),
     onDisconnectConnection: vi.fn(),
     onDisconnectAllConnections: vi.fn(),

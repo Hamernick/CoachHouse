@@ -1,5 +1,7 @@
 "use client"
 
+import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
+
 import { useEffect, useState } from "react"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
@@ -65,6 +67,14 @@ export function WorkspacePeopleTagEditorDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const normalizedLabel = normalizePersonTag(label)
+  useWorkspaceEditorStatus({
+    label: "People tag",
+    dirty:
+      open &&
+      (label !== (tag?.label ?? initialLabel) ||
+        color !== (tag?.color ?? DEFAULT_ORGANIZATION_PEOPLE_TAG_COLOR)),
+    pending: open && isSaving,
+  })
 
   useEffect(() => {
     if (!open) return

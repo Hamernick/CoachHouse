@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { PlatformOrganizationMapItem } from "@/lib/public-map/resource-map-items"
 import { buildPublicImageTransformUrl } from "@/lib/storage/public-url"
 import { cn } from "@/lib/utils"
-import {
-  buildPublicMapOrganizationListCardOwnerId,
-  buildPublicMapOrganizationListCardOwnerProps,
-  buildPublicMapOrganizationListCardSurfaceProps,
-} from "./react-grab"
+
 import {
   buildInitials,
   buildLocationMetadataItems,
@@ -52,7 +48,7 @@ export function PublicMapPlatformOrganizationListCard({
       resize: hasLogoImage ? "contain" : "cover",
     }
   )
-  const ownerId = buildPublicMapOrganizationListCardOwnerId(org.id)
+
   const openDetails = () =>
     onOpenDetails ? onOpenDetails(org.id) : onSelectOrg(org.id)
 
@@ -64,12 +60,7 @@ export function PublicMapPlatformOrganizationListCard({
         "text-foreground relative w-full max-w-full min-w-0 overflow-hidden bg-transparent p-1",
         PUBLIC_MAP_LIST_CARD_HEIGHT_CLASSNAME
       )}
-      {...buildPublicMapOrganizationListCardOwnerProps({
-        ownerId,
-        slot: "card",
-        notes:
-          "Clicking the non-action parts of the card opens the organization detail panel.",
-      })}
+
     >
       <Button
         type="button"
@@ -85,24 +76,14 @@ export function PublicMapPlatformOrganizationListCard({
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           "px-3 py-2"
         )}
-        {...buildPublicMapOrganizationListCardSurfaceProps({
-          ownerId,
-          slot: "body",
-          surfaceKind: "content",
-          notes:
-            "Primary content stack for the public map organization list card.",
-        })}
+
       >
         <div
           className={cn(
             "flex min-w-0 items-center",
             constrainedLayout ? "gap-3" : "gap-4"
           )}
-          {...buildPublicMapOrganizationListCardSurfaceProps({
-            ownerId,
-            slot: "identity-row",
-            notes: "Top identity row containing the logo, title, and location.",
-          })}
+
         >
           <Avatar
             className={cn(
@@ -110,11 +91,7 @@ export function PublicMapPlatformOrganizationListCard({
               constrainedLayout ? "size-11" : "size-12",
               hasLogoImage && "bg-white"
             )}
-            {...buildPublicMapOrganizationListCardSurfaceProps({
-              ownerId,
-              slot: "avatar",
-              notes: "Organization logo or fallback avatar surface.",
-            })}
+
           >
             <AvatarImage
               src={avatarImageSrc}
@@ -131,19 +108,13 @@ export function PublicMapPlatformOrganizationListCard({
             <p
               data-public-map-list-title=""
               className="text-foreground truncate text-base leading-snug font-semibold"
-              {...buildPublicMapOrganizationListCardSurfaceProps({
-                ownerId,
-                slot: "title",
-                notes: "Organization name text block.",
-              })}
+
             >
               <PublicMapHighlightedText query={query} text={org.name} />
             </p>
             <PublicMapListMetadataStrip
               itemKeyPrefix="category"
               items={categoryMetadataItems}
-              notes="Primary category for the organization list card."
-              ownerId={ownerId}
               query={query}
             />
           </div>

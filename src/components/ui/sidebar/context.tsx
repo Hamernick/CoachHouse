@@ -115,7 +115,7 @@ export function SidebarProvider({
           }
           className={cn(
             "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-            "data-[state=collapsed]:[--shell-rail-padding:0.75rem] data-[state=collapsed]:[--shell-rail-item-padding:0.5rem]",
+            "data-[state=collapsed]:[--shell-rail-padding:0.5rem] data-[state=collapsed]:[--shell-rail-item-padding:0.5rem]",
             className,
           )}
           {...props}

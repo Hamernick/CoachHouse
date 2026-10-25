@@ -1,5 +1,6 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo, useEffect, useRef, type CSSProperties } from "react"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import CalendarDaysIcon from "lucide-react/dist/esm/icons/calendar-days"
@@ -14,9 +15,8 @@ import LandmarkIcon from "lucide-react/dist/esm/icons/landmark"
 import ListChecksIcon from "lucide-react/dist/esm/icons/list-checks"
 import NetworkIcon from "lucide-react/dist/esm/icons/network"
 import UsersIcon from "lucide-react/dist/esm/icons/users"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { Button } from "@/components/ui/button"
 import {
   WorkspaceNodeFrameBody,
@@ -84,24 +84,10 @@ const STATUS_META = {
   },
 } as const
 
-const WORKSPACE_ONTOLOGY_NODE_SOURCE =
-  "src/features/workspace-ontology/components/workspace-ontology-node.tsx"
-
-const WORKSPACE_ONTOLOGY_NODE_REACT_GRAB_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-ontology:node",
-  component: "WorkspaceOntologyNode",
-  source: WORKSPACE_ONTOLOGY_NODE_SOURCE,
-  slot: "node",
-  canonicalOwnerSource: WORKSPACE_ONTOLOGY_NODE_SOURCE,
-  canonicalOwnerReason:
-    "The ontology feature owns generated node content, containment, and semantic density.",
-  primitiveImport: "src/components/workspace/workspace-node-frame.tsx",
-})
-
 export const WorkspaceOntologyNode = memo(function WorkspaceOntologyNode({
   data,
   selected,
-}: NodeProps<WorkspaceOntologyNodeData>) {
+}: NodeProps<ReactFlowNode<WorkspaceOntologyNodeData>>) {
   const {
     node,
     detailLevel,
@@ -283,7 +269,7 @@ export const WorkspaceOntologyNode = memo(function WorkspaceOntologyNode({
       }
     >
       <WorkspaceNodeFrameRoot
-        {...WORKSPACE_ONTOLOGY_NODE_REACT_GRAB_PROPS}
+
         data-workspace-ontology-node={node.id}
         data-workspace-ontology-root={node.rootId}
         data-workspace-ontology-href={node.href ?? undefined}

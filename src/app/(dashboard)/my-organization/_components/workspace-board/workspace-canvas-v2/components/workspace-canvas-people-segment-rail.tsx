@@ -230,7 +230,7 @@ export const WorkspacePeopleSegmentRail = memo(
           onValueChange={(value) => {
             if (value) onSegmentChange(value)
           }}
-          className="bg-muted/70 h-8 w-max rounded-xl p-1 shadow-none"
+          className="bg-muted/70 h-8 w-max min-w-full rounded-xl p-1 shadow-none"
         >
           {segments.map((segment) =>
             segment.kind === "custom" && editingSegmentId === segment.id ? (

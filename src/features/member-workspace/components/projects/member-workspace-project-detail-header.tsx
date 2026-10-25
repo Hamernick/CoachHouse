@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr"
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { resolveOrganizationCardImage } from "../../lib/organization-card-image"
 import { Button } from "@/components/ui/button"
 import {
@@ -218,7 +218,7 @@ export function MemberWorkspaceProjectDetailHeader({
   )
 
   return (
-    <section {...getReactGrabOwnerProps({ ownerId: `project-detail-header:${project.id}`, component: "MemberWorkspaceProjectDetailHeader", source: "src/features/member-workspace/components/projects/member-workspace-project-detail-header.tsx", tokenSource: "src/app/globals.css" })}
+    <section
       className={cn("mt-4 flex flex-col gap-5 lg:gap-2", isOrganization && "items-center text-center")}>
       <div className={cn("flex flex-wrap items-start justify-between gap-3", isOrganization && "relative w-full justify-center")}>
         <div className={cn("flex min-w-0 flex-1 flex-col gap-3", isOrganization && "items-center px-10")}>

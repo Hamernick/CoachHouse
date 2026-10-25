@@ -149,7 +149,7 @@ describe("workspace-brand-kit", () => {
     expect(invalid.success).toBe(false)
   })
 
-  it("integrates the inline editor and removes the visible boilerplate control", () => {
+  it("moves the existing editor into its own tab and removes the visible boilerplate control", () => {
     const root = process.cwd()
     const editMode = readFileSync(
       join(
@@ -187,9 +187,15 @@ describe("workspace-brand-kit", () => {
       "utf8"
     )
 
-    expect(editMode).toContain("<BrandKitSection")
-    expect(profileEditor).toContain("WorkspaceBrandKitProfileStyle")
-    expect(profileEditor).toContain("WorkspaceBrandKitProfileAssets")
+    const brandKitTab = readFileSync(
+      join(root, "src/components/organization/org-profile-card/tabs/brand-kit-tab.tsx"),
+      "utf8"
+    )
+    expect(editMode).not.toContain("<BrandKitSection")
+    expect(brandKitTab).toContain("<WorkspaceBrandKitProfileEditor")
+    expect(brandKitTab).toContain("readOnly={!editMode}")
+    expect(profileEditor).toContain("BrandIdentityPalette")
+    expect(profileEditor).toContain("BrandIdentityMarks")
     expect(profileEditor).toContain("WorkspaceBrandKitProfileVoice")
     expect(brandKitSection).not.toContain('layout="stacked"')
     expect(sheet).toContain('title="Brand voice"')
@@ -280,5 +286,50 @@ describe("workspace-brand-kit", () => {
     expect(organizationAction).toContain(
       "Do not delete unknown keys; preserve previously stored profile fields"
     )
+  })
+})
+
+// The internal editor reuses the public tool's draft, but stores it with the organization.
+describe("organization brand identity adapter", () => {
+  it("seeds existing branding without replacing originals or extra colors", async () => {
+    const { resolveWorkspaceBrandIdentity, updateWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    const profile = { name: "Existing organization", tagline: "Existing tagline", brandPrimary: "#123456", brandColors: ["#654321", "#ABCDEF"], brandVoiceAudience: "Neighbors" }
+    const seed = resolveWorkspaceBrandIdentity(profile)
+    expect(seed).toMatchObject({ revision: null, assets: {}, draft: { organizationName: profile.name, tagline: profile.tagline, audience: "Neighbors" } })
+    expect(seed.draft.colors[1].value).toBe("#123456")
+    const next = updateWorkspaceBrandIdentity(profile, { colors: seed.draft.colors.map(color => color.id === "brand" ? { ...color, value: "#112233" } : color) })
+    expect(next.brandPrimary).toBe("#112233")
+    expect(next.brandColors).toContain("#ABCDEF")
+    expect(next).not.toHaveProperty("logoUrl")
+  })
+
+  it("round trips the saved kit and preserves newly selected fonts", async () => {
+    const { resolveWorkspaceBrandIdentity, updateWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    const { normalizeCompanyProfile } = await import("@/components/organization/org-profile-card/config")
+    const kit = resolveWorkspaceBrandIdentity({ name: "Test organization" })
+    const profile = buildInitialOrganizationProfile({ organizationId: "11111111-1111-4111-8111-111111111111", brandIdentity: kit, profile: { name: "Test organization" }, organization: null })
+    expect(profile.brandIdentity).toEqual(kit)
+    expect(profile.expectedOrganizationId).toBe("11111111-1111-4111-8111-111111111111")
+    const update = updateWorkspaceBrandIdentity(profile, { headingFont: "Georgia", bodyFont: "System Sans" })
+    const normalized = normalizeCompanyProfile({ ...profile, ...update })
+    expect(normalized.brandTypography?.headings.family).toBe("Georgia")
+    expect(normalized.brandIdentity?.draft.bodyFont).toBe("System Sans")
+  })
+
+  it("does not submit an unchanged kit with unrelated profile edits", async () => {
+    const { resolveWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    const { prepareOrgProfileSave } = await import("@/components/organization/org-profile-card/hooks/use-org-profile-editor-state-helpers")
+    const saved = { name: "Test", brandIdentity: resolveWorkspaceBrandIdentity({ name: "Test" }) }
+    expect(prepareOrgProfileSave({ ...saved, phone: "555" }, saved)).not.toHaveProperty("brandIdentity")
+    const changed = { ...saved, brandIdentity: { ...saved.brandIdentity, draft: { ...saved.brandIdentity.draft, purpose: "New purpose" } } }
+    expect(prepareOrgProfileSave(changed, saved).brandIdentity?.draft.purpose).toBe("New purpose")
+  })
+
+  it("does not resurrect a removed legacy logo", async () => {
+    const { workspaceBrandAssetPreviews } = await import("@/features/workspace-brand-kit/lib/brand-identity-assets")
+    const { resolveWorkspaceBrandIdentity } = await import("@/features/workspace-brand-kit/lib/brand-identity-profile")
+    const profile = { logoUrl: "https://example.com/original.svg" }
+    expect(workspaceBrandAssetPreviews(profile)).toHaveLength(1)
+    expect(workspaceBrandAssetPreviews({ ...profile, brandIdentity: { ...resolveWorkspaceBrandIdentity(profile), assets: { "primary-logo": null } } })).toHaveLength(0)
   })
 })

@@ -1,3 +1,4 @@
+import type { PlaceWorkspaceTool } from "../../workspace-board-tool-placement"
 import type { WorkspaceBoardToggleContext } from "../../workspace-board-debug"
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
 import type {
@@ -46,6 +47,7 @@ export type WorkspaceCanvasSurfaceV2Props = {
   onConnectCards: (source: WorkspaceCardId, target: WorkspaceCardId) => void
   onDisconnectConnection: (connectionId: string) => void
   onDisconnectAllConnections: () => void
+  onPlaceWorkspaceTool: PlaceWorkspaceTool
   onToggleCardVisibility: (
     cardId: WorkspaceCardId,
     context?: WorkspaceBoardToggleContext

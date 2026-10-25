@@ -28,7 +28,7 @@ export default async function AdminLayout({
     <WorkspaceOrganizationScope organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
     <AppShell
       breadcrumbs={breadcrumbs}
-      sidebarHeaderContent={
+      accountMenuContent={
         <MemberWorkspaceSidebarHeader state={state.memberWorkspaceHeader} />
       }
       sidebarTree={state.sidebarTree}

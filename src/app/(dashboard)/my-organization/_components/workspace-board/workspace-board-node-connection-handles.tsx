@@ -1,4 +1,5 @@
-import { Handle, Position } from "reactflow"
+import { WorkspaceConnectionHandle } from "@/components/workspace/workspace-connection-handle"
+import { Position } from "@xyflow/react"
 
 import { resolveWorkspaceBoardHandleClassName } from "@/lib/workspace-canvas/handle-styles"
 
@@ -27,8 +28,9 @@ export function WorkspaceBoardNodeConnectionHandles({
         const position = resolveWorkspaceCardHandlePosition(side)
 
         return (
-          <Handle
+          <WorkspaceConnectionHandle
             key={`source-${side}`}
+            isConnectable={!presentationMode}
             type="source"
             position={position}
             id={WORKSPACE_CARD_SOURCE_HANDLE_IDS[side]}
@@ -41,7 +43,8 @@ export function WorkspaceBoardNodeConnectionHandles({
       })}
       {cardId === "accelerator" ? (
         <>
-          <Handle
+          <WorkspaceConnectionHandle
+            isConnectable={!presentationMode}
             type="source"
             position={Position.Right}
             id={ACCELERATOR_STEP_SIDE_SOURCE_HANDLE_ID}
@@ -50,7 +53,8 @@ export function WorkspaceBoardNodeConnectionHandles({
               hidden: true,
             })}
           />
-          <Handle
+          <WorkspaceConnectionHandle
+            isConnectable={!presentationMode}
             type="source"
             position={Position.Top}
             id={ACCELERATOR_STEP_TOP_SOURCE_HANDLE_ID}
@@ -65,8 +69,9 @@ export function WorkspaceBoardNodeConnectionHandles({
         const position = resolveWorkspaceCardHandlePosition(side)
 
         return (
-          <Handle
+          <WorkspaceConnectionHandle
             key={`target-${side}`}
+            isConnectable={!presentationMode}
             type="target"
             position={position}
             id={WORKSPACE_CARD_TARGET_HANDLE_IDS[side]}

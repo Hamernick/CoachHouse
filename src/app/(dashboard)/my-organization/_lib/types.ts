@@ -12,6 +12,7 @@ export type MyOrganizationSearchParams = Record<
 
 export type UpcomingEvent = {
   id: string
+  source?: { kind: "workspace_particle"; particleId: string; workspaceCanvasId?: string }
   title: string
   description: string | null
   event_type: RoadmapCalendarEventType

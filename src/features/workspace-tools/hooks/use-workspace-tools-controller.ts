@@ -1,11 +1,10 @@
 "use client"
 
-import { useDeferredValue, useMemo, useState } from "react"
+import { useMemo } from "react"
 
 import {
   normalizeWorkspaceToolsInput,
   WORKSPACE_TOOL_DEFINITIONS,
-  workspaceToolMatchesQuery,
 } from "../lib"
 import type { WorkspaceToolsInput } from "../types"
 
@@ -18,15 +17,6 @@ export function useWorkspaceToolsController(
     () => normalizeWorkspaceToolsInput(input),
     [input]
   )
-  const [query, setQuery] = useState("")
-  const deferredQuery = useDeferredValue(query)
-  const matchingTools = useMemo(
-    () =>
-      WORKSPACE_TOOL_DEFINITIONS.filter((tool) =>
-        workspaceToolMatchesQuery(tool, deferredQuery)
-      ),
-    [deferredQuery]
-  )
   const stripeConnected = normalizedInput.stripeConnection.state === "connected"
   const isInstalled = (
     toolId: (typeof WORKSPACE_TOOL_DEFINITIONS)[number]["id"]
@@ -38,11 +28,8 @@ export function useWorkspaceToolsController(
         : googleDriveConnected === true
 
   return {
-    availableTools: matchingTools.filter((tool) => !isInstalled(tool.id)),
-    clearQuery: () => setQuery(""),
-    installedTools: matchingTools.filter((tool) => isInstalled(tool.id)),
-    query,
-    setQuery,
+    availableTools: WORKSPACE_TOOL_DEFINITIONS.filter((tool) => !isInstalled(tool.id)),
+    installedTools: WORKSPACE_TOOL_DEFINITIONS.filter((tool) => isInstalled(tool.id)),
     stripeConnection: normalizedInput.stripeConnection,
   }
 }

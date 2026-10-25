@@ -12,53 +12,40 @@ import type { CompanyViewProps } from "./types"
 import { stripHtml } from "@/lib/markdown/convert"
 import { cn } from "@/lib/utils"
 import {
-  hasWorkspaceBrandKitProfileContent,
-  WorkspaceBrandKitProfilePreview,
-} from "@/features/workspace-brand-kit"
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import styles from "../../profile-edit-fields.module.css"
 
-const FORMATION_STATUS_LABELS: Record<string, string> = {
-  pre_501c3: "Pre-501(c)(3)",
-  in_progress: "In progress",
-  approved: "Approved",
-}
+import { OrganizationFormationStatusSummary } from "@/components/organization/organization-formation-status-summary"
+import { resolveFormationStatusOption } from "@/lib/organization/formation-status"
 
 export function IdentityPreview({ company }: CompanyViewProps) {
-  const formationLabel =
-    typeof company.formationStatus === "string"
-      ? FORMATION_STATUS_LABELS[company.formationStatus]
-      : ""
+  const formationStatus = resolveFormationStatusOption(company.formationStatus)
   const hasDescription =
     typeof company.description === "string" &&
     company.description.trim().length > 0
-  const hasEin =
-    typeof company.ein === "string" && company.ein.trim().length > 0
-  const showFormation =
-    Boolean(formationLabel) &&
-    (hasDescription ||
-      hasEin ||
-      company.formationStatus === "approved" ||
-      company.formationStatus === "pre_501c3")
-
-  if (!(hasDescription || hasEin || showFormation)) {
+  if (!(hasDescription || formationStatus)) {
     return null
   }
 
   return (
-    <FormRow title="Identity">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+    <FormRow title="Identity" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
         {hasDescription ? (
-          <ProfileField label="Description">
+          <ProfileField label="Description" className={styles.stacked}>
             <FieldText text={company.description} multiline />
           </ProfileField>
         ) : null}
-        {hasEin ? (
-          <ProfileField label="EIN">
-            <FieldText text={company.ein} />
-          </ProfileField>
-        ) : null}
-        {showFormation ? (
-          <ProfileField label="Formation status">
-            <FieldText text={formationLabel} />
+        {formationStatus ? (
+          <ProfileField label="Formation status" className={styles.stacked}>
+            <OrganizationFormationStatusSummary
+              formationStatus={formationStatus}
+              ein={company.ein}
+              className="bg-white dark:bg-primary/5"
+            />
           </ProfileField>
         ) : null}
       </div>
@@ -76,8 +63,8 @@ export function ContactPreview({ company }: CompanyViewProps) {
   }
 
   return (
-    <FormRow title="Contact">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
+    <FormRow title="Contact" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
         {typeof company.rep === "string" && company.rep.trim() ? (
           <ProfileField label="Representative">
             <FieldText text={company.rep} />
@@ -98,86 +85,73 @@ export function ContactPreview({ company }: CompanyViewProps) {
   )
 }
 
-export function AddressPreview({ addressLines }: CompanyViewProps) {
-  if (addressLines.length === 0) {
+export function AddressPreview({ company, addressLines }: CompanyViewProps) {
+  const isOnlineOnly = company.locationType === "online"
+  if (!isOnlineOnly && addressLines.length === 0) {
     return null
   }
 
   return (
-    <FormRow title="Address">
-      <AddressDisplay lines={addressLines} />
-    </FormRow>
-  )
-}
-
-export function StoryPreview({ company }: CompanyViewProps) {
-  const originStory =
-    typeof company.originStory === "string"
-      ? stripHtml(company.originStory)
-      : ""
-  const vision = typeof company.vision === "string" ? company.vision : ""
-  const need = typeof company.need === "string" ? stripHtml(company.need) : ""
-  const mission = typeof company.mission === "string" ? company.mission : ""
-  const values = typeof company.values === "string" ? company.values : ""
-  const theoryOfChange =
-    typeof company.theoryOfChange === "string"
-      ? stripHtml(company.theoryOfChange)
-      : ""
-
-  if (
-    ![originStory, vision, need, mission, values, theoryOfChange].some(
-      (value) => value.trim().length > 0
-    )
-  ) {
-    return null
-  }
-
-  return (
-    <FormRow title="About us">
-      <div className="grid gap-4 md:grid-cols-2 md:items-start">
-        {originStory.trim().length > 0 ? (
-          <ProfileField label="Origin story">
-            <FieldText text={originStory} multiline />
-          </ProfileField>
-        ) : null}
-        {need.trim().length > 0 ? (
-          <ProfileField label="Need">
-            <FieldText text={need} multiline />
-          </ProfileField>
-        ) : null}
-        {mission.trim().length > 0 ? (
-          <ProfileField label="Mission">
-            <OrganizationNarrativeContent value={mission} />
-          </ProfileField>
-        ) : null}
-        {vision.trim().length > 0 ? (
-          <ProfileField label="Vision">
-            <OrganizationNarrativeContent value={vision} />
-          </ProfileField>
-        ) : null}
-        {values.trim().length > 0 ? (
-          <ProfileField label="Values">
-            <OrganizationNarrativeContent value={values} />
-          </ProfileField>
-        ) : null}
-        {theoryOfChange.trim().length > 0 ? (
-          <ProfileField label="Theory of change">
-            <FieldText text={theoryOfChange} multiline />
-          </ProfileField>
+    <FormRow title="Location" layout="stacked" inset={false}>
+      <div className={cn(styles.group, styles.readOnly)}>
+        <ProfileField label="Location type">
+          <FieldText text={isOnlineOnly ? "Web resource" : "Physical location"} />
+        </ProfileField>
+        {!isOnlineOnly ? (
+          <div className={cn(styles.row, styles.stacked)}>
+            <AddressDisplay lines={addressLines} />
+          </div>
         ) : null}
       </div>
     </FormRow>
   )
 }
 
-export function BrandKitPreview({ company }: CompanyViewProps) {
-  if (!hasWorkspaceBrandKitProfileContent(company)) {
-    return null
-  }
+export function StoryPreview({ company }: CompanyViewProps) {
+  const fields = [
+    { key: "originStory", label: "Origin story", value: company.originStory },
+    { key: "need", label: "Need", value: company.need },
+    { key: "mission", label: "Mission", value: company.mission },
+    { key: "vision", label: "Vision", value: company.vision },
+    { key: "values", label: "Values", value: company.values },
+    {
+      key: "theoryOfChange",
+      label: "Theory of change",
+      value: company.theoryOfChange,
+    },
+  ].filter(
+    (field): field is typeof field & { value: string } =>
+      typeof field.value === "string" &&
+      (stripHtml(field.value).trim().length > 0 || /<img\b/i.test(field.value))
+  )
+
+  if (fields.length === 0) return null
 
   return (
-    <FormRow title="Brand Kit">
-      <WorkspaceBrandKitProfilePreview profile={company} />
+    <FormRow title="About us" layout="stacked" inset={false}>
+      <Accordion
+        type="single"
+        collapsible
+        className={cn(styles.group, styles.storyAccordion)}
+      >
+        {fields.map((field) => (
+          <AccordionItem
+            key={field.key}
+            value={field.key}
+            className="border-border/60"
+          >
+            <AccordionTrigger className="text-muted-foreground min-h-11 px-4 py-3 text-sm font-medium hover:no-underline">
+              {field.label}
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <OrganizationNarrativeContent
+                value={field.value}
+                className="overflow-x-auto"
+              />
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </FormRow>
   )
 }
@@ -188,7 +162,6 @@ export function ViewModeSections(props: CompanyViewProps) {
     { id: "contact", node: ContactPreview(props) },
     { id: "address", node: AddressPreview(props) },
     { id: "story", node: StoryPreview(props) },
-    { id: "brand-kit", node: BrandKitPreview(props) },
   ].filter((section) => Boolean(section.node))
 
   if (sections.length === 0) {
@@ -202,26 +175,10 @@ export function ViewModeSections(props: CompanyViewProps) {
     )
   }
 
-  const hasIdentity = sections.some((section) => section.id === "identity")
-
   return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-4xl",
-        hasIdentity ? "divide-border/60 divide-y" : "space-y-6"
-      )}
-    >
-      {sections.map((section, index) => (
-        <div
-          key={section.id}
-          className={cn(
-            "py-6",
-            index === 0 && "pt-0",
-            index === sections.length - 1 && "pb-0"
-          )}
-        >
-          {section.node}
-        </div>
+    <div className={styles.sections}>
+      {sections.map((section) => (
+        <div key={section.id}>{section.node}</div>
       ))}
     </div>
   )

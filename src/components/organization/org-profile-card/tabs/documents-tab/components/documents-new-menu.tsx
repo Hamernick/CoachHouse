@@ -1,5 +1,10 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import {
+  useWorkspaceWindowHeader,
+  WORKSPACE_HEADER_BUTTON,
+} from "@/components/workspace/workspace-window-header-slots"
 import { useRef } from "react"
 import {
   IconBrandGoogleDrive,
@@ -67,6 +72,7 @@ export function DocumentsNewMenu({
   onUploadFiles,
   onGoogleDrive,
 }: Props) {
+  const inWindowHeader = useWorkspaceWindowHeader()
   const inputRef = useRef<HTMLInputElement>(null)
 
   if (!canEdit || !editMode) return null
@@ -90,7 +96,12 @@ export function DocumentsNewMenu({
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
-            className="h-11 rounded-full px-4 text-base shadow-none sm:h-9 sm:text-sm"
+            className={cn(
+              "rounded-full shadow-none",
+              inWindowHeader
+                ? WORKSPACE_HEADER_BUTTON
+                : "h-11 px-4 text-base sm:h-9 sm:text-sm"
+            )}
           >
             New
             <IconChevronDown className="size-4" aria-hidden />

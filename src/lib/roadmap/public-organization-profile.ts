@@ -45,14 +45,15 @@ export function resolvePublicOrganizationProfileNarratives(
 
   const resolveSection = (sectionId: string, legacyValue: string) => {
     const section = sectionById.get(sectionId)
+    if (section?.publicProfileStatusControlled) {
+      return normalizeOrganizationNarrativeHtml(
+        section.status === "complete" ? section.content : ""
+      )
+    }
     if (!section || section.lastUpdated === null) {
       return normalizeOrganizationNarrativeHtml(legacyValue)
     }
-    const content = section.publicProfileStatusControlled
-      ? section.status === "complete"
-        ? section.content
-        : (section.publishedContent ?? "")
-      : resolveLegacyPublicProfileSectionContent(normalizedProfile, section)
+    const content = resolveLegacyPublicProfileSectionContent(normalizedProfile, section)
     return normalizeOrganizationNarrativeHtml(content)
   }
 

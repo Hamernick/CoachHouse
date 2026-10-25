@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { Connection, EdgeMouseHandler, IsValidConnection } from "reactflow"
+import type { Connection, EdgeMouseHandler, IsValidConnection } from "@xyflow/react"
 
 import { ACCELERATOR_STEP_EDGE_ID } from "../../workspace-board-flow-surface-accelerator-graph-composition"
 import type { WorkspaceCardEdgeGeometryLookup } from "../../workspace-board-connection-handles"

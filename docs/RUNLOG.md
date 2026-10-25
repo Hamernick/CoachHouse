@@ -4,7 +4,8 @@ Canonical index for implementation history and session continuation.
 
 ## Current log
 
-- [2026-10](runlog/2026-10.md)
+- [2026-10](runlog/2026-10.md) — current entries
+- [2026-10, part 1](runlog/2026-10-part1.md) — preserved October1–6 history
 
 ## Archive
 

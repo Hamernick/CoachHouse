@@ -5,29 +5,14 @@ import XIcon from "lucide-react/dist/esm/icons/x"
 import { Button } from "@/components/ui/button"
 import GraduationCapIcon from "lucide-react/dist/esm/icons/graduation-cap"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
-
-const WORKSPACE_ACCELERATOR_BANNER_SOURCE =
-  "src/features/workspace-accelerator-card/components/workspace-accelerator-banner.tsx"
-
-const WORKSPACE_ACCELERATOR_BANNER_OWNER_PROPS = getReactGrabOwnerProps({
-  ownerId: "workspace-accelerator:banner",
-  component: "WorkspaceAcceleratorBanner",
-  source: WORKSPACE_ACCELERATOR_BANNER_SOURCE,
-  slot: "root",
-  canonicalOwnerSource: WORKSPACE_ACCELERATOR_BANNER_SOURCE,
-  canonicalOwnerReason:
-    "WorkspaceAcceleratorBanner owns the Accelerator drawer introduction.",
-})
-
 export function WorkspaceAcceleratorBanner({ onDismiss, dismissButtonRef }: {
   onDismiss: () => void
   dismissButtonRef?: Ref<HTMLButtonElement>
 }) {
   return (
     <section
-      {...WORKSPACE_ACCELERATOR_BANNER_OWNER_PROPS}
-      className="border-border/70 bg-muted/30 col-span-full mx-auto flex w-full max-w-[420px] items-start gap-3 rounded-xl border p-4 @min-[900px]/accelerator-overview:max-w-none"
+
+      className="border-border/70 bg-muted/30 col-span-full flex w-full min-w-0 items-start gap-3 rounded-xl border p-4"
     >
       <span className="bg-background text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70">
         <GraduationCapIcon className="size-4" aria-hidden="true" />

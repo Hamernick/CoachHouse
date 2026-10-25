@@ -1,6 +1,6 @@
 "use client"
 
-import { Position } from "reactflow"
+import { Position } from "@xyflow/react"
 
 import type {
   WorkspaceAcceleratorCardRuntimeSnapshot,

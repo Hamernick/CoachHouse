@@ -10,7 +10,6 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 import { RoadmapEditorToc } from "@/components/roadmap/roadmap-editor/components/roadmap-editor-toc"
 import { ROADMAP_TOC_GROUP_PARENT_BY_CHILD } from "@/components/roadmap/roadmap-editor/constants"
 import {
@@ -53,16 +52,6 @@ const ROADMAP_TOC_TITLE_CLASS_NAME =
 export const ROADMAP_NAVIGATOR_HEADER_BUTTON_CLASS_NAME =
   "hover:bg-muted/30 h-8 w-full justify-between rounded-lg px-2.5 py-0 text-left"
 
-const ROADMAP_NAVIGATOR_HEADER_BUTTON_REACT_GRAB_PROPS =
-  getReactGrabLinkedSurfaceProps({
-    ownerId: "roadmap-navigator-section:header-button",
-    component: "RoadmapNavigatorSection",
-    source: "src/components/roadmap/roadmap-navigator-section.tsx",
-    slot: "button",
-    surfaceKind: "trigger",
-    primitiveImport: "@/components/ui/button",
-  })
-
 function RoadmapNavigatorHeaderButton({
   children,
   ...props
@@ -73,7 +62,7 @@ function RoadmapNavigatorHeaderButton({
       variant="ghost"
       size="sm"
       className={ROADMAP_NAVIGATOR_HEADER_BUTTON_CLASS_NAME}
-      {...ROADMAP_NAVIGATOR_HEADER_BUTTON_REACT_GRAB_PROPS}
+
       {...props}
     >
       {children}

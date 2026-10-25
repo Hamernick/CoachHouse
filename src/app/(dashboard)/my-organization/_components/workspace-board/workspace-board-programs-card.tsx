@@ -130,7 +130,7 @@ export function WorkspaceBoardProgramsCard({
 
     return (
       <ProgramCard
-        title={program.title?.trim() || "Untitled activity"}
+        title={program.title?.trim() || "Untitled resource"}
         location={locationSummary(program) ?? undefined}
         description={resolveProgramSummary(program) ?? undefined}
         bannerImageUrl={resolveProgramBannerImageUrl(program) ?? undefined}
@@ -145,6 +145,8 @@ export function WorkspaceBoardProgramsCard({
         ctaTarget="_self"
         onCtaClick={onCtaClick}
         variant="medium"
+        surface="workspace"
+        contentFill={false}
         className="border-border/60 bg-background/35 h-full min-h-0 max-w-none border shadow-none"
       />
     )
@@ -152,7 +154,7 @@ export function WorkspaceBoardProgramsCard({
 
   return (
     <>
-      <div className="flex min-h-0 flex-col gap-3 pb-0">
+      <div className="flex min-h-0 flex-col gap-2">
         {sortedPrograms.length > 0 ? (
           sortedPrograms.length === 1 ? (
             <div
@@ -183,7 +185,7 @@ export function WorkspaceBoardProgramsCard({
         ) : (
           <Empty
             icon={<FolderPlusIcon className="h-5 w-5" aria-hidden />}
-            title="No activity to display"
+            title="No resources to display"
             description="Projects, programs, events, services, and grant requests you create will appear here."
             actions={
               canEdit ? null : (
@@ -201,7 +203,7 @@ export function WorkspaceBoardProgramsCard({
             }
             size="sm"
             variant="subtle"
-            className="bg-background min-h-[148px] rounded-xl px-4 py-6 shadow-none"
+            className="bg-background rounded-[25px] p-3 shadow-none"
           />
         )}
       </div>

@@ -1,13 +1,39 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createLinkPreviewQueue } from "@/lib/editor/link-preview-queue"
 
 import type { LinkPreviewMeta, LinkPreviewMetaMap } from "../types"
 
-export function useLinkPreviews(links: string[]): LinkPreviewMetaMap {
+export function useLinkPreviews(
+  links: string[],
+  { active = true, bounded = false } = {}
+): LinkPreviewMetaMap {
   const [linkMeta, setLinkMeta] = useState<LinkPreviewMetaMap>({})
+  const queue = useRef<ReturnType<typeof createLinkPreviewQueue> | null>(null)
 
   useEffect(() => {
+    if (!bounded) return
+    const current = createLinkPreviewQueue({
+      fetchPreview: (url, signal) => fetch(
+        `/api/link-preview?url=${encodeURIComponent(url)}`,
+        { cache: "no-store", signal }
+      ),
+      onResult: (url, metadata) => setLinkMeta((previous) => ({ ...previous, [url]: metadata })),
+    })
+    queue.current = current
+    return () => {
+      current.dispose()
+      if (queue.current === current) queue.current = null
+    }
+  }, [bounded])
+
+  useEffect(() => {
+    if (bounded) queue.current?.update(links, active)
+  }, [links, active, bounded])
+
+  useEffect(() => {
+    if (bounded || !active) return
     let cancelled = false
 
     const loadMeta = async () => {
@@ -40,7 +66,7 @@ export function useLinkPreviews(links: string[]): LinkPreviewMetaMap {
     return () => {
       cancelled = true
     }
-  }, [links, linkMeta])
+  }, [links, linkMeta, active, bounded])
 
   return linkMeta
 }

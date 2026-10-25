@@ -11,7 +11,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
+
 import type { CalendarController } from "../hooks/use-google-calendar-controller"
 import { calendarErrorMessage } from "../lib"
 import { GoogleCalendarSettings } from "./google-calendar-settings"
@@ -40,14 +40,7 @@ export function GoogleCalendarDialog({
     >
       <DialogContent
         className="max-h-[85svh] overflow-y-auto overscroll-contain rounded-2xl p-4 sm:max-w-md sm:rounded-lg sm:p-6 [&>[data-slot=dialog-close]]:top-2 [&>[data-slot=dialog-close]]:right-2 [&>[data-slot=dialog-close]]:inline-flex [&>[data-slot=dialog-close]]:size-11 [&>[data-slot=dialog-close]]:items-center [&>[data-slot=dialog-close]]:justify-center [&>[data-slot=dialog-close]]:rounded-full sm:[&>[data-slot=dialog-close]]:top-4 sm:[&>[data-slot=dialog-close]]:right-4 sm:[&>[data-slot=dialog-close]]:size-4 sm:[&>[data-slot=dialog-close]]:rounded-xs"
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: "google-calendar:connection",
-          component: "GoogleCalendarDialog",
-          source:
-            "src/features/google-calendar/components/google-calendar-dialog.tsx",
-          slot: "dialog",
-          surfaceKind: "content",
-        })}
+
       >
         <DialogHeader className="pr-10 text-left sm:pr-0">
           <DialogTitle>Google Calendar</DialogTitle>

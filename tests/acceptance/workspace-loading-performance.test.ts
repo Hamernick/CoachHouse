@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { getClassModulesForUser } from "@/lib/modules/service"
 
 const mocks = vi.hoisted(() => ({ layout: vi.fn(), content: vi.fn() }))
+vi.mock("@/lib/auth/request-context", () => ({ resolveOptionalAuthenticatedAppContext: vi.fn().mockResolvedValue(null) }))
 vi.mock("@/components/app-shell/dashboard-layout-state", () => ({ resolveDashboardLayoutState: mocks.layout }))
 vi.mock("@/app/(dashboard)/my-organization/_lib/my-organization-page-content", () => ({ default: mocks.content }))
 vi.mock("@/lib/performance/server-timing", () => ({ measureServerStep: (_name: string, work: () => unknown) => work() }))

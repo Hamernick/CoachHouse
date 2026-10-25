@@ -42,12 +42,12 @@ export function ProgramsTab({
 }: ProgramsTabProps) {
   const hasPrograms = programs && programs.length > 0
   const publicCopy = publicSharingEnabled
-    ? "Activity appears in your overview and public page when published."
-    : "Activity stays private until public sharing is enabled."
+    ? "Resource appears in your overview and public page when published."
+    : "Resource stays private until public sharing is enabled."
 
   const heading = (
     <div className="flex min-w-0 items-center gap-2">
-      <h3 className="text-base leading-none font-medium">Activity</h3>
+      <h3 className="text-base leading-none font-medium">Resource</h3>
       {editMode ? (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -56,7 +56,7 @@ export function ProgramsTab({
               variant="ghost"
               size="icon"
               className="border-border/70 text-muted-foreground hover:text-foreground h-5 w-5 rounded-full border p-0 hover:bg-transparent"
-              aria-label="Activity visibility info"
+              aria-label="Resource visibility info"
             >
               <InfoIcon className="h-3.5 w-3.5" aria-hidden />
             </Button>
@@ -82,11 +82,11 @@ export function ProgramsTab({
         {introduction}
         <Empty
           icon={<FolderPlus className="h-5 w-5" />}
-          title={editMode ? "No activity yet" : "No activity to display"}
+          title={editMode ? "No activity yet" : "No resources to display"}
           description={
             editMode
               ? "Create your first activity to showcase it here."
-              : "Activity you create will appear here."
+              : "Resource you create will appear here."
           }
           actions={editMode ? <ProgramWizardLazy /> : undefined}
         />
@@ -102,13 +102,13 @@ export function ProgramsTab({
             {canEdit ? (
               <ProgramVisibilitySwitch
                 programId={program.id}
-                title={program.title ?? "Untitled activity"}
+                title={program.title ?? "Untitled resource"}
                 isPublic={Boolean(program.is_public)}
               />
             ) : null}
             <ProgramCard
               variant="medium"
-              title={program.title ?? "Untitled activity"}
+              title={program.title ?? "Untitled resource"}
               org={companyName || undefined}
               location={locationSummary(program) || undefined}
               description={resolveProgramSummary(program) || undefined}

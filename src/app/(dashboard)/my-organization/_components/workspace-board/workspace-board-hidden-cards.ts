@@ -42,8 +42,10 @@ function areCardIdListsEqual(
 function toWorkspaceHiddenSet({
   hiddenCardIds,
   nodeIdSet,
+  organizationHiddenExplicitly = false,
 }: {
   hiddenCardIds: WorkspaceCardId[]
+  organizationHiddenExplicitly?: boolean
   nodeIdSet: Set<WorkspaceCardId>
 }) {
   const hiddenSet = new Set<WorkspaceCardId>()
@@ -61,7 +63,7 @@ function toWorkspaceHiddenSet({
   }
 
   for (const cardId of FIXED_VISIBLE_CARD_IDS) {
-    hiddenSet.delete(cardId)
+    if (!organizationHiddenExplicitly) hiddenSet.delete(cardId)
   }
 
   return hiddenSet
@@ -169,9 +171,14 @@ export function sanitizeWorkspaceBoardHiddenState(
   const nodeIdSet = new Set(state.nodes.map((node) => node.id))
   let nextHiddenSet = toWorkspaceHiddenSet({
     hiddenCardIds: state.hiddenCardIds,
+    organizationHiddenExplicitly:
+      state.visibility?.organizationHiddenExplicitly,
     nodeIdSet,
   })
-  const visibleCount = countVisibleCards({ hiddenSet: nextHiddenSet, nodeIdSet })
+  const visibleCount = countVisibleCards({
+    hiddenSet: nextHiddenSet,
+    nodeIdSet,
+  })
   const allCardsHidden = visibleCount === 0
   const hiddenExplicitly = state.visibility?.allCardsHiddenExplicitly === true
 
@@ -187,11 +194,14 @@ export function sanitizeWorkspaceBoardHiddenState(
   })
   const nextVisibility =
     allCardsHidden && hiddenExplicitly
-      ? { allCardsHiddenExplicitly: true }
-      : { allCardsHiddenExplicitly: false }
+      ? { ...state.visibility, allCardsHiddenExplicitly: true }
+      : { ...state.visibility, allCardsHiddenExplicitly: false }
 
   if (areCardIdListsEqual(nextHiddenCardIds, state.hiddenCardIds)) {
-    if ((state.visibility?.allCardsHiddenExplicitly ?? false) === nextVisibility.allCardsHiddenExplicitly) {
+    if (
+      (state.visibility?.allCardsHiddenExplicitly ?? false) ===
+      nextVisibility.allCardsHiddenExplicitly
+    ) {
       return state
     }
   }
@@ -214,6 +224,8 @@ export function toggleWorkspaceBoardCardVisibility(
 
   const nextHiddenSet = toWorkspaceHiddenSet({
     hiddenCardIds: state.hiddenCardIds,
+    organizationHiddenExplicitly:
+      state.visibility?.organizationHiddenExplicitly,
     nodeIdSet,
   })
 
@@ -221,7 +233,11 @@ export function toggleWorkspaceBoardCardVisibility(
     nextHiddenSet.delete(cardId)
     if (isWorkspaceTreeCardId(cardId)) {
       for (const ancestorId of getWorkspaceCanvasCardAncestors(cardId)) {
-        nextHiddenSet.delete(ancestorId)
+        if (
+          ancestorId !== "organization-overview" ||
+          !state.visibility?.organizationHiddenExplicitly
+        )
+          nextHiddenSet.delete(ancestorId)
       }
     }
   } else {
@@ -234,16 +250,27 @@ export function toggleWorkspaceBoardCardVisibility(
   }
 
   for (const fixedCardId of FIXED_VISIBLE_CARD_IDS) {
-    nextHiddenSet.delete(fixedCardId)
+    if (!state.visibility?.organizationHiddenExplicitly)
+      nextHiddenSet.delete(fixedCardId)
   }
 
-  const nextHiddenCardIds = toHiddenCardIdList({ hiddenSet: nextHiddenSet, nodeIdSet })
-  const nextVisibleCount = countVisibleCards({ hiddenSet: nextHiddenSet, nodeIdSet })
+  const nextHiddenCardIds = toHiddenCardIdList({
+    hiddenSet: nextHiddenSet,
+    nodeIdSet,
+  })
+  const nextVisibleCount = countVisibleCards({
+    hiddenSet: nextHiddenSet,
+    nodeIdSet,
+  })
   const nextVisibility = {
+    ...state.visibility,
     allCardsHiddenExplicitly: nextVisibleCount === 0,
   }
   if (areCardIdListsEqual(nextHiddenCardIds, state.hiddenCardIds)) {
-    if ((state.visibility?.allCardsHiddenExplicitly ?? false) === nextVisibility.allCardsHiddenExplicitly) {
+    if (
+      (state.visibility?.allCardsHiddenExplicitly ?? false) ===
+      nextVisibility.allCardsHiddenExplicitly
+    ) {
       return state
     }
   }

@@ -49,18 +49,26 @@ function scrollOrganizationFocusTarget(target: HTMLElement) {
 export function useOrganizationDeepLinkFocus({
   enabled = true,
   focusKey,
+  requestId,
   rootRef,
 }: {
   enabled?: boolean
   focusKey?: string | null
+  requestId?: number
   rootRef: RefObject<HTMLElement | null>
 }) {
-  const handledFocusRef = useRef<string | null>(null)
+  const handledFocusRef = useRef<{ key: string; requestId?: number } | null>(
+    null
+  )
 
   useEffect(() => {
     const normalizedFocus = focusKey?.trim() ?? ""
     if (!enabled || !normalizedFocus) return
-    if (handledFocusRef.current === normalizedFocus) return
+    if (
+      handledFocusRef.current?.key === normalizedFocus &&
+      handledFocusRef.current.requestId === requestId
+    )
+      return
 
     let secondFrame = 0
     let highlightTimer = 0
@@ -72,7 +80,7 @@ export function useOrganizationDeepLinkFocus({
         const target = findOrganizationFocusTarget(root, normalizedFocus)
         if (!target) return
 
-        handledFocusRef.current = normalizedFocus
+        handledFocusRef.current = { key: normalizedFocus, requestId }
         highlightedTarget = target
         target.dataset.organizationHighlighted = "true"
         scrollOrganizationFocusTarget(target)
@@ -91,5 +99,5 @@ export function useOrganizationDeepLinkFocus({
         delete highlightedTarget.dataset.organizationHighlighted
       }
     }
-  }, [enabled, focusKey, rootRef])
+  }, [enabled, focusKey, requestId, rootRef])
 }

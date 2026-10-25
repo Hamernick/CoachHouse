@@ -44,7 +44,10 @@ function driveErrorMessage(code?: string) {
   return "Google Drive could not be reached. Try again."
 }
 
-export function useGoogleDriveLibrary({ enabled }: { enabled: boolean }) {
+export function useGoogleDriveLibrary({
+  enabled,
+  inWorkspace = false,
+}: { enabled: boolean; inWorkspace?: boolean }) {
   const [documents, setDocuments] = useState<DriveLibraryDocument[]>([])
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -114,7 +117,9 @@ export function useGoogleDriveLibrary({ enabled }: { enabled: boolean }) {
       const response = await fetch("/api/integrations/google-drive/connect", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ returnPath: "/organization/documents" }),
+        body: JSON.stringify({
+          returnPath: inWorkspace ? "/workspace/documents" : "/organization/documents",
+        }),
       })
       const result = await readDriveResponse(response)
       if (!response.ok || !result?.authorizationUrl) {
@@ -132,7 +137,7 @@ export function useGoogleDriveLibrary({ enabled }: { enabled: boolean }) {
     } finally {
       setPending(false)
     }
-  }, [connected, enabled, openPicker, pending])
+  }, [connected, enabled, inWorkspace, openPicker, pending])
 
   const detachDocument = useCallback(
     async (documentId: string, options: DocumentActionOptions = {}) => {

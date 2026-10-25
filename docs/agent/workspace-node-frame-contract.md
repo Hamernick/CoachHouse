@@ -43,6 +43,7 @@ The title belongs in the header. Primary content belongs in the body. Progress a
 
 ## Spacing Rules
 
+
 - The workspace node root owns the outer card rhythm.
 - The body content should sit in an inset panel.
 - Header, body, and footer gaps must be visually balanced.
@@ -50,6 +51,21 @@ The title belongs in the header. Primary content belongs in the body. Progress a
 - Do not leave a no-footer node with a collapsed bottom gap just because `CardContent` or `FrameBody` defaults to `pb-0`.
 - Child radius must be less than or equal to parent radius.
 - Avoid nested floating card stacks. Use the inset body panel for the main content surface.
+
+### Particle editor window standard
+
+- Preset configuration fields belong inside the same Particle card as its interactive content. Do not place fields beside a separate preview card. Use the card’s optional editorFields slot, including Event and Image placeholders; canvas/library rendering omits that slot. Keep one card, a bounded responsive width, and one outer scroll region. Adding editorFields must not remove or flatten its existing card header, muted outer frame, inset body, or concentric radii. Window header ownership does not replace the card’s own anatomy.
+
+- Do not add blanket Particle status badges or Backlog/status selectors to cards or editors. Preserve stored status and task-specific checklist behavior without generic status chrome.
+
+- All Particle preset editors and metadata inspectors use `ParticleEditorHeader` from `src/features/workspace-particles/components/particle-editor-header.tsx`. The canvas card's own header is a separate surface.
+- Inside a workspace content window, route the editor title and Back control through `WorkspaceWindowHeaderPortal slot="title"`; route editor actions through its actions slot. Do not add another heading/action row inside the editor body. Use the shared compact action class (28px desktop, 44px touch).
+- Keep editor state and handlers with the editor. A portalled submit button must use `form={formId}` referencing its owning form so native validation, keyboard submission and save guards still work. Back keeps unsaved-draft confirmation and pending protection.
+- Preset draft Back uses `ParticleDraftBackButton` with the shared shadcn AlertDialog: Keep editing / Discard draft, cancel-first focus and Escape behavior. Do not replace this in-app guard with `window.confirm`. Browser tab-close/refresh protection remains a separate browser-controlled `beforeunload` guard.
+- Library layout switches belong to browsing only. `ParticleLibrary` owns their conditional portal: render while browsing, remove while configuring a preset. Its retained-panel header scope hides them when another tab or a Particle inspector is active. Do not mount these switches independently at the dock/window level.
+- Only standalone editors without a window header may render an inline header. Enabled but not-yet-mounted header targets must not flash inline controls; inactive retained editors must not publish header content.
+- Use `tests/acceptance/particle-editor-header.test.ts` and `workspace-window-header.test.ts` when changing this ownership. Preserve all presets and responsive/mobile behavior; a new preset must inherit this rule rather than add its own header.
+
 
 ## React Flow Boundary
 

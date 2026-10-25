@@ -10,9 +10,13 @@ import { normalizeWorkspaceHiddenCardIds } from "./workspace-board-hidden-cards"
 
 export function normalizeWorkspaceBoardHiddenCardIdsForPayload(
   hiddenCardIds: unknown,
-  nodes: unknown
+  nodes: unknown,
+  organizationHiddenExplicitly = false
 ): WorkspaceCardId[] {
-  const normalizedHiddenCardIds = normalizeWorkspaceHiddenCardIds(hiddenCardIds)
+  const normalizedHiddenCardIds = normalizeWorkspaceHiddenCardIds(
+    hiddenCardIds,
+    { enforceFixedVisibleCards: !organizationHiddenExplicitly }
+  )
   const optionalDefaultCardIds =
     WORKSPACE_OPTIONAL_DEFAULT_HIDDEN_CARD_IDS as readonly WorkspaceCardId[]
 

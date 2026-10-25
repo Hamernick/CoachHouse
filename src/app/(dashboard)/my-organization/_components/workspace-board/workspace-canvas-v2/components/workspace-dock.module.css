@@ -1,0 +1,282 @@
+.dockHost {
+  --workspace-navigation-height: 42px;
+  --workspace-navigation-bottom: calc(6px + var(--workspace-composer-height, 58px));
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  pointer-events: none;
+  container: workspace-dock / inline-size;
+}
+
+.panel {
+  display: contents;
+  --workspace-dock-padding-top: 8px;
+}
+
+.composerShell {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  width: calc(100% - 24px);
+  max-width: clamp(460px, 48%, 520px);
+  margin-inline: auto;
+  pointer-events: auto;
+}
+
+.organizationTrigger {
+  z-index: 1;
+  max-width: min(208px, calc((100% - 360px) / 2 - 16px));
+}
+
+.organizationTrigger[data-morph-open="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.topNavigation {
+  position: absolute;
+  /* Composer already includes 8px of top padding; leave a 6px visible gap. */
+  bottom: var(--workspace-navigation-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  pointer-events: auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 88%, var(--card));
+  padding: 4px;
+}
+.topTabList {
+  display: flex;
+  width: 100%;
+  height: 32px !important;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+}
+.topTabList::-webkit-scrollbar { display: none; }
+.topTab {
+  flex: 0 0 auto;
+  width: auto;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--foreground);
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+  touch-action: manipulation;
+}
+.topTab[data-panel-open="true"],
+.topTab:hover {
+  background: color-mix(in srgb, var(--foreground) 10%, var(--muted)) !important;
+  color: var(--foreground);
+}
+.topTab::after { display: none; }
+@media (pointer: coarse) {
+  .dockHost { --workspace-navigation-height: 54px; }
+  .topTabList { height: 44px !important; }
+  .topTab { min-width: 44px; height: 44px; }
+  .composerShell [data-workspace-composer-action] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+.contentWindow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  bottom: calc(var(--workspace-navigation-bottom) + var(--workspace-navigation-height) + 8px);
+  pointer-events: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.organizationSidebar {
+  top: 8px;
+  bottom: auto;
+  left: 8px;
+  right: auto;
+  margin-inline: 0;
+}
+
+@container workspace-dock (max-width: 700px) {
+  .organizationTrigger { max-width: calc(100% - 180px); }
+  .topNavigation {
+    max-width: calc(100% - 16px);
+  }
+}
+
+/* Override the animated window's inline pointer style while a modal locks input. */
+:global(body[style*="pointer-events: none"]) .dockHost [data-workspace-organization-trigger],
+:global(body[style*="pointer-events: none"]) .topNavigation,
+:global(body[style*="pointer-events: none"]) .composerShell,
+:global(body[style*="pointer-events: none"]) .contentWindow {
+  pointer-events: none !important;
+}
+
+.windowHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+.windowHeaderWithTools {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-block: 4px;
+}
+.windowHeaderActions {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+}
+.windowHeader:has([data-workspace-people-header-segments]) .windowHeaderActions {
+  flex-basis: 100%;
+  width: 100%;
+}
+.windowHeaderActions:empty {
+  display: none;
+}
+.windowTitleCopy {
+  min-width: 0;
+}
+.windowTitleCopy:has(> .windowTitleSlot:not(:empty)) {
+  flex: 1;
+}
+.windowTitleSlot {
+  min-width: 0;
+}
+.windowTitleSlot:empty {
+  display: none;
+}
+.windowTitleCopy:has(> .windowTitleSlot:not(:empty)) > h2 {
+  display: none;
+}
+.windowControls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+.windowControl {
+  --focus-ring-offset: 1px;
+  width: 24px;
+  height: 28px;
+  min-width: 24px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+.windowControl:hover {
+  background: transparent;
+}
+.windowDot {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  color: #252525;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+.windowControl[data-window-action="close"] .windowDot {
+  background: #ff5f57;
+}
+.windowControl[data-window-action="maximize"] .windowDot {
+  background: #28c840;
+}
+.windowDot svg {
+  width: 8px !important;
+  height: 8px !important;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.windowControls:hover .windowDot svg,
+.windowControls:focus-within .windowDot svg {
+  opacity: 1;
+}
+.unsavedDot {
+  display: none;
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.windowControl[data-unsaved="true"] .unsavedDot {
+  display: block;
+}
+.windowControl[data-unsaved="true"] .windowDot svg {
+  opacity: 0;
+}
+@media (pointer: coarse) {
+  .windowHeader {
+    min-height: 52px;
+  }
+  .windowControl {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .windowDot svg {
+    opacity: 1;
+  }
+}
+@media (forced-colors: active) {
+  .windowDot {
+    border: 1px solid ButtonText;
+    color: ButtonText;
+  }
+  .windowDot svg {
+    opacity: 1;
+  }
+  .unsavedDot {
+    background: ButtonText;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .windowDot svg {
+    transition: none;
+  }
+}
+
+/* Stop projected layout transforms immediately even if the OS preference flips
+   during a frame. The live subscription also cancels the JS animation. */
+@media (prefers-reduced-motion: reduce) {
+  .contentWindow,
+  .contentWindow > * {
+    transform: none !important;
+  }
+
+  .topTab,
+  .windowControl {
+    transition: none;
+  }
+}
+
+/* Legacy non-Particle sheets keep their own transform ownership. */
+.contentSurface:not([data-workspace-content-window]),
+.contentSurface:not([data-workspace-content-window]) > * {
+  transform: none !important;
+}
+
+.contentSurface:not([data-workspace-content-window]) {
+  opacity: 1 !important;
+}

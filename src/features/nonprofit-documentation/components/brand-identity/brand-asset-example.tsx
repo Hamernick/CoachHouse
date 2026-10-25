@@ -7,7 +7,7 @@ import HouseIcon from "lucide-react/dist/esm/icons/house"
 import HeartHandshakeIcon from "lucide-react/dist/esm/icons/heart-handshake"
 import type { BrandAssetId } from "../../types"
 import artwork from "../../assets/heroes/tools-brand-identity.webp"
-import { brandIdentityOwner } from "./brand-identity-owner"
+
 const illustrations = [
   HandHeartIcon,
   SproutIcon,
@@ -45,12 +45,7 @@ export function BrandAssetExample({ id }: { id: BrandAssetId }) {
       className="text-foreground/80 flex size-full items-center justify-center p-6"
       role="img"
       aria-label="Example artwork"
-      {...brandIdentityOwner(
-        "brand-asset-example",
-        "BrandAssetExample",
-        id,
-        "example"
-      )}
+
     >
       {Illustration ? (
         <Illustration className="size-10 sm:size-12" strokeWidth={1.1} aria-hidden />

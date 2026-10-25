@@ -7,7 +7,6 @@ import {
   WorkspaceCanvasTutorialPresentationSurface,
   WorkspaceCanvasTutorialStepId,
 } from "@/features/workspace-canvas-tutorial"
-import { getReactGrabLinkedSurfaceProps } from "@/components/dev/react-grab-surface"
 
 import { ACCELERATOR_STEP_NODE_ID } from "../../workspace-board-flow-surface-accelerator-graph-composition"
 import { WorkspaceBoardCard } from "../../workspace-board-node-card"
@@ -24,9 +23,6 @@ import {
   resolveWorkspaceTutorialPresentationSurfaceKind,
   WORKSPACE_TUTORIAL_PRESENTATION_SHELL_SIDE_PADDING,
 } from "./workspace-canvas-surface-v2-tutorial-presentation-state"
-
-const WORKSPACE_TUTORIAL_PRESENTATION_SOURCE =
-  "src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-tutorial-presentation.tsx"
 
 type WorkspaceTutorialPresentation = {
   family: WorkspaceTutorialPresentationFamily
@@ -144,14 +140,6 @@ function buildCardPresentation({
     heightMode: layoutSpec.family === "accelerator-module" ? "fill" : "content",
     chrome: layoutSpec.chrome,
   }
-  const acceleratorCardShellProps = getReactGrabLinkedSurfaceProps({
-    ownerId: `workspace-canvas-tutorial-panel:${tutorialStepId}`,
-    component: "WorkspaceCanvasTutorialPanel",
-    source: WORKSPACE_TUTORIAL_PRESENTATION_SOURCE,
-    slot: "presentation-accelerator-card-shell",
-    surfaceKind: "content",
-    primitiveImport: "@/components/ui/card",
-  })
 
   if (cardId === "calendar") {
     return {
@@ -164,9 +152,7 @@ function buildCardPresentation({
       surface: framedSurface,
       suppressedNodeIds: [cardId],
       content: (
-        <WorkspaceTutorialCalendarPresentation
-          tutorialStepId={tutorialStepId}
-        />
+        <WorkspaceTutorialCalendarPresentation />
       ),
     }
   }
@@ -183,7 +169,7 @@ function buildCardPresentation({
       suppressedNodeIds: ["accelerator", ACCELERATOR_STEP_NODE_ID],
       content: (
         <div
-          {...acceleratorCardShellProps}
+
           className="mx-auto"
           style={{ width: surfaceSpec.cardWidth }}
         >

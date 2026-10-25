@@ -1,3 +1,4 @@
+import type { OrganizationBrandIdentity } from "@/lib/organization/brand-identity-schema"
 export type FormationStatus = "pre_501c3" | "in_progress" | "approved"
 
 export type BrandTypographyTracking =
@@ -22,6 +23,8 @@ export type BrandTypographyConfig = {
 }
 
 export type OrgProfile = {
+  brandIdentity?: OrganizationBrandIdentity
+  expectedOrganizationId?: string
   name?: string | null
   description?: string | null
   tagline?: string | null

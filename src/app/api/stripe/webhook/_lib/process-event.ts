@@ -1,4 +1,5 @@
 import Stripe from "stripe"
+import { processAiCreditPurchase, processAiAllowanceInvoice } from "@/features/ai-credits"
 
 import { isElectiveAddOnModuleSlug } from "@/lib/accelerator/elective-modules"
 import {
@@ -33,6 +34,7 @@ export async function processStripeWebhookEvent({
   stripeMode: "live" | "test"
   organizationPriceId: string | null
 }) {
+  if (await processAiCreditPurchase(event, stripeClient, stripeMode)) return
   if (event.type === "checkout.session.async_payment_succeeded") {
     if (await processCoachingCheckoutSession(event.data.object as Stripe.Checkout.Session)) return
   }
@@ -152,6 +154,7 @@ export async function processStripeWebhookEvent({
   }
 
   if (event.type === "invoice.paid") {
+    await processAiAllowanceInvoice(event, stripeClient, stripeMode)
     const invoice = event.data.object as Stripe.Invoice
     await handleAcceleratorMonthlyInstallmentInvoice({
       invoice,

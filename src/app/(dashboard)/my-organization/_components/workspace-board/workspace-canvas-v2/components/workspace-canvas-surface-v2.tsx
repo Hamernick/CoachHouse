@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { type ReactFlowInstance } from "reactflow"
-import "reactflow/dist/style.css"
+import { type ReactFlowInstance } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import { useWorkspaceAcceleratorDrawer } from "./use-workspace-accelerator-drawer"
 import { useWorkspaceOntologyActionRequest } from "./use-workspace-ontology-action-request"
 import type { WorkspaceCanvasSurfaceV2Props } from "./workspace-canvas-surface-v2-types"
@@ -12,9 +12,23 @@ import {
   type WorkspaceCanvasV2CardId,
 } from "./workspace-canvas-surface-v2-helpers"
 import * as Runtime from "./workspace-canvas-surface-v2-runtime"
+import { useParticleSession, type ResearchTransport } from "@/features/workspace-particles/client"
+import {
+  applyWorkspaceParticleBatchAction,
+  loadWorkspaceParticleGraphAction,
+} from "../../../../_lib/workspace-particle-actions"
+
+import { applyWorkspaceResearchAction } from "../../../../_lib/workspace-research-actions"
+
 const WORKSPACE_LIVE_CANVAS_ONTOLOGY_ENABLED = false
+
+// Reset the whole session boundary on organization/account changes. A retained
+// canvas must never carry history, pending mutations or selection to another org.
+export function WorkspaceCanvasSurfaceV2(props: WorkspaceCanvasSurfaceV2Props) {
+  return <WorkspaceCanvasSurfaceV2Session key={`${props.seed.orgId}:${props.seed.viewerId}`} {...props} />
+}
 // eslint-disable-next-line max-lines-per-function
-export function WorkspaceCanvasSurfaceV2({
+function WorkspaceCanvasSurfaceV2Session({
   boardState,
   allowEditing,
   workspaceDataDrawerCanEdit,
@@ -44,6 +58,7 @@ export function WorkspaceCanvasSurfaceV2({
   onConnectCards,
   onDisconnectConnection,
   onDisconnectAllConnections,
+  onPlaceWorkspaceTool,
   onToggleCardVisibility,
   onTutorialCompletionExitHandled,
 }: WorkspaceCanvasSurfaceV2Props) {
@@ -68,6 +83,14 @@ export function WorkspaceCanvasSurfaceV2({
     [boardState.nodes]
   )
   const tutorialActiveFromBoard = boardState.onboardingFlow.active
+  const particleSession = useParticleSession({
+    workspaceId: seed.orgId,
+    stored: boardState.particleGraph,
+    canEdit: allowEditing && !tutorialActiveFromBoard,
+    transport: useCallback((batch) => applyWorkspaceParticleBatchAction(batch, boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
+    researchTransport: useCallback<ResearchTransport>((input) => applyWorkspaceResearchAction(input, boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
+    load: useCallback(() => loadWorkspaceParticleGraphAction(boardState.workspaceCanvasId), [boardState.workspaceCanvasId]),
+  })
   const {
     handleCanvasMoveEnd,
     suppressInitialFit,
@@ -77,6 +100,7 @@ export function WorkspaceCanvasSurfaceV2({
     flowInstanceRef,
     isFlowReady,
     orgId: seed.orgId,
+    workspaceCanvasId: boardState.workspaceCanvasId,
     tutorialActive: tutorialActiveFromBoard,
     viewerId: seed.viewerId,
   })
@@ -391,6 +415,10 @@ export function WorkspaceCanvasSurfaceV2({
     visibleNodeIds: ontologyInteractions.visibleNodeIds,
   })
   const viewProps = {
+    particleSession,
+    libraryCardData: cardDataLookup,
+    hiddenToolIds: boardState.hiddenCardIds,
+    onPlaceWorkspaceTool,
     nodes: ontologyInteractions.nodes,
     edges: flowState.renderEdges,
     allowEditing,
@@ -442,5 +470,5 @@ export function WorkspaceCanvasSurfaceV2({
     onDisconnectToTarget: flowState.handleContextDisconnectToTarget,
     onDisconnectAll: flowState.handleContextDisconnectAll,
   }
-  return <WorkspaceCanvasSurfaceV2View {...viewProps} />
+  return <WorkspaceCanvasSurfaceV2View key={seed.orgId} {...viewProps} />
 }

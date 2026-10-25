@@ -144,63 +144,7 @@ describe("MemberWorkspaceProjectCard", () => {
     expect(dueDateIndex).toBeLessThan(separatorIndex)
   })
 
-  it("exposes stable React Grab ownership for card sub-surfaces", () => {
-    const listMarkup = renderToStaticMarkup(
-      React.createElement(MemberWorkspaceProjectCard, {
-        project: organizationProject,
-      })
-    )
-    const boardMarkup = renderToStaticMarkup(
-      React.createElement(MemberWorkspaceProjectCard, {
-        project: organizationProject,
-        variant: "board",
-      })
-    )
-
-    expect(listMarkup).toContain(
-      'data-react-grab-anchor="MemberWorkspaceProjectCard"'
-    )
-    expect(listMarkup).toContain(
-      'data-react-grab-owner-id="member-workspace-project-card:list:project-1"'
-    )
-    expect(listMarkup).toContain(
-      `data-react-grab-owner-source="${projectCardSource}"`
-    )
-    expect(listMarkup).toContain(
-      `data-react-grab-canonical-owner-source="${projectCardSource}"`
-    )
-    expect(listMarkup).toContain('data-react-grab-owner-slot="card"')
-    expect(listMarkup).toContain('data-react-grab-owner-variant="list"')
-
-    for (const slot of [
-      "status-pill",
-      "fiscal-sponsorship-status",
-      "title",
-      "metadata",
-      "footer",
-      "date-priority-row",
-      "due-date",
-      "priority",
-      "footer-separator",
-      "progress-row",
-      "assignee-avatar",
-    ]) {
-      expect(listMarkup).toContain(`data-react-grab-surface-slot="${slot}"`)
-    }
-
-    expect(boardMarkup).toContain(
-      'data-react-grab-owner-id="member-workspace-project-card:board:project-1"'
-    )
-    expect(boardMarkup).toContain('data-react-grab-owner-variant="board"')
-    expect(boardMarkup).toContain(
-      'data-react-grab-surface-slot="board-due-date"'
-    )
-    expect(boardMarkup).toContain(
-      'data-react-grab-surface-slot="header-priority"'
-    )
-  })
 })
-
 
 describe("organization card image identity", () => {
   const personalPhoto = "https://example.com/person.jpg"

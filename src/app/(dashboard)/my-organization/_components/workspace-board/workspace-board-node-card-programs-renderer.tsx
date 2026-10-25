@@ -212,7 +212,7 @@ function renderProgramsFooterAction({
         size="icon"
         className="border-border/70 bg-background/85 h-8 w-8 rounded-full backdrop-blur-sm"
         disabled={!canScrollPrevious}
-        aria-label="Previous activity"
+        aria-label="Previous resource"
         onClick={onScrollPrevious}
       >
         <ChevronLeftIcon aria-hidden />
@@ -223,7 +223,7 @@ function renderProgramsFooterAction({
         size="icon"
         className="border-border/70 bg-background/85 h-8 w-8 rounded-full backdrop-blur-sm"
         disabled={!canScrollNext}
-        aria-label="Next activity"
+        aria-label="Next resource"
         onClick={onScrollNext}
       >
         <ChevronRightIcon aria-hidden />
@@ -354,6 +354,7 @@ export function WorkspaceBoardProgramsNodeCard({
     <>
       <WorkspaceBoardNodeCardShell
         cardId="programs"
+        compact
         title={cardMeta.title}
         subtitle={cardMeta.subtitle}
         hideSubtitle={hideHeaderSubtitle}
@@ -389,7 +390,7 @@ export function WorkspaceBoardProgramsNodeCard({
         presentationMode={presentationMode}
         fullHref={cardMeta.fullHref}
         canEdit={canEdit}
-        shellInsetClassName="px-3 pt-3 pb-3"
+        contentInsetClassName="px-0"
         contentClassName={contentClassName}
         contentSurface="plain"
         editorHref={null}
@@ -400,7 +401,7 @@ export function WorkspaceBoardProgramsNodeCard({
           onScrollNext: () => carouselApi?.scrollNext(),
           onScrollPrevious: () => carouselApi?.scrollPrev(),
         })}
-        footerClassName="justify-center px-3 pt-2 pb-3"
+        footerClassName="justify-center"
         isCanvasFullscreen={isCanvasFullscreen}
         onToggleCanvasFullscreen={frameFullscreenToggle}
       >

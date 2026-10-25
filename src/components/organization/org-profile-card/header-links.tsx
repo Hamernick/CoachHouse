@@ -1,6 +1,5 @@
 "use client"
 
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
 import { PROVIDER_ICON } from "@/components/shared/provider-icons"
 import { Button } from "@/components/ui/button"
 import { normalizeExternalUrl } from "@/lib/organization/urls"
@@ -21,7 +20,7 @@ const linkFields = [
   { key: "github", label: "GitHub", icon: null, text: false },
 ] as const
 
-export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
+export function OrgProfileHeaderLinks({ company, centered = false }: { company: OrgProfile; centered?: boolean }) {
   const links = linkFields.flatMap((field) => {
     const normalized = normalizeExternalUrl(company[field.key])
     if (!normalized) return []
@@ -45,19 +44,14 @@ export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
   return (
     <nav
       aria-label="Organization links"
-      className="-ml-1 mt-1 flex flex-col items-start"
-      {...getReactGrabOwnerProps({
-        ownerId: "organization-profile-links",
-        component: "OrgProfileHeaderLinks",
-        source: "src/components/organization/org-profile-card/header-links.tsx",
-        slot: "organization-profile-links",
-      })}
+      className={cn("mt-1 flex max-w-full flex-col", centered ? "items-center" : "-ml-1 items-start")}
+
     >
       {[true, false].map((textRow) => {
         const rowLinks = links.filter((link) => link.text === textRow)
         if (rowLinks.length === 0) return null
         return (
-          <div key={String(textRow)} className="flex max-w-full flex-wrap items-center gap-x-0.5">
+          <div key={String(textRow)} className={cn("flex max-w-full flex-wrap items-center gap-x-0.5", centered && "justify-center")}>
             {rowLinks.map(({ key, label, icon: Icon, text, textLabel, href }) => (
               <Button
                 key={key}
@@ -73,7 +67,7 @@ export function OrgProfileHeaderLinks({ company }: { company: OrgProfile }) {
               >
                 <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}>
                   <span className="inline-flex max-w-full items-center justify-center gap-1.5">
-                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] bg-white text-neutral-700">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] bg-white text-neutral-700 dark:bg-muted dark:text-foreground">
                       {text ? (
                         <Icon className="size-4" aria-hidden="true" />
                       ) : <OrganizationSocialBrandIcon platform={key} />}

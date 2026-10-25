@@ -1,5 +1,9 @@
 "use client"
 
+import { useLayoutEffect, useRef } from "react"
+import { useMediaActivity } from "@/components/media/media-activity"
+import { ManagedVideoEmbed } from "@/components/media/managed-video-embed"
+
 import ExternalLink from "lucide-react/dist/esm/icons/external-link"
 import Play from "lucide-react/dist/esm/icons/play"
 import VideoIcon from "lucide-react/dist/esm/icons/video"
@@ -24,22 +28,25 @@ export function VideoSection({
   className,
   onEnded,
 }: VideoSectionProps) {
+  const active = useMediaActivity()
+  const videoRef = useRef<HTMLVideoElement>(null)
+  useLayoutEffect(() => {
+    if (!active) videoRef.current?.pause()
+  }, [active, videoUrl])
   const isFrame = variant === "frame"
   const mediaClass = isFrame ? "h-full" : "aspect-video"
 
   const content = embedUrl ? (
     <div className={`relative w-full bg-black ${mediaClass}`}>
-      <iframe
-        src={embedUrl}
-        title="Class video"
-        className="absolute inset-0 h-full w-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
+      <ManagedVideoEmbed src={embedUrl} title="Class video" />
     </div>
   ) : videoUrl ? (
     <div className={`relative w-full bg-black ${mediaClass}`}>
       <video
+        ref={videoRef}
+        onPlay={(event) => {
+          if (!active) event.currentTarget.pause()
+        }}
         src={videoUrl}
         className="absolute inset-0 h-full w-full"
         controls
@@ -49,7 +56,9 @@ export function VideoSection({
       />
     </div>
   ) : fallbackUrl ? (
-    <div className={`flex h-full flex-col items-center justify-center gap-3 bg-muted/40 p-6 text-center text-sm text-muted-foreground ${mediaClass}`}>
+    <div
+      className={`bg-muted/40 text-muted-foreground flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm ${mediaClass}`}
+    >
       <p>This video is hosted externally — open it in a new tab to watch.</p>
       <Button asChild size="sm">
         <a href={fallbackUrl} target="_blank" rel="noreferrer">
@@ -58,7 +67,7 @@ export function VideoSection({
       </Button>
     </div>
   ) : (
-    <div className={`grid w-full place-items-center bg-muted ${mediaClass}`}>
+    <div className={`bg-muted grid w-full place-items-center ${mediaClass}`}>
       <Button variant="secondary" size="sm" className="pointer-events-none">
         <Play className="mr-2 h-4 w-4" /> Video coming soon
       </Button>
@@ -77,7 +86,9 @@ export function VideoSection({
           <span>Class video</span>
         </div>
       </div>
-      <CardContent className="overflow-hidden rounded-b-2xl p-0">{content}</CardContent>
+      <CardContent className="overflow-hidden rounded-b-2xl p-0">
+        {content}
+      </CardContent>
     </Card>
   )
 }

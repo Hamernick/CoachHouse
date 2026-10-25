@@ -1,6 +1,6 @@
 "use client"
 
-import { useReactFlow } from "reactflow"
+import { useReactFlow } from "@xyflow/react"
 import MaximizeIcon from "lucide-react/dist/esm/icons/maximize"
 import MinusIcon from "lucide-react/dist/esm/icons/minus"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"

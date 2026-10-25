@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import type { MarketplaceResource } from "../../marketplace-types"
 import { getMarketplaceProviderArtwork } from "./marketplace-provider-artwork"
 
@@ -17,18 +17,7 @@ export function MarketplaceProviderLogo({
       style={{ width, height: Math.round((width * image.height) / image.width) }}
       aria-hidden
       data-marketplace-provider-logo={resource.id}
-      {...getReactGrabOwnerProps({
-        ownerId: `marketplace-resource:${resource.id}`,
-        component: "MarketplaceProviderLogo",
-        source:
-          "src/features/nonprofit-documentation/components/marketplace/marketplace-provider-logo.tsx",
-        canonicalOwnerSource:
-          "src/features/nonprofit-documentation/components/marketplace/marketplace-provider-logo.tsx",
-        canonicalOwnerReason:
-          "Owns the provider image size, fit, and rounded clipping.",
-        tokenSource: "src/components/ui/avatar.tsx",
-        slot: "provider-logo",
-      })}
+
     >
       <AvatarImage
         src={image.src}

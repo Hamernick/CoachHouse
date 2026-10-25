@@ -78,6 +78,7 @@ export function AppShellHeader({
               size="icon"
               className="size-11 shrink-0 touch-manipulation md:hidden"
               aria-label="Menu"
+              data-sidebar="trigger"
               aria-expanded={openMobile}
               onClick={toggleSidebar}
             >

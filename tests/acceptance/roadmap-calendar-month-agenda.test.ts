@@ -248,9 +248,6 @@ describe("roadmap calendar month agenda", () => {
     )
     expect(calendarAction).toContain("useAppShellCalendarActionRegistration")
     expect(viewportControls).toContain("useRegisterAppShellCalendarTutorial")
-    expect(viewportControls).toContain(
-      "WorkspaceCanvasSurfaceV2HelpOverlay integrated"
-    )
     expect(viewportControls).not.toContain('<HeaderActionsPortal slot="right">')
     expect(viewportControls).not.toContain("PopoverAnchor")
     expect(headerActionSlotIndex).toBeGreaterThan(-1)
@@ -277,22 +274,6 @@ describe("roadmap calendar month agenda", () => {
     expect(agendaPanel).toContain('week: "w-full"')
     expect(agendaPanel).toContain('day: "w-[14.285714%] min-w-0')
     expect(dayButton).toContain("min-h-10 min-w-0")
-  })
-
-  it("attributes the shared shadcn calendar root back to the roadmap month-grid owner", () => {
-    const agendaPanel = readSource(
-      "src/components/roadmap/roadmap-calendar/components/roadmap-calendar-month-agenda-panel.tsx"
-    )
-
-    expect(agendaPanel).toContain("getReactGrabOwnerProps")
-    expect(agendaPanel).toContain(
-      'ownerId: "roadmap-calendar-month-agenda:month-grid"'
-    )
-    expect(agendaPanel).toContain(
-      'component: "RoadmapCalendarMonthAgendaPanel"'
-    )
-    expect(agendaPanel).toContain('slot: "month-grid"')
-    expect(agendaPanel).toContain('primitiveImport: "@/components/ui/calendar"')
   })
 
   it("keeps one add-event menu visible in the month header", () => {

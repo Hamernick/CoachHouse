@@ -1,3 +1,4 @@
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import {
   Handle,
   MarkerType,
@@ -5,7 +6,7 @@ import {
   type Edge,
   type Node,
   type NodeProps,
-} from "reactflow"
+} from "@xyflow/react"
 
 type UserJourneyOutlineTone =
   | "auth"
@@ -193,7 +194,7 @@ function getOutlineToneClassName(tone: UserJourneyOutlineTone) {
 export function UserJourneyOutlineNode({
   data,
   isConnectable,
-}: NodeProps<UserJourneyOutlineNodeData>) {
+}: NodeProps<ReactFlowNode<UserJourneyOutlineNodeData>>) {
   return (
     <article
       className={`relative flex h-full w-full flex-col justify-center rounded-md border px-4 py-3 shadow-sm ${getOutlineToneClassName(data.tone)}`}

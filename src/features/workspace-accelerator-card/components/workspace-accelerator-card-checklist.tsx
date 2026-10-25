@@ -13,7 +13,7 @@ import {
   ACCELERATOR_PROGRESS_SEGMENT_VISUALS,
   resolveAcceleratorModuleProgressSegment,
 } from "@/components/accelerator/accelerator-progress-segments"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -36,8 +36,6 @@ import {
   canWorkspaceAcceleratorTutorialToggleModule,
 } from "./workspace-accelerator-card-tutorial-guards"
 
-const WORKSPACE_ACCELERATOR_CHECKLIST_SOURCE =
-  "src/features/workspace-accelerator-card/components/workspace-accelerator-card-checklist.tsx"
 const WORKSPACE_ACCELERATOR_CHECKLIST_STEP_ROW_CLASSNAME =
   "group -mx-1 rounded-xl border border-transparent transition-[background-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
 const WORKSPACE_ACCELERATOR_CHECKLIST_STEP_TRIGGER_CLASSNAME =
@@ -229,7 +227,6 @@ function ChecklistStepRow({
     module,
   })
   const StatusIcon = statusBadge.icon
-  const reactGrabOwnerId = `workspace-accelerator-checklist:${primaryStep.id}`
   const StepIcon = resolveWorkspaceAcceleratorChecklistStepIcon(
     primaryStep.stepKind
   )
@@ -251,13 +248,7 @@ function ChecklistStepRow({
   )
   const row = (
     <div
-      {...getReactGrabOwnerProps({
-        ownerId: reactGrabOwnerId,
-        component: "WorkspaceAcceleratorChecklistStepRow",
-        source: WORKSPACE_ACCELERATOR_CHECKLIST_SOURCE,
-        slot: "lesson-row",
-        variant: step.stepKind,
-      })}
+
       data-state={expanded ? "open" : "closed"}
       className={rowClassName}
     >
@@ -357,7 +348,7 @@ function ChecklistStepRow({
     return (
       <div className="relative flex flex-col gap-2">
         <WorkspaceTutorialCallout
-          reactGrabOwnerId={`workspace-accelerator-checklist-callout:${step.id}`}
+          calloutId={`workspace-accelerator-checklist-callout:${step.id}`}
           mode="indicator"
           tooltipContentClassName={WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME}
           indicatorAnchorAlign="end"

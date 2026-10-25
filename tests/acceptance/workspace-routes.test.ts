@@ -31,6 +31,7 @@ describe("workspace routes", () => {
       "finance",
       "people",
       "documents",
+      "particles",
       "tools",
       "accelerator",
       "roadmap",

@@ -1,17 +1,18 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   BackgroundVariant,
   ReactFlowProvider,
   useReactFlow,
   type Node,
-} from "reactflow"
+} from "@xyflow/react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import WorkflowIcon from "lucide-react/dist/esm/icons/workflow"
 import { Button } from "@/components/ui/button"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { cn } from "@/lib/utils"
 import { buildDocumentationDecisionGraph } from "../lib"
 import type { DocumentationDecisionStep } from "../types"
@@ -26,7 +27,7 @@ import {
   type DecisionEditorContent,
 } from "./decision-canvas-editor"
 import { useDecisionCanvasExpansion } from "../hooks/use-decision-canvas-expansion"
-import "reactflow/dist/style.css"
+import "@xyflow/react/dist/style.css"
 import styles from "./decision-canvas.module.css"
 
 const nodeTypes = { decision: DecisionStepNode }
@@ -153,13 +154,7 @@ function DecisionCanvas({
           collapse()
         }
       }}
-      {...getReactGrabOwnerProps({
-        ownerId: "documentation:decision-canvas",
-        component: "DocumentationDecisionCanvasPanel",
-        source:
-          "src/features/documentation-decision-canvas/components/documentation-decision-canvas-panel.tsx",
-        slot: "decision-canvas",
-      })}
+
     >
       <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5 pb-4 sm:px-6">
         <div className="flex items-center gap-3">

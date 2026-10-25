@@ -63,9 +63,10 @@ export function useNavUserMenu(): UseNavUserMenuResult {
       const spaceBelow = window.innerHeight - triggerRect.bottom
       const openBelow = spaceAbove < menuHeight + gap && spaceBelow >= spaceAbove
 
-      let top = openBelow ? triggerRect.bottom + gap : triggerRect.top - gap
+      const desiredTop = openBelow ? triggerRect.bottom + gap : triggerRect.top - gap - menuHeight
+      const top = Math.max(gap, Math.min(desiredTop, window.innerHeight - gap - menuHeight))
       let left = triggerRect.right
-      let transform = openBelow ? "translate(-100%, 0)" : "translate(-100%, -100%)"
+      const transform = "translateX(-100%)"
 
       const minLeft = gap + menuWidth
       const maxLeft = window.innerWidth - gap
@@ -81,14 +82,19 @@ export function useNavUserMenu(): UseNavUserMenuResult {
         left,
         transform,
         zIndex: 60,
+        maxHeight: window.innerHeight - gap * 2,
+        overflowY: "auto",
       })
     }
 
     const frame = requestAnimationFrame(updatePosition)
+    const observer = new ResizeObserver(updatePosition)
+    if (menuRef.current) observer.observe(menuRef.current)
     window.addEventListener("resize", updatePosition)
     window.addEventListener("scroll", updatePosition, true)
     return () => {
       cancelAnimationFrame(frame)
+      observer.disconnect()
       window.removeEventListener("resize", updatePosition)
       window.removeEventListener("scroll", updatePosition, true)
     }

@@ -54,7 +54,7 @@ export function FiscalSponsorshipWorkflowDrawer({
         <div className="flex items-start gap-3 pr-8">
           <FiscalSponsorshipMark />
           <div className="min-w-0">
-            <SheetTitle className="text-lg">Fiscal sponsorship</SheetTitle>
+            <SheetTitle className="text-lg break-words">{data.projectName}</SheetTitle>
             <SheetDescription>{data.nextStep}</SheetDescription>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function FiscalSponsorshipWorkflowDrawer({
             onClick={onClose}
           >
             <PanelRightOpenIcon data-icon="inline-start" aria-hidden />
-            Back to plan
+            Back to applications
           </Button>
         </SheetFooter>
       </Tabs>

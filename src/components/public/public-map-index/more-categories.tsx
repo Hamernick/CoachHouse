@@ -8,10 +8,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  getReactGrabOwnerProps,
-  getReactGrabLinkedSurfaceProps,
-} from "@/components/dev/react-grab-surface"
+
 import {
   PUBLIC_MAP_RESOURCE_CATEGORY_LABELS,
   resolvePublicMapResourceTopLevelCategory,
@@ -22,8 +19,6 @@ import { PUBLIC_MAP_FILTER_PILL_CLASSNAME } from "./sidebar-theme"
 
 export const PUBLIC_MAP_MORE_CATEGORY_KEYS: readonly PublicMapGroupFilterKey[] =
   ["arts", "faith", "recreation", "philanthropy"]
-const source = "src/components/public/public-map-index/more-categories.tsx"
-const ownerId = "public-map-category-filter:more"
 
 export function PublicMapMoreCategories({
   activeGroup,
@@ -48,13 +43,7 @@ export function PublicMapMoreCategories({
             "h-11 shrink-0 sm:h-7",
             selected && "!bg-input/50 text-foreground"
           )}
-          {...getReactGrabOwnerProps({
-            ownerId,
-            component: "PublicMapMoreCategoriesButton",
-            source,
-            slot: "button",
-            primitiveImport: "@/components/ui/button",
-          })}
+
         >
           {selected && parent !== "all"
             ? PUBLIC_MAP_RESOURCE_CATEGORY_LABELS[parent]
@@ -63,12 +52,7 @@ export function PublicMapMoreCategories({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId,
-          component: "PublicMapMoreCategoriesMenu",
-          source,
-          surfaceKind: "content",
-        })}
+
       >
         <DropdownMenuRadioGroup
           value={selected ? parent : ""}

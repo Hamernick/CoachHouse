@@ -1,3 +1,6 @@
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { useGoogleDriveLibrary } from "@/components/organization/org-profile-card/tabs/documents-tab/hooks/use-google-drive-library"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -741,4 +744,31 @@ describe("Google Drive recovery and shared grants", () => {
     },
   )
 
+})
+
+
+describe("Drive library connection origin", () => {
+  it.each([
+    [true, "/workspace/documents"],
+    [false, "/organization/documents"],
+  ])("keeps the workspace origin %s within the existing OAuth allowlist", async (inWorkspace, returnPath) => {
+    const assign = vi.fn()
+    vi.stubGlobal("window", { location: { assign } })
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ authorizationUrl: "https://accounts.google.com/oauth" }))
+    vi.stubGlobal("fetch", fetchMock)
+    let connect: (() => Promise<void>) | undefined
+    function Harness() {
+      connect = useGoogleDriveLibrary({ enabled: true, inWorkspace }).connectOrPick
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    if (!connect) throw new Error("Missing connection action")
+    await connect()
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith("/api/integrations/google-drive/connect", expect.objectContaining({
+      method: "POST", body: JSON.stringify({ returnPath }),
+    }))
+    expect(normalizeGoogleDriveReturnPath(returnPath)).toBe(returnPath)
+    expect(assign).toHaveBeenCalledWith("https://accounts.google.com/oauth")
+  })
 })

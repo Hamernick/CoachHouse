@@ -1,8 +1,9 @@
 "use client"
 
+import type { Node as ReactFlowNode } from "@xyflow/react"
 import { memo } from "react"
 import XIcon from "lucide-react/dist/esm/icons/x"
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from "@xyflow/react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,7 @@ function getInitials(name?: string | null) {
 export const WorkspaceCanvasPersonNode = memo(
   function WorkspaceCanvasPersonNode({
     data,
-  }: NodeProps<WorkspaceCanvasPersonNodeData>) {
+  }: NodeProps<ReactFlowNode<WorkspaceCanvasPersonNodeData>>) {
     const { person, canEdit, onRemove } = data
     const isSupporter = person.category === "supporters"
     const categoryMeta = PERSON_CATEGORY_META[person.category]

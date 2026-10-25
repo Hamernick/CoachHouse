@@ -77,9 +77,8 @@ export const WorkspacePeopleDrawerPanel = memo(
       string | null
     >(null)
     const [peopleSearch, setPeopleSearch] = useState("")
-    const [peopleCategoryFilter, setPeopleCategoryFilter] = useState<
-      PersonRoleFilterValue
-    >("all")
+    const [peopleCategoryFilter, setPeopleCategoryFilter] =
+      useState<PersonRoleFilterValue>("all")
     const [, startSegmentTransition] = useTransition()
     const deferredPeopleSearch = useDeferredValue(peopleSearch)
     const normalizedPeopleSearch = deferredPeopleSearch.trim().toLowerCase()
@@ -282,14 +281,16 @@ export const WorkspacePeopleDrawerPanel = memo(
         )}
       >
         <WorkspacePeopleDrawerTable
+          addControls={
+            canEdit ? (
+              <WorkspacePeopleAddMenu
+                people={people}
+                onCreateSegment={handleCreateSegment}
+              />
+            ) : null
+          }
           segmentControls={
             <>
-              {canEdit ? (
-                <WorkspacePeopleAddMenu
-                  people={people}
-                  onCreateSegment={handleCreateSegment}
-                />
-              ) : null}
               <WorkspacePeopleSegmentRail
                 segments={segments}
                 selectedSegmentId={selectedSegment.id}

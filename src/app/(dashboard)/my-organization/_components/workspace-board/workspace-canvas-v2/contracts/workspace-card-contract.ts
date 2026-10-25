@@ -195,7 +195,7 @@ export const WORKSPACE_CANVAS_V2_CARD_CONTRACT = Object.freeze({
       outputs: ["program-plan", "workspace-link"],
     },
     rail: {
-      label: "Activity",
+      label: "Resource",
       order: 3,
       enabled: true,
       rootBehavior: "toggle",

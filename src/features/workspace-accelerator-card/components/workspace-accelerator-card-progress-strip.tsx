@@ -3,19 +3,11 @@
 import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { clampPercent } from "@/components/accelerator/accelerator-org-snapshot-strip/helpers"
 import { WorkspaceAcceleratorReadinessControls } from "./workspace-accelerator-readiness-controls"
-import {
-  getReactGrabLinkedSurfaceProps,
-  getReactGrabOwnerProps,
-} from "@/components/dev/react-grab-surface"
+
 import { WorkspaceTutorialCallout } from "@/components/workspace/workspace-tutorial-callout"
 import type { WorkspaceAcceleratorTutorialCallout } from "../types"
 import type { AcceleratorReadinessSummary } from "@/lib/accelerator/readiness"
 import { cn } from "@/lib/utils"
-
-const WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE =
-  "src/features/workspace-accelerator-card/components/workspace-accelerator-card-progress-strip.tsx"
-const WORKSPACE_ACCELERATOR_PROGRESS_SUMMARY_OWNER_ID =
-  "workspace-accelerator-progress-summary"
 
 type WorkspaceAcceleratorCardProgressStripProps = {
   progressPercent: number
@@ -83,7 +75,7 @@ export function WorkspaceAcceleratorCardProgressRail({
   return (
     <div className="relative pt-5">
       <WorkspaceTutorialCallout
-        reactGrabOwnerId="workspace-accelerator-progress-strip:callout"
+        calloutId="workspace-accelerator-progress-strip:callout"
         mode="indicator"
         indicatorAnchorAlign="start"
         indicatorOffsetX={24}
@@ -103,24 +95,11 @@ export function WorkspaceAcceleratorCardProgressSummary({
 }: WorkspaceAcceleratorCardProgressStripProps) {
   return (
     <div
-      {...getReactGrabOwnerProps({
-        ownerId: WORKSPACE_ACCELERATOR_PROGRESS_SUMMARY_OWNER_ID,
-        component: "WorkspaceAcceleratorCardProgressSummary",
-        source: WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE,
-        slot: "progress-summary",
-        notes:
-          "Owns lesson completion and the separate organization readiness checklists.",
-      })}
+
       className={cn("flex min-w-0 flex-1 flex-col gap-2", className)}
     >
       <div
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: WORKSPACE_ACCELERATOR_PROGRESS_SUMMARY_OWNER_ID,
-          component: "WorkspaceAcceleratorCardProgressSummary",
-          source: WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE,
-          slot: "progress-percent",
-          surfaceKind: "root",
-        })}
+
         className="flex min-w-0 items-center justify-between gap-2"
       >
         <p
@@ -134,14 +113,7 @@ export function WorkspaceAcceleratorCardProgressSummary({
         </p>
       </div>
       <div
-        {...getReactGrabLinkedSurfaceProps({
-          ownerId: WORKSPACE_ACCELERATOR_PROGRESS_SUMMARY_OWNER_ID,
-          component: "WorkspaceAcceleratorCardProgressSummary",
-          source: WORKSPACE_ACCELERATOR_PROGRESS_STRIP_SOURCE,
-          slot: "progress-rail",
-          surfaceKind: "root",
-          primitiveImport: "@radix-ui/react-progress",
-        })}
+
         className="w-full"
       >
         <WorkspaceAcceleratorCardProgressRail

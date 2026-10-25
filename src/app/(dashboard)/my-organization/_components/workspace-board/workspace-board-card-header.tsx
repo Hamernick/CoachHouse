@@ -21,6 +21,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { WorkspaceNodeFrameHeader } from "@/components/workspace/workspace-node-frame"
+import { WORKSPACE_PARTICLE_CHROME } from "@/components/workspace/workspace-particle-chrome"
 
 import type { WorkspaceCardOverflowAction } from "./workspace-board-types"
 
@@ -46,10 +48,63 @@ type WorkspaceBoardCardHeaderProps = {
   fullscreenControlMode?: "overflow" | "inline"
   compactTitleBottomGap?: boolean
   surface?: "frame" | "card"
+  compact?: boolean
 }
 
 const CARD_SURFACE_ICON_BUTTON_HOVER_CLASS_NAME =
   "[&_[data-slot=button]:hover]:!bg-background [&_[data-slot=button]:hover]:!text-foreground"
+const CARD_SURFACE_TITLE_CLASS_NAME =
+  "text-foreground truncate text-lg font-semibold tracking-tight"
+
+function resolveHeaderClassName({
+  compact,
+  surface,
+  presentationMode,
+  compactTitleBottomGap,
+  showHeaderCopy,
+  canEdit,
+  isCanvasFullscreen,
+}: Pick<
+  Required<WorkspaceBoardCardHeaderProps>,
+  | "compact"
+  | "surface"
+  | "presentationMode"
+  | "compactTitleBottomGap"
+  | "canEdit"
+  | "isCanvasFullscreen"
+> & { showHeaderCopy: boolean }) {
+  return cn(
+    compact
+      ? cn(
+          WORKSPACE_PARTICLE_CHROME.header,
+          "relative",
+          WORKSPACE_PARTICLE_CHROME.headerControls
+        )
+      : surface === "card"
+        ? "relative -mt-1 flex flex-col gap-2 px-3 pt-0 pb-2"
+        : "px-4 pt-3 pb-2",
+    !compact &&
+      surface === "frame" &&
+      (presentationMode ? "space-y-1.5 px-3.5 pt-2.5 pb-1.5" : "space-y-2"),
+    !compact &&
+      surface === "card" &&
+      presentationMode &&
+      "gap-1.5 px-3.5 pt-2.5 pb-1.5",
+    surface === "card" && CARD_SURFACE_ICON_BUTTON_HOVER_CLASS_NAME,
+    !compact &&
+      compactTitleBottomGap &&
+      !presentationMode &&
+      showHeaderCopy &&
+      "pb-1.5",
+    !compact &&
+      !showHeaderCopy &&
+      (presentationMode ? "pt-2 pb-1" : "pt-2.5 pb-1"),
+    canEdit &&
+      !presentationMode &&
+      !isCanvasFullscreen &&
+      "workspace-card-drag-handle cursor-grab select-none active:cursor-grabbing"
+  )
+}
 
 export function WorkspaceBoardCardHeader({
   title,
@@ -73,6 +128,7 @@ export function WorkspaceBoardCardHeader({
   fullscreenControlMode = "overflow",
   compactTitleBottomGap = false,
   surface = "frame",
+  compact = false,
 }: WorkspaceBoardCardHeaderProps) {
   const showCanvasFullscreenAction = Boolean(onToggleCanvasFullscreen)
   const showInlineFullscreenControl =
@@ -91,10 +147,12 @@ export function WorkspaceBoardCardHeader({
   const showSubtitle = !hideSubtitle && subtitle.trim().length > 0
   const showHeaderCopy = showTitle || showSubtitle || Boolean(headerDetails)
   const showHeaderTitleRow = showTitle || showSubtitle
-  const Header = surface === "card" ? CardHeader : FrameHeader
-  const Title = surface === "card" ? CardTitle : FrameTitle
-  const cardSurfaceTitleClassName =
-    "text-foreground truncate text-lg font-semibold tracking-tight"
+  const Header = compact
+    ? WorkspaceNodeFrameHeader
+    : surface === "card"
+      ? CardHeader
+      : FrameHeader
+  const Title = compact ? "h3" : surface === "card" ? CardTitle : FrameTitle
   const defaultTitleClassName = presentationMode
     ? WORKSPACE_TEXT_STYLES.cardTitleCompact
     : WORKSPACE_TEXT_STYLES.cardTitle
@@ -115,26 +173,15 @@ export function WorkspaceBoardCardHeader({
 
   return (
     <Header
-      className={cn(
-        surface === "card"
-          ? "relative -mt-1 flex flex-col gap-2 px-3 pt-0 pb-2"
-          : "px-4 pt-3 pb-2",
-        surface === "frame" &&
-          (presentationMode ? "space-y-1.5 px-3.5 pt-2.5 pb-1.5" : "space-y-2"),
-        surface === "card" &&
-          presentationMode &&
-          "gap-1.5 px-3.5 pt-2.5 pb-1.5",
-        surface === "card" && CARD_SURFACE_ICON_BUTTON_HOVER_CLASS_NAME,
-        compactTitleBottomGap &&
-          !presentationMode &&
-          showHeaderCopy &&
-          "pb-1.5",
-        !showHeaderCopy && (presentationMode ? "pt-2 pb-1" : "pt-2.5 pb-1"),
-        canEdit &&
-          !presentationMode &&
-          !isCanvasFullscreen &&
-          "workspace-card-drag-handle cursor-grab select-none active:cursor-grabbing"
-      )}
+      className={resolveHeaderClassName({
+        compact,
+        surface,
+        presentationMode,
+        compactTitleBottomGap,
+        showHeaderCopy,
+        canEdit,
+        isCanvasFullscreen,
+      })}
     >
       <div
         className={cn(
@@ -152,12 +199,20 @@ export function WorkspaceBoardCardHeader({
             {showTitle ? (
               <Title
                 className={cn(
-                  surface === "card"
-                    ? cardSurfaceTitleClassName
-                    : defaultTitleClassName
+                  compact
+                    ? WORKSPACE_PARTICLE_CHROME.title
+                    : surface === "card"
+                      ? CARD_SURFACE_TITLE_CLASS_NAME
+                      : defaultTitleClassName
                 )}
               >
-                <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
+                <span
+                  className={cn(
+                    "inline-flex min-w-0 items-center gap-1.5",
+                    !compact && "flex-wrap",
+                    compact && "max-w-full"
+                  )}
+                >
                   {titleIcon ? (
                     <span
                       className={cn(

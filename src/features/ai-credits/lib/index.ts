@@ -1,0 +1,33 @@
+import type { AiCreditAccount, AiRateCard, AiUsage } from "../types"
+
+function natural(value: number) {
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error("Invalid AI accounting amount")
+  return value
+}
+export function priceAiUsage(usage: AiUsage, tariff: AiRateCard) {
+  for (const value of [usage.input, usage.cachedInput, usage.output,
+    tariff.inputMicrodollarsPerMillion, tariff.cachedMicrodollarsPerMillion,
+    tariff.outputMicrodollarsPerMillion]) natural(value)
+  if (usage.cachedInput > usage.input || natural(tariff.microdollarsPerCredit) === 0)
+    throw new Error("Invalid AI usage or tariff")
+  const numerator = natural((usage.input - usage.cachedInput) * tariff.inputMicrodollarsPerMillion
+    + usage.cachedInput * tariff.cachedMicrodollarsPerMillion + usage.output * tariff.outputMicrodollarsPerMillion)
+  const searchCalls = natural(usage.webSearchCalls ?? 0)
+  if (searchCalls && !tariff.webSearchMicrodollarsPerCall) throw new Error("Missing web search tariff")
+  const searchCost = natural(searchCalls * natural(tariff.webSearchMicrodollarsPerCall ?? 0))
+  const microdollars = natural(Math.ceil(numerator / 1_000_000) + searchCost)
+  return { microdollars, credits: Math.ceil(microdollars / tariff.microdollarsPerCredit) }
+}
+export function aiCreditBalance(account: AiCreditAccount) {
+  const result = { available: 0, included: 0, purchased: 0, reserved: 0, held: 0 }
+  for (const lot of account.lots) {
+    const remainder = lot.expired ? 0 : Math.max(0, lot.credits - lot.spent - lot.reserved)
+    const available = lot.restricted ? 0 : remainder
+    if (lot.restricted) result.held += remainder
+    result.available += available
+    result.reserved += lot.reserved
+    if (lot.kind === "included") result.included += available
+    else result.purchased += available
+  }
+  return result
+}

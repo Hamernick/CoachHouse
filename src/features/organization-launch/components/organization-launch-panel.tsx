@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ChevronRightIcon from "lucide-react/dist/esm/icons/chevron-right"
-import { getReactGrabOwnerProps } from "@/components/dev/react-grab-surface"
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { LaunchProfileFields } from "./launch-profile-fields"
 import { LaunchProgramFields } from "./launch-program-fields"
@@ -80,11 +80,8 @@ export function OrganizationLaunchPanel({ input, hasAccess }: {
       ref={cardRef}
       data-setup-guide-target="launch"
       style={{ boxShadow: "none" }}
-      className="mx-auto w-full max-w-[420px] shrink-0 gap-0 overflow-hidden rounded-[22px] border-border/70 py-0 shadow-none"
-      {...getReactGrabOwnerProps({
-        ownerId: "organization-launch", component: "OrganizationLaunchPanel",
-        source: "src/features/organization-launch/components/organization-launch-panel.tsx", slot: "root",
-      })}
+      className="w-full min-w-0 shrink-0 gap-0 overflow-hidden rounded-[22px] border-border/70 py-0 shadow-none"
+
     >
       <CardHeader className="flex flex-col gap-3 px-5 pt-5 pb-2.5">
         <div className="flex w-full items-center justify-between gap-2">

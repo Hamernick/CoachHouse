@@ -39,13 +39,14 @@ function ErrorMessage({ id, error }: { id: string; error?: string }) {
 }
 
 export function WorkspaceBrandKitProfileVoice({
+  hideAudience = false,
   profile,
   errors,
   onChange,
 }: Pick<
   WorkspaceBrandKitProfileEditorProps,
   "profile" | "errors" | "onChange"
->) {
+> & { hideAudience?: boolean }) {
   return (
     <section className="space-y-3">
       <div>
@@ -58,7 +59,7 @@ export function WorkspaceBrandKitProfileVoice({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {ATTRIBUTE_FIELDS.map((field) => {
+        {ATTRIBUTE_FIELDS.filter(field => !hideAudience || field.name !== "brandVoiceAudience").map((field) => {
           const error = errors[field.name]
           return (
             <div key={field.name} className="grid gap-2">
