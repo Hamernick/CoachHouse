@@ -55,3 +55,19 @@ describe("Core Document source authorization", () => {
     expect(mocks.file).not.toHaveBeenCalled()
   })
 })
+
+describe("Create-only core document writes", () => {
+  it("returns the existing document without overwriting edits or publication on replay", async () => {
+    const result = await saveRoadmapSectionAction({ sectionId: "vision", createOnly: true,
+      expectedUserId: "user-a", expectedOrganizationId: "org-a", expectedLastUpdated: null,
+      title: "Replacement", content: "<p>Replacement</p>", isPublic: false, status: "in_progress" })
+    expect(result).toMatchObject({ section: { id: "vision", title: "Vision", content: "<p>Draft</p>" } })
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
+  it.each([{ sectionId: undefined }, { expectedOrganizationId: undefined }, { expectedUserId: undefined },
+    { expectedLastUpdated: undefined }, { driveFileId: "selected_file_123" }, { aiRunId: "fake" }])("rejects unsafe create-only scope: %j", async override => {
+    expect(await saveRoadmapSectionAction({ sectionId: "application-123", createOnly: true,
+      expectedUserId: "user-a", expectedOrganizationId: "org-a", expectedLastUpdated: null, ...override })).toHaveProperty("error")
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
+})

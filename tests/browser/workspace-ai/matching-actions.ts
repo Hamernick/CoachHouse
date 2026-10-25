@@ -1,6 +1,7 @@
 import { notice,need } from '../../acceptance/fixtures/opportunity-match-fixtures'
 import { matchOpportunity } from '../../../src/features/workspace-finance/lib/opportunity-matching'
 import type { FundingReviewInput,ResourceOpportunityMatch,ResourceMatchTarget } from '../../../src/features/workspace-finance/matching-types'
+import {applicationSectionId,opportunityApplicationSeed} from '../../../src/features/workspace-finance/lib/opportunity-application'
 const key='resource-matches-fixture'
 const read=():ResourceOpportunityMatch[]=>JSON.parse(localStorage.getItem(key)??'[]')
 const write=(rows:ResourceOpportunityMatch[])=>{localStorage.setItem(key,JSON.stringify(rows));return{matches:rows,opportunity:null}}
@@ -32,4 +33,14 @@ export async function updateResourceOpportunityMatch(input:{id:string;updatedAt:
  row.status=input.action==='dismiss'?'dismissed':input.action==='save'?'saved':row.opportunityId?'saved':'new'
  if(input.action==='save')row.opportunityId=crypto.randomUUID()
  row.updatedAt=new Date().toISOString();return write(rows)
+}
+
+export async function prepareResourceOpportunityApplication(input:{id:string;updatedAt:string;target:ResourceMatchTarget}){
+ const rows=read(),row=rows.find(item=>item.id===input.id&&item.need.resourceId===input.target.resourceId)
+ if(!row||row.status!=='saved'||row.updatedAt!==input.updatedAt)return{error:'Save the current opportunity first.'}
+ const documentKey=`matching-application:${applicationSectionId(row.id)}`
+ const previous=localStorage.getItem(documentKey)
+ const document=previous?JSON.parse(previous):{id:applicationSectionId(row.id),slug:applicationSectionId(row.id),...opportunityApplicationSeed(row.notice)}
+ if(!previous)localStorage.setItem(documentKey,JSON.stringify(document))
+ return{matches:rows,document,reviewRequired:false}
 }

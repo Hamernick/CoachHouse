@@ -1,11 +1,13 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { requestWorkspaceRoadmapDrawer } from "@/lib/workspace/data-drawer-events"
 import { Check, LoaderCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { toast } from "@/lib/toast"
-import { findResourceOpportunityMatches, getResourceOpportunityMatches, updateResourceOpportunityMatch, reviewResourceOpportunityMatch } from "../matching-actions"
+import { findResourceOpportunityMatches, getResourceOpportunityMatches, updateResourceOpportunityMatch, reviewResourceOpportunityMatch, prepareResourceOpportunityApplication } from "../matching-actions"
 import type { FundingReviewInput, FundingNeed, ResourceMatchTarget, ResourceOpportunityMatch } from "../matching-types"
 import { opportunityValueLabel } from "../lib/opportunity-matching"
 import type { WorkspaceFinanceOpportunityInput } from "../types"
@@ -17,6 +19,7 @@ export function ResourceOpportunityMatches(props:Props) {
   return <MatchSession key={`${props.target.organizationId}:${props.target.resourceId}:${props.target.resourceRevision}`} {...props}/>
 }
 function MatchSession({target,title,canEdit,onSaved}:Props) {
+  const router=useRouter()
   const [open,setOpen]=useState(false),[keyword,setKeyword]=useState("")
   const [matches,setMatches]=useState<ResourceOpportunityMatch[]>([]),[pending,setPending]=useState(false),[error,setError]=useState<string|null>(null),[message,setMessage]=useState("")
   const alive=useRef(true),busy=useRef(false),generation=useRef(0)
@@ -73,6 +76,24 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
     finally{busy.current=false;if(alive.current)setPending(false)}
   }
   const visible=matches.filter(match=>match.status!=="dismissed")
+  const prepare=async(match:ResourceOpportunityMatch)=>{
+    if(busy.current)return
+    busy.current=true;setPending(true);setError(null);generation.current++
+    try {
+      const result=await prepareResourceOpportunityApplication({target,id:match.id,updatedAt:match.updatedAt})
+      if(!alive.current)return
+      if("error" in result){setError(result.error);return}
+      setMatches(result.matches)
+      if(result.reviewRequired||!result.document){setMessage("The official notice changed or is no longer open. Review the refreshed details before preparing a new draft.");return}
+      const destination=new URL(window.location.href)
+      destination.searchParams.set("drawer","roadmap");destination.searchParams.set("section",result.document.id)
+      for(const key of ["module","step","group","guide","focus"])destination.searchParams.delete(key)
+      if(requestWorkspaceRoadmapDrawer(result.document.id))router.refresh()
+      else router.push(`${destination.pathname}${destination.search}`)
+      setMessage("Application draft is saved in Documents. Nothing has been submitted.")
+    }catch{if(alive.current)setError("Draft preparation interrupted. Try again to recover the same document.")}
+    finally{busy.current=false;if(alive.current)setPending(false)}
+  }
   return <Collapsible open={open} onOpenChange={setOpen} className="rounded-2xl border border-border/60 bg-muted/30 p-3">
     <CollapsibleTrigger asChild><Button variant="ghost" className="h-auto w-full justify-start whitespace-normal rounded-lg px-1 py-2 text-left">Opportunities for {title}</Button></CollapsibleTrigger>
     <CollapsibleContent className="space-y-3 pt-2">
@@ -98,6 +119,7 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
           {match.need.review&&<p className="text-muted-foreground">User review saved {new Date(match.need.review.reviewedAt).toLocaleString()}; applies to this notice version.</p>}
         </div></details>
         {canEdit&&<ResourceMatchReview match={match} pending={pending} onSave={need=>review(match,need)}/>}
+        {canEdit&&match.status==="saved"&&<div className="mt-1"><Button type="button" variant="secondary" className="min-h-11 rounded-lg text-xs" disabled={pending} onClick={()=>void prepare(match)}>Application draft</Button><p className="mt-1 text-xs text-muted-foreground">Opens or creates an organization document from public notice facts. Your funding review stays private.</p></div>}
       </li>)}</ul>
     </CollapsibleContent>
   </Collapsible>

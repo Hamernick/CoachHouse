@@ -40,6 +40,7 @@ import {
 import { createNotification } from "@/lib/notifications"
 
 type SaveInput = {
+  createOnly?: boolean
   aiRunId?: string
   reviewedAiRevision?: string
   driveFileId?: string | null
@@ -99,6 +100,7 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
 }
 
 export async function saveRoadmapSectionAction({
+  createOnly,
   aiRunId,
   reviewedAiRevision,
   driveFileId,
@@ -186,6 +188,14 @@ export async function saveRoadmapSectionAction({
     ? (existingSections.find((section) => section.id === normalizedSectionId) ??
       null)
     : null
+
+  // Stable-ID creation must never overwrite an edited document on replay.
+  if (createOnly) {
+    if (!normalizedSectionId || !expectedOrganizationId || !expectedUserId ||
+      expectedLastUpdated !== null || aiRunId || driveFileId !== undefined)
+      return { error: "Reopen this document before creating a draft." }
+    if (previousSection) return { section: previousSection }
+  }
 
   let aiApplication: AiDocumentApplication | undefined
   if (aiRunId) {

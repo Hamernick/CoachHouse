@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache"
 import type { ResourceMatchTarget } from "./matching-types"
 import { loadResourceMatches, searchResourceMatches, changeResourceMatch, reviewResourceMatch } from "./server/resource-matches"
+import { prepareResourceApplication } from "./server/opportunity-application"
 
 export async function getResourceOpportunityMatches(target:ResourceMatchTarget) {
   try { return await loadResourceMatches(target) } catch(error) { return {error:error instanceof Error?error.message:"Matches unavailable."} }
@@ -14,4 +15,8 @@ export async function updateResourceOpportunityMatch(input:unknown) {
 }
 export async function reviewResourceOpportunityMatch(input:unknown) {
   try { return await reviewResourceMatch(input) } catch(error) { return {error:error instanceof Error?error.message:"Review could not be saved."} }
+}
+export async function prepareResourceOpportunityApplication(input:unknown) {
+  try { const result=await prepareResourceApplication(input);revalidatePath("/workspace");return result }
+  catch(error) { return {error:error instanceof Error?error.message:"Application draft could not be prepared."} }
 }
