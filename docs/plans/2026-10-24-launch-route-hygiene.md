@@ -57,7 +57,7 @@ Final type checking exposed a pre-existing Resources page component type exposin
 
 The five selected IDs and the overlapping O126 sitemap/robots requirement are development-complete. The authoritative ledger records46 Done of176 original IDs. O128/O129 and O145-02/O145-03 have verified scoped improvements; their broader requirements remain In progress. These are not deployed/accepted counts.
 
-[PR359](https://github.com/Hamernick/CoachHouse/pull/359) is stacked on documentation PR358. The current branch contains the protocol, keyboard-authoring and bounded-preview continuation below. No sign-in, checkout, provider write, shared SHIP change, merge or deployment occurred. Preview3162 is stopped; unrelated processes/worktrees remain untouched.
+[PR359](https://github.com/Hamernick/CoachHouse/pull/359) now targets main after documentation PR358 merged October25. The current branch contains the protocol, keyboard-authoring and bounded-preview continuation below. No sign-in, checkout, provider write, shared SHIP change, merge or deployment occurred. Preview3162 is stopped; unrelated processes/worktrees remain untouched.
 
 Current verification:
 -52 sitemap/origin/community cases and anonymous root-route/index HTTP checks pass (`/private/tmp/launch-sitemap-location-tests.log`, `/private/tmp/launch-root-sitemap-http.json`).
@@ -87,3 +87,7 @@ The interrupted AST job completed. Exact hash readback found one omitted final t
 Publication: implementation `dcdf1c457466ba150054a75615298d7dda14a285` independently matches the remote branch. Normal Node22 pre-push passed in9.96s (including108 changed-file lint targets); outgoing nine-commit secret scan found no leaks. Logs: `/private/tmp/launch-readiness-push.log`, `/private/tmp/launch-readiness-secret-scan.log`. PR359 includes this continuation and remains stacked on358. This final documentation receipt does not change the verified application sources.
 
 Browser reproduction: `pnpm exec playwright test --config=/private/tmp/launch-alt-playwright.config.cjs tests/visual/rich-text-editability.visual.spec.ts`; the local config uses default Chromium/viewport/assertion settings,one worker,a90s test limit,no retries and no server because the fixture renders the real editor bundle in-page. The committed spec also runs through the normal visual configuration. Inspected UI artifact: `/private/tmp/launch-alt-playwright-results/rich-text-editability.visu-d109c-d-and-read-only-transitions/image-edit-dialog.png`.
+
+### PR359 conflict resolution — October25
+
+PR358 squash-merged as `a722e7e1cb92c214129c875ee6ed0470256f38b0`; PR359 automatically retargeted main. The fetched main tree exactly matches original documentation base `8d2ed049`. Merged main into this branch, retaining the newer evidence-backed backlog and complete runlog; no application changes. Verified all176 unique original IDs and counts46 Done/75 In progress/49 Needs verification/5 Deferred/1 Superseded. Existing application verification remains applicable; normal pre-push validates publication. No release or hosted-check polling.
