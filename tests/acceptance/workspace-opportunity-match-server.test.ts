@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ID, WORKSPACE, graph, particle } from "./fixtures/particle-fixtures"
 import { now, notice, need } from "./fixtures/opportunity-match-fixtures"
 import { matchOpportunity } from "@/features/workspace-finance/lib/opportunity-matching"
-const mock=vi.hoisted(()=>({actor:vi.fn(),view:vi.fn(),manage:vi.fn(),board:vi.fn(),canvases:vi.fn(),rpc:vi.fn(),discover:vi.fn(),detail:vi.fn(),document:vi.fn(),saveDocument:vi.fn(),storage:vi.fn()}))
+const mock=vi.hoisted(()=>({actor:vi.fn(),view:vi.fn(),manage:vi.fn(),board:vi.fn(),canvases:vi.fn(),rpc:vi.fn(),discover:vi.fn(),detail:vi.fn(),document:vi.fn(),saveDocument:vi.fn(),storage:vi.fn(),instructions:vi.fn()}))
 vi.mock("@/lib/auth/request-context",()=>({resolveAuthenticatedAppContext:mock.actor}))
 vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:()=>({rpc:mock.rpc})}))
 vi.mock("@/lib/workspace/workspace-finance-access",()=>({canManageWorkspaceFinance:mock.manage,canViewWorkspaceFinance:mock.view}))
@@ -11,6 +11,7 @@ vi.mock("@/features/workspace-finance/server/opportunity-discovery",()=>({discov
 import { changeResourceMatch, loadResourceMatches, searchResourceMatches, reviewResourceMatch } from "@/features/workspace-finance/server/resource-matches"
 vi.mock("@/actions/roadmap",()=>({saveRoadmapSectionAction:mock.saveDocument}))
 vi.mock("@/lib/organization/document-storage-access",()=>({requireOrganizationDocumentStorage:mock.storage}))
+vi.mock("@/features/workspace-finance/server/application-instructions",()=>({fetchApplicationInstructions:mock.instructions}))
 import { prepareResourceApplication } from "@/features/workspace-finance/server/opportunity-application"
 import { opportunityApplicationSeed, applicationSectionId } from "@/features/workspace-finance/lib/opportunity-application"
 import { noticeFingerprint } from "@/features/workspace-finance/server/match-review"
@@ -31,6 +32,7 @@ beforeEach(()=>{
  mock.rpc.mockResolvedValue({data:{matches:[row()],opportunity:null},error:null})
  mock.discover.mockResolvedValue({notices:[notice()],observedAt:now,checked:1,unavailable:0})
  mock.detail.mockResolvedValue(notice())
+ mock.instructions.mockResolvedValue({state:"unsupported",sourceUrl:null,checkedAt:now,acceptingProposals:"unknown",sections:[]})
  mock.storage.mockResolvedValue({ok:true});mock.document.mockResolvedValue({data:{profile:{}},error:null})
  mock.saveDocument.mockResolvedValue({section:{id:applicationSectionId(ID(10)),title:"Application",slug:"application"}})
 })
@@ -157,6 +159,27 @@ describe("opportunity application preparation",()=>{
   expect(mock.saveDocument).not.toHaveBeenCalled()
   mock.detail.mockResolvedValue({...notice(),status:"withdrawn"})
   expect(await prepareResourceApplication(input)).toMatchObject({document:null,reviewRequired:true})
+ })
+ it("blocks conflicting funder availability and unavailable instructions without writing a document",async()=>{
+  savedMatch()
+  for(const detail of [{state:"available",acceptingProposals:"not_accepting"},{state:"unavailable",acceptingProposals:"unknown"}]) {
+   mock.instructions.mockResolvedValue({...detail,sourceUrl:"https://www.nsf.gov/",checkedAt:now,sections:[]})
+   expect(await prepareResourceApplication(input)).toMatchObject({document:null,reviewRequired:true,preparationWarning:expect.any(String)})
+  }
+  expect(mock.saveDocument).not.toHaveBeenCalled()
+ })
+ it("adds retrieved source requirements with provenance and preserves match concurrency after retrieval",async()=>{
+  savedMatch()
+  mock.instructions.mockResolvedValue({state:"available",sourceUrl:"https://www.nsf.gov/source",checkedAt:now,acceptingProposals:"unknown",sections:[{title:"A. Instructions",text:"Project narrative: 15 pages.",truncated:false}]})
+  await prepareResourceApplication(input)
+  expect(mock.saveDocument.mock.calls[0][0].content).toContain("Project narrative: 15 pages.")
+  expect(mock.saveDocument.mock.calls[0][0].content).toContain("https://www.nsf.gov/source")
+  const putOrder=mock.rpc.mock.invocationCallOrder[1]
+  expect(putOrder).toBeGreaterThan(mock.instructions.mock.invocationCallOrder[0])
+  mock.saveDocument.mockClear()
+  mock.rpc.mockResolvedValueOnce({data:{matches:[{...row(),status:"saved",opportunity_id:ID(20)}]},error:null}).mockResolvedValueOnce({data:null,error:{code:"40001"}})
+  await expect(prepareResourceApplication(input)).rejects.toThrow(/changed/)
+  expect(mock.saveDocument).not.toHaveBeenCalled()
  })
  it("denies unsaved, stale, foreign and read-only requests before creating a document",async()=>{
   await expect(prepareResourceApplication(input)).rejects.toThrow(/Save this opportunity/)

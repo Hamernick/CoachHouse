@@ -10,6 +10,7 @@ const summarySchema = z.object({
   opportunityId: z.number().int().positive(), version: z.number().int().nonnegative().optional(),
   agencyName: text, agencyCode: text, agencyDetails: z.object({ agencyName: text }).nullish(),
   synopsisDesc: text, forecastDesc: text, applicantEligibilityDesc: text,
+  fundingDescLinkUrl: text,
   costSharing: z.boolean().nullish(), estimatedFunding: amount, awardCeiling: amount, awardFloor: amount,
   applicantTypes: z.array(z.object({ id: z.string().min(1).max(20), description: z.string().min(1).max(1000) })).max(30).optional(),
   postingDate: text, postingDateStr: text, lastUpdatedDate: text,
@@ -82,5 +83,6 @@ export function normalizeGrantsGovDetail(value: unknown, externalId: string, obs
     deadlineDate: readDate("deadlineDate", forecast ? "estApplicationResponseDateStr" : "responseDateStr", forecast ? "estApplicationResponseDate" : "responseDate"),
     deadlineTimezone: null, deadlineDescription: (forecast ? source.estApplicationResponseDateDesc : source.responseDateDesc) || null,
     discoveredAt: verifiedAt, verifiedAt, evidence, sourceRevision: `${data.revision ?? "unknown"}:${source.version ?? "unknown"}:${source.lastUpdatedDate ?? "unknown"}`,
+    applicationSourceUrl: remember("applicationSourceUrl", `${path}.fundingDescLinkUrl`, z.url({ protocol: /^https?$/ }).max(2000).safeParse(source.fundingDescLinkUrl).data ?? null),
   })
 }

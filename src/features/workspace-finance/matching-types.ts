@@ -16,6 +16,7 @@ export const officialOpportunityNoticeSchema = z.strictObject({
   costSharing: z.boolean().nullable(), costShareRateBps: z.number().int().min(0).max(10000).nullable(), costShareBasis: z.enum(["award", "project"]).nullable(),
   postedDate: date.nullable(), updatedDate: date.nullable(), deadlineDate: date.nullable(), deadlineTimezone: z.string().min(1).max(100).nullable(), deadlineDescription: z.string().max(5000).nullable(),
   discoveredAt: instant, verifiedAt: instant, sourceRevision: z.string().max(500).nullable(),
+  applicationSourceUrl: url.nullable().optional(),
   evidence: z.array(z.strictObject({ field: z.string().min(1).max(100), path: z.string().min(1).max(300), url, verifiedAt: instant })).max(100),
 }).superRefine((value, ctx) => {
   if (value.awardFloorCents !== null && value.awardCeilingCents !== null && value.awardFloorCents > value.awardCeilingCents)

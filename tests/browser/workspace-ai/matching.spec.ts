@@ -84,3 +84,17 @@ test('application preparation requires Save and reopens one preserved document',
  expect(await page.evaluate(()=>localStorage.getItem('application-open-count'))).toBe('2')
  await expect(page.getByRole('button',{name:'Saved match Fictional opportunity — browser test'})).toBeDisabled()
 })
+
+
+test('conflicting official availability stays inline and never opens or creates a draft',async({page})=>{
+ await page.setViewportSize({width:390,height:844})
+ await page.goto('/?matching');await page.getByRole('button',{name:'Opportunities for Workshop'}).click()
+ await page.getByRole('textbox',{name:'Public opportunity keywords'}).fill('community');await page.getByRole('button',{name:'Find',exact:true}).click()
+ await page.getByRole('button',{name:'Save match Fictional opportunity — browser test',exact:true}).click()
+ await page.evaluate(()=>localStorage.setItem('matching-application-control','not_accepting'))
+ await page.getByRole('button',{name:'Application draft',exact:true}).click()
+ await expect(page.getByRole('status')).toContainText('not accepting proposals')
+ expect(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('matching-application:')))).toHaveLength(0)
+ await expect(page.getByRole('button',{name:'Application draft',exact:true})).toBeEnabled()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+})

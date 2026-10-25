@@ -84,7 +84,7 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
       if(!alive.current)return
       if("error" in result){setError(result.error);return}
       setMatches(result.matches)
-      if(result.reviewRequired||!result.document){setMessage("The official notice changed or is no longer open. Review the refreshed details before preparing a new draft.");return}
+      if(result.reviewRequired||!result.document){setMessage("preparationWarning" in result&&typeof result.preparationWarning==="string"?result.preparationWarning:"The official notice changed or is no longer open. Review the refreshed details before preparing a new draft.");return}
       const destination=new URL(window.location.href)
       destination.searchParams.set("drawer","roadmap");destination.searchParams.set("section",result.document.id)
       for(const key of ["module","step","group","guide","focus"])destination.searchParams.delete(key)
@@ -116,6 +116,7 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
           <ul className="space-y-1">{match.assessment.criteria.map(criterion=><li key={criterion.id}>{criterion.outcome==="pass"?"Checked":criterion.outcome==="fail"?"Not met":"Unknown"}: {criterion.explanation}</li>)}</ul>
           <p>{match.assessment.coverage.kind==="comparable"?`Up to ${match.assessment.coverage.maximumCoverageBps/100}% of the eligible unfunded need; not secured funding.`:"Coverage cannot be estimated until eligible costs, period and requirements are confirmed."}</p>
           <a className="inline-flex rounded-full bg-muted px-3 py-2 underline" href={match.notice.originalUrl} target="_blank" rel="noreferrer">Official notice</a>
+          {match.notice.applicationSourceUrl&&<a className="ml-2 inline-flex rounded-full bg-muted px-3 py-2 underline" href={match.notice.applicationSourceUrl} target="_blank" rel="noreferrer">Funder instructions</a>}
           {match.need.review&&<p className="text-muted-foreground">User review saved {new Date(match.need.review.reviewedAt).toLocaleString()}; applies to this notice version.</p>}
         </div></details>
         {canEdit&&<ResourceMatchReview match={match} pending={pending} onSave={need=>review(match,need)}/>}

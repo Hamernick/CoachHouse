@@ -11,6 +11,7 @@ import { resourceMatchContext, resourceMatchRpc } from "./resource-matches"
 import { fetchOfficialOpportunity } from "./opportunity-discovery"
 import { needForNotice, noticeFingerprint } from "./match-review"
 import { matchOpportunity } from "../lib/opportunity-matching"
+import { fetchApplicationInstructions } from "./application-instructions"
 
 const reference = (section: RoadmapSection) => ({ id: section.id, title: section.title, slug: section.slug })
 export async function prepareResourceApplication(input: unknown) {
@@ -34,10 +35,15 @@ export async function prepareResourceApplication(input: unknown) {
   if (match.stale) throw new Error("Resource changed. Search again before preparing a new application.")
   const notice = { ...await fetchOfficialOpportunity(match.notice.externalId), discoveredAt: match.notice.discoveredAt }
   const need = needForNotice(match.need, notice), assessment = matchOpportunity(notice, need)
+  const noticeChanged = noticeFingerprint(notice) !== noticeFingerprint(match.notice) || !assessment.active || notice.status !== "posted"
+  const instructions = noticeChanged ? null : await fetchApplicationInstructions(notice.applicationSourceUrl)
+  // Recheck the resource and match CAS after all source reads, before creating the document.
   const refreshed = await resourceMatchRpc(ctx, "put", [{ notice, need, assessment, expectedUpdatedAt: match.updatedAt }] as unknown as Json)
-  if (noticeFingerprint(notice) !== noticeFingerprint(match.notice) || !assessment.active || notice.status !== "posted")
+  if (noticeChanged || !instructions)
     return { ...refreshed, document: null, reviewRequired: true }
-  const seed = opportunityApplicationSeed(notice)
+  if (instructions.acceptingProposals === "not_accepting") return { ...refreshed, document: null, reviewRequired: true, preparationWarning: "The funder's official solicitation says it is not accepting proposals. This conflicts with the listing; confirm availability with the funder before preparing a new application." }
+  if (instructions.state === "unavailable") return { ...refreshed, document: null, reviewRequired: true, preparationWarning: "The funder's official instructions could not be verified. No document was created. Retry when the source is available." }
+  const seed = opportunityApplicationSeed(notice, instructions)
   const saved = await saveRoadmapSectionAction({ ...seed, sectionId, createOnly: true, expectedLastUpdated: null,
     expectedOrganizationId: ctx.target.organizationId, expectedUserId: ctx.user.id, isPublic: false, status: "in_progress" })
   if ("error" in saved) {

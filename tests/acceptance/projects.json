@@ -552,6 +552,7 @@
       "tests/acceptance/workspace-ai-provider.test.ts",
       "tests/acceptance/workspace-ai-save.test.ts",
       "tests/acceptance/workspace-ai.test.ts",
+      "tests/acceptance/workspace-application-instructions.test.ts",
       "tests/acceptance/workspace-board-access-management.test.ts",
       "tests/acceptance/workspace-board-activity-heatmap.test.ts",
       "tests/acceptance/workspace-board-calendar-card-strip-data.test.ts",

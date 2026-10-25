@@ -1,6 +1,6 @@
 # Open Work Index
 
-**October25 opportunity application preparation:** Saved resource matches create/reopen one unpublished application document in the existing canvas editor; manual edits survive retries. Private funding reviews remain separate. [Authoritative checkpoint and full-goal requirements](../plans/2026-10-22-workspace-ai-plan.md#opportunity-application-preparation--2026-10-25). Official-form extraction, live AI and release gates remain open.
+**October25 official application instructions:** Saved-match preparation can retrieve source-linked NSF instructions and blocks new drafts when funder availability conflicts or a supported source cannot be verified. Existing documents remain intact. [Authoritative checkpoint and remaining scope](../plans/2026-10-22-workspace-ai-plan.md#official-application-instructions-and-availability-conflicts--2026-10-25).
 
 **October24 existing-plan AI revisions:** Inline revision research, partial graph proposals, owner review, stale/replay protection and efficient selected-plan context are implemented. Domain/server and seven simulated browser scenarios pass. [Authoritative checkpoint and verification](../plans/2026-10-22-workspace-ai-plan.md#existing-plan-ai-revisions--2026-10-24). Full goal and live/release gates remain open.
 

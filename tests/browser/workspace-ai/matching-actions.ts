@@ -38,6 +38,7 @@ export async function updateResourceOpportunityMatch(input:{id:string;updatedAt:
 export async function prepareResourceOpportunityApplication(input:{id:string;updatedAt:string;target:ResourceMatchTarget}){
  const rows=read(),row=rows.find(item=>item.id===input.id&&item.need.resourceId===input.target.resourceId)
  if(!row||row.status!=='saved'||row.updatedAt!==input.updatedAt)return{error:'Save the current opportunity first.'}
+ if(localStorage.getItem('matching-application-control')==='not_accepting')return{matches:rows,document:null,reviewRequired:true,preparationWarning:"The funder's official solicitation says it is not accepting proposals. This conflicts with the listing; confirm availability with the funder before preparing a new application."}
  const documentKey=`matching-application:${applicationSectionId(row.id)}`
  const previous=localStorage.getItem(documentKey)
  const document=previous?JSON.parse(previous):{id:applicationSectionId(row.id),slug:applicationSectionId(row.id),...opportunityApplicationSeed(row.notice)}
