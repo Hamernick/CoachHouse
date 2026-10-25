@@ -605,6 +605,8 @@
       "tests/acceptance/workspace-ontology.test.ts",
       "tests/acceptance/workspace-opportunities-feed.test.ts",
       "tests/acceptance/workspace-opportunity-create.test.ts",
+      "tests/acceptance/workspace-opportunity-match-server.test.ts",
+      "tests/acceptance/workspace-opportunity-matching.test.ts",
       "tests/acceptance/workspace-organization-overview-programs.test.ts",
       "tests/acceptance/workspace-particle-actions.test.ts",
       "tests/acceptance/workspace-particle-calendar.test.ts",

@@ -10,10 +10,12 @@ import type { WorkspaceFinanceDataState, WorkspaceFinanceOpportunityInput, Works
 import { WorkspaceOpportunityForm } from "./workspace-opportunity-form"
 import { getWorkspaceOpportunitySources } from "@/actions/workspace-opportunity-sources"
 import { sourceKey, type OpportunitySourceOption } from "../lib/opportunity-sources"
+import { ResourceOpportunityMatches } from "./resource-opportunity-matches"
 import { WorkspaceOpportunityCard } from "./workspace-opportunity-card"
 import { opportunityReportSources, readOpportunityReport } from "../lib/opportunity-report"
 
-export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange, organizationId, onOpenSource, onAddToWorkspace }: {
+export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle", canEdit = false, onCountChange, organizationId, onOpenSource, onAddToWorkspace, selectedResource }: {
+  selectedResource?: {id:string;title:string;revision:number}
   opportunities?: WorkspaceFinanceOpportunityInput[]
   state?: WorkspaceFinanceDataState
   canEdit?: boolean
@@ -89,8 +91,9 @@ export function WorkspaceOpportunitiesFeed({ opportunities = [], state = "idle",
   const saved = (item: WorkspaceFinanceOpportunityInput) => { setAdded(value => [item, ...value.filter(existing => existing.id !== item.id)]); notifyOpportunityChanged(item.id) }
   if (creating && canEdit && organizationId) return <WorkspaceOpportunityForm {...form} onCancel={closeForm} onCreated={item => { saved(item); closeForm() }} />
   const addControl = canEdit && organizationId && <Button ref={addButton} variant="outline" className="rounded-full shadow-none" onClick={() => setCreating(true)}>Add opportunity</Button>
-  if (!visible.length) return <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 px-4 py-6"><p className="text-sm text-muted-foreground">No opportunities yet.</p>{addControl}</div>
-  return <div className="space-y-3"><ul aria-label="Opportunities feed" className="space-y-3">
+  const matching = organizationId && selectedResource ? <ResourceOpportunityMatches target={{organizationId,resourceId:selectedResource.id,resourceRevision:selectedResource.revision}} title={selectedResource.title} canEdit={canEdit} onSaved={saved}/> : null
+  if (!visible.length) return <div className="space-y-3">{matching}<div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 px-4 py-6"><p className="text-sm text-muted-foreground">No opportunities yet.</p>{addControl}</div></div>
+  return <div className="space-y-3">{matching}<ul aria-label="Opportunities feed" className="space-y-3">
     {visible.map(item => <WorkspaceOpportunityCard key={item.id} item={item} status={changes[item.id] ?? item.status} canEdit={canEdit} pending={pending.has(item.id)} onStatus={status => void change(item, status)} onSaved={saved} onDelete={() => remove(item)} onAdd={onAddToWorkspace ? () => addToWorkspace(item) : undefined} onOpenSource={onOpenSource} form={form} />)}
   </ul>{addControl && <div className="flex justify-center">{addControl}</div>}</div>
 }

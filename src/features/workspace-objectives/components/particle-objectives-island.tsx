@@ -18,10 +18,13 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [tab, setTab] = useState("objectives")
+  const [matchingResourceId, setMatchingResourceId] = useState<string | null>(null)
   const [opportunityCount, setOpportunityCount] = useState(() => finance?.opportunities?.length ?? 0)
   const pressedTab = useRef<string | null>(null)
   const actions = useParticlePlans(scope, controls)
   const objectives = orderedObjectives(controls.graph?.particles ?? [])
+  const selectedResource = controls.graph?.particles.find(item => item.id === controls.selectedId && item.type === "activity")
+    ?? controls.graph?.particles.find(item => item.id === matchingResourceId && item.type === "activity")
   const sortingDisabled = !controls.canEdit || controls.pending || Boolean(controls.error)
   const move = (id: string, index: number) => {
     if (sortingDisabled) return
@@ -32,7 +35,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     if (operations.length) void controls.commit(operations, { optimistic: true })
   }
   const completed = objectives.filter(item => item.status === "done").length
-  return <Tabs value={tab} onValueChange={value => { setTab(value); setOpen(true) }} className="pointer-events-none w-[420px] max-w-full gap-0">
+  return <Tabs value={tab} onValueChange={value => { if(value === "opportunities") setMatchingResourceId(selectedResource?.id ?? null); setTab(value); setOpen(true) }} className="pointer-events-none w-[420px] max-w-full gap-0">
     <ObjectivesIslandSurface closedWidth={336} header={
       <TabsList aria-label="Workspace feeds" className="relative grid h-[42px] w-full grid-cols-2 rounded-full bg-muted/40 p-1 data-[orientation=horizontal]:h-[42px]">
         <TabsTrigger value="objectives" aria-label="Objectives" aria-expanded={open && tab === "objectives"} aria-description={`${completed} of ${objectives.length} objectives completed`} onPointerDownCapture={() => { pressedTab.current = tab }} onClick={event => { if (event.detail > 0 && pressedTab.current === "objectives") setOpen(value => !value) }} onKeyDown={event => { if (tab === "objectives" && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(value => !value) } }} className={`h-full justify-start gap-2 rounded-full border-0 px-3 shadow-none data-[state=active]:shadow-none ${open ? "grid grid-cols-[16px_minmax(0,1fr)_16px]" : ""}`}>
@@ -56,7 +59,7 @@ export function ParticleObjectivesIsland({ scope, controls, finance }: { scope: 
     </div>
     </TabsContent>
     <TabsContent value="opportunities" forceMount hidden={tab !== "opportunities"} className="m-0">
-      <WorkspaceOpportunitiesFeed key={scope.organizationId} organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} onAddToWorkspace={async item => {
+      <WorkspaceOpportunitiesFeed selectedResource={selectedResource} key={scope.organizationId} organizationId={scope.organizationId} opportunities={finance?.opportunities} state={finance?.opportunitiesState} canEdit={controls.canEdit} onCountChange={setOpportunityCount} onAddToWorkspace={async item => {
         const graph = controls.getCurrentGraph()
         if (!graph || !controls.canEdit || controls.pending) return false
         const existing = graph.particles.find(p => p.type === "activity" && p.data.widget?.kind === "opportunity" && p.data.widget.opportunityId === item.id && p.data.widget.organizationId === scope.organizationId)

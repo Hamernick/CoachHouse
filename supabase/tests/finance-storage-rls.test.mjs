@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execFileSync, spawnSync } from "node:child_process"
+import { execFileSync, spawnSync, spawn } from "node:child_process"
 import {
   accessSync,
   constants,
@@ -160,6 +160,25 @@ try {
     "supabase/migrations/20260814061500_bind_finance_stripe_install_to_authorized_org.sql"
   )
   runSql("supabase/tests/finance-storage-rls.assertions.sql")
+
+  runSql("supabase/migrations/20261023223000_add_opportunity_sources.sql")
+  runSql("supabase/migrations/20261024000000_add_opportunity_reports.sql")
+  run("psql", ["-h", socketDirectory, "-p", port, "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], {
+    input: "create table public.organization_workspace_boards(org_id uuid primary key,state jsonb not null);",
+  })
+  runSql("supabase/migrations/20261025010000_resource_opportunity_matches.sql")
+  runSql("supabase/tests/resource-opportunity-matches.assertions.sql")
+
+  const raceArgs=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q","-t","-A"]
+  const racePayload=run("psql",raceArgs,{input:"select jsonb_build_object('id',id,'updatedAt',updated_at) from public.organization_resource_opportunity_matches limit 1;"}).stdout.trim()
+  const dismissConcurrently=()=>new Promise(resolve=>{
+    const child=spawn(binary("psql"),raceArgs,{stdio:["pipe","pipe","pipe"]})
+    let error="";child.stderr.on("data",chunk=>{error+=chunk});child.stdout.resume()
+    child.on("close",code=>resolve({code,error}))
+    child.stdin.end(`begin; set local role service_role; select public.match_call('dismiss','00000000-0000-0000-0000-000000000001','${racePayload}'::jsonb); select pg_sleep(0.1); commit;`)
+  })
+  const race=await Promise.all([dismissConcurrently(),dismissConcurrently()])
+  if(race.filter(result=>result.code===0).length!==1||!race.some(result=>result.error.includes("Match changed")))throw new Error(`Match CAS race failed: ${JSON.stringify(race)}`)
 
   console.log(
     "[finance-rls] Board access, membership revocation, cross-tenant, direct-write, verification, correction, Stripe provider evidence, and immutable-evidence checks passed."

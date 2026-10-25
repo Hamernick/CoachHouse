@@ -22,6 +22,7 @@ export default defineConfig({
     { name: "fixture-server-action-boundary", enforce: "pre", resolveId(source, importer) {
       if ((source === "@/features/workspace-particles/client" || source === resolve(repo, "src/features/workspace-particles/client")) && importer?.includes("workspace-objectives/")) return resolve(__dirname, "revision-particle-client.ts")
       if (source === "../actions" && importer?.includes("workspace-objectives/hooks/use-particle-plans")) return actions
+      if (source === "../matching-actions" && importer?.includes("workspace-finance/components/")) return resolve(__dirname, "matching-actions.ts")
       if (source === "../research-actions" && importer?.includes("workspace-ai/components/")) return actions
       if (source === "../refill-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "refill-actions.ts")
       if (source === "../purchase-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "credit-actions.ts")
