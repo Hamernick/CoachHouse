@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useTheme } from "next-themes"
-import Link from "next/link"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/features/platform-admin-dashboard/upstream/components/ui/avatar"
 import { Button } from "@/features/platform-admin-dashboard/upstream/components/ui/button"
@@ -109,11 +108,7 @@ function TeammatesSettingsPane() {
             <div>
                 <DialogTitle className="text-xl">Teammates</DialogTitle>
                 <DialogDescription className="mt-1">
-                    Invite and manage your teammates to collaborate. You can also {" "}
-                    <Link href="#" className="text-primary underline underline-offset-4">
-                        set up AI agents
-                    </Link>{" "}
-                    to work alongside your team.
+                    Invite and manage your teammates to collaborate.
                 </DialogDescription>
             </div>
 
@@ -148,7 +143,7 @@ function TeammatesSettingsPane() {
                         <div key={mate.id} className="grid grid-cols-12 items-center px-4 py-4">
                             <div className="col-span-6 flex items-center gap-3">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={mate.avatar} />
+                                    <AvatarImage src={mate.avatar} alt="" />
                                     <AvatarFallback>KD</AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col">
@@ -301,7 +296,7 @@ function AccountSettingsPane() {
                 <SettingRow label="Profile photo" description="This image appears across your workspace.">
                     <div className="flex flex-wrap items-center gap-4">
                         <Avatar className="h-16 w-16">
-                            <AvatarImage src={photoPreview} />
+                            <AvatarImage src={photoPreview} alt="Your profile photo" />
                             <AvatarFallback>JD</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-wrap items-center gap-2">
@@ -482,16 +477,12 @@ function PreferencesSettingsPane() {
 }
 
 function IdentitySettingsPane() {
-    const samlLink = "#"
-    const scimLink = "#"
-
     const identityCards = [
         {
             id: "saml",
             title: "SAML SSO",
             description:
-                "Allow users to log in with SAML single sign-on (SSO). Read the help center article for configuration steps.",
-            helpHref: samlLink,
+                "SAML single sign-on configuration is not available in this workspace.",
             toggleLabel: "Enable SAML SSO",
             enabled: false,
         },
@@ -499,8 +490,7 @@ function IdentitySettingsPane() {
             id: "scim",
             title: "SCIM",
             description:
-                "Use SCIM provisioning to automatically create, update, and delete users. Read the help center article for configuration steps.",
-            helpHref: scimLink,
+                "SCIM account provisioning is not available in this workspace.",
             toggleLabel: "Enable SCIM",
             enabled: false,
         },
@@ -511,7 +501,7 @@ function IdentitySettingsPane() {
             <div>
                 <DialogTitle className="text-xl">Identity</DialogTitle>
                 <DialogDescription className="mt-1">
-                    Secure and streamline user access. Enable SAML SSO for single sign-on and SCIM provisioning for automated account management.
+                    Review identity options. These controls are not currently available.
                 </DialogDescription>
             </div>
 
@@ -524,11 +514,7 @@ function IdentitySettingsPane() {
                             <p className="text-sm font-semibold text-foreground">{card.title}</p>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            {card.description.split("help center article")[0]}
-                            <Link href={card.helpHref} className="text-primary underline underline-offset-4">
-                                help center article
-                            </Link>{" "}
-                            {card.description.split("help center article")[1]}
+                            {card.description}
                         </p>
                         <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
                             <span className="text-sm text-foreground">{card.toggleLabel}</span>

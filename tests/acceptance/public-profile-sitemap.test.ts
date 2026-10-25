@@ -30,7 +30,7 @@ function database(overrides: Record<string, () => Promise<Result>> = {}) {
   }
   const from = vi.fn((table: string) => {
     const query = {
-      select: vi.fn(() => query), order: vi.fn(() => query), limit: vi.fn(() => query),
+      select: vi.fn(() => query), order: vi.fn(() => query), range: vi.fn(() => query),
       in: vi.fn(() => query),
       eq: vi.fn((column: string, value: unknown) => { filters.push([table, column, value]); return query }),
       abortSignal: vi.fn((signal: AbortSignal) => { signals.push(signal); return query }),
@@ -124,16 +124,16 @@ describe("bounded public profile sitemap lookup", () => {
     const urls = (await pending).map((entry) => entry.url)
     expect(urls).toEqual([
       "https://coachhouse.app", "https://coachhouse.app/build", "https://coachhouse.app/resources", "https://coachhouse.app/community",
-      "https://coachhouse.app/pricing", "https://coachhouse.app/privacy", "https://coachhouse.app/terms",
+      "https://coachhouse.app/pricing", "https://coachhouse.app/privacy", "https://coachhouse.app/status", "https://coachhouse.app/terms",
       "https://coachhouse.app/documentation",
     ])
   })
 
-  it("keeps published profile metadata on healthy sitemap generation", async () => {
-    database()
-    expect(await sitemap()).toContainEqual({
-      url: "https://coachhouse.app/person", lastModified: updatedAt, changeFrequency: "weekly", priority: 0.8,
-    })
+  it("keeps the root sitemap independent of the profile catalog", async () => {
+    const db = database()
+    const urls = (await sitemap()).map(({ url }) => url)
+    expect(urls).not.toContain("https://coachhouse.app/person")
+    expect(db.from).not.toHaveBeenCalled()
   })
 
   it("includes the canonical Build landing once without exposing previews or private profiles", async () => {

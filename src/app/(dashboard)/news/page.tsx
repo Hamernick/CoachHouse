@@ -1,6 +1,13 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import { NewsGradientThumb } from "@/components/news/gradient-thumb"
+
+export const metadata: Metadata = {
+  title: "News",
+  description: "Read Coach House updates and nonprofit insights.",
+}
+
 
 export const revalidate = 86400
 

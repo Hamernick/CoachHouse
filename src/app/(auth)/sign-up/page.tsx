@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { AuthCard } from "@/components/auth/auth-card"
 import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
 import { SignUpForm } from "@/components/auth/sign-up-form"
@@ -12,6 +13,12 @@ import {
   resolveSignupBuilderPlanTier,
   resolveSignupIntentFocus,
 } from "@/lib/onboarding/signup-plan"
+
+export const metadata: Metadata = {
+  title: "Create Your Account",
+  description: "Create a Coach House account to save resources and build your nonprofit.",
+}
+
 
 type SearchParams = Record<string, string | string[] | undefined>
 

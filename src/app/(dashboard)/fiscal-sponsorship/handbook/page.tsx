@@ -16,6 +16,7 @@ import {
 } from "@/features/fiscal-sponsorship"
 
 export const metadata: Metadata = {
+  description: "Read the Coach House fiscal sponsorship handbook and program requirements.",
   title: "Fiscal Sponsorship Handbook",
 }
 

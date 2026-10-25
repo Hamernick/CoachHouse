@@ -24,7 +24,7 @@ export const ImageExtension = Image.extend({
         default: null,
       },
       alt: {
-        default: null,
+        default: "",
       },
       title: {
         default: null,

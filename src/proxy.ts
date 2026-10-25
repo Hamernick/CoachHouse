@@ -46,7 +46,7 @@ export async function proxy(request: NextRequest) {
     return response
   }
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
-    pathname.startsWith(prefix)
+    pathname === prefix || pathname.startsWith(`${prefix}/`)
   )
   const isAuthRoute = AUTH_ROUTES.has(pathname)
   const isCoachRestricted = isCoachRestrictedPath(pathname)

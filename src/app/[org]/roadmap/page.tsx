@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 
@@ -7,6 +8,12 @@ import { ROADMAP_SECTION_IDS, resolveRoadmapSections } from "@/lib/roadmap"
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { RoadmapAnalyticsTracker } from "@/components/roadmap/public-roadmap-tracker"
 import { publicSharingEnabled } from "@/lib/feature-flags"
+
+export const metadata: Metadata = {
+  title: "Public Strategic Roadmap",
+  description: "Explore this nonprofit organization’s published strategic roadmap.",
+}
+
 
 export const revalidate = 300
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import {
@@ -9,6 +10,12 @@ import {
   type EmailOpsDraftEditorMode,
 } from "@/features/email-ops"
 import { requireAdmin } from "@/lib/admin/auth"
+
+export const metadata: Metadata = {
+  title: "Email Draft",
+  description: "Review and edit a Coach House email campaign draft.",
+}
+
 
 type EmailDraftPageProps = {
   params: Promise<{ campaignId: string }>

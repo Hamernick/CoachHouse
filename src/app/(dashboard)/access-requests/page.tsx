@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import {
   acceptOrganizationAccessRequestAction,
   declineOrganizationAccessRequestAction,
@@ -5,6 +6,12 @@ import {
 } from "@/app/actions/organization-access"
 import { OrganizationAccessRequestsPanel } from "@/features/organization-access"
 import { redirect } from "next/navigation"
+
+export const metadata: Metadata = {
+  title: "Access Requests",
+  description: "Review requests to join your organization.",
+}
+
 
 export default async function AccessRequestsPage({
   searchParams,

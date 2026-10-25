@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { redirect as redirectTo } from "next/navigation"
 
 import { AuthCard } from "@/components/auth/auth-card"
@@ -7,6 +8,12 @@ import { DEFAULT_POST_AUTH_REDIRECT, getSafeRedirectPath } from "@/lib/auth/redi
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "Team Sign In",
+  description: "Sign in to your Coach House team account.",
+}
+
 
 type SearchParams = Record<string, string | string[] | undefined>
 

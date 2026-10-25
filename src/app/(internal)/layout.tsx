@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
 import { AppShell } from "@/components/app-shell"
@@ -5,6 +6,10 @@ import { readAppSidebarDefaultOpen } from "@/components/app-shell/sidebar-state-
 import { fetchSidebarTree } from "@/lib/academy"
 import { requireAdmin } from "@/lib/admin/auth"
 import { resolveAccountBillingCancellationRisk } from "@/lib/billing/subscription-access"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function InternalAdminLayout({
   children,

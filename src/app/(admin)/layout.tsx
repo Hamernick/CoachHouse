@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { OrganizationWorkspaceSupportPanel, WorkspaceOrganizationScope } from "@/features/organization-workspace-support"
 
@@ -7,6 +8,10 @@ import { AppShell } from "@/components/app-shell"
 import { readAppSidebarDefaultOpen } from "@/components/app-shell/sidebar-state-server"
 import { MemberWorkspaceSidebarHeader } from "@/features/member-workspace/server"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function AdminLayout({
   children,

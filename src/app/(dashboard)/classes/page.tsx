@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -8,6 +9,12 @@ import { listClasses } from "@/lib/classes"
 import { createSupabaseServerClient } from "@/lib/supabase"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
+
+export const metadata: Metadata = {
+  title: "Training Classes",
+  description: "Browse nonprofit training classes and continue your learning.",
+}
+
 
 const PAGE_SIZE = 12
 

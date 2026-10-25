@@ -8,6 +8,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/resources" },
 }
 
-export default function ResourcesPage({ searchParams }: PublicFindRouteProps) {
+export default function ResourcesPage({ searchParams }: Pick<PublicFindRouteProps, "searchParams">) {
   return <PublicHomeResourceExplorer searchParams={searchParams} />
 }

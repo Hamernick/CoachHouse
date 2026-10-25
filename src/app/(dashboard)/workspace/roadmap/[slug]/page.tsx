@@ -1,4 +1,11 @@
+import type { Metadata } from "next"
 import { StrategicRoadmapEditorPage } from "@/components/roadmap/strategic-roadmap-editor-page"
+
+export const metadata: Metadata = {
+  title: "Roadmap Section",
+  description: "Edit a section of your nonprofit strategic roadmap.",
+}
+
 
 export const dynamic = "force-dynamic"
 

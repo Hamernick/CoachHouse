@@ -172,17 +172,17 @@ export const MARKETPLACE_RESOURCE_ADDITIONS: MarketplaceResource[] = [
     type: "learning",
     functions: ["technology", "data"],
     description:
-      "A free assessment to identify technology gaps and plan improvements for your nonprofit.",
+      "An overview of technology assessment for nonprofits. Confirm current tool availability with TechSoup before registering.",
     headerDescription: "Assess technology gaps and plan improvements.",
     useWhen:
       "Your team has accumulated tools but needs a clear order for what to improve next.",
     costModel: "free-public",
     costNote:
-      "Assessment access is free. Recommended products or services may cost money.",
+      "The provider overview is free. Confirm current assessment access and any recommended product costs with TechSoup.",
     eligibility: "Designed for nonprofit organizations.",
     geography: "Online; local product and support availability varies.",
-    accountRequirement: "Follow the assessment's current registration process.",
-    url: "https://assessment.techsoup.org/",
+    accountRequirement: "The overview is public. Confirm current assessment availability before creating an account.",
+    url: "https://blog.techsoup.org/en-us/posts/introducing-techsoups-digital-assessment-tool",
     sourceLabel: "TechSoup Digital Assessment Tool",
     whyIncluded:
       "Helps a team choose its next technology investment before shopping for another product.",

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import ArrowUpRightIcon from "lucide-react/dist/esm/icons/arrow-up-right"
@@ -13,6 +14,12 @@ import { hasSupabaseManagementApiToken } from "@/lib/supabase/management-api-con
 import { resolveSupabaseProjectRef } from "@/lib/supabase/project-ref"
 import { AdminPlatformSetupToast } from "./admin-platform-setup-toast"
 import { SyncAuthEmailTemplatesButton } from "./sync-auth-email-templates-button"
+
+export const metadata: Metadata = {
+  title: "Platform Administration",
+  description: "Manage Coach House platform operations and data.",
+}
+
 
 export default async function AdminPlatformPage() {
   await requireAdmin()

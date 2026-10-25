@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
 import { redirect } from "next/navigation"
 import type Stripe from "stripe"
@@ -19,6 +20,13 @@ import {
 } from "./_lib/onboarding-return"
 import type { Database } from "@/lib/supabase"
 import { CheckoutActivationStatus } from "./_components/checkout-activation-status"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  title: "Activate Your Plan",
+  description: "Review the activation of your Coach House plan.",
+}
+
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 

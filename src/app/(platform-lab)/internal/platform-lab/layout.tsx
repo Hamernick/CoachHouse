@@ -10,6 +10,7 @@ import { platformLabEnabled } from "@/lib/feature-flags"
 import { requireAdmin } from "@/lib/admin/auth"
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Platform Lab",
   description: "Imported donor project dashboard for internal platform admins.",
 }

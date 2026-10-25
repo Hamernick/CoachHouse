@@ -15,7 +15,7 @@ export type PublishedPublicHandle = {
   updatedAt: string
 }
 
-export async function fetchPublishedPublicHandles(): Promise<
+export async function fetchPublishedPublicHandles({ page = 0, strict = false }: { page?: number; strict?: boolean } = {}): Promise<
   PublishedPublicHandle[]
 > {
   let supabase: ReturnType<typeof createSupabaseAdminClient>
@@ -25,6 +25,7 @@ export async function fetchPublishedPublicHandles(): Promise<
     console.warn("[public-profile-sitemap] admin client unavailable", {
       message: error instanceof Error ? error.message : "Unknown error",
     })
+    if (strict) throw error
     return []
   }
   const controller = new AbortController()
@@ -38,13 +39,14 @@ export async function fetchPublishedPublicHandles(): Promise<
 
   try {
     return await Promise.race([
-      readPublishedPublicHandles(supabase, controller.signal),
+      readPublishedPublicHandles(supabase, controller.signal, page),
       deadline,
     ])
   } catch (error) {
     console.error("[public-profile-sitemap] lookup failed", {
       message: error instanceof Error ? error.message : "Unknown error",
     })
+    if (strict) throw error
     return []
   } finally {
     clearTimeout(timeout)
@@ -54,13 +56,14 @@ export async function fetchPublishedPublicHandles(): Promise<
 
 async function readPublishedPublicHandles(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
-  signal: AbortSignal
+  signal: AbortSignal,
+  page: number
 ): Promise<PublishedPublicHandle[]> {
   const { data, error } = await supabase
     .from("public_handles")
     .select("handle, owner_type, profile_id, organization_id, updated_at")
     .order("handle", { ascending: true })
-    .limit(50_000)
+    .range(page * 500, page * 500 + 499)
     .abortSignal(signal)
     .returns<PublicHandleSitemapRow[]>()
 
@@ -69,7 +72,7 @@ async function readPublishedPublicHandles(
       code: error.code,
       message: error.message,
     })
-    return []
+    throw new Error("Public handle query failed")
   }
 
   const handles = data ?? []
@@ -107,7 +110,7 @@ async function readPublishedPublicHandles(
       organizationCode: organizationResult.error?.code,
       personCode: personResult.error?.code,
     })
-    return []
+    throw new Error("Public profile publication query failed")
   }
 
   const publishedPeople = new Set(

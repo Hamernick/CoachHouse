@@ -17,7 +17,7 @@ describe("absolute public metadata origin", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.org")
     vi.stubEnv("VERCEL_URL", "preview.example.org")
     expect(getPublicSiteOrigin()).toBe("https://coachhouse.app")
-    expect(robots().sitemap).toBe("https://coachhouse.app/sitemap.xml")
+    expect(robots().sitemap).toEqual(["https://coachhouse.app/sitemap.xml", "https://coachhouse.app/sitemap-index.xml"])
   })
 
   it("retains app, deployment and local fallbacks", () => {
@@ -39,7 +39,7 @@ describe("absolute public metadata origin", () => {
     vi.stubEnv("NODE_ENV", "production")
     vi.stubEnv("VERCEL_URL", "coach-house-preview.vercel.app")
     expect(getPublicSiteOrigin()).toBe("https://coachhouse.app")
-    expect(robots().sitemap).toBe("https://coachhouse.app/sitemap.xml")
+    expect(robots().sitemap).toEqual(["https://coachhouse.app/sitemap.xml", "https://coachhouse.app/sitemap-index.xml"])
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.coachhouse.app/path")
     expect(getPublicSiteOrigin()).toBe("https://www.coachhouse.app")
   })

@@ -16,6 +16,7 @@ import {
 } from "@/features/public-map-claims"
 
 export const metadata: Metadata = {
+  description: "Review source evidence and publication readiness for public resources.",
   title: "Resource Map Review",
 }
 

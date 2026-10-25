@@ -3,7 +3,8 @@ import { notFound } from "next/navigation"
 import { z } from "zod"
 import { FiscalOptionalProfile } from "@/features/fiscal-sponsorship"
 // Google Identity needs an origin signal; never disclose the application URL/query.
-export const metadata: Metadata = { title: "Keep your details", robots: { index: false, follow: false }, referrer: "strict-origin" }
+export const metadata: Metadata = {
+  description: "Save your fiscal sponsorship applicant details to your account.", title: "Keep your details", robots: { index: false, follow: false }, referrer: "strict-origin" }
 export default async function FiscalProfilePage({ searchParams }: { searchParams: Promise<{ application?: string }> }) {
   if (process.env.FISCAL_GUEST_PROFILE_IMPORT_ENABLED !== "true") notFound()
   const reference = z.string().uuid().safeParse((await searchParams).application)

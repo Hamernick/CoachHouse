@@ -1,7 +1,14 @@
+import type { Metadata } from "next"
 import { ClassOverview } from "@/components/training/class-overview"
 import { getClassModulesForUser } from "@/lib/modules"
 import { buildModuleStates } from "@/lib/module-progress"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "Training Class",
+  description: "Review your nonprofit training class and module progress.",
+}
+
  
 // Static landing that relies on middleware for auth
 

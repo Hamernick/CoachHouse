@@ -1,3 +1,10 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Internal Tools",
+  description: "Access authorized Coach House staff tools.",
+}
+
 export default function InternalAdminPage() {
   return (
     <div className="space-y-3">

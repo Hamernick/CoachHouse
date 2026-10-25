@@ -239,7 +239,7 @@ export const NETWORKING_ARTICLE: BestPracticeArticle = {
     {
       title: "Principles of Community Engagement, Third Edition",
       publisher: "CDC and Agency for Toxic Substances and Disease Registry",
-      url: "https://www.atsdr.cdc.gov/principles-community-engagement/media/pdfs/2025/01/Principles-of-Community-Engagement-3rd-Edition-Book_2.pdf",
+      url: "https://stacks.cdc.gov/view/cdc/251390",
       note: "Current federal community-engagement reference covering trust, shared leadership and power, participatory decisions, communication, equity, benefits, capacity, evaluation, and sustained relationships.",
     },
     {

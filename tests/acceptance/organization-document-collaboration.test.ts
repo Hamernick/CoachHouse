@@ -116,3 +116,18 @@ describe("core document simultaneous editing", () => {
     expect(serializeDocument(doc)).toBe('<p>&lt;script&gt;&quot;&amp;</p>')
   })
 })
+
+
+describe("image alternatives", () => {
+  it("persists and reloads alt-only edits without replacing the image", () => {
+    const doc = documentSchema.node("doc", null, [documentSchema.node("image", { src: "https://example.org/photo.jpg", alt: "Before" })])
+    const local = EditorState.create({ doc })
+    const steps = local.tr.setNodeMarkup(0, undefined, { ...doc.firstChild!.attrs, alt: 'Volunteers packing "food"' }).steps.map(step => step.toJSON())
+    const saved = applyDocumentSteps({ ...state(), document: doc.toJSON() }, steps, "author")
+    const restored = documentSchema.nodeFromJSON(saved.document)
+    expect(restored.firstChild!.attrs.src).toBe("https://example.org/photo.jpg")
+    expect(restored.firstChild!.attrs.alt).toBe('Volunteers packing "food"')
+    expect(serializeDocument(restored)).toContain('alt="Volunteers packing &quot;food&quot;"')
+    expect(serializeDocument(documentSchema.node("image", { src: "/decoration.png" }))).toContain('alt=""')
+  })
+})

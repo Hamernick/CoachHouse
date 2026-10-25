@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import {
   buildPrototypeLabInput,
   PrototypeLabPanel,
@@ -16,6 +17,12 @@ import {
   UserJourneyAtlasPanel,
 } from "@/features/user-journey-atlas"
 import { requireAdmin } from "@/lib/admin/auth"
+
+export const metadata: Metadata = {
+  title: "Platform Tools",
+  description: "Review operational tools, fiscal sponsorship, and platform health.",
+}
+
 
 function readSearchParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value.trim() : null

@@ -17,8 +17,8 @@ export function buildPublicProfileMetadata(
   }
 
   const description =
-    profile.description ??
-    profile.headline ??
+    profile.description?.trim() ||
+    profile.headline?.trim() ||
     `View @${profile.handle} on Coach House.`
   const canonical = `${getPublicSiteOrigin()}/${encodeURIComponent(profile.handle)}`
   const organization = profile.kind === "organization"

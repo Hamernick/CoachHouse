@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { measureServerStep } from "@/lib/performance/server-timing"
 import { trackUserJourneyMilestone } from "@/lib/user-journey"
@@ -5,6 +6,12 @@ import { trackUserJourneyMilestone } from "@/lib/user-journey"
 import { resolveDashboardLayoutState } from "@/components/app-shell/dashboard-layout-state"
 import MyOrganizationPageContent from "../my-organization/_lib/my-organization-page-content"
 import type { MyOrganizationSearchParams } from "../my-organization/_lib/types"
+
+export const metadata: Metadata = {
+  title: "Workspace",
+  description: "Plan and manage your nonprofit work in one shared workspace.",
+}
+
 
 export default async function WorkspacePage({
   searchParams,

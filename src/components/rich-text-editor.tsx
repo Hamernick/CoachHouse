@@ -134,9 +134,12 @@ export function RichTextEditor({
   })
   useEffect(() => {
     if (!editor || editor.isDestroyed) return
+    if (editor.isEditable === !isReadOnly) return
     // Tiptap preserves editable across option updates; connection and permission
     // changes must update the live editor without emitting a content change.
     editor.setEditable(!isReadOnly, false)
+    // A no-step transaction notifies node-view selectors without an update event.
+    editor.view.dispatch(editor.state.tr.setMeta("addToHistory", false))
   }, [editor, isReadOnly])
 
   useEffect(() => {

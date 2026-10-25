@@ -233,11 +233,10 @@ export const FRAMEWORKS_ARTICLE: BestPracticeArticle = {
       note: "A training resource defining inputs, activities, outputs, and short-, medium-, and long-term outcomes.",
     },
     {
-      title:
-        "Developing a Project Logic Model and Its Associated Theory of Change",
-      publisher: "U.S. Agency for International Development",
-      url: "https://pdf.usaid.gov/pdf_docs/pbaah499.pdf",
-      note: "Guidance connecting context, causal outcomes, interventions, assumptions, indicators, a theory of change, and its visual logic model.",
+      title: "Logic Model Toolkit for Charter School Programs",
+      publisher: "National Charter School Resource Center, U.S. Department of Education",
+      url: "https://charterschoolcenter.ed.gov/sites/default/files/upload/toolkits/Logic-Model-Toolkit-A-Resource-for-Current-and-Prospective-Grantees-of-Charter-School-Programs.pdf",
+      note: "A worked planning guide connecting resources, activities, outputs, outcomes, assumptions, and evaluation. Its examples concern education grants.",
     },
     {
       title: "Tools and Training — Logic Model",

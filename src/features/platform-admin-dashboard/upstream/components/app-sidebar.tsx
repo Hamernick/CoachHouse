@@ -219,7 +219,7 @@ export function AppSidebar() {
               className="mt-2 flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent cursor-pointer"
             >
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/platform-lab/avatar-profile.jpg" />
+                <AvatarImage src="/platform-lab/avatar-profile.jpg" alt="" />
                 <AvatarFallback>JD</AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col">

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { AuthCard } from "@/components/auth/auth-card"
 import { AuthScreenShell } from "@/components/auth/auth-screen-shell"
 import {
@@ -7,6 +8,12 @@ import {
 } from "@/components/auth/update-password-form"
 import { DEFAULT_POST_AUTH_REDIRECT, getSafeRedirectPath } from "@/lib/auth/redirects"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "Update Your Password",
+  description: "Choose a new password for your Coach House account.",
+}
+
 
 type SearchParams = Record<string, string | string[] | undefined>
 
