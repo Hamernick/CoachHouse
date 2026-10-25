@@ -30,5 +30,5 @@ export type ResearchTarget = z.infer<typeof researchTargetSchema>
 export type ResearchResult = z.infer<typeof researchResultSchema>
 export type ResearchRequest = z.infer<typeof researchRequestSchema>
 export type KnowledgeKind = z.infer<typeof knowledgeKindSchema>
-export type KnowledgeRecord = { id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; file?: ResearchSource["file"] }
+export type KnowledgeRecord = { id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; contentTruncated?: boolean; contentScope?: "document_body" | "text"; file?: ResearchSource["file"] }
 export type ResearchSource = z.infer<typeof researchSourceSchema>

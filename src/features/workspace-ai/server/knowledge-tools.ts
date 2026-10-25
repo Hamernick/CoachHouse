@@ -40,8 +40,10 @@ export function createKnowledgeTools(context: ResearchContext) {
         result = { results: await Promise.all(input.ids.map(async id => {
           const record = discovered.get(id)
           if(!record) return {id,error:"Search for this record first."}
-          const detail=await readKnowledgeFile(context,record)
-          return {...detail,content:detail.content.slice(0,Math.floor(6000/input.ids.length)),truncated:detail.content.length>Math.floor(6000/input.ids.length)}
+          try {
+            const detail=await readKnowledgeFile(context,record)
+            return {...detail,content:detail.content.slice(0,Math.floor(6000/input.ids.length)),truncated:Boolean(detail.contentTruncated)||detail.content.length>Math.floor(6000/input.ids.length)}
+          }catch{return {id,error:"Contents are unavailable or changed. Search again before using this source."}}
         })) }
       } else throw new Error("Tool is not available.")
       cache.set(key,result)

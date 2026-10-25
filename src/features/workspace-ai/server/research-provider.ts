@@ -23,7 +23,7 @@ export async function runResearchProvider(input: {
   const sources=knowledge.sources
   const tools:Tool[]=[
     {type:"function",name:"search_workspace",description:"Search authorized workspace records. Return short excerpts and IDs. Narrow kinds and query. No external transmission.",parameters:z.toJSONSchema(knowledgeSearchSchema),strict:true},
-    {type:"function",name:"read_workspace",description:"Read up to four records from the selected plan or already found by search. Some files have metadata only.",parameters:z.toJSONSchema(knowledgeReadSchema),strict:true},
+    {type:"function",name:"read_workspace",description:"Read up to four selected-plan or discovered records. contentAvailable=false means metadata only. DOCX document_body scope excludes images, headers and footnotes. Truncated results are excerpts; do not infer missing contents.",parameters:z.toJSONSchema(knowledgeReadSchema),strict:true},
   ]
   const messages:ResponseInputItem[]=[{role:"user",content:researchPrompt(input.context,input.request)}]
   const usage:AiUsage={input:0,cachedInput:0,output:0,webSearchCalls:0}

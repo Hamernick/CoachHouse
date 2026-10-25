@@ -32,6 +32,14 @@ describe("workspace knowledge tools",()=>{
   await expect(tools.execute("send_email",{})).rejects.toThrow(/not available/)
   await expect(tools.execute("read_workspace",{ids:["a","b","c","d","e"]})).rejects.toThrow()
  })
+ it("retains available records when another read fails and preserves extraction truncation",async()=>{
+  const file={...record,id:"file:known"}
+  mocks.load.mockResolvedValue([record,file])
+  mocks.file.mockImplementation(async(_context,value)=>{if(value.id===file.id)throw Error("permission revoked");return {...value,contentTruncated:true}})
+  const tools=createKnowledgeTools(context)
+  await tools.execute("search_workspace",{query:"marketing",kinds:["person","document"]})
+  expect(await tools.execute("read_workspace",{ids:[record.id,file.id]})).toMatchObject({results:[{id:record.id,content:record.content,truncated:true},{id:file.id,error:expect.any(String)}]})
+ })
 })
 
 it("reads selected-plan members without rediscovery and binds only used baseline evidence",async()=>{

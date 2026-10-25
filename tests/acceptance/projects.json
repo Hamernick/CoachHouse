@@ -635,6 +635,7 @@
       "tests/acceptance/workspace-research-application.test.ts",
       "tests/acceptance/workspace-research-context.test.ts",
       "tests/acceptance/workspace-research-decisions.test.ts",
+      "tests/acceptance/workspace-research-files.test.ts",
       "tests/acceptance/workspace-research-knowledge.test.ts",
       "tests/acceptance/workspace-research-provider.test.ts",
       "tests/acceptance/workspace-research-revisions.test.ts",
