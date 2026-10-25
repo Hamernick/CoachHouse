@@ -64,7 +64,7 @@ Current verification:
 -20 thumbnail/storage/detail cases pass; original downloads and external/signed/vector URLs are preserved (`/private/tmp/launch-thumbnail-tests.log`).
 -All four actual-CSS browser journeys pass together: editor permissions, alt-only save/reload, keyboard caption/menu/dialog/full-width/read-only behavior, and native file selection affecting only the chosen image (`/private/tmp/launch-readiness-browser-verified.log`,18.0s). Dialog screenshot was inspected. The fixture compiles one actual JS/CSS bundle per worker; raw sequential rebuild evidence was642,686bytes then0bytes. No timeout, focus assertion or visual baseline was weakened.
 -Full current TypeScript and affected lint pass (`/private/tmp/launch-readiness-types-verified.log`, `/private/tmp/launch-readiness-lint-verified.log`). Route, structure, interaction-lock and acceptance-manifest guards pass. Prior unchanged metadata/crawler/link proofs above remain valid.
--Final Graphify receipt is recorded below. Normal pre-push and remote-head confirmation complete the PR handoff.
+-Final Graphify, normal pre-push, secret-scan and remote-head receipts are recorded below.
 
 Hosted quality, independent review, merge/deployment and live acceptance remain user-owned. Provider-blocked external links and author-authored image-description quality retain the explicit limits above.
 
@@ -83,3 +83,7 @@ The expert approach is to validate completion against the original requested out
 ### Final maintenance — October25
 
 The interrupted AST job completed. Exact hash readback found one omitted final thumbnail source; a targeted AST extraction repaired it without another broad update. All107 included changed code files now match the manifest; the old nested sitemap route is absent and the root route is present. Exact backlog/index semantic extraction and cache readback contain217 nodes/396 edges. Final graph:22,267 nodes/63,542 edges, no missing/dangling endpoints or duplicate edges; two inherited self-loops remain. Receipt: `graphify-out/launch-readiness-refresh-receipt.json`; source audit: `/private/tmp/launch-readiness-ast-hash-readback.json`. No application source changed after the passing checks above.
+
+Publication: implementation `dcdf1c457466ba150054a75615298d7dda14a285` independently matches the remote branch. Normal Node22 pre-push passed in9.96s (including108 changed-file lint targets); outgoing nine-commit secret scan found no leaks. Logs: `/private/tmp/launch-readiness-push.log`, `/private/tmp/launch-readiness-secret-scan.log`. PR359 includes this continuation and remains stacked on358. This final documentation receipt does not change the verified application sources.
+
+Browser reproduction: `pnpm exec playwright test --config=/private/tmp/launch-alt-playwright.config.cjs tests/visual/rich-text-editability.visual.spec.ts`; the local config uses default Chromium/viewport/assertion settings,one worker,a90s test limit,no retries and no server because the fixture renders the real editor bundle in-page. The committed spec also runs through the normal visual configuration. Inspected UI artifact: `/private/tmp/launch-alt-playwright-results/rich-text-editability.visu-d109c-d-and-read-only-transitions/image-edit-dialog.png`.
