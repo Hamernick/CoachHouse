@@ -8,7 +8,8 @@ vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:()=>({rpc:mock.rp
 vi.mock("@/lib/workspace/workspace-finance-access",()=>({canManageWorkspaceFinance:mock.manage,canViewWorkspaceFinance:mock.view}))
 vi.mock("@/features/workspace-management",()=>({allWorkspaceStates:mock.canvases}))
 vi.mock("@/features/workspace-finance/server/opportunity-discovery",()=>({discoverOfficialOpportunities:mock.discover,fetchOfficialOpportunity:mock.detail}))
-import { changeResourceMatch, loadResourceMatches, searchResourceMatches } from "@/features/workspace-finance/server/resource-matches"
+import { changeResourceMatch, loadResourceMatches, searchResourceMatches, reviewResourceMatch } from "@/features/workspace-finance/server/resource-matches"
+import { noticeFingerprint } from "@/features/workspace-finance/server/match-review"
 const target={organizationId:WORKSPACE,resourceId:ID(1),resourceRevision:0}
 const timestamp="2026-10-25T12:00:00.123456+00:00"
 afterEach(()=>vi.useRealTimers())
@@ -28,6 +29,52 @@ beforeEach(()=>{
  mock.detail.mockResolvedValue(notice())
 })
 describe("resource match server boundary",()=>{
+ it("binds a user review to the authenticated actor and exact official notice",async()=>{
+  const input={target,id:ID(10),updatedAt:timestamp,need:row().need}
+  await reviewResourceMatch(input)
+  const put=mock.rpc.mock.calls.find(([,args])=>args.p_action==="put")![1]
+  expect(put.p_payload[0]).toMatchObject({expectedUpdatedAt:timestamp,need:{eligibilityReview:"confirmed",review:{actorId:WORKSPACE,reviewedAt:now,noticeFingerprint:noticeFingerprint(notice())}}})
+  expect(mock.detail).toHaveBeenCalledExactlyOnceWith("123")
+  expect(mock.rpc.mock.calls.some(([,args])=>args.p_action==="save")).toBe(false)
+  await expect(reviewResourceMatch({...input,need:{...input.need,review:{actorId:ID(90),reviewedAt:now,noticeFingerprint:noticeFingerprint(notice())}}})).rejects.toThrow()
+ })
+ it("does not apply confirmations after a source amendment, withdrawal or stale resource",async()=>{
+  mock.detail.mockResolvedValueOnce({...notice(),eligibilityText:"Changed published requirements"})
+  const result=await reviewResourceMatch({target,id:ID(10),updatedAt:timestamp,need:row().need})
+  expect(result.reviewRequired).toBe(true)
+  const put=mock.rpc.mock.calls.find(([,args])=>args.p_action==="put")![1]
+  expect(put.p_payload[0].need.eligibilityReview).toBe("unknown")
+  expect(put.p_payload[0].need.review).toBeUndefined()
+  await expect(reviewResourceMatch({target,id:ID(10),updatedAt:now,need:row().need})).rejects.toThrow(/Match changed/)
+  await expect(reviewResourceMatch({target:{...target,resourceRevision:1},id:ID(10),updatedAt:timestamp,need:row().need})).rejects.toThrow(/Resource changed/)
+ })
+ it("requires management access before reviewing and rejects a mismatched funding target",async()=>{
+  mock.manage.mockResolvedValueOnce(false)
+  await expect(reviewResourceMatch({target,id:ID(10),updatedAt:timestamp,need:row().need})).rejects.toThrow(/Finance access/)
+  expect(mock.detail).not.toHaveBeenCalled()
+  await expect(reviewResourceMatch({target,id:ID(10),updatedAt:timestamp,need:{...row().need,resourceId:ID(99)}})).rejects.toThrow(/another resource/)
+ })
+ it("preserves reviewed need on rediscovery and guards concurrent edits",async()=>{
+  const reviewed=row();reviewed.need={...reviewed.need,requestedCents:12345,review:{actorId:WORKSPACE,reviewedAt:now,noticeFingerprint:noticeFingerprint(notice())}}
+  mock.rpc.mockResolvedValue({data:{matches:[reviewed],opportunity:null},error:null})
+  await searchResourceMatches({target,keyword:"community",need:row().need})
+  const put=mock.rpc.mock.calls.find(([,args])=>args.p_action==="put")![1]
+  expect(put.p_payload[0]).toMatchObject({expectedUpdatedAt:timestamp,need:{requestedCents:12345,eligibilityReview:"confirmed"}})
+  mock.rpc.mockResolvedValueOnce({data:{matches:[reviewed],opportunity:null},error:null}).mockResolvedValueOnce({data:null,error:{code:"40001"}})
+  await expect(reviewResourceMatch({target,id:ID(10),updatedAt:timestamp,need:row().need})).rejects.toThrow(/changed/)
+ })
+ it("does not accept forged confirmations through search or retain them after a source change",async()=>{
+  mock.rpc.mockResolvedValueOnce({data:{matches:[],opportunity:null},error:null})
+  await searchResourceMatches({target,keyword:"community",need:row().need})
+  const put=mock.rpc.mock.calls.find(([,args])=>args.p_action==="put")![1]
+  expect(put.p_payload[0]).toMatchObject({insertOnly:true,need:{eligibilityReview:"unknown",restrictedCosts:"unknown",overlap:"unknown"}})
+  const reviewed=row();reviewed.need={...reviewed.need,review:{actorId:WORKSPACE,reviewedAt:now,noticeFingerprint:noticeFingerprint(notice())}}
+  reviewed.notice.eligibilityText="Changed requirements"
+  mock.rpc.mockResolvedValue({data:{matches:[reviewed],opportunity:null},error:null})
+  const result=await loadResourceMatches(target)
+  expect(result.matches[0].need.review).toBeUndefined()
+  expect(result.matches[0].need.eligibilityReview).toBe("unknown")
+ })
  it("rejects unauthorized and foreign organizations before board or external reads",async()=>{
   mock.manage.mockResolvedValue(false)
   await expect(searchResourceMatches({target,keyword:"community",need:row().need})).rejects.toThrow(/Finance access/)

@@ -2,20 +2,22 @@
 import { useEffect, useRef, useState } from "react"
 import { Check, LoaderCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { toast } from "@/lib/toast"
-import { findResourceOpportunityMatches, getResourceOpportunityMatches, updateResourceOpportunityMatch } from "../matching-actions"
-import type { FundingNeed, ResourceMatchTarget, ResourceOpportunityMatch } from "../matching-types"
+import { findResourceOpportunityMatches, getResourceOpportunityMatches, updateResourceOpportunityMatch, reviewResourceOpportunityMatch } from "../matching-actions"
+import type { FundingReviewInput, FundingNeed, ResourceMatchTarget, ResourceOpportunityMatch } from "../matching-types"
 import { opportunityValueLabel } from "../lib/opportunity-matching"
 import type { WorkspaceFinanceOpportunityInput } from "../types"
+
+import { ResourceMatchReview } from "./resource-match-review"
 
 type Props = { target:ResourceMatchTarget; title:string; canEdit:boolean; onSaved:(item:WorkspaceFinanceOpportunityInput)=>void }
 export function ResourceOpportunityMatches(props:Props) {
   return <MatchSession key={`${props.target.organizationId}:${props.target.resourceId}:${props.target.resourceRevision}`} {...props}/>
 }
 function MatchSession({target,title,canEdit,onSaved}:Props) {
-  const [open,setOpen]=useState(false),[keyword,setKeyword]=useState(""),[amount,setAmount]=useState("")
+  const [open,setOpen]=useState(false),[keyword,setKeyword]=useState("")
   const [matches,setMatches]=useState<ResourceOpportunityMatch[]>([]),[pending,setPending]=useState(false),[error,setError]=useState<string|null>(null),[message,setMessage]=useState("")
   const alive=useRef(true),busy=useRef(false),generation=useRef(0)
   const {organizationId,resourceId,resourceRevision}=target
@@ -29,14 +31,8 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
   },[organizationId,resourceId,resourceRevision])
   const search=async()=>{
     if(busy.current)return
-    let cents:number|null=null
-    if(amount.trim()) {
-      const valid=/^(\d{1,10})(?:\.(\d{1,2}))?$/.exec(amount.trim())
-      if(!valid){setError("Enter a USD amount with up to two decimal places.");return}
-      cents=Number(BigInt(valid[1])*BigInt(100)+BigInt((valid[2]??"").padEnd(2,"0")))
-    }
     busy.current=true;setPending(true);setError(null);generation.current++
-    const need:FundingNeed={resourceId,resourceRevision,requestedCents:cents,currency:"USD",period:null,eligibleUnfundedCost:{state:"unknown"},matchingFunds:{state:"unknown"},restrictedCosts:"unknown",overlap:"unknown",eligibilityReview:"unknown",applicantTypeCode:null}
+    const need:FundingNeed={resourceId,resourceRevision,requestedCents:null,currency:"USD",period:null,eligibleUnfundedCost:{state:"unknown"},matchingFunds:{state:"unknown"},restrictedCosts:"unknown",overlap:"unknown",eligibilityReview:"unknown",applicantTypeCode:null}
     try {
       const result=await findResourceOpportunityMatches({target,keyword,need})
       if(!alive.current)return
@@ -62,13 +58,26 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
     }catch{if(alive.current)setError("Match update interrupted. Reopen opportunities to check its saved state.")}
     finally{busy.current=false;if(alive.current)setPending(false)}
   }
+  const review=async(match:ResourceOpportunityMatch,need:FundingReviewInput):Promise<{error?:string}>=>{
+    if(busy.current)return {error:"Another change is still saving."}
+    busy.current=true;setPending(true);setError(null);generation.current++
+    try {
+      const result=await reviewResourceOpportunityMatch({target,id:match.id,updatedAt:match.updatedAt,need})
+      if(!alive.current)return {error:"The selected resource changed."}
+      if("error" in result)return {error:result.error}
+      setMatches(result.matches)
+      if(result.reviewRequired)return {error:"The official notice changed. Review the updated requirements, then save again. Your inputs are still here."}
+      setMessage("Funding review saved. Unknown source facts remain unknown.")
+      return {}
+    }catch{return {error:"Review interrupted. Your inputs are still here; reopen the match before retrying."}}
+    finally{busy.current=false;if(alive.current)setPending(false)}
+  }
   const visible=matches.filter(match=>match.status!=="dismissed")
   return <Collapsible open={open} onOpenChange={setOpen} className="rounded-2xl border border-border/60 bg-muted/30 p-3">
     <CollapsibleTrigger asChild><Button variant="ghost" className="h-auto w-full justify-start whitespace-normal rounded-lg px-1 py-2 text-left">Opportunities for {title}</Button></CollapsibleTrigger>
     <CollapsibleContent className="space-y-3 pt-2">
       {canEdit&&<form onSubmit={event=>{event.preventDefault();void search()}} className="space-y-2">
-        <Input aria-label="Public opportunity keywords" placeholder="Public search keywords" value={keyword} onChange={event=>setKeyword(event.target.value)} required minLength={2} maxLength={100} disabled={pending} className="rounded-xl px-3"/>
-        <div className="flex items-center gap-2"><Input aria-label="Requested funding in USD" placeholder="Requested USD (optional)" inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} disabled={pending} className="min-w-0 rounded-xl px-3"/><Button type="submit" size="sm" disabled={pending} className="rounded-lg">{pending&&<LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden/>}Find</Button></div>
+        <InputGroup className="rounded-xl p-1"><InputGroupInput aria-label="Public opportunity keywords" placeholder="Public search keywords" value={keyword} onChange={event=>setKeyword(event.target.value)} required minLength={2} maxLength={100} disabled={pending}/><InputGroupAddon><Button type="submit" size="sm" disabled={pending} className="rounded-lg">{pending&&<LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden/>}Find</Button></InputGroupAddon></InputGroup>
         <p className="text-xs text-muted-foreground">Only your search keywords go to Grants.gov. Your budget stays private. Federal notices are one funding source.</p>
       </form>}
       {error&&<p role="alert" className="text-xs text-destructive">{error}</p>}{message&&<p role="status" className="text-xs text-muted-foreground">{message}</p>}
@@ -86,7 +95,9 @@ function MatchSession({target,title,canEdit,onSaved}:Props) {
           <ul className="space-y-1">{match.assessment.criteria.map(criterion=><li key={criterion.id}>{criterion.outcome==="pass"?"Checked":criterion.outcome==="fail"?"Not met":"Unknown"}: {criterion.explanation}</li>)}</ul>
           <p>{match.assessment.coverage.kind==="comparable"?`Up to ${match.assessment.coverage.maximumCoverageBps/100}% of the eligible unfunded need; not secured funding.`:"Coverage cannot be estimated until eligible costs, period and requirements are confirmed."}</p>
           <a className="inline-flex rounded-full bg-muted px-3 py-2 underline" href={match.notice.originalUrl} target="_blank" rel="noreferrer">Official notice</a>
+          {match.need.review&&<p className="text-muted-foreground">User review saved {new Date(match.need.review.reviewedAt).toLocaleString()}; applies to this notice version.</p>}
         </div></details>
+        {canEdit&&<ResourceMatchReview match={match} pending={pending} onSave={need=>review(match,need)}/>}
       </li>)}</ul>
     </CollapsibleContent>
   </Collapsible>

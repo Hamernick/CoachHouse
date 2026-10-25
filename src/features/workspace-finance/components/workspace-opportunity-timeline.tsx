@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
-export function WorkspaceOpportunityTimeline({ value, onChange, disabled }: {
-  value: string; onChange: (value: string) => void; disabled: boolean
+export function WorkspaceOpportunityTimeline({ value, onChange, disabled, label = "Timeline" }: {
+  value: string; onChange: (value: string) => void; disabled: boolean; label?: string
 }) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -20,8 +20,8 @@ export function WorkspaceOpportunityTimeline({ value, onChange, disabled }: {
   }
   return <Collapsible open={open} onOpenChange={setOpen} disabled={disabled} className="min-w-0">
     <CollapsibleTrigger asChild>
-      <Button ref={trigger} type="button" variant="ghost" disabled={disabled} className="h-auto min-h-9 w-full justify-between gap-3 rounded-lg px-1 text-sm font-normal [@media(pointer:coarse)]:min-h-11" aria-label={`Timeline${value ? `, ${value}` : ", optional"}`}>
-        <span className="flex items-center gap-2"><CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />Timeline</span>
+      <Button ref={trigger} type="button" variant="ghost" disabled={disabled} className="h-auto min-h-9 w-full justify-between gap-3 rounded-lg px-1 text-sm font-normal [@media(pointer:coarse)]:min-h-11" aria-label={`${label}${value ? `, ${value}` : ", optional"}`}>
+        <span className="flex items-center gap-2"><CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />{label}</span>
         <span className="text-muted-foreground">{selected ? selected.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Optional"}</span>
       </Button>
     </CollapsibleTrigger>

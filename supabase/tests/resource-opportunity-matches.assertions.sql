@@ -15,6 +15,8 @@ select public.match_call('put','00000000-0000-0000-0000-000000000001',jsonb_buil
 do $$ declare item jsonb; result jsonb; opportunity uuid; before_count integer;
 begin
  item := public.match_call('list','00000000-0000-0000-0000-000000000001')->'matches'->0;
+ perform public.assert_match(jsonb_array_length(public.match_call('list','00000000-0000-0000-0000-000000000001','{"externalIds":["123"]}')->'matches')=1,'Exact notice lookup finds existing review');
+ perform public.assert_match(jsonb_array_length(public.match_call('list','00000000-0000-0000-0000-000000000001','{"externalIds":["999"]}')->'matches')=0,'Exact notice lookup does not load unrelated history');
  select count(*) into before_count from public.organization_finance_records;
  begin
   perform public.match_call('list','00000000-0000-0000-0000-000000000002');
@@ -37,6 +39,10 @@ begin
   raise exception 'Stale match was accepted';
  exception when serialization_failure then null; end;
  item := result->'matches'->0;
+ -- A first-discovery request that started before this row existed cannot overwrite a later review.
+ perform public.match_call('put','00000000-0000-0000-0000-000000000001',jsonb_build_array(jsonb_build_object(
+   'notice',item->'notice','need',jsonb_set(item->'need','{requestedCents}','1'::jsonb),'assessment',item->'assessment','insertOnly',true)));
+ perform public.assert_match((public.match_call('list','00000000-0000-0000-0000-000000000001')->'matches'->0->'need') = item->'need','Late initial search preserves the saved review');
  update public.organization_finance_opportunities set title='User-edited report',status='applied' where id=opportunity;
  result := public.match_call('save','00000000-0000-0000-0000-000000000001',jsonb_build_object('id',item->'id','updatedAt',item->'updated_at','report','{"version":1,"blocks":[]}'::jsonb));
  perform public.assert_match((select count(*)=1 from public.organization_finance_opportunities where org_id='00000000-0000-0000-0000-000000000001' and external_provider='grants_gov' and external_opportunity_id='123'),'Repeated Save deduplicates canonical notice');

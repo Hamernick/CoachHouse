@@ -26,9 +26,12 @@ export const officialOpportunityNoticeSchema = z.strictObject({
 export const fundingNeedSchema = z.strictObject({
   resourceId: z.uuid(), resourceRevision: z.number().int().nonnegative(), requestedCents: cents.nullable(), currency: z.string().regex(/^[A-Z]{3}$/), period: periodSchema.nullable(),
   eligibleUnfundedCost: knownAmountSchema, matchingFunds: knownAmountSchema,
-  eligibilityReview: z.enum(["confirmed", "unknown"]).default("unknown"),
+  eligibilityReview: z.enum(["confirmed", "not_met", "unknown"]).default("unknown"),
   restrictedCosts: z.enum(["confirmed", "excluded", "unknown"]), overlap: z.enum(["clear", "overlapping", "unknown"]), applicantTypeCode: z.string().min(1).max(80).nullable(),
+  review: z.strictObject({ actorId: z.uuid(), reviewedAt: instant, noticeFingerprint: z.string().regex(/^[a-f0-9]{64}$/) }).optional(),
 })
+export const fundingReviewInputSchema = fundingNeedSchema.omit({ review: true })
+export type FundingReviewInput = z.infer<typeof fundingReviewInputSchema>
 export const opportunityMatchSnapshotSchema = z.strictObject({
   provider: z.literal("grants_gov"), externalId: z.string().min(1).max(200), resourceId: z.uuid(), resourceRevision: z.number().int().nonnegative(), noticeRevision: z.string().max(500).nullable(),
   matchedAt: instant, rankingVersion: z.literal("deterministic-v1"), fit: z.enum(["potential", "needs_review", "not_eligible"]), active: z.boolean(),

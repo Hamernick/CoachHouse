@@ -1,6 +1,6 @@
 # Open Work Index
 
-**October25 resource opportunity pilot:** Live bounded Grants.gov discovery, evidence/value cards, private per-resource assessments and revision-safe Save work onlocalhost3008. [Authoritative checkpoint and remaining matching/full-goal requirements](../plans/2026-10-22-workspace-ai-plan.md#resource-specific-federal-opportunity-pilot--2026-10-25). Production and release gates remain open.
+**October25 resource opportunity review:** Live federal discovery, canonical Save and inline funding/eligibility review work onlocalhost3008. Source amendments require re-review; repeat searches preserve reviewed needs. [Authoritative checkpoint and remaining matching/full-goal requirements](../plans/2026-10-22-workspace-ai-plan.md#inline-funding-and-eligibility-review--2026-10-25). Production and release gates remain open.
 
 **October24 existing-plan AI revisions:** Inline revision research, partial graph proposals, owner review, stale/replay protection and efficient selected-plan context are implemented. Domain/server and seven simulated browser scenarios pass. [Authoritative checkpoint and verification](../plans/2026-10-22-workspace-ai-plan.md#existing-plan-ai-revisions--2026-10-24). Full goal and live/release gates remain open.
 

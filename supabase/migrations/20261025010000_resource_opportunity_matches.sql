@@ -36,6 +36,8 @@ begin
     where a.org_id=p_org_id and a.member_id=p_actor_id and m.role='board');
   if p_actor_id is null or not can_view or (p_action <> 'list' and not can_manage) then raise exception 'Finance access denied' using errcode='42501'; end if;
   if p_action not in ('list','put','save','dismiss','restore') then raise exception 'Unknown match action'; end if;
+  if p_action='list' and p_payload ? 'externalIds' and
+    (jsonb_typeof(p_payload->'externalIds') is distinct from 'array' or jsonb_array_length(p_payload->'externalIds')>5) then raise exception 'Invalid match selection'; end if;
   -- Hold the canonical board stable through the match write/Save transaction.
   select state into board from public.organization_workspace_boards where org_id=p_org_id for share;
   canvas := board;
@@ -59,7 +61,8 @@ begin
       values(p_org_id,p_resource_id,p_canvas_id,p_revision,'grants_gov',item->'notice'->>'externalId',item->'notice',item->'need',item->'assessment')
       on conflict(org_id,resource_id,provider,external_id) do update set
         canvas_id=excluded.canvas_id,resource_revision=excluded.resource_revision,notice=jsonb_set(excluded.notice,'{discoveredAt}',coalesce(organization_resource_opportunity_matches.notice->'discoveredAt',excluded.notice->'discoveredAt','null'::jsonb)),need=excluded.need,assessment=excluded.assessment,updated_at=clock_timestamp()
-        where (excluded.notice->>'verifiedAt')::timestamptz >= (organization_resource_opportunity_matches.notice->>'verifiedAt')::timestamptz;
+        where not coalesce((item->>'insertOnly')::boolean,false)
+          and (excluded.notice->>'verifiedAt')::timestamptz >= (organization_resource_opportunity_matches.notice->>'verifiedAt')::timestamptz;
     end loop;
   elsif p_action in ('save','dismiss','restore') then
     select * into saved from public.organization_resource_opportunity_matches where id=(p_payload->>'id')::uuid and org_id=p_org_id and resource_id=p_resource_id and canvas_id is not distinct from p_canvas_id for update;
@@ -81,7 +84,9 @@ begin
     end if;
   end if;
   select coalesce(jsonb_agg(to_jsonb(rows) order by rows.updated_at desc),'[]') into result from
-    (select * from public.organization_resource_opportunity_matches where org_id=p_org_id and resource_id=p_resource_id and canvas_id is not distinct from p_canvas_id order by updated_at desc limit 50) rows;
+    (select * from public.organization_resource_opportunity_matches where org_id=p_org_id and resource_id=p_resource_id and canvas_id is not distinct from p_canvas_id
+      and (p_action<>'list' or not (p_payload ? 'externalIds') or external_id in(select jsonb_array_elements_text(p_payload->'externalIds')))
+      order by updated_at desc limit 50) rows;
   return jsonb_build_object('matches',result,'opportunity',case when opportunity.id is null then null else to_jsonb(opportunity) end);
 end $$;
 revoke all on function public.manage_resource_opportunity_matches(text,uuid,uuid,uuid,integer,text,jsonb) from public,anon,authenticated;
