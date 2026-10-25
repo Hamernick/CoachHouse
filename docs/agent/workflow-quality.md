@@ -19,6 +19,15 @@ On the first turn of every new chat, before changing files:
 
 ## Agent Workflow
 
+For the original 176-item list, use [development backlog status](development-backlog.md)
+as the only editable completion register. Before implementation, identify its original
+IDs and read their full private packet. At each usable handoff, update those rows in
+the same change as the existing checkpoint/monthly log: development status, dated
+evidence/PR/revision, release or acceptance boundary, and next unresolved action.
+Recount its summary after changing statuses. Never equate missing evidence with missing
+implementation, partial work with full completion, or an old unchecked box with new scope.
+Keep explicitly deferred/superseded work out of the active queue unless the user reselects it.
+
 1. Plan: list files to touch and propose diffs.
 2. Implement: write code/migrations/docs in the correct directories.
 3. Validate locally with checks covering the changed behavior; require complete hosted CI before merge.
