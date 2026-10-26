@@ -35,6 +35,7 @@ export type CompanionSnapshot = {
 
 export type CompanionToolName =
   | "companion_get_session"
+  | "companion_review_document"
   | "companion_save_draft"
   | "companion_save_document"
   | "companion_submit_assignment"
@@ -53,6 +54,7 @@ export type CompanionToolArguments = {
   timeZone?: string
 }
 
-export type CompanionToolResult = { snapshot: CompanionSnapshot; message: string }
+export type CompanionProposal = { organizationId: string; documentId: string; content: string; expectedRevision: number }
+export type CompanionToolResult = { snapshot: CompanionSnapshot; message: string; proposal?: CompanionProposal }
 export type CompanionTransport = (name: CompanionToolName, args: CompanionToolArguments) => Promise<CompanionToolResult>
 export type CompanionPrincipal = { sessionId: string; organizationId: string; expiresAt: number }
