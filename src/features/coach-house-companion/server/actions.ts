@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto"
 import sanitizeHtml from "sanitize-html"
 import { shouldTreatAssignmentSubmissionAsComplete } from "@/lib/modules/assignment-completion"
+import { decodeHtmlEntities } from "@/lib/markdown/convert"
 import type { CompanionPrincipal, CompanionToolArguments, CompanionToolName, CompanionToolResult } from "../types"
 import { companionAssignmentFields } from "../lib/lesson"
 import { buildCompanionCalendarExport } from "../lib/calendar"
@@ -18,7 +19,8 @@ function invalid(message: string): never { throw new CompanionError("invalid_arg
 function text(value: unknown, limit: number, label: string) {
   if (typeof value !== "string" || value.length > limit) return invalid(`${label} must be text of at most ${limit} characters.`)
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) return invalid(`${label} contains invalid control characters.`)
-  return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim()
+  // The transport carries plain text; render it as text, never innerHTML.
+  return decodeHtmlEntities(sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} })).trim()
 }
 
 function canonical(value: unknown): string {
