@@ -25,7 +25,7 @@ export const liveToolSchemas = {
   companion_save_document: z.object({ ...mutation, expectedRevision: z.string().regex(/^[a-f0-9]{64}$/), content: z.string().min(1).max(12000), confirmed: z.literal(true) }).strict(),
   companion_schedule_block: z.object({ ...mutation, title: z.string().min(1).max(180), startsAt: z.string().max(40), endsAt: z.string().max(40), timeZone: z.string().max(80), confirmed: z.literal(true) }).strict(),
 }
-type LessonRow = { id: string; slug?: string; idx: number; title: string; description: string | null; video_url: string | null; content_md: string | null; classes: { slug: string; title: string; is_published: boolean; video_url?: string | null; link1_title?: string | null; link1_url?: string | null; link2_title?: string | null; link2_url?: string | null; link3_title?: string | null; link3_url?: string | null } }
+type LessonRow = { id: string; slug?: string; idx: number; title: string; description: string | null; video_url: string | null; content_md: string | null; classes: { slug: string; title: string; is_published: boolean; position?: number | null; video_url?: string | null; link1_title?: string | null; link1_url?: string | null; link2_title?: string | null; link2_url?: string | null; link3_title?: string | null; link3_url?: string | null } }
 type AssignmentRow = { schema: unknown; complete_on_submit: boolean; updated_at: string }
 type SubmissionRow = { answers: unknown; status: "submitted" | "accepted" | "revise"; updated_at: string | null }
 type DraftState = { answers: Record<string, unknown>; revision: number; updated_at: string | null }
@@ -39,14 +39,21 @@ function safeUrl(value: unknown) {
 }
 async function listLessons(context: LiveCompanionContext) {
   const results = await Promise.all([
-    context.supabase.from("modules").select("id, idx, slug, title, description, video_url, content_md, classes!inner(slug,title,is_published,video_url,link1_title,link1_url,link2_title,link2_url,link3_title,link3_url)").eq("is_published", true).eq("classes.is_published", true).order("idx").limit(200),
+    context.supabase.from("modules").select("id, idx, slug, title, description, video_url, content_md, classes!inner(slug,title,is_published,position,video_url,link1_title,link1_url,link2_title,link2_url,link3_title,link3_url)").eq("is_published", true).eq("classes.is_published", true).order("idx").limit(200),
     context.supabase.from("assignment_submissions").select("module_id,answers,status,updated_at").eq("user_id", context.userId).limit(200),
     context.supabase.from("module_assignments").select("module_id,schema,complete_on_submit,updated_at").limit(200),
     context.supabase.from("module_progress").select("module_id,status").eq("user_id", context.userId).limit(200),
   ])
   for (const result of results) checkLiveRead(result.error)
   const [modules, submissions, assignments, progress] = results
-  const ordered = sortAcceleratorModules((modules.data as unknown as LessonRow[] ?? []).filter(row => row.classes?.is_published && !isNonProductAcceleratorClass(row.classes)).map(row => ({ ...row, slug: row.slug ?? row.id, index: row.idx, href: href(context, row) })))
+  // Match the native sidebar's class position/title order, then flatten each
+  // class's module order. The native Accelerator supplies this sequence to the
+  // shared sorter so index 1 in a later class cannot jump ahead of index 2.
+  const classTitle = (row: LessonRow) => row.classes.slug === "electives" ? "Formation" : row.classes.title
+  const sequenced = (modules.data as unknown as LessonRow[] ?? []).filter(row => row.classes?.is_published && !isNonProductAcceleratorClass(row.classes)).sort((a, b) =>
+    (a.classes.position ?? Number.MAX_SAFE_INTEGER) - (b.classes.position ?? Number.MAX_SAFE_INTEGER) ||
+    classTitle(a).localeCompare(classTitle(b)) || a.classes.slug.localeCompare(b.classes.slug) || a.idx - b.idx)
+  const ordered = sortAcceleratorModules(sequenced.map((row, sequence) => ({ ...row, slug: row.slug ?? row.id, index: row.idx, sequence, href: href(context, row) })))
   return ordered.map(row => ({
     id: row.id, title: row.title, href: href(context, row), completed: progress.data?.some(item => item.module_id === row.id && item.status === "completed") || completed(assignments.data?.find(item => item.module_id === row.id) ?? null, submissions.data?.find(item => item.module_id === row.id) ?? null),
   }))
@@ -59,7 +66,7 @@ async function loadSession(context: LiveCompanionContext, organizationId: string
   }
   if (!lessonId) throw new CompanionError("lesson_unavailable", 404, "No published Accelerator lesson is available.")
   const [module, assignment, submission, progress, content, state, document] = await Promise.all([
-    context.supabase.from("modules").select("id,idx,title,description,video_url,content_md,classes!inner(slug,title,is_published,video_url,link1_title,link1_url,link2_title,link2_url,link3_title,link3_url)").eq("id", lessonId).eq("is_published", true).eq("classes.is_published", true).maybeSingle<LessonRow>(),
+    context.supabase.from("modules").select("id,idx,title,description,video_url,content_md,classes!inner(slug,title,is_published,position,video_url,link1_title,link1_url,link2_title,link2_url,link3_title,link3_url)").eq("id", lessonId).eq("is_published", true).eq("classes.is_published", true).maybeSingle<LessonRow>(),
     context.supabase.from("module_assignments").select("schema,complete_on_submit,updated_at").eq("module_id", lessonId).maybeSingle<AssignmentRow>(),
     context.supabase.from("assignment_submissions").select("answers,status,updated_at").eq("module_id", lessonId).eq("user_id", context.userId).maybeSingle<SubmissionRow>(),
     context.supabase.from("module_progress").select("status").eq("module_id", lessonId).eq("user_id", context.userId).maybeSingle(),

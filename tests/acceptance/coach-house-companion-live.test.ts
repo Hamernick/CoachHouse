@@ -12,7 +12,8 @@ import type { ModuleAssignmentField } from "@/lib/modules/types"
 
 vi.mock("@/features/coach-house-companion/server/widget", () => ({ getCompanionWidgetHtml: vi.fn(async () => "<html>Connected</html>") }))
 const owner = "11111111-1111-4111-8111-111111111111", lesson = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
-function fixture() {
+type CatalogLesson = { id: string; idx: number; title: string; classes: { slug: string; title: string; is_published: boolean; position: number | null } }
+function fixture(options: { catalog?: CatalogLesson[]; completed?: string[] } = {}) {
   const profile: Record<string, unknown> = { name: "Organization", roadmap: { sections: [{ id: "mission_vision_values", content: "<p>Public mission</p>", status: "complete", isPublic: true, publicProfileStatusControlled: true }] } }
   const updatedAt = "2026-10-26T00:00:00.000Z"
   const rpc = vi.fn(async (name: string, _args: Record<string, unknown>) => {
@@ -23,9 +24,12 @@ function fixture() {
     return { data: null, error: null }
   })
   const from = vi.fn((table: string) => {
-    const chain = { select: vi.fn(() => chain), eq: vi.fn(() => chain), limit: vi.fn(() => chain), maybeSingle: vi.fn(async () => {
+    let selectedId: string | undefined
+    const chain = { select: vi.fn(() => chain), order: vi.fn(() => chain), eq: vi.fn((column: string, value: string) => { if (column === "id" || column === "module_id") selectedId = value; return chain }), limit: vi.fn(() => chain),
+      then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => resolve({ data: table === "modules" ? options.catalog ?? [] : table === "module_progress" ? (options.completed ?? []).map(module_id => ({ module_id, status: "completed" })) : [], error: null }),
+      maybeSingle: vi.fn(async () => {
       const data = table === "organizations" ? { profile, updated_at: updatedAt }
-        : table === "modules" ? { id: lesson, idx: 1, title: "Mission", content_md: "Published body", video_url: "https://example.com/lesson", classes: { slug: "core", title: "Core", is_published: true } }
+        : table === "modules" ? options.catalog?.find(row => row.id === selectedId) ?? { id: lesson, idx: 1, title: "Mission", content_md: "Published body", video_url: "https://example.com/lesson", classes: { slug: "core", title: "Core", is_published: true } }
         : table === "module_assignments" ? { schema: { fields: [{ name: "mission", label: "Mission", type: "long_text", required: true }], completion_mode: "all_answered" }, complete_on_submit: true, updated_at: "2026-10-26T00:00:00.000Z" }
         : table === "module_content" ? { video_url: null, resources: [{ label: "Guide", url: "https://example.com/guide" }], homework: [] } : null
       return { data, error: null }
@@ -87,6 +91,22 @@ describe("live Companion authority and contracts", () => {
     expect(result.message).toContain("merged the reviewed answers into your own organization profile")
     expect(result.message).toContain("may change public profile content")
   })
+  it("continues the unfinished earlier class before a later class's first lesson", async () => {
+    const first = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", second = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", later = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+    const earlyClass = { slug: "early-core", title: "Z Early class", is_published: true, position: 10 }
+    const laterClass = { slug: "later-core", title: "A Later class", is_published: true, position: 20 }
+    const { context } = fixture({ completed: [first], catalog: [
+      { id: later, idx: 1, title: "A Later first", classes: laterClass },
+      { id: first, idx: 1, title: "Z Earlier first", classes: earlyClass },
+      { id: second, idx: 2, title: "Z Earlier second", classes: earlyClass },
+    ] })
+    const list = await executeLiveCompanionTool(context, "companion_list_lessons", { organizationId: owner })
+    expect(list.lessons?.map(row => row.id)).toEqual([first, second, later])
+    const continued = await executeLiveCompanionTool(context, "companion_get_session", { organizationId: owner })
+    expect(continued.snapshot?.lesson.id).toBe(second)
+    expect(continued.snapshot?.lesson.href).toContain("/class/early-core/module/2")
+  })
+
   it("loads actual lesson body, resources, typed questions and current data", async () => {
     const { context } = fixture(); const result = await executeLiveCompanionTool(context, "companion_get_session", { organizationId: owner, lessonId: lesson })
     expect(result.snapshot).toMatchObject({ mode: "connected", lesson: { body: "Published body", videoUrl: "https://example.com/lesson", resources: [{ label: "Guide", url: "https://example.com/guide" }], fields: [{ type: "long_text" }] }, draft: { visibility: "personal" }, document: { visibility: "organization" } })
