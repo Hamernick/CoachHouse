@@ -1,3 +1,3 @@
-export { CoachHouseCompanionPanel } from "./components"
-export { normalizeCoachHouseCompanionInput } from "./lib"
-export type { CoachHouseCompanionInput } from "./types"
+export { CompanionBrowser } from "./browser"
+export { handleCompanionSandbox, handleCompanionMcp } from "./server/http"
+export type { CompanionSnapshot, CompanionToolArguments, CompanionToolName, CompanionToolResult } from "./types"

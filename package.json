@@ -102,7 +102,9 @@
     "import:curriculum": "node scripts/import-curriculum.mjs",
     "test:rls:document-files": "node supabase/tests/organization-document-files-rls.test.mjs",
     "test:rls:document-activity": "node supabase/tests/organization-document-activity.test.mjs",
-    "test:rls:nonprofit-directory": "node supabase/tests/nonprofit-directory.test.mjs"
+    "test:rls:nonprofit-directory": "node supabase/tests/nonprofit-directory.test.mjs",
+    "companion:widget": "node src/features/coach-house-companion/widget/build.mjs",
+    "companion:dev": "node src/features/coach-house-companion/server/dev.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^2.0.4",
@@ -119,6 +121,8 @@
     "@hookform/resolvers": "^5.2.2",
     "@lucasmarkes/hairline": "0.3.0",
     "@maily-to/core": "^0.3.7",
+    "@modelcontextprotocol/ext-apps": "^2.0.3",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@monaco-editor/react": "^4.7.0",
     "@ncdai/react-wheel-picker": "^1.2.2",
     "@paper-design/shaders-react": "^0.0.71",
