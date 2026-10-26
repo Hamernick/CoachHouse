@@ -1,0 +1,85 @@
+{
+  "id": "a00f1e63-59c7-42ea-a369-4ff77e29d07f",
+  "title": "Mission",
+  "description": "Why do you exist?",
+  "classSlug": "mission-vision-values",
+  "verifiedAt": "2026-10-26T05:20:40.479Z",
+  "sourceSha256": "67545ed47aa45ccd7e5591d5a16a9e4b2bc31eab804193f9d713d4bf46f92571",
+  "completionMode": "all_answered",
+  "completeOnSubmit": true,
+  "fields": [
+    {
+      "name": "mission_work_in_world",
+      "label": "What are you trying to do in the world?",
+      "type": "long_text",
+      "description": "Describe your work in simple, direct terms.",
+      "required": false
+    },
+    {
+      "name": "mission_main_activities",
+      "label": "What are the main activities or approaches you plan to use?",
+      "type": "long_text",
+      "description": "Examples include mentorship, education or training, workforce development, counseling or healing support, community-building, and advocacy.",
+      "required": false
+    },
+    {
+      "name": "mission_who_for",
+      "label": "Who are you doing this work for?",
+      "type": "long_text",
+      "description": "Be consistent with your Who We Serve section.",
+      "required": false
+    },
+    {
+      "name": "mission_group_importance",
+      "label": "What makes this group important to focus on?",
+      "type": "long_text",
+      "required": false
+    },
+    {
+      "name": "mission_difference",
+      "label": "What difference does your work make in people's lives?",
+      "type": "long_text",
+      "description": "Think about what is different because your work exists, what changes for individuals or families, and what improves in the community.",
+      "required": false
+    },
+    {
+      "name": "mission_missing_without_work",
+      "label": "If your work did not exist, what would be missing?",
+      "type": "long_text",
+      "required": false
+    },
+    {
+      "name": "mission_success_3_years",
+      "label": "If your work is successful, what will be different 3-5 years from now?",
+      "type": "long_text",
+      "required": false
+    },
+    {
+      "name": "mission_unique_approach",
+      "label": "What is unique about how you approach this work?",
+      "type": "long_text",
+      "description": "Examples include lived experience, a community-based approach, culturally responsive work, long-term relationships instead of short-term programs, or combining multiple supports.",
+      "required": false
+    },
+    {
+      "name": "mission_effective_approach",
+      "label": "Why do you believe your approach will be effective?",
+      "type": "long_text",
+      "required": false
+    },
+    {
+      "name": "mission_pulling_together",
+      "label": "In your own words, describe what you do, for whom, and the difference it makes.",
+      "type": "long_text",
+      "description": "Speak this naturally in 1-2 paragraphs.",
+      "required": false
+    },
+    {
+      "name": "mission_final_statement",
+      "label": "Write or paste your preferred mission statement draft.",
+      "type": "long_text",
+      "description": "Aim for one clear sentence. This can evolve later.",
+      "required": false
+    }
+  ]
+}

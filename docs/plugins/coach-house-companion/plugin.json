@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "coach-house-companion",
+  "version": "0.1.0",
+  "description": "Work through one accelerator lesson in conversation with compact review and action cards.",
+  "author": {
+    "name": "Coach House"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Coach House Companion",
+        "shortDescription": "A bounded accelerator sandbox",
+        "longDescription": "Discuss the Mission lesson, review and approve a sandbox document change, and prepare a calendar export. Compact cards show status and actions; full work opens in Coach House. Production progress and calendars remain separate.",
+        "developerName": "Coach House",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Help me continue my Mission lesson in the Coach House sandbox."
+        ],
+        "screenshots": [
+          "./assets/screenshots/review-card-light.png",
+          "./assets/screenshots/action-card-dark.png",
+          "./assets/screenshots/action-card-mobile.png"
+        ]
+      }
+    }
+  }
+}
