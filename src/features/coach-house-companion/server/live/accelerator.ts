@@ -106,6 +106,9 @@ export async function executeLiveCompanionTool(context: LiveCompanionContext, na
     return { organizations, message: "Choose one of your organizations with current Accelerator access. No organization is selected implicitly." }
   }
   const args = parsed.data as import("../../types").LiveCompanionToolArguments & { organizationId: string }
+  if (name === "companion_submit_assignment" && args.organizationId !== context.userId) {
+    throw new CompanionError("forbidden", 403, "This pilot can submit only to your own organization. Native submission merges the reviewed answers into your own organization profile and may change public profile content. Your personal draft remains available.")
+  }
   await requireLiveOrganization(context, args.organizationId)
   if (name === "companion_list_lessons") return { lessons: await listLessons(context), message: "Up to 200 published lessons and your current personal progress. Open Coach House for the full catalog." }
   const loaded = await loadSession(context, args.organizationId, args.lessonId, args.documentId)
@@ -124,7 +127,7 @@ export async function executeLiveCompanionTool(context: LiveCompanionContext, na
     const submit = name === "companion_submit_assignment"
     const answers = validateLiveAnswers(snapshot.lesson.fields, submit ? snapshot.draft.answers : args.answers, submit)
     await companionLiveRpc(context, "companion_write_assignment", { p_org_id: args.organizationId, p_module_id: snapshot.lesson.id, p_client_id: context.clientId, p_request_id: args.requestId, p_expected_revision: args.expectedRevision, p_answers: answers, p_submit: submit, p_confirmed: submit && args.confirmed === true, p_expected_submission_at: submit ? args.expectedSubmissionRevision : loaded.submission?.updated_at ?? null, p_completed: submit && shouldTreatAssignmentSubmissionAsComplete({ completeOnSubmit: snapshot.lesson.completeOnSubmit, completionMode: snapshot.lesson.completionMode, fields: snapshot.lesson.fields, answers, status: "submitted" }), p_expected_assignment_at: loaded.assignment.updated_at })
-    message = submit ? "Assignment submitted. Completion follows the published lesson rules; organization profile fields were not automatically changed." : "Companion personal draft saved. It is available in Companion; native Coach House submitted answers remain unchanged. Nothing was submitted or published."
+    message = submit ? "Assignment submitted. Native Coach House merged the reviewed answers into your own organization profile; this may change public profile content. Completion follows the published lesson rules." : "Companion personal draft saved. It is available in Companion; native Coach House submitted answers remain unchanged. Nothing was submitted or published."
   } else {
     const event = buildCompanionCalendarExport({ id: createHash("sha256").update(`${context.userId}:${args.organizationId}:${args.requestId}`).digest("hex").slice(0, 32), title: livePlainText(args.title, 180), startsAt: args.startsAt!, endsAt: args.endsAt!, timeZone: args.timeZone!, now: new Date().toISOString() })
     event.ics = event.ics.replaceAll("Companion Sandbox", "Companion").replaceAll("Coach House sandbox work block", "Coach House work block")

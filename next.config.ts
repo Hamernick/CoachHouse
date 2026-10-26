@@ -15,6 +15,9 @@ const supabaseImageHosts = Array.from(
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    "/api/companion/mcp": ["./build/companion-widget/index.html"],
+  },
   experimental: {
     agentUpgrade: "security",
   },

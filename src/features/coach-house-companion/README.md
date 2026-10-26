@@ -18,7 +18,10 @@ are service-role-only; native work uses the verified member's RLS context.
 
 `accelerator.ts` serves published lessons, typed questions, video/resource links,
 personal drafts, explicit submissions and authoritative completion. Drafts remain
-Companion-only until submitted. `documents.ts` reviews exact core-document text;
+Companion-only until submitted. Production's native trigger merges submitted
+answers into the member's own organization profile and may affect its public
+profile. The private pilot requires explicit review/approval and blocks submission
+to an organization different from the actor. `documents.ts` reviews exact core-document text;
 the database constructs only the approved draft-section change and preserves
 published content, visibility and unrelated sections. Every call rechecks actor,
 organization permissions, entitlement and read/write scopes. Writes use stable

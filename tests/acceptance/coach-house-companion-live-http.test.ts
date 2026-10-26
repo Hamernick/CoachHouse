@@ -20,7 +20,7 @@ vi.mock("@/features/coach-house-companion/server/live/mcp", async () => {
 const origin = "https://companion.example.org"
 beforeEach(() => {
   for (const [name, value] of Object.entries({
-    COMPANION_LIVE_ENABLED: "1", COMPANION_SANDBOX_ENABLED: "0", COMPANION_PUBLIC_ORIGIN: origin,
+    COMPANION_LIVE_ENABLED: "1", COMPANION_SANDBOX_ENABLED: "0", COMPANION_ALLOWED_USER_IDS: "87654321-1234-4234-8234-123456789abc", COMPANION_PUBLIC_ORIGIN: origin,
     NEXT_PUBLIC_SUPABASE_URL: "https://project.example.org", NEXT_PUBLIC_SUPABASE_ANON_KEY: "public-test-key",
     COMPANION_OAUTH_CLIENT_ID: "11111111-1111-4111-8111-111111111111", COMPANION_SUPABASE_CLIENT_SECRET: "private-upstream-test-secret",
     COMPANION_CHATGPT_CLIENT_ID: "coach-house-chatgpt-test", COMPANION_CHATGPT_REDIRECT_URI: "https://chatgpt.com/connector/oauth/test-callback",
@@ -53,12 +53,25 @@ describe("connected Companion configuration and discovery", () => {
     expect(text).not.toContain("private-upstream-test-secret")
     expect(text).not.toContain("project.example.org")
   })
+  it("normalizes the explicit UUID pilot list without publishing account IDs", async () => {
+    const user = "87654321-1234-4234-8234-123456789ABC"
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", ` ${user} , 11111111-1111-4111-8111-111111111111, ${user.toLowerCase()} `)
+    expect(getCompanionLiveConfig().allowedUserIds).toEqual([user.toLowerCase(), "11111111-1111-4111-8111-111111111111"])
+    expect(await handleCompanionResourceMetadata().text()).not.toContain(user.toLowerCase())
+  })
+  it("does not require pilot configuration while connected mode is disabled", () => {
+    vi.stubEnv("COMPANION_LIVE_ENABLED", "0")
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "")
+    expect(handleCompanionResourceMetadata().status).toBe(404)
+  })
   it.each([
     ["COMPANION_LIVE_ENABLED", "0"], ["COMPANION_SANDBOX_ENABLED", "1"],
     ["COMPANION_PUBLIC_ORIGIN", "http://companion.example.org"], ["COMPANION_PUBLIC_ORIGIN", `${origin}/other`],
     ["COMPANION_PUBLIC_ORIGIN", "https://user:password@companion.example.org"],
     ["COMPANION_OAUTH_CLIENT_ID", "wrong-client"], ["COMPANION_SUPABASE_CLIENT_SECRET", ""],
     ["COMPANION_TOKEN_ENCRYPTION_KEY", "invalid-key"],
+    ["COMPANION_ALLOWED_USER_IDS", ""], ["COMPANION_ALLOWED_USER_IDS", "not-a-uuid"],
+    ["COMPANION_ALLOWED_USER_IDS", "87654321-1234-4234-8234-123456789abc,"],
     ["COMPANION_CHATGPT_REDIRECT_URI", "https://chatgpt.com.attacker.example/connector/oauth/test"],
     ["COMPANION_CHATGPT_REDIRECT_URI", "https://chatgpt.com/connector/oauth/*"],
   ])("fails closed for invalid %s", (name, value) => {

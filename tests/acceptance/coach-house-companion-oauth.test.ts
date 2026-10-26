@@ -90,7 +90,7 @@ beforeEach(() => {
   state.signOut.mockReset().mockResolvedValue({ error: null })
   state.rpc.mockReset().mockResolvedValue({ data: { ok: true }, error: null })
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ access_token: jwt(), refresh_token: "upstream-secret-refresh" })))
-  for (const [name, value] of Object.entries({ COMPANION_LIVE_ENABLED: "1", COMPANION_SANDBOX_ENABLED: "0",
+  for (const [name, value] of Object.entries({ COMPANION_LIVE_ENABLED: "1", COMPANION_SANDBOX_ENABLED: "0", COMPANION_ALLOWED_USER_IDS: userId,
     COMPANION_PUBLIC_ORIGIN: origin, NEXT_PUBLIC_SUPABASE_URL: "https://project.example.org",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: "public-test-key", COMPANION_OAUTH_CLIENT_ID: clientId,
     COMPANION_TOKEN_ENCRYPTION_KEY: encryptionKey, COMPANION_SUPABASE_CLIENT_SECRET: "server-client-secret",
@@ -245,6 +245,60 @@ describe("Companion OAuth broker", () => {
     state.tokens.get(oauthHash(tokens.access_token))!.expired = false
     state.getUser.mockResolvedValueOnce({ data: { user: null }, error: { message: "session revoked" } })
     await expect(authenticateCompanionConnection(mcpRequest(tokens.access_token))).rejects.toMatchObject({ code: "invalid_token" })
+  })
+
+  it("rejects a non-allowlisted verified callback even after upstream consent", async () => {
+    const pending = await start()
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "11111111-1111-4111-8111-111111111111")
+    const response = await handleCompanionOAuth(new NextRequest(`${callbackUri}?code=approved-upstream-code&state=${pending.state}`, { headers: { cookie: pending.cookie } }), "callback")
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({ error: "access_denied" })
+    expect(state.grants.size).toBe(0)
+    expect(state.store.mock.calls.some(([action]) => action === "create_grant")).toBe(false)
+  })
+
+  it("blocks code exchange after pilot access is removed and revokes the unreturned token family", async () => {
+    const code = await approvedCode()
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "11111111-1111-4111-8111-111111111111")
+    const response = await post("token", { grant_type: "authorization_code", client_id: "coach-house-chatgpt", redirect_uri: redirectUri, resource, code, code_verifier: verifier })
+    expect(response.status).toBe(403)
+    expect(await response.json()).not.toHaveProperty("access_token")
+    expect([...state.grants.values()][0].revoked).toBe(true)
+  })
+
+  it("rechecks pilot policy for every MCP authentication and revokes removed users", async () => {
+    const tokens = await credentials()
+    await expect(authenticateCompanionConnection(mcpRequest(tokens.access_token))).resolves.toMatchObject({ userId })
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "11111111-1111-4111-8111-111111111111")
+    state.getUser.mockClear()
+    await expect(authenticateCompanionConnection(mcpRequest(tokens.access_token))).rejects.toMatchObject({ code: "access_denied", status: 403 })
+    expect(state.getUser).not.toHaveBeenCalled()
+    expect([...state.grants.values()][0].revoked).toBe(true)
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", userId)
+    await expect(authenticateCompanionConnection(mcpRequest(tokens.access_token))).rejects.toMatchObject({ code: "invalid_token" })
+  })
+
+  it("denies removed users before refreshing the upstream token", async () => {
+    const tokens = await credentials()
+    vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "11111111-1111-4111-8111-111111111111")
+    vi.mocked(fetch).mockClear()
+    const response = await post("token", { grant_type: "refresh_token", client_id: "coach-house-chatgpt", resource, refresh_token: tokens.refresh_token })
+    expect(response.status).toBe(401)
+    expect(await response.json()).not.toHaveProperty("access_token")
+    expect(fetch).not.toHaveBeenCalled()
+    expect([...state.grants.values()][0].revoked).toBe(true)
+  })
+
+  it("rechecks the current allowlist after upstream refresh verification", async () => {
+    const tokens = await credentials()
+    vi.mocked(fetch).mockImplementationOnce(async () => {
+      vi.stubEnv("COMPANION_ALLOWED_USER_IDS", "11111111-1111-4111-8111-111111111111")
+      return Response.json({ access_token: jwt(), refresh_token: "upstream-refreshed" })
+    })
+    const response = await post("token", { grant_type: "refresh_token", client_id: "coach-house-chatgpt", resource, refresh_token: tokens.refresh_token })
+    expect(response.status).toBe(401)
+    expect(await response.json()).not.toHaveProperty("access_token")
+    expect([...state.grants.values()][0].revoked).toBe(true)
   })
 
   it("binds ciphertext to its context and fails closed when disabled", async () => {

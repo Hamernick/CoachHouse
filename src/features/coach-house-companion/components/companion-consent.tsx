@@ -48,7 +48,8 @@ export function CompanionConsent({ state }: { state: CompanionConsentState }) {
             <h2 id="companion-consent-access" className="text-sm font-semibold">This connection can</h2>
             <ul className="list-disc space-y-2 pl-5 text-sm">
               <li>Read your account details, accessible organizations, accelerator lessons, saved answers, and progress.</li>
-              <li>Save personal answer drafts and submit assignments when you ask.</li>
+              <li>Save private personal answer drafts without submitting or changing your organization profile.</li>
+              <li>After you review and approve the exact answers, submit to your own organization. Native submission merges those answers into its profile and may change public profile content.</li>
               <li>Review and save organization planning document changes after your approval.</li>
               <li>Prepare calendar files for you to import.</li>
             </ul>

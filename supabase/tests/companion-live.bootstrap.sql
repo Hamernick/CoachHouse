@@ -5,7 +5,7 @@ create function auth.uid() returns uuid language sql stable as $$ select nullif(
 grant usage on schema auth to authenticated,anon;
 grant execute on function auth.uid() to authenticated,anon;
 create table public.profiles(id uuid primary key);
-create table public.organizations(user_id uuid primary key references public.profiles(id),profile jsonb not null default '{}',updated_at timestamptz not null default now());
+create table public.organizations(user_id uuid primary key references public.profiles(id),profile jsonb not null default '{}',status text not null default 'pending',updated_at timestamptz not null default now());
 create table public.organization_memberships(org_id uuid references public.organizations(user_id),member_id uuid references public.profiles(id),role text,primary key(org_id,member_id));
 create table public.accelerator_purchases(id uuid default gen_random_uuid(),user_id uuid,status text);
 create table public.subscriptions(id uuid default gen_random_uuid(),user_id uuid,status text,metadata jsonb,stripe_subscription_id text,created_at timestamptz default now());
@@ -21,3 +21,23 @@ create policy own_submissions on public.assignment_submissions for select to aut
 create policy own_progress on public.module_progress for select to authenticated using(user_id=auth.uid());
 create policy own_organization on public.organizations for select to authenticated using(user_id=auth.uid());
 grant select on public.assignment_submissions,public.module_progress,public.organizations to authenticated;
+
+-- Production trigger contract, read back from Supabase on 2026-10-26.
+-- Native submission merges every submitted answer into the actor's organization.
+create function public.apply_submission_to_organization(p_user_id uuid, p_answers jsonb)
+returns void language plpgsql security definer set search_path = 'public' as $$
+begin
+  insert into organizations(user_id,profile,status)
+  values(p_user_id,coalesce(p_answers,'{}'::jsonb),'pending')
+  on conflict(user_id) do update set
+    profile=coalesce(organizations.profile,'{}'::jsonb)||coalesce(excluded.profile,'{}'::jsonb),
+    updated_at=timezone('utc',now());
+end $$;
+create function public.on_assignment_submission_change() returns trigger
+language plpgsql security definer set search_path = 'public' as $$
+begin
+  perform public.apply_submission_to_organization(new.user_id,new.answers);
+  return new;
+end $$;
+create trigger assignment_submissions_after_change after insert or update on public.assignment_submissions
+for each row execute function public.on_assignment_submission_change();

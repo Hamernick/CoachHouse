@@ -22,6 +22,10 @@ export function getCompanionLiveConfig() {
   if (process.env.COMPANION_SANDBOX_ENABLED === "1") {
     throw new CompanionError("configuration_required", 503, "Choose either a connected Coach House environment or a sandbox.")
   }
+  const allowedUserIds = [...new Set(required("COMPANION_ALLOWED_USER_IDS").split(",").map(value => value.trim().toLowerCase()))]
+  if (allowedUserIds.length > 100 || allowedUserIds.some(value => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value))) {
+    throw new CompanionError("configuration_required", 503, "Coach House pilot account configuration is invalid.")
+  }
   const publicOrigin = secureUrl(required("COMPANION_PUBLIC_ORIGIN"), true)
   const supabaseUrl = secureUrl(required("NEXT_PUBLIC_SUPABASE_URL"), true)
   const clientId = required("COMPANION_OAUTH_CLIENT_ID")
@@ -37,6 +41,7 @@ export function getCompanionLiveConfig() {
     throw new CompanionError("configuration_required", 503, "Use the exact ChatGPT OAuth callback URL from the plugin connection.")
   }
   return {
+    allowedUserIds,
     publicOrigin,
     resource: `${publicOrigin}/api/companion/mcp`,
     issuer: `${supabaseUrl}/auth/v1`,
@@ -48,6 +53,13 @@ export function getCompanionLiveConfig() {
     chatgptRedirectUri,
     upstreamRedirectUri: `${publicOrigin}/api/companion/oauth/callback`,
     tokenEncryptionKey,
+  }
+}
+
+// Re-read deployment policy at every verified-user boundary, never cache it in a grant.
+export function assertCompanionAllowedUser(userId: string, allowedUserIds = getCompanionLiveConfig().allowedUserIds) {
+  if (!allowedUserIds.includes(userId.toLowerCase())) {
+    throw new CompanionError("access_denied", 403, "This account is not enabled for the private Coach House Companion pilot.")
   }
 }
 

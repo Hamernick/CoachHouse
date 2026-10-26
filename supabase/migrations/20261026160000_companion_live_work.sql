@@ -94,6 +94,9 @@ begin
   if p_client_id is null or length(p_client_id) not between 1 and 200 or p_request_id is null or p_request_id !~ '^[A-Za-z0-9_-]{8,100}$'
      or p_expected_revision is null or p_expected_revision < 0 or p_submit is null
      or p_answers is null or jsonb_typeof(p_answers) <> 'object' or octet_length(p_answers::text) > 100000 then raise exception 'invalid_arguments'; end if;
+  -- Native submission triggers merge answers into the actor's organization profile.
+  -- This private pilot only submits when that destination is the selected organization.
+  if p_submit and p_org_id is distinct from actor then raise exception 'forbidden'; end if;
   if p_submit and p_confirmed is distinct from true then raise exception 'confirmation_required'; end if;
   action_name := case when p_submit then 'submit_assignment' else 'save_draft' end;
   fp := encode(sha256(convert_to(jsonb_build_object('org',p_org_id,'module',p_module_id,'action',action_name,'revision',p_expected_revision,

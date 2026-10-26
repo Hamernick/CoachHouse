@@ -4,13 +4,13 @@ import { loadCompanionConsent, handleCompanionAuthorization } from "@/features/c
 
 const mocks = vi.hoisted(() => ({ factory: vi.fn(), user: vi.fn(), details: vi.fn(), approve: vi.fn(), deny: vi.fn(), config: vi.fn(), upstreamRedirect: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.factory }))
-vi.mock("@/features/coach-house-companion/server/live/config", () => ({ getCompanionLiveConfig: mocks.config }))
+vi.mock("@/features/coach-house-companion/server/live/config", async importOriginal => ({ ...await importOriginal<typeof import("@/features/coach-house-companion/server/live/config")>(), getCompanionLiveConfig: mocks.config }))
 vi.mock("@/features/coach-house-companion/server/live/oauth-broker", () => ({ validateCompanionUpstreamRedirect: mocks.upstreamRedirect }))
 
 const publicOrigin = "https://coachhouse.test"
 const callback = `${publicOrigin}/api/companion/oauth/callback`
 const id = "authorization-test-123"
-const userId = "user-test-123"
+const userId = "87654321-1234-4234-8234-123456789abc"
 const clientId = "client-approved-123"
 let details: OAuthAuthorizationDetails
 
@@ -18,7 +18,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.stubEnv("COMPANION_LIVE_ENABLED", "1")
   vi.stubEnv("COMPANION_CONSENT_SECRET", "test-only-consent-secret-longer-than-32-characters")
-  mocks.config.mockReturnValue({ publicOrigin, clientId, upstreamRedirectUri: callback })
+  mocks.config.mockReturnValue({ publicOrigin, clientId, upstreamRedirectUri: callback, allowedUserIds: [userId] })
   mocks.upstreamRedirect.mockResolvedValue(true)
   mocks.user.mockResolvedValue({ data: { user: { id: userId, email: "member@example.test" } }, error: null })
   details = {
@@ -75,6 +75,16 @@ describe("Companion OAuth consent review", () => {
   it.each([undefined, [id, "other"], "//attacker.example", "valid-id?redirect=https://attacker.example", "bad\nrequest"])("rejects malformed authorization IDs before login/provider use (%j)", async (value) => {
     expect((await loadCompanionConsent(value)).status).toBe("unavailable")
     expect(mocks.factory).not.toHaveBeenCalled()
+  })
+
+  it("blocks non-pilot accounts before loading or resuming upstream consent", async () => {
+    mocks.config.mockReturnValue({ publicOrigin, clientId, upstreamRedirectUri: callback, allowedUserIds: ["11111111-1111-4111-8111-111111111111"] })
+    mocks.details.mockResolvedValue({ data: { redirect_url: `${callback}?code=approved&state=state` }, error: null })
+    const state = await loadCompanionConsent(id)
+    expect(state).toMatchObject({ status: "unavailable", message: expect.stringContaining("private Coach House Companion pilot") })
+    expect(mocks.details).not.toHaveBeenCalled()
+    expect(mocks.approve).not.toHaveBeenCalled()
+    expect(mocks.upstreamRedirect).not.toHaveBeenCalled()
   })
 
   it("renders only verified client/account/scopes and does not authorize during GET", async () => {
@@ -168,6 +178,26 @@ describe("Companion explicit OAuth decisions", () => {
     const state = await reviewed()
     mocks.user.mockResolvedValue({ data: { user: { id: "different-user" } }, error: null })
     expect((await decide({ authorizationId: id, csrfToken: state.csrfToken, decision: "approve" })).status).toBe(403)
+    expect(mocks.approve).not.toHaveBeenCalled()
+  })
+
+  it("rechecks pilot access between review and approval", async () => {
+    const state = await reviewed()
+    mocks.config.mockReturnValue({ publicOrigin, clientId, upstreamRedirectUri: callback, allowedUserIds: ["11111111-1111-4111-8111-111111111111"] })
+    const response = await decide({ authorizationId: id, csrfToken: state.csrfToken, decision: "approve" })
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({ code: "access_denied" })
+    expect(mocks.approve).not.toHaveBeenCalled()
+  })
+
+  it("rechecks allowlist again immediately before the upstream grant", async () => {
+    const state = await reviewed()
+    mocks.details.mockImplementationOnce(async () => {
+      mocks.config.mockReturnValue({ publicOrigin, clientId, upstreamRedirectUri: callback, allowedUserIds: ["11111111-1111-4111-8111-111111111111"] })
+      return { data: structuredClone(details), error: null }
+    })
+    const response = await decide({ authorizationId: id, csrfToken: state.csrfToken, decision: "approve" })
+    expect(response.status).toBe(403)
     expect(mocks.approve).not.toHaveBeenCalled()
   })
 

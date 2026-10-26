@@ -5,7 +5,8 @@ import type { OAuthAuthorizationDetails } from "@supabase/supabase-js"
 import type { CompanionConsentState } from "../../types"
 export type { CompanionConsentState } from "../../types"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getCompanionLiveConfig } from "./config"
+import { CompanionError } from "../errors"
+import { getCompanionLiveConfig, assertCompanionAllowedUser } from "./config"
 import { validateCompanionUpstreamRedirect } from "./oauth-broker"
 
 const MAX_BODY = 8192
@@ -101,6 +102,7 @@ export async function loadCompanionConsent(value: unknown): Promise<CompanionCon
       const destination = `/oauth/consent?${new URLSearchParams({ authorization_id: id })}`
       return { status: "login", href: `/login?${new URLSearchParams({ redirect: destination })}` }
     }
+    assertCompanionAllowedUser(user.id, getCompanionLiveConfig().allowedUserIds)
     const result = await supabase.auth.oauth.getAuthorizationDetails(id)
     if (result.error) throw new ConsentError(400, "invalid_request", "This connection request is unavailable. Return to the app and try again.")
     if (result.data && "redirect_url" in result.data && !("authorization_id" in result.data)) {
@@ -121,7 +123,7 @@ export async function loadCompanionConsent(value: unknown): Promise<CompanionCon
       scopes: [...new Set(details.scope.trim().split(/\s+/))],
     }
   } catch (error) {
-    return { status: "unavailable", message: error instanceof ConsentError ? error.message : "This connection is unavailable. Return to the app and try again later." }
+    return { status: "unavailable", message: (error instanceof ConsentError || error instanceof CompanionError) ? error.message : "This connection is unavailable. Return to the app and try again later." }
   }
 }
 
@@ -162,11 +164,13 @@ export async function handleCompanionAuthorization(request: Request): Promise<Re
     const supabase = await createSupabaseServerClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) throw new ConsentError(401, "unauthorized", "Sign in again, then reload the consent page.")
+    assertCompanionAllowedUser(user.id, getCompanionLiveConfig().allowedUserIds)
     const claim = verify(decision.token, config.secret, decision.id, user.id)
     const result = await supabase.auth.oauth.getAuthorizationDetails(decision.id)
     if (result.error) throw new ConsentError(400, "invalid_request", "This connection request is no longer available. Return to the app and try again.")
     const details = validateDetails(result.data, decision.id, user.id, config.clientId, config.upstreamRedirectUri)
     if (fingerprint(details) !== claim.fingerprint) throw new ConsentError(409, "review_changed", "The request changed after you reviewed it. Reload the consent page.")
+    assertCompanionAllowedUser(user.id, getCompanionLiveConfig().allowedUserIds)
     const resolved = decision.decision === "approve"
       ? await supabase.auth.oauth.approveAuthorization(decision.id, { skipBrowserRedirect: true })
       : await supabase.auth.oauth.denyAuthorization(decision.id, { skipBrowserRedirect: true })
@@ -178,7 +182,7 @@ export async function handleCompanionAuthorization(request: Request): Promise<Re
     }
     return Response.json({ redirectTo: target.href }, { headers: RESPONSE_HEADERS })
   } catch (error) {
-    const known = error instanceof ConsentError
+    const known = error instanceof ConsentError || error instanceof CompanionError
     return Response.json({ error: known ? error.message : "This connection is unavailable. Return to the app and try again later.", code: known ? error.code : "unavailable" },
       { status: known ? error.status : 503, headers: RESPONSE_HEADERS })
   }

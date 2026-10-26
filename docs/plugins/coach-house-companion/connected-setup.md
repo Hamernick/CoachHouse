@@ -1,6 +1,7 @@
 # Connected Coach House pilot
 
-Source candidate for private staging tests. This file is configuration guidance,
+Approved deployment target: the existing Coach House Supabase project and real
+account, restricted to an allowlisted private production pilot. This file is configuration guidance,
 not evidence of a deployed or installed ChatGPT plugin. The canonical task
 checkpoint is `docs/plans/2026-10-26-coach-house-companion.md` in the repository.
 
@@ -17,23 +18,25 @@ This distinction matters: Supabase's ordinary user JWTs also work against other
 Supabase APIs. Identity scopes do not restrict database access. Do not expose
 those JWTs to ChatGPT or advertise them as narrowly scoped MCP credentials.
 
-## Stage before production
+## Configure the approved private pilot
 
-Use a dedicated staging Supabase project and Vercel environment with fictional
-member accounts and representative published curriculum. Do not load the root
-checkout's production environment into a local preview. Creating infrastructure,
-applying migrations and deploying remain separate reviewed actions.
+Use the existing Supabase project and the reviewed canonical Coach House HTTPS
+origin. Restrict connection, consent and bearer use to the verified pilot account
+IDs with `COMPANION_ALLOWED_USER_IDS`; this is not a public launch. Root applies
+the reviewed migration transaction and provider/deployment changes. Do not load
+production credentials into an ordinary local preview. This guide does not prove
+that configuration, deployment or account acceptance has finished.
 
 1. Apply the reviewed migrations `20261026150000_companion_oauth.sql` and
-   `20261026160000_companion_live_work.sql` to staging. Both add RLS-protected
+   `20261026160000_companion_live_work.sql` to the approved project. Both add RLS-protected
    feature storage; neither changes existing website token hooks or providers.
-2. In staging Supabase **Authentication > OAuth Server**, enable OAuth 2.1 and
+2. In Supabase **Authentication > OAuth Server**, enable OAuth 2.1 and
    set Authorization Path to `/oauth/consent`. Its Site URL must be the canonical
-   Vercel staging origin serving that route. Use asymmetric signing if requesting
+   Coach House origin serving that route. Use asymmetric signing if requesting
    `openid`. Do not rotate production signing keys as a shortcut.
 3. Register one confidential Supabase OAuth client for **Coach House Companion**,
    using `client_secret_basic`. Its only callback is
-   `https://<staging-origin>/api/companion/oauth/callback`. Dynamic client
+   `https://<coach-house-origin>/api/companion/oauth/callback`. Dynamic client
    registration is unnecessary. Keep its secret only in server configuration.
 4. Configure Vercel with the values below, build the widget, and deploy the
    reviewed source to the chosen stable HTTPS origin. ChatGPT needs to reach
@@ -41,15 +44,15 @@ applying migrations and deploying remain separate reviewed actions.
    Vercel-login wall. The MCP endpoint itself always requires its broker token.
    Do not remove deployment protection across unrelated projects.
 5. In ChatGPT, add a custom MCP plugin at
-   `https://<staging-origin>/api/companion/mcp`. Choose OAuth and a provided public
+   `https://<coach-house-origin>/api/companion/mcp`. Choose OAuth and a provided public
    client with ID matching `COMPANION_CHATGPT_CLIENT_ID`, token authentication
    method `none`, and PKCE S256. Discovery points to our broker, not directly to
    Supabase. The Supabase client secret must never be entered in ChatGPT.
 6. Copy the exact callback URI displayed by OpenAI into
-   `COMPANION_CHATGPT_REDIRECT_URI`, then finalize/redeploy that staging config.
+   `COMPANION_CHATGPT_REDIRECT_URI`, then finalize/redeploy that pilot config.
    Our broker's fixed allowlist rejects all other callbacks; no wildcard or
    guessed callback is accepted. The broker advertises issuer identification.
-7. Connect as a staging member, review consent, and test the journey below.
+7. Connect as the allowlisted existing member, review consent, and test the journey below.
 
 ## Server configuration
 
@@ -59,11 +62,12 @@ ZIP, a screenshot or a chat message.
 | Variable | Value |
 | --- | --- |
 | `COMPANION_LIVE_ENABLED` | `1` only for the reviewed connected environment |
+| `COMPANION_ALLOWED_USER_IDS` | Comma-separated verified account UUIDs; required, exact private-pilot allowlist |
 | `COMPANION_SANDBOX_ENABLED` | Unset or `0`; never enable both modes |
 | `COMPANION_PUBLIC_ORIGIN` | Canonical HTTPS origin, without a path |
-| `NEXT_PUBLIC_SUPABASE_URL` | Staging project's HTTPS origin |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Staging publishable/anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Staging server-only key for the private OAuth store |
+| `NEXT_PUBLIC_SUPABASE_URL` | Approved existing project's HTTPS origin |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Approved project publishable/anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Approved project server-only key for the private OAuth store |
 | `COMPANION_OAUTH_CLIENT_ID` | Dedicated upstream Supabase OAuth client UUID |
 | `COMPANION_SUPABASE_CLIENT_SECRET` | Dedicated upstream client secret |
 | `COMPANION_CHATGPT_CLIENT_ID` | Public identifier, for example `coach-house-chatgpt` |
@@ -73,14 +77,14 @@ ZIP, a screenshot or a chat message.
 
 Retain the encryption key for existing connections. Replacing it makes those
 connections unreadable and requires reconnecting; never rotate it implicitly.
-Separate staging and production clients, keys, databases and origins.
+Keep any future staging credentials and origins separate from this production pilot.
 
 Generate the deployment-specific package only after the origin/client ID are
 known:
 
 ```sh
 pnpm companion:widget
-pnpm companion:package https://<staging-origin> coach-house-chatgpt
+pnpm companion:package https://<coach-house-origin> coach-house-chatgpt
 ```
 
 The generated `.tmp/companion/coach-house-companion-connected.zip` contains only
@@ -90,16 +94,22 @@ package's existing `mcp.json` remains explicitly for local sandbox testing.
 
 ## Acceptance journey
 
-Use an unfamiliar tester and two fictional accounts with different organizations.
-Connect, choose the organization, load a real published lesson, answer typed
-questions, save a private Companion draft, explicitly submit, review an exact
+Use the approved existing account and its own organization. Connect, choose that
+organization, load a published lesson, answer typed questions and save a private
+Companion draft. Before submission, review the exact answers and explicitly
+approve their native merge into your own organization profile, including possible
+public profile changes. Then submit, review an exact
 organization document change, approve it, and read it again. Open the native
 Coach House app to verify submission/progress/document values, then resume in a
-new conversation. Ensure the second account cannot read or change the first's
-organization. Test stale native edits, refresh, denied consent and disconnect.
+new conversation. Verify unallowlisted accounts are denied without creating or
+changing their records. Existing local tests cover cross-organization denial; do
+not claim live multi-account acceptance without observing it. Test stale native
+edits, refresh, denied consent and disconnect.
 
-Drafts are Companion-only until submitted. Document writes preserve the previous
-published version. Videos and resources are current source links; inline video
+Drafts are private Companion work until submitted and do not change organization
+profiles. Submission is owner-only and invokes the existing native profile merge;
+it may affect public profile content. Separately approved document-draft writes
+preserve the previous published version. Videos and resources are current source links; inline video
 playback is not implemented in this slice. Coaching opens `/coaching`, where the
 existing availability/credit/payment flow runs. Calendar output is an ICS export,
 not a provider event or coaching reservation.

@@ -65,6 +65,28 @@ describe("live Companion authority and contracts", () => {
     const { context, rpc, from } = fixture(); rpc.mockResolvedValueOnce({ data: null, error: { message: "forbidden" } } as never)
     await expect(executeLiveCompanionTool(context, "companion_get_session", { organizationId: owner, lessonId: lesson })).rejects.toMatchObject({ code: "forbidden" }); expect(from).not.toHaveBeenCalled()
   })
+  it("rejects a member-organization submission before reading or writing its lesson", async () => {
+    const { context, rpc, from } = fixture()
+    await expect(executeLiveCompanionTool(context, "companion_submit_assignment", {
+      organizationId: "22222222-2222-4222-8222-222222222222", lessonId: lesson,
+      requestId: "member-submit", expectedRevision: 0, expectedSubmissionRevision: null, confirmed: true,
+    })).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("only to your own organization") })
+    expect(rpc).not.toHaveBeenCalled(); expect(from).not.toHaveBeenCalled()
+  })
+  it("submits an owner's reviewed draft and discloses the native organization-profile merge", async () => {
+    const { context, rpc } = fixture()
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "companion_authorize") return { data: { role: "owner", name: "Organization" }, error: null }
+      if (name === "companion_read_draft") return { data: { revision: 1, answers: { mission: "Reviewed mission" }, updated_at: null }, error: null }
+      return { data: { applied: true }, error: null }
+    })
+    const result = await executeLiveCompanionTool(context, "companion_submit_assignment", {
+      organizationId: owner, lessonId: lesson, requestId: "owner-submit", expectedRevision: 1, expectedSubmissionRevision: null, confirmed: true,
+    })
+    expect(rpc.mock.calls.find(([name]) => name === "companion_write_assignment")?.[1]).toMatchObject({ p_org_id: owner, p_answers: { mission: "Reviewed mission" }, p_submit: true, p_confirmed: true })
+    expect(result.message).toContain("merged the reviewed answers into your own organization profile")
+    expect(result.message).toContain("may change public profile content")
+  })
   it("loads actual lesson body, resources, typed questions and current data", async () => {
     const { context } = fixture(); const result = await executeLiveCompanionTool(context, "companion_get_session", { organizationId: owner, lessonId: lesson })
     expect(result.snapshot).toMatchObject({ mode: "connected", lesson: { body: "Published body", videoUrl: "https://example.com/lesson", resources: [{ label: "Guide", url: "https://example.com/guide" }], fields: [{ type: "long_text" }] }, draft: { visibility: "personal" }, document: { visibility: "organization" } })
@@ -104,6 +126,9 @@ describe("live Companion authority and contracts", () => {
     await Promise.all([server.connect(a), client.connect(b)])
     try {
       const { tools } = await client.listTools(); expect(tools).toHaveLength(8)
+      const submissionTool = tools.find(tool => tool.name === "companion_submit_assignment")
+      expect(submissionTool?.description).toContain("may change public profile content")
+      expect(submissionTool?.description).toContain("explicit approval of both submission and this profile change")
       for (const tool of tools) {
         const ui = tool._meta?.ui as { resourceUri?: string }
         expect(Boolean(ui.resourceUri)).toBe(["companion_get_session", "companion_review_document", "companion_schedule_block"].includes(tool.name))

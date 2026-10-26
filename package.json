@@ -10,7 +10,7 @@
     "check:next-cache": "node scripts/check-next-cache-size.mjs",
     "dev:opencode": "NEXT_PUBLIC_ENABLE_REACT_GRAB=1 next dev",
     "dev:grab": "NEXT_PUBLIC_ENABLE_REACT_GRAB=1 next dev",
-    "build": "next build",
+    "build": "pnpm companion:widget && next build",
     "start": "next start",
     "lint": "eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/.eslintcache",
     "lint:push": "node scripts/lint-push-range.mjs",

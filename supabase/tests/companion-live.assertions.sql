@@ -16,6 +16,7 @@ begin
  if state->>'revision'<>'0' or state->'answers'<>'{}'::jsonb then raise exception 'initial draft wrong'; end if;
  perform public.companion_write_assignment(org,lesson,'test-client','draft-0001',0,'{"mission":"First draft"}',false,false,null,'2026-10-26T00:00:00Z',false);
  if exists(select 1 from public.assignment_submissions) then raise exception 'draft submitted accidentally'; end if;
+ if (select profile ? 'mission' from public.organizations where user_id=org) then raise exception 'private draft merged into organization'; end if;
  state:=public.companion_read_draft(org,lesson);
  if state->>'revision'<>'1' or state->'answers'->>'mission'<>'First draft' then raise exception 'draft readback wrong'; end if;
  perform public.companion_write_assignment(org,lesson,'test-client','draft-0001',0,'{"mission":"First draft"}',false,false,null,'2026-10-26T00:00:00Z',false);
@@ -35,6 +36,7 @@ begin
  -- Same canonical rows the native app reads, under its normal actor RLS.
  if not exists(select 1 from public.assignment_submissions where user_id=org and answers->>'mission'='First draft' and status='submitted') then raise exception 'native submission mismatch'; end if;
  if not exists(select 1 from public.module_progress where user_id=org and status='completed') then raise exception 'native completion mismatch'; end if;
+ if not exists(select 1 from public.organizations where user_id=org and profile->>'mission'='First draft' and profile->>'name'='Actual organization') then raise exception 'native owner submission profile merge mismatch'; end if;
  perform public.companion_write_assignment(org,lesson,'test-client','submit-0001',1,'{"mission":"First draft"}',true,true,null,'2026-10-26T00:00:00Z',true);
  begin
   perform public.companion_write_assignment(org,lesson,'test-client','submit-stale',1,'{"mission":"Stale"}',true,true,null,'2026-10-26T00:00:00Z',true);
@@ -94,6 +96,9 @@ do $$ declare org uuid:='11111111-1111-4111-8111-111111111111'; original jsonb; 
  perform public.companion_save_document(org,'originStory','test-client','legacy-alias',repeat('e',64),'New draft',original,stamp,true);
  if (select profile#>>'{roadmap,sections,0,publishedContent}' from public.organizations where user_id=org) <> 'Secondary public original' then raise exception 'empty primary legacy alias hid public content'; end if;
 end $$;
+reset role;
+create temporary table before_member_submit as select user_id,profile from public.organizations;
+set local role authenticated;
 set local request.jwt.claim.sub='22222222-2222-4222-8222-222222222222';
 do $$ begin
  perform public.companion_authorize('11111111-1111-4111-8111-111111111111',false);
@@ -102,7 +107,22 @@ do $$ begin
  exception when raise_exception then if sqlerrm<>'forbidden' then raise; end if; end;
  if exists(select 1 from public.assignment_submissions) or exists(select 1 from public.module_progress) then raise exception 'cross-user native records exposed'; end if;
  if public.companion_read_draft('11111111-1111-4111-8111-111111111111','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')->'answers'<>'{}'::jsonb then raise exception 'cross-user draft exposed'; end if;
+ perform public.companion_write_assignment('11111111-1111-4111-8111-111111111111','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','test-client','member-draft-1',0,'{"mission":"Member private draft"}',false,false,null,'2026-10-26T00:00:00Z',false);
+ begin
+  perform public.companion_write_assignment('11111111-1111-4111-8111-111111111111','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','test-client','member-submit-1',1,'{"mission":"Member private draft"}',true,true,null,'2026-10-26T00:00:00Z',true);
+  raise exception 'member submit reached native wrong-organization trigger';
+ exception when raise_exception then if sqlerrm<>'forbidden' then raise; end if; end;
+
 end $$;
+reset role;
+do $$ begin
+ if exists(select 1 from public.assignment_submissions where user_id='22222222-2222-4222-8222-222222222222') then raise exception 'member submission persisted'; end if;
+ if exists(select 1 from public.module_progress where user_id='22222222-2222-4222-8222-222222222222') then raise exception 'member progress persisted'; end if;
+ if exists(select 1 from public.organizations where user_id='22222222-2222-4222-8222-222222222222') then raise exception 'member own organization implicitly created'; end if;
+ if exists(select 1 from public.organizations o join before_member_submit b using(user_id) where o.profile is distinct from b.profile) then raise exception 'denied member submission changed organization profile'; end if;
+ if not exists(select 1 from public.companion_assignment_drafts where user_id='22222222-2222-4222-8222-222222222222' and answers->>'mission'='Member private draft') then raise exception 'member private draft lost'; end if;
+end $$;
+set local role authenticated;
 set local request.jwt.claim.sub='33333333-3333-4333-8333-333333333333';
 do $$ begin
  begin perform public.companion_authorize('11111111-1111-4111-8111-111111111111',false); raise exception 'outsider allowed';

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createSupabaseAdminClient, type Database } from "@/lib/supabase"
 import { CompanionError } from "../errors"
-import { COMPANION_SCOPES, getCompanionLiveConfig } from "./config"
+import { COMPANION_SCOPES, getCompanionLiveConfig, assertCompanionAllowedUser } from "./config"
 import { decryptOAuth, encryptOAuth, oauthChallenge, oauthEqual, oauthHash, oauthRandom } from "./oauth-crypto"
 import { oauthStore, type OAuthGrant, type OAuthTransaction, type UpstreamSession } from "./oauth-store"
 
@@ -140,6 +140,7 @@ async function verifyUpstream(config: Config, upstream: UpstreamSession, expecte
   if (claims.iss !== config.issuer || claims.client_id !== config.clientId || claims.sub !== data.user.id ||
       claims.role !== "authenticated" || typeof claims.session_id !== "string" ||
       typeof claims.exp !== "number" || claims.exp <= Date.now() / 1000) fail("invalid_token", 401)
+  assertCompanionAllowedUser(data.user.id)
   upstream.expires_at = claims.exp
   return { supabase, userId: data.user.id }
 }
@@ -204,6 +205,7 @@ async function token(request: NextRequest, config: Config) {
     grant = await oauthStore<OAuthGrant | null>("rotate_refresh", oauthHash(previous), payload)
     if (grant) {
       try {
+        assertCompanionAllowedUser(grant.userId)
         const prior = decryptOAuth<UpstreamSession>(grant.upstream, config.tokenEncryptionKey, `user:${grant.userId}`)
         const upstream = await upstreamTokens(config, { grant_type: "refresh_token", refresh_token: prior.refresh_token })
         await verifyUpstream(config, upstream, grant.userId)
@@ -217,6 +219,11 @@ async function token(request: NextRequest, config: Config) {
     }
   } else fail("unsupported_grant_type")
   if (!grant) fail("invalid_grant")
+  try { assertCompanionAllowedUser(grant.userId) }
+  catch (error) {
+    await oauthStore("revoke", oauthHash(accessToken), { clientId: config.chatgptClientId })
+    throw error
+  }
   const upstream = decryptOAuth<UpstreamSession>(grant.upstream, config.tokenEncryptionKey, `user:${grant.userId}`)
   const lifetime = Math.min(900, Math.floor(upstream.expires_at - Date.now() / 1000 - 30))
   if (lifetime <= 0) {
@@ -263,6 +270,11 @@ export async function authenticateCompanionConnection(request: Request) {
   if (!match) fail("invalid_token", 401)
   const grant = await oauthStore<OAuthGrant | null>("access", oauthHash(match[1]))
   if (!grant || grant.clientId !== config.chatgptClientId || grant.resource !== config.resource || !grant.scopes.includes("accelerator:read")) fail("invalid_token", 401)
+  try { assertCompanionAllowedUser(grant.userId) }
+  catch (error) {
+    await oauthStore("revoke", oauthHash(match[1]), { clientId: config.chatgptClientId })
+    throw error
+  }
   const upstream = decryptOAuth<UpstreamSession>(grant.upstream, config.tokenEncryptionKey, `user:${grant.userId}`)
   const context = await verifyUpstream(config, upstream, grant.userId)
   return { ...context, clientId: config.clientId, connectionId: grant.id, scopes: grant.scopes, accessToken: upstream.access_token, appOrigin: config.publicOrigin }
