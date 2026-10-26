@@ -44,7 +44,7 @@ export function CompanionDevelop({ session, onReview }: { session: CompanionSess
         </div>}
         {showAll && <Button type="button" onClick={onReview}>Review document<ArrowRightIcon data-icon="inline-end" /></Button>}
       </div>
-      <p className={WORKSPACE_TEXT_STYLES.utility} role="status">{session.answersDirty ? "Unsaved answers" : "Answers saved"}. Saving does not submit the assignment.</p>
+      <p className={WORKSPACE_TEXT_STYLES.utility} role="status">{session.answersDirty ? "Unsaved answers" : snapshot.draft.revision > 0 ? "Answers saved" : "No answers saved yet"}. Saving does not submit the assignment.</p>
     </form>
   </section>
 }

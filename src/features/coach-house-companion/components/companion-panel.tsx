@@ -28,7 +28,7 @@ export function CompanionPanel({ initialSnapshot, transport }: { initialSnapshot
         <div className="min-w-0"><p className={WORKSPACE_TEXT_STYLES.meta}>{snapshot.organization.name}</p><h1 id={`${id}-title`} className={WORKSPACE_TEXT_STYLES.cardTitle}>{snapshot.lesson.title}</h1></div>
         <Badge variant="outline">Sandbox</Badge>
       </div>
-      <p className={WORKSPACE_TEXT_STYLES.utility}>{snapshot.source.kind === "repository_fixture" ? "Repository fixture" : "Published curriculum"}: {snapshot.source.label}. Changes stay in this sandbox.</p>
+      <p className={WORKSPACE_TEXT_STYLES.utility}>{snapshot.source.kind === "repository_fixture" ? "Practice curriculum" : "Coach House accelerator"} · Changes stay in this sandbox.</p>
     </header>
     <CompanionStatus session={session} />
     <CompanionDevelop session={session} onReview={() => openSection("document")} />
