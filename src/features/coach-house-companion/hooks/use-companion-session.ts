@@ -1,22 +1,26 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type SetStateAction } from "react"
 import type { CompanionSnapshot, CompanionToolArguments, CompanionToolName, CompanionTransport } from "../types"
-
-type Operation = { name: CompanionToolName; args: CompanionToolArguments }
+import { reconcileCompanionState, type CompanionLocalState, type CompanionOperation } from "./companion-reconciliation"
 
 export function useCompanionSession(initialSnapshot: CompanionSnapshot, transport: CompanionTransport) {
-  const [snapshot, setSnapshot] = useState(initialSnapshot)
-  const [answers, setAnswers] = useState(initialSnapshot.draft.answers)
-  const [content, setContent] = useState(initialSnapshot.document.content)
+  const [local, setLocal] = useState<CompanionLocalState>({ snapshot: initialSnapshot, answers: initialSnapshot.draft.answers, content: initialSnapshot.document.content })
+  const { snapshot, answers, content } = local
+  const setAnswers = (value: SetStateAction<Record<string, string>>) => setLocal((current) => ({ ...current, answers: typeof value === "function" ? value(current.answers) : value }))
+  const setContent = (value: SetStateAction<string>) => setLocal((current) => ({ ...current, content: typeof value === "function" ? value(current.content) : value }))
   const [pending, setPending] = useState<CompanionToolName | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState("")
-  const lastOperation = useRef<Operation | null>(null)
+  const lastOperation = useRef<CompanionOperation | null>(null)
   const inFlight = useRef(false)
   const answersDirty = snapshot.lesson.fields.some((field) => (answers[field.name] ?? "") !== (snapshot.draft.answers[field.name] ?? ""))
   const documentDirty = content !== snapshot.document.content
   const dirty = answersDirty || documentDirty
+
+  useEffect(() => {
+    setLocal((current) => reconcileCompanionState(current, initialSnapshot))
+  }, [initialSnapshot])
 
   useEffect(() => {
     if (!dirty) return
@@ -37,14 +41,7 @@ export function useCompanionSession(initialSnapshot: CompanionSnapshot, transpor
     lastOperation.current = operation
     try {
       const result = await transport(operation.name, operation.args)
-      // Authoritative snapshots update saved state; local edits survive unrelated operations and refreshes.
-      setSnapshot(result.snapshot)
-      if (operation.name === "companion_save_draft") {
-        setAnswers((current) => snapshot.lesson.fields.every((field) => (current[field.name] ?? "") === (operation.args.answers?.[field.name] ?? "")) ? result.snapshot.draft.answers : current)
-      } else if (!answersDirty) setAnswers(result.snapshot.draft.answers)
-      if (operation.name === "companion_save_document") {
-        setContent((current) => current === operation.args.content ? result.snapshot.document.content : current)
-      } else if (!documentDirty) setContent(result.snapshot.document.content)
+      setLocal((current) => reconcileCompanionState(current, result.snapshot, operation))
       setNotice(operation.name === "companion_get_session" && dirty ? "Latest saved state loaded. Your unsaved edits are preserved; review before saving." : result.message)
       lastOperation.current = null
       return true
