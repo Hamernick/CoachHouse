@@ -141,3 +141,66 @@ test("bundled MCP Apps card renders and approves through a test host bridge", as
   expect(errors).toEqual([])
   await page.screenshot({ path: ".tmp/companion-browser/mcp-apps-card-test-host.png", fullPage: true })
 })
+
+test("connected card uses the host-selected organization, exact approval and separate readback", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", error => errors.push(error.message))
+  await page.goto("/companion")
+  await expect(page.getByRole("link", { name: "Open lesson", exact: true })).toBeVisible()
+  const html = (await readFile("build/companion-widget/index.html", "utf8")).replace("<head>", '<head><meta name="coach-house-companion-mode" content="connected">')
+  await page.evaluate(async widgetHtml => {
+    const initial = await (await fetch("/api/companion/sandbox")).json()
+    const snapshot = {
+      ...initial.snapshot, mode: "connected",
+      lesson: { ...initial.snapshot.lesson, href: "https://staging.coachhouse.example/class/foundations/module/1", body: "Published lesson fixture", videoUrl: null, resources: [], completionMode: "all_answered", fields: initial.snapshot.lesson.fields.map((field: Record<string, unknown>) => ({ ...field, type: "long_text" })) },
+      draft: { ...initial.snapshot.draft, visibility: "personal" },
+      document: { ...initial.snapshot.document, id: "mission", revision: "a".repeat(64), visibility: "organization", href: "https://staging.coachhouse.example/workspace/roadmap/mission-vision-values" },
+      coachingHref: "https://staging.coachhouse.example/coaching",
+    }
+    const proposal = { organizationId: snapshot.organization.id, lessonId: snapshot.lesson.id, documentId: "mission", expectedRevision: snapshot.document.revision, content: "Exact reviewed connected fixture.", visibility: "organization" }
+    const calls: Array<{ name: string; arguments: Record<string, unknown> }> = []
+    document.body.replaceChildren()
+    const proof = document.createElement("pre")
+    proof.id = "connected-proof"
+    proof.hidden = true
+    proof.textContent = JSON.stringify(calls)
+    document.body.append(proof)
+    const frame = document.createElement("iframe")
+    frame.id = "connected-widget"
+    frame.style.cssText = "width:100%;height:100vh;border:0"
+    window.addEventListener("message", event => {
+      if (event.source !== frame.contentWindow || event.data?.jsonrpc !== "2.0") return
+      const { id, method, params } = event.data
+      if (method === "ui/notifications/initialized") {
+        frame.contentWindow?.postMessage({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: { content: [{ type: "text", text: "Connected test-host fixture" }], structuredContent: { snapshot, proposal, message: "Review fixture" } } }, "*")
+        return
+      }
+      if (id === undefined) return
+      let result: unknown = {}
+      if (method === "ui/initialize") result = { protocolVersion: params.protocolVersion, hostInfo: { name: "Connected test host", version: "1" }, hostCapabilities: { serverTools: {} }, hostContext: { theme: "light", displayMode: "inline" } }
+      else if (method === "tools/call") {
+        calls.push(params)
+        if (params.name === "companion_save_document") snapshot.document = { ...snapshot.document, content: params.arguments.content, revision: "b".repeat(64) }
+        result = { content: [{ type: "text", text: "Connected fixture result" }], structuredContent: { snapshot: structuredClone(snapshot), message: "Verified connected fixture" } }
+        proof.textContent = JSON.stringify(calls)
+      }
+      frame.contentWindow?.postMessage({ jsonrpc: "2.0", id, result }, "*")
+    })
+    frame.srcdoc = widgetHtml
+    document.body.append(frame)
+  }, html)
+  const frame = page.frameLocator("#connected-widget")
+  await expect(frame.getByRole("button", { name: "Save change", exact: true })).toBeVisible()
+  await expect(frame.getByRole("link", { name: "Book coaching", exact: true })).toHaveAttribute("href", "https://staging.coachhouse.example/coaching")
+  await expect(page.locator("#connected-proof")).toHaveText("[]")
+  await frame.getByRole("button", { name: "Save change", exact: true }).click()
+  await expect(frame.getByRole("button", { name: "Save change", exact: true })).toHaveCount(0)
+  const calls = JSON.parse(await page.locator("#connected-proof").textContent() ?? "[]")
+  expect(calls.map((call: { name: string }) => call.name)).toEqual(["companion_save_document", "companion_get_session"])
+  expect(calls[0].arguments).toMatchObject({ documentId: "mission", expectedRevision: "a".repeat(64), content: "Exact reviewed connected fixture.", confirmed: true })
+  expect(calls[0].arguments.lessonId).toBeTruthy()
+  expect(calls[0].arguments.requestId).toBeTruthy()
+  expect(calls[0].arguments).not.toHaveProperty("visibility")
+  expect(errors).toEqual([])
+  await page.screenshot({ path: ".tmp/companion-browser/connected-card-test-host.png", fullPage: true })
+})

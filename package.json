@@ -28,7 +28,7 @@
     "test:acceptance:integration": "pnpm check:acceptance-projects && vitest run --config vitest.projects.config.ts --project integration",
     "test:acceptance:manifest:update": "node scripts/sync-acceptance-projects.mjs --write",
     "test": "pnpm test:snapshots && pnpm test:rls",
-    "test:rls": "pnpm test:rls:coaching && pnpm test:rls:project-recurrence && pnpm test:rls:signup-consent && pnpm test:rls:fiscal && pnpm test:rls:finance && pnpm test:rls:page-health && pnpm test:rls:claims && pnpm test:rls:public-profiles && pnpm test:rls:google-drive && pnpm test:rls:document-files && pnpm test:rls:document-activity && pnpm test:rls:nonprofit-directory && node supabase/tests/rls.test.mjs",
+    "test:rls": "pnpm test:rls:coaching && pnpm test:rls:project-recurrence && pnpm test:rls:signup-consent && pnpm test:rls:fiscal && pnpm test:rls:finance && pnpm test:rls:page-health && pnpm test:rls:claims && pnpm test:rls:public-profiles && pnpm test:rls:google-drive && pnpm test:rls:document-files && pnpm test:rls:document-activity && pnpm test:rls:nonprofit-directory && node supabase/tests/rls.test.mjs && pnpm companion:test:rls",
     "test:rls:coaching": "node supabase/tests/coaching-booking-conflicts.test.mjs",
     "test:rls:project-recurrence": "node supabase/tests/recurring-projects.test.mjs",
     "test:rls:signup-consent": "node supabase/tests/signup-legal-consent.test.mjs",
@@ -105,9 +105,11 @@
     "test:rls:nonprofit-directory": "node supabase/tests/nonprofit-directory.test.mjs",
     "companion:widget": "node src/features/coach-house-companion/widget/build.mjs",
     "companion:dev": "node src/features/coach-house-companion/server/dev.mjs",
-    "companion:test": "vitest run tests/acceptance/coach-house-companion.test.ts tests/acceptance/coach-house-companion-http.test.ts",
+    "companion:test": "vitest run tests/acceptance/coach-house-companion.test.ts tests/acceptance/coach-house-companion-http.test.ts tests/acceptance/coach-house-companion-live.test.ts tests/acceptance/coach-house-companion-live-http.test.ts tests/acceptance/coach-house-companion-oauth.test.ts tests/acceptance/coach-house-companion-consent.test.ts tests/acceptance/coach-house-companion-connected-card.test.ts",
     "companion:test:browser": "playwright test --config=src/features/coach-house-companion/tests/playwright.config.ts",
-    "companion:test:mcp": "node src/features/coach-house-companion/tests/mcp-smoke.mjs"
+    "companion:test:mcp": "node src/features/coach-house-companion/tests/mcp-smoke.mjs",
+    "companion:test:rls": "node src/features/coach-house-companion/tests/oauth-store-rls.mjs && node supabase/tests/companion-live.test.mjs",
+    "companion:package": "node src/features/coach-house-companion/server/package.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^2.0.4",

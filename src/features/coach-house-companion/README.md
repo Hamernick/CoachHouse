@@ -1,8 +1,38 @@
-# Coach House Companion sandbox
+# Coach House Companion
 
-A private, persistent demonstration of one accelerator lesson. This is not a
-production Coach House connection. No database, profile, email, Google Drive, or
-Google Calendar writes occur.
+Includes an isolated local sandbox and a separately gated connected-account
+implementation. The sandbox persists fictional work to local files. Connected
+mode uses current published curriculum and authorized native document,
+submission and progress records through user-scoped Supabase clients.
+Provider configuration and live ChatGPT installation remain unverified; no
+production database/provider change has been applied by this implementation.
+
+## Connected mode
+
+`COMPANION_LIVE_ENABLED=1` enables the OAuth broker and live MCP service; enabling
+both sandbox and connected modes fails closed. `server/live/config.ts` owns
+canonical HTTPS origins and client/callback validation. `oauth-broker.ts`,
+`oauth-store.ts` and `oauth-crypto.ts` keep the separate upstream Supabase OAuth
+session encrypted while issuing opaque MCP-only credentials. OAuth store RPCs
+are service-role-only; native work uses the verified member's RLS context.
+
+`accelerator.ts` serves published lessons, typed questions, video/resource links,
+personal drafts, explicit submissions and authoritative completion. Drafts remain
+Companion-only until submitted. `documents.ts` reviews exact core-document text;
+the database constructs only the approved draft-section change and preserves
+published content, visibility and unrelated sections. Every call rechecks actor,
+organization permissions, entitlement and read/write scopes. Writes use stable
+request IDs and compare current revisions, including concurrent native edits.
+
+`components/connected-companion-panel.tsx` uses the existing compact primitives.
+It independently reads a saved document before confirming it. Native destinations
+follow the server's configured environment. Coaching opens `/coaching`; calendar
+output remains ICS export. There is no embedded questionnaire/editor or inline
+video player.
+
+See [connected setup](../../../docs/plugins/coach-house-companion/connected-setup.md)
+for staging configuration, install/package commands and live acceptance gates.
+The contracts below describe the separately preserved sandbox baseline.
 
 ## Service contract
 

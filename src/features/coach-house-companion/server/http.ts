@@ -90,6 +90,10 @@ async function mcpPrincipal(): Promise<CompanionPrincipal> {
 }
 
 export async function handleCompanionMcp(request: NextRequest) {
+  if (process.env.COMPANION_LIVE_ENABLED === "1") {
+    const { handleLiveCompanionMcp } = await import("./live/http")
+    return handleLiveCompanionMcp(request)
+  }
   try {
     assertCompanionEnabled(request)
     if (!hasMcpSandboxToken(request)) return new Response("Sandbox bearer credential required. Coach House account OAuth is not configured.",

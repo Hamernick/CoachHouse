@@ -1,5 +1,10 @@
 # Coach House Companion sandbox
 
+Connected-account implementation and staging setup are documented in
+[Connected Coach House pilot](connected-setup.md). This page and its source
+`mcp.json` describe the separate local sandbox. Connected deployment and actual
+ChatGPT acceptance are not established by sandbox results.
+
 A private conversational test slice: continue the Mission lesson, save answers, review a document revision, submit an assignment, and export a study block. This package contains the plugin manifest and one workflow skill. The repository supplies the MCP server and compact status, review, and action cards. Full assignments and document editing open in Coach House; the plugin does not embed the questionnaire or recreate the application.
 
 ## What a demonstration proves

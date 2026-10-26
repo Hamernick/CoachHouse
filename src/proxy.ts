@@ -33,6 +33,10 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-coach-house-request-method", request.method)
   const response = NextResponse.next({ request: { headers: requestHeaders } })
   const pathname = request.nextUrl.pathname
+  // OAuth bearer requests authenticate at the MCP boundary. Browser cookies must
+  // never select the user or support organization for a connected tool request.
+  if (process.env.COMPANION_LIVE_ENABLED === "1" &&
+    (pathname === "/api/companion/mcp" || pathname.startsWith("/api/companion/oauth/"))) return response
   // This explicitly enabled local pilot has its own signed sandbox sessions.
   // Never consult or mutate real Coach House account state for fictional data.
   if (process.env.COMPANION_SANDBOX_ENABLED === "1" &&
