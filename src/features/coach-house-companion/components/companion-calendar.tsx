@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldMessage } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { WORKSPACE_TEXT_STYLES } from "@/components/workspace/workspace-typography"
 import type { CompanionSession } from "../hooks/use-companion-session"
 import { PendingIcon } from "./companion-status"
 
@@ -40,11 +41,8 @@ export function CompanionCalendar({ session }: { session: CompanionSession }) {
     await session.run("companion_schedule_block", { title: title.trim(), startsAt: instant.toISOString(), endsAt: new Date(instant.getTime() + minutes * 60_000).toISOString(), timeZone, confirmed: true })
   }
 
-  return <section className="flex flex-col gap-5" aria-labelledby={`${id}-heading`}>
-    <div className="flex flex-col gap-2">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold tracking-tight">Give your next step a time.</h3>
-      <p className="text-sm leading-6 text-muted-foreground">Prepare a calendar file, then import it into your calendar. This sandbox does not connect to Google Calendar or check availability.</p>
-    </div>
+  return <section className="flex flex-col gap-4" aria-label="Calendar export">
+    <p className={WORKSPACE_TEXT_STYLES.bodyMuted}>Download a calendar file to import yourself. No connected calendar or availability check.</p>
     <form className="flex flex-col gap-4" noValidate onSubmit={(e) => { e.preventDefault(); void prepare() }}>
       <FieldGroup className="gap-4">
         <Field className="gap-2"><FieldLabel htmlFor={`${id}-title`}>Work block</FieldLabel><Input id={`${id}-title`} name="eventTitle" value={title} disabled={Boolean(session.pending)} onChange={(e) => setTitle(e.target.value)} /></Field>
@@ -61,8 +59,8 @@ export function CompanionCalendar({ session }: { session: CompanionSession }) {
       {error && <FieldMessage role="alert">{error}</FieldMessage>}
       <div><Button type="submit" variant="outline" disabled={Boolean(session.pending)}><PendingIcon active={session.pending === "companion_schedule_block"} fallback={CalendarPlusIcon} />Prepare calendar export</Button></div>
     </form>
-    {event && <div className="flex flex-col gap-3 rounded-md border p-4">
-      <p className="font-medium">{event.title}</p>
+    {event && <div className="flex flex-col gap-2">
+      <p className={WORKSPACE_TEXT_STYLES.sectionTitle}>{event.title}</p>
       <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: event.timeZone }).format(new Date(event.startsAt))} · {event.timeZone}</p>
       <p className="text-sm">Export ready. Importing the file is still required; no external event has been created.</p>
       <div><Button asChild variant="outline"><a download="coach-house-work-block.ics" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(event.ics)}`}><DownloadIcon data-icon="inline-start" />Download calendar file</a></Button></div>
