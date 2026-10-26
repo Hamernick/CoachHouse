@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -53,6 +53,59 @@ const event = {
   endsAt: "2026-11-03T15:30:00Z",
   timeZone: "America/New_York",
 }
+
+describe("Coach House Companion read-only document review", () => {
+  it("returns an exact normalized proposal without modifying persisted state", async () => {
+    const filename = path.join(directory, `${principal.sessionId}.json`)
+    const before = await readFile(filename, "utf8")
+    const result = await call("companion_review_document", { content: "<p>Parents &amp; children learn together.</p>" })
+    expect(result.proposal).toEqual({
+      organizationId: principal.organizationId,
+      documentId: initial.document.id,
+      content: "Parents & children learn together.",
+      expectedRevision: initial.document.revision,
+    })
+    expect(result.snapshot).toEqual(initial)
+    expect((await call("companion_get_session")).snapshot).toEqual(initial)
+    expect(await readFile(filename, "utf8")).toBe(before)
+  })
+
+  it("denies review for a different organization", async () => {
+    await expect(call("companion_review_document", { organizationId: "another-organization", content: "Proposed text" }))
+      .rejects.toMatchObject({ status: 403, code: "forbidden" })
+  })
+
+  it("rejects an empty proposal without changing state", async () => {
+    await expect(call("companion_review_document", { content: "   " })).rejects.toMatchObject({ status: 400 })
+    expect((await call("companion_get_session")).snapshot).toEqual(initial)
+  })
+
+  it("saves the exact approved proposal through the separate write tool", async () => {
+    const review = await call("companion_review_document", { content: "We help families learn together." })
+    const proposal = review.proposal!
+    await call("companion_save_document", {
+      organizationId: proposal.organizationId, content: proposal.content,
+      expectedRevision: proposal.expectedRevision, confirmed: true, requestId: "approved-proposal",
+    })
+    const { snapshot } = await call("companion_get_session")
+    expect(snapshot.document.id).toBe(proposal.documentId)
+    expect(snapshot.document.content).toBe(proposal.content)
+    expect(snapshot.document.revision).toBe(proposal.expectedRevision + 1)
+    expect(snapshot.receipts).toHaveLength(1)
+    expect(snapshot.receipts[0].action).toBe("companion_save_document")
+    expect(snapshot.submission).toEqual(initial.submission)
+  })
+
+  it("rejects saving an approved proposal after another document revision", async () => {
+    const review = await call("companion_review_document", { content: "Original proposal" })
+    await call("companion_save_document", { requestId: "another-editor", expectedRevision: initial.document.revision, confirmed: true, content: "Newer document" })
+    await expect(call("companion_save_document", {
+      requestId: "stale-proposal", expectedRevision: review.proposal!.expectedRevision,
+      confirmed: true, content: review.proposal!.content,
+    })).rejects.toMatchObject({ status: 409, code: "revision_conflict" })
+    expect((await call("companion_get_session")).snapshot.document.content).toBe("Newer document")
+  })
+})
 
 describe("Coach House Companion persistence and completion", () => {
   it("persists a draft without modifying the document, submission, or calendar", async () => {
