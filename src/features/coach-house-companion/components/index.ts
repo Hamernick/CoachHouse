@@ -1,1 +1,1 @@
-export { CoachHouseCompanionPanel } from "./coach-house-companion-panel"
+export { CompanionPanel, CompanionPanel as CoachHouseCompanionPanel } from "./companion-panel"
