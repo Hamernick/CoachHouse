@@ -91,7 +91,7 @@ test("bundled MCP Apps card renders and approves through a test host bridge", as
   page.on("pageerror", error => errors.push(error.message))
   await page.goto("/companion")
   await expect(page.getByRole("link", { name: "Open lesson", exact: true })).toBeVisible()
-  const html = await readFile(".tmp/companion-widget/index.html", "utf8")
+  const html = await readFile("build/companion-widget/index.html", "utf8")
   await page.evaluate(async (widgetHtml) => {
     const initial = await (await fetch("/api/companion/sandbox")).json()
     const preview = await (await fetch("/api/companion/sandbox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
