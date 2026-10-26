@@ -54,6 +54,7 @@ async function start() {
   const response = await handleCompanionOAuth(new NextRequest(`${origin}/api/companion/oauth/authorize?${authorizeParams()}`), "authorize")
   expect(response.status).toBe(302)
   const url = new URL(response.headers.get("location")!)
+  expect(url.searchParams.get("scope")).toBe("email")
   const cookie = response.headers.get("set-cookie")!.split(";")[0]
   state.cookie = cookie.slice(cookie.indexOf("=") + 1)
   return { state: url.searchParams.get("state")!, cookie, url }

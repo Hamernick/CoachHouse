@@ -78,7 +78,9 @@ async function authorize(request: NextRequest, config: Config) {
   const upstream = new URL(`${config.issuer}/oauth/authorize`)
   upstream.search = new URLSearchParams({
     client_id: config.clientId, redirect_uri: config.upstreamRedirectUri, response_type: "code",
-    scope: "openid email", state, code_challenge: oauthChallenge(verifier), code_challenge_method: "S256",
+    // No ID token is needed: Auth.getUser verifies identity. Avoid requiring a
+    // signing-key rotation on existing projects solely for OIDC ID tokens.
+    scope: "email", state, code_challenge: oauthChallenge(verifier), code_challenge_method: "S256",
   }).toString()
   const response = NextResponse.redirect(upstream, 302)
   response.cookies.set(cookieName(state), nonce, { secure: true, httpOnly: true, sameSite: "lax", path: "/", maxAge: 600 })
