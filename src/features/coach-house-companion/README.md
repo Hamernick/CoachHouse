@@ -25,11 +25,15 @@ Google Calendar writes occur.
 
 ## Curriculum provenance
 
-The Mission fixture copies all 11 answer-field names and labels from
-`supabase/seed.sql:1592–1755` at base `df8ffcc6`; introductory subtitle fields do
-not affect completion. Its `all_answered` rule and `complete_on_submit: true`
-come from that seed block (`:1596`, `:2129`). This is explicitly a repository
-fixture, not verified published curriculum. Completion calls the existing pure
+The Mission fixture captures all 11 answer-field names, labels and descriptions
+from the published Coach House module and class, verified read-only on
+`2026-10-26T05:20:40.479Z`. `lib/lesson-data.json` contains only the required
+public curriculum fields. The source snapshot SHA256 is
+`67545ed47aa45ccd7e5591d5a16a9e4b2bc31eab804193f9d713d4bf46f92571`.
+Introductory subtitle fields do not affect completion. The captured
+`all_answered` rule and `complete_on_submit: true` are used without modification.
+Answers, organization, progress, and documents are sandbox data; this snapshot
+is not a live curriculum feed. Completion calls the existing pure
 `shouldTreatAssignmentSubmissionAsComplete` function. It never calls the live
 submission endpoint, which would also affect organization profiles.
 
