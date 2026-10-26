@@ -11,7 +11,8 @@ import { withCompanionSession, type CompanionSessionRecord } from "./store"
 export { CompanionError } from "./errors"
 export { createCompanionSession, revokeCompanionSession } from "./store"
 
-const tools = new Set<CompanionToolName>(["companion_get_session", "companion_save_draft", "companion_save_document", "companion_submit_assignment", "companion_schedule_block"])
+const readTools = new Set<CompanionToolName>(["companion_get_session", "companion_review_document"])
+const tools = new Set<CompanionToolName>([...readTools, "companion_save_draft", "companion_save_document", "companion_submit_assignment", "companion_schedule_block"])
 const fields = new Set(companionAssignmentFields.map((field) => field.name))
 const MAX_REQUESTS = 256
 
@@ -32,15 +33,19 @@ function canonical(value: unknown): string {
 function validateArguments(name: CompanionToolName, args: CompanionToolArguments) {
   if (!args || typeof args !== "object" || Array.isArray(args)) invalid("Tool arguments must be an object.")
   const extras: Record<CompanionToolName, string[]> = {
-    companion_get_session: [], companion_save_draft: ["expectedRevision", "answers"],
+    companion_get_session: [], companion_review_document: ["content"], companion_save_draft: ["expectedRevision", "answers"],
     companion_save_document: ["expectedRevision", "content", "confirmed"],
     companion_submit_assignment: ["expectedRevision", "confirmed"],
     companion_schedule_block: ["title", "startsAt", "endsAt", "timeZone", "confirmed"],
   }
-  const allowed = new Set(["organizationId", ...(name === "companion_get_session" ? [] : ["requestId"]), ...extras[name]])
+  const allowed = new Set(["organizationId", ...(readTools.has(name) ? [] : ["requestId"]), ...extras[name]])
   if (Object.keys(args).some((key) => !allowed.has(key))) invalid("Unknown tool argument.")
   if (typeof args.organizationId !== "string" || args.organizationId.length > 100) invalid("An organization ID is required.")
   if (name === "companion_get_session") return
+  if (name === "companion_review_document") {
+    if (!text(args.content, 12000, "Document")) invalid("The proposed document cannot be empty.")
+    return
+  }
   if (typeof args.requestId !== "string" || !/^[A-Za-z0-9_-]{8,100}$/.test(args.requestId)) invalid("A unique requestId of 8–100 letters, digits, underscores or hyphens is required.")
   if (["__proto__", "constructor", "prototype"].includes(args.requestId)) invalid("Use a unique random request ID.")
   if (name !== "companion_schedule_block" && (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision! < 0)) invalid("A nonnegative expectedRevision is required.")
@@ -116,6 +121,16 @@ export async function executeCompanionTool(principal: CompanionPrincipal, name: 
   if (!principal || principal.organizationId !== args.organizationId) throw new CompanionError("forbidden", 403, "This organization is not available to this session.")
   return withCompanionSession(principal, (record) => {
     if (name === "companion_get_session") return { snapshot: record.snapshot, message: "Sandbox session loaded. No live organization or calendar is connected." }
+    if (name === "companion_review_document") return {
+      snapshot: record.snapshot,
+      proposal: {
+        organizationId: record.snapshot.organization.id,
+        documentId: record.snapshot.document.id,
+        content: text(args.content, 12000, "Document"),
+        expectedRevision: record.snapshot.document.revision,
+      },
+      message: "Review this proposed mission statement. Nothing has been saved, submitted, or published.",
+    }
     const fingerprint = createHash("sha256").update(canonical({ name, args })).digest("hex")
     const existing = Object.prototype.hasOwnProperty.call(record.requests, args.requestId!) ? record.requests[args.requestId!] : undefined
     if (existing) {
@@ -126,5 +141,5 @@ export async function executeCompanionTool(principal: CompanionPrincipal, name: 
     const message = applyChange(record, name, args)
     record.requests[args.requestId!] = { fingerprint, message }
     return { snapshot: record.snapshot, message }
-  }, name !== "companion_get_session")
+  }, !readTools.has(name))
 }

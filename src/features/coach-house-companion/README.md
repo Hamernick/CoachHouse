@@ -8,6 +8,11 @@ Google Calendar writes occur.
 
 - `server/actions.ts`: `executeCompanionTool(principal, name, args)` returns the
   authoritative snapshot and a concise action receipt.
+- `companion_review_document` is read-only: it accepts the organization and
+  proposed text, then returns a sanitized proposal bound to the current document
+  ID and revision. It does not save drafts/documents/submissions, add receipts,
+  or record mutation IDs. Saving still requires explicit approval and the
+  proposal's expected revision; a concurrent change produces a conflict.
 - `createCompanionSession()` returns `{ principal, snapshot }`; credentials last
   24 hours. `revokeCompanionSession(principal)` disconnects a session durably.
 - Authentication is the caller's responsibility. The service additionally checks
