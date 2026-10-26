@@ -28,7 +28,7 @@ pnpm companion:dev
 
 Open `http://127.0.0.1:3150/companion`. To inspect a fictional, read-only document proposal, use `/companion?example=review`; it saves only after **Save change**. The launcher supplies local placeholder Supabase settings, enables only the sandbox, and creates a private operator credential at `.tmp/companion/operator-token`. It never loads the root checkout's production environment. Do not copy that credential into this package or chat.
 
-With the preview running, use `pnpm companion:test` and `pnpm companion:test:browser`. Browser tests write screenshots and failure traces beneath `.tmp/companion-browser/`. Building the widget is required before MCP resource/browser-host tests.
+With the preview running, use `pnpm companion:test`, `pnpm companion:test:browser`, and `pnpm companion:test:mcp` (actual local TCP/credential/resource/resume proof). Browser tests write screenshots and failure traces beneath `.tmp/companion-browser/`. Building the widget is required before MCP resource/browser-host tests.
 
 | Environment variable | Purpose |
 | --- | --- |
