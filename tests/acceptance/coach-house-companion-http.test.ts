@@ -231,6 +231,14 @@ describe("Companion real MCP SDK protocol", () => {
     const listed = await client.listTools()
     expect(listed.tools).toHaveLength(6)
     expect(listed.tools.find(tool => tool.name === "companion_review_document")?.annotations?.readOnlyHint).toBe(true)
+    for (const name of ["companion_save_draft", "companion_save_document", "companion_submit_assignment"]) {
+      const metadata = listed.tools.find(tool => tool.name === name)?._meta as { ui?: { resourceUri?: string; visibility?: string[] } }
+      expect(metadata.ui?.resourceUri).toBeUndefined()
+      expect(metadata.ui?.visibility).toEqual(["model", "app"])
+    }
+    for (const name of ["companion_get_session", "companion_review_document", "companion_schedule_block"]) {
+      expect(listed.tools.find(tool => tool.name === name)?._meta).toMatchObject({ ui: { resourceUri: COMPANION_RESOURCE } })
+    }
     expect(listed.tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
       "companion_get_session", "companion_review_document", "companion_save_draft", "companion_save_document", "companion_submit_assignment", "companion_schedule_block",
     ]))

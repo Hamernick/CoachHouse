@@ -9,6 +9,8 @@ Use the available `companion_*` tools. If they are unavailable, explain that the
 
 Conduct the work in conversation. Use compact cards for saved status, read-only comparisons, and explicit actions. Do not recreate the accelerator questionnaire, document editor, or a full application inside the widget. Use the supplied source/native links to open full work in Coach House.
 
+Draft saves, approved document saves, and submissions are headless tool results. Do not render another status card after every answer. Render cards when resuming/checking progress, reviewing an exact document proposal, or returning a prepared calendar export. A save from the review card updates that existing card.
+
 ## Resume from saved state
 
 Call `companion_get_session` with the explicitly selected organization ID. For a fresh MCP connection with no selected ID, omit it on this read only; the server resolves the authenticated sandbox session. Use the returned organization ID for all writes, along with the lesson fields, source label, draft revision, document revision, submission state, and calendar capability. The sandbox is isolated: its saves do not update the member's production progress, public profile, Drive files, or Google Calendar.

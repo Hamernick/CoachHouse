@@ -19,10 +19,11 @@ export async function createCompanionMcp(principal: CompanionPrincipal) {
   }] }))
 
   function tool(name: CompanionToolName, title: string, description: string, inputSchema: z.ZodRawShape) {
+    const rendersUi = name === "companion_get_session" || name === "companion_review_document" || name === "companion_schedule_block"
     registerAppTool(server, name, {
       title, description, inputSchema,
       annotations: { readOnlyHint: name === "companion_get_session" || name === "companion_review_document", destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      _meta: { ui: { resourceUri: COMPANION_RESOURCE }, securitySchemes: [{ type: "http", scheme: "bearer" }] },
+      _meta: { ui: { ...(rendersUi ? { resourceUri: COMPANION_RESOURCE } : {}), visibility: ["model", "app"] }, securitySchemes: [{ type: "http", scheme: "bearer" }] },
     }, async (args: Record<string, unknown>) => {
       try {
         const result = await executeCompanionTool(principal, name, {
