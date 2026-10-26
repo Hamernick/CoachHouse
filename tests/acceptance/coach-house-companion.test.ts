@@ -79,6 +79,16 @@ describe("Coach House Companion persistence and completion", () => {
     expect(snapshot.submission.status).toBe("not_submitted")
   })
 
+  it("preserves plain-text ampersands through draft and document save/readback", async () => {
+    const content = "Parents & children learn together."
+    const field = initial.lesson.fields[0].name
+    await call("companion_save_draft", { requestId: "plain-draft", expectedRevision: initial.draft.revision, answers: { [field]: content } })
+    await call("companion_save_document", { requestId: "plain-document", expectedRevision: initial.document.revision, confirmed: true, content })
+    const { snapshot } = await call("companion_get_session")
+    expect(snapshot.draft.answers[field]).toBe(content)
+    expect(snapshot.document.content).toBe(content)
+  })
+
   it("allows an incomplete submission without declaring completion", async () => {
     const { snapshot } = await call("companion_submit_assignment", {
       requestId: "incomplete", expectedRevision: initial.draft.revision, confirmed: true,
