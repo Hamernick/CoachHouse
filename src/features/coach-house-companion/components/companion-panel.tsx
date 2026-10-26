@@ -1,6 +1,6 @@
 "use client"
 
-import { useId } from "react"
+import { useId, useState } from "react"
 import { DownloadIcon, ExternalLinkIcon, LoaderCircleIcon } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +10,7 @@ import { WORKSPACE_TEXT_STYLES } from "@/components/workspace/workspace-typograp
 import { useCompanionCard } from "../hooks/use-companion-card"
 import type { CompanionProposal, CompanionSnapshot, CompanionTransport } from "../types"
 
-export function CompanionPanel({ initialSnapshot, proposal, transport }: { initialSnapshot: CompanionSnapshot; proposal?: CompanionProposal; transport: CompanionTransport }) {
+export function CompanionPanel({ initialSnapshot, proposal, transport, onDownloadCalendar }: { initialSnapshot: CompanionSnapshot; proposal?: CompanionProposal; transport: CompanionTransport; onDownloadCalendar?: (event: NonNullable<CompanionSnapshot["calendar"]["event"]>) => Promise<void> }) {
   const id = useId()
   const card = useCompanionCard(initialSnapshot, proposal, transport)
   const { snapshot, activeProposal, pending } = card
@@ -21,6 +21,16 @@ export function CompanionPanel({ initialSnapshot, proposal, transport }: { initi
     if (destination.origin === "https://coachhouse.app") lessonUrl = destination.href
   } catch { /* Keep the known Coach House destination for an invalid source URL. */ }
   const event = snapshot.calendar.event
+  const [downloadMessage, setDownloadMessage] = useState("")
+  const [downloading, setDownloading] = useState(false)
+  async function download() {
+    if (!event || !onDownloadCalendar || downloading) return
+    setDownloading(true)
+    setDownloadMessage("")
+    try { await onDownloadCalendar(event); setDownloadMessage("Download requested") }
+    catch { setDownloadMessage("Download was canceled or blocked. Retry the download.") }
+    finally { setDownloading(false) }
+  }
 
   return <div className="flex w-full min-w-0 touch-manipulation flex-col gap-3 [&_button]:min-h-11 [&_a]:min-h-11 motion-reduce:[&_*]:transition-none">
     <Card>
@@ -29,7 +39,8 @@ export function CompanionPanel({ initialSnapshot, proposal, transport }: { initi
       </CardHeader>
       <CardContent className="flex flex-col gap-2 px-4 pb-3">
         <p className={WORKSPACE_TEXT_STYLES.body}>{answered} of {snapshot.lesson.fields.length} answers saved · {snapshot.submission.status === "submitted" ? "Submitted" : "Not submitted"} · {snapshot.submission.completed ? "Completed in sandbox" : "Not completed"}</p>
-        <p className={WORKSPACE_TEXT_STYLES.utility}>{snapshot.source.kind === "repository_fixture" ? "Repository fixture" : "Published curriculum"}: {snapshot.source.label}. Sandbox changes stay here; links open live Coach House.</p>
+        {snapshot.document.revision > 0 && <p className={WORKSPACE_TEXT_STYLES.utility}>Document saved · Revision {snapshot.document.revision}</p>}
+        <p className={WORKSPACE_TEXT_STYLES.utility}>Changes stay in this sandbox. Open Coach House for full lessons and documents.</p>
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2 px-4 pb-3">
         <Button asChild size="sm" variant="outline"><a href={lessonUrl} target="_blank" rel="noopener noreferrer">Open lesson<ExternalLinkIcon data-icon="inline-end" aria-hidden="true" /></a></Button>
@@ -39,6 +50,7 @@ export function CompanionPanel({ initialSnapshot, proposal, transport }: { initi
     <div aria-live="polite" aria-atomic="true">
       {card.error && <Alert variant="destructive"><AlertTitle>Change not saved</AlertTitle><AlertDescription>{card.error} {card.canRetry && <Button size="sm" variant="outline" disabled={pending} onClick={() => void card.save(true)}>Retry save</Button>}</AlertDescription></Alert>}
       {card.notice && !card.error && <p className={WORKSPACE_TEXT_STYLES.bodyMuted}>{card.notice}</p>}
+      {card.alreadySaved && !card.notice && !card.error && <p className={WORKSPACE_TEXT_STYLES.bodyMuted}>No change needed. The sandbox document already matches this proposal.</p>}
     </div>
     {activeProposal && !card.matches && <Alert variant="destructive"><AlertDescription>This proposal belongs to another document or organization. Request a new proposal.</AlertDescription></Alert>}
     {activeProposal && card.matches && <Card aria-labelledby={`${id}-review`}>
@@ -62,7 +74,7 @@ export function CompanionPanel({ initialSnapshot, proposal, transport }: { initi
         <p className={WORKSPACE_TEXT_STYLES.body}>{new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: event.timeZone }).format(new Date(event.startsAt))} – {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: event.timeZone }).format(new Date(event.endsAt))} · {event.timeZone}</p>
         <p className={WORKSPACE_TEXT_STYLES.utility}>Import this file into your calendar. No external event has been created.</p>
       </CardContent>
-      <CardFooter className="px-4 pb-3"><Button asChild size="sm" variant="outline"><a download="coach-house-work-block.ics" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(event.ics)}`}><DownloadIcon data-icon="inline-start" aria-hidden="true" />Download .ics</a></Button></CardFooter>
+      <CardFooter className="flex flex-wrap items-center gap-2 px-4 pb-3">{onDownloadCalendar ? <Button size="sm" variant="outline" disabled={downloading} onClick={() => void download()}><DownloadIcon data-icon="inline-start" aria-hidden="true" />Download .ics</Button> : <Button asChild size="sm" variant="outline"><a download="coach-house-work-block.ics" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(event.ics)}`}><DownloadIcon data-icon="inline-start" aria-hidden="true" />Download .ics</a></Button>}{downloadMessage && <span role="status" className={WORKSPACE_TEXT_STYLES.utility}>{downloadMessage}</span>}</CardFooter>
     </Card>}
   </div>
 }

@@ -298,6 +298,7 @@
       "tests/acceptance/budget-table-columns.test.ts",
       "tests/acceptance/build-collect-navigation.test.ts",
       "tests/acceptance/coach-dashboard.test.ts",
+      "tests/acceptance/coach-house-companion-http.test.ts",
       "tests/acceptance/coach-house-companion.test.ts",
       "tests/acceptance/coaching-booking-finalization.test.ts",
       "tests/acceptance/coaching-booking.test.ts",

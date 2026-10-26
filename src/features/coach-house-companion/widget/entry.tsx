@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { App } from "@modelcontextprotocol/ext-apps"
 import { CoachHouseCompanionPanel } from "../components"
-import type { CompanionSnapshot, CompanionToolResult, CompanionTransport } from "../types"
+import type { CompanionToolResult, CompanionTransport } from "../types"
 import "../../../app/globals.css"
 
 const app = new App({ name: "Coach House Companion", version: "0.1.0" }, {})
@@ -14,10 +14,14 @@ const transport: CompanionTransport = async (name, args) => {
 }
 
 function Widget() {
-  const [snapshot, setSnapshot] = useState<CompanionSnapshot | null>(null)
+  const [result, setResult] = useState<CompanionToolResult | null>(null)
   const [error, setError] = useState("")
   useEffect(() => {
-    receive = result => { if (result?.snapshot?.mode === "sandbox") setSnapshot(result.snapshot) }
+    receive = next => {
+      if (next?.snapshot?.mode !== "sandbox") return
+      setResult(previous => ({ ...next, proposal: next.proposal ??
+        (previous?.proposal && next.snapshot.document.revision <= previous.proposal.expectedRevision ? previous.proposal : undefined) }))
+    }
     app.ontoolresult = params => receive(params.structuredContent as CompanionToolResult)
     app.onhostcontextchanged = context => { if (context.theme) document.documentElement.classList.toggle("dark", context.theme === "dark") }
     void app.connect().then(async () => {
@@ -29,7 +33,11 @@ function Widget() {
     }).catch(value => setError(value instanceof Error ? value.message : "Host connection unavailable"))
   }, [])
   return <main className="bg-background p-4 text-foreground">
-    {snapshot ? <CoachHouseCompanionPanel initialSnapshot={snapshot} transport={transport} /> : <p role="status">{error || "Opening Coach House Companion…"}</p>}
+    {result ? <CoachHouseCompanionPanel key={result.snapshot.organization.id} initialSnapshot={result.snapshot} proposal={result.proposal} transport={transport}
+      onDownloadCalendar={app.getHostCapabilities()?.downloadFile ? async (event) => {
+        const response = await app.downloadFile({ contents: [{ type: "resource", resource: { uri: "file:///coach-house-work-block.ics", mimeType: "text/calendar", text: event.ics } }] })
+        if (response.isError) throw new Error("Download canceled or blocked")
+      } : undefined} /> : <p role="status">{error || "Opening Coach House Companion…"}</p>}
   </main>
 }
 

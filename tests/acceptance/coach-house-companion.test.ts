@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { reconcileCompanionSnapshot } from "@/features/coach-house-companion/hooks/companion-reconciliation"
 
 import {
   createCompanionSession,
@@ -16,6 +17,17 @@ import type {
 } from "@/features/coach-house-companion/types"
 
 let directory: string
+
+it("keeps authoritative completion when equal-time receipt windows advance or arrive late", () => {
+  const current = structuredClone(initial)
+  current.receipts = Array.from({ length: 20 }, (_, index) => ({ id: String(index), action: "save", at: "2026-10-26T06:00:00.000Z", message: "Saved" }))
+  const completed = structuredClone(current)
+  completed.receipts = [...current.receipts.slice(1), { id: "next", action: "submit", at: "2026-10-26T06:00:00.000Z", message: "Completed" }]
+  completed.submission = { status: "submitted", completed: true, submittedAt: "2026-10-26T06:00:00.000Z" }
+  const latest = reconcileCompanionSnapshot(current, completed)
+  expect(latest.submission.completed).toBe(true)
+  expect(reconcileCompanionSnapshot(latest, current).submission.completed).toBe(true)
+})
 let principal: CompanionPrincipal
 let initial: CompanionSnapshot
 
@@ -80,8 +92,8 @@ describe("Coach House Companion read-only document review", () => {
     expect((await call("companion_get_session")).snapshot).toEqual(initial)
   })
 
-  it("saves the exact approved proposal through the separate write tool", async () => {
-    const review = await call("companion_review_document", { content: "We help families learn together." })
+  it.each(["We help families learn together.", "&lt;strong&gt;Parents &amp; children&lt;/strong&gt;"])("saves the exact approved proposal through the separate write tool: %s", async (content) => {
+    const review = await call("companion_review_document", { content })
     const proposal = review.proposal!
     await call("companion_save_document", {
       organizationId: proposal.organizationId, content: proposal.content,

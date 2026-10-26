@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { createHash } from "node:crypto"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
@@ -83,6 +84,33 @@ async function connectClient() {
 }
 
 describe("Companion browser HTTP sessions", () => {
+  it("publishes a complete signing key under concurrent first sessions", async () => {
+    const sessions = await Promise.all(Array.from({ length: 12 }, () => session()))
+    for (const value of sessions) {
+      const principal = await decodePrincipal(value.cookie.slice(COMPANION_COOKIE.length + 1))
+      expect(principal?.organizationId).toBe(value.result.snapshot.organization.id)
+    }
+    expect((await readFile(path.join(directory, "cookie-key"))).length).toBe(32)
+  })
+
+  it("accepts the actual loopback Host when Next uses an internal localhost URL", async () => {
+    const first = await session()
+    const response = await handleCompanionSandbox(new NextRequest(`${origin}/api/companion/sandbox`, {
+      method: "POST", headers: { host: "127.0.0.1:3150", origin: "http://127.0.0.1:3150", cookie: first.cookie, "content-type": "application/json" },
+      body: JSON.stringify({ name: "companion_get_session", arguments: { organizationId: first.result.snapshot.organization.id } }),
+    }))
+    expect(response.status).toBe(200)
+    const denied = await handleCompanionSandbox(new NextRequest(`${origin}/api/companion/sandbox`, { headers: { host: "attacker.example" } }))
+    expect(denied.status).toBe(503)
+  })
+
+  it("clears an orphaned session cookie so the browser can start again", async () => {
+    const first = await session()
+    const principal = (await decodePrincipal(first.cookie.slice(COMPANION_COOKIE.length + 1)))!
+    await rm(path.join(directory, `${principal.sessionId}.json`))
+    expect((await sandbox("DELETE", { cookie: first.cookie })).status).toBe(200)
+    expect((await sandbox()).status).toBe(200)
+  })
   it("requires explicit environment enablement", async () => {
     vi.stubEnv("COMPANION_SANDBOX_ENABLED", "0")
     expect((await sandbox()).status).toBe(503)
@@ -201,8 +229,10 @@ describe("Companion real MCP SDK protocol", () => {
     const client = await connectClient()
     expect(client.getServerVersion()?.name).toBe("coach-house-companion-sandbox")
     const listed = await client.listTools()
+    expect(listed.tools).toHaveLength(6)
+    expect(listed.tools.find(tool => tool.name === "companion_review_document")?.annotations?.readOnlyHint).toBe(true)
     expect(listed.tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
-      "companion_get_session", "companion_save_draft", "companion_save_document", "companion_submit_assignment", "companion_schedule_block",
+      "companion_get_session", "companion_review_document", "companion_save_draft", "companion_save_document", "companion_submit_assignment", "companion_schedule_block",
     ]))
     const read = await client.callTool({ name: "companion_get_session", arguments: {} })
     const initial = read.structuredContent as CompanionToolResult
@@ -216,6 +246,34 @@ describe("Companion real MCP SDK protocol", () => {
     const browser = await session()
     expect(browser.result.snapshot.organization.id).not.toBe(initial.snapshot.organization.id)
     expect(browser.result.snapshot.draft.answers).toEqual({})
+  })
+
+  it("completes one lesson journey through MCP with a read-only review before saving", async () => {
+    const client = await connectClient()
+    async function call(name: string, args: Record<string, unknown>) {
+      const result = await client.callTool({ name, arguments: args })
+      expect(result.isError).not.toBe(true)
+      return result.structuredContent as CompanionToolResult
+    }
+    const start = await call("companion_get_session", {})
+    const organizationId = start.snapshot.organization.id
+    const answers = Object.fromEntries(start.snapshot.lesson.fields.map(field => [field.name, "We connect young people with local mentors and opportunities."]))
+    const draft = await call("companion_save_draft", { organizationId, requestId: "journey-draft", expectedRevision: 0, answers })
+    expect(draft.snapshot.submission.completed).toBe(false)
+    const preview = await call("companion_review_document", { organizationId, content: "Young people build confident futures through local mentoring." })
+    expect(preview.snapshot).toEqual(draft.snapshot)
+    expect((await call("companion_get_session", {})).snapshot).toEqual(draft.snapshot)
+    const proposal = preview.proposal!
+    expect(proposal.expectedRevision).toBe(0)
+    const saved = await call("companion_save_document", { organizationId, content: proposal.content, expectedRevision: proposal.expectedRevision, requestId: "journey-document", confirmed: true })
+    const submitted = await call("companion_submit_assignment", { organizationId, expectedRevision: draft.snapshot.draft.revision, requestId: "journey-submit", confirmed: true })
+    expect(submitted.snapshot.submission.completed).toBe(true)
+    const scheduled = await call("companion_schedule_block", { organizationId, requestId: "journey-calendar", confirmed: true, title: "Continue my accelerator", startsAt: "2026-10-27T14:00:00Z", endsAt: "2026-10-27T14:25:00Z", timeZone: "America/New_York" })
+    const resumed = await call("companion_get_session", {})
+    expect(resumed.snapshot.document.content).toBe(saved.snapshot.document.content)
+    expect(resumed.snapshot.submission.completed).toBe(true)
+    expect(resumed.snapshot.calendar.event?.id).toBe(scheduled.snapshot.calendar.event?.id)
+    expect(resumed.snapshot.calendar.event?.status).toBe("export_ready")
   })
 
   it("returns a tool error for an explicitly wrong organization", async () => {
@@ -237,7 +295,8 @@ describe("Companion real MCP SDK protocol", () => {
 
   it.each(["expired", "revoked"] as const)("denies even discovery when the MCP session is %s", async (state) => {
     await connectClient()
-    const principal = JSON.parse(await readFile(path.join(directory, "mcp-principal.json"), "utf8")) as CompanionPrincipal
+    const identity = createHash("sha256").update(bearer).digest("hex").slice(0, 24)
+    const principal = JSON.parse(await readFile(path.join(directory, `mcp-principal-${identity}.json`), "utf8")) as CompanionPrincipal
     if (state === "revoked") await revokeCompanionSession(principal)
     else vi.spyOn(Date, "now").mockReturnValue(principal.expiresAt + 1)
     for (const method of ["tools/list", "resources/list"]) {

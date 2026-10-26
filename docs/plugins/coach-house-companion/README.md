@@ -6,7 +6,7 @@ A private conversational test slice: continue the Mission lesson, save answers, 
 
 | Capability | This slice | Separate live gate |
 | --- | --- | --- |
-| Lesson | Source label distinguishes published content from a repository fixture | Verify the current published curriculum |
+| Lesson | Published Mission module/class verified read-only October 26; all 11 answer fields captured | Live curriculum refresh |
 | Document review | Read-only proposal with exact destination, text, and revision; save only after approval | Authorized production document integration |
 | Draft and document | Persisted in an isolated sandbox session after their distinct save actions | Authorized production document integration |
 | Assignment | Explicit sandbox submission; completion uses lesson rules | Production member progress and entitlement checks |
@@ -18,7 +18,17 @@ Never describe the sandbox document as a saved Drive file or public profile upda
 
 ## Run and connect
 
-Use Node 22 and the repository's pinned pnpm version. The selected preview is `http://localhost:3150/companion`. Follow the active task checkpoint for the current worktree and launch command; do not reuse another workstream's listener.
+Use Node 22 and the repository's pinned pnpm version in the isolated Companion worktree:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm companion:widget
+pnpm companion:dev
+```
+
+Open `http://127.0.0.1:3150/companion`. To inspect a fictional, read-only document proposal, use `/companion?example=review`; it saves only after **Save change**. The launcher supplies local placeholder Supabase settings, enables only the sandbox, and creates a private operator credential at `.tmp/companion/operator-token`. It never loads the root checkout's production environment. Do not copy that credential into this package or chat.
+
+With the preview running, use `pnpm companion:test` and `pnpm companion:test:browser`. Browser tests write screenshots and failure traces beneath `.tmp/companion-browser/`. Building the widget is required before MCP resource/browser-host tests.
 
 | Environment variable | Purpose |
 | --- | --- |
@@ -36,6 +46,8 @@ Use Node 22 and the repository's pinned pnpm version. The selected preview is `h
 The portable `mcp.json` connection uses a local endpoint and declares bearer authentication without embedding a credential. Adjust the endpoint to the verified running port. This is development configuration, not a public directory submission.
 
 Hosted ChatGPT cannot use the developer's loopback address. A ChatGPT test needs an explicitly approved reachable HTTPS environment, compatible authentication, and account/workspace plugin access. The inspected custom-server UI offers OAuth or no authentication, not the sandbox's fixed bearer credential. An unauthenticated MCP request is rejected; choosing “No authentication” does not bypass the server's requirement. Therefore the packaged local configuration does not establish a working ChatGPT connection. Do not disable authentication, expose this sandbox through a tunnel, or change provider settings implicitly. The sandbox credential is not production OAuth or a Supabase session. Public distribution requires its own publisher, privacy, review, and authorization work.
+
+The portable manifest supports API-key authentication for clients/install surfaces that accept it; that route has not been installed in ChatGPT here. A Secure MCP Tunnel also needs a Platform key, tunnel/workspace association, and compatible authorization; none was configured. The local MCP bearer grant has a 24-hour sandbox lifetime. On expiry/revocation, stop this task's server, rotate only `.tmp/companion/operator-token` (or set a new `COMPANION_SANDBOX_TOKEN`), restart, and update the client's private credential. Rotation creates a new sandbox; old grants remain unusable. It does not restore old work or renew revoked access silently.
 
 See the official [plugin package format](https://developers.openai.com/plugins/build/plugins), [connection quickstart](https://developers.openai.com/plugins/quickstart), and [authentication guidance](https://developers.openai.com/plugins/build/auth).
 
@@ -62,7 +74,7 @@ Record where the tester hesitates, whether they can distinguish preview/draft/su
 
 ## Acceptance evidence
 
-The service suite is `tests/acceptance/coach-house-companion.test.ts`. It covers persistence, read-only document proposals, exact approved saves, stale proposals, explicit submission, completion rules, concurrent edits, retry identity, organization/session access, expiry/revocation, confirmation, inert retrieved text, schedule validation, calendar escaping, and partial success.
+The service suite is `tests/acceptance/coach-house-companion.test.ts`. It covers persistence, read-only document proposals, exact approved saves, stale proposals, explicit submission, completion rules, concurrent edits, retry identity, organization/session access, expiry/revocation, confirmation, inert retrieved text, schedule validation, calendar escaping, and partial success. The HTTP suite adds signed-cookie initialization/recovery and a complete SDK-driven lesson journey. Browser tests cover compact native links, approval/readback, stale proposals, an actual downloaded ICS file, and the built widget in a test MCP Apps host. The test host is not ChatGPT.
 
 Run focused tests using the repository Vitest config after the test is registered in the acceptance manifest. Record the command, revision, pass/fail result, browser evidence, and live/simulated status in the task checkpoint. Tests of isolated services do not establish production RLS, OAuth interoperability, or provider delivery. Keep hosted quality, review, merge, deployment, and live acceptance as separate gates.
 

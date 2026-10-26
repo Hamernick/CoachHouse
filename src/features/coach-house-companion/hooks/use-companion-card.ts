@@ -20,7 +20,7 @@ export function useCompanionCard(initialSnapshot: CompanionSnapshot, proposal: C
   const attempt = useRef<SaveAttempt | null>(null)
   const inFlight = useRef(false)
   const key = currentProposal ? companionProposalKey(currentProposal) : null
-  const alreadySaved = currentProposal && snapshot.document.revision > currentProposal.expectedRevision && snapshot.document.content === currentProposal.content
+  const alreadySaved = currentProposal && snapshot.document.revision >= currentProposal.expectedRevision && snapshot.document.content === currentProposal.content
   const activeProposal = currentProposal && key !== dismissedKey && !alreadySaved ? currentProposal : null
   const matches = !activeProposal || (activeProposal.organizationId === snapshot.organization.id && activeProposal.documentId === snapshot.document.id)
 
@@ -55,7 +55,7 @@ export function useCompanionCard(initialSnapshot: CompanionSnapshot, proposal: C
     }
   }
 
-  return { snapshot, activeProposal, matches, pending, error, notice, save,
+  return { snapshot, activeProposal, alreadySaved, matches, pending, error, notice, save,
     canRetry: Boolean(error && attempt.current?.key === key),
     dismiss: () => { if (!pending && key) { setDismissedKey(key); setError(null) } },
   }

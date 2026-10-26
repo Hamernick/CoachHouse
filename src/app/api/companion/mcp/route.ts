@@ -1,4 +1,4 @@
-import { handleCompanionMcp } from "@/features/coach-house-companion"
+import { handleCompanionMcp } from "@/features/coach-house-companion/server"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const POST = handleCompanionMcp

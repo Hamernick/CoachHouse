@@ -20,8 +20,15 @@ function invalid(message: string): never { throw new CompanionError("invalid_arg
 function text(value: unknown, limit: number, label: string) {
   if (typeof value !== "string" || value.length > limit) return invalid(`${label} must be text of at most ${limit} characters.`)
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) return invalid(`${label} contains invalid control characters.`)
-  // The transport carries plain text; render it as text, never innerHTML.
-  return decodeHtmlEntities(sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} })).trim()
+  // Normalize to a fixed point so previewing and then saving cannot reinterpret
+  // encoded markup and change the exact text the member approved.
+  let previous = value
+  for (let pass = 0; pass < 6; pass++) {
+    const normalized = decodeHtmlEntities(sanitizeHtml(previous, { allowedTags: [], allowedAttributes: {} })).trim()
+    if (normalized === previous) return normalized
+    previous = normalized
+  }
+  return invalid(`${label} contains deeply encoded formatting. Use plain text.`)
 }
 
 function canonical(value: unknown): string {

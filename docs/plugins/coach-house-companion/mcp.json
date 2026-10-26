@@ -3,7 +3,7 @@
   "mcpServers": {
     "coach-house-companion": {
       "type": "streamable-http",
-      "url": "http://localhost:3150/api/companion/mcp",
+      "url": "http://127.0.0.1:3150/api/companion/mcp",
       "extensions": {
         "com.openai": {
           "auth": { "type": "api_key", "headerScheme": "bearer" }

@@ -1,10 +1,11 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { link, readFile, rm, writeFile, mkdir } from "node:fs/promises"
+import { createHash, randomBytes } from "node:crypto"
 import path from "node:path"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import type { CompanionPrincipal, CompanionToolArguments, CompanionToolName } from "../types"
 import { createCompanionSession, executeCompanionTool, revokeCompanionSession } from "./actions"
-import { assertCompanionEnabled, companionDirectory, COMPANION_COOKIE, decodePrincipal, encodePrincipal, hasMcpSandboxToken } from "./auth"
+import { assertCompanionEnabled, companionDirectory, companionRequestOrigin, COMPANION_COOKIE, decodePrincipal, encodePrincipal, hasMcpSandboxToken } from "./auth"
 import { createCompanionMcp } from "./mcp"
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
 
@@ -36,7 +37,7 @@ export async function handleCompanionSandbox(request: NextRequest) {
   try {
     assertCompanionEnabled(request)
     const origin = request.headers.get("origin")
-    if (request.method !== "GET" && origin !== new URL(request.url).origin) {
+    if (request.method !== "GET" && origin !== companionRequestOrigin(request).origin) {
       return NextResponse.json({ error: "Use the Companion page to change this sandbox" }, { status: 403, headers })
     }
     const cookie = request.cookies.get(COMPANION_COOKIE)?.value
@@ -45,7 +46,7 @@ export async function handleCompanionSandbox(request: NextRequest) {
     if (request.method === "DELETE") {
       if (principal) {
         try { await revokeCompanionSession(principal) }
-        catch (error) { if ((error as { status?: number }).status !== 401) throw error }
+        catch (error) { if (![401, 404].includes((error as { status?: number }).status ?? 0)) throw error }
       }
       const response = NextResponse.json({ message: "Sandbox session disconnected" }, { headers })
       response.cookies.set(COMPANION_COOKIE, "", { httpOnly: true, sameSite: "strict", path: "/", maxAge: 0 })
@@ -71,15 +72,21 @@ export async function handleCompanionSandbox(request: NextRequest) {
 async function mcpPrincipal(): Promise<CompanionPrincipal> {
   const directory = companionDirectory()
   await mkdir(directory, { recursive: true, mode: 0o700 })
-  const file = path.join(directory, "mcp-principal.json")
+  // Rotating the operator credential deliberately creates a new sandbox grant.
+  // A revoked grant is never silently renewed under its original credential.
+  const identity = createHash("sha256").update(process.env.COMPANION_SANDBOX_TOKEN ?? "").digest("hex").slice(0, 24)
+  const file = path.join(directory, `mcp-principal-${identity}.json`)
   try { return JSON.parse(await readFile(file, "utf8")) }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
   const { principal } = await createCompanionSession()
-  try { await writeFile(file, JSON.stringify(principal), { flag: "wx", mode: 0o600 }); return principal }
+  const temporary = `${file}.${randomBytes(12).toString("hex")}`
+  await writeFile(temporary, JSON.stringify(principal), { flag: "wx", mode: 0o600 })
+  try { await link(temporary, file); return principal }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
     return JSON.parse(await readFile(file, "utf8"))
   }
+  finally { await rm(temporary, { force: true }) }
 }
 
 export async function handleCompanionMcp(request: NextRequest) {
@@ -88,7 +95,7 @@ export async function handleCompanionMcp(request: NextRequest) {
     if (!hasMcpSandboxToken(request)) return new Response("Sandbox bearer credential required. Coach House account OAuth is not configured.",
       { status: 401, headers: { ...headers, "WWW-Authenticate": 'Bearer realm="coach-house-companion-sandbox"' } })
     const origin = request.headers.get("origin")
-    if (origin && origin !== new URL(request.url).origin) return new Response("Origin denied", { status: 403, headers })
+    if (origin && origin !== companionRequestOrigin(request).origin) return new Response("Origin denied", { status: 403, headers })
     if (request.method !== "POST") return new Response("Use stateless MCP POST", { status: 405, headers: { ...headers, Allow: "POST" } })
     const body = await readBody(request)
     const principal = await mcpPrincipal()

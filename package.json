@@ -104,7 +104,10 @@
     "test:rls:document-activity": "node supabase/tests/organization-document-activity.test.mjs",
     "test:rls:nonprofit-directory": "node supabase/tests/nonprofit-directory.test.mjs",
     "companion:widget": "node src/features/coach-house-companion/widget/build.mjs",
-    "companion:dev": "node src/features/coach-house-companion/server/dev.mjs"
+    "companion:dev": "node src/features/coach-house-companion/server/dev.mjs",
+    "companion:test": "vitest run tests/acceptance/coach-house-companion.test.ts tests/acceptance/coach-house-companion-http.test.ts",
+    "companion:test:browser": "playwright test --config=src/features/coach-house-companion/tests/playwright.config.ts",
+    "companion:test:mcp": "node src/features/coach-house-companion/tests/mcp-smoke.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^2.0.4",
