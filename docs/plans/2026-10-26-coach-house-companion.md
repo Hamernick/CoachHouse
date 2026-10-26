@@ -47,4 +47,6 @@ Final interaction correction: only session/status, read-only review, and calenda
 
 Next external step: supply the existing development HTTPS endpoint or Secure MCP Tunnel connection for actual ChatGPT testing. That question remains pending. Production OAuth/data/calendar integration and unfamiliar-human acceptance remain unverified. Keep this local sandbox/server and the separate old login plan; no production deployment/provider/data action is authorized by this checkpoint.
 
+Hosted CI follow-up: the acceptance lane found a missing preview-route description. Added explicit private-pilot metadata; all164 social-metadata cases and changed-file ESLint pass. Build, RLS and static lanes passed on the preceding head; visual and final hosted status remain separate until read back. No test or gate weakened.
+
 Unverified external gates: real ChatGPT tool and UI rendering; Coach House OAuth grants/revocation; live document/profile writes and native UI readback; personal-calendar provider creation/readback; unfamiliar human tester. Local sandbox tests do not close these gates. Public listing, merge and production deployment are excluded.
