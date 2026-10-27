@@ -26,3 +26,15 @@ Documentation lane: `fix/karissa-project-identity-20261027`, isolated from curre
 Documentation handoff: open [PR363](https://github.com/Hamernick/CoachHouse/pull/363); initial receipt commit `0da5e259` independently matches the remote branch. Hosted checks have not been polled; the production data correction is already complete.
 
 Graphify documentation maintenance completed: exact two changed allowlisted documents have current hashes and semantic caches; 22,819 nodes/64,969 edges. All prior IDs and unrelated/code nodes preserved; no new structural defects, two inherited self-loops unchanged. Receipt: ignored `graphify-out/.karissa-semantic-maintenance-receipt.json`.
+
+## Follow-up: remaining standalone labels
+
+Read-only live audit covered all139 project records, including51 standard projects. Standard projects have eight distinct member labels. Joel, Paula and the corrected Karissa name uniquely match their staff profiles. Caleb has multiple real personal/test profiles with the same name, but none of those alternate accounts belongs to the organizations containing his standard projects; the current scoped staff lookup resolves to the developer account. Guided Caleb projects and imported collaborator UUIDs also identify the developer account.
+
+- Franklin is the remaining unresolved imported identity, on Community, Community Engagement, and 19 MIGMIR Clients enrolled in I2I Annually. No Auth email/profile-name match or staff grant was found. The original tracker plan explicitly preserves him as unlinked rather than assigning his work to someone else; his intended account must be confirmed before a correction.
+- Coach House on Public Map Claims is a generic system-created label, explicitly seeded by migration20260821103000, not a person/account.
+- Platform User Feedback & Support Loop contains Caleb twice because he appears as owner and collaborator; both labels represent the same developer identity in this scope, not another account.
+- Casey Board and Jordan Staff are actual test accounts on Southside Community Table, not imported missing admins.
+- Organization cards additionally contain19 distinct labels without exact profile-name/email matches across20 cards, including You on seven. These cards use organization-member/contact presentation and must not be blanket-reassigned to platform staff. Three additional organization-card email labels match real accounts whose display names have since changed. This scan establishes display/account mismatches, not a finding that those organizations lack their assigned coaches.
+
+No production changes were made during this follow-up. Durable project membership IDs remain the structural remedy for name collisions and profile-renaming drift; this audit does not implement that separate change.
