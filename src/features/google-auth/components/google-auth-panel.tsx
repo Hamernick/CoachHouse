@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import Script from "next/script"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useGoogleAuthController } from "../hooks/use-google-auth-controller"
 import { resolveGoogleAuthCapabilities } from "../lib"
 import type { GoogleAuthMode, GoogleSignupInput } from "../types"
+import { GoogleAuthRecovery } from "./google-auth-recovery"
 
 declare global {
   interface Window {
@@ -34,6 +34,7 @@ declare global {
               shape: "rectangular"
               logo_alignment: "left"
               width: number
+              click_listener?: () => void
             }
           ): void
         }
@@ -66,13 +67,21 @@ export function GoogleAuthPanel({
   redirectOnSuccess = true,
 }: GoogleAuthPanelProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
+  const isConfigured = resolveGoogleAuthCapabilities({
+    clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    linkingEnabled: process.env.NEXT_PUBLIC_GOOGLE_LINKING_ENABLED,
+    loginEnabled: process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED,
+    signupEnabled: process.env.NEXT_PUBLIC_GOOGLE_SIGNUP_ENABLED,
+  })[mode]
   const {
     errorMessage,
     initializeButton,
     isPending,
     scriptReady,
-    setErrorMessage,
-    setScriptReady,
+    diagnostics,
+    attempt,
+    restartSignIn,
+    recoveryMessage,
   } = useGoogleAuthController({
     mode,
     redirectTo,
@@ -82,18 +91,13 @@ export function GoogleAuthPanel({
     signUpMetadata,
     onSuccess,
     redirectOnSuccess,
+    enabled: isConfigured,
   })
-  const isConfigured = resolveGoogleAuthCapabilities({
-    clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-    linkingEnabled: process.env.NEXT_PUBLIC_GOOGLE_LINKING_ENABLED,
-    loginEnabled: process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED,
-    signupEnabled: process.env.NEXT_PUBLIC_GOOGLE_SIGNUP_ENABLED,
-  })[mode]
 
   useEffect(() => {
     if (!buttonRef.current) return
     void initializeButton(buttonRef.current)
-  }, [initializeButton])
+  }, [initializeButton, attempt])
 
   if (!isConfigured) return null
 
@@ -109,15 +113,6 @@ export function GoogleAuthPanel({
           </div>
         </div>
       ) : null}
-      <Script
-        id="google-identity-services"
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
-        onReady={() => setScriptReady(true)}
-        onError={() =>
-          setErrorMessage("Google sign-in is unavailable. Please try again.")
-        }
-      />
       <div className="relative min-h-10 w-full">
         {disabled || !scriptReady ? (
           <Button
@@ -128,17 +123,17 @@ export function GoogleAuthPanel({
           >
             Continue with Google
           </Button>
-        ) : (
-          <div
-            ref={buttonRef}
-            className={
-              isPending
-                ? "pointer-events-none overflow-hidden rounded-md opacity-60"
-                : "overflow-hidden rounded-md"
-            }
-            aria-hidden={isPending || undefined}
-          />
-        )}
+        ) : null}
+        <div
+          ref={buttonRef}
+          hidden={disabled || !scriptReady}
+          className={
+            isPending
+              ? "pointer-events-none overflow-hidden rounded-md opacity-60"
+              : "overflow-hidden rounded-md"
+          }
+          aria-hidden={isPending || undefined}
+        />
         {isPending ? (
           <div
             className="bg-background/85 absolute inset-0 flex min-h-11 items-center justify-center gap-2 rounded-md text-sm font-medium"
@@ -160,6 +155,20 @@ export function GoogleAuthPanel({
           {errorMessage}
         </p>
       ) : null}
+      <p
+        role="status"
+        aria-live="polite"
+        className="text-muted-foreground text-sm"
+      >
+        {recoveryMessage}
+      </p>
+      <GoogleAuthRecovery
+        diagnostics={diagnostics}
+        isPending={isPending || disabled}
+        onRestart={() => void restartSignIn()}
+        redirectTo={redirectTo}
+        standaloneLogin={mode === "login" && redirectOnSuccess}
+      />
     </div>
   )
 }

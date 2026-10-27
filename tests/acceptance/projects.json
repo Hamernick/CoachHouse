@@ -354,6 +354,7 @@
       "tests/acceptance/fiscal-sponsorship-workspace-isolation.test.ts",
       "tests/acceptance/free-document-access.test.ts",
       "tests/acceptance/global-search-query-source-concurrency.test.ts",
+      "tests/acceptance/google-auth-recovery.test.ts",
       "tests/acceptance/google-calendar-cron.test.ts",
       "tests/acceptance/google-calendar-service.test.ts",
       "tests/acceptance/google-calendar.test.ts",
