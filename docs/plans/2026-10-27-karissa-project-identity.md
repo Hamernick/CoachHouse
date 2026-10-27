@@ -29,6 +29,8 @@ Graphify documentation maintenance completed: exact two changed allowlisted docu
 
 ## Follow-up: remaining standalone labels
 
+This read-only audit predates the authorized reassignment below; Franklin is no longer unlinked on active work.
+
 Read-only live audit covered all139 project records, including51 standard projects. Standard projects have eight distinct member labels. Joel, Paula and the corrected Karissa name uniquely match their staff profiles. Caleb has multiple real personal/test profiles with the same name, but none of those alternate accounts belongs to the organizations containing his standard projects; the current scoped staff lookup resolves to the developer account. Guided Caleb projects and imported collaborator UUIDs also identify the developer account.
 
 - Franklin is the remaining unresolved imported identity, on Community, Community Engagement, and 19 MIGMIR Clients enrolled in I2I Annually. No Auth email/profile-name match or staff grant was found. The original tracker plan explicitly preserves him as unlinked rather than assigning his work to someone else; his intended account must be confirmed before a correction.
@@ -38,3 +40,17 @@ Read-only live audit covered all139 project records, including51 standard projec
 - Organization cards additionally contain19 distinct labels without exact profile-name/email matches across20 cards, including You on seven. These cards use organization-member/contact presentation and must not be blanket-reassigned to platform staff. Three additional organization-card email labels match real accounts whose display names have since changed. This scan establishes display/account mismatches, not a finding that those organizations lack their assigned coaches.
 
 No production changes were made during this follow-up. Durable project membership IDs remain the structural remedy for name collisions and profile-renaming drift; this audit does not implement that separate change.
+
+## Authorized reassignment — 21:11 UTC
+
+User explicitly directed moving Franklin work to the existing fiscal staff account temporarily, removing Caleb's duplicate label and assigning Public Map Claims to Caleb's real developer account. This supersedes the earlier import-plan instruction to leave Franklin unlinked; no new account or privilege was needed.
+
+One guarded production transaction updated five project rows: Franklin's three project member labels to Karissa Hamernick, Public Map Claims to Caleb Hamernick, and Platform User Feedback & Support Loop to one Caleb label plus Karissa. Exact profile identities and existing staff grants were verified first.
+
+The follow-up task scan found24 Franklin owner/proposed-owner source records:22 unfinished tasks without native assignees and two completed historical tasks. All22 unfinished tasks now have a native assignment to the fiscal staff UUID, attributed to the requesting Caleb developer account. Task rows, source metadata and two completed tasks were preserved; native assignments take precedence over historical proposals. Existing tasks assigned to Joel, Paula or Caleb were untouched. Public Map Claims' existing task already belonged to the correct Caleb account.
+
+Saved full before-state and prepared exact guarded SQL, locked affected project/task rows and checked all preconditions before changes. Transaction readback enforced five exact label updates,22 exact new assignees, all152 prior assignment rows unchanged, all24 task rows unchanged and all unrelated project fields preserved except the usual updated timestamp. Normal activity/assignment-notification triggers remained enabled. Management API returned HTTP201; no retry was needed.
+
+Independent readback confirmed every expected change. The fiscal account now has42 task assignments (20 existing +22 new); its56 organization assignments and three fiscal-reviewer assignments are unchanged. Both staff identities/grants and all original import provenance remain unchanged. Backup, prepared SQL and exact before/after/expected/receipt files are private at `/private/tmp/coach-house-franklin-transfer-evidence-20261027/`; do not replay the completed transaction. A reversal requires a new guarded comparison with the saved after-state.
+
+Live operation complete. Refresh Projects and Tasks to reload results; browser acceptance remains unobserved. No application/schema/provider changes or deployment. Only this excluded historical checkpoint and monthly runlog changed, so the already-verified allowlisted Graphify/code corpus is unchanged.
