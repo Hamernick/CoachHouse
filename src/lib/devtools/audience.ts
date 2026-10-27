@@ -169,7 +169,10 @@ const resolveDevtoolsAudienceCached = cache(
 
     // Backward-compatible fallback for databases where `is_tester` has not been migrated yet.
     if (!isMissingTesterColumnError(withTester.error)) {
-      return { isAdmin: false, isTester: fallbackIsTester }
+      return {
+        isAdmin: storedAccessLevel === "developer",
+        isTester: fallbackIsTester,
+      }
     }
 
     const withoutTester = await lookupProfileRow<ProfileRowWithoutTester>({
@@ -230,13 +233,15 @@ const resolveProfileAudienceCached = cache(
     }
 
     if (!isMissingTesterColumnError(withTester.error)) {
+      // Profile details and staff authorization are independent reads. A failed
+      // profile lookup must not discard an already verified staff grant.
       return {
         fullName: null,
         avatarUrl: null,
         headline: null,
-        isAdmin: false,
-        isPlatformStaff: false,
-        platformAccessLevel: null,
+        isAdmin: storedAccessLevel === "developer",
+        isPlatformStaff: storedAccessLevel !== null,
+        platformAccessLevel: storedAccessLevel,
         isTester: fallbackIsTester,
       }
     }

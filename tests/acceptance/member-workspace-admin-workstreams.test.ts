@@ -3,6 +3,8 @@ import "./test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { simplifyWorkstreamCategories } from "@/features/member-workspace/server/workstream-categories"
+import { resolveProfileAudience } from "@/lib/devtools/audience"
+import { hasPlatformCapability } from "@/features/platform-access"
 import { revalidatePathMock, resetTestMocks } from "./test-utils"
 
 const { resolveMemberWorkspaceActorContextMock } = vi.hoisted(() => ({
@@ -19,6 +21,8 @@ vi.mock(
 import {
   deletePlatformAdminWorkstreamCategoryAction,
   restorePlatformAdminWorkstreamDefaultsAction,
+  updatePlatformAdminProjectWorkstreamAction,
+  loadPlatformAdminWorkstreamConfiguration,
 } from "@/features/member-workspace/server/admin-workstreams"
 
 type CategoryRow = {
@@ -90,6 +94,68 @@ describe("platform admin workstream category actions", () => {
   beforeEach(() => {
     resetTestMocks()
     resolveMemberWorkspaceActorContextMock.mockReset()
+  })
+
+  it.each(["coach", null] as const)(
+    "uses verified %s access for moving a card to Complete when profile details fail",
+    async (level) => {
+      const staffClient = {
+        from: (table: string) => ({
+          select: () => ({ eq: () => ({ maybeSingle: async () => table === "platform_staff_members"
+            ? { data: level ? { access_level: level } : null, error: null }
+            : { data: null, error: { code: "57014" } },
+          }) }),
+        }),
+      }
+      const audience = await resolveProfileAudience({ supabase: staffClient as never, userId: "coach-1" })
+      let saved: { owner_id: string; project_id: string; category_id: string } | null = null
+      const stateQuery = {
+        upsert: vi.fn(async (value) => { saved = value; return { error: null } }),
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(),
+        returns: vi.fn(async () => ({ data: saved ? [saved] : [], error: null })),
+      }
+      const categoryQuery = {
+        ...createCategoryRowsQuery(defaultRows.map(row => ({ ...row, owner_id: "coach-1" }))),
+        maybeSingle: vi.fn(async () => ({ data: { id: "category-completed" }, error: null })),
+      }
+      const supabase = { from: vi.fn((table: string) => {
+        if (table === "organization_projects") return createCategoryLookupQuery({ id: "project-1", default_key: null })
+        if (table === "platform_admin_workstream_categories") return categoryQuery
+        if (table === "platform_admin_project_workstream_states") return stateQuery
+        throw new Error(`Unexpected table ${table}`)
+      }) }
+      const actor = {
+        supabase, userId: "coach-1", isAdmin: audience.isAdmin,
+        canAccessOrganizations: hasPlatformCapability(audience.platformAccessLevel, "organizations"),
+      }
+      resolveMemberWorkspaceActorContextMock.mockResolvedValue(actor)
+      const result = await updatePlatformAdminProjectWorkstreamAction("project-1", "category-completed")
+      if (level === null) {
+        expect(result).toEqual({ error: "Your account does not have access to move projects on this board." })
+        expect(supabase.from).not.toHaveBeenCalled()
+        return
+      }
+      expect(result).toEqual({ ok: true, id: "project-1" })
+      expect(stateQuery.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        owner_id: "coach-1", project_id: "project-1", category_id: "category-completed",
+      }), { onConflict: "owner_id,project_id" })
+      expect(categoryQuery.eq).toHaveBeenCalledWith("owner_id", "coach-1")
+      expect(revalidatePathMock).toHaveBeenCalledWith("/projects")
+      const reloaded = await loadPlatformAdminWorkstreamConfiguration({ actor: actor as never, projectIds: ["project-1"] })
+      expect(reloaded?.categoryIdByProjectId.get("project-1")).toBe("category-completed")
+      expect(reloaded?.categories.find(category => category.id === "category-completed")?.name).toBe("Complete")
+    }
+  )
+
+  it("does not move a card into an unavailable or another owner's category", async () => {
+    const categoryQuery = createCategoryLookupQuery(null)
+    const supabase = { from: vi.fn((table: string) => table === "organization_projects"
+      ? createCategoryLookupQuery({ id: "project-1", default_key: null })
+      : categoryQuery) }
+    mockAdminActor(supabase)
+    await expect(updatePlatformAdminProjectWorkstreamAction("project-1", "foreign-category")).resolves.toEqual({ error: "That project or category is no longer available." })
+    expect(categoryQuery.eq).toHaveBeenCalledWith("owner_id", "admin-1")
+    expect(supabase.from).not.toHaveBeenCalledWith("platform_admin_project_workstream_states")
   })
 
   it("rejects deletion of a default category before issuing a delete", async () => {
