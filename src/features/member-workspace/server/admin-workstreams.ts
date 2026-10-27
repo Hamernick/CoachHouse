@@ -32,14 +32,16 @@ function mapCategory(row: CategoryRow): MemberWorkspaceWorkstreamCategory {
   }
 }
 
-async function requirePlatformAdminActor(): Promise<
+async function requirePlatformAdminActor(
+  deniedMessage = "Your account does not have access to manage workstream categories."
+): Promise<
   { ok: true; actor: PlatformAdminActor } | { ok: false; error: string }
 > {
   const actor = await resolveMemberWorkspaceActorContext()
   if (!actorCanAccessOrganizations(actor)) {
     return {
       ok: false,
-      error: "Only platform admins can manage workstream categories.",
+      error: deniedMessage,
     }
   }
   return { ok: true, actor }
@@ -378,7 +380,9 @@ export async function updatePlatformAdminProjectWorkstreamAction(
 ): Promise<WorkstreamMutationResult> {
   "use server"
 
-  const resolved = await requirePlatformAdminActor()
+  const resolved = await requirePlatformAdminActor(
+    "Your account does not have access to move projects on this board."
+  )
   if (!resolved.ok) return { error: resolved.error }
   const { actor } = resolved
   const normalizedProjectId = projectId.trim()

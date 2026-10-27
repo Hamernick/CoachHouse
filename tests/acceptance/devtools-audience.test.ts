@@ -19,6 +19,52 @@ function createSupabaseProfileStub<T>(result: { data: T | null; error: unknown |
 }
 
 describe("devtools audience", () => {
+  it.each(["coach", "developer", null] as const)(
+    "preserves only verified %s staff access when the profile lookup fails",
+    async (accessLevel) => {
+      const supabase = {
+        from: (table: string) => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () =>
+                table === "platform_staff_members"
+                  ? { data: accessLevel ? { access_level: accessLevel } : null, error: null }
+                  : { data: { role: "admin" }, error: { code: "57014", message: "query timeout" } },
+            }),
+          }),
+        }),
+      }
+      const input = { supabase: supabase as never, userId: "staff-user" }
+      await expect(resolveProfileAudience(input)).resolves.toMatchObject({
+        platformAccessLevel: accessLevel,
+        isPlatformStaff: accessLevel !== null,
+        isAdmin: accessLevel === "developer",
+        fullName: null,
+      })
+      await expect(resolveDevtoolsAudience(input)).resolves.toEqual({
+        isAdmin: accessLevel === "developer", isTester: false,
+      })
+    }
+  )
+
+  it("does not grant access when the authoritative staff lookup fails", async () => {
+    const failure = { code: "57014", message: "staff lookup unavailable" }
+    const supabase = {
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => table === "platform_staff_members"
+              ? { data: null, error: failure }
+              : { data: { role: "admin", is_tester: false }, error: null },
+          }),
+        }),
+      }),
+    }
+    const input = { supabase: supabase as never, userId: "staff-user" }
+    await expect(resolveProfileAudience(input)).rejects.toEqual(failure)
+    await expect(resolveDevtoolsAudience(input)).rejects.toEqual(failure)
+  })
+
   it("detects tester metadata flags from auth user metadata", () => {
     expect(resolveTesterMetadata({ qa_tester: true })).toBe(true)
     expect(resolveTesterMetadata({ tester: true })).toBe(true)
