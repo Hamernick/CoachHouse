@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { redirect } from "next/navigation"
 
 import { DocumentsTab } from "@/components/organization/org-profile-card/tabs/documents-tab"
@@ -41,7 +42,8 @@ export default async function MyOrganizationDocumentsPage({
     redirect(`/login?redirect=${encodeURIComponent(returnPath)}`)
   }
 
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+  const activeOrg = await resolveActiveOrganization(supabase, user.id)
+  const { orgId, role } = activeOrg
   const canEdit = canEditOrganization(role)
   const { data: profileRow } = await supabase
     .from("profiles")
@@ -59,7 +61,7 @@ export default async function MyOrganizationDocumentsPage({
   const moduleNotes = canAccessRoadmapDocuments
     ? await listUserModuleNotesIndex({
         supabase,
-        userId: user.id,
+        userId: organizationLearningUserId(user.id, activeOrg),
         limit: 200,
       })
     : []

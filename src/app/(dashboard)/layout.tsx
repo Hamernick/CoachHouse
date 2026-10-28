@@ -31,7 +31,7 @@ export default async function DashboardLayout({
   ])
 
   return (
-    <WorkspaceOrganizationScope organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
+    <WorkspaceOrganizationScope actorId={state.organizationScope?.actorId} organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
       <FrameEscape />
       <AppShell
         sidebarHeaderContent={

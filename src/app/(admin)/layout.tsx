@@ -30,7 +30,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <WorkspaceOrganizationScope organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
+    <WorkspaceOrganizationScope actorId={state.organizationScope?.actorId} organizationId={state.organizationScope?.orgId} supportAccess={state.organizationScope?.supportAccess}>
     <AppShell
       breadcrumbs={breadcrumbs}
       sidebarHeaderContent={

@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { Empty } from "@/components/ui/empty"
 import { AcceleratorOrgSnapshotStrip } from "@/components/accelerator/accelerator-org-snapshot-strip"
 import { AcceleratorWelcomeBanner } from "@/components/accelerator/accelerator-welcome-banner"
@@ -48,6 +49,7 @@ export async function AcceleratorOverviewPageContent() {
     resolveActiveOrganization(supabase, user.id),
   ])
   const isAdmin = profileResult.data?.role === "admin"
+  const learningUserId = organizationLearningUserId(user.id, activeOrg)
 
   const [
     progressSummary,
@@ -56,7 +58,7 @@ export async function AcceleratorOverviewPageContent() {
     entitlements,
     programsResult,
   ] = await Promise.all([
-    fetchAcceleratorProgressSummary({ supabase, userId: user.id, isAdmin }),
+    fetchAcceleratorProgressSummary({ supabase, userId: learningUserId, isAdmin }),
     supabase
       .from("organizations")
       .select("profile, public_slug, ein")
@@ -66,7 +68,7 @@ export async function AcceleratorOverviewPageContent() {
         public_slug: string | null
         ein: string | null
       }>(),
-    resolveRoadmapHomework(user.id, supabase),
+    resolveRoadmapHomework(learningUserId, supabase),
     fetchLearningEntitlements({
       supabase,
       userId: user.id,

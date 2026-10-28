@@ -1,5 +1,7 @@
 "use server"
 
+import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
+
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import type { Json } from "@/lib/supabase/schema/json"
@@ -27,7 +29,7 @@ function parseNotes(value: Json | null | undefined): ModuleNotesPayload | null {
   return null
 }
 
-export async function getModuleNotesAction(moduleId: string): Promise<ModuleNotesResult> {
+export async function getModuleNotesAction(moduleId: string, expectedOrgId?: string): Promise<ModuleNotesResult> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -39,10 +41,17 @@ export async function getModuleNotesAction(moduleId: string): Promise<ModuleNote
   }
   if (!user) return { error: "Not authenticated." }
 
+  let learningUserId: string
+  try {
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id, expectedOrgId))
+  } catch {
+    return { error: "Organization access changed. Reopen this lesson and try again." }
+  }
+
   const { data, error: selectError } = await supabase
     .from("module_progress")
     .select("notes")
-    .eq("user_id", user.id)
+    .eq("user_id", learningUserId)
     .eq("module_id", moduleId)
     .maybeSingle<{ notes: Json | null }>()
 
@@ -54,6 +63,7 @@ export async function getModuleNotesAction(moduleId: string): Promise<ModuleNote
 export async function saveModuleNotesAction(
   moduleId: string,
   content: string,
+  expectedOrgId?: string,
 ): Promise<ModuleNotesSaveResult> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -66,6 +76,13 @@ export async function saveModuleNotesAction(
   }
   if (!user) return { error: "Not authenticated." }
 
+  let learningUserId: string
+  try {
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id, expectedOrgId))
+  } catch {
+    return { error: "Organization access changed. Reopen this lesson and try again." }
+  }
+
   const trimmed = content.trim()
   const notesPayload: ModuleNotesPayload | null = trimmed.length > 0 ? { content: trimmed, format: "markdown" } : null
 
@@ -73,7 +90,7 @@ export async function saveModuleNotesAction(
     .from("module_progress")
     .upsert(
       {
-        user_id: user.id,
+        user_id: learningUserId,
         module_id: moduleId,
         notes: notesPayload as Json | null,
       },
@@ -85,7 +102,7 @@ export async function saveModuleNotesAction(
   if (notesPayload) {
     await trackUserJourneyMilestone({
       userId: user.id,
-      orgId: user.id,
+      orgId: learningUserId,
       eventName: "module_note_saved",
       journey: "workspace_activation",
       source: "module_notes_action",

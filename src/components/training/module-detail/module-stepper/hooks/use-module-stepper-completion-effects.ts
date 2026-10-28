@@ -1,5 +1,6 @@
 "use client"
 
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useEffect, useRef } from "react"
 
 import type { ModuleStepperStep } from "../../module-stepper-types"
@@ -15,6 +16,7 @@ export function useModuleStepperCompletionEffects({
   activeStep,
   markModuleComplete,
 }: UseModuleStepperCompletionEffectsArgs) {
+  const { storageKey: learningScope } = useWorkspaceDataScope()
   const completionMarkedRef = useRef(false)
   const celebratePlayedRef = useRef(false)
 
@@ -30,11 +32,11 @@ export function useModuleStepperCompletionEffects({
     void markModuleComplete().catch(() => null)
 
     try {
-      window.sessionStorage.setItem(`module-complete-${moduleId}`, "true")
+      window.sessionStorage.setItem(`module-complete-${learningScope}-${moduleId}`, "true")
     } catch {
       // ignore storage failures
     }
-  }, [activeStep?.id, activeStep?.type, markModuleComplete, moduleId])
+  }, [activeStep?.id, activeStep?.type, markModuleComplete, moduleId, learningScope])
 
   useEffect(() => {
     if (activeStep?.type !== "complete" || celebratePlayedRef.current) return

@@ -13,6 +13,7 @@ type ProcessModuleCompletionParams = {
   supabase: SupabaseServerClient
   moduleId: string
   userId: string
+  actorId?: string
   moduleMeta: ModuleMeta
   modulePath: string | null
 }
@@ -21,6 +22,7 @@ export async function processModuleCompletion({
   supabase,
   moduleId,
   userId,
+  actorId = userId,
   moduleMeta,
   modulePath,
 }: ProcessModuleCompletionParams): Promise<void> {
@@ -33,7 +35,7 @@ export async function processModuleCompletion({
       href: modulePath,
       tone: "success",
       type: "module_completed",
-      actorId: userId,
+      actorId,
       metadata: { moduleId },
     })
     if ("error" in notifyResult) {
@@ -177,7 +179,7 @@ export async function processModuleCompletion({
       href: classHref,
       tone: "success",
       type: "class_completed",
-      actorId: userId,
+      actorId,
       metadata: { classId: moduleMeta.class_id, classTitle },
     })
     if ("error" in classNotifyResult) {

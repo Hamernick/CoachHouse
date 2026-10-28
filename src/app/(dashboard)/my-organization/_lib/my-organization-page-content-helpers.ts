@@ -108,7 +108,6 @@ export function hydrateWorkspaceSeedAcceleratorState<
 
   const completedStepIds = Array.from(
     new Set([
-      ...workspaceSeed.boardState.accelerator.completedStepIds,
       ...acceleratorTimeline
         .filter((step) => step.status === "completed")
         .map((step) => step.id),
@@ -136,7 +135,8 @@ export function hydrateWorkspaceSeedAcceleratorState<
     workspaceSeed.boardState.accelerator.activeStepId ===
       (activeStep?.id ?? null) &&
     completedStepIds.length ===
-      workspaceSeed.boardState.accelerator.completedStepIds.length
+      workspaceSeed.boardState.accelerator.completedStepIds.length &&
+    completedStepIds.every((id, index) => id === workspaceSeed.boardState.accelerator.completedStepIds[index])
   ) {
     return workspaceSeed
   }
