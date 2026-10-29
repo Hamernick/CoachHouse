@@ -12,8 +12,9 @@ import type { DocumentTransport } from "../types"
 import { DocumentVersionHistory } from "./document-version-history"
 import { useOrganizationDocumentCollaborationController } from "../hooks/use-organization-document-collaboration-controller"
 
-function DocumentPanel({ section, organizationId, userId, onPendingChange, onSavedSection, editorProps, canEdit = true, initialDraft, hideTextEditor = false, transport }: {
+function DocumentPanel({ section, organizationId, userId, onPendingChange, onSavedSection, onRegisterFlush, editorProps, canEdit = true, initialDraft, hideTextEditor = false, transport }: {
   hideTextEditor?: boolean; initialDraft?: RecoverableDocumentDraft; canEdit?: boolean; editorProps?: Partial<RichTextEditorProps>; onSavedSection?: (section: RoadmapSection) => void;
+  onRegisterFlush?: (flush: (() => Promise<boolean>) | null) => void;
   transport?: DocumentTransport; section: RoadmapSection; organizationId: string; userId: string; onPendingChange?: (pending: boolean) => void
 }) {
   const [legacyDraft, setLegacyDraft] = useState(initialDraft ?? null)
@@ -26,9 +27,13 @@ function DocumentPanel({ section, organizationId, userId, onPendingChange, onSav
   const { loaded, ready, error, status, onReady, sync, editorRef } = controller
   const statusInToolbar = Boolean(editorProps?.toolbarPortalId) && !hideTextEditor && ready && editable && !recoveredDraft
   const statusContent = <>
-    <span>{ready && !editable && !error ? "View only" : status}</span>
+    <span>{recoveredDraft ? "Unsaved draft available" : ready && !editable && !error ? "View only" : status}</span>
     {controller.presenceUnavailable ? <span className="text-xs text-muted-foreground">Live cursors unavailable</span> : null}
   </>
+  useEffect(() => {
+    onRegisterFlush?.(recoveredDraft ? async () => false : controller.flush)
+    return () => onRegisterFlush?.(null)
+  }, [controller.flush, onRegisterFlush, recoveredDraft])
   useEffect(() => { onPendingChange?.(controller.dirty.current) }, [status, onPendingChange, controller.dirty])
   useEffect(() => { if (controller.savedSection && !recoveredDraft) onSavedSection?.(controller.savedSection) }, [controller.savedSection, onSavedSection, recoveredDraft])
   return <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
@@ -44,7 +49,7 @@ function DocumentPanel({ section, organizationId, userId, onPendingChange, onSav
         void sync()
       }} /> : null}
     {loaded ? <RichTextEditor {...editorProps} className={hideTextEditor ? "hidden" : editorProps?.className} value={loaded.section.content} onChange={() => {}} onReady={onReady}
-      toolbarTrailingActions={statusInToolbar ? <><div ref={setHistoryTarget} className="flex shrink-0 items-center" /><div className="flex shrink-0 items-center gap-2 px-2 text-sm text-muted-foreground" role="status" aria-live="polite">{statusContent}</div></> : editorProps?.toolbarTrailingActions}
+      toolbarTrailingActions={statusInToolbar ? <><div ref={setHistoryTarget} className="flex shrink-0 items-center" /><div className="flex shrink-0 items-center gap-2 px-2 text-sm text-muted-foreground" role="status" aria-live="polite">{statusContent}</div></> : null}
       onImageUpload={editorProps?.onImageUpload ?? (file => uploadOrgMedia({ file, kind: "roadmap-inline", organizationId }))}
       applyExternalValue={false} readOnly={!ready || !editable || Boolean(recoveredDraft)} preserveImages minHeight={300} ariaLabel={section.title} /> : !error ? <p className="text-sm">Opening document…</p> : null}
     {loaded && section.id === "budget" ? <RoadmapBudgetTableEditor rows={controller.budgetRows}

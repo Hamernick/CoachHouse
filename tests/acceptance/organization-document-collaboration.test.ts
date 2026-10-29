@@ -5,6 +5,7 @@ import { EditorState } from "@tiptap/pm/state"
 import { collab, getVersion, receiveTransaction, sendableSteps } from "@tiptap/pm/collab"
 import { history, undo } from "@tiptap/pm/history"
 import { Step } from "@tiptap/pm/transform"
+import { documentAcknowledgesState } from "@/features/organization-document-collaboration/lib/acknowledgement"
 import { applyDocumentSteps } from "@/features/organization-document-collaboration/lib"
 import { documentSchema, serializeDocument } from "@/features/organization-document-collaboration/lib/schema"
 import type { DocumentSession } from "@/features/organization-document-collaboration/types"
@@ -129,5 +130,18 @@ describe("image alternatives", () => {
     expect(restored.firstChild!.attrs.alt).toBe('Volunteers packing "food"')
     expect(serializeDocument(restored)).toContain('alt="Volunteers packing &quot;food&quot;"')
     expect(serializeDocument(documentSchema.node("image", { src: "/decoration.png" }))).toContain('alt=""')
+  })
+})
+
+describe("visible document save acknowledgement", () => {
+  it("requires the current version, document and canonical projection", () => {
+    expect(documentAcknowledgesState(client("member"), state(), "<p>Hello</p>")).toBe(true)
+    expect(documentAcknowledgesState(client("member"), { ...state(), version: 1 }, "<p>Hello</p>")).toBe(false)
+    expect(documentAcknowledgesState(client("member"), { ...state(), document: paragraph("Different").toJSON() }, "<p>Hello</p>")).toBe(false)
+    expect(documentAcknowledgesState(client("member"), state(), "<p>Stale projection</p>")).toBe(false)
+  })
+  it("fails closed for an invalid response or missing change tracker", () => {
+    expect(documentAcknowledgesState(client("member"), { ...state(), document: { type: "unknown" } }, "<p>Hello</p>")).toBe(false)
+    expect(documentAcknowledgesState(EditorState.create({ doc: paragraph("Hello") }), state(), "<p>Hello</p>")).toBe(false)
   })
 })

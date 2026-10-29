@@ -5,6 +5,7 @@ import type { BudgetTableRow } from "@/lib/modules"
 import { normalizeRoadmapBudgetRows, roadmapBudgetRowsEqual } from "@/lib/roadmap/budget"
 import type { Editor } from "@tiptap/core"
 import { collab, getVersion, receiveTransaction, sendableSteps } from "@tiptap/pm/collab"
+import { documentAcknowledgesState } from "../lib/acknowledgement"
 import { documentCursorsPlugin, documentCursorsKey } from "../lib/cursors"
 import { syncDocumentOverHttp, documentPresenceOverHttp } from "../lib/transport"
 import { documentFailurePolicy, documentFailureStatus, type DocumentPersistenceStatus } from "../lib/editor-state"
@@ -40,6 +41,7 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
   const editorRef = useRef<Editor | null>(null)
   const generation = useRef<string | null>(null)
   const busy = useRef(false)
+  const syncTask = useRef<Promise<boolean | undefined> | null>(null)
   const failures = useRef(0)
   const retryAt = useRef(0)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -149,7 +151,7 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
     } finally { initializing.current = false }
   }, [acceptSection, loaded, clientId, transport, canEdit])
 
-  const sync = useCallback(async (force = false) => {
+  const syncOnce = useCallback(async (force = false) => {
     const editor = editorRef.current
     if (!editor || editor.isDestroyed || busy.current || blocked.current) return
     if (!force && Date.now() < retryAt.current) return
@@ -203,6 +205,8 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
       const session = result.session
       if (!session || session.generation !== generation.current) {
         blocked.current = true
+        setStatus("Not saved")
+        persistDraft()
         setError("Document changed. Your unsaved edits are retained here.")
         return
       }
@@ -229,8 +233,16 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
         else if (budgetDraft.current) budgetDraft.current = { ...budgetDraft.current, base: result.section.budgetRows ?? [] }
       }
       if (!budgetDraft.current) setBudgetRows(result.section.budgetRows ?? [])
-      acceptSection(result)
       dirty.current = Boolean(sendableSteps(editor.state) || budgetDraft.current)
+      if (!dirty.current && !documentAcknowledgesState(editor.state, session, result.section.content)) {
+        dirty.current = true
+        blocked.current = true
+        persistDraft()
+        setStatus("Not saved")
+        setError("The saved document does not match your edits. Your local copy is retained; download it before reopening.")
+        return false
+      }
+      acceptSection(result)
       if (!dirty.current) {
         try { removeDocumentDraft(window.localStorage, { actorId: userId, ...scopeRef.current, clientId }) } catch { /* Keep acknowledged content if removal fails. */ }
         setDraftWarning(null)
@@ -248,6 +260,29 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
       return false
     } finally { busy.current = false }
   }, [acceptSection, canEdit, clientId, open, transport, persistDraft, userId])
+
+  // Navigation and the debounce must await the same in-flight acknowledgement.
+  const sync = useCallback((force = false) => {
+    if (syncTask.current) return syncTask.current
+    const task = syncOnce(force).finally(() => { syncTask.current = null })
+    syncTask.current = task
+    return task
+  }, [syncOnce])
+
+  const flush = useCallback(async () => {
+    clearTimeout(saveTimer.current)
+    if (!ready) return !dirty.current
+    const editor = editorRef.current
+    if (!editor || editor.isDestroyed) return false
+    if (!generation.current) return !canEdit || accessDenied
+    if (blocked.current) return !dirty.current && !sendableSteps(editor.state) && !budgetDraft.current
+    // Drain queued batches and edits made while a prior request was in flight.
+    for (let batch = 0; batch < 20; batch++) {
+      if (!sendableSteps(editor.state) && !budgetDraft.current && !dirty.current) return true
+      if (await sync(true) !== true || !mounted.current || editor.isDestroyed) return false
+    }
+    return false
+  }, [accessDenied, canEdit, ready, sync])
 
   const scheduleSave = useCallback(() => {
     clearTimeout(saveTimer.current)
@@ -327,5 +362,5 @@ export function useOrganizationDocumentCollaborationController(scope: DocumentSc
     setBudgetConflict(null); blocked.current = false; setError(null)
     void sync(true)
   }
-  return { recovery, discardRecovery, persistDraft, draftWarning, presenceUnavailable, accessDenied, budgetConflict, resolveBudgetConflict, loaded, ready, error, status, participants, onReady, sync, retry, blocked: blocked.current, editorRef, dirty, savedSection, budgetRows, changeBudgetRows }
+  return { recovery, discardRecovery, persistDraft, draftWarning, presenceUnavailable, accessDenied, budgetConflict, resolveBudgetConflict, loaded, ready, error, status, participants, onReady, sync, flush, retry, blocked: blocked.current, editorRef, dirty, savedSection, budgetRows, changeBudgetRows }
 }

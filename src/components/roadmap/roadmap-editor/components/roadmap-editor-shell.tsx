@@ -2,7 +2,7 @@
 
 import { organizationDocumentCollaborationEnabled } from "@/lib/feature-flags"
 import { OrganizationDocumentCollaborationPanel } from "@/features/organization-document-collaboration/client"
-import { useState, type ComponentType, type RefObject } from "react"
+import { useCallback, useRef, useState, type ComponentType, type RefObject } from "react"
 import type { RichTextEditorProps } from "@/components/rich-text-editor/types"
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle"
 import { GoogleDriveMark } from "@/components/roadmap/core-document-source/google-drive-mark"
@@ -91,6 +91,11 @@ export function RoadmapEditorShell({
   sectionIcon: SectionIcon,
 }: RoadmapEditorShellProps) {
   const [livePending, setLivePending] = useState(false)
+  const flushDocument = useRef<(() => Promise<boolean>) | null>(null)
+  const navigating = useRef(false)
+  const registerFlush = useCallback((flush: (() => Promise<boolean>) | null) => {
+    flushDocument.current = flush
+  }, [])
   const [sourceOverride, setSourceOverride] = useState<RoadmapSection | null>(
     null
   )
@@ -181,8 +186,14 @@ export function RoadmapEditorShell({
             basePath={roadmapBasePath}
             activeSectionId={activeSection.id}
             drafts={drafts}
-            onSectionSelect={next => {
-              if (!livePending || window.confirm("This document has unsaved edits. Leave it anyway?")) onSectionSelect(next)
+            onSectionSelect={async next => {
+              if (next.id === activeSection.id || navigating.current) return
+              navigating.current = true
+              try {
+                if (flushDocument.current && !await flushDocument.current()) return
+                if (!flushDocument.current && livePending) return
+                onSectionSelect(next)
+              } finally { navigating.current = false }
             }}
           />
         </RightRailSlot>
@@ -226,7 +237,7 @@ export function RoadmapEditorShell({
             ) : organizationDocumentCollaborationEnabled && sourceScope ? (
               !isHydrated ? <p className="text-muted-foreground text-sm">Opening document…</p> : <OrganizationDocumentCollaborationPanel key={`${sourceScope.organizationId}:${activeSection.id}`}
                 organizationId={sourceScope.organizationId} userId={sourceScope.userId} section={sourceSection} canEdit={canEdit} hideTextEditor={isBudgetSection} initialDraft={isDirty ? activeDraft : undefined}
-                onSavedSection={onSavedSection} onPendingChange={pending => { setLivePending(pending); onCollaborationPending(pending) }} editorProps={editorProps} />
+                onRegisterFlush={registerFlush} onSavedSection={onSavedSection} onPendingChange={pending => { setLivePending(pending); onCollaborationPending(pending) }} editorProps={editorProps} />
             ) : isBudgetSection ? (
               <RoadmapBudgetTableEditor
                 rows={activeDraft.budgetRows}
