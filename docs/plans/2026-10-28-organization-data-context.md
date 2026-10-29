@@ -28,12 +28,18 @@ Live read-only diagnosis established that the reported placeholder notes and acc
 
 ## Release and recovery
 
-Migration is prepared but unapplied. Apply the exact migration before deploying the matching app; older clients retain their existing behavior until deployment. Current-revision hosted quality, review, merge, deployment and authenticated admin/owner acceptance remain Caleb-owned. Tori's separate report of missing work is not proven resolved by this admin-view correction.
+Migration `20261028233000` was applied to production with explicit user authorization and independently verified at 2026-10-29 01:51:18 UTC. Older clients retain their existing behavior until deployment of the matching app. Current-revision hosted quality, review, merge, deployment and authenticated admin/owner acceptance remain Caleb-owned. Tori's separate report of missing work is not proven resolved by this admin-view correction.
 
-Rollback: revert this app revision; drop only `workspace_support_learning_read`, `workspace_support_learning_insert`, `workspace_support_learning_update` policies and `workspace_support_learning_audit` trigger from `module_progress` and `assignment_submissions`. Preserve learner records, audit history and existing policies. No rollback is needed for production now because nothing was applied.
+Rollback: revert this app revision; drop only `workspace_support_learning_read`, `workspace_support_learning_insert`, `workspace_support_learning_update` policies and `workspace_support_learning_audit` trigger from `module_progress` and `assignment_submissions`. Preserve learner records, audit history and existing policies. The schema migration is now applied; use this rollback only if explicitly directed during release recovery.
 
 Resume: `cd /private/tmp/coach-house-org-context-20261028`; inspect status and this checkpoint. Do not delete staff seed data or rewrite customer completion based on appearance in an admin session.
 
 ## PR handoff
 
 Open [PR364](https://github.com/Hamernick/CoachHouse/pull/364). The implementation is pushed; no hosted CI polling, merge, migration or deployment performed. Original01 Desktop packet links its new continuation pointer. The final documentation-only handoff commit records graph completion and uses normal prepush again.
+
+## Authorized production migration — 2026-10-29 01:51 UTC
+
+User explicitly requested applying the required migration. Verified the configured app and linked Supabase project resolve to Coach House and the migration was absent. Required helper functions existed and matched the support/presence/audit contract. Applied only the exact committed migration and its migration-ledger entry in one transaction with lock/statement timeouts; no broad migration push, learner-row mutation, role change or app deployment.
+
+Independent API readback verified the ledger SQL exactly matches the file, six new SELECT/INSERT/UPDATE policies, two enabled audit triggers, all existing policies preserved, and RLS still enabled on both tables. Private receipt: `/private/tmp/coach-house-learning-migration-verified.json`. Current application deployment and authenticated UI acceptance remain unverified; this completes only the authorized schema step.
