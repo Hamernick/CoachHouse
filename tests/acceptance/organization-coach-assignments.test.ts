@@ -14,6 +14,7 @@ import {
   normalizeOrganizationCoachFilter,
 } from "@/features/organization-coach-assignments"
 import type { PlatformAdminDashboardLabProject } from "@/features/platform-admin-dashboard"
+import { loadOrganizationCoachActorScope } from "@/lib/admin/organization-coach-scope"
 import { canAccessProjectOrg } from "@/app/api/account/project-assets/route-support"
 
 const paula = {
@@ -249,7 +250,7 @@ describe("organization-coach-assignments feature contract", () => {
   })
 
   it("allows project assets for a permitted coach only while the organization is unassigned", async () => {
-    function client(canAccessUnassigned: boolean, assignedCoachId: string | null) {
+    function client(canAccessUnassigned: boolean, assignedCoachId: string | null, canAccessAll = false) {
       return {
         rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
         from(table: string) {
@@ -263,7 +264,7 @@ describe("organization-coach-assignments feature contract", () => {
             limit() { return query },
             async maybeSingle() {
               const data = table === "platform_staff_members"
-                ? { access_level: "coach", can_access_unassigned_organizations: canAccessUnassigned }
+                ? { access_level: "coach", can_access_unassigned_organizations: canAccessUnassigned, can_access_all_organizations: canAccessAll }
                 : table === "organization_coach_scope_settings"
                   ? { assigned_only_enabled: true }
                   : assignedCoachId &&
@@ -282,6 +283,7 @@ describe("organization-coach-assignments feature contract", () => {
     expect(await canAccessProjectOrg({ ...input, supabase: client(true, null) })).toBe(true)
     expect(await canAccessProjectOrg({ ...input, supabase: client(true, "coach-2") })).toBe(false)
     expect(await canAccessProjectOrg({ ...input, supabase: client(false, null) })).toBe(false)
+    expect(await canAccessProjectOrg({ ...input, supabase: client(false, "coach-2", true) })).toBe(true)
   })
 
   it("keeps assigned-only visibility behind an audited readiness gate", () => {
@@ -396,5 +398,71 @@ describe("initial assigned organization view", () => {
   })
   it("leaves other accounts on all organizations", () => {
     expect(defaultOrganizationCoachFilter({ ...paula, name: "Other Person", email: "other@example.com" })).toBe("all")
+  })
+})
+
+
+describe("account-scoped all-organization access", () => {
+  function client({ all = false, unassigned = false, staffError = null as { code: string } | null } = {}) {
+    const filters: Array<[string, string, unknown]> = []
+    const supabase = {
+      from(table: string) {
+        const query = {
+          select() { return query },
+          eq(column: string, value: unknown) { filters.push([table, column, value]); return query },
+          async maybeSingle() {
+            return table === "organization_coach_scope_settings"
+              ? { data: { assigned_only_enabled: true }, error: null }
+              : { data: { can_access_all_organizations: all, can_access_unassigned_organizations: unassigned }, error: staffError }
+          },
+          async returns() { return { data: [{ organization_id: "mine" }], error: null } },
+          then(resolve: (value: unknown) => unknown) {
+            const data = table === "organizations"
+              ? [{ user_id: "mine" }, { user_id: "other-coach" }, { user_id: "unassigned" }]
+              : [{ organization_id: "mine" }, { organization_id: "other-coach" }]
+            return Promise.resolve({ data, count: data.length, error: null }).then(resolve)
+          },
+        }
+        return query
+      },
+    }
+    return { supabase: supabase as unknown as NonNullable<Parameters<typeof loadOrganizationCoachActorScope>[0]["supabase"]>, filters }
+  }
+
+  it.each(["karissa", "joel", "paula"])("allows every organization for the explicitly granted %s account", async (userId) => {
+    const db = client({ all: true })
+    const scope = await loadOrganizationCoachActorScope({ ...db, userId, accessLevel: "coach" })
+    expect(scope).toEqual({ mode: "all", canAccessAll: true })
+    expect(db.filters).toContainEqual(["platform_staff_members", "user_id", userId])
+    expect(filterByOrganizationCoachScope([{ orgId: "mine" }, { orgId: "other-coach" }, { orgId: "new-org" }], scope)).toHaveLength(3)
+    expect(canAccessOrganizationInCoachScope(scope, "other-coach")).toBe(true)
+  })
+
+  it("leaves an ungranted coach assigned-only", async () => {
+    const scope = await loadOrganizationCoachActorScope({ ...client(), userId: "coach", accessLevel: "coach" })
+    expect(canAccessOrganizationInCoachScope(scope, "mine")).toBe(true)
+    expect(canAccessOrganizationInCoachScope(scope, "other-coach")).toBe(false)
+    expect(canAccessOrganizationInCoachScope(scope, "unassigned")).toBe(false)
+  })
+
+  it("preserves the narrower unassigned-only permission", async () => {
+    const scope = await loadOrganizationCoachActorScope({ ...client({ unassigned: true }), userId: "coach", accessLevel: "coach" })
+    expect(canAccessOrganizationInCoachScope(scope, "unassigned")).toBe(true)
+    expect(canAccessOrganizationInCoachScope(scope, "other-coach")).toBe(false)
+  })
+
+  it("fails closed when the new column is unavailable", async () => {
+    const scope = await loadOrganizationCoachActorScope({ ...client({ all: true, staffError: { code: "42703" } }), userId: "coach", accessLevel: "coach" })
+    expect(canAccessOrganizationInCoachScope(scope, "other-coach")).toBe(false)
+  })
+
+  it("does not grant access after a staff lookup failure", async () => {
+    await expect(loadOrganizationCoachActorScope({ ...client({ all: true, staffError: { code: "08006" } }), userId: "coach", accessLevel: "coach" })).rejects.toThrow("Unable to load coach visibility permission")
+  })
+
+  it("defaults explicitly granted directory users to All while preserving normal coach defaults", () => {
+    expect(defaultOrganizationCoachFilter(paula, { mode: "all", canAccessAll: true })).toBe("all")
+    expect(defaultOrganizationCoachFilter(paula, { mode: "assigned", organizationIds: new Set() })).toBe(paula.id)
+    expect(defaultOrganizationCoachFilter(paula, { mode: "assigned", organizationIds: new Set(), canAccessUnassigned: true })).toBe("all")
   })
 })

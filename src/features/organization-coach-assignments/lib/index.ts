@@ -4,6 +4,7 @@ export {
   canAccessOrganizationInCoachScope,
   filterByOrganizationCoachScope,
 } from "@/lib/organization-coach-scope"
+import type { OrganizationCoachActorScope } from "@/lib/organization-coach-scope"
 import type { OrganizationCoachOption } from "../types"
 import type {
   OrganizationCoachAssignment,
@@ -127,7 +128,8 @@ export function computeOrganizationCoachAssignmentCoverage(
   }
 }
 
-export function defaultOrganizationCoachFilter(coach: OrganizationCoachOption) {
+export function defaultOrganizationCoachFilter(coach: OrganizationCoachOption, scope?: OrganizationCoachActorScope) {
+  if (scope?.mode === "all" ? scope.canAccessAll : scope?.canAccessUnassigned) return "all"
   const names = new Set(["joel", "paula", "caleb", "fs"])
   const firstName = coach.name.trim().split(/\s+/)[0].toLowerCase()
   const mailbox = coach.email?.split("@")[0].toLowerCase()

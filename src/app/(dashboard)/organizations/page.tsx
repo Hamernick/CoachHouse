@@ -54,10 +54,7 @@ export default async function OrganizationsPage() {
     accessLevel: staff.accessLevel,
     userId: staff.userId,
   })
-  const defaultCoachFilter =
-    coachScope.mode === "assigned" && coachScope.canAccessUnassigned
-      ? "all"
-      : defaultOrganizationCoachFilter(currentCoach)
+  const defaultCoachFilter = defaultOrganizationCoachFilter(currentCoach, coachScope)
   const coachOptions = assignments.coachOptions.some((coach) => coach.id === staff.userId)
     ? assignments.coachOptions : [...assignments.coachOptions, currentCoach]
   const assignedProjects = projects.map((project) => ({
