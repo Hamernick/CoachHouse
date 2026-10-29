@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { redirect } from "next/navigation"
 import { loadOrganizationWorkspaceFinanceInput } from "@/actions/workspace-finance-helpers"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
@@ -64,6 +65,7 @@ export default async function MyOrganizationPage({
   if (!requestContext) redirect("/login?redirect=/organization")
   const { supabase, user, profileAudience, activeOrg } = requestContext
   const { orgId, role } = activeOrg
+  const learningUserId = organizationLearningUserId(user.id, activeOrg)
   const isAdmin = profileAudience.isAdmin
   const { orgRow, profile, initialProfile, roadmapSections } =
     await measureServerStep(
@@ -128,7 +130,7 @@ export default async function MyOrganizationPage({
               .returns<UpcomingEventRow[]>(),
         fetchAcceleratorProgressSummary({
           supabase,
-          userId: user.id,
+          userId: learningUserId,
           isAdmin,
           basePath: "/accelerator",
         }),
@@ -218,7 +220,7 @@ export default async function MyOrganizationPage({
       "workspace.content.build_accelerator_timeline",
       () => buildAcceleratorTimelineModules({
         supabase,
-        userId: user.id,
+        userId: learningUserId,
         sortedRoadmapModules,
         groupMetaById: moduleGroupMetaById,
         onboardingDefaults,
@@ -316,6 +318,7 @@ export default async function MyOrganizationPage({
     "workspace.content.build_workspace_seed",
     () =>
       buildWorkspaceViewSeed({
+        learningUserId,
         supabase,
         orgId,
         role,

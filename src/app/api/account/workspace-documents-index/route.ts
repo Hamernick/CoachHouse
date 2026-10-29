@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { DOCUMENTS } from "@/components/organization/org-profile-card/tabs/documents-tab/constants"
@@ -270,7 +271,8 @@ export async function GET(request: NextRequest) {
     : 48
 
   try {
-    const { orgId } = await resolveActiveOrganization(supabase, user.id)
+    const activeOrg = await resolveActiveOrganization(supabase, user.id)
+    const { orgId } = activeOrg
     const { data: orgRow, error: orgError } = await supabase
       .from("organizations")
       .select("profile")
@@ -290,7 +292,7 @@ export async function GET(request: NextRequest) {
     try {
       const notes = await listUserModuleNotesIndex({
         supabase,
-        userId: user.id,
+        userId: organizationLearningUserId(user.id, activeOrg),
         limit: 32,
       })
       noteItems = notes.map((note) => ({

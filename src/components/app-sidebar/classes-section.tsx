@@ -1,5 +1,6 @@
 "use client"
 
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -40,6 +41,7 @@ export function ClassesSection({
   ownedElectiveModuleSlugs = [],
   formationStatus = null,
 }: ClassesSectionProps) {
+  const { storageKey: learningScope } = useWorkspaceDataScope()
   const pathname = usePathname() ?? ""
   const router = useRouter()
   const normalizedBase = basePath?.replace(/\/$/, "") ?? ""
@@ -93,7 +95,7 @@ export function ClassesSection({
   if (typeof window !== "undefined") {
     modules.forEach((module) => {
       try {
-        const val = window.sessionStorage.getItem(`module-complete-${module.id}`)
+        const val = window.sessionStorage.getItem(`module-complete-${learningScope}-${module.id}`)
         completedMap.set(module.id, val === "true")
       } catch {
         completedMap.set(module.id, false)

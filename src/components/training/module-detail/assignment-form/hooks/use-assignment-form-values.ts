@@ -1,3 +1,4 @@
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { assignmentValuesEqual, type AssignmentValues } from "../../utils"
@@ -29,6 +30,7 @@ export function useAssignmentFormValues({
   moduleId,
   onSubmit,
 }: UseAssignmentFormValuesParams): UseAssignmentFormValuesResult {
+  const { storageKey: learningScope } = useWorkspaceDataScope()
   const [values, setValues] = useState<AssignmentValues>(initialValues)
   const [autoSaving, setAutoSaving] = useState(false)
   const initialValuesRef = useRef(initialValues)
@@ -71,7 +73,7 @@ export function useAssignmentFormValues({
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const storageKey = getAssignmentDraftStorageKey(moduleId)
+    const storageKey = getAssignmentDraftStorageKey(moduleId, learningScope)
 
     try {
       const raw = window.localStorage.getItem(storageKey)
@@ -88,7 +90,7 @@ export function useAssignmentFormValues({
     } catch {
       // ignore storage errors
     }
-  }, [moduleId])
+  }, [moduleId, learningScope])
 
   const updateValue = useCallback(
     (name: string, value: AssignmentValues[string]) => {
@@ -99,7 +101,7 @@ export function useAssignmentFormValues({
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const storageKey = getAssignmentDraftStorageKey(moduleId)
+    const storageKey = getAssignmentDraftStorageKey(moduleId, learningScope)
     const normalizedValues = normalizeValuesToInitialSchema({
       values,
       initialValues,
@@ -169,7 +171,7 @@ export function useAssignmentFormValues({
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     }
-  }, [moduleId, onSubmit, values, initialValues])
+  }, [moduleId, learningScope, onSubmit, values, initialValues])
 
   return {
     values,

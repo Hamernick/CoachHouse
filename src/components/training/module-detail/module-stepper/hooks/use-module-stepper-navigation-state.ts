@@ -1,5 +1,6 @@
 "use client"
 
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react"
 
 type UseModuleStepperNavigationStateArgs = {
@@ -21,6 +22,7 @@ export function useModuleStepperNavigationState({
   moduleId,
   stepCount,
 }: UseModuleStepperNavigationStateArgs): UseModuleStepperNavigationStateResult {
+  const { storageKey: learningScope } = useWorkspaceDataScope()
   const [activeIndex, setActiveIndex] = useState(0)
   const [hydrated, setHydrated] = useState(false)
 
@@ -32,7 +34,7 @@ export function useModuleStepperNavigationState({
     setActiveIndex(() => {
       if (typeof window === "undefined") return 0
 
-      const storedValue = window.sessionStorage.getItem(getModuleStepStorageKey(moduleId))
+      const storedValue = window.sessionStorage.getItem(getModuleStepStorageKey(`${learningScope}:${moduleId}`))
       const parsed = storedValue != null ? Number.parseInt(storedValue, 10) : NaN
       const fallback = 0
       const maxIndex = Math.max(stepCount - 1, 0)
@@ -40,17 +42,17 @@ export function useModuleStepperNavigationState({
 
       return Math.min(next, maxIndex)
     })
-  }, [moduleId, stepCount])
+  }, [moduleId, stepCount, learningScope])
 
   useEffect(() => {
     if (typeof window === "undefined") return
 
     try {
-      window.sessionStorage.setItem(getModuleStepStorageKey(moduleId), String(activeIndex))
+      window.sessionStorage.setItem(getModuleStepStorageKey(`${learningScope}:${moduleId}`), String(activeIndex))
     } catch {
       // ignore storage failures
     }
-  }, [activeIndex, moduleId])
+  }, [activeIndex, moduleId, learningScope])
 
   useEffect(() => {
     if (typeof window === "undefined") return

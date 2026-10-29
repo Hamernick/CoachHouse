@@ -1,3 +1,4 @@
+import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
 import { NextResponse } from "next/server"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -11,7 +12,6 @@ import {
 import { revalidateClassViews } from "@/app/(admin)/admin/classes/actions"
 import {
   canEditOrganization,
-  resolveActiveOrganization,
 } from "@/lib/organization/active-org"
 import { trackUserJourneyMilestone } from "@/lib/user-journey"
 import { processModuleCompletion } from "./_lib/completion"
@@ -43,11 +43,18 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  let learningUserId: string
+  try {
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id))
+  } catch {
+    return NextResponse.json({ error: "Organization access changed." }, { status: 403 })
+  }
+
   const { data: submission, error } = await supabase
     .from("assignment_submissions" satisfies keyof Database["public"]["Tables"])
     .select("answers, status, updated_at")
     .eq("module_id", moduleId)
-    .eq("user_id", user.id)
+    .eq("user_id", learningUserId)
     .maybeSingle<{
       answers: Record<string, unknown>
       status: SubmissionStatus
@@ -85,7 +92,13 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+  let learningContext
+  try {
+    learningContext = await resolveOrganizationLearningContext(supabase, user.id)
+  } catch {
+    return NextResponse.json({ error: "Organization access changed." }, { status: 403 })
+  }
+  const { orgId, role, learningUserId } = learningContext
 
   let payload: { answers?: AnswersPayload; status?: SubmissionStatus }
   try {
@@ -159,7 +172,7 @@ export async function POST(
   const upsertPayload: Database["public"]["Tables"]["assignment_submissions"]["Insert"] =
     {
       module_id: moduleId,
-      user_id: user.id,
+      user_id: learningUserId,
       answers: sanitizedAnswers as Json,
       status: desiredStatus,
     }
@@ -215,7 +228,8 @@ export async function POST(
     await processModuleCompletion({
       supabase,
       moduleId,
-      userId: user.id,
+      userId: learningUserId,
+      actorId: user.id,
       moduleMeta,
       modulePath,
     })

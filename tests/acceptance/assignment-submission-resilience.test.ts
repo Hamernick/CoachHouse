@@ -12,6 +12,11 @@ import { submitAssignmentWithRecovery } from "@/components/training/module-detai
 import type { ModuleAssignmentField } from "@/lib/modules"
 import { createSupabaseServerClientServerMock } from "./test-utils"
 
+vi.mock("@/lib/organization/active-org", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/organization/active-org")>(),
+  resolveActiveOrganization: async (_client: unknown, id: string) => ({ orgId: id, role: "owner" }),
+}))
+
 const fields: ModuleAssignmentField[] = [
   {
     name: "why",
