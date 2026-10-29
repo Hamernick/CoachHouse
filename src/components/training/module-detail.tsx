@@ -1,5 +1,6 @@
 "use client"
 
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useEffect, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import Lock from "lucide-react/dist/esm/icons/lock"
@@ -49,6 +50,7 @@ export function ModuleDetail({
     submission: m.assignmentSubmission ?? null,
   })
 
+  const { storageKey: learningScope } = useWorkspaceDataScope()
   const pathname = usePathname()
   const basePath = pathname?.startsWith("/accelerator") ? "/accelerator" : ""
   const defaultBreakHref = basePath ? "/accelerator" : "/organization"
@@ -78,12 +80,12 @@ export function ModuleDetail({
     if (typeof window === "undefined") return
     completedModuleIds.forEach((id) => {
       try {
-        window.sessionStorage.setItem(`module-complete-${id}`, "true")
+        window.sessionStorage.setItem(`module-complete-${learningScope}-${id}`, "true")
       } catch {
         /* ignore */
       }
     })
-  }, [completedModuleIds])
+  }, [completedModuleIds, learningScope])
 
   return (
     <div className="flex min-h-full w-full flex-col gap-4 sm:gap-5">

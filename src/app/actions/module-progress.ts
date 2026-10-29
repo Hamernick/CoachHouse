@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 
+import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
+
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import type { Database } from "@/lib/supabase/types"
@@ -20,8 +22,15 @@ export async function markModuleCompleteAction(moduleId: string): Promise<Result
   if (error && !isSupabaseAuthSessionMissingError(error)) return { error: "Unable to load user." }
   if (!user) return { error: "Not authenticated." }
 
+  let learningUserId: string
+  try {
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id))
+  } catch {
+    return { error: "Organization access changed. Reopen this lesson and try again." }
+  }
+
   const payload: Database["public"]["Tables"]["module_progress"]["Insert"] = {
-    user_id: user.id,
+    user_id: learningUserId,
     module_id: moduleId,
     status: "completed",
     completed_at: new Date().toISOString(),

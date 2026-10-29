@@ -6,7 +6,7 @@ import type { MemberWorkspaceHeaderState } from "@/features/member-workspace"
 import type { PlatformAccessLevel } from "@/features/platform-access"
 
 export type DashboardLayoutState = {
-  organizationScope?: { orgId: string; supportAccess?: boolean; presenceOrganizationId?: string }
+  organizationScope?: { orgId: string; actorId?: string; supportAccess?: boolean; presenceOrganizationId?: string }
   userPresent: boolean
   sidebarTree: SidebarClass[]
   user: {

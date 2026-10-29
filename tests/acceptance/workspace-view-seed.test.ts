@@ -276,7 +276,7 @@ describe("workspace view seed", () => {
     expect(seed.boardState.communications.activityByDay["2026-02-22"]?.status).toBe("posted")
   })
 
-  it("builds a shared activity feed when communications, calendar, and accelerator activity are available", async () => {
+  it.each([undefined, "selected-owner"])("builds activity for the resolved learner %s", async (learningUserId) => {
     const supabase = buildSupabaseStub({
       communicationsData: [
         {
@@ -314,6 +314,7 @@ describe("workspace view seed", () => {
     const seed = await buildWorkspaceViewSeed({
       supabase: supabase as never,
       orgId: "org-1",
+      learningUserId,
       role: "owner",
       canEdit: true,
       hasAcceleratorAccess: true,
@@ -361,6 +362,9 @@ describe("workspace view seed", () => {
       calendar: {},
     })
 
+    expect(supabase.from("module_progress").eq).toHaveBeenCalledWith(
+      "user_id", learningUserId ?? "viewer-1",
+    )
     expect(seed.activityFeed.map((entry: { type: string }) => entry.type)).toEqual([
       "calendar_board_meeting",
       "social_scheduled",

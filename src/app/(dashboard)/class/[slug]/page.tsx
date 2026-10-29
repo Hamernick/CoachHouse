@@ -1,3 +1,4 @@
+import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
 import type { Metadata } from "next"
 import { ClassOverview } from "@/components/training/class-overview"
 import { getClassModulesForUser } from "@/lib/modules"
@@ -33,7 +34,7 @@ export default async function ClassLandingPage({ params }: { params: Promise<Par
   const classCtx = auth.user
     ? await getClassModulesForUser({
         classSlug: slug,
-        userId: auth.user.id,
+        userId: (await resolveOrganizationLearningContext(supabase, auth.user.id)).learningUserId,
         forceAdmin: profile?.role === "admin",
         supabase,
       })

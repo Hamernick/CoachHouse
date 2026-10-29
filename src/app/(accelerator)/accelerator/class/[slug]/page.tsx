@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { redirect } from "next/navigation"
 
 import { getClassModulesForUser } from "@/lib/modules"
@@ -14,11 +15,11 @@ export default async function AcceleratorClassRedirect({ params }: { params: Pro
     redirect(`/login?redirect=/accelerator/class/${slug}`)
   }
 
-  const { supabase, user, profileAudience } = requestContext
+  const { supabase, user, profileAudience, activeOrg } = requestContext
 
   const classCtx = await getClassModulesForUser({
     classSlug: slug,
-    userId: user.id,
+    userId: organizationLearningUserId(user.id, activeOrg),
     forceAdmin: profileAudience.isAdmin,
     supabase,
   })

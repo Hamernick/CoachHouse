@@ -1,3 +1,4 @@
+import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
@@ -39,20 +40,26 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 })
   }
 
-  let body: { content?: unknown } = {}
+  let body: { content?: unknown; organizationId?: string } = {}
   try {
     body = (await request.json()) as { content?: unknown }
   } catch {
     // keep default empty payload
   }
 
+  let learningUserId: string
+  try {
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id, body.organizationId))
+  } catch {
+    return NextResponse.json({ error: "Organization access changed." }, { status: 403 })
+  }
   const notesPayload = parsePayload(body.content)
 
   const { error: upsertError } = await supabase
     .from("module_progress")
     .upsert(
       {
-        user_id: user.id,
+        user_id: learningUserId,
         module_id: moduleId,
         notes: notesPayload as Json | null,
       },

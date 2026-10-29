@@ -6,8 +6,8 @@ type StoredAssignmentDraft = {
   values?: AssignmentValues
 }
 
-export function getAssignmentDraftStorageKey(moduleId: string) {
-  return `assignment-autosave-${moduleId}`
+export function getAssignmentDraftStorageKey(moduleId: string, scope = "unscoped") {
+  return `assignment-autosave-v2-${scope}-${moduleId}`
 }
 
 export function serializeAssignmentValues(values: AssignmentValues) {

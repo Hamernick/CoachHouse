@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { notFound, redirect } from "next/navigation"
 
 import { ModuleDetail as TrainingModuleDetail } from "@/components/training/module-detail"
@@ -38,6 +39,7 @@ export async function ModulePage({
 
   const { supabase, user, profileAudience, activeOrg } = requestContext
   const isAdmin = profileAudience.isAdmin
+  const learningUserId = organizationLearningUserId(user.id, activeOrg)
 
   const [orgRowResult, entitlements, classContext] = await Promise.all([
     supabase
@@ -54,7 +56,7 @@ export async function ModulePage({
     getClassModulePageForUser({
       classSlug: slug,
       moduleIndex,
-      userId: user.id,
+      userId: learningUserId,
       forceAdmin: isAdmin,
       supabase,
     }),

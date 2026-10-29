@@ -7,6 +7,10 @@ import { markModuleCompleteAction } from "@/app/actions/module-progress"
 import { fetchAcceleratorProgressSummary, fetchAcceleratorProgressTotalsByUserId } from "@/lib/accelerator/progress"
 import { createSupabaseServerClientServerMock, revalidatePathMock } from "./test-utils"
 
+vi.mock("@/lib/organization/active-org", () => ({
+  resolveActiveOrganization: async (_client: unknown, id: string) => ({ orgId: id, role: "owner" }),
+}))
+
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
 type CompletionInput = Parameters<typeof useWorkspaceAcceleratorCompletion>[0]

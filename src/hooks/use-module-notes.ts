@@ -1,5 +1,6 @@
 "use client"
 
+import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { getModuleNotesAction, saveModuleNotesAction } from "@/app/actions/module-notes"
@@ -11,6 +12,7 @@ function normalizeContent(value: string) {
 }
 
 export function useModuleNotes(moduleId: string) {
+  const { organizationId, storageKey: learningScope } = useWorkspaceDataScope()
   const [value, setValue] = useState("")
   const [loaded, setLoaded] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -41,7 +43,7 @@ export function useModuleNotes(moduleId: string) {
       if (mountedRef.current) {
         setIsSaving(true)
       }
-      const result = await saveModuleNotesAction(moduleId, nextRawValue)
+      const result = await saveModuleNotesAction(moduleId, nextRawValue, organizationId)
       if (mountedRef.current) {
         setIsSaving(false)
       }
@@ -57,7 +59,7 @@ export function useModuleNotes(moduleId: string) {
       saveErrorShown.current = false
       lastSavedRef.current = normalizeContent(result.notes?.content ?? "")
     },
-    [loaded, moduleId],
+    [loaded, moduleId, organizationId],
   )
 
   const saveWithKeepalive = useCallback(() => {
@@ -71,24 +73,24 @@ export function useModuleNotes(moduleId: string) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ content: nextRawValue }),
+      body: JSON.stringify({ content: nextRawValue, organizationId }),
       keepalive: true,
     }).catch(() => {
       // Non-blocking best-effort flush for refresh/navigation.
     })
-  }, [loaded, moduleId])
+  }, [loaded, moduleId, organizationId])
 
   useEffect(() => {
     let cancelled = false
     setLoaded(false)
-    void getModuleNotesAction(moduleId).then((result) => {
+    setValue("")
+    void getModuleNotesAction(moduleId, organizationId).then((result) => {
       if (cancelled) return
       if ("error" in result) {
         if (!loadErrorShown.current) {
           toast.error(result.error)
           loadErrorShown.current = true
         }
-        setLoaded(true)
         return
       }
       const nextValue = result.notes?.content ?? ""
@@ -99,10 +101,10 @@ export function useModuleNotes(moduleId: string) {
     return () => {
       cancelled = true
     }
-  }, [moduleId])
+  }, [moduleId, organizationId, learningScope])
 
   useEffect(() => {
-    if (!loaded) return
+    if (!loaded || normalizeContent(debounced) !== normalizeContent(valueRef.current)) return
     void saveNow(debounced)
   }, [debounced, loaded, saveNow])
 

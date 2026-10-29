@@ -53,6 +53,7 @@ type BuildWorkspaceViewSeedInput<
   canEdit: boolean
   isPlatformAdmin?: boolean
   hasAcceleratorAccess: boolean
+  learningUserId?: string
   presentationMode: boolean
   viewer: {
     id: string
@@ -92,6 +93,7 @@ export async function buildWorkspaceViewSeed<
   hasAcceleratorAccess,
   presentationMode,
   viewer,
+  learningUserId = viewer.id,
   organizationTitle,
   organizationSubtitle,
   fundingGoalCents,
@@ -171,7 +173,7 @@ export async function buildWorkspaceViewSeed<
       ? supabase
           .from("module_progress")
           .select("module_id, status, completed_at, updated_at")
-          .eq("user_id", viewer.id)
+          .eq("user_id", learningUserId)
           .in("module_id", acceleratorModuleIds)
           .returns<WorkspaceActivityAcceleratorProgressRow[]>()
       : Promise.resolve({ data: [], error: null } as { data: WorkspaceActivityAcceleratorProgressRow[]; error: null }),

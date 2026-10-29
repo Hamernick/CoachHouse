@@ -1,3 +1,4 @@
+import { organizationLearningUserId } from "@/lib/accelerator/organization-context"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { listUserModuleNotesIndex } from "@/lib/modules/notes-index"
@@ -86,9 +87,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Note item id is required." }, { status: 400 })
       }
 
+      const activeOrg = await resolveActiveOrganization(supabase, user.id)
       const notes = await listUserModuleNotesIndex({
         supabase,
-        userId: user.id,
+        userId: organizationLearningUserId(user.id, activeOrg),
         limit: 320,
       })
       const note = notes.find((entry) => entry.moduleId === moduleId) ?? null
