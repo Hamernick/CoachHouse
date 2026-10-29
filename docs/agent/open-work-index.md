@@ -1,5 +1,7 @@
 # Open Work Index
 
+**Roadmap save reliability — October29:** `fix/roadmap-save-acknowledgement-20261029` addresses interrupted section-switch saves and unverified Saved acknowledgements. [Checkpoint](../plans/2026-10-29-roadmap-save-acknowledgement.md) owns reproduction, local validation and release boundaries; no migration or production content write.
+
 **PR363 organization access follow-up — October29:** Same `fix/karissa-project-identity-20261027` now includes explicit all-organization access for the fiscal staff, Joel and Paula accounts, with All as the directory default. Existing assignments and developer roles stay unchanged. [Checkpoint](../plans/2026-10-27-karissa-project-identity.md#october29--all-organization-coach-access-in-pr363) owns implementation, exact live grants, verification and the single-deployment handoff.
 
 **Karissa project identity — October27:** production correction complete:11 imported/email project labels reconciled to the verified staff profile;56 organization/20 task/3 fiscal-reviewer assignments already correct and preserved. [Single checkpoint](../plans/2026-10-27-karissa-project-identity.md) owns independent readback and private recovery evidence. Documentation branch `fix/karissa-project-identity-20261027`; refresh/browser acceptance remains. No application deployment required; O039-01 remains In progress.

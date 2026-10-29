@@ -91,6 +91,14 @@ describe("collaborative document save status placement", () => {
     expect(mocks.historyToolbar).toBe(false)
   })
 
+  it("does not label an available unsaved recovery draft as Saved", () => {
+    const markup = render({ initialDraft: { content: "<p>Unacknowledged replacement</p>" } })
+    expect(markup).toContain("Unsaved draft available")
+    expect(markup).not.toContain("<span>Saved</span>")
+    expect(markup).not.toContain("Legacy saved indicator")
+    expect(markup).toContain("Restore earlier draft")
+  })
+
   it("keeps connection status and actionable failures visible before the toolbar is available", () => {
     mocks.ready = false
     mocks.status = "Not connected"
