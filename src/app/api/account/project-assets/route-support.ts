@@ -192,11 +192,12 @@ export async function canAccessProjectOrg({
   if (scope === "fiscal") return !requireEdit
   const { data: staff, error: staffError } = await supabase
     .from("platform_staff_members")
-    .select("access_level,can_access_unassigned_organizations")
+    .select("access_level,can_access_unassigned_organizations,can_access_all_organizations")
     .eq("user_id", userId)
     .maybeSingle<{
       access_level: string
       can_access_unassigned_organizations: boolean
+      can_access_all_organizations: boolean
     }>()
 
   const staffTableMissing =
@@ -204,6 +205,7 @@ export async function canAccessProjectOrg({
   if (staffError && !staffTableMissing) return false
 
   if (staff?.access_level === "coach") {
+    if (staff.can_access_all_organizations === true) return true
     const { data: scope, error: scopeError } = await supabase
       .from("organization_coach_scope_settings")
       .select("assigned_only_enabled")

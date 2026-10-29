@@ -68,9 +68,9 @@ export async function loadOrganizationCoachActorScope({
       .returns<Array<{ organization_id: string }>>(),
     supabase
       .from("platform_staff_members")
-      .select("can_access_unassigned_organizations")
+      .select("can_access_unassigned_organizations, can_access_all_organizations")
       .eq("user_id", userId)
-      .maybeSingle<{ can_access_unassigned_organizations: boolean }>(),
+      .maybeSingle<{ can_access_unassigned_organizations: boolean; can_access_all_organizations: boolean }>(),
   ])
 
   if (assignmentResult.error && isMissingScopeTable(assignmentResult.error))
@@ -79,6 +79,10 @@ export async function loadOrganizationCoachActorScope({
     throw new Error("Unable to load coach organization access.")
   if (staffResult.error && staffResult.error.code !== "42703")
     throw new Error("Unable to load coach visibility permission.")
+
+  if (!staffResult.error && staffResult.data?.can_access_all_organizations === true) {
+    return { mode: "all", canAccessAll: true }
+  }
 
   const organizationIds = new Set(
     (assignmentResult.data ?? []).map((row) => row.organization_id)
