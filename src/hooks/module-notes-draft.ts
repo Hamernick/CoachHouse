@@ -18,3 +18,11 @@ export function writeModuleNotesDraft(key: string, draft: ModuleNotesDraft | nul
     return true
   } catch { return false }
 }
+
+export function discardReviewedModuleNotesDraft(key: string, reviewed: ModuleNotesDraft | null) {
+  const stored = readModuleNotesDraft(key)
+  if (stored && JSON.stringify(stored) === JSON.stringify(reviewed)) {
+    return writeModuleNotesDraft(key, null)
+  }
+  return false
+}

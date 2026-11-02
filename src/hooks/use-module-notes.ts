@@ -4,12 +4,12 @@ import { useWorkspaceDataScope } from "@/features/organization-workspace-support
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getModuleNotesAction, saveModuleNotesAction } from "@/app/actions/module-notes"
 import type { Json } from "@/lib/supabase/schema/json"
-import { moduleNotesDraftKey, readModuleNotesDraft, writeModuleNotesDraft, type ModuleNotesDraft } from "./module-notes-draft"
+import { moduleNotesDraftKey, readModuleNotesDraft, writeModuleNotesDraft, discardReviewedModuleNotesDraft, type ModuleNotesDraft } from "./module-notes-draft"
 
 type LoadState = "loading" | "ready" | "error" | "conflict"
 type Session = {
   key: string; active: boolean; loaded: boolean; value: string; base: string
-  revision: Json | null; pending: Promise<void> | null
+  revision: Json | null; pending: Promise<void> | null; recoveryDraft: ModuleNotesDraft | null
 }
 
 export function useModuleNotes(moduleId: string) {
@@ -36,7 +36,7 @@ export function useModuleNotes(moduleId: string) {
     const id = ++request.current
     if (session.current) session.current.active = false
     const draft = preserved ?? readModuleNotesDraft(key)
-    const current: Session = { key, active: true, loaded: false, value: draft?.content ?? "", base: "", revision: null, pending: null }
+    const current: Session = { key, active: true, loaded: false, value: draft?.content ?? "", base: "", revision: null, pending: null, recoveryDraft: draft }
     session.current = current
     setLoadState("loading")
     setIsSaving(false)
@@ -148,7 +148,11 @@ export function useModuleNotes(moduleId: string) {
     const current = session.current
     if (!current?.active || current.key !== key || loadState !== "conflict") return
     current.loaded = true
-    if (!useDraft) current.value = savedValue
+    if (!useDraft) {
+      // Discard only the draft the user reviewed, never another tab's newer edit.
+      discardReviewedModuleNotesDraft(current.key, current.recoveryDraft)
+      current.value = savedValue
+    }
     setDisplayedValue(current.value)
     setLoadState("ready")
     setError(null)

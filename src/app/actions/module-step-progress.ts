@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { resolveOrganizationLearningContext } from "@/lib/accelerator/organization-context"
 import { readCompletedModuleStepIds } from "@/lib/accelerator/step-progress"
 import { buildAssignmentSections } from "@/lib/modules/assignment-sections"
-import { parseAssignmentFields } from "@/lib/modules/assignment"
+import { parseAssignmentFields, parseLegacyHomework } from "@/lib/modules/assignment"
 
 type StepResult = { ok: true } | { error: string }
 
@@ -38,7 +38,9 @@ export async function saveModuleStepProgressAction({ moduleId, stepId, expectedO
     const allowed = new Set<string>()
     allowed.add("lesson")
     if (lesson.video_url || contentResult.data?.video_url || lesson.classes.video_url) allowed.add("video")
-    const fields = parseAssignmentFields(assignmentResult.data?.schema ?? contentResult.data?.homework)
+    const fields = assignmentResult.data
+      ? parseAssignmentFields(assignmentResult.data.schema)
+      : parseLegacyHomework(contentResult.data?.homework)
     const sections = buildAssignmentSections(fields).tabSections.filter((section) =>
       section.fields.length > 0 || Boolean(section.title?.trim() || section.description?.trim())
     )
