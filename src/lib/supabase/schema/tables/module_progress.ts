@@ -8,6 +8,7 @@ export type ModuleProgressTable = {
     module_id: string
     status: PublicEnums["module_progress_status"]
     completed_at: string | null
+    step_progress: Json
     notes: Json | null
     created_at: string
     updated_at: string
@@ -18,6 +19,7 @@ export type ModuleProgressTable = {
     module_id: string
     status?: PublicEnums["module_progress_status"]
     completed_at?: string | null
+    step_progress?: Json
     notes?: Json | null
     created_at?: string
     updated_at?: string
@@ -28,6 +30,7 @@ export type ModuleProgressTable = {
     module_id?: string
     status?: PublicEnums["module_progress_status"]
     completed_at?: string | null
+    step_progress?: Json
     notes?: Json | null
     created_at?: string
     updated_at?: string

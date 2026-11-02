@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { verifyConcurrentLearningWrites } from "./durable-learning-concurrency.mjs"
+
 import { execFileSync, spawnSync } from "node:child_process"
 import {
   accessSync,
@@ -126,6 +128,10 @@ try {
   runSql("supabase/tests/workspace-support-learning.bootstrap.sql")
   runSql("supabase/migrations/20261028233000_workspace_support_learning.sql")
   runSql("supabase/tests/workspace-support-learning.assertions.sql")
+  runSql("supabase/migrations/20261102220000_durable_learning_progress.sql")
+  runSql("supabase/tests/durable-learning-progress.assertions.sql")
+  await verifyConcurrentLearningWrites(postgresDirectory, port, socketDirectory)
+  console.log("[durable-learning-progress] Atomic step union, notes compare-and-swap, isolation and revocation passed.")
   console.log("[workspace-support-learning] Target reads, writes, audit, owner isolation and revoked access passed.")
   console.log("[workspace-support] Explicit grants, search, selected-tenant RLS, presence, audit, storage and revocation passed.")
   console.log("[core-document-collaboration] Recovery, atomic revisions and private-table restrictions passed.")

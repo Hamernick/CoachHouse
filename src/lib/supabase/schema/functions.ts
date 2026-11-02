@@ -2,6 +2,8 @@ import type { Json } from "./json"
 import type { ResourceMapPublicItemsView } from "./views"
 
 export type PublicFunctions = {
+  record_module_step: { Args: { p_user_id: string; p_module_id: string; p_step_key: string }; Returns: Json }
+  save_module_notes_if_current: { Args: { p_user_id: string; p_module_id: string; p_notes: Json; p_expected_notes: Json }; Returns: Json }
   fiscal_profile_owner_linked: { Args: { p_reference: string }; Returns: boolean }
   register_fiscal_guest_project_asset: { Args: { p_actor_id: string; p_project_id: string; p_asset_id: string; p_filename: string; p_title: string; p_description: string | null; p_mime: string | null; p_size_bytes: number; p_storage_path: string }; Returns: Json }
   search_fiscal_organization_link: { Args: { p_project_id: string; p_query: string }; Returns: Json }
