@@ -72,7 +72,8 @@ def validate(snapshot, expected_source_id):
         kind = event.get("kind")
         payload_fields = {"closure_request": {"request"}, "closure_cancel": set(),
                           "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"},
-                          "form_reviewer_revoked": {"reviewer"}}
+                          "form_reviewer_revoked": {"reviewer"},
+                          "form_primary_manager_revoked": {"primaryManager"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -118,6 +119,15 @@ def validate(snapshot, expected_source_id):
             require(reviewer["grantId"] == event["operationId"], "Reviewer suppression identity mismatch")
             require(reviewer["permission"] in ("view", "edit", "manage"), "Invalid reviewer permission")
             require(timestamp(reviewer["createdAt"]) <= occurred, "Invalid reviewer suppression timing")
+        elif kind == "form_primary_manager_revoked":
+            primary = event["primaryManager"]
+            require(isinstance(primary, dict) and set(primary) == {
+                "formId", "grantId", "generationId", "createdAt",
+            }, "Invalid primary manager suppression event")
+            for field in ("formId", "grantId", "generationId"):
+                uuid(primary[field])
+            require(primary["grantId"] == event["operationId"], "Primary manager suppression identity mismatch")
+            require(timestamp(primary["createdAt"]) <= occurred, "Invalid primary manager suppression timing")
     return events
 
 

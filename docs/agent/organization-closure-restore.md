@@ -300,3 +300,34 @@ manager authority suppression is a separate remaining boundary. Pre-installation
 unstamped transitions and missing replacement grants require reconciliation.
 Keep the database quarantined, `historyRequiresReconciliation:true`,
 `captureComplete:false`, `releaseQualified:false` and closure controls disabled.
+
+## Exact primary-manager authority recovery
+
+Migrations `20261103150000` and `20261103160000` extend capture and quarantined
+replay with `form_primary_manager_revoked`. Both migrations are required:
+export/replay refuse a partial installation without the authority fence.
+Backups must retain the original primary grant IDs and private installation
+identifier; upgrading a pre-installation backup cannot recreate that lineage.
+
+Each form now retains an opaque primary authority generation and its allocation
+time. Actual manager or manager-revision changes rotate that generation; eligible
+membership loss retires it, including when the form has no dependent grants.
+Re-adding membership does not reactivate a retired generation. The existing
+explicit owner recovery remains revision-checked behind the closure guard;
+ownership alone still grants no response access. Capture failure rolls back the
+whole change. Unchanged manager values and ordinary metadata do not retire it.
+
+The event contains only form/grant IDs, installation identifier, manager revision
+and allocation/retirement times. Replay stamps only the matching generation or
+records its absence, preserving newer authority and unrelated organizations.
+It neither changes the manager identity nor creates a replacement. Shared access
+helpers and primary-only publication, deletion, delegation and permission flags
+honor retirement; a separate reviewer grant cannot restore primary-only powers.
+Existing exact collaborator retirement and closure wrappers remain in force.
+
+Historical unstamped transitions, missing replacement managers/grants and missing
+source-form history require reconciliation. This is access suppression, not
+account/PII erasure. Other sharing domains, independently durable/fresh capture,
+verified retention/purge and hosted recovery remain open. Keep restored targets
+quarantined, `historyRequiresReconciliation:true`, `captureComplete:false`,
+`releaseQualified:false` and closure/refund/provider activation disabled.
