@@ -7,10 +7,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import stat
 import subprocess
 import sys
+import tempfile
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -180,21 +182,95 @@ def capture(snapshot, journal):
             "captureComplete": False, "releaseQualified": False}
 
 
+def private_path(path, existing=False):
+    require(path.is_absolute(), "Evidence path must be absolute")
+    parent = path.parent.stat()
+    require(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.getuid()
+            and not parent.st_mode & 0o077, "Evidence requires an operator-owned private directory (0700)")
+    if existing:
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
+                and not info.st_mode & 0o077, "Evidence must be an operator-owned private regular file")
+
+
+def export_journal(journal, output, expected_source_id, expected_sha256):
+    require(isinstance(expected_sha256, str) and re.fullmatch(r"[0-9a-f]{64}", expected_sha256),
+            "Export requires the independently pinned successful capture digest")
+    private_path(journal, existing=True)
+    private_path(output)
+    # A read transaction keeps metadata and events from one committed snapshot.
+    connection = sqlite3.connect(journal.as_uri() + "?mode=ro", uri=True, isolation_level=None)
+    try:
+        connection.execute("begin")
+        identities = connection.execute("select singleton,metadata from capture_identity").fetchall()
+        require(len(identities) == 1 and identities[0][0] == 1, "Journal identity missing")
+        metadata = json.loads(identities[0][1])
+        require(isinstance(metadata, dict) and set(metadata) == {
+            "format", "sourceId", "capturedSince", "historyRequiresReconciliation",
+        } and canonical(metadata) == identities[0][1], "Invalid journal identity")
+        rows = connection.execute("select sequence,event_id,payload,sha256 from suppression_events order by sequence limit 1001").fetchall()
+        require(len(rows) <= 1000, "Capture limit exceeded")
+        events = []
+        for sequence, event_id, payload, sha in rows:
+            require(isinstance(payload, str) and len(payload.encode()) <= 1048576, "Invalid journal event")
+            event = json.loads(payload)
+            require(isinstance(event, dict) and event.get("sequence") == sequence and event.get("eventId") == event_id
+                    and canonical(event) == payload and hashlib.sha256(payload.encode()).hexdigest() == sha,
+                    "Journal event integrity mismatch")
+            events.append(event)
+        snapshot = {**metadata, "highWater": len(events), "events": events}
+        validate(snapshot, expected_source_id)
+        data = canonical(snapshot).encode()
+        require(len(data) <= 1048576, "Capture limit exceeded")
+        require(hashlib.sha256(data).hexdigest() == expected_sha256,
+                "Journal differs from the pinned capture receipt")
+        connection.execute("commit")
+    finally:
+        connection.close()
+    # Link a complete, fsynced private file into place without replacing evidence.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=output.parent, prefix=".suppression-export-", delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.link(temporary, output)
+        parent_fd = os.open(output.parent, os.O_RDONLY)
+        try:
+            os.fsync(parent_fd)
+        finally:
+            os.close(parent_fd)
+    finally:
+        if temporary is not None:
+            temporary.unlink()
+    require(output.read_bytes() == data, "Export readback mismatch")
+    return {"exported": len(events), "sha256": hashlib.sha256(data).hexdigest(),
+            "captureComplete": False, "releaseQualified": False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--source")
+    mode.add_argument("--export", type=Path, metavar="PRIVATE_MANIFEST_PATH")
     parser.add_argument("--journal", type=Path, required=True)
     parser.add_argument("--expected-source-id", required=True)
+    parser.add_argument("--expected-sha256", help="Successful capture receipt digest; required for export")
     args = parser.parse_args()
     uuid(args.expected_source_id)
-    snapshot = read_source(args.source, args.expected_source_id)
-    print(json.dumps(capture(snapshot, args.journal), sort_keys=True))
+    if args.export:
+        result = export_journal(args.journal, args.export, args.expected_source_id, args.expected_sha256)
+    else:
+        snapshot = read_source(args.source, args.expected_source_id)
+        result = capture(snapshot, args.journal)
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (CaptureError, OSError, sqlite3.Error, subprocess.SubprocessError) as error:
+    except (CaptureError, OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
         # Only controlled validation messages; provider/process/file errors can carry secrets.
         print(str(error) if isinstance(error, CaptureError) else "Capture failed; inspect private operator environment", file=sys.stderr)
         sys.exit(1)

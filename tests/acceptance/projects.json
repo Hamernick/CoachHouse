@@ -318,6 +318,7 @@
       "tests/acceptance/organization-document-collaboration.test.ts",
       "tests/acceptance/organization-form-intake-database.test.ts",
       "tests/acceptance/organization-suppression-capture-database.test.ts",
+      "tests/acceptance/organization-suppression-replay-database.test.ts",
       "tests/acceptance/prelaunch-social-metadata.test.ts",
       "tests/acceptance/project-data-view-receipt-database.test.ts",
       "tests/acceptance/resource-map-admin.test.ts",

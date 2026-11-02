@@ -147,3 +147,66 @@ and historical cancellations/deletions are not reconstructed. Both
 `captureComplete` and `releaseQualified` remain false. Keep the journal private
 and retained; this slice grants no expiry, physical purge, replay, reopening or
 closure activation authority.
+
+## Replay a retained captured history under quarantine
+
+This bounded procedure requires the source backup to contain migration
+`20261103100000`, the original capture lineage and a supported event prefix.
+It extends the local snapshot mechanic to captured requests, cancellations and
+response deletions. It does not qualify missing historical/independent grant
+revocations or authorize reopening.
+
+1. Preserve the SHA256 from a successful capture receipt independently of the
+   SQLite journal. Export that exact retained capture without contacting the
+   source database:
+
+   ```sh
+   python3 docs/agent/organization-suppression-capture.py \
+     --journal '/absolute/private-directory/suppression.sqlite' \
+     --expected-source-id 'independently-checked-source-uuid' \
+     --expected-sha256 'independently-pinned-capture-sha256' \
+     --export '/absolute/private-directory/captured-history.json'
+   ```
+
+   The journal is read in one read-only transaction. Identity, complete bounded
+   sequence, per-event digests and the independently pinned whole-capture digest
+   must match. The latter detects truncation even when all remaining event
+   digests are valid. Export atomically creates a private file and refuses to
+   overwrite any existing path. It prints only count/digest and false
+   qualification flags. If collection advanced, use the corresponding newer
+   independently retained receipt; never invent a digest to bypass a mismatch.
+
+2. Follow the quarantine-before-import procedure above: retain one operator
+   session, disable target database admission from the maintenance connection,
+   independently verify connection denial, then import the trusted plain dump.
+   Do not connect the collector, an app or a worker to the target.
+3. Through that retained session, supply the exact exported bytes and pinned
+   digest as quoted psql values:
+
+   ```sql
+   SELECT public.replay_organization_suppression_history(
+     :'captured_history', :'pinned_sha256');
+   SELECT datallowconn FROM pg_database WHERE datname=current_database();
+   ```
+
+4. Independently inspect response/correction absence, deletion tombstones,
+   lifecycle state, original deadlines, scoped withdrawal and preservation of
+   other organizations/shared identities. Keep the target quarantined.
+
+Replay requires exact source/capture lineage and event-prefix agreement. Missing
+events use the original IDs/times and enabled canonical shutdown/capture hooks;
+requests preserve their original export window and cancellation restores no
+publication or grants. Supported deletion removes the restored response and
+corrections and retains an answer-free tombstone. Unknown/missing source owners,
+conflicting or unsupported history and invalid evidence reject atomically.
+The whole captured stream must agree after replay; retries do not create another
+event stream. Successful replay remains `releaseQualified:false`.
+
+Exact captured history is not a guarantee that every revocation in the restored
+database is intact. Uncaptured grants, older deletion/cancellation history,
+collector outages and hosted recovery controls remain separate gates. Replay
+cannot reconstruct a deleted response's actor identity: new deletion tombstones
+use NULL attribution and grant no response access. The canonical actor check on
+a manager's deletion retry remains unchanged; operator replay idempotency does
+not imply restoration of that actor-specific receipt. No physical purge,
+retention expiry, provider action or connection reopening is authorized.
