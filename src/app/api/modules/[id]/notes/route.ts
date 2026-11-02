@@ -40,12 +40,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 })
   }
 
-  let body: { content?: unknown; organizationId?: string } = {}
+  let body: { content?: unknown; organizationId?: string; revision?: Json | null } = {}
   try {
     body = (await request.json()) as { content?: unknown }
   } catch {
-    // keep default empty payload
+    return NextResponse.json({ error: "Invalid notes." }, { status: 400 })
   }
+
+  if (!body || typeof body.content !== "string") return NextResponse.json({ error: "Invalid notes." }, { status: 400 })
 
   let learningUserId: string
   try {
@@ -55,19 +57,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
   const notesPayload = parsePayload(body.content)
 
-  const { error: upsertError } = await supabase
-    .from("module_progress")
-    .upsert(
-      {
-        user_id: learningUserId,
-        module_id: moduleId,
-        notes: notesPayload as Json | null,
-      },
-      { onConflict: "user_id,module_id" },
-    )
-
-  if (upsertError) {
-    return NextResponse.json({ error: "Unable to save notes." }, { status: 500 })
+  if (body.revision !== undefined) {
+    const { data, error: saveError } = await supabase.rpc("save_module_notes_if_current", {
+      p_user_id: learningUserId, p_module_id: moduleId,
+      p_notes: notesPayload as Json | null, p_expected_notes: body.revision,
+    })
+    if (saveError) return NextResponse.json({ error: "Unable to save notes." }, { status: 500 })
+    if (!data || typeof data !== "object" || Array.isArray(data) || data.ok !== true) {
+      return NextResponse.json({ error: "Notes changed elsewhere." }, { status: 409 })
+    }
+  } else {
+    const { error: upsertError } = await supabase.from("module_progress").upsert({
+      user_id: learningUserId, module_id: moduleId, notes: notesPayload as Json | null,
+    }, { onConflict: "user_id,module_id" })
+    if (upsertError) return NextResponse.json({ error: "Unable to save notes." }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, notes: notesPayload })

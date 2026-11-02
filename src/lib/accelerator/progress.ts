@@ -1,3 +1,4 @@
+import { readCompletedModuleStepIds } from "./step-progress"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { SidebarClass } from "@/lib/academy"
@@ -25,6 +26,7 @@ export type ModuleCard = {
   status: ModuleCardStatus
   index: number
   hasNotes: boolean
+  completedStepIds?: string[]
 }
 
 export type ModuleGroup = {
@@ -456,7 +458,7 @@ export async function fetchAcceleratorProgressSummary({
     await Promise.all([
       supabase
         .from("module_progress")
-        .select("module_id, status, notes")
+        .select("module_id, status, notes, step_progress")
         .eq("user_id", resolvedUserId)
         .in("module_id", moduleIds)
         .returns<
@@ -464,6 +466,7 @@ export async function fetchAcceleratorProgressSummary({
             module_id: string
             status: ModuleCardStatus
             notes: Json | null
+            step_progress?: Json
           }>
         >(),
       supabase
@@ -513,6 +516,10 @@ export async function fetchAcceleratorProgressSummary({
         assignmentResult.error
       )
     }
+  }
+
+  if (progressResult.error || submissionResult.error || assignmentResult.error) {
+    throw new Error("Unable to load saved lesson progress. Please retry.")
   }
 
   const progressMap = new Map<string, ModuleCardStatus>()
@@ -597,6 +604,13 @@ export async function fetchAcceleratorProgressSummary({
     notesMap,
     basePath,
   })
+
+  const savedSteps = new Map((progressResult.data ?? []).map((row) =>
+    [row.module_id, readCompletedModuleStepIds(row.module_id, row.step_progress)]
+  ))
+  for (const group of groups) for (const lesson of group.modules) {
+    lesson.completedStepIds = savedSteps.get(lesson.id) ?? []
+  }
 
   const { totalModules, completedModules, inProgressModules, percent } =
     buildAcceleratorProgressTotals({

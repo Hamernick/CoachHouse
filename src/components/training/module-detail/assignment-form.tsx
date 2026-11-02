@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 
 import {
@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
 import type { ModuleAssignmentField, ModuleResource } from "../types"
@@ -101,11 +102,27 @@ function AssignmentFormInner({
   const isAcceleratorShell = (pathname ?? "").startsWith("/accelerator")
   const richTextMinHeight = isAcceleratorShell ? 560 : 420
   const showStatusBadge = statusLabel && statusLabel !== "Submitted"
-  const { values, autoSaving, updateValue } = useAssignmentFormValues({
+  const { values, autoSaving, hasLegacyDraft, updateValue } = useAssignmentFormValues({
     initialValues,
     moduleId,
     onSubmit,
   })
+  const advancingRef = useRef(false)
+  const [advancing, setAdvancing] = useState(false)
+  const saveAndAdvance = async () => {
+    if (advancingRef.current) return
+    advancingRef.current = true
+    setAdvancing(true)
+    try {
+      if (await onSubmit(values, { silent: true }) === false) return
+      await onStepNext?.()
+    } catch {
+      toast.error("Your answers could not be saved. Retry before continuing.")
+    } finally {
+      advancingRef.current = false
+      setAdvancing(false)
+    }
+  }
   const hasMeta = Boolean(
     showStatusBadge || helperText || errorMessage || statusNote || autoSaving
   )
@@ -191,6 +208,9 @@ function AssignmentFormInner({
 
   return (
     <div className={containerClass}>
+      {hasLegacyDraft ? <p role="status" className="text-xs text-muted-foreground md:col-span-full">
+        This browser has an older assignment draft. If work appears missing, contact support from this device so we can verify and recover it.
+      </p> : null}
       {!isStepper && progressPlacement === "header" ? (
         headerSlot || showProgressPanel ? (
           <div
@@ -280,11 +300,11 @@ function AssignmentFormInner({
         ) : showStepNavigation ? (
           <AssignmentStepNavigation
             canGoPrevious={canGoPreviousStep}
-            canGoNext={canGoNextStep}
+            canGoNext={canGoNextStep && !advancing && !pending}
             currentSection={activeSectionForNavigation}
             nextSection={nextSectionForNavigation}
             onPrevious={onStepPrevious}
-            onNext={onStepNext}
+            onNext={() => void saveAndAdvance()}
           />
         ) : null}
       </div>

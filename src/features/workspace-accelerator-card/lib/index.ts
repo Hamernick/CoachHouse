@@ -322,8 +322,10 @@ export function buildWorkspaceAcceleratorCardSteps(
   }
 
   const stepTotal = flattened.length
+  const savedStepIds = new Set(safeModules.flatMap((module) => module.completedStepIds ?? []))
   return flattened.map((step, index) => ({
     ...step,
+    status: savedStepIds.has(step.id) ? "completed" : step.status,
     stepSequenceIndex: index + 1,
     stepSequenceTotal: stepTotal,
   }))
@@ -404,6 +406,7 @@ export function normalizeWorkspaceAcceleratorCardInput(
     ),
     initialCompletedStepIds,
     onModuleComplete: input.onModuleComplete,
+    onStepComplete: input.onStepComplete,
     onProgressChange: input.onProgressChange,
     onWorkspaceOnboardingSubmit: input.onWorkspaceOnboardingSubmit,
   }

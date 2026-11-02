@@ -10,7 +10,7 @@ import type { Database } from "@/lib/supabase/types"
 
 type Result = { ok: true } | { error: string }
 
-export async function markModuleCompleteAction(moduleId: string): Promise<Result> {
+export async function markModuleCompleteAction(moduleId: string, expectedOrgId?: string): Promise<Result> {
   if (!moduleId) return { error: "Missing module id." }
 
   const supabase = await createSupabaseServerClient()
@@ -24,7 +24,7 @@ export async function markModuleCompleteAction(moduleId: string): Promise<Result
 
   let learningUserId: string
   try {
-    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id))
+    ;({ learningUserId } = await resolveOrganizationLearningContext(supabase, user.id, expectedOrgId))
   } catch {
     return { error: "Organization access changed. Reopen this lesson and try again." }
   }

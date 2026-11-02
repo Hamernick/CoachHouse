@@ -73,6 +73,7 @@ export type WorkspaceAcceleratorModuleContext = {
 }
 
 export type WorkspaceAcceleratorTimelineModuleSeed = {
+  completedStepIds?: string[]
   id: string
   published?: boolean
   slug?: string | null
@@ -100,6 +101,7 @@ export type WorkspaceAcceleratorCardInput = {
   onSizeChange?: (nextSize: WorkspaceAcceleratorCardSize) => void
   initialCurrentStepId?: string | null
   initialCompletedStepIds?: string[]
+  onStepComplete?: (moduleId: string, stepId: string) => Promise<{ ok: true } | { error: string }>
   onModuleComplete?: (moduleId: string) => Promise<{ ok: true } | { error: string }>
   onProgressChange?: (state: WorkspaceAcceleratorCardProgressState) => void
   onWorkspaceOnboardingSubmit?: (form: FormData) => Promise<void>
@@ -195,6 +197,6 @@ export type WorkspaceAcceleratorTutorialInteractionPolicy = {
 export type WorkspaceAcceleratorCardRuntimeActions = {
   goPrevious: () => void
   goNext: () => void
-  markCurrentStepComplete: () => void
+  markCurrentStepComplete: () => Promise<boolean>
   selectLessonGroup: (nextLessonGroupKey: string) => void
 }

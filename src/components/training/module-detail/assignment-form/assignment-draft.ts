@@ -1,6 +1,9 @@
 import type { AssignmentValues } from "../utils"
 
 type StoredAssignmentDraft = {
+  version?: 2
+  scope?: string
+  moduleId?: string
   baseSignature?: string
   updatedAt?: string
   values?: AssignmentValues
@@ -38,13 +41,16 @@ function hasMeaningfulValue(value: unknown): boolean {
 
 export function readAssignmentDraft({
   initialValues,
-  raw,
+  raw, scope, moduleId,
 }: {
   initialValues: AssignmentValues
+  scope?: string
+  moduleId?: string
   raw: string
 }): AssignmentValues | null {
   try {
     const parsed = JSON.parse(raw) as StoredAssignmentDraft
+    if (parsed.scope !== undefined && (parsed.scope !== scope || parsed.moduleId !== moduleId)) return null
     if (!parsed?.values || typeof parsed.values !== "object") return null
 
     const currentBaseSignature = serializeAssignmentValues(initialValues)
@@ -66,14 +72,18 @@ export function readAssignmentDraft({
 
 export function buildAssignmentDraft({
   initialValues,
-  values,
+  values, scope, moduleId,
 }: {
+  scope?: string
+  moduleId?: string
   initialValues: AssignmentValues
   values: AssignmentValues
 }) {
   return JSON.stringify({
+    version: 2,
     baseSignature: serializeAssignmentValues(initialValues),
     updatedAt: new Date().toISOString(),
+    scope, moduleId,
     values,
   } satisfies StoredAssignmentDraft)
 }

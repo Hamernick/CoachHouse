@@ -83,6 +83,12 @@ export function mergeNewerPersistedWorkspaceNodeState({
   persisted: WorkspaceBoardState | null
 }) {
   if (!persisted) return incoming
+  const legacyCompletedStepIds = Array.from(new Set([
+    ...persisted.accelerator.completedStepIds, ...incoming.accelerator.completedStepIds,
+  ]))
+  if (legacyCompletedStepIds.length !== incoming.accelerator.completedStepIds.length) {
+    incoming = { ...incoming, accelerator: { ...incoming.accelerator, completedStepIds: legacyCompletedStepIds } }
+  }
 
   const persistedNodesById = new Map(
     persisted.nodes.map((node) => [node.id, node] as const)

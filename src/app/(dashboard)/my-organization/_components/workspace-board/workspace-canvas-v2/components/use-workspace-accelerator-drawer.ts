@@ -1,5 +1,8 @@
 "use client"
 
+import { saveModuleStepProgressAction } from "@/app/actions/module-step-progress"
+
+
 import {
   startTransition,
   useCallback,
@@ -181,7 +184,8 @@ export function useWorkspaceAcceleratorDrawer({
       storageKey: `${seed.orgId}:${seed.viewerId}`,
       initialCurrentStepId: boardState.accelerator.activeStepId,
       initialCompletedStepIds: boardState.accelerator.completedStepIds,
-      onModuleComplete: markModuleCompleteAction,
+      onModuleComplete: (moduleId) => markModuleCompleteAction(moduleId, seed.orgId),
+      onStepComplete: (moduleId, stepId) => saveModuleStepProgressAction({ moduleId, stepId, expectedOrgId: seed.orgId }),
       onProgressChange,
       onWorkspaceOnboardingSubmit: onInitialOnboardingSubmit,
     }),

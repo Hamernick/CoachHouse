@@ -1,5 +1,7 @@
 # Open Work Index
 
+**Accelerator progress reload — November2:** Local patch on `fix/production-investigation-20261102` adds durable learner steps, acknowledgement-gated progress, notes retry/conflict recovery, and legacy-draft detection. Focused application, PostgreSQL concurrency/RLS and Chromium checks passed. [Checkpoint](../plans/2026-11-02-accelerator-progress-investigation.md) owns release order and recovery limits. PR/current-head CI, code-owner approval, migration, deployment and live acceptance remain pending; no production mutation. Historical customer-marker recovery is separate.
+
 **Roadmap save reliability — October29:** `fix/roadmap-save-acknowledgement-20261029` addresses interrupted section-switch saves and unverified Saved acknowledgements. [Checkpoint](../plans/2026-10-29-roadmap-save-acknowledgement.md) owns reproduction, local validation and release boundaries; no migration or production content write.
 
 **PR363 organization access follow-up — October29:** Same `fix/karissa-project-identity-20261027` now includes explicit all-organization access for the fiscal staff, Joel and Paula accounts, with All as the directory default. Existing assignments and developer roles stay unchanged. [Checkpoint](../plans/2026-10-27-karissa-project-identity.md#october29--all-organization-coach-access-in-pr363) owns implementation, exact live grants, verification and the single-deployment handoff.

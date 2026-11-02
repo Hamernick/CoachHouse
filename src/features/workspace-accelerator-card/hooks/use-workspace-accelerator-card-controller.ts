@@ -1,5 +1,7 @@
 "use client"
 
+import { toast } from "sonner"
+
 import {
   startTransition,
   useCallback,
@@ -33,6 +35,7 @@ export function useWorkspaceAcceleratorCardController(
     initialCurrentStepId,
     initialCompletedStepIds,
     onProgressChange,
+    onStepComplete,
   } = normalized
 
   const stepIds = useMemo(() => steps.map((step) => step.id), [steps])
@@ -104,6 +107,7 @@ export function useWorkspaceAcceleratorCardController(
       )
     })
 
+    if (onStepComplete) return // Live progress comes from acknowledged learner records.
     const rawCompleted = window.localStorage.getItem(
       `workspace-accelerator-card-complete:${storageKey}`
     )
@@ -126,7 +130,7 @@ export function useWorkspaceAcceleratorCardController(
     } catch {
       // best-effort hydration only
     }
-  }, [hasInitialCompletedFromInput, initialCurrentStepId, storageKey])
+  }, [hasInitialCompletedFromInput, initialCurrentStepId, storageKey, onStepComplete])
 
   useEffect(() => {
     if (!initialCurrentStepId || stepIds.length === 0) return
@@ -141,7 +145,7 @@ export function useWorkspaceAcceleratorCardController(
   }, [initialCurrentStepId, stepIdToIndex, stepIds.length, stepIdsSignature])
 
   useEffect(() => {
-    const syncKey = `${initialCompletedStepIdsSignature}::${stepIdsSignature}`
+    const syncKey = `${storageKey}::${initialCompletedStepIdsSignature}::${stepIdsSignature}`
     if (lastInitialCompletedSyncKeyRef.current === syncKey) return
     lastInitialCompletedSyncKeyRef.current = syncKey
 
@@ -160,6 +164,7 @@ export function useWorkspaceAcceleratorCardController(
       return nextCompleted
     })
   }, [
+    storageKey,
     initialCompletedStepIdsFromInput,
     initialCompletedStepIdsSignature,
     stepIdsSignature,
@@ -214,8 +219,38 @@ export function useWorkspaceAcceleratorCardController(
     [currentIndex, stepIdToIndex]
   )
 
-  const markCurrentStepComplete = useCallback((wholeModule = false) => {
-    if (!currentStep || (!wholeModule && completedStepIds.includes(currentStep.id))) return
+  const completionRequests = useRef(new Map<string, Promise<boolean>>())
+  const completionScope = useRef(storageKey)
+  completionScope.current = storageKey
+  const completionStep = useRef(currentStep?.id)
+  completionStep.current = currentStep?.id
+  const completionMounted = useRef(true)
+  useEffect(() => {
+    completionMounted.current = true
+    return () => { completionMounted.current = false }
+  }, [])
+  const markCurrentStepComplete = useCallback(async function markStep(wholeModule = false): Promise<boolean> {
+    if (!currentStep) return false
+    if (!wholeModule && completedStepIds.includes(currentStep.id)) return true
+    const requestKey = `${storageKey}:${currentStep.id}:${wholeModule}`
+    const existing = completionRequests.current.get(requestKey)
+    if (existing) return existing
+    const request = (async () => {
+      if (!wholeModule) {
+        try {
+          const result = await onStepComplete?.(currentStep.moduleId, currentStep.id)
+          if (!result || "error" in result) throw new Error(result && "error" in result ? result.error : "Progress could not be saved. Reopen this lesson and retry.")
+        } catch (error) {
+          if (completionMounted.current && completionScope.current === storageKey) {
+            toast.error(error instanceof Error ? error.message : "Progress could not be saved. Retry.", {
+              id: `step-save:${currentStep.id}`,
+              action: { label: "Retry", onClick: () => { void markStep(wholeModule) } },
+            })
+          }
+          return false
+        }
+      }
+      if (!completionMounted.current || completionScope.current !== storageKey) return false
     pendingUserProgressChangeRef.current = true
     setCompletedStepIds((previous) => {
       const ids = wholeModule
@@ -223,7 +258,11 @@ export function useWorkspaceAcceleratorCardController(
         : [currentStep.id]
       return Array.from(new Set([...previous, ...ids]))
     })
-  }, [completedStepIds, currentStep, steps])
+      return completionStep.current === currentStep.id
+    })()
+    completionRequests.current.set(requestKey, request)
+    try { return await request } finally { completionRequests.current.delete(requestKey) }
+  }, [completedStepIds, currentStep, onStepComplete, steps, storageKey])
 
   useEffect(() => {
     if (!allowAutoResize || !onSizeChange || !currentStep) return

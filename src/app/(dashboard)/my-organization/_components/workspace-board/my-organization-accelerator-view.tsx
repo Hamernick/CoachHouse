@@ -1,5 +1,8 @@
 "use client"
 
+import { markModuleCompleteAction } from "@/app/actions/module-progress"
+import { saveModuleStepProgressAction } from "@/app/actions/module-step-progress"
+
 import { useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 
@@ -52,6 +55,8 @@ export function MyOrganizationAcceleratorView({
       storageKey: `${seed.orgId}:${seed.viewerId}`,
       initialCurrentStepId: initialStepId ?? seed.boardState.accelerator.activeStepId,
       initialCompletedStepIds: seed.boardState.accelerator.completedStepIds,
+      onModuleComplete: (moduleId) => markModuleCompleteAction(moduleId, seed.orgId),
+      onStepComplete: (moduleId, stepId) => saveModuleStepProgressAction({ moduleId, stepId, expectedOrgId: seed.orgId }),
       onWorkspaceOnboardingSubmit,
     }),
     [

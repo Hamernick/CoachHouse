@@ -272,6 +272,7 @@ function buildModuleSeed({
     description: roadmapModule.description ?? null,
     href: roadmapModule.href,
     status: roadmapModule.status,
+    completedStepIds: roadmapModule.completedStepIds,
     groupTitle: groupMeta?.title ?? "Accelerator",
     groupOrder: groupMeta?.order ?? null,
     videoUrl,
