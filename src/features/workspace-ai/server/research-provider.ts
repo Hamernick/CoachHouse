@@ -1,4 +1,5 @@
 import "server-only"
+import { validateKnowledgeToolResult, unavailableKnowledgeToolResult } from "../lib/knowledge-tool-contract"
 import OpenAI from "openai"
 import { randomUUID } from "node:crypto"
 import { researchPlanOperations } from "@/features/workspace-particles"
@@ -128,7 +129,7 @@ export async function runResearchProvider(input: {
       if(++toolCalls>8) return {canceled:false,usage,responseId,result:null}
       let output:unknown
       input.onPhase?.(call.name === "search_workspace" ? "searching" : "reading")
-      try {output=await knowledge.execute(call.name,JSON.parse(call.arguments))} catch {output={error:"This authorized source or tool is unavailable. Do not infer its contents."}}
+      try {output=validateKnowledgeToolResult(call.name,await knowledge.execute(call.name,JSON.parse(call.arguments)),{organizationId:input.context.target.organizationId,canvasId:input.context.canvasId??null})} catch {output=unavailableKnowledgeToolResult}
       // A tool's safe fallback must not swallow the run deadline or continue a
       // canceled request. Keep measured usage; unknown provider usage still throws.
       if(await isCanceled()) return {canceled:true,usage,responseId,result:null}

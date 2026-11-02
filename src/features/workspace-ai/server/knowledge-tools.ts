@@ -1,4 +1,6 @@
 import "server-only"
+import { validateKnowledgeToolResult } from "../lib/knowledge-tool-contract"
+import { knowledgeReadFailure } from "./knowledge-failure"
 import { knowledgeSearchSchema, knowledgeReadSchema, type KnowledgeRecord, type ResearchSource, type KnowledgeEvidence } from "../research-types"
 import { searchKnowledge } from "../lib/research-contract"
 import { readKnowledgeFile } from "./knowledge-file"
@@ -37,6 +39,8 @@ export function createKnowledgeTools(context: ResearchContext, signal?: AbortSig
       return [...sources.values()]
     },
     async execute(name: string, args: unknown) {
+      const envelope = { version: 1, scope: { organizationId: context.target.organizationId, canvasId: context.canvasId ?? null }, effect: "internal_read",
+        disclosure: { destination: "configured_workspace_model", sensitivity: "organization_private", publicDisclosure: false } }
       let result: unknown
       if(name === "search_workspace") {
         const input = knowledgeSearchSchema.parse(args)
@@ -52,12 +56,12 @@ export function createKnowledgeTools(context: ResearchContext, signal?: AbortSig
           freshness.observe(full); remember(full, disclosed.evidence)
           return disclosed
         })
-        result = { results, unavailableKinds, limit:8, note:"Bounded keyword search. Refine query if needed. A filename match is not evidence of its contents." }
+        result = { ...envelope, results, unavailableKinds, limit:8, note:"Bounded keyword search. Refine query if needed. A filename match is not evidence of its contents." }
       } else if(name === "read_workspace") {
         const input = knowledgeReadSchema.parse(args)
         const current = await freshness.context(), load = knowledgeLoader(current)
         const ids = [...new Set(input.ids)]
-        result = { results: await Promise.all(ids.map(async id => {
+        result = { ...envelope, results: await Promise.all(ids.map(async id => {
           try {
             signal?.throwIfAborted()
             const previous = discovered.get(id)
@@ -69,10 +73,11 @@ export function createKnowledgeTools(context: ResearchContext, signal?: AbortSig
             const disclosed = knowledgeDisclosure(detail, "read", Math.floor(6000 / ids.length))
             remember(record, disclosed.evidence)
             return disclosed
-          }catch{return {id,error:"Contents are unavailable or changed. Restart research for current evidence."}}
+          }catch(error){ signal?.throwIfAborted(); return knowledgeReadFailure(id,error) }
         })) }
       } else throw new Error("Tool is not available.")
-      return result
+      signal?.throwIfAborted()
+      return validateKnowledgeToolResult(name,result,envelope.scope)
     },
   }
 }

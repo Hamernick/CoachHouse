@@ -8,6 +8,7 @@ export {
 } from "./lib"
 export { GoogleDriveError } from "./types"
 export {
+  readGoogleSheetRange,
   getSelectedGoogleDriveFile,
   importGoogleDriveFile,
   attachGoogleDriveDocuments,

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { googleSheetRangeSchema } from "@/features/google-drive/client"
 import { responseViewSourceSchema, responseViewPayloadSchema, responseViewEditCommandSchema, responseViewDirectoryCommandSchema } from "./response-source"
 
 const key = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/)
@@ -22,12 +23,13 @@ const target = { organizationId: z.uuid(), viewId: z.uuid() }
 const mutation = { ...target, requestId: z.uuid() }
 export const dataViewCommandSchema = z.discriminatedUnion("action", [
   responseViewEditCommandSchema, responseViewDirectoryCommandSchema,
-  z.strictObject({ ...target, action: z.literal("read"), page: z.number().int().min(0).max(400).default(0) }),
+  z.strictObject({ ...target, action: z.literal("read"), page: z.number().int().min(0).max(400).default(0), sourceRevision: z.string().regex(/^[a-f0-9]{64}$/).optional() }),
   z.strictObject({ ...target, action: z.literal("sources") }),
   z.strictObject({ ...mutation, action: z.literal("create_view"), name: z.string().trim().min(1).max(100),
     source: z.discriminatedUnion("kind", [
       z.strictObject({ kind: z.literal("projects") }),
       responseViewSourceSchema,
+      z.strictObject({ kind: z.literal("sheets"), range: googleSheetRangeSchema }),
       z.strictObject({ kind: z.literal("table"), tableId: z.uuid() }),
       z.strictObject({ kind: z.literal("new_table"), columns: dataColumnsSchema, rows: z.array(dataRowValuesSchema).max(500),
         provenance: z.strictObject({ kind: z.enum(["new", "csv_copy"]), filename: z.string().max(255).nullable(), rowCount: z.number().int().min(0).max(500) }),
@@ -40,12 +42,13 @@ export const dataViewCommandSchema = z.discriminatedUnion("action", [
   z.strictObject({ ...mutation, action: z.literal("add_row"), values: dataRowValuesSchema }),
 ]).refine(command => new TextEncoder().encode(JSON.stringify(command, null, 1)).byteLength <= 1_000_000, "This request exceeds 1 MB. Split the import into a smaller file.")
 export const dataViewPageSchema = z.strictObject({
-  view: z.strictObject({ id: z.uuid(), name: z.string(), revision: z.number().int().positive(), source: z.enum(["projects", "table", "responses"]), tableId: z.uuid().nullable(), config: dataViewConfigSchema }).nullable(),
+  view: z.strictObject({ id: z.uuid(), name: z.string(), revision: z.number().int().positive(), source: z.enum(["projects", "table", "responses", "sheets"]), tableId: z.uuid().nullable(), config: dataViewConfigSchema }).nullable(),
   columns: z.array(dataColumnSchema),
   rows: z.array(z.strictObject({ id: z.uuid(), revision: z.string(), values: dataRowValuesSchema })).max(25),
   total: z.number().int().nonnegative(), page: z.number().int().nonnegative(), canEdit: z.boolean(),
   provenance: z.record(z.string(), z.unknown()).nullable(),
   responseSource: responseViewPayloadSchema.optional(),
+  sheetSource: z.strictObject({ title: z.string(), sheetTitle: z.string(), email: z.string(), url: z.url(), range: googleSheetRangeSchema, revision: z.string() }).optional(),
 })
 export type DataColumn = z.infer<typeof dataColumnSchema>
 export type DataViewCommand = z.infer<typeof dataViewCommandSchema>

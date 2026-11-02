@@ -11,18 +11,22 @@ export function useWorkspaceDataViewsController(organizationId: string, viewId: 
   const [uncertain, setUncertain] = useState<DataViewCommand | null>(null)
   const generation = useRef(0)
   const busy = useRef(false)
+  const sheetRevision = useRef<{ scope: string; revision: string } | undefined>(undefined)
   const load = useCallback(async () => {
     const current = ++generation.current
-    const result = await runDataViewCommand({ action: "read", organizationId, viewId, page })
+    const scope = `${organizationId}:${viewId}`
+    const result = await runDataViewCommand({ action: "read", organizationId, viewId, page, ...(page > 0 && sheetRevision.current?.scope === scope ? { sourceRevision: sheetRevision.current.revision } : {}) })
     if (current !== generation.current) return false
     if (!result.ok) {
       setError(result.error)
       // Revocation/unavailability clears cached rows and counts immediately.
       setData(null)
+      if (result.code === "conflict" && sheetRevision.current) { sheetRevision.current = undefined; setPage(0) }
       return false
     }
     const parsed = dataViewPageSchema.safeParse(result.data)
     if (!parsed.success) { setData(null); setError("The saved view is unavailable. Try reloading."); return false }
+    sheetRevision.current = parsed.data.sheetSource ? { scope, revision: parsed.data.sheetSource.revision } : undefined
     setData(parsed.data)
     return true
   }, [organizationId, viewId, page])

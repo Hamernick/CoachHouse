@@ -495,3 +495,20 @@ export async function getGoogleDriveFileContent(input: {
   )
   return downloadGoogleDriveDocumentContent(accessToken, ids[0])
 }
+
+// Interactive linked reads always use the current viewer's own connection.
+export async function readGoogleSheetRange(userId: string, range: import("../sheets").GoogleSheetRange) {
+  const { readGoogleSheetGrid } = await import("./sheets-read")
+  const { googleSheetRangeSchema } = await import("../sheets")
+  range = googleSheetRangeSchema.parse(range)
+  const admin = createSupabaseAdminClient()
+  const { accessToken, connection } = await getAccessToken(admin, userId)
+  const file = await getGoogleDriveFile(accessToken, range.spreadsheetId)
+  if (file.status !== "available" || file.mimeType !== "application/vnd.google-apps.spreadsheet") throw new GoogleDriveError("file_not_authorized", 403)
+  const grid = await readGoogleSheetGrid(accessToken, range)
+  const recheckedFile = await getGoogleDriveFile(accessToken, range.spreadsheetId)
+  if (recheckedFile.status !== "available" || recheckedFile.mimeType !== "application/vnd.google-apps.spreadsheet") throw new GoogleDriveError("file_not_authorized", 403)
+  const current = await getConnection(admin, userId)
+  if (current.id !== connection.id || current.google_subject !== connection.google_subject || current.refresh_token_ciphertext !== connection.refresh_token_ciphertext) throw new GoogleDriveError("google_revoked", 409)
+  return { ...grid, email: connection.google_email }
+}

@@ -19,7 +19,7 @@ describe("workspace knowledge tools",()=>{
   await tools.execute("search_workspace",{query:"marketing",kinds:["person"]})
   expect(mocks.load).toHaveBeenCalledTimes(2)
   expect(mocks.context).toHaveBeenCalledTimes(2)
-  expect(await tools.execute("read_workspace",{ids:["person:other"]})).toEqual({results:[{id:"person:other",error:"Contents are unavailable or changed. Restart research for current evidence."}]})
+  expect(await tools.execute("read_workspace",{ids:["person:other"]})).toMatchObject({results:[{id:"person:other",error:"Contents could not be verified. Retry the read; do not infer their contents."}]})
   expect(mocks.file).not.toHaveBeenCalled()
   await tools.execute("read_workspace",{ids:[record.id]})
   expect(mocks.file).toHaveBeenCalledTimes(1)
@@ -38,7 +38,7 @@ describe("workspace knowledge tools",()=>{
   await expect(tools.execute("read_workspace",{ids:["a","b","c","d","e"]})).rejects.toThrow()
  })
  it("retains available records when another read fails and preserves extraction truncation",async()=>{
-  const file={...record,id:"file:known"}
+  const file={...record,id:"file:known",kind:"document"}
   mocks.load.mockResolvedValue([record,file])
   mocks.file.mockImplementation(async(_context,value)=>{if(value.id===file.id)throw Error("permission revoked");return {...value,contentTruncated:true}})
   const tools=createKnowledgeTools(context)
@@ -78,7 +78,7 @@ describe("direct authorized workspace reads",()=>{
    expect(tools.dependencies().records).toEqual([])
   }
   expect(results.every(result=>JSON.stringify(result)===JSON.stringify(results[0]))).toBe(true)
-  expect(results[0]).toEqual({results:[{id,error:"Contents are unavailable or changed. Restart research for current evidence."}]})
+  expect(results[0]).toMatchObject({results:[{id,error:"Contents could not be verified. Retry the read; do not infer their contents."}]})
   expect(mocks.file).not.toHaveBeenCalled()
  })
 
@@ -95,7 +95,7 @@ describe("direct authorized workspace reads",()=>{
   const controller=new AbortController(),known={...record,id:`person:${ID(80)}`}
   mocks.load.mockImplementation(async()=>{controller.abort();return [known]})
   const tools=createKnowledgeTools(context,controller.signal)
-  expect(await tools.execute("read_workspace",{ids:[known.id]})).toMatchObject({results:[{error:expect.any(String)}]})
+  await expect(tools.execute("read_workspace",{ids:[known.id]})).rejects.toThrow()
   expect(mocks.file).not.toHaveBeenCalled()
   expect(tools.sources.size).toBe(0)
   expect(tools.dependencies().records).toEqual([])
@@ -129,7 +129,7 @@ it("reads selected-plan members without rediscovery and binds only used baseline
  expect(tools.sources.size).toBe(0)
  expect(await tools.execute("read_workspace",{ids:[`particle:${member.id}`]})).toMatchObject({results:[{content:"Existing implementation detail",revision:"0"}]})
  expect(mocks.load).toHaveBeenCalledWith("particle","",`particle:${member.id}`)
- expect(await tools.execute("read_workspace",{ids:[`particle:${other.id}`]})).toMatchObject({results:[{error:"Contents are unavailable or changed. Restart research for current evidence."}]})
+ expect(await tools.execute("read_workspace",{ids:[`particle:${other.id}`]})).toMatchObject({results:[{error:"Contents could not be verified. Retry the read; do not infer their contents."}]})
  expect(tools.evidence([`particle:${member.id}`])).toMatchObject([{id:`particle:${member.id}`,revision:"0"}])
 })
 
@@ -139,9 +139,10 @@ it("withholds changed or revoked records instead of replaying cached private con
  await tools.execute("search_workspace",{query:"marketing",kinds:["person"]})
  await tools.execute("read_workspace",{ids:[record.id]})
  mocks.load.mockResolvedValue([{...record,revision:"new",content:"Changed private content"}])
- expect(await tools.execute("read_workspace",{ids:[record.id]})).toMatchObject({results:[{id:record.id,error:expect.any(String)}]})
+ expect(await tools.execute("read_workspace",{ids:[record.id]})).toMatchObject({results:[{id:record.id,status:"changed",recovery:"restart_research",error:expect.any(String)}]})
  expect(await tools.revalidate()).toBe(false)
  mocks.load.mockResolvedValue([])
+ expect(await tools.execute("read_workspace",{ids:[record.id]})).toMatchObject({results:[{id:record.id,status:"unavailable",recovery:"retry_read"}]})
  expect(await tools.revalidate()).toBe(false)
  expect(mocks.file).toHaveBeenCalledTimes(1)
 })

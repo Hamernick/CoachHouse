@@ -126,3 +126,28 @@ it("revalidates actual file evidence without another download and rejects later 
  expect(await tools.revalidate()).toBe(false)
  expect(mock.download).toHaveBeenCalledTimes(1)
 })
+
+it.each([
+ ["application/pdf", 100, "unsupported_format"], ["text/plain", 256001, "exhausted_budget"], ["text/plain", 0, "empty"],
+] as const)("reports %s at %i bytes as %s without downloading", async (mime, size, availability) => {
+ mock.row.mockResolvedValue({ data: { ...file(Buffer.from("text"), mime), size_bytes: size }, error: null })
+ expect(await readKnowledgeFile(context, record)).toMatchObject({ contentAvailable: false, availability })
+ expect(mock.download).not.toHaveBeenCalled()
+})
+it("keeps post-extraction missing, failed and revoked queries unavailable instead of asserting a source change", async () => {
+ for (const missing of [{ data: null, error: null }, { data: null, error: { message: "network" } }]) {
+  mock.row.mockResolvedValueOnce({ data: file(archive()), error: null }).mockResolvedValueOnce(missing)
+  await expect(readKnowledgeFile(context, record)).rejects.toThrow("File contents are unavailable")
+ }
+ mock.row.mockResolvedValueOnce({ data: file(archive()), error: null }).mockResolvedValueOnce({ data: { ...file(archive()), updated_at: "changed" }, error: null })
+ mock.access.mockResolvedValueOnce({ hasStorageAccess: true }).mockResolvedValueOnce({ hasStorageAccess: false })
+ await expect(readKnowledgeFile(context, record)).rejects.toThrow("Document access is unavailable")
+})
+
+it("rejects wrong file identities before extraction and after reading without asserting change", async () => {
+ mock.row.mockResolvedValueOnce({ data: { ...file(archive()), id: ID(99) }, error: null })
+ await expect(readKnowledgeFile(context, record)).rejects.toThrow("File is unavailable")
+ expect(mock.download).not.toHaveBeenCalled()
+ mock.row.mockResolvedValueOnce({ data: file(archive()), error: null }).mockResolvedValueOnce({ data: { ...file(archive()), id: ID(99) }, error: null })
+ await expect(readKnowledgeFile(context, record)).rejects.toThrow("File contents are unavailable")
+})

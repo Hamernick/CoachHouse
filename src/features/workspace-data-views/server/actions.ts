@@ -3,6 +3,7 @@
 import type { PostgrestSingleResponse } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { runResponseDataView } from "./response-source"
+import { runSheetDataView } from "./sheet-source"
 import type { Json } from "@/lib/supabase"
 import { dataViewCommandSchema, type DataViewResult } from "../lib/schema"
 
@@ -15,12 +16,15 @@ export async function runDataViewCommand(input: unknown): Promise<DataViewResult
   if (authError || !auth.user) return { ok: false, code: "denied", error: "Sign in to access this dataset." }
   // New RPC has a local typed boundary until generated Supabase types are refreshed.
   const rpc = client.rpc.bind(client) as unknown as (name: "workspace_data_view_command", args: { p_command: Json }) => { abortSignal: (signal: AbortSignal) => PromiseLike<PostgrestSingleResponse<Json>> }
+    if (parsed.data.action === "create_view" && parsed.data.source.kind === "sheets") return await runSheetDataView(auth.user.id, parsed.data) ?? { ok: false, code: "denied", error: "Sheet source unavailable." }
     if (parsed.data.action === "response_views" || parsed.data.action === "edit_response_cell" || (parsed.data.action === "create_view" && parsed.data.source.kind === "responses")) {
       return await runResponseDataView(auth.user.id, parsed.data) ?? { ok: false, code: "denied", error: "Response source unavailable." }
     }
     const { data, error } = await rpc("workspace_data_view_command", { p_command: parsed.data as Json }).abortSignal(AbortSignal.timeout(10_000))
     if (!error) return { ok: true, data }
     if (error.code === "42501" && ["read", "save_view"].includes(parsed.data.action)) {
+      const sheet = await runSheetDataView(auth.user.id, parsed.data)
+      if (sheet) return sheet
       const native = await runResponseDataView(auth.user.id, parsed.data)
       if (native) return native
     }

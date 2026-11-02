@@ -37,6 +37,7 @@ export async function syncCreditPaymentRestrictions(order: PurchaseOrder, paymen
       amount: dispute.amount, currency: dispute.currency, eventKey: evidence.key, eventCreated: evidence.created })
   }
   await verification(order, payment, evidence, "resolved")
+  return { refunds: refunds.data, disputes: disputes.data }
 }
 
 export async function processAiCreditReversal(event: Stripe.Event, stripe: Stripe, mode: "test" | "live") {

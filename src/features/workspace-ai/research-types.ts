@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { KnowledgeAvailability } from "./lib/knowledge-availability"
 import { formDefinitionSchema } from "@/features/organization-forms"
 import { providerResearchFormSchema } from "./lib/research-form"
 import { researchDataViewSchema, researchOutputBindingsSchema } from "./lib/research-data-view"
@@ -93,5 +94,5 @@ export type ResearchHistory = z.infer<typeof researchHistorySchema>
 export type ResearchResult = z.infer<typeof researchResultSchema>
 export type ResearchRequest = z.infer<typeof researchRequestSchema>
 export type KnowledgeKind = z.infer<typeof knowledgeKindSchema>
-export type KnowledgeRecord = { id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; searchContent?: string; contentTruncated?: boolean; contentScope?: "document_body" | "text"; file?: ResearchSource["file"] }
+export type KnowledgeRecord = { availability?: KnowledgeAvailability; id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; searchContent?: string; contentTruncated?: boolean; contentScope?: "document_body" | "text"; file?: ResearchSource["file"] }
 export type ResearchSource = z.infer<typeof researchSourceSchema>

@@ -8,12 +8,15 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { DataViewSelect, DataViewOption } from "./data-view-select"
 import { runDataViewCommand } from "../source-actions"
 import { dataColumnsSchema, type DataColumn, type DataViewCommand, type DataRowValues } from "../lib/schema"
+import { DataViewSheetSource } from "./data-view-sheet-source"
+import { googleSheetRangeSchema, type GoogleSheetRange } from "@/features/google-drive/client"
 import { parseDataTableCsv } from "../lib/import"
 
 export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate, onError }: {
   organizationId: string; viewId: string; pending: boolean; onCreate: (command: DataViewCommand) => Promise<boolean>; onError: (error: string) => void
 }) {
   const [source, setSource] = useState("projects")
+  const [sheetRange, setSheetRange] = useState<GoogleSheetRange>({ spreadsheetId: "", sheetId: 0, startRow: 1, rowCount: 101, startColumn: 1, columnCount: 3 })
   const [versionId, setVersionId] = useState("")
   const [name, setName] = useState("Projects")
   const [tables, setTables] = useState<{ id: string; name: string }[]>([])
@@ -33,7 +36,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
   return <form className="flex flex-col gap-3" onSubmit={async event => {
     event.preventDefault()
     try {
-      const selected: Extract<DataViewCommand, { action: "create_view" }>["source"] = source === "responses" ? { kind: "responses", versionId: z.uuid().parse(versionId.trim().split("/").at(-1)) } : source === "projects" ? { kind: "projects" }
+      const selected: Extract<DataViewCommand, { action: "create_view" }>["source"] = source === "sheets" ? { kind: "sheets", range: googleSheetRangeSchema.parse(sheetRange) } : source === "responses" ? { kind: "responses", versionId: z.uuid().parse(versionId.trim().split("/").at(-1)) } : source === "projects" ? { kind: "projects" }
         : source === "new" || source === "import" ? { kind: "new_table", columns: dataColumnsSchema.parse(columns), rows: imported?.rows ?? [],
           provenance: { kind: imported ? "csv_copy" : "new", filename: imported?.filename ?? null, rowCount: imported?.rows.length ?? 0 }, audienceConfirmed: true }
         : { kind: "table", tableId: source }
@@ -45,6 +48,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
     <FieldGroup>
       <Field><FieldLabel htmlFor={`${viewId}-source`}>Source</FieldLabel><DataViewSelect id={`${viewId}-source`} value={source} onChange={event => { const value = event.target.value; setSource(value); setImported(null); setConfirmed(false); setName(value === "projects" ? "Projects" : "My table") }} disabled={pending}>
         <DataViewOption value="projects">Coach House projects</DataViewOption>
+        <DataViewOption value="sheets">Linked Google Sheet…</DataViewOption>
         <DataViewOption value="responses">Private form responses…</DataViewOption>
         <DataViewOption value="new">New workspace table</DataViewOption>
         <DataViewOption value="import">Import a CSV copy…</DataViewOption>
@@ -52,6 +56,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
       </DataViewSelect></Field>
       <Field><FieldLabel htmlFor={`${viewId}-name`}>View name</FieldLabel><Input id={`${viewId}-name`} name="view-name" autoComplete="off" required maxLength={100} value={name} onChange={event => setName(event.target.value)} /></Field>
     </FieldGroup>
+    {source === "sheets" && <DataViewSheetSource value={sheetRange} onChange={setSheetRange} disabled={pending} onError={onError} />}
     {source === "responses" && <Field><FieldLabel htmlFor={`${viewId}-version`}>Response version ID or response page URL</FieldLabel><Input id={`${viewId}-version`} value={versionId} autoComplete="off" onChange={event => setVersionId(event.target.value)} /><p className="text-muted-foreground text-xs">Only this form’s authorized collaborators can access its answers. Workspace ownership does not grant access.</p></Field>}
     {source === "new" && <div className="flex flex-col gap-2"><p className="text-muted-foreground text-xs">Declare columns before creating the table.</p>{columns.map((column, index) => <div key={column.key} className="flex flex-wrap gap-2">
       <Input className="min-w-24 flex-1" aria-label={`Column ${index + 1} name`} value={column.label} maxLength={80} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, label: event.target.value } : item))} />
@@ -67,7 +72,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
       catch (error) { onError(error instanceof Error ? error.message : "Unable to read CSV.") }
     }} />{imported && <p className="text-muted-foreground text-xs">{imported.rows.length} rows · {columns.map(column => column.label).join(", ")}. All imported columns are editable text. The original file stays unchanged.</p>}</Field>}
     {(source === "new" || source === "import") && <label className="flex min-h-11 items-center gap-2 text-sm"><Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} />I approve this workspace’s existing member audience for this table.</label>}
-    <p className="text-muted-foreground text-xs">Workspace owners, admins and staff can edit; other authorized workspace members can read. Tables are private. Views share source records, and hiding a column does not change access.</p>
+    {source !== "responses" && source !== "sheets" && <p className="text-muted-foreground text-xs">Workspace owners, admins and staff can edit; other authorized workspace members can read. Tables are private. Views share source records, and hiding a column does not change access.</p>}
     <Button type="submit" disabled={pending}>{pending ? "Creating…" : "Create saved view"}</Button>
   </form>
 }

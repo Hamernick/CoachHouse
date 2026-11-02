@@ -1,6 +1,7 @@
 export { requireGoogleDriveContext } from "./server/context"
 export { readRoadmapGoogleDriveContent } from "./server/roadmap-content"
 export {
+  readGoogleSheetRange,
   getSelectedGoogleDriveFile,
   importGoogleDriveFile,
   attachGoogleDriveDocuments,

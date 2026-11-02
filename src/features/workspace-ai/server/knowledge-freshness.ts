@@ -1,4 +1,5 @@
 import "server-only"
+import { KnowledgeChangedError } from "./knowledge-failure"
 import { researchDependenciesSchema, type KnowledgeRecord } from "../research-types"
 import { loadResearchContext, type ResearchContext } from "./research-context"
 import { readKnowledgeFile } from "./knowledge-file"
@@ -30,7 +31,8 @@ export function createKnowledgeFreshness(initial: ResearchContext, signal?: Abor
     signal?.throwIfAborted()
     const current = (await load(record.kind, "", record.id)).find(item => item.id === record.id)
     signal?.throwIfAborted()
-    if (!current || !sameRecord(current, record)) throw unavailable()
+    if (!current || current.kind !== record.kind) throw unavailable()
+    if (!sameRecord(current, record)) throw new KnowledgeChangedError()
     return current
   }
   return {
@@ -48,7 +50,7 @@ export function createKnowledgeFreshness(initial: ResearchContext, signal?: Abor
     observe(record: KnowledgeRecord, detail?: KnowledgeRecord) {
       signal?.throwIfAborted()
       const previous = observed.get(record.id)
-      if (previous && !sameRecord(previous.record, record)) throw unavailable()
+      if (previous && !sameRecord(previous.record, record)) throw new KnowledgeChangedError()
       observed.set(record.id, { record, detail: detail ?? previous?.detail })
     },
     async revalidate() {
