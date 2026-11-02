@@ -21,6 +21,7 @@ type UseAssignmentFormValuesParams = {
 
 type UseAssignmentFormValuesResult = {
   values: AssignmentValues
+  hasLegacyDraft: boolean
   autoSaving: boolean
   updateValue: (name: string, value: AssignmentValues[string]) => void
 }
@@ -32,6 +33,7 @@ export function useAssignmentFormValues({
 }: UseAssignmentFormValuesParams): UseAssignmentFormValuesResult {
   const { storageKey: learningScope } = useWorkspaceDataScope()
   const [values, setValues] = useState<AssignmentValues>(initialValues)
+  const [hasLegacyDraft, setHasLegacyDraft] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
   const initialValuesRef = useRef(initialValues)
   const moduleIdRef = useRef(moduleId)
@@ -76,12 +78,14 @@ export function useAssignmentFormValues({
     const storageKey = getAssignmentDraftStorageKey(moduleId, learningScope)
 
     try {
+      setHasLegacyDraft(Boolean(window.localStorage.getItem(`assignment-autosave-${moduleId}`)))
       const raw = window.localStorage.getItem(storageKey)
       if (!raw) return
 
       const nextValues = readAssignmentDraft({
         raw,
         initialValues: initialValuesRef.current,
+        scope: learningScope, moduleId,
       })
       if (!nextValues) return
       setValues((prev) =>
@@ -131,7 +135,7 @@ export function useAssignmentFormValues({
     try {
       window.localStorage.setItem(
         storageKey,
-        buildAssignmentDraft({ initialValues, values: normalizedValues })
+        buildAssignmentDraft({ initialValues, values: normalizedValues, scope: learningScope, moduleId })
       )
     } catch {
       // ignore storage errors
@@ -176,6 +180,7 @@ export function useAssignmentFormValues({
   return {
     values,
     autoSaving,
+    hasLegacyDraft,
     updateValue,
   }
 }

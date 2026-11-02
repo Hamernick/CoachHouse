@@ -28,6 +28,13 @@ describe("selected organization learning records", () => {
   let writes: Array<{ table: string; userId: string }> = []
   const client = {
     auth: { getUser: async () => ({ data: { user: { id: "staff" } }, error: null }) },
+    rpc: vi.fn(async (_name: string, args: { p_user_id: string; p_notes: unknown; p_expected_notes: unknown }) => {
+      const key = `module_progress:${args.p_user_id}`
+      const row = records.get(key) ?? {}
+      const ok = JSON.stringify(row.notes ?? null) === JSON.stringify(args.p_expected_notes)
+      if (ok) records.set(key, { ...row, notes: args.p_notes })
+      return { data: { ok, notes: ok ? args.p_notes : null }, error: null }
+    }),
     from(table: string) {
       let id = ""
       let result: Record<string, unknown> | null = null
@@ -67,7 +74,7 @@ describe("selected organization learning records", () => {
     expect(await getModuleNotesAction("lesson")).toMatchObject({ notes: { content: "Alpha notes" } })
     expect(await (await GET(new Request("https://example.test"), params)).json()).toMatchObject({ answers: { answer: "Alpha answer" }, status: "submitted" })
     resolveOrg.mockResolvedValue({ orgId: "beta", role: "admin", supportAccess: true })
-    expect(await getModuleNotesAction("lesson")).toEqual({ ok: true, notes: null })
+    expect(await getModuleNotesAction("lesson")).toEqual({ ok: true, notes: null, revision: null })
     expect(await (await GET(new Request("https://example.test"), params)).json()).toMatchObject({ answers: null, status: null })
     resolveOrg.mockResolvedValue({ orgId: "alpha", role: "admin", supportAccess: true })
     expect(await getModuleNotesAction("lesson")).toMatchObject({ notes: { content: "Alpha notes" } })
@@ -95,6 +102,23 @@ describe("selected organization learning records", () => {
     const response = await saveNotes(new NextRequest("https://example.test", { method: "POST", body: JSON.stringify({ content: "Old Alpha", organizationId: "alpha" }) }), params)
     expect(response.status).toBe(403)
     expect(writes).toEqual([])
+  })
+
+  it("compares notes with their read baseline and rejects a stale retry", async () => {
+    const initial = { content: "Alpha notes", format: "markdown" }
+    expect(await saveModuleNotesAction("lesson", "Updated", "alpha", initial)).toMatchObject({ ok: true, revision: { content: "Updated", format: "markdown" } })
+    expect(await saveModuleNotesAction("lesson", "Stale", "alpha", initial)).toMatchObject({ conflict: true })
+    expect(records.get("module_progress:alpha")?.notes).toEqual({ content: "Updated", format: "markdown" })
+    expect(client.rpc).toHaveBeenLastCalledWith("save_module_notes_if_current", expect.objectContaining({ p_user_id: "alpha", p_expected_notes: initial }))
+  })
+
+  it("keeps the keepalive route conflict-safe and rejects malformed empty writes", async () => {
+    const request = (body: string) => new NextRequest("https://example.test", { method: "POST", body })
+    expect((await saveNotes(request(JSON.stringify({ content: "Stale", organizationId: "alpha", revision: null })), params)).status).toBe(409)
+    expect((await saveNotes(request("{"), params)).status).toBe(400)
+    expect((await saveNotes(request("{}"), params)).status).toBe(400)
+    expect((await saveNotes(request("null"), params)).status).toBe(400)
+    expect(records.get("module_progress:alpha")?.notes).toEqual({ content: "Alpha notes", format: "markdown" })
   })
 
   it("fails closed on revoked support instead of writing personal records", async () => {

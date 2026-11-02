@@ -101,7 +101,7 @@ function AssignmentFormInner({
   const isAcceleratorShell = (pathname ?? "").startsWith("/accelerator")
   const richTextMinHeight = isAcceleratorShell ? 560 : 420
   const showStatusBadge = statusLabel && statusLabel !== "Submitted"
-  const { values, autoSaving, updateValue } = useAssignmentFormValues({
+  const { values, autoSaving, hasLegacyDraft, updateValue } = useAssignmentFormValues({
     initialValues,
     moduleId,
     onSubmit,
@@ -191,6 +191,9 @@ function AssignmentFormInner({
 
   return (
     <div className={containerClass}>
+      {hasLegacyDraft ? <p role="status" className="text-xs text-muted-foreground md:col-span-full">
+        This browser has an older assignment draft. If work appears missing, contact support from this device so we can verify and recover it.
+      </p> : null}
       {!isStepper && progressPlacement === "header" ? (
         headerSlot || showProgressPanel ? (
           <div

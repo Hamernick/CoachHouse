@@ -85,8 +85,8 @@ export function WorkspaceAcceleratorCardPanel({
   onTutorialActionComplete,
 }: WorkspaceAcceleratorCardPanelProps) {
   const controllerInput = useMemo<WorkspaceAcceleratorCardInput>(
-    () => buildWorkspaceAcceleratorControllerInput(input),
-    [input]
+    () => buildWorkspaceAcceleratorControllerInput(tutorialMode ? { ...input, onStepComplete: async () => ({ ok: true }) } : input),
+    [input, tutorialMode]
   )
   const controller = useWorkspaceAcceleratorCardController(controllerInput)
   const currentStep = controller.currentStep
@@ -219,9 +219,9 @@ export function WorkspaceAcceleratorCardPanel({
     if (!moduleStepNavigation.previousStepId) return
     controller.goToStep(moduleStepNavigation.previousStepId)
   }, [controller, moduleStepNavigation.previousStepId])
-  const goNextWithinModule = useCallback(() => {
+  const goNextWithinModule = useCallback(async () => {
     if (!moduleStepNavigation.nextStepId) return
-    controller.markCurrentStepComplete()
+    if (!(await controller.markCurrentStepComplete())) return
     controller.goToStep(moduleStepNavigation.nextStepId)
   }, [controller, moduleStepNavigation.nextStepId])
   const runtimeActions = useMemo<WorkspaceAcceleratorCardRuntimeActions>(

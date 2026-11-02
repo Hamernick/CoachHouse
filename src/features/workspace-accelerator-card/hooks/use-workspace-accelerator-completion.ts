@@ -23,12 +23,11 @@ export function useWorkspaceAcceleratorCompletion({
     saving.current = true
     try {
       const result = await onModuleComplete(controller.currentStep.moduleId)
-      if (result && "error" in result) {
-        toast.error(result.error)
+      if (!result || "error" in result) {
+        toast.error(result && "error" in result ? result.error : "Unable to save lesson progress. Try Complete again.")
         return false
       }
-      controller.markCurrentStepComplete(true)
-      return true
+      return await controller.markCurrentStepComplete(true)
     } catch {
       toast.error("Unable to save lesson progress. Try Complete again.")
       return false
@@ -41,7 +40,7 @@ export function useWorkspaceAcceleratorCompletion({
     if (controller.currentModuleSteps.every((step) => step.stepKind === "video")) {
       await completeModule()
     } else {
-      controller.markCurrentStepComplete()
+      await controller.markCurrentStepComplete()
     }
   }
 

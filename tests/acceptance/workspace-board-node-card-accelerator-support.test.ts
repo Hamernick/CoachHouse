@@ -35,7 +35,7 @@ describe("workspace board accelerator header support", () => {
       selectLessonGroup: () => {},
       goPrevious: () => {},
       goNext: () => {},
-      markCurrentStepComplete: async () => {},
+      markCurrentStepComplete: async () => true,
     } as WorkspaceAcceleratorCardRuntimeActions
 
     expect(

@@ -63,10 +63,10 @@ export function useWorkspaceCanvasAcceleratorRuntime({
     acceleratorRuntimeActionsRef.current?.goNext()
   }, [])
 
-  const handleCompleteStep = useCallback(() => {
+  const handleCompleteStep = useCallback(async () => {
     const actions = acceleratorRuntimeActionsRef.current
     if (!actions) return
-    actions.markCurrentStepComplete()
+    if (!(await actions.markCurrentStepComplete())) return
     actions.goNext()
     onCloseAcceleratorStepNode("card")
   }, [onCloseAcceleratorStepNode])

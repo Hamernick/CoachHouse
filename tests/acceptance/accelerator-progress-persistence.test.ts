@@ -25,7 +25,7 @@ function createCompletion(input: CompletionInput) {
 }
 
 function completionController() {
-  const markCurrentStepComplete = vi.fn()
+  const markCurrentStepComplete = vi.fn().mockResolvedValue(true)
   return {
     markCurrentStepComplete,
     controller: {

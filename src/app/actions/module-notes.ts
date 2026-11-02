@@ -12,8 +12,8 @@ export type ModuleNotesPayload = {
   format: "markdown"
 }
 
-type ModuleNotesResult = { ok: true; notes: ModuleNotesPayload | null } | { error: string }
-type ModuleNotesSaveResult = { ok: true; notes: ModuleNotesPayload | null } | { error: string }
+type ModuleNotesResult = { ok: true; notes: ModuleNotesPayload | null; revision: Json | null } | { error: string; conflict?: boolean }
+type ModuleNotesSaveResult = { ok: true; notes: ModuleNotesPayload | null; revision: Json | null } | { error: string; conflict?: boolean }
 
 function parseNotes(value: Json | null | undefined): ModuleNotesPayload | null {
   if (!value) return null
@@ -57,13 +57,14 @@ export async function getModuleNotesAction(moduleId: string, expectedOrgId?: str
 
   if (selectError) return { error: "Unable to load notes." }
 
-  return { ok: true, notes: parseNotes(data?.notes ?? null) }
+  return { ok: true, notes: parseNotes(data?.notes ?? null), revision: data?.notes ?? null }
 }
 
 export async function saveModuleNotesAction(
   moduleId: string,
   content: string,
   expectedOrgId?: string,
+  expectedNotes?: Json | null,
 ): Promise<ModuleNotesSaveResult> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -86,18 +87,22 @@ export async function saveModuleNotesAction(
   const trimmed = content.trim()
   const notesPayload: ModuleNotesPayload | null = trimmed.length > 0 ? { content: trimmed, format: "markdown" } : null
 
-  const { error: upsertError } = await supabase
-    .from("module_progress")
-    .upsert(
-      {
-        user_id: learningUserId,
-        module_id: moduleId,
-        notes: notesPayload as Json | null,
-      },
-      { onConflict: "user_id,module_id" },
-    )
-
-  if (upsertError) return { error: "Unable to save notes." }
+  // Older open clients can still save; new clients always send their read baseline.
+  if (expectedNotes !== undefined) {
+    const { data, error: saveError } = await supabase.rpc("save_module_notes_if_current", {
+      p_user_id: learningUserId, p_module_id: moduleId,
+      p_notes: notesPayload as Json | null, p_expected_notes: expectedNotes,
+    })
+    if (saveError) return { error: "Unable to save notes. Your draft is kept on this device." }
+    if (!data || typeof data !== "object" || Array.isArray(data) || data.ok !== true) {
+      return { error: "Notes changed elsewhere. Review the saved notes before retrying.", conflict: true }
+    }
+  } else {
+    const { error: upsertError } = await supabase.from("module_progress").upsert({
+      user_id: learningUserId, module_id: moduleId, notes: notesPayload as Json | null,
+    }, { onConflict: "user_id,module_id" })
+    if (upsertError) return { error: "Unable to save notes." }
+  }
 
   if (notesPayload) {
     await trackUserJourneyMilestone({
@@ -115,5 +120,5 @@ export async function saveModuleNotesAction(
     })
   }
 
-  return { ok: true, notes: notesPayload }
+  return { ok: true, notes: notesPayload, revision: notesPayload as Json | null }
 }

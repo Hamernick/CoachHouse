@@ -235,10 +235,10 @@ export function useWorkspaceBoardAcceleratorGraph({
     acceleratorRuntimeActionsRef.current?.goNext()
   }, [])
 
-  const handleAcceleratorStepComplete = useCallback(() => {
+  const handleAcceleratorStepComplete = useCallback(async () => {
     const actions = acceleratorRuntimeActionsRef.current
     if (!actions) return
-    actions.markCurrentStepComplete()
+    if (!(await actions.markCurrentStepComplete())) return
     actions.goNext()
     onCloseAcceleratorStepNode("card")
   }, [onCloseAcceleratorStepNode])

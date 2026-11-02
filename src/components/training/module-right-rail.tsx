@@ -84,7 +84,7 @@ export function ModuleRightRail({
 }
 
 function ModuleNotesPanel({ moduleId }: { moduleId: string }) {
-  const { value, setValue, saveNow, isSaving } = useModuleNotes(moduleId)
+  const { value, setValue, saveNow, isSaving, loadState, error, retryLoad, savedValue, resolveConflict } = useModuleNotes(moduleId)
 
   return (
     <Card className="rounded-none border-0 bg-transparent shadow-none">
@@ -97,6 +97,9 @@ function ModuleNotesPanel({ moduleId }: { moduleId: string }) {
       <CardContent className="px-0 pb-0 pt-0">
         <Textarea
           name={`module-notes-${moduleId}`}
+          aria-label="Lesson notes"
+          disabled={loadState === "loading" || loadState === "error"}
+          readOnly={loadState === "conflict"}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onBlur={() => {
@@ -107,6 +110,20 @@ function ModuleNotesPanel({ moduleId }: { moduleId: string }) {
           spellCheck
           autoComplete="off"
         />
+        <div aria-live="polite" className="mt-2 space-y-2 text-xs text-muted-foreground">
+          {loadState === "loading" ? <p>Loading notes…</p> : null}
+          {error ? <p>{error}</p> : null}
+          {loadState === "error" ? <Button size="sm" variant="outline" onClick={() => void retryLoad()}>Retry loading</Button> : null}
+          {error && loadState === "ready" ? <Button size="sm" variant="outline" disabled={isSaving} onClick={() => void saveNow()}>Retry saving</Button> : null}
+          {loadState === "conflict" ? <>
+            <p>Notes changed elsewhere. Your draft is shown above. Choose which version to keep.</p>
+            <Textarea aria-label="Saved notes" value={savedValue} readOnly />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => resolveConflict(true)}>Use my draft</Button>
+              <Button size="sm" variant="outline" onClick={() => resolveConflict(false)}>Use saved notes</Button>
+            </div>
+          </> : null}
+        </div>
       </CardContent>
     </Card>
   )
