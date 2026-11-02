@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useMemo } from "react"
 import { usePathname } from "next/navigation"
 
 import {
@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
 import type { ModuleAssignmentField, ModuleResource } from "../types"
@@ -107,22 +106,6 @@ function AssignmentFormInner({
     moduleId,
     onSubmit,
   })
-  const advancingRef = useRef(false)
-  const [advancing, setAdvancing] = useState(false)
-  const saveAndAdvance = async () => {
-    if (advancingRef.current) return
-    advancingRef.current = true
-    setAdvancing(true)
-    try {
-      if (await onSubmit(values, { silent: true }) === false) return
-      await onStepNext?.()
-    } catch {
-      toast.error("Your answers could not be saved. Retry before continuing.")
-    } finally {
-      advancingRef.current = false
-      setAdvancing(false)
-    }
-  }
   const hasMeta = Boolean(
     showStatusBadge || helperText || errorMessage || statusNote || autoSaving
   )
@@ -300,11 +283,11 @@ function AssignmentFormInner({
         ) : showStepNavigation ? (
           <AssignmentStepNavigation
             canGoPrevious={canGoPreviousStep}
-            canGoNext={canGoNextStep && !advancing && !pending}
+            canGoNext={canGoNextStep}
             currentSection={activeSectionForNavigation}
             nextSection={nextSectionForNavigation}
             onPrevious={onStepPrevious}
-            onNext={() => void saveAndAdvance()}
+            onNext={onStepNext}
           />
         ) : null}
       </div>
