@@ -71,7 +71,8 @@ def validate(snapshot, expected_source_id):
         fields = {"sequence", "eventId", "kind", "organizationId", "operationId", "revision", "occurredAt"}
         kind = event.get("kind")
         payload_fields = {"closure_request": {"request"}, "closure_cancel": set(),
-                          "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"}}
+                          "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"},
+                          "form_reviewer_revoked": {"reviewer"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -107,6 +108,16 @@ def validate(snapshot, expected_source_id):
                 require(invitation["parentInvitationId"] != invitation["invitationId"], "Invalid invitation parent")
             require(invitation["permission"] in ("view", "correct", "edit", "manage"), "Invalid invitation permission")
             require(timestamp(invitation["createdAt"]) <= occurred, "Invalid invitation suppression timing")
+        elif kind == "form_reviewer_revoked":
+            reviewer = event["reviewer"]
+            require(isinstance(reviewer, dict) and set(reviewer) == {
+                "formId", "grantId", "generationId", "permission", "createdAt",
+            }, "Invalid reviewer suppression event")
+            for field in ("formId", "grantId", "generationId"):
+                uuid(reviewer[field])
+            require(reviewer["grantId"] == event["operationId"], "Reviewer suppression identity mismatch")
+            require(reviewer["permission"] in ("view", "edit", "manage"), "Invalid reviewer permission")
+            require(timestamp(reviewer["createdAt"]) <= occurred, "Invalid reviewer suppression timing")
     return events
 
 

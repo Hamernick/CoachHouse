@@ -113,7 +113,9 @@ describe.skipIf(!templateUrl).sequential("captured organization suppression hist
     command("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", sourceUrl], readFileSync(initialDump, "utf8"))
     sql("select public.fixture_closure_storage(); update public.organizations set is_public=true,is_public_roadmap=true;")
     for (const file of ["supabase/migrations/20261103090000_organization_suppression_capture.sql", migration,
-      "supabase/migrations/20261103110000_organization_form_invitation_suppression.sql"])
+      "supabase/migrations/20261103110000_organization_form_invitation_suppression.sql",
+      "supabase/migrations/20261103120000_organization_form_reviewer_suppression.sql",
+      "supabase/migrations/20261103130000_organization_form_reviewer_history_replay.sql"])
       command("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", sourceUrl], readFileSync(file, "utf8"))
     sql("select public.fixture_form_command('correct',1,jsonb_build_object('hash',repeat('c',64),'answers',jsonb_build_array(jsonb_build_object('questionId',public.fixture_form_id(90),'value','Private restore sentinel'))));")
     const beforePath = join(directory, "before-events.sql")

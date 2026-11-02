@@ -240,3 +240,39 @@ before capture installation, manager-revision or membership invalidations that
 did not stamp these invitation rows, and other grant domains still need separate
 qualification. Keep `historyRequiresReconciliation:true`, both qualification
 flags false and all closure/reopening controls disabled.
+
+## Exact member reviewer grant recovery
+
+Migrations `20261103120000` and `20261103130000` extend capture and quarantined
+replay with `form_reviewer_revoked`. Backups used with that event kind must
+contain both migrations and the original private reviewer grant IDs.
+An installation identifier (`reviewer.generationId`) is retained in the backup
+and every reviewer event. Installing these migrations into an older backup
+creates a different identifier and must fail replay. Copying that identifier
+alone does not reconstruct the original grant IDs and is not a recovery step.
+
+Member reviewer rows now have an opaque `grant_id` identifying one authority
+generation. Canonical changes to role, grantor or manager revision rotate it;
+same-authority upserts and exact command retries retain it. DELETE and
+authority-changing UPDATE atomically capture the OLD generation, including
+membership cleanup. The journal contains only form/grant IDs, permission,
+manager revision, installation identifier and creation/revocation times; no member/grantor identity,
+email or answers. Inserts and rotations share the capture-state lock boundary
+to prevent reuse after a concurrent deletion.
+
+Replay removes only an exact old generation, or records suppression if that
+generation is absent. It neither sweeps rows by member identity nor recreates
+any grant, membership or actor. A newer generation already in the restored
+backup survives. Canonical removal of dependent grants is captured as separate
+events; replay does not invent a delegation cascade from missing actor data.
+Same-generation reuse, mismatched evidence and inconsistent restored outcomes
+fail; the original quarantine, pinned export and false qualification flags apply.
+
+An older backup may contain a former Edit/Manage grant but lack the replacement
+View grant created after a downgrade. Replay suppresses the former grant and
+leaves access absent; the missing legitimate replacement requires independent
+reconciliation. Do not infer the new grant from an old member key, an owner
+role or a revocation event. Historical unstamped invalidations, other access
+domains, independently durable capture/freshness, retention and hosted recovery
+remain unqualified. This is access suppression, not account/PII erasure or
+permission to reopen.

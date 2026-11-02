@@ -137,7 +137,9 @@ describe.skipIf(!templateUrl).sequential("native form invitation revocation reco
     command("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", sourceUrl], readFileSync("supabase/migrations/20261103070000_unpublished_form_collaboration.sql", "utf8"))
     sql(fixture)
     for (const file of ["supabase/migrations/20261103090000_organization_suppression_capture.sql",
-      "supabase/migrations/20261103100000_organization_suppression_history_replay.sql", migration])
+      "supabase/migrations/20261103100000_organization_suppression_history_replay.sql", migration,
+      "supabase/migrations/20261103120000_organization_form_reviewer_suppression.sql",
+      "supabase/migrations/20261103130000_organization_form_reviewer_history_replay.sql"])
       command("psql", ["-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", sourceUrl], readFileSync(file, "utf8"))
     for (const actor of [2,3,5,6,7,8,11,12]) expect(JSON.parse(sql(`select public.fixture_form_command('responses',${actor})`))).toBeTruthy()
     expect(sql("select public.can_edit_invited_form(public.fixture_form_id(1),public.fixture_form_id(20),public.fixture_form_id(3))")).toBe("t")
