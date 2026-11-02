@@ -70,9 +70,10 @@ def validate(snapshot, expected_source_id):
         require(isinstance(event, dict), "Invalid event")
         fields = {"sequence", "eventId", "kind", "organizationId", "operationId", "revision", "occurredAt"}
         kind = event.get("kind")
-        require(kind in ("closure_request", "closure_cancel", "response_deleted"), "Unsupported event kind")
-        require(set(event) == fields | ({"request"} if kind == "closure_request" else
-                                      {"response"} if kind == "response_deleted" else set()), "Unexpected event fields")
+        payload_fields = {"closure_request": {"request"}, "closure_cancel": set(),
+                          "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"}}
+        require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
+        require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
         require(event["sequence"] == sequence, "Noncontiguous capture history")
         for field in ("eventId", "organizationId", "operationId"):
@@ -93,6 +94,19 @@ def validate(snapshot, expected_source_id):
             for field in ("formId", "versionId", "responseId"):
                 uuid(response[field])
             require(timestamp(response["submittedAt"]) <= occurred, "Invalid deletion timing")
+        elif kind == "form_invitation_revoked":
+            invitation = event["invitation"]
+            require(isinstance(invitation, dict) and set(invitation) == {
+                "formId", "invitationId", "parentInvitationId", "permission", "createdAt",
+            }, "Invalid invitation suppression event")
+            for field in ("formId", "invitationId"):
+                uuid(invitation[field])
+            require(invitation["invitationId"] == event["operationId"], "Invitation suppression identity mismatch")
+            if invitation["parentInvitationId"] is not None:
+                uuid(invitation["parentInvitationId"])
+                require(invitation["parentInvitationId"] != invitation["invitationId"], "Invalid invitation parent")
+            require(invitation["permission"] in ("view", "correct", "edit", "manage"), "Invalid invitation permission")
+            require(timestamp(invitation["createdAt"]) <= occurred, "Invalid invitation suppression timing")
     return events
 
 

@@ -210,3 +210,33 @@ use NULL attribution and grant no response access. The canonical actor check on
 a manager's deletion retry remains unchanged; operator replay idempotency does
 not imply restoration of that actor-specific receipt. No physical purge,
 retention expiry, provider action or connection reopening is authorized.
+
+## Exact form invitation revocation recovery
+
+Migration `20261103110000` extends the same bounded capture/export/replay
+procedure with `form_invitation_revoked`. Use a backup containing this migration
+when the retained stream includes these events; older replay implementations
+must reject the unknown kind rather than omit it.
+
+From installation onward, live-to-revoked invitation changes and live invitation
+deletion, including cascades, capture an immutable event for the exact grant ID.
+The event contains organization/form/invitation IDs, the parent invitation ID,
+manager revision, permission and original creation/revocation timestamps. It
+contains no email, actor identity, invite secret or response content. Repeated
+suppression of the same ID does not manufacture another grant generation.
+
+Replay revokes a matching invitation or retains suppression when the exact row
+is absent; it never deletes invitation rows or follows a deletion cascade.
+Identity conflicts fail under quarantine. Distinct replacement IDs remain
+independent, while reinsertion or unrevocation of the suppressed ID is denied.
+Existing parent-chain checks still determine dependent authority; recorded child
+revocations remain separate exact events. No organization owner gains response
+access, and no manager, editor or viewer grant is inferred from the journal.
+
+This is access suppression, not account or personal-data erasure. A revoked row
+restored from a backup can still contain its original email/actor attribution;
+this procedure does not remove that data or delete a shared identity. Revocations
+before capture installation, manager-revision or membership invalidations that
+did not stamp these invitation rows, and other grant domains still need separate
+qualification. Keep `historyRequiresReconciliation:true`, both qualification
+flags false and all closure/reopening controls disabled.
