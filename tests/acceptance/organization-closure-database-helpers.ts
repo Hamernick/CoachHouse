@@ -57,7 +57,7 @@ export function createClosureDatabaseHarness(spawn: typeof spawnProcess) {
     session.child.stdin.end(`set application_name='closure-publication-waiter'; ${sql};\n`)
     // One bounded wait, then independently prove the statement is lock-blocked.
     await query("select pg_sleep(0.1)")
-    const waiting = await query("select wait_event_type from pg_stat_activity where application_name='closure-publication-waiter'")
+    const waiting = await query("select wait_event_type from pg_stat_activity where application_name='closure-publication-waiter' and datname=current_database()")
     expect(waiting.stdout.trim()).toBe("Lock")
     return { result: session.completion }
   }

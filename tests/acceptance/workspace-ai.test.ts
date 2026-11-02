@@ -18,7 +18,7 @@ beforeEach(() => {
   mocks.actor.mockResolvedValue({ userId:id(2),organizationId:id(1),section:{ title:target.title,content:"<p>Original</p>" } })
   mocks.reserve.mockResolvedValue({created:true,run});mocks.claim.mockResolvedValue(true)
   mocks.settle.mockResolvedValue(run);mocks.read.mockResolvedValue(run);mocks.reconcile.mockResolvedValue(undefined)
-  mocks.provider.mockImplementation(async ({onText,onResponse}) => { await onResponse("response-1");onText("<p>Revised</p>");return {text:"<p>Revised</p>",usage:{input:6000,cachedInput:0,output:1500},completed:true} })
+  mocks.provider.mockImplementation(async ({onText,onResponse}) => { await onResponse("response-1");await onText("<p>Revised</p>");return {text:"<p>Revised</p>",usage:{input:6000,cachedInput:0,output:1500},completed:true} })
 })
 describe("metered document assistance", () => {
   it("rejects cross-origin and oversized requests before authentication or spending",async()=>{
@@ -28,6 +28,7 @@ describe("metered document assistance", () => {
     expect(mocks.actor).not.toHaveBeenCalled();expect(mocks.reserve).not.toHaveBeenCalled()
   })
   it("authorizes and reserves before provider work, and settles before delivering a usable proposal", async () => {
+    mocks.read.mockResolvedValueOnce({...run,status:"running",cancel_requested_at:null})
     const response = await handleWorkspaceAiDocument(request())
     const parts = (await response.text()).trim().split("\n").map(line=>JSON.parse(line))
     expect(parts.map(part=>part.type)).toEqual(["start","text","proposal"])
@@ -61,6 +62,24 @@ describe("metered document assistance", () => {
     mocks.provider.mockResolvedValue({text:"Partial",usage:{input:1,cachedInput:0,output:10},completed:false})
     await (await handleWorkspaceAiDocument(request())).text()
     expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({status:"failed",proposal:null}))
+  })
+  it("withholds later private previews after cancellation while retaining measured settlement", async () => {
+    mocks.read.mockResolvedValueOnce({...run,status:"running",cancel_requested_at:null})
+      .mockResolvedValue({...run,status:"running",cancel_requested_at:"2026-11-02T12:00:00Z"})
+    mocks.settle.mockResolvedValue({...run,status:"canceled",proposal:null,charged_credits:0})
+    mocks.provider.mockImplementation(async ({onText,onResponse}) => {
+      await onResponse("response-1")
+      await onText("Allowed before closure")
+      await onText("Private after closure")
+      await onText("Still private")
+      return {text:"Provider terminal result",usage:{input:100,cachedInput:0,output:50},completed:true}
+    })
+    const result=await (await handleWorkspaceAiDocument(request())).text()
+    expect(result).toContain("Allowed before closure")
+    expect(result).not.toContain("Private after closure")
+    expect(result).not.toContain("Still private")
+    expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({usage:{input:100,cachedInput:0,output:50},responseId:"response-1"}))
+    expect(result).toContain('"status":"canceled"')
   })
   it("holds ambiguous usage for reconciliation instead of retrying or releasing spend", async () => {
     mocks.provider.mockRejectedValue(new Error("Connection lost"))

@@ -53,12 +53,22 @@ export async function handleWorkspaceAiDocument(request: Request) {
       async start(output) {
         const send = (part: AiStreamPart) => { try { output.enqueue(encoder.encode(JSON.stringify(part) + "\n")) } catch { /* client disconnected; accounting still completes */ } }
         let responseId: string | null = null
+        let previewWithheld = false
         send({ type: "start", id: input.id })
         try {
           const result = await streamDocumentDraft({ requestId: input.id, model: config.tariff.model, context,
             maxOutputTokens: config.maxOutputTokens, signal,
             selectionOnly: Boolean(selection),
-            onText: text => send({ type: "text", text }), onResponse: async id => { responseId=id; await correlateAiResponse(input.id,id) },
+            onText: async text => {
+              if (previewWithheld) return
+              // Each private preview rechecks the durable run. Withhold on
+              // cancellation/revocation or read failure; still collect usage.
+              try {
+                const current = await readAiRun(input.id,actor.organizationId,actor.userId) as { status?: string; cancel_requested_at?: string | null } | null
+                if (!current || current.cancel_requested_at || current.status !== "running") { previewWithheld = true; return }
+                send({ type: "text", text })
+              } catch { previewWithheld = true }
+            }, onResponse: async id => { responseId=id; await correlateAiResponse(input.id,id) },
           })
           if (!result.usage) throw new Error("The provider has not confirmed usage.")
           const proposal = sanitizeHtml(result.text).trim()

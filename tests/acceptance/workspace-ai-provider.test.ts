@@ -32,6 +32,16 @@ describe("workspace provider boundary", () => {
     await streamDocumentDraft(input())
     expect(mocks.create.mock.calls[0][0]).not.toHaveProperty("text")
   })
+  it("awaits preview authorization before consuming the next private delta", async () => {
+    const order:string[]=[]
+    mocks.create.mockImplementation(async function* () {
+      yield {type:"response.output_text.delta",delta:"first"}
+      order.push("next event")
+      yield {type:"response.completed",response:{usage:{input_tokens:1,input_tokens_details:{cached_tokens:0},output_tokens:1}}}
+    })
+    await streamDocumentDraft({...input(),onText:async()=>{await Promise.resolve();order.push("authorized")}})
+    expect(order).toEqual(["authorized","next event"])
+  })
   it("does not treat truncated structured output as complete", async () => {
     mocks.create.mockImplementation(async function* () {
       yield { type: "response.output_text.delta", delta: '{"title":' }
