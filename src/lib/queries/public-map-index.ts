@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { env } from "@/lib/env"
 import { unstable_cache } from "next/cache"
@@ -63,5 +64,7 @@ export async function fetchPublicMapOrganizations(): Promise<
     return []
   }
 
-  return fetchPublicMapOrganizationsCached()
+  const organizations = await fetchPublicMapOrganizationsCached()
+  const allowed = await currentlyPublicOrganizationIds(organizations.map((row) => row.id))
+  return organizations.filter((row) => allowed.has(row.id))
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ session: vi.fn(), admin: vi.fn(), access: vi.fn(), storage: vi.fn(), auth: vi.fn() }))
+const mocks = vi.hoisted(() => ({ session: vi.fn(), admin: vi.fn(), access: vi.fn(), storage: vi.fn(), auth: vi.fn(), current: vi.fn() }))
 vi.mock("@/lib/feature-flags", () => ({ organizationDocumentCollaborationEnabled: true }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.session }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
@@ -10,10 +10,13 @@ import { documentContext } from "@/features/organization-document-collaboration/
 import { canRemoveCoreDocumentImage } from "@/server/organization/core-document-asset-retention"
 
 const scope = { organizationId: "11111111-1111-1111-1111-111111111111", sectionId: "mission_vision_values" }
-const session = { auth: { getUser: mocks.auth } }
+const currentQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: mocks.current }
+const session = { auth: { getUser: mocks.auth }, from: vi.fn(() => currentQuery) }
 describe("collaboration authorization before elevated storage", () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    currentQuery.select.mockReturnThis(); currentQuery.eq.mockReturnThis()
+    mocks.current.mockResolvedValue({ data: { user_id: scope.organizationId }, error: null })
     mocks.session.mockResolvedValue(session)
     mocks.auth.mockResolvedValue({ data: { user: { id: "actor" } }, error: null })
     mocks.access.mockResolvedValue({ orgId: scope.organizationId, role: "staff", supabase: session })
@@ -34,6 +37,11 @@ describe("collaboration authorization before elevated storage", () => {
   it.each([400, 401, 403])("continues denying invalid authentication %s", async (status) => {
     mocks.auth.mockResolvedValue({ data: { user: null }, error: { status } })
     await expect(documentContext(scope)).rejects.toMatchObject({ code: "unauthenticated" })
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("denies expired or revoked organization reads before elevated core access", async () => {
+    mocks.current.mockResolvedValue({ data: null, error: null })
+    await expect(documentContext(scope)).rejects.toMatchObject({ code: "denied" })
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("rechecks the explicit organization and preserves the verified actor", async () => {

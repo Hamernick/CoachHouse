@@ -4,7 +4,7 @@ export type OrganizationWorkspaceObjectiveAssigneesTable = {
     org_id: string
     user_id: string
     role: string
-    created_by: string
+    created_by: string | null
     created_at: string
   }
   Insert: {
@@ -12,7 +12,7 @@ export type OrganizationWorkspaceObjectiveAssigneesTable = {
     org_id: string
     user_id: string
     role?: string
-    created_by: string
+    created_by?: string | null
     created_at?: string
   }
   Update: {
@@ -20,7 +20,7 @@ export type OrganizationWorkspaceObjectiveAssigneesTable = {
     org_id?: string
     user_id?: string
     role?: string
-    created_by?: string
+    created_by?: string | null
     created_at?: string
   }
   Relationships: [

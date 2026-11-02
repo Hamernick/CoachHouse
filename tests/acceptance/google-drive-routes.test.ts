@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   loggerInfo: vi.fn(),
   loggerWarn: vi.fn(),
   requireGoogleDriveContext: vi.fn(),
+  recheck: vi.fn(),
   startGoogleDriveConnection: vi.fn(),
 }))
 
@@ -38,7 +39,19 @@ describe("Google Drive route contracts", () => {
       supabase: {},
       user,
       organization,
+      recheck: mocks.recheck,
     })
+  })
+
+  it("withholds downloaded bytes when current organization access expires", async () => {
+    const { GoogleDriveError } = await import("@/features/google-drive")
+    mocks.getGoogleDriveDocumentThumbnail.mockResolvedValue({ bytes: Buffer.from("private bytes"), contentType: "image/png" })
+    mocks.recheck.mockRejectedValueOnce(new GoogleDriveError("forbidden", 403))
+    const { GET } = await import("@/app/api/integrations/google-drive/documents/[documentId]/preview/route")
+    const response = await GET(new NextRequest("https://coachhouse.app/preview"), { params: Promise.resolve({ documentId: "doc-1" }) })
+    expect(response.status).toBe(403)
+    expect(await response.text()).not.toContain("private bytes")
+    expect(mocks.recheck).toHaveBeenCalledOnce()
   })
 
   it("serves private preview bytes scoped to the authenticated workspace", async () => {

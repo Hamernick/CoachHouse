@@ -5,7 +5,7 @@ import { publicSharingEnabled } from "@/lib/feature-flags"
 import { fetchPublishedPublicHandles } from "@/lib/queries/public-profile-sitemap"
 import { documentationSitemapEntries } from "@/features/nonprofit-documentation"
 
-export const revalidate = 300
+export const dynamic = "force-dynamic"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = getPublicSiteOrigin()

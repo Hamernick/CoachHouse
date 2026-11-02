@@ -1,5 +1,4 @@
 import { isActiveContact } from "@/lib/people/contact-schema"
-import { unstable_cache } from "next/cache"
 
 import {
   normalizePublicHandle,
@@ -556,17 +555,8 @@ async function fetchPublicProfileUncached(
   return null
 }
 
-const fetchPublicProfileCached = unstable_cache(
-  fetchPublicProfileUncached,
-  ["public-profile-by-handle-v4"],
-  {
-    revalidate: 300,
-    tags: ["public-profiles", "public-map-organizations"],
-  }
-)
-
 export async function fetchPublicProfileByHandle(input: string) {
-  return fetchPublicProfileCached(input)
+  return fetchPublicProfileUncached(input)
 }
 
 export async function findLegacyPublicOrganizationSlug(input: string) {

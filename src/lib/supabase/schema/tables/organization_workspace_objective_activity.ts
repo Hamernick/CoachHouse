@@ -5,7 +5,7 @@ export type OrganizationWorkspaceObjectiveActivityTable = {
     id: string
     objective_id: string
     org_id: string
-    actor_id: string
+    actor_id: string | null
     event_type: string
     payload: Json
     created_at: string
@@ -14,7 +14,7 @@ export type OrganizationWorkspaceObjectiveActivityTable = {
     id?: string
     objective_id: string
     org_id: string
-    actor_id: string
+    actor_id?: string | null
     event_type: string
     payload?: Json
     created_at?: string
@@ -23,7 +23,7 @@ export type OrganizationWorkspaceObjectiveActivityTable = {
     id?: string
     objective_id?: string
     org_id?: string
-    actor_id?: string
+    actor_id?: string | null
     event_type?: string
     payload?: Json
     created_at?: string

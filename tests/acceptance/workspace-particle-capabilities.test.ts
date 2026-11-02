@@ -16,7 +16,7 @@ function note() {
 describe("registered manual Particle capabilities", () => {
   it("derives a serializable catalog without record contents or server handlers", () => {
     const catalog = getParticleCapabilityCatalog({ includeSchemas: true })
-    expect(catalog.entries.map(item => item.id)).toEqual(["plan", "workspace_note"])
+    expect(catalog.entries.map(item => item.id)).toEqual(["plan", "workspace_note", "workspace_form"])
     expect(catalog.entries.every(item => item.availability === "manual")).toBe(true)
     expect(catalog.schemas?.["plan.input"]).toHaveProperty("properties.change")
     expect(catalog.schemas?.particle_commit).toHaveProperty("properties.graph")

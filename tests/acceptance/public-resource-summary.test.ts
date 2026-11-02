@@ -17,7 +17,7 @@ it("returns the combined public directory count without sending records", async 
   const response = await GET()
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ count: 1_900_003, estimated: true })
-  expect(response.headers.get("cache-control")).toContain("s-maxage=300")
+  expect(response.headers.get("cache-control")).toBe("no-store")
 })
 
 it.each(["nonprofits", "catalog", "organizations"] as const)("does not advertise a partial total if %s fails", async (source) => {

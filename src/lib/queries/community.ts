@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 export type CommunityOrganization = {
@@ -35,7 +36,9 @@ export async function fetchCommunityOrganizations(): Promise<CommunityOrganizati
     return []
   }
 
+  const allowed = await currentlyPublicOrganizationIds(data.map((row) => row.user_id))
   return data
+    .filter((row) => allowed.has(row.user_id))
     .map((row) => {
       if (row.location_lat == null || row.location_lng == null) return null
       const profile = (row.profile ?? {}) as Record<string, unknown>

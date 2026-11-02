@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react"
 import { createParticle } from "@/features/workspace-particles/client"
-import type { WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance/types"
+import type { WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance"
 import type { PlanningControls } from "./use-particle-plans"
 
 // Event handlers read current permissions, pending state and graph without

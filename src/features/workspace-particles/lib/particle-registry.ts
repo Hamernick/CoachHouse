@@ -4,7 +4,7 @@ import {
   type ParticleSize,
 } from "./particle-size"
 import { z } from "zod"
-import { planCapability, workspaceNoteCapability, particleCommitSchema, type ParticleCapability, type ParticleSourceBinding } from "./particle-capability-contract"
+import { planCapability, workspaceNoteCapability, workspaceFormCapability, particleCommitSchema, type ParticleCapability, type ParticleSourceBinding } from "./particle-capability-contract"
 import type { Particle, ParticleType } from "../types"
 import { particleDataSchemas, particleSchema } from "./particle-schema"
 
@@ -32,7 +32,7 @@ export const particleRegistry = {
     defaults: () => ({ target: null, current: null, unit: "" }),
   },
   activity: {
-    capabilities: { workspace_note: workspaceNoteCapability },
+    capabilities: { workspace_note: workspaceNoteCapability, workspace_form: workspaceFormCapability },
     ...PARTICLE_SIZE_SUPPORT.activity,
     layouts: PARTICLE_SIZE_LAYOUTS,
     label: "Resource",

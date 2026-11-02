@@ -1,3 +1,4 @@
+import TableIcon from "lucide-react/dist/esm/icons/table"
 import ClipboardListIcon from "lucide-react/dist/esm/icons/clipboard-list"
 import ListChecksIcon from "lucide-react/dist/esm/icons/list-checks"
 import CalendarDaysIcon from "lucide-react/dist/esm/icons/calendar-days"
@@ -21,6 +22,7 @@ import {
 } from "./shapeshift-icons"
 
 export const PARTICLE_PRESET_ICONS = {
+  data_view: TableIcon,
   form: ClipboardListIcon,
   notes: NotebookPenIcon,
   event: CalendarIcon,

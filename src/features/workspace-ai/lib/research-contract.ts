@@ -1,4 +1,5 @@
 import { validateResearchRelationships } from "./research-relationships"
+import { validateResearchForms } from "./research-form"
 import { generatedResearchSchema, researchResultSchema, type KnowledgeRecord, type ResearchResult, type ResearchSource, type ResearchTarget } from "../research-types"
 
 export function searchKnowledge(records: KnowledgeRecord[], query: string, limit = 8) {
@@ -12,6 +13,7 @@ export function searchKnowledge(records: KnowledgeRecord[], query: string, limit
 }
 export function bindResearch(text: string, sources: ResearchSource[], target: ResearchTarget, runId: string, referenceDecisions: ReadonlyMap<string, ReadonlyArray<{ id: string; label: string }>> = new Map()): ResearchResult {
   const result = generatedResearchSchema.parse(JSON.parse(text))
+  validateResearchForms(result.items)
   const keys = new Set(result.items.map(item => item.key)), evidence = new Set(sources.map(source => source.id))
   if (keys.size !== result.items.length) throw new Error("Research contains duplicate items.")
   const references=result.items.flatMap(item=>item.referenceId?[item.referenceId]:[])

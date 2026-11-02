@@ -7,7 +7,7 @@ export type OrganizationWorkspaceObjectiveLinksTable = {
     entity_type: string | null
     entity_id: string | null
     link_kind: string
-    created_by: string
+    created_by: string | null
     created_at: string
   }
   Insert: {
@@ -18,7 +18,7 @@ export type OrganizationWorkspaceObjectiveLinksTable = {
     entity_type?: string | null
     entity_id?: string | null
     link_kind?: string
-    created_by: string
+    created_by?: string | null
     created_at?: string
   }
   Update: {
@@ -29,7 +29,7 @@ export type OrganizationWorkspaceObjectiveLinksTable = {
     entity_type?: string | null
     entity_id?: string | null
     link_kind?: string
-    created_by?: string
+    created_by?: string | null
     created_at?: string
   }
   Relationships: [

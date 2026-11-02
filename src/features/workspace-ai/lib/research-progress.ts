@@ -3,6 +3,7 @@ import { EventSchema } from "@ag-ui/core/schemas"
 import { z } from "zod"
 import { researchResultSchema, researchTargetSchema } from "../research-types"
 import { validateResearchRelationships } from "./research-relationships"
+import { validateResearchForms } from "./research-form"
 
 import { researchSnapshotSchema } from "./research-snapshot"
 import { researchPhaseSchema } from "./research-phase"
@@ -14,6 +15,7 @@ export const researchPreviewSchema = researchResultSchema.omit({ dependencies: t
   try {
     if (new Set(result.items.map(item => item.key)).size !== result.items.length) throw new Error("Duplicate item.")
     validateResearchRelationships(result)
+    validateResearchForms(result.items)
   } catch { context.addIssue({ code: "custom", message: "Invalid preview relationships." }) }
 })
 const identity = {

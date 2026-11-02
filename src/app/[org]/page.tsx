@@ -10,7 +10,7 @@ import {
   fetchPublicProfileByHandle,
 } from "@/lib/queries/public-profile"
 
-export const revalidate = 300
+export const dynamic = "force-dynamic"
 
 type PublicHandlePageProps = {
   params: Promise<{ org: string }>

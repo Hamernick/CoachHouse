@@ -23,6 +23,11 @@ export async function documentContext(scope: DocumentScope, write = false, trace
   if ("error" in resolved) throw new DocumentOperationError(resolved.code ?? "unavailable", resolved.code === "denied"
     ? "You no longer have access to edit this document. Your local copy is retained."
     : "Unable to verify document access. Try again.")
+  // Elevated core-history/session tables have no client read grants. Confirm
+  // the current authenticated organization RLS/export window before using them.
+  const current = await client.from("organizations").select("user_id").eq("user_id", scope.organizationId).maybeSingle()
+  if (current.error) throw new DocumentOperationError("unavailable", "Unable to verify document access. Try again.")
+  if (!current.data) throw new DocumentOperationError("denied", "This document is no longer available.")
   const { access, capabilities } = resolved
   if (write && !capabilities.canEdit) throw new DocumentOperationError("denied", capabilities.reason === "upgrade" ? DOCUMENT_STORAGE_UPGRADE_MESSAGE : "This document is read-only.")
   return { user, client, capabilities, admin: createSupabaseAdminClient({ actorId: user.id }) as SupabaseClient, role: "staffAccessLevel" in access ? access.staffAccessLevel === "coach" ? "Coach" : "Coach House admin" : access.role }

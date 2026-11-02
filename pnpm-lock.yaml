@@ -74,6 +74,12 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.1(react@19.2.4))
+      '@json-render/core':
+        specifier: 0.21.3
+        version: 0.21.3(zod@4.3.6)
+      '@json-render/react':
+        specifier: 0.21.3
+        version: 0.21.3(react@19.2.4)(zod@4.3.6)
       '@lucasmarkes/hairline':
         specifier: 0.3.0
         version: 0.3.0(react@19.2.4)
@@ -1127,6 +1133,16 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@json-render/core@0.21.3':
+    resolution: {integrity: sha512-sgzPtRhRB5wkhrbLtPm9bAhna5Q0x/U0vUpb3S/VEutouWEvvZRebHhpM5XiEjRM5Shv4W70VMZ8pGcGcz7j+A==}
+    peerDependencies:
+      zod: ^4.0.0
+
+  '@json-render/react@0.21.3':
+    resolution: {integrity: sha512-+/i0vPRQ164KzvNdPpQleLp+WjfRS2zYRIujLbRZUEmqiQb+WtEi1i9tZMYL/dRFOUzeNveu421KDzI11Wounw==}
+    peerDependencies:
+      react: ^19.2.3
 
   '@lucasmarkes/hairline@0.3.0':
     resolution: {integrity: sha512-BFaBv/T+0lhr9YudW/s/BTY1dVGPqXbWB3kt0zza6HplV/KMMoghejqb6q2njGBXFeyXgMZMuVtGYfJJAgDj0g==}
@@ -7082,6 +7098,17 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@json-render/core@0.21.3(zod@4.3.6)':
+    dependencies:
+      zod: 4.3.6
+
+  '@json-render/react@0.21.3(react@19.2.4)(zod@4.3.6)':
+    dependencies:
+      '@json-render/core': 0.21.3(zod@4.3.6)
+      react: 19.2.4
+    transitivePeerDependencies:
+      - zod
 
   '@lucasmarkes/hairline@0.3.0(react@19.2.4)':
     optionalDependencies:

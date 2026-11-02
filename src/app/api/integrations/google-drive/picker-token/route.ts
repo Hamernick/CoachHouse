@@ -12,12 +12,13 @@ import {
 export async function POST(request: NextRequest) {
   const requestId = googleDriveRequestId()
   try {
-    const { user } = await requireGoogleDriveContext(
+    const { user, recheck } = await requireGoogleDriveContext(
       request,
       new NextResponse(),
       true
     )
     const picker = await createGoogleDrivePickerToken(user.id)
+    await recheck()
     return googleDriveJson(
       { ok: true, ...picker },
       200,

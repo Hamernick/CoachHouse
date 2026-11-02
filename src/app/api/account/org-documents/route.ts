@@ -1,3 +1,4 @@
+import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { loadProfile, updateDocumentsProfile } from "./document-profile"
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
 import {
@@ -78,20 +79,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrl(
-        doc.path,
-        60 * 15,
-        downloadRequested
-          ? {
-              download:
-                typeof doc.name === "string" && doc.name.length > 0
-                  ? doc.name
-                  : true,
-            }
-          : undefined
-      )
+    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
+      orgId, ttl: 60 * 15,
+      sign: seconds => supabase.storage.from(BUCKET).createSignedUrl(doc.path as string, seconds,
+        downloadRequested ? { download: typeof doc.name === "string" && doc.name.length > 0 ? doc.name : true } : undefined),
+      revalidate: async () => {
+        const current = await loadProfile(supabase, orgId)
+        const documents = isRecord(current.documents) ? current.documents : {}
+        return isRecord(documents[key]) && documents[key].path === doc.path
+      },
+    })
     if (signedError || !signed?.signedUrl) {
       return NextResponse.json(
         { error: signedError?.message ?? "Unable to access document" },

@@ -49,5 +49,9 @@ export async function readVersionContent(client: SupabaseClient<Database>, versi
   const content=decodeCompleteDocument(bytes)
   if(bytes.byteLength!==version.size_bytes || contentHash(content)!==version.content_hash)
     throw new DocumentRoomError("conflict","The version bytes failed verification. The original is unchanged.")
+  const current=await client.from("document_file_versions").select("storage_path,content_hash")
+    .eq("org_id",version.org_id).eq("storage_path",version.storage_path).eq("content_hash",version.content_hash)
+    .limit(1).abortSignal(AbortSignal.timeout(15000)).maybeSingle()
+  if(current.error || !current.data) throw new DocumentRoomError("access","This version is no longer available.")
   return content
 }

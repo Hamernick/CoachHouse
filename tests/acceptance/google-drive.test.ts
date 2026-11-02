@@ -41,7 +41,7 @@ describe("Google Drive roadmap authorization", () => {
     const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: readProfile }
     const context = vi.fn(async () => {
       if (options.unauthorized) throw new GoogleDriveError("unauthorized", 401)
-      return { user: { id: "current-user" }, organization: { orgId: "current-org" }, supabase: { from: vi.fn().mockReturnValue(query) } }
+      return { user: { id: "current-user" }, organization: { orgId: "current-org" }, supabase: { from: vi.fn().mockReturnValue(query) }, recheck: vi.fn().mockResolvedValue(undefined) }
     })
     vi.doMock("@/features/google-drive/server/context", () => ({ requireGoogleDriveContext: context }))
     vi.doMock("@/features/google-drive/server/service", () => ({ getGoogleDriveFileContent: content }))

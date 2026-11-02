@@ -1,3 +1,4 @@
+import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { NextResponse, type NextRequest } from "next/server"
@@ -203,15 +204,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Policy document not found." }, { status: 404 })
     }
 
-    const { data: signed, error: signedError } = await auth.supabase.storage.from(BUCKET).createSignedUrl(
-      policy.document.path,
-      60 * 15,
-      downloadRequested
-        ? {
-            download: policy.document.name && policy.document.name.length > 0 ? policy.document.name : true,
-          }
-        : undefined
-    )
+    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
+      orgId: auth.orgId, ttl: 60 * 15,
+      sign: seconds => auth.supabase.storage.from(BUCKET).createSignedUrl(policy.document!.path, seconds,
+        downloadRequested ? { download: policy.document!.name || true } : undefined),
+      revalidate: async () => {
+        const current = readPolicies(await loadProfile(auth.supabase, auth.orgId)).find(entry => entry.id === policyId)
+        return current?.document?.path === policy.document?.path
+      },
+    })
     if (signedError || !signed?.signedUrl) {
       return NextResponse.json({ error: signedError?.message ?? "Unable to access policy document." }, { status: 500 })
     }

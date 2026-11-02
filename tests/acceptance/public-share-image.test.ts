@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import sharp from "sharp"
 
-const { fetchProfile } = vi.hoisted(() => ({ fetchProfile: vi.fn() }))
+const { fetchProfile, publicIds } = vi.hoisted(() => ({ fetchProfile: vi.fn(), publicIds: vi.fn(async (ids: string[]) => new Set(ids)) }))
+vi.mock("@/lib/organization/public-read-admission", () => ({ currentlyPublicOrganizationIds: publicIds }))
 vi.mock("@/lib/queries/public-profile", () => ({ fetchPublicProfileByHandle: fetchProfile }))
 
 import { loadPublicShareLogo, servePublicProfileShareImage } from "@/app/[org]/share-image.png/_lib/public-profile-share-image"
@@ -13,7 +14,7 @@ const logoUrl = `${storage}/storage/v1/object/public/org-media/public-org/logo/f
 const logo = readFileSync("public/coach-house-logo-dark.png")
 
 function organization() {
-  return { kind: "organization", handle: "example", displayName: "Example Organization", avatarUrl: logoUrl }
+  return { kind: "organization", organizationId: "synthetic-org", handle: "example", displayName: "Example Organization", avatarUrl: logoUrl }
 }
 function assertPng(bytes: ArrayBuffer) {
   const buffer = Buffer.from(bytes)
@@ -34,9 +35,17 @@ describe("public brand image delivery", () => {
     expect(fetchProfile).toHaveBeenCalledWith("example")
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toBe("image/png")
-    expect(response.headers.get("cache-control")).toContain("s-maxage=300")
+    expect(response.headers.get("cache-control")).toBe("no-store")
     expect(fetch).toHaveBeenCalledWith(new URL(logoUrl), expect.objectContaining({ redirect: "error", signal: expect.any(AbortSignal) }))
     assertPng(await response.arrayBuffer())
+  })
+
+  it("discards completed image bytes when closure wins during rendering", async () => {
+    fetchProfile.mockResolvedValue({ ...organization(), avatarUrl: null })
+    publicIds.mockResolvedValueOnce(new Set())
+    const response = await servePublicProfileShareImage("example")
+    expect(response.status).toBe(404)
+    expect(response.headers.get("cache-control")).toBe("no-store")
   })
 
   it.each([null, { kind: "person", displayName: "Private fixture" }])("never renders unpublished, missing or non-organization data: %s", async (profile) => {
@@ -54,7 +63,7 @@ describe("public brand image delivery", () => {
     vi.stubGlobal("fetch", failure === "unavailable" ? vi.fn().mockRejectedValue(new Error("timeout")) : vi.fn().mockResolvedValue(new Response("not an image", { headers: { "Content-Type": "image/png" } })))
     const response = await servePublicProfileShareImage("example")
     expect(response.status).toBe(200)
-    expect(response.headers.get("cache-control")).toContain("s-maxage=30")
+    expect(response.headers.get("cache-control")).toBe("no-store")
     assertPng(await response.arrayBuffer())
   })
 })

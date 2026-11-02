@@ -1,5 +1,6 @@
 "use client"
 
+import { WorkspaceDataViewsPanel } from "@/features/workspace-data-views"
 import { OrganizationFormSourceSharing, useFormSourceAccess } from "@/features/organization-forms/client"
 import { getParticleNotes, workspaceNoteDocuments } from "../lib/particle-notes"
 import { useEffect, useId, useRef, useState } from "react"
@@ -47,6 +48,10 @@ const DocumentFileWindow = dynamic(() => import("@/features/document-editing/cli
 })
 
 export function ParticleInspector(props: Parameters<typeof ParticleMetadataInspector>[0]) {
+  if (props.particle.type === "activity" && props.particle.data.widget?.kind === "data_view") return <section className="flex min-w-0 flex-col">
+    <ParticleEditorHeader title={props.particle.title} actions={<Button variant="ghost" size="icon" aria-label="Close data view" onClick={props.onClose}><XIcon aria-hidden /></Button>} />
+    <div className="p-3"><WorkspaceDataViewsPanel organizationId={props.particle.workspaceId} viewId={props.particle.data.widget.viewId} editable={props.editable} onDirtyChange={props.onDirtyChange} /></div>
+  </section>
   const note = getParticleNotes(props.particle)
   if (note) {
     const initialNote = note.kind === "workspace" ? workspaceNoteDocuments([props.particle])[0] : {

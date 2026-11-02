@@ -3,8 +3,9 @@ import type OpenAI from "openai"
 import { zodTextFormat } from "openai/helpers/zod"
 import type { ResponseInputItem, Tool } from "openai/resources/responses/responses"
 import { z } from "zod"
-import { providerResearchSchema, knowledgeSearchSchema, knowledgeReadSchema, type ResearchRequest } from "../research-types"
-import { researchInstructions } from "../lib/research-skills"
+import { providerResearchSchema, providerFormResearchSchema, knowledgeSearchSchema, knowledgeReadSchema, type ResearchRequest } from "../research-types"
+import { researchInstructions, researchFormInstructions } from "../lib/research-skills"
+import { researchFormOutputsEnabled } from "./research-output-config"
 import type { researchConfig } from "./research-config"
 import type { ResearchContext } from "./research-context"
 import { researchPrompt } from "./research-prompt"
@@ -19,9 +20,9 @@ export function researchProviderRequest(config: Config, messages: ResponseInputI
     {type:"function",name:"read_workspace",description:"Read up to four known workspace references directly, including selected-plan or discovered records. Each reference is reauthorized; search first only when its ID is unknown. contentAvailable=false means metadata only. DOCX document_body scope excludes images, headers and footnotes. Truncated results are excerpts; do not infer missing contents.",parameters:z.toJSONSchema(knowledgeReadSchema),strict:true},
   ] : []
   return {model:config.tariff.model,store:false,stream:true,
-    instructions:researchInstructions,input:messages,tools,
+    instructions:researchFormOutputsEnabled() ? researchFormInstructions : researchInstructions,input:messages,tools,
     max_output_tokens:config.maxOutputTokens,include:["reasoning.encrypted_content"],
-    text:{format:zodTextFormat(providerResearchSchema,"workspace_research")},
+    text:{format:zodTextFormat(researchFormOutputsEnabled() ? providerFormResearchSchema : providerResearchSchema,"workspace_research")},
   }
 }
 

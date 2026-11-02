@@ -6,7 +6,7 @@ export type OrganizationWorkspaceObjectiveGroupsTable = {
     kind: string
     source_type: string | null
     archived_at: string | null
-    created_by: string
+    created_by: string | null
     created_at: string
     updated_at: string
   }
@@ -17,7 +17,7 @@ export type OrganizationWorkspaceObjectiveGroupsTable = {
     kind?: string
     source_type?: string | null
     archived_at?: string | null
-    created_by: string
+    created_by?: string | null
     created_at?: string
     updated_at?: string
   }
@@ -28,7 +28,7 @@ export type OrganizationWorkspaceObjectiveGroupsTable = {
     kind?: string
     source_type?: string | null
     archived_at?: string | null
-    created_by?: string
+    created_by?: string | null
     created_at?: string
     updated_at?: string
   }

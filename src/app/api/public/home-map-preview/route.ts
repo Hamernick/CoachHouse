@@ -12,7 +12,7 @@ export async function GET() {
       {
         headers: {
           "Cache-Control":
-            "public, max-age=60, s-maxage=300, stale-while-revalidate=3600",
+            "no-store",
         },
       }
     )
@@ -21,7 +21,7 @@ export async function GET() {
       { features: [] },
       {
         headers: {
-          "Cache-Control": "public, max-age=30, s-maxage=60",
+          "Cache-Control": "no-store",
         },
       }
     )

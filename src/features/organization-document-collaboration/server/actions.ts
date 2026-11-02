@@ -20,6 +20,7 @@ export async function loadOrganizationDocumentVersions(scope: DocumentScope): Pr
     const actorIds = [...new Set((data ?? []).flatMap(version => version.actor_id ? [version.actor_id] : []))]
     const { data: actors } = actorIds.length ? await admin.from("profiles").select("id,full_name").in("id", actorIds) : { data: [] }
     const names = new Map((actors ?? []).map(actor => [actor.id, actor.full_name?.trim()]))
+    await documentContext(scope)
     return { versions: (data ?? []).map(version => ({ ...version,
       actor_name: version.actor_id ? names.get(version.actor_id) || "Team member" : "Original" })) }
   } catch (error) { return { error: message(error) } }

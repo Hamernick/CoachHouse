@@ -20,6 +20,7 @@ import { knowledgeFingerprint, researchContextFingerprint } from "@/features/wor
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
 import { createResearchDraft, applyResearchDraft } from "@/features/workspace-ai/lib/research-draft"
 import { prepareResearchApplication } from "@/features/workspace-ai/server/research-application"
+import { particleRegistry } from "@/features/workspace-particles/lib/particle-registry"
 const target = { organizationId: WORKSPACE, objectiveId: ID(1), revision: 0 }
 const input = { organizationId: WORKSPACE, objectiveId: ID(1), runId: ID(8) }
 const before = graph([particle(1, "objective")])
@@ -43,6 +44,15 @@ beforeEach(() => {
   mocks.load.mockResolvedValue([])
 })
 describe("server-owned research application", () => {
+  it("refuses an old saved proposal when a currently registered output command changes", async () => {
+    const capability = particleRegistry.activity.capabilities.workspace_note
+    const original = capability.action
+    try {
+      Reflect.set(capability, "action", "disabled")
+      await expect(prepareResearchApplication(input)).rejects.toThrow(/Planning outputs are unavailable/)
+      expect(mocks.write).not.toHaveBeenCalled()
+    } finally { Reflect.set(capability, "action", original) }
+  })
   it("builds a pending proposal only from the actor's saved result", async () => {
     const prepared = await prepareResearchApplication(input)
     expect(mocks.read).toHaveBeenCalledWith(ID(8), WORKSPACE, ID(90))

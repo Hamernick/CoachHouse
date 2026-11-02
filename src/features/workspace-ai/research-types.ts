@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { formDefinitionSchema } from "@/features/organization-forms"
+import { providerResearchFormSchema } from "./lib/research-form"
 
 export const knowledgeKindSchema = z.enum(["organization", "person", "document", "calendar", "particle", "opportunity"])
 export const existingResearchTargetSchema = z.strictObject({ organizationId: z.uuid(), objectiveId: z.uuid(), revision: z.number().int().nonnegative(),
@@ -42,13 +44,21 @@ export const generatedResearchSchema = z.strictObject({
   decisions: researchDecisionsSchema,
   removeReferences: removeReferencesSchema,
   items: z.array(z.strictObject({ key: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/), title: z.string().min(1).max(240),
-    kind: z.enum(["resource", "note", "event", "decision", "reference"]), description: z.string().max(1800),
+    kind: z.enum(["resource", "note", "event", "decision", "reference", "form"]), description: z.string().max(1800),
+    form: formDefinitionSchema.nullable().optional(),
     referenceId: z.string().max(200).nullable(), evidenceIds: z.array(z.string().max(200)).max(8),
     dependsOn: z.array(z.string().max(40)).max(8),
   })).max(12),
 })
 // The provider must report omitted outputs; an empty list is not proof of completeness.
-export const providerResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema })
+export const providerResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
+  items: z.array(generatedResearchSchema.shape.items.element.omit({ form: true }).extend({
+    kind: z.enum(["resource", "note", "event", "decision", "reference"]),
+  })).max(12),
+})
+export const providerFormResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
+  items: z.array(generatedResearchSchema.shape.items.element.extend({ form: providerResearchFormSchema.nullable() })).max(12),
+})
 
 // Server-authored dependency metadata; never part of the model output schema.
 export const researchDependenciesSchema = z.strictObject({

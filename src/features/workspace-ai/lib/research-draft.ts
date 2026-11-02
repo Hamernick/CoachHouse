@@ -1,15 +1,17 @@
 import { z } from "zod"
+import { formDefinitionSchema } from "@/features/organization-forms"
 import type { ResearchResult } from "../research-types"
 
 import { mergeResearchBranches, researchBranchDraftSchema } from "./research-branch-draft"
 import { validateResearchRelationships } from "./research-relationships"
+import { validateResearchForms } from "./research-form"
 
 const copyItem = z.strictObject({
   key: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/),
   title: z.string().trim().min(1).max(240), description: z.string().max(1800),
 })
 const copy = { title: z.string().trim().min(1).max(240), summary: z.string().max(1500) }
-const linkedItem = copyItem.extend({ dependsOn: z.array(z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/)).max(8) })
+const linkedItem = copyItem.extend({ dependsOn: z.array(z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/)).max(8), form: formDefinitionSchema.optional() })
 /** Older clients remain compatible; additions never carry evidence or canonical IDs. */
 export const researchDraftSchema = z.discriminatedUnion("version", [
   z.strictObject({ version: z.literal(1), ...copy, items: z.array(copyItem).max(12) }),
@@ -33,7 +35,7 @@ export const researchRecoveryDraftSchema = researchDraftSchema.options[3].extend
 export type ResearchDraft = z.infer<typeof researchDraftSchema>
 export function createResearchDraft(result: ResearchResult): Extract<ResearchDraft, { version: 4 }> {
   return { version: 4, decisions: structuredClone((result.decisions ?? []).filter(decision => result.items.some(item => item.key === decision.itemKey && item.kind === "decision"))), title: result.title, summary: result.summary, addedItems: [], removedKeys: [],
-    items: result.items.filter(item => item.kind !== "reference").map(({ key, title, description, dependsOn }) => ({ key, title, description, dependsOn: [...dependsOn] })) }
+    items: result.items.filter(item => item.kind !== "reference").map(({ key, title, description, dependsOn, form }) => ({ key, title, description, dependsOn: [...dependsOn], ...(form ? { form: structuredClone(form) } : {}) })) }
 }
 export function applyResearchDraft(result: ResearchResult, input?: ResearchDraft): ResearchResult {
   if (!input) return result
@@ -56,6 +58,8 @@ function materializeResearchDraft(result: ResearchResult, draft: ResearchDraft, 
   const decisions = draft.version === 4 ? mergeResearchBranches(result, draft.decisions, allowIncompleteLabels) : result.decisions
   const removed = new Set((draft.version === 3 || draft.version === 4) ? draft.removedKeys : [])
   const added = (draft.version === 3 || draft.version === 4) ? draft.addedItems : []
+  if (draft.version !== 1 && (draft.items.some(edit => edit.form && result.items.find(item => item.key === edit.key)?.kind !== "form") || added.some(item => item.form)))
+    throw new Error("Form edits require an existing form preview.")
   if ((draft.version === 3 || draft.version === 4)) {
     if (removed.size !== draft.removedKeys.length || [...removed].some(key => !keys.has(key)))
       throw new Error("Only generated preview items can be removed.")
@@ -73,9 +77,11 @@ function materializeResearchDraft(result: ResearchResult, draft: ResearchDraft, 
   const edited = { ...result, decisions, title: draft.title, summary: draft.summary,
     items: [...result.items.filter(item => !removed.has(item.key)).map(item => {
       const edit = draft.items.find(edit => edit.key === item.key)
-      return edit ? { ...item, title: edit.title, description: edit.description, dependsOn: prerequisites.get(item.key) ?? item.dependsOn } : item
+      return edit ? { ...item, title: edit.title, description: edit.description, dependsOn: prerequisites.get(item.key) ?? item.dependsOn,
+        ...("form" in edit && edit.form ? { form: formDefinitionSchema.parse(edit.form) } : {}) } : item
     }), ...added.map(item => ({ ...item, kind: "note" as const, referenceId: null, evidenceIds: [] }))] }
   validateResearchRelationships(edited)
+  validateResearchForms(edited.items, allowIncompleteLabels)
   return edited
 }
 

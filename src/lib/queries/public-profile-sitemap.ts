@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import "server-only"
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
@@ -113,7 +114,7 @@ async function readPublishedPublicHandles(
   const publishedPeople = new Set(
     (personResult.data ?? []).map((row) => row.profile_id)
   )
-  const publishedOrganizations = new Set(
+  const publishedOrganizations = await currentlyPublicOrganizationIds(
     (organizationResult.data ?? []).map((row) => row.user_id)
   )
 

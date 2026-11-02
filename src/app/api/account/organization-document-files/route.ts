@@ -1,3 +1,4 @@
+import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { requireOrganizationDocumentStorage, resolveOrganizationDocumentStorageAccess } from "@/lib/organization/document-storage-access"
 import { purgeExpiredFiles } from "./file-cleanup"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
@@ -66,15 +67,15 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const { data: signed, error: signedError } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(
-          data.storage_path,
-          SIGNED_URL_TTL_SECONDS,
-          request.nextUrl.searchParams.get("download") === "true"
-            ? { download: data.name || true }
-            : undefined
-        )
+      const { data: signed, error: signedError } = await createPrivateOrganizationLink({
+        orgId, ttl: SIGNED_URL_TTL_SECONDS,
+        sign: seconds => supabase.storage.from(BUCKET).createSignedUrl(data.storage_path, seconds,
+          request.nextUrl.searchParams.get("download") === "true" ? { download: data.name || true } : undefined),
+        revalidate: async () => {
+          const current = await loadFile(supabase, orgId, fileId)
+          return !current.error && Boolean(current.data && !current.data.deleted_at && current.data.storage_path === data.storage_path)
+        },
+      })
 
       if (signedError || !signed?.signedUrl) {
         return NextResponse.json(

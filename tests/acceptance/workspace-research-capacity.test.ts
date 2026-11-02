@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getParticleCapabilities, researchPlanOperations } from "@/features/workspace-particles"
-import { generatedResearchSchema, researchResultSchema } from "@/features/workspace-ai/research-types"
+import { generatedResearchSchema, providerResearchSchema, researchResultSchema } from "@/features/workspace-ai/research-types"
 import { applyResearchDraft, createResearchDraft } from "@/features/workspace-ai/lib/research-draft"
 import { bindResearch } from "@/features/workspace-ai/lib/research-contract"
 import { researchConfig } from "@/features/workspace-ai/server/research-config"
@@ -109,9 +109,10 @@ describe("offline generation capacity qualification", () => {
     expect(draft.items).toHaveLength(13)
   })
 
-  it.each(["form", "draft"])("does not advertise an unsupported %s output as qualified", kind => {
+  it.each(["form", "draft"])("keeps %s unavailable in the default provider contract", kind => {
     const draft = capacityDraft(1)
-    expect(generatedResearchSchema.safeParse({ ...draft, items: [{ ...draft.items[0], kind }] }).success).toBe(false)
+    expect(providerResearchSchema.safeParse({ ...draft, items: [{ ...draft.items[0], kind }] }).success).toBe(false)
+    expect(() => bindResearch(JSON.stringify({ ...draft, items: [{ ...draft.items[0], kind }] }), [], capacityContext().target, ID(8))).toThrow()
     expect(generatedResearchSchema.safeParse({ ...draft, [kind]: { title: "Requested output" } }).success).toBe(false)
   })
 })

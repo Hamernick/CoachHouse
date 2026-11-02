@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react"
 import type { Node } from "@xyflow/react"
 import type { ParticleNodeData } from "../components/particle-node"
 
@@ -38,7 +37,7 @@ export function particleNodeTransition(previous: ParticleNode[], next: ParticleN
   }))]
 }
 
-export function animateParticleNodes(previous: ParticleNode[], next: ParticleNode[], setNodes: Dispatch<SetStateAction<ParticleNode[]>>, preserve: (id: string) => boolean, disabled = false) {
+export function animateParticleNodes(previous: ParticleNode[], next: ParticleNode[], setNodes: (update: ParticleNode[] | ((current: ParticleNode[]) => ParticleNode[])) => void, preserve: (id: string) => boolean, disabled = false) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   const changed = previous.some(node => {
     const target = next.find(item => item.id === node.id)

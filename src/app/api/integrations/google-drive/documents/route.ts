@@ -13,7 +13,7 @@ import {
 export async function GET(request: NextRequest) {
   const requestId = googleDriveRequestId()
   try {
-    const { supabase, organization } = await requireGoogleDriveContext(
+    const { supabase, organization, recheck } = await requireGoogleDriveContext(
       request,
       new NextResponse()
     )
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       supabase,
       organization.orgId
     )
+    await recheck()
     return googleDriveJson(
       { ok: true, documents },
       200,

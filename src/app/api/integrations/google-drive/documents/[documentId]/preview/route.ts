@@ -14,7 +14,7 @@ export async function GET(
 ) {
   const requestId = googleDriveRequestId()
   try {
-    const { organization } = await requireGoogleDriveContext(
+    const { organization, recheck } = await requireGoogleDriveContext(
       request,
       new NextResponse()
     )
@@ -23,6 +23,7 @@ export async function GET(
       documentId,
       orgId: organization.orgId,
     })
+    await recheck()
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "content-type": contentType,

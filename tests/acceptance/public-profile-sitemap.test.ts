@@ -38,7 +38,7 @@ function database(overrides: Record<string, () => Promise<Result>> = {}) {
     }
     return query
   })
-  createAdmin.mockReturnValue({ from })
+  createAdmin.mockReturnValue({ from, rpc: vi.fn(async (_name: string, args: { p_ids: string[] }) => ({ data: args.p_ids, error: null })) })
   return { from, signals, filters }
 }
 

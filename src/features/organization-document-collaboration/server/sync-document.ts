@@ -100,6 +100,7 @@ export async function syncOrganizationDocument(input: DocumentSyncInput): Promis
       const responseSession = session && input.generation === session.generation
         ? { ...session, steps: session.steps.slice(Math.max(0, input.version - (session.version - session.steps.length))) }
         : session
+      await documentContext(input)
       trace.success()
       return { section: nextSection, session: responseSession, participants: [], userId: user.id, capabilities, requestId: trace.requestId }
     }

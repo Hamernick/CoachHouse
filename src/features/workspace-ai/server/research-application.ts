@@ -9,6 +9,8 @@ import { researchRunSchema } from "./research-run"
 import { assertResearchProvenance, assertResearchSourcesAccessible } from "./research-result-access"
 
 import { applyResearchDraft, researchDraftSchema } from "../lib/research-draft"
+import { assertResearchCapabilities } from "../lib/research-capabilities"
+import { assertResearchOutputAvailability } from "./research-output-config"
 
 /** The ledger owns evidence/target; typed preview edits cannot supply canonical IDs or authority. */
 export async function prepareResearchApplication(input: unknown) {
@@ -30,6 +32,8 @@ export async function prepareResearchApplication(input: unknown) {
     ?? context.graph.particles.find(p => p.type === "objective" && [...(p.data.planning?.plans ?? []), ...(p.data.planning?.proposals ?? [])].some(plan => plan.researchRunId === run.id))?.id
   if (!objectiveId) throw new Error("Research objective unavailable.")
   if (!operations.length) return { context, batch: null, runId: run.id, objectiveId }
+  assertResearchCapabilities(undefined, result.items.some(item => item.kind === "form"))
+  assertResearchOutputAvailability(result.items)
   await assertResearchSourcesAccessible(context, result)
   const batch: ParticleBatch = { id: randomUUID(), workspaceId: request.organizationId, baseRevision: context.graph.revision, requireExactRevision: true, operations }
   return { context, batch, runId: run.id, objectiveId }

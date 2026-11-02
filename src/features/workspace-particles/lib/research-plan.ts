@@ -61,7 +61,8 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     }
     if(person && particle.type==="people") particle.data={personIds:[person],presentation:"person",segment:""}
     if(particle.type==="activity") {
-      if(item.referenceId?.startsWith("document:")) particle.data.widget={kind:"document",source:{kind:"roadmap",sectionId:item.referenceId.slice(9)},format:"roadmap",name:item.title}
+      if(item.kind==="form" && item.form) { particle.data.widget={kind:"form",definition:structuredClone(item.form)}; particle.size="large" }
+      else if(item.referenceId?.startsWith("document:")) particle.data.widget={kind:"document",source:{kind:"roadmap",sectionId:item.referenceId.slice(9)},format:"roadmap",name:item.title}
       else if(item.referenceId?.startsWith("opportunity:")) particle.data.widget={kind:"opportunity",organizationId:graph.workspaceId,opportunityId:item.referenceId.slice(12)}
       else if(item.referenceId?.startsWith("file:")) {
         const file=result.sources.find(source=>source.id===item.referenceId)?.file

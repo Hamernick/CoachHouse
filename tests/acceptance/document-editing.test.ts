@@ -6,6 +6,7 @@ import { documentSourceSchema, documentSnapshotSchema, decodeCompleteDocument, D
 import { createMarkdownAdapter } from "@/features/document-editing/lib/markdown-adapter"
 import { createDocumentReplica } from "@/features/document-editing/lib/document-replica"
 import { documentCollaborationExtensions } from "@/features/document-editing/lib/document-collaboration"
+import { contentHash, readVersionContent } from "@/features/document-editing/server/version-reader"
 import { readCompleteBytes, readLocalDocument } from "@/features/document-editing/server/read-local-document"
 import { createLinkPreviewQueue } from "@/lib/editor/link-preview-queue"
 
@@ -250,5 +251,28 @@ describe("authorized canonical source reads", () => {
       await expect(readLocalDocument(fixture.supabase, source)).rejects.toThrow()
       expect(fixture.sign).not.toHaveBeenCalled()
     }
+  })
+  it("discards downloaded bytes after the canonical row becomes unavailable", async () => {
+    const fixture = client()
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      fixture.query.maybeSingle.mockResolvedValue({ data: null as never, error: null })
+      return new Response("Private bytes")
+    }))
+    await expect(readLocalDocument(fixture.supabase, source)).rejects.toThrow("no longer available")
+  })
+
+})
+
+
+describe("private historical version bytes", () => {
+  it.each([true, false])("rechecks canonical version authority after downloading bytes: %s", async allowed => {
+    const version = { org_id: ORG, storage_path: `${ORG}/library/versions/original.md`, size_bytes: 7, content_hash: contentHash("history") }
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), abortSignal: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: allowed ? version : null, error: null }) }
+    const client = { from: vi.fn(() => query), storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "https://storage.example/private" }, error: null }) }) } } as unknown as SupabaseClient<Database>
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("history")))
+    if (allowed) expect(await readVersionContent(client, version)).toBe("history")
+    else await expect(readVersionContent(client, version)).rejects.toThrow("no longer available")
+    expect(query.eq).toHaveBeenCalledWith("org_id", ORG)
+    expect(query.eq).toHaveBeenCalledWith("content_hash", version.content_hash)
   })
 })

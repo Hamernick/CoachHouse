@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import sharp from "sharp"
 
 import { fetchPublicProfileByHandle } from "@/lib/queries/public-profile"
@@ -60,17 +61,16 @@ export async function servePublicProfileShareImage(handle: string): Promise<Resp
   }
   const logo = await loadPublicShareLogo(profile.avatarUrl)
   let image: ArrayBuffer
-  let usedLogo = Boolean(logo)
   try {
     image = await renderBrandShareImage({ logo, name: profile.displayName }).arrayBuffer()
   } catch {
-    usedLogo = false
     image = await renderBrandShareImage({ name: profile.displayName }).arrayBuffer()
   }
+  if (!(await currentlyPublicOrganizationIds([profile.organizationId])).has(profile.organizationId)) return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } })
   return new Response(image, {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": usedLogo ? "public, max-age=300, s-maxage=300" : "public, max-age=30, s-maxage=30",
+      "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
     },
   })

@@ -70,7 +70,7 @@ function buildSupabaseAdminStub({
   })
 
   return {
-    supabase: { from },
+    supabase: { from, rpc: vi.fn(async (_name: string, args: { p_ids: string[] }) => ({ data: args.p_ids, error: null })) },
     calls: {
       from,
       organizationsQuery,
@@ -92,6 +92,14 @@ describe("fetchPublicMapOrganizations", () => {
 
     await expect(fetchPublicMapOrganizations()).resolves.toEqual([])
     expect(createSupabaseAdminClientMock).not.toHaveBeenCalled()
+  })
+
+  it("removes a formerly published projection on fresh closure admission", async () => {
+    const { supabase } = buildSupabaseAdminStub({ organizations: [{ user_id: "closing", profile: { name: "Closed" }, location_lat: null, location_lng: null, public_slug: "closed" }], programs: [] })
+    createSupabaseAdminClientMock.mockReturnValue(supabase)
+    expect(await fetchPublicMapOrganizations()).toHaveLength(1)
+    supabase.rpc.mockResolvedValueOnce({ data: [], error: null })
+    expect(await fetchPublicMapOrganizations()).toEqual([])
   })
 
   it("returns published orgs even when coordinates are missing", async () => {

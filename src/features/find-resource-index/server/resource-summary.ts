@@ -14,7 +14,7 @@ export async function resourceSummaryGET() {
     ])
     return NextResponse.json(
       { count: nonprofits + catalog.items.length + organizations.length, estimated: true },
-      { headers: { "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600" } }
+      { headers: { "Cache-Control": "no-store" } }
     )
   } catch {
     return NextResponse.json(

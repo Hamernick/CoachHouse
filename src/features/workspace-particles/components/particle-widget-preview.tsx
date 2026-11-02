@@ -1,5 +1,6 @@
 "use client"
 
+import { WorkspaceDataViewsPanel } from "@/features/workspace-data-views"
 import { WorkspaceOpportunityPreview } from "@/features/workspace-finance"
 import { ParticleFormPreview } from "./particle-form-preview"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,7 @@ export function ParticleWidgetPreview({
 }: ParticlePreviewProps) {
   if (particle.type !== "activity" || !particle.data.widget) return null
   const widget = particle.data.widget
+  if (widget.kind === "data_view") return <WorkspaceDataViewsPanel organizationId={particle.workspaceId} viewId={widget.viewId} expanded={Boolean(expanded)} editable={editable} onOpen={onOpen} />
   if (widget.kind === "opportunity") return <WorkspaceOpportunityPreview organizationId={widget.organizationId} opportunityId={widget.opportunityId} />
   if (widget.kind === "form")
     return <ParticleFormPreview definition={widget.definition} expanded={expanded} />

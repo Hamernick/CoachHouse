@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => ({
   requireStorage: vi.fn(),
   organization: vi.fn(),
   notification: vi.fn(),
+  deadline: vi.fn(),
 }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.deadline }) }))
 vi.mock("@/lib/supabase/route", () => ({
   createSupabaseRouteHandlerClient: mocks.client,
 }))
@@ -61,8 +63,9 @@ function setup(
   const remove = vi.fn().mockResolvedValue({
     error: options.storageError ? { message: options.storageError } : null,
   })
+  mocks.deadline.mockResolvedValue({ data: { serverNow: new Date().toISOString(), expiresAt: new Date(Date.now() + 900000).toISOString() }, error: null })
   const signed = vi.fn().mockResolvedValue({
-    data: { signedUrl: "https://storage.example/file" },
+    data: { signedUrl: `https://storage.example/file?token=a.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 899 })).toString("base64url")}.b` },
     error: null,
   })
   const eq = vi.fn()

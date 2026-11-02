@@ -19,7 +19,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${result.fileName}"`,
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+      "Cache-Control": "no-store",
     },
   })
 }

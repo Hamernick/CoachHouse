@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import { extname } from "node:path"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -205,10 +206,11 @@ export async function buildPublicBrandKitDownload(slug: string) {
   const normalizedSlug = slug.trim().toLowerCase()
   const { data, error } = await admin
     .from("organizations")
-    .select("profile, public_slug, is_public")
+    .select("user_id, profile, public_slug, is_public")
     .eq("public_slug", normalizedSlug)
     .eq("is_public", true)
     .maybeSingle<{
+      user_id: string
       profile: Record<string, unknown> | null
       public_slug: string | null
       is_public: boolean | null
@@ -221,6 +223,8 @@ export async function buildPublicBrandKitDownload(slug: string) {
     }
   }
 
+  if (!(await currentlyPublicOrganizationIds([data.user_id])).has(data.user_id)) return { error: "Organization not found", status: 404 as const }
+
   const profile = hydrateBrandProfile({
     profile: (data.profile ?? {}) as Record<string, unknown>,
     publicSlug: data.public_slug,
@@ -228,6 +232,7 @@ export async function buildPublicBrandKitDownload(slug: string) {
   })
 
   const result = await buildBrandKitArchive({ profile, supabase: admin })
+  if (!(await currentlyPublicOrganizationIds([data.user_id])).has(data.user_id)) return { error: "Organization not found", status: 404 as const }
   if (!result.hasAssets) {
     return { error: "Brand kit not available", status: 404 as const }
   }

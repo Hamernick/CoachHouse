@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     const { user } = await requireGoogleDriveContext(
       request,
       new NextResponse(),
-      true
+      true,
+      "revoke"
     )
     await disconnectGoogleDrive({ userId: user.id })
     return googleDriveJson({ ok: true }, 200, requestId, "disconnect")

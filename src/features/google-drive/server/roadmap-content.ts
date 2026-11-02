@@ -10,7 +10,7 @@ export async function readRoadmapGoogleDriveContent(
   request: NextRequest,
   response: NextResponse
 ) {
-  const { supabase, user, organization } = await requireGoogleDriveContext(request, response)
+  const { supabase, user, organization, recheck } = await requireGoogleDriveContext(request, response)
   const query = request.nextUrl.searchParams
   if (query.get("organizationId") !== organization.orgId || query.get("userId") !== user.id)
     throw new GoogleDriveError("forbidden", 403)
@@ -28,5 +28,7 @@ export async function readRoadmapGoogleDriveContent(
   )
   if (!section?.driveSource || section.driveSource.fileId !== query.get("fileId"))
     throw new GoogleDriveError("file_not_authorized", 403)
-  return getGoogleDriveFileContent({ userId: user.id, fileId: section.driveSource.fileId })
+  const content = await getGoogleDriveFileContent({ userId: user.id, fileId: section.driveSource.fileId })
+  await recheck()
+  return content
 }

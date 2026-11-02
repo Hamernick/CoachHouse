@@ -1,3 +1,4 @@
+import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { resolveDocumentCapabilities } from "@/lib/organization/document-capabilities"
@@ -70,9 +71,14 @@ export async function POST(request: NextRequest) {
   }
 
   if (bucket === ROADMAP_INLINE_BUCKET) {
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(objectName, SIGNED_URL_TTL_SECONDS)
+    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
+      orgId, ttl: SIGNED_URL_TTL_SECONDS,
+      sign: seconds => supabase.storage.from(bucket).createSignedUrl(objectName, seconds),
+      revalidate: async () => {
+        const current = await resolveDocumentCapabilities(supabase, user.id, orgId)
+        return !("error" in current) && current.capabilities.canEdit
+      },
+    })
     if (signedError || !signed?.signedUrl) {
       return NextResponse.json({ error: signedError?.message ?? "Unable to access image" }, { status: 500 })
     }

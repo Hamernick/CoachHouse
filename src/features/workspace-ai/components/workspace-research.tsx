@@ -19,6 +19,7 @@ import { sameResearchDraft } from "../lib/research-draft-checkpoint"
 import { useResearchDraftCheckpoint } from "./use-research-draft-checkpoint"
 import { useResearchDraftAutosave } from "./use-research-draft-autosave"
 import { useResearchNavigationGuard } from "./use-research-navigation-guard"
+import { IncomingResearchPreview } from "./research-presentation"
 
 type Props = { target: ResearchTarget; userId: string; planContext?: ResearchPlanContext; stale?: boolean; initialPrompt?: string; onPromptChange?: (prompt: string) => void; onProposal: (result: ResearchResult, draft?: ResearchDraft) => Promise<boolean>; onClose: () => void }
 type RunResponse = { run?: unknown; error?: string; failure?: { code?: unknown } }
@@ -279,10 +280,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     </>}
     {partialItems.length > 0 && !unsavedPreview && !result && !targetStale && !checking && <section aria-label="Plan taking shape" className="space-y-2">
       <p className="text-xs text-muted-foreground">Unconfirmed items. Connections pending.</p>
-      <ul aria-label="Incoming plan items" className="space-y-2 text-sm">{partialItems.map(item => <li key={item.key} className="break-words">
-        <span className="font-medium">{item.title}</span>
-        <p className="text-xs text-muted-foreground">{item.description}</p>
-      </li>)}</ul>
+      <IncomingResearchPreview items={partialItems} />
     </section>}
     {unsavedPreview && !result && !targetStale && !checking && <section aria-label="Unsaved plan preview" className="space-y-2">
       <p className="text-xs text-muted-foreground">Unsaved preview. Waiting for confirmation.</p>

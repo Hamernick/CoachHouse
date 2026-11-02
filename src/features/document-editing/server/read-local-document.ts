@@ -43,6 +43,13 @@ export async function readLocalDocumentWithLocation(
   })
   if (!response.ok) throw new Error("Could not download this document.")
   const content = decodeCompleteDocument(await readCompleteBytes(response))
+  // Signed URLs can outlive an authorization decision. Recheck the same
+  // canonical row after all bytes arrive; do not return revoked or expired data.
+  const current = await supabase.from("organization_document_files").select("storage_path,updated_at,deleted_at")
+    .eq("org_id", source.organizationId).eq("id", source.fileId).is("document_kind", null)
+    .abortSignal(AbortSignal.timeout(15000)).maybeSingle()
+  if (current.error || !current.data || current.data.deleted_at || current.data.storage_path !== row.storage_path || current.data.updated_at !== row.updated_at)
+    throw new Error("This document changed or is no longer available.")
   return { storagePath: row.storage_path, snapshot: documentSnapshotSchema.parse({
     source, name: row.name, format: "markdown", content, updatedAt: row.updated_at,
     revision: createHash("sha256").update(`${row.storage_path}\0${row.updated_at}\0${content}`).digest("hex"),

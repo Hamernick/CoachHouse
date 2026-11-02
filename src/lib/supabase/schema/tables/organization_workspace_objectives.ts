@@ -13,7 +13,7 @@ export type OrganizationWorkspaceObjectivesTable = {
     due_at: string | null
     completed_at: string | null
     position_rank: number
-    created_by: string
+    created_by: string | null
     updated_by: string | null
     created_at: string
     updated_at: string
@@ -32,7 +32,7 @@ export type OrganizationWorkspaceObjectivesTable = {
     due_at?: string | null
     completed_at?: string | null
     position_rank?: number
-    created_by: string
+    created_by?: string | null
     updated_by?: string | null
     created_at?: string
     updated_at?: string
@@ -51,7 +51,7 @@ export type OrganizationWorkspaceObjectivesTable = {
     due_at?: string | null
     completed_at?: string | null
     position_rank?: number
-    created_by?: string
+    created_by?: string | null
     updated_by?: string | null
     created_at?: string
     updated_at?: string

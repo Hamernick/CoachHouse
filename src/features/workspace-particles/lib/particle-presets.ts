@@ -41,6 +41,7 @@ const core: readonly ParticleType[] = [
   "finance",
 ]
 const presetDefinitions: readonly ParticlePreset[] = [
+  { id: "data_view", label: "Data view", hint: "Save a source-backed table view", type: "activity", fields: [] },
   { id: "form", label: "Form", hint: "Build a private form draft", type: "activity", fields: [] },
   {
     id: "notes",
@@ -187,6 +188,8 @@ export function buildParticlePreset(
     title: input.title.trim(),
     description: input.description,
   }
+  if (preset.id === "data_view" && base.type === "activity")
+    return particleSchema.parse({ ...base, size: "large", data: { ...base.data, widget: { kind: "data_view", viewId: base.id } } })
   if (preset.id === "form" && base.type === "activity")
     return particleSchema.parse({ ...base, size: "large", data: { ...base.data, widget: { kind: "form", definition: input.form ?? { questions: [] } } } })
   if (preset.id === "image" && base.type === "activity")

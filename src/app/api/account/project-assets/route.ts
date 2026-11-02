@@ -1,3 +1,4 @@
+import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { NextResponse, type NextRequest } from "next/server"
 import { resolveWorkspaceProjectScope } from "@/lib/workspace/ordinary-project-access"
 import { projectAssetReadClient, uploadFiscalReviewerAssets } from "./fiscal-upload"
@@ -87,13 +88,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { data: signed, error: signedError } = await readClient.storage
-      .from(BUCKET)
-      .createSignedUrl(
-        asset.storage_path,
-        SIGNED_URL_TTL_SECONDS,
-        downloadRequested ? { download: asset.name || true } : undefined
-      )
+    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
+      orgId: asset.org_id, ttl: SIGNED_URL_TTL_SECONDS,
+      sign: seconds => readClient.storage.from(BUCKET).createSignedUrl(asset.storage_path!, seconds,
+        downloadRequested ? { download: asset.name || true } : undefined),
+      revalidate: async () => {
+        if (!await canAccessProjectOrg({ projectId, orgId: asset.org_id, requireEdit: false, supabase, userId: user.id })) return false
+        const current = await loadAsset({ assetId, projectId, supabase: readClient })
+        return Boolean(current && current.org_id === asset.org_id && current.storage_path === asset.storage_path)
+      },
+    })
 
     if (signedError || !signed?.signedUrl) {
       return NextResponse.json(

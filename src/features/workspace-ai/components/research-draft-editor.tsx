@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { ParticleButton, ParticleInput } from "@/components/ui/particle-ui"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { OrganizationFormBuilder } from "@/features/organization-forms/client"
 import type { ResearchResult } from "../research-types"
 import { researchRemovalError, type createResearchDraft } from "../lib/research-draft"
 
@@ -69,6 +70,7 @@ export function ResearchDraftEditor({ draft, result, disabled, onChange }: {
           <Textarea value={item.description} rows={2} maxLength={1800} className="rounded-xl px-3 py-2 text-base"
             onChange={event => edit(item.key, { description: event.target.value })} />
         </label>
+        {item.form && <OrganizationFormBuilder definition={item.form} disabled={disabled} onChange={form => edit(item.key, { form })} />}
         {candidates.length > 1 && <details className="text-xs">
           <summary className="min-h-11 cursor-pointer content-center rounded-lg px-2 focus-visible:outline-2 focus-visible:outline-ring">Prerequisites ({item.dependsOn.length})</summary>
           <div role="group" aria-label={`Prerequisites for item ${index + 1}`} className="space-y-1">

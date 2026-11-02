@@ -1,3 +1,4 @@
+import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 
@@ -8,7 +9,7 @@ import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { RoadmapAnalyticsTracker } from "@/components/roadmap/public-roadmap-tracker"
 import { publicSharingEnabled } from "@/lib/feature-flags"
 
-export const revalidate = 300
+export const dynamic = "force-dynamic"
 
 export default async function PublicRoadmapPage({
   params,
@@ -34,7 +35,7 @@ export default async function PublicRoadmapPage({
       ein: string | null
     }>()
 
-  if (!orgRow) {
+  if (!orgRow || !(await currentlyPublicOrganizationIds([orgRow.user_id], "roadmap")).has(orgRow.user_id)) {
     return notFound()
   }
 
