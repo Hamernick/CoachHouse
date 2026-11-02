@@ -73,7 +73,8 @@ def validate(snapshot, expected_source_id):
         payload_fields = {"closure_request": {"request"}, "closure_cancel": set(),
                           "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"},
                           "form_reviewer_revoked": {"reviewer"},
-                          "form_primary_manager_revoked": {"primaryManager"}}
+                          "form_primary_manager_revoked": {"primaryManager"},
+                          "workspace_page_invitation_revoked": {"pageInvitation"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -119,6 +120,20 @@ def validate(snapshot, expected_source_id):
             require(reviewer["grantId"] == event["operationId"], "Reviewer suppression identity mismatch")
             require(reviewer["permission"] in ("view", "edit", "manage"), "Invalid reviewer permission")
             require(timestamp(reviewer["createdAt"]) <= occurred, "Invalid reviewer suppression timing")
+        elif kind == "workspace_page_invitation_revoked":
+            invitation = event["pageInvitation"]
+            require(isinstance(invitation, dict) and set(invitation) == {
+                "pageId", "invitationId", "parentInvitationId", "permission", "createdAt",
+            }, "Invalid page invitation suppression event")
+            require(event["revision"] == 1, "Invalid page invitation suppression revision")
+            for field in ("pageId", "invitationId"):
+                uuid(invitation[field])
+            require(invitation["invitationId"] == event["operationId"], "Page invitation suppression identity mismatch")
+            if invitation["parentInvitationId"] is not None:
+                uuid(invitation["parentInvitationId"])
+                require(invitation["parentInvitationId"] != invitation["invitationId"], "Invalid page invitation parent")
+            require(invitation["permission"] in ("view", "edit", "manage"), "Invalid page invitation permission")
+            require(timestamp(invitation["createdAt"]) <= occurred, "Invalid page invitation suppression timing")
         elif kind == "form_primary_manager_revoked":
             primary = event["primaryManager"]
             require(isinstance(primary, dict) and set(primary) == {

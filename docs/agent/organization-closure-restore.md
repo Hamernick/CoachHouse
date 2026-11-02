@@ -331,3 +331,33 @@ account/PII erasure. Other sharing domains, independently durable/fresh capture,
 verified retention/purge and hosted recovery remain open. Keep restored targets
 quarantined, `historyRequiresReconciliation:true`, `captureComplete:false`,
 `releaseQualified:false` and closure/refund/provider activation disabled.
+
+## Exact page guest-invitation recovery
+
+Migration `20261103170000` extends the same bounded capture, retained journal and
+quarantined replay with `workspace_page_invitation_revoked`. Its `pageInvitation`
+payload contains only page/invitation/parent IDs, permission and original creation
+time; the event's revision is always `1`. No email, principal or page content is
+captured. Stable invitation IDs already exist; the migration derives immutable
+organization identity from each page so later page, parent or Auth cascades can
+capture the OLD grant without looking up a removed parent.
+
+Live revocation and deletion record exact suppression atomically. Invitation
+identity, expiry and accepted identity cannot be reassigned; original acceptance
+remains supported. Revocation is sticky, and capture serialization prevents a
+concurrent delete/reinsert from reviving the same ID. Export and replay require
+the enabled capture and identity guard hooks.
+
+Replay revokes only the matching restored invitation or retains suppression for
+an absent grant/page. It never reconstructs a page, principal or replacement
+grant. Distinct later grants remain independent, and existing parent-authority
+checks continue to govern guest read, edit and delegation. Page publication,
+private files, other organizations and shared identities are not restored or
+removed by this event.
+
+This is page invitation access suppression, not account/PII erasure. Historical
+unstamped revocations, note source-scope and publication/asset withdrawals,
+other access domains, independent durability/freshness and retention/purge still
+require qualification. Reuse the pinned journal and offline procedure above;
+keep targets quarantined and every completeness/release flag false. Closure
+controls, transition grants and provider/refund activation remain disabled.
