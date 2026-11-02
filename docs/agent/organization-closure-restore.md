@@ -361,3 +361,44 @@ other access domains, independent durability/freshness and retention/purge still
 require qualification. Reuse the pinned journal and offline procedure above;
 keep targets quarantined and every completeness/release flag false. Closure
 controls, transition grants and provider/refund activation remain disabled.
+
+
+## Exact page note-source scope recovery
+
+Migration `20261103180000` extends the bounded journal and quarantined replay with
+`workspace_page_note_scope_revoked`. Each explicit note-edit consent has an opaque
+`grant_id` and server `granted_at`; a separate installation nonce must survive in
+the original backup. Applying the migration anew cannot reconstruct that lineage.
+The `pageNoteScope` payload contains only page/particle/canvas IDs, source creation
+time, installation/grant IDs and grant time. Revision is `1`; operation ID equals
+grant ID. No actor, email, source text or response content is retained. Source
+creation time is a finite UTC identity field, not a trusted server-clock deadline.
+
+Disabling, live deletion, source/selection removal and page cascades capture the
+exact old consent. Re-enabling or changing the enabled source/grantor creates a
+new generation; unchanged consent, metadata and command retries preserve identity.
+Repeated disable preserves the original retirement stamp. Auth deletion that only
+clears attribution does not withdraw independent consent. Allocation and capture
+serialize with the existing SHARE/UPDATE NOWAIT fence, so failed capture rolls
+back the entire canonical command and an old grant ID cannot be reused.
+
+Replay disables only an exact matching generation or records its absence. A later
+explicit consent survives; no page, source, identity or missing grant is rebuilt.
+Revoking source editing does not itself withdraw the guest's separate page access.
+Original source/page/board data and private files remain untouched by scope replay.
+Exporter/replay require the exact enabled scope capture/guard and source/selection
+invalidation hooks. Existing pinned-prefix, sole-operator and quarantine rules
+remain unchanged.
+
+The existing store guard now permits only an exact monotonic scope retirement
+under the organization lock during closure. This allows snapshot withdrawal to
+retire enabled note scopes without permitting enablement, content writes or receipt
+mutation. Cancellation keeps scopes and sharing withdrawn. No closure control or
+transition RPC is exposed.
+
+Historical unstamped removals, missing replacement/source history, other sharing
+revocations, independent capture durability/freshness and verified retention/purge
+remain unqualified. This suppresses access; it does not erase account/PII history.
+Keep `historyRequiresReconciliation:true`, `captureComplete:false`,
+`releaseQualified:false` and restored targets quarantined. Local database proof is
+not hosted/release acceptance. The authoritative S08 checkpoint owns the next slice.

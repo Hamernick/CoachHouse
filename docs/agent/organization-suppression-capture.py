@@ -74,7 +74,8 @@ def validate(snapshot, expected_source_id):
                           "response_deleted": {"response"}, "form_invitation_revoked": {"invitation"},
                           "form_reviewer_revoked": {"reviewer"},
                           "form_primary_manager_revoked": {"primaryManager"},
-                          "workspace_page_invitation_revoked": {"pageInvitation"}}
+                          "workspace_page_invitation_revoked": {"pageInvitation"},
+                          "workspace_page_note_scope_revoked": {"pageNoteScope"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -134,6 +135,19 @@ def validate(snapshot, expected_source_id):
                 require(invitation["parentInvitationId"] != invitation["invitationId"], "Invalid page invitation parent")
             require(invitation["permission"] in ("view", "edit", "manage"), "Invalid page invitation permission")
             require(timestamp(invitation["createdAt"]) <= occurred, "Invalid page invitation suppression timing")
+        elif kind == "workspace_page_note_scope_revoked":
+            scope = event["pageNoteScope"]
+            require(isinstance(scope, dict) and set(scope) == {
+                "pageId", "particleId", "canvasId", "sourceCreatedAt", "generationId", "grantId", "createdAt",
+            }, "Invalid page note scope suppression event")
+            require(event["revision"] == 1, "Invalid page note scope suppression revision")
+            for field in ("pageId", "particleId", "generationId", "grantId"):
+                uuid(scope[field])
+            if scope["canvasId"] is not None:
+                uuid(scope["canvasId"])
+            require(scope["grantId"] == event["operationId"], "Page note scope suppression identity mismatch")
+            timestamp(scope["sourceCreatedAt"])
+            require(timestamp(scope["createdAt"]) <= occurred, "Invalid page note scope suppression timing")
         elif kind == "form_primary_manager_revoked":
             primary = event["primaryManager"]
             require(isinstance(primary, dict) and set(primary) == {

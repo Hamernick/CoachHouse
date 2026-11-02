@@ -339,6 +339,7 @@
       "tests/acceptance/workspace-page-invitation-replay-database.test.ts",
       "tests/acceptance/workspace-page-note-access-browser.test.ts",
       "tests/acceptance/workspace-page-note-access.test.ts",
+      "tests/acceptance/workspace-page-note-scope-replay-database.test.ts",
       "tests/acceptance/workspace-research-data-views-browser.test.ts",
       "tests/acceptance/workspace-research-existing-views-browser.test.ts",
       "tests/acceptance/workspace-research-sheet-views-browser.test.ts",
