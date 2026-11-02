@@ -9,3 +9,5 @@ export { OrganizationFormSourceSharing } from "./components/organization-form-so
 export { useFormSourceAccess } from "./hooks/use-form-source-access"
 
 export { OrganizationFormAnswerField } from "./components/organization-form-answer-field"
+
+export { OrganizationFormSourceEntry } from "./components/organization-form-source-entry"

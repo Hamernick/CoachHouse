@@ -1,4 +1,5 @@
-// Deterministic local benchmark: fixed artifacts, no model or source actions.
+// Deterministic local benchmark: fixed artifacts, shared app/SDK foundation, no model or source actions.
+import "@/app/globals.css"
 import { useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { ResearchReview } from "@/features/workspace-ai/components/research-review"

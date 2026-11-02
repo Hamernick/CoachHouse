@@ -7,7 +7,7 @@ vi.mock("@/features/google-drive/server/token-crypto",()=>({decryptGoogleDriveSe
 vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:()=>({from:()=>{const query={select:()=>query,update:()=>query,eq:(...args:unknown[])=>{mocks.eq(...args);return query},maybeSingle:mocks.single};return query}})}))
 const range={spreadsheetId:"isolated-sheet-fixture",sheetId:7,startRow:3,rowCount:3,startColumn:2,columnCount:2}
 const payload=()=>({spreadsheetId:range.spreadsheetId,properties:{title:"Fixture"},sheets:[{properties:{sheetId:7,title:"Data"},data:[{startRow:2,startColumn:1,rowData:[{values:[{formattedValue:"Name"},{formattedValue:"Total"}]},{values:[{formattedValue:"Current source"},{formattedValue:"42"}]}]}]}]})
-const connection={id:"connection-viewer",google_subject:"viewer-subject",google_email:"viewer@example.org",refresh_token_ciphertext:"viewer-cipher",refresh_token_iv:"iv",refresh_token_auth_tag:"tag",key_version:1}
+const connection={connected_at:"2026-11-02T00:00:00Z",id:"connection-viewer",google_subject:"viewer-subject",google_email:"viewer@example.org",refresh_token_ciphertext:"viewer-cipher",refresh_token_iv:"iv",refresh_token_auth_tag:"tag",key_version:1}
 const fetchMock=vi.fn()
 beforeEach(()=>{vi.clearAllMocks();vi.stubGlobal("fetch",fetchMock);fetchMock.mockResolvedValue(Response.json(payload()));mocks.single.mockResolvedValue({data:connection,error:null});mocks.refresh.mockResolvedValue("viewer-access");mocks.decrypt.mockReturnValue("viewer-refresh");mocks.file.mockResolvedValue({status:"available",mimeType:"application/vnd.google-apps.spreadsheet"})})
 afterEach(()=>vi.unstubAllGlobals())
@@ -24,6 +24,17 @@ describe("Google Sheets bounded reads and execution identity",()=>{
   expect(mocks.eq).toHaveBeenCalledWith("user_id","current-viewer");expect(mocks.eq).not.toHaveBeenCalledWith("user_id","organization-owner")
   expect(mocks.refresh).toHaveBeenCalledWith("viewer-refresh");expect(mocks.file).toHaveBeenCalledWith("viewer-access",range.spreadsheetId)
   expect(mocks.single).toHaveBeenCalledTimes(2);expect(result.email).toBe("viewer@example.org");expect(JSON.stringify(result)).not.toContain("viewer-cipher")
+ })
+ it("keeps execution identity stable across token rotation and changes it on reconnect/account replacement",async()=>{
+  fetchMock.mockImplementation(async()=>Response.json(payload()))
+  const first=await readGoogleSheetRange("current-viewer",range)
+  mocks.single.mockResolvedValue({data:{...connection,refresh_token_ciphertext:"rotated-cipher"},error:null})
+  expect((await readGoogleSheetRange("current-viewer",range)).executionIdentity).toBe(first.executionIdentity)
+  mocks.single.mockResolvedValue({data:{...connection,connected_at:"2026-11-02T01:00:00Z"},error:null})
+  expect((await readGoogleSheetRange("current-viewer",range)).executionIdentity).not.toBe(first.executionIdentity)
+  mocks.single.mockResolvedValue({data:{...connection,google_subject:"other-account"},error:null})
+  expect((await readGoogleSheetRange("current-viewer",range)).executionIdentity).not.toBe(first.executionIdentity)
+  expect(first.executionIdentity).toMatch(/^[a-f0-9]{64}$/)
  })
  it("rejects revoked or replaced identity after a provider read",async()=>{
   mocks.single.mockResolvedValueOnce({data:connection,error:null}).mockResolvedValueOnce({data:{...connection,google_subject:"different-subject"},error:null})

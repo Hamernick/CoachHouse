@@ -1,6 +1,6 @@
 import "server-only"
 import { createProjectDataViewCommandSchema, createExistingDataViewCommandSchema, dataViewCreateReceiptSchema } from "@/features/workspace-data-views"
-import { readProjectDataViewCreation, readExistingDataViewCreation, runDataViewCommand } from "@/features/workspace-data-views/server"
+import { readProjectDataViewCreation, readExistingDataViewCreation, createLinkedSheetView, runDataViewCommand } from "@/features/workspace-data-views/server"
 import { researchViewBinding, type ResearchSourceEffect } from "../lib/research-data-view"
 import type { ResearchResult } from "../research-types"
 
@@ -10,7 +10,7 @@ export function researchDataViewCommands(result: ResearchResult) {
     const source=item.dataView?.kind==="projects"?item.dataView:binding.existingSource?.source
     if(!source || (item.dataView?.kind!=="projects" && (item.dataView?.sourceViewId!==binding.existingSource?.viewId||item.dataView?.kind!==source.kind)))throw Error("Data view source identity changed")
     const schema=source.kind==="projects"?createProjectDataViewCommandSchema:createExistingDataViewCommandSchema
-    return { key: item.key, command: schema.parse({ action: "create_view", organizationId: result.target.organizationId,
+    return { key: item.key, existingSource:binding.existingSource, command: schema.parse({ action: "create_view", organizationId: result.target.organizationId,
       viewId: binding.viewId, requestId: binding.requestId, name: item.title, source }) }
   })
 }
@@ -18,8 +18,8 @@ export function researchDataViewCommands(result: ResearchResult) {
 /** Read-only inspection proves the exact source operation, not merely that an
  * actor with access can find a view with the same public UUID. */
 export async function inspectResearchDataViewEffects(result: ResearchResult): Promise<ResearchSourceEffect[]> {
-  return Promise.all(researchDataViewCommands(result).map(async ({ key, command }) => {
-    const reply = await (command.source.kind==="projects"?readProjectDataViewCreation(command):readExistingDataViewCreation(command))
+  return Promise.all(researchDataViewCommands(result).map(async ({ key, command, existingSource }) => {
+    const reply = await (command.source.kind==="projects"?readProjectDataViewCreation(command):readExistingDataViewCreation(command,existingSource))
     const base = { key, kind: "data_view" as const, viewId: command.viewId, name: null }
     if (!reply.ok) return { ...base, status: reply.code === "denied" ? "denied" as const : reply.code === "conflict" ? "conflict" as const : "uncertain" as const,
       message: reply.code === "denied" ? "Current source access could not be verified. Creation status is unavailable." : "Creation could not be confirmed. Retry the same saved draft." }
@@ -36,7 +36,7 @@ export async function applyResearchDataViewEffects(result: ResearchResult): Prom
   const effects = await inspectResearchDataViewEffects(result)
   for (const [index, entry] of commands.entries()) {
     if (effects[index].status !== "not_created") continue
-    const reply = await runDataViewCommand(entry.command)
+    const reply = await (entry.command.source.kind==="sheets"?createLinkedSheetView(entry.command,entry.existingSource):runDataViewCommand(entry.command))
     if (!reply.ok) {
       effects[index] = { ...effects[index], status: reply.code === "denied" ? "denied" : reply.code === "conflict" ? "conflict" : "uncertain", message: reply.error }
       continue

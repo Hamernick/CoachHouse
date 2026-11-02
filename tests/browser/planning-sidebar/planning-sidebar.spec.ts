@@ -1510,9 +1510,17 @@ test("required work progress updates from completion and optional scope edits wi
 test.describe("near-cap actual source editor", () => {
   test.use({ hasTouch: true })
   for (const mobile of [false, true]) {
-    test(`250 records retain draft, conflict and failed-save recovery (${mobile ? "touch reduced motion" : "keyboard"})`, async ({ page }) => {
+    test(`250 records retain draft, conflict and failed-save recovery (${mobile ? "touch reduced motion" : "keyboard"})`, async ({ page }, testInfo) => {
+      const started = Date.now()
+      const stages: { stage: string; elapsedMs: number; renderedNodes: number; records: number }[] = []
+      const mark = async (stage: string) => {
+        const measured = await page.evaluate(() => ({ renderedNodes: document.querySelectorAll(".react-flow__node").length,
+          records: JSON.parse(document.querySelector('[data-testid="inspection-state"]')?.textContent ?? "{}").count ?? 0 }))
+        stages.push({ stage, elapsedMs: Date.now() - started, ...measured })
+      }
       const state = page.getByTestId("inspection-state")
       await expect(state).toContainText('"count":250')
+      await mark("mounted")
       const open = page.getByRole("button", { name: "Open dirty editor", exact: true })
       if (mobile) await open.tap(); else { await open.focus(); await page.keyboard.press("Enter") }
       const title = page.getByRole("textbox", { name: "Title", exact: true })
@@ -1526,6 +1534,7 @@ test.describe("near-cap actual source editor", () => {
       expect(await title.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd])).toEqual([6, 10])
       expect(JSON.parse((await state.textContent())!).positions[0]).toEqual({ x: 100, y: 220 })
       expect(JSON.parse((await state.textContent())!).writes).toBe(0)
+      await mark("draft-conflict-preserved")
       page.once("dialog", dialog => dialog.dismiss())
       await page.keyboard.press("Escape")
       await expect(title).toHaveValue("Draft that must survive")
@@ -1535,15 +1544,20 @@ test.describe("near-cap actual source editor", () => {
       await page.getByRole("button", { name: "Save changes", exact: true }).click()
       await expect(page.getByText("Changes could not be saved. Your draft is still here.")).toBeVisible()
       await expect(title).toHaveValue("Recovered near-cap edit")
+      await mark("failed-save-preserved")
       await page.evaluate(() => localStorage.removeItem("fixture-near-cap-save-failure"))
       await page.getByRole("button", { name: "Save changes", exact: true }).click()
       await expect(state).toContainText('"title":"Recovered near-cap edit"')
       expect(JSON.parse((await state.textContent())!).positions[0]).toEqual({ x: 100, y: 220 })
+      await mark("saved")
       await page.reload()
       await page.addStyleTag({ content: css })
       await page.addScriptTag({ type: "module", content: script })
       await expect(page.getByTestId("inspection-state")).toContainText('"title":"Recovered near-cap edit"')
       await expect(page.getByTestId("inspection-state")).toContainText('"count":250')
+      await mark("reloaded")
+      await testInfo.attach("near-cap-stages", { body: JSON.stringify({ browser: testInfo.project.name, mobile, stages }), contentType: "application/json" })
+      console.log("near-cap-stages", JSON.stringify({ browser: testInfo.project.name, mobile, stages }))
     })
   }
 })

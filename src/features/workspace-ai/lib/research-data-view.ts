@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { projectDataViewSourceSchema, composableDataViewSchema } from "@/features/workspace-data-views"
 
-export const researchDataViewSchema = z.union([projectDataViewSourceSchema, z.strictObject({kind:z.enum(["table","responses"]),sourceViewId:z.uuid()})])
+export const researchDataViewSchema = z.union([projectDataViewSourceSchema, z.strictObject({kind:z.enum(["table","responses","sheets"]),sourceViewId:z.uuid()})])
 export const researchOutputBindingsSchema = z.array(z.strictObject({
   kind: z.literal("data_view"), itemKey: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/), viewId: z.uuid(), requestId: z.uuid(), existingSource:composableDataViewSchema.optional(),
 })).max(12).refine(bindings => ["itemKey", "viewId", "requestId"].every(field =>

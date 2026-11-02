@@ -1,5 +1,7 @@
 import {spawn} from "node:child_process"
 import path from "node:path"
+import {mkdtempSync} from "node:fs"
+import {tmpdir} from "node:os"
 import type {AddressInfo} from "node:net"
 import {afterAll,beforeAll,describe,expect,it,vi} from "vitest"
 import {chromium,type Browser} from "@playwright/test"
@@ -26,7 +28,7 @@ describe.skipIf(!databaseUrl)("selected-note opt-in and canonical guest editing 
   })
   // Vite does not split Next server-action/client barrels. Resolve the real
   // editor/menu/math exports and fail any out-of-scope AI action explicitly.
-  server=await createServer({configFile:false,root:process.cwd(),cacheDir:"/tmp/ch-s06-note-vite-cache",define:{"process.env":"{}"},optimizeDeps:{entries:["tests/acceptance/fixtures/workspace-page-note-access-browser.tsx"]},resolve:{alias:{"@":path.resolve("src")}},esbuild:{jsx:"automatic"},server:{host:"127.0.0.1",port:0,watch:null},plugins:[{name:"selected-note-test-bridge",enforce:"pre",resolveId(source,importer){
+  server=await createServer({configFile:false,root:process.cwd(),cacheDir:mkdtempSync(path.join(tmpdir(),"ch-s06-note-vite-")),define:{"process.env":"{}"},optimizeDeps:{entries:["tests/acceptance/fixtures/workspace-page-note-access-browser.tsx"]},resolve:{alias:{"@":path.resolve("src")}},esbuild:{jsx:"automatic"},server:{host:"127.0.0.1",port:0,watch:null},plugins:[{name:"selected-note-test-bridge",enforce:"pre",resolveId(source,importer){
    if(["@/features/workspace-particles/client",path.resolve("src/features/workspace-particles/client"),path.resolve("src/features/workspace-particles/client.ts")].includes(source)&&importer?.includes("workspace-sharing/"))return path.resolve("src/features/workspace-particles/components/notes-rich-editor.tsx")
    if(["@/features/workspace-ai/client",path.resolve("src/features/workspace-ai/client"),path.resolve("src/features/workspace-ai/client.ts")].includes(source)&&importer?.includes("rich-text-editor"))return path.resolve("src/features/workspace-ai/components/selection-assistance-menu.tsx")
    if(["@/features/ai-credits/client",path.resolve("src/features/ai-credits/client"),path.resolve("src/features/ai-credits/client.ts")].includes(source)&&importer?.includes("use-selection-assistance"))return path.resolve("src/features/ai-credits/lib/index.ts")

@@ -1,4 +1,5 @@
 import "server-only"
+import { readComposableSheetSource, readSheetViewCreation } from "./sheet-composition"
 import { z } from "zod"
 import type { PostgrestSingleResponse } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -15,14 +16,15 @@ async function read(name:"read_composable_data_view_source"|"read_existing_data_
  return {ok:true as const,data:reply.data}
 }
 export async function readComposableDataViewSource(organizationId:string,viewId:string) {
- try {z.uuid().parse(organizationId);z.uuid().parse(viewId);const reply=await read("read_composable_data_view_source",{p_org:organizationId,p_view:viewId});if(!reply.ok)return reply
+ try {z.uuid().parse(organizationId);z.uuid().parse(viewId);const reply=await read("read_composable_data_view_source",{p_org:organizationId,p_view:viewId});if(!reply.ok)return reply.code==="denied"?readComposableSheetSource(organizationId,viewId):reply
  const data=composableDataViewSchema.parse(reply.data);if(data.viewId!==viewId)throw Error("Source identity changed")
  return {ok:true as const,data}
  }catch{return {ok:false as const,code:"unavailable" as const}}
 }
-export async function readExistingDataViewCreation(input:unknown) {
+export async function readExistingDataViewCreation(input:unknown,binding?:unknown) {
  const command=createExistingDataViewCommandSchema.safeParse(input)
  if(!command.success)return {ok:false as const,code:"invalid" as const}
+ if(command.data.source.kind==="sheets")return readSheetViewCreation(command.data,binding)
  try {const reply=await read("read_existing_data_view_creation",{p_command:command.data as Json});if(!reply.ok)return reply
  const data=recovery.parse(reply.data)
  if((data.receipt&&data.receipt.viewId!==command.data.viewId)||(data.view&&data.view.id!==command.data.viewId)||(data.view&&!data.receipt))throw Error("Receipt identity changed")

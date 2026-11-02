@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
@@ -7,11 +7,13 @@ import { formSourceContentSchema, formSourceReceiptSchema, formSourceSchema } fr
 import type { FormSource, FormSourceCommand, FormSourceContent } from "../lib/form-source"
 import { IntakeRequestError, sendFormCommand } from "../hooks/intake-client"
 import { OrganizationFormBuilder } from "./organization-form-builder"
+import type { FormAccessTarget } from "../lib/form-review-access"
 type Save = Extract<FormSourceCommand, { action: "save_form_source" }>
 /** Edits the canonical draft only. Published versions remain immutable. */
-export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
-  versionId: string; formId: string; onClose: () => void
+export function OrganizationFormSourceEditor({ versionId, target, formId, onClose }: {
+  versionId?: string; target?: FormAccessTarget; formId: string; onClose: () => void
 }) {
+  const address = useMemo(() => target ?? { versionId: versionId! }, [target, versionId])
   const id = useId(); const busy = useRef(false); const heading = useRef<HTMLHeadingElement>(null)
   const [source, setSource] = useState<FormSource | null>(null)
   const [draft, setDraft] = useState<FormSourceContent | null>(null)
@@ -29,18 +31,18 @@ export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
   }, [])
   useEffect(() => {
     let active = true
-    void sendFormCommand({ action: "read_form_source", versionId }).then((value) => {
+    void sendFormCommand({ action: "read_form_source", ...address }).then((value) => {
       const next = formSourceSchema.parse(value)
       if (next.formId !== formId) throw new Error("Invalid source")
       if (active) { setSource(next); setDraft({ title: next.title, description: next.description, definition: next.definition }) }
     }).catch((failure) => { if (active) setError(failure instanceof IntakeRequestError ? failure.message : "Unable to load the form.") })
     return () => { active = false }
-  }, [versionId, formId])
+  }, [address, formId])
   async function reload() {
     if (busy.current || retry) return
     busy.current = true; setPending(true); setError("")
     try {
-      const next = formSourceSchema.parse(await sendFormCommand({ action: "read_form_source", versionId }))
+      const next = formSourceSchema.parse(await sendFormCommand({ action: "read_form_source", ...address }))
       if (next.formId !== formId) throw new Error("Invalid source")
       if (draft) setReview(next)
       else { setSource(next); setDraft({ title: next.title, description: next.description, definition: next.definition }); setConflict(false) }
@@ -51,7 +53,7 @@ export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
     if (!draft || !source || busy.current || conflict) return
     const parsed = formSourceContentSchema.safeParse(draft)
     if (!parsed.success) { setError("Enter a title and check the form fields."); return }
-    const command: Save = retry ?? { action: "save_form_source", versionId, operationId: crypto.randomUUID(), expectedRevision: source.revision, content: parsed.data }
+    const command: Save = retry ?? { action: "save_form_source", ...address, operationId: crypto.randomUUID(), expectedRevision: source.revision, content: parsed.data }
     busy.current = true; setPending(true); setError("")
     try {
       const receipt = formSourceReceiptSchema.parse(await sendFormCommand(command))

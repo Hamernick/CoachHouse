@@ -81,7 +81,7 @@ describe.skipIf(!enabled)("local same-artifact json-render qualification", () =>
     expect(markup.selected).toEqual(markup.baseline)
     expect(bundles.baseline.jsonRenderModules).toBe(0)
     expect(bundles.selected.jsonRenderModules).toBeGreaterThan(0)
-    const report = { kind: "local-synthetic-production-bundle", artifacts: "identical twelve notes; original fallback/editor vs selected renderer", bundles,
+    const report = { kind: "local-synthetic-production-bundle", artifacts: "identical twelve notes; original fallback/editor vs selected renderer", styling: "Both variants include current application globals, scoped SDK foundation, and actual component CSS. System font fallback; excludes Next font loading. Earlier unstyled fixture measurements are historical, not a directly comparable baseline.", bundles,
       delta: { bytes: bundles.selected.bytes - bundles.baseline.bytes, gzipBytes: bundles.selected.gzipBytes - bundles.baseline.gzipBytes },
       firstContentfulPaintMs: { baseline: stats(paints.baseline), selected: stats(paints.selected) },
       firstCommitMs: { baseline: stats(first.baseline), selected: stats(first.selected) }, updateCommitMs: { baseline: stats(updates.baseline), selected: stats(updates.selected) },

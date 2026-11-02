@@ -16,7 +16,7 @@ export { FormIntakeError } from "./intake-error"
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
 
 export async function runFormIntake(actorId: string | null, command: FormIntakeCommand) {
-  if (command.action === "read_form_source" || command.action === "save_form_source") return runFormSource(actorId, command)
+  if (command.action === "read_form_source" || command.action === "save_form_source" || command.action === "form_source_entry" || command.action === "form_source_directory") return runFormSource(actorId, command)
   if (command.action === "viewer_invitations" || command.action === "viewer_offer" || command.action === "accept_viewer" || command.action === "invite_viewer" || command.action === "revoke_viewer") return runFormViewerAccess(actorId, command)
   if (command.action === "recoverable_forms" || command.action === "recover_form") return runFormRecovery(actorId, command)
   if (command.action === "source_access" || command.action === "review_access" || command.action === "grant_reviewer" || command.action === "revoke_reviewer") return runFormReviewAccess(actorId, command)

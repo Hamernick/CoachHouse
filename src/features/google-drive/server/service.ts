@@ -510,5 +510,7 @@ export async function readGoogleSheetRange(userId: string, range: import("../she
   if (recheckedFile.status !== "available" || recheckedFile.mimeType !== "application/vnd.google-apps.spreadsheet") throw new GoogleDriveError("file_not_authorized", 403)
   const current = await getConnection(admin, userId)
   if (current.id !== connection.id || current.google_subject !== connection.google_subject || current.refresh_token_ciphertext !== connection.refresh_token_ciphertext) throw new GoogleDriveError("google_revoked", 409)
-  return { ...grid, email: connection.google_email }
+  return { ...grid, email: connection.google_email,
+    // Stable across routine token rotation; explicit reconnect/account replacement changes it.
+    executionIdentity: createHash("sha256").update(`google-sheet-viewer:${connection.id}:${connection.google_subject}:${new Date(connection.connected_at).getTime()}`).digest("hex") }
 }

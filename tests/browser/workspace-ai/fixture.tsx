@@ -1,3 +1,4 @@
+import { OrganizationFormSourceEntry } from "@/features/organization-forms/client"
 import { FormSourceFixture } from "./form-source-fixture"
 import { FormIntakeFixture } from "./form-intake-fixture"
 import { FormControlsFixture } from "./form-controls-fixture"
@@ -104,7 +105,11 @@ function UsageNavigation() {
   </main>
 }
 const root = document.getElementById("root")!
-if (new URLSearchParams(location.search).has("form-source")) {
+if (new URLSearchParams(location.search).has("unpublished-form")) {
+  const target = { organizationId: "10000000-0000-4000-8000-000000000001", formId: "10000000-0000-4000-8000-000000000020" }
+  root.innerHTML = renderToString(<OrganizationFormSourceEntry {...target} />)
+  hydrateRoot(root, <OrganizationFormSourceEntry {...target} />)
+} else if (new URLSearchParams(location.search).has("form-source")) {
   root.innerHTML = renderToString(<FormSourceFixture />)
   hydrateRoot(root, <FormSourceFixture />)
 } else if (new URLSearchParams(location.search).has("form-intake") || location.pathname.startsWith("/forms/responses/")) {

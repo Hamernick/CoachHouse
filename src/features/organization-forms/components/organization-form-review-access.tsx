@@ -85,7 +85,7 @@ export function OrganizationFormReviewAccess({ target, disabled, onLockChange, c
     {retry ? <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => void change(retry)}>Retry access change</Button>
       : error && <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => setReload((value) => value + 1)}>Reload access</Button>}
     {data?.reviewers.length === 0 && <p className="text-muted-foreground text-xs">{data.canGrantManage ? "No additional collaborators." : "No access granted by you."}</p>}
-    {versionId && data && (data.canGrantManage || canManageInvitations) && <OrganizationFormViewerInvitations versionId={versionId} disabled={disabled || pending || Boolean(retry)} onLockChange={setViewersLocked}
+    {data && (data.canGrantManage || canManageInvitations) && <OrganizationFormViewerInvitations versionId={versionId} target={versionId ? undefined : target} disabled={disabled || pending || Boolean(retry)} onLockChange={setViewersLocked}
       onRevisionChange={(revision) => setData((current) => current ? { ...current, revision } : current)} />}
     {data?.reviewers.map((reviewer) => <div key={reviewer.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2">
       <span className="min-w-0 break-all text-sm">{reviewer.email} <span className="text-muted-foreground">· {reviewer.role === "manage" ? "Manage" : reviewer.role === "edit" ? "Edit" : "View"}</span></span>

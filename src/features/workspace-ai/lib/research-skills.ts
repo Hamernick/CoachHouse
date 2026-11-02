@@ -1,4 +1,4 @@
-export const RESEARCH_CONTRACT_VERSION = "research-v15-existing-views"
+export const RESEARCH_CONTRACT_VERSION = "research-v16-linked-sheet-views"
 
 export const researchSkills = {
   research: "Identify the information needed to advance the objective. Search existing workspace evidence first. Research only missing facts. Prefer original, current sources; distinguish a possible lead from a verified fit. Return the smallest useful set of findings and explicit unknowns.",

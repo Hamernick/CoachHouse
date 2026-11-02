@@ -1,6 +1,6 @@
 import "server-only"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
-import { formSourceReceiptSchema, formSourceSchema } from "../lib/form-source"
+import { formSourceDirectorySchema, formSourceEntrySchema, formSourceReceiptSchema, formSourceSchema } from "../lib/form-source"
 import type { FormSourceCommand } from "../lib/form-source"
 import { FormIntakeError } from "./intake-error"
 export async function runFormSource(actorId: string | null, command: FormSourceCommand) {
@@ -14,5 +14,7 @@ export async function runFormSource(actorId: string | null, command: FormSourceC
     if (error.code === "22023") throw new FormIntakeError(400, "Check this form and try again.")
     throw new FormIntakeError(503, write ? "Unable to confirm. Retry the same request." : "Unable to load the saved form.", write)
   }
+  if (command.action === "form_source_entry") return formSourceEntrySchema.parse(data)
+  if (command.action === "form_source_directory") return formSourceDirectorySchema.parse(data)
   return write ? formSourceReceiptSchema.parse(data) : formSourceSchema.parse(data)
 }

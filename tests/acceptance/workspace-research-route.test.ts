@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ context:vi.fn(), config:vi.fn(), reserve:vi.fn(), claim:vi.fn(), settle:vi.fn(), correlate:vi.fn(), reconcile:vi.fn(), read:vi.fn(), provider:vi.fn(), load:vi.fn(),file:vi.fn(),history:vi.fn(),account:vi.fn() }))
 vi.mock("@/features/workspace-ai/server/knowledge-file",()=>({readKnowledgeFile:mocks.file}))
@@ -540,6 +541,18 @@ describe("quoted model and durable research receipt",()=>{
   const current=researchConfig();expect(current.maxCredits).toBe(approved.maxCredits);expect(current.tariff.version).not.toBe(approved.tariff.version)
   mocks.config.mockReturnValue(current)
   const response=await handleWorkspaceResearch(request({...input,tariffVersion:approved.tariff.version,maximumCredits:approved.maxCredits}))
+  expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("requires a new quote when the completed-source contract adds linked Sheet composition",async()=>{
+  const {researchConfig}=await vi.importActual<typeof import("@/features/workspace-ai/server/research-config")>("@/features/workspace-ai/server/research-config")
+  vi.stubEnv("WORKSPACE_AI_ENABLED","true");vi.stubEnv("OPENAI_API_KEY","fixture-only")
+  vi.stubEnv("WORKSPACE_AI_FORM_OUTPUTS","0");vi.stubEnv("WORKSPACE_AI_DATA_VIEW_OUTPUTS","1");vi.stubEnv("NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION","1")
+  const tariff={version:"operator-unchanged",model:"fixture-model",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,microdollarsPerCredit:2000}
+  vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify(tariff))
+  const previous=`private-${createHash("sha256").update(JSON.stringify({tariff,contract:"research-v15-existing-views",forms:false,views:true})).digest("hex").slice(0,40)}`
+  const current=researchConfig();expect(current.tariff.version).not.toBe(previous);mocks.config.mockReturnValue(current)
+  const response=await handleWorkspaceResearch(request({...input,tariffVersion:previous,maximumCredits:current.maxCredits}))
   expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
   expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
  })

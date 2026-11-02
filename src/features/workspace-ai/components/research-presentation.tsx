@@ -28,7 +28,7 @@ const { registry } = defineRegistry(researchRenderCatalog, { components: {
   ProjectDataView: ({ props }) => <li className="space-y-2 break-words">
     <ItemContent props={props} />
     {props.sourceName && <p className="text-xs">Source: {props.sourceName}</p>}
-    <p className="text-xs text-muted-foreground">{props.source.kind==="projects"?"Existing projects · sorted by Project":props.source.kind==="responses"?"Existing native response source · default saved view":"Existing shared table · default saved view"} · no copied records</p>
+    <p className="text-xs text-muted-foreground">{props.source.kind==="projects"?"Existing projects · sorted by Project":props.source.kind==="responses"?"Existing native response source · default saved view":props.source.kind==="sheets"?"Existing linked Sheet · read-only saved view":"Existing shared table · default saved view"} · no copied records</p>
     {props.source.kind==="projects" && <dl aria-label="Declared data view columns" className="grid grid-cols-2 gap-1 text-xs">
       {PROJECT_DATA_VIEW_COLUMNS.map(column => <div key={column.key}><dt className="font-medium">{column.label}</dt><dd>{column.writable ? "Editable at source" : "Read only"}</dd></div>)}
     </dl>}

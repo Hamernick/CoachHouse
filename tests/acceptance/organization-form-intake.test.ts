@@ -560,3 +560,50 @@ describe("native response deletion boundary", () => {
     expect(await result.json()).toEqual({ error: "This submission was deleted. It cannot be submitted again.", uncertain: false })
   })
 })
+
+describe("unpublished form collaboration HTTP boundary", () => {
+  const target = { organizationId: id(1), formId: id(20) }
+  it.each([
+    [{ action: "form_source_entry", ...target }, { formId: id(20), title: "Draft", canManageInvitations: true }],
+    [{ action: "form_source_directory", ...target, after: id(21) }, { forms: [{ formId: id(22), title: "Permitted draft" }], next: null }],
+    [{ action: "read_form_source", ...target }, { formId: id(20), revision: "a".repeat(64), title: "Draft", description: "", definition: version.definition }],
+  ])("dispatches an exact canonical target with verified actor and private response", async (command, value) => {
+    mocks.rpc.mockResolvedValue({ data: value })
+    const result = await handleFormIntake(request(command))
+    expect(result.status).toBe(200); expect(await result.json()).toEqual({ value })
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("organization_form_source_command", { p_actor_id: id(1), p_command: command })
+    expect(result.headers.get("cache-control")).toContain("no-store")
+  })
+  it.each([
+    { action: "read_form_source", ...target, versionId: id(80) },
+    { action: "read_form_source", organizationId: id(1) },
+    { action: "form_source_directory", ...target, actorId: id(2) },
+    { action: "viewer_offer", ...target, versionId: id(80) },
+    { action: "accept_viewer", organizationId: id(1), invitationId: id(700) },
+  ])("rejects ambiguous, incomplete and forged addresses before RPC", async command => {
+    expect((await handleFormIntake(request(command))).status).toBe(400)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("requires a session for draft discovery and invitation acceptance", async () => {
+    mocks.auth.mockResolvedValue({ data: { user: null }, error: null })
+    expect((await handleFormIntake(request({ action: "form_source_directory", ...target }))).status).toBe(401)
+    expect((await handleFormIntake(request({ action: "accept_viewer", ...target, invitationId: id(700) }))).status).toBe(401)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("keeps the exact draft save payload and treats an invalid reply as uncertain", async () => {
+    const save = { action: "save_form_source", ...target, operationId: id(701), expectedRevision: "a".repeat(64), content: { title: "Draft", description: "", definition: version.definition } }
+    mocks.rpc.mockResolvedValue({ data: { formId: id(20), operationId: id(701), revision: "invalid" } })
+    const result = await handleFormIntake(request(save))
+    expect(result.status).toBe(503); expect(await result.json()).toMatchObject({ uncertain: true })
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("organization_form_source_command", { p_actor_id: id(1), p_command: save })
+  })
+  it("accepts only a strictly addressed invitation receipt", async () => {
+    const command = { action: "accept_viewer", ...target, invitationId: id(700) }
+    const value = { ...target, invitationId: id(700), accepted: true }
+    mocks.rpc.mockResolvedValue({ data: value })
+    expect(await (await handleFormIntake(request(command))).json()).toEqual({ value })
+    mocks.rpc.mockResolvedValue({ data: { ...value, versionId: id(80) } })
+    const result = await handleFormIntake(request(command))
+    expect(result.status).toBe(503); expect(await result.json()).toMatchObject({ uncertain: true })
+  })
+})
