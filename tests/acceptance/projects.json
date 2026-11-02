@@ -281,6 +281,7 @@
       "tests/acceptance/member-workspace.test.ts",
       "tests/acceptance/organization-closure-database.test.ts",
       "tests/acceptance/organization-closure-finance-database.test.ts",
+      "tests/acceptance/organization-closure-opportunity-database.test.ts",
       "tests/acceptance/organization-closure-people-database.test.ts",
       "tests/acceptance/organization-document-collaboration.test.ts",
       "tests/acceptance/organization-form-intake-database.test.ts",
