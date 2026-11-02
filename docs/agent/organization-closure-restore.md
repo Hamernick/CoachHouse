@@ -276,3 +276,27 @@ role or a revocation event. Historical unstamped invalidations, other access
 domains, independently durable capture/freshness, retention and hosted recovery
 remain unqualified. This is access suppression, not account/PII erasure or
 permission to reopen.
+
+## Manager-transition dependent grant recovery
+
+Migration `20261103140000` materializes dependent grant retirement when a form's
+primary manager or manager revision actually changes. The same transaction
+revokes affected live invitations and deletes affected reviewer generations;
+the existing exact invitation/reviewer hooks record each retirement. Unchanged
+manager values and ordinary access-revision updates do not retire grants.
+There is no new event kind or historical backfill.
+
+The exporter and replay require the enabled canonical transition and membership
+hooks. Capture failure rolls back the manager transition, including dependent
+changes. Existing primary-manager membership loss already retires dependent
+grants; removing an external recipient's optional organization membership does
+not revoke a valid independent invitation. New grants issued after the
+transition remain independent and survive exact-generation replay.
+
+This covers dependent grants only. An older backup can still contain the former
+primary manager and membership: replay does not rewrite that identity, invent a
+replacement manager or qualify the restored database for reopening. Primary
+manager authority suppression is a separate remaining boundary. Pre-installation
+unstamped transitions and missing replacement grants require reconciliation.
+Keep the database quarantined, `historyRequiresReconciliation:true`,
+`captureComplete:false`, `releaseQualified:false` and closure controls disabled.
