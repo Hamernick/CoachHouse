@@ -1,4 +1,5 @@
 import "server-only"
+import { knowledgePersonData } from "./knowledge-person"
 import { contactDetailsSchema, contactMetadataSchema, isActiveContact } from "@/lib/people/contact-schema"
 import { z } from "zod"
 import { resolveRoadmapSections } from "@/lib/roadmap/sections"
@@ -48,7 +49,7 @@ export function knowledgeLoader(context: ResearchContext) {
       if (kind === "organization") return [record(`organization:${target.organizationId}`, kind, text(result.profile.name) || "Organization", JSON.stringify(Object.fromEntries(["name", "mission", "vision", "description", "city", "state", "website", "serviceArea", "programs"].flatMap(key => typeof result.profile[key] === "string" ? [[key,result.profile[key]]] : []))), result.revision)]
       if (kind === "person") return (Array.isArray(result.profile.org_people) ? result.profile.org_people : []).filter(isActiveContact).flatMap(raw => {
         const person = z.object({ id: z.uuid(), name: z.string(), title: z.string().nullish(), email: z.string().nullish(), phone: z.string().nullish(), notes: z.string().nullish(), details: contactDetailsSchema.optional(), contactMetadata: contactMetadataSchema.optional() }).safeParse(raw)
-        return person.success ? [{...record(`person:${person.data.id}`, kind, person.data.name, JSON.stringify({ title: person.data.title, email: person.data.email, phone: person.data.phone, notes: person.data.notes, details: person.data.details, sources: Object.fromEntries(Object.entries(person.data.contactMetadata?.provenance ?? {}).map(([field, source]) => [field, { kind: source.kind, label: source.label, recordedAt: source.recordedAt, verification: source.verification }])) }), result.revision, `/workspace?tab=people&focus=${person.data.id}`), searchContent: person.data.title ?? ""}] : []
+        return person.success ? [{...record(`person:${person.data.id}`, kind, person.data.name, JSON.stringify({ title: person.data.title, email: person.data.email, phone: person.data.phone, notes: person.data.notes, details: person.data.details, sources: Object.fromEntries(Object.entries(person.data.contactMetadata?.provenance ?? {}).map(([field, source]) => [field, { kind: source.kind, label: source.label, recordedAt: source.recordedAt, verification: source.verification }])) }), result.revision, `/workspace?tab=people&focus=${person.data.id}`), searchContent: person.data.title ?? "", personData: knowledgePersonData(person.data)}] : []
       })
       const access = await resolveOrganizationDocumentStorageAccess({ supabase, orgId: target.organizationId })
       if ("error" in access) throw new Error(access.error)

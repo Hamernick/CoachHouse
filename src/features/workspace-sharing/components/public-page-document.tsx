@@ -31,7 +31,7 @@ export function PublicPageDocument({ src, name }: { src: string; name: string })
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <FileTextIcon className="text-muted-foreground size-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 break-words text-sm">{name}</span>
-      <Button type="button" variant="outline" className="min-h-11 shrink-0 rounded-full shadow-none"
+      <Button type="button" variant="outline" className="h-auto min-h-11 max-w-full shrink-0 whitespace-normal break-words rounded-full shadow-none"
         aria-expanded={open} aria-controls={id} onClick={() => { setReading({ status: "loading" }); setOpen(!open) }}>
         {open ? "Close document" : "Read document"}
       </Button>

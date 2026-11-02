@@ -109,7 +109,7 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
     ref={region} tabIndex={-1} aria-label="Share page" className="nodrag nopan nowheel focus-ring flex min-h-0 min-w-0 flex-col" aria-busy={state.pending}>
     <SharePageHeader dirty={dirty} locked={locked} onBack={onBack} actions={<>
       {state.preview ? <>
-        <Button type="button" variant="ghost" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={editor.edit}>Edit</Button>
+        <Button type="button" variant="ghost" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={(event) => { event.preventDefault(); editor.edit() }}>Edit</Button>
         <Button type="button" variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={() => void editor.write("share_with_guests")}>Share privately</Button>
         <Button type="button" className={SHARE_HEADER_BUTTON} disabled={locked || !data.publishingEnabled} onClick={() => void editor.write("publish")}>{editor.activeAction === "publish" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}{currentPage?.visibility === "public" ? "Update" : "Publish"}</Button>
       </> : <>

@@ -1,4 +1,4 @@
-export const RESEARCH_CONTRACT_VERSION = "research-v12-tool-results"
+export const RESEARCH_CONTRACT_VERSION = "research-v14-public-brief"
 
 export const researchSkills = {
   research: "Identify the information needed to advance the objective. Search existing workspace evidence first. Research only missing facts. Prefer original, current sources; distinguish a possible lead from a verified fit. Return the smallest useful set of findings and explicit unknowns.",

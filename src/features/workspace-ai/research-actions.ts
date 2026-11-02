@@ -1,5 +1,6 @@
 "use server"
 import { z } from "zod"
+import { researchPublicBriefSchema, type ResearchPublicBrief } from "./lib/research-public-brief"
 import { cancelAiRun, readAiAccount, listAiResearchRuns } from "@/features/ai-credits"
 import { loadResearchContext } from "./server/research-context"
 import { assertInitialResearchRequestFits } from "./server/research-provider-request"
@@ -9,13 +10,14 @@ import { createKnowledgeTools } from "./server/knowledge-tools"
 import { knowledgeSearchSchema, researchHistorySchema, type ResearchTarget } from "./research-types"
 import { researchRecoveryResponse } from "./server/research-recovery"
 
-export async function quoteWorkspaceResearch(target:ResearchTarget) {
+export async function quoteWorkspaceResearch(target:ResearchTarget, publicBrief?: ResearchPublicBrief) {
   try {
-    const context=await loadResearchContext(target),config=researchConfig()
+    const approved = publicBrief === undefined ? undefined : researchPublicBriefSchema.parse(publicBrief)
+    const context=await loadResearchContext(target),config=researchConfig(approved)
     assertInitialResearchRequestFits(context,{target,prompt:"",skill:"planning"},config)
     const account=await readAiAccount(target.organizationId,context.user.id)
     if(!account.enabled || account.paymentReview) throw new Error("Research is not enabled for this organization.")
-    return {maximumCredits:config.maxCredits,tariffVersion:config.tariff.version}
+    return {maximumCredits:config.maxCredits,tariffVersion:config.tariff.version,...(config.publicResearchAvailable ? {publicResearchAvailable:true} : {})}
   } catch(error) {return researchRecoveryResponse(error,"admission_unavailable")}
 }
 export async function getWorkspaceResearch(id:string,target:ResearchTarget) {

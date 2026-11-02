@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { Editor } from "@tiptap/core"
 import LinkIcon from "lucide-react/dist/esm/icons/link"
 import { RichTextEditor } from "@/components/rich-text-editor"
@@ -34,10 +34,12 @@ function NoteLinkControl({ editor }: { editor: Editor | null }) {
     </PopoverContent>
   </Popover>
 }
-export function NotesRichEditor({ initialBody, onChange, toolbarId, readOnly }: {
-  initialBody: NoteContent; onChange: (body: NoteContent) => void; toolbarId: string; readOnly: boolean
+export function NotesRichEditor({ initialBody, onChange, toolbarId, readOnly, autoFocus = false }: {
+  initialBody: NoteContent; onChange: (body: NoteContent) => void; toolbarId: string; readOnly: boolean; autoFocus?: boolean
 }) {
   const [editor, setEditor] = useState<Editor | null>(null)
+  const focused = useRef(false)
+  useEffect(() => { if (editor && autoFocus && !readOnly && !focused.current) { focused.current = true; editor.commands.focus() } }, [editor, autoFocus, readOnly])
   const session = useMemo(() => ({ history: "local" as const, initialContent: noteEditorHtml(initialBody), active: true,
     onReady: setEditor,
     onUpdate: (instance: Editor) => onChange({ content: instance.getText({ blockSeparator: "\n" }), html: instance.getHTML() }),

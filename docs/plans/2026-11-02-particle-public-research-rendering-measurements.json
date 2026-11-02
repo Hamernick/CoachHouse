@@ -1,0 +1,63 @@
+{
+  "kind": "local-synthetic-production-bundle",
+  "artifacts": "identical twelve notes; original fallback/editor vs selected renderer",
+  "bundles": {
+    "baseline": {
+      "bytes": 705324,
+      "gzipBytes": 214272,
+      "jsonRenderModules": 0
+    },
+    "selected": {
+      "bytes": 795820,
+      "gzipBytes": 244268,
+      "jsonRenderModules": 4
+    }
+  },
+  "delta": {
+    "bytes": 90496,
+    "gzipBytes": 29996
+  },
+  "firstContentfulPaintMs": {
+    "baseline": {
+      "samples": 10,
+      "min": 188,
+      "median": 200,
+      "p95": 216
+    },
+    "selected": {
+      "samples": 10,
+      "min": 220,
+      "median": 232,
+      "p95": 248
+    }
+  },
+  "firstCommitMs": {
+    "baseline": {
+      "samples": 10,
+      "min": 35.09999990463257,
+      "median": 40.40000009536743,
+      "p95": 42
+    },
+    "selected": {
+      "samples": 10,
+      "min": 41.60000002384186,
+      "median": 46.60000002384186,
+      "p95": 52.89999997615814
+    }
+  },
+  "updateCommitMs": {
+    "baseline": {
+      "samples": 50,
+      "min": 3.4000000953674316,
+      "median": 5.799999952316284,
+      "p95": 7.899999976158142
+    },
+    "selected": {
+      "samples": 50,
+      "min": 5.399999976158142,
+      "median": 6.699999928474426,
+      "p95": 11.700000047683716
+    }
+  },
+  "limitations": "First contentful paint contains the actual fixed artifact; commit metrics start at entry execution. Server actions are fail-closed fixture stubs. Excludes real sources, Next production route and model spend. No demonstrated runtime savings claim. Ten paired local navigation samples; fifty updates per variant."
+}

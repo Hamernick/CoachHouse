@@ -8,6 +8,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { PageNoteScopes } from "./page-note-scopes"
 import { usePageAccess, type PageAccessController } from "../hooks/use-page-access"
 import type { PageAccessData } from "../lib/page-access"
 
@@ -19,13 +20,15 @@ export function PageAccessFeedback({ access, hideReload = false }: { access: Pag
 }
 export function PageAccessManager({ pageId, onLockChange, disabled = false }: { pageId: string; onLockChange?: (locked: boolean) => void; disabled?: boolean }) {
   const access = usePageAccess(pageId)
-  useEffect(() => { onLockChange?.(access.locked) }, [access.locked, onLockChange])
+  const [noteScopeLocked,setNoteScopeLocked]=useState(false)
+  useEffect(() => { onLockChange?.(access.locked || noteScopeLocked) }, [access.locked, noteScopeLocked, onLockChange])
   useEffect(() => () => onLockChange?.(false), [onLockChange])
   return <section aria-label="Page access" aria-busy={access.pending} className="flex flex-col gap-4">
     <fieldset disabled={disabled} className="flex min-w-0 flex-col gap-4">
     <PageAccessFeedback access={access} />
     {access.pending && !access.data && <p role="status" className="text-muted-foreground text-sm">Loading access…</p>}
-    {access.data?.permission === "manage" && <PageInvitationControls access={access} data={access.data} />}
+    <fieldset disabled={noteScopeLocked}>{access.data?.permission === "manage" && <PageInvitationControls access={access} data={access.data} />}</fieldset>
+    {access.data?.canGrantManage && <PageNoteScopes pageId={pageId} disabled={disabled || access.locked} onLockChange={setNoteScopeLocked} />}
     </fieldset>
   </section>
 }
@@ -59,7 +62,7 @@ export function PageInvitationControls({ access, data }: { access: PageAccessCon
         <Button type="submit" className={control} disabled={access.locked}>{access.pending && <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" />}Create invitation</Button>
       </div>
     </form>
-    <p className="text-muted-foreground text-xs">Edit: page title and introduction. Manage: also invite viewers/editors. Neither publishes or opens workspace data.</p>
+    <p className="text-muted-foreground text-xs">Edit: page title, introduction, and only workspace notes explicitly enabled below by an organization editor. Manage: also invite viewers/editors. Neither grants other workspace data or publication rights.</p>
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {fallback && <Input aria-label="Invitation link" value={fallback} readOnly onFocus={(event) => event.target.select()} />}
     <ul className="flex max-h-80 flex-col gap-3 overflow-y-auto" aria-label="Page invitations">

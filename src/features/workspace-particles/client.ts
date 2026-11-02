@@ -92,3 +92,5 @@ export { EMPTY_RESPONSIBILITY, type ParticleResponsibility } from "./lib/particl
 export { summarizeObjectiveProgress, summarizePlanWork, isParticleWork } from "./lib/particle-progress"
 
 export { useParticleProgressClock } from "./hooks/use-particle-progress-clock"
+
+export { NotesRichEditor } from "./components/notes-rich-editor"

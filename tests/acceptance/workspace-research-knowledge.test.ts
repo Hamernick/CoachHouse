@@ -4,13 +4,14 @@ vi.mock("@/features/workspace-ai/server/knowledge-records",async importOriginal=
 vi.mock("@/features/workspace-ai/server/knowledge-file",()=>({readKnowledgeFile:mocks.file}))
 vi.mock("@/features/workspace-ai/server/research-context",()=>({loadResearchContext:mocks.context}))
 vi.mock("@/lib/organization/document-storage-access",()=>({resolveOrganizationDocumentStorageAccess:mocks.access}))
+import { knowledgePersonFieldFingerprint, projectKnowledgePerson } from "@/features/workspace-ai/server/knowledge-person"
 import { knowledgeFingerprint } from "@/features/workspace-ai/server/research-dependencies"
 import {createKnowledgeTools} from "@/features/workspace-ai/server/knowledge-tools"
-import type { KnowledgeKind, ExistingResearchTarget } from "@/features/workspace-ai/research-types"
+import type { KnowledgeKind, KnowledgeRecord, ExistingResearchTarget } from "@/features/workspace-ai/research-types"
 import type {ResearchContext} from "@/features/workspace-ai/server/research-context"
 import {ID,WORKSPACE,graph,particle} from "./fixtures/particle-fixtures"
 const context={user:{id:ID(90)},canvasId:null,target:{organizationId:WORKSPACE,objectiveId:ID(1),revision:0},graph:graph(),objective:particle(1,"objective")} as ResearchContext & { target: ExistingResearchTarget }
-const record={id:"person:known",kind:"person",title:"Marketing director",content:"Owns the marketing plan",href:"/workspace",revision:"current",contentAvailable:true}
+const record:KnowledgeRecord={id:"person:known",kind:"person",title:"Marketing director",content:"Owns the marketing plan",href:"/workspace",revision:"current",contentAvailable:true,personData:{values:{title:"Owns the marketing plan"},sources:{}}}
 beforeEach(()=>{vi.resetAllMocks();mocks.context.mockResolvedValue(context);mocks.access.mockResolvedValue({hasStorageAccess:true});mocks.load.mockResolvedValue([record]);mocks.file.mockImplementation(async(_context,value)=>value)})
 describe("workspace knowledge tools",()=>{
  it("reauthorizes repeated searches and withholds unavailable exact references",async()=>{
@@ -22,7 +23,7 @@ describe("workspace knowledge tools",()=>{
   expect(await tools.execute("read_workspace",{ids:["person:other"]})).toMatchObject({results:[{id:"person:other",error:"Contents could not be verified. Retry the read; do not infer their contents."}]})
   expect(mocks.file).not.toHaveBeenCalled()
   await tools.execute("read_workspace",{ids:[record.id]})
-  expect(mocks.file).toHaveBeenCalledTimes(1)
+  expect(mocks.file).not.toHaveBeenCalled()
   expect(tools.sources.get(record.id)?.revision).toBe("current")
   await createKnowledgeTools(context).execute("search_workspace",{query:"marketing",kinds:["person"]})
   expect(mocks.load).toHaveBeenCalledTimes(5)
@@ -38,12 +39,12 @@ describe("workspace knowledge tools",()=>{
   await expect(tools.execute("read_workspace",{ids:["a","b","c","d","e"]})).rejects.toThrow()
  })
  it("retains available records when another read fails and preserves extraction truncation",async()=>{
-  const file={...record,id:"file:known",kind:"document"}
-  mocks.load.mockResolvedValue([record,file])
+  const file={...record,id:"file:known",kind:"document"}, readable={...record,id:"document:known",kind:"document"}
+  mocks.load.mockResolvedValue([readable,file])
   mocks.file.mockImplementation(async(_context,value)=>{if(value.id===file.id)throw Error("permission revoked");return {...value,contentTruncated:true}})
   const tools=createKnowledgeTools(context)
-  await tools.execute("search_workspace",{query:"marketing",kinds:["person","document"]})
-  expect(await tools.execute("read_workspace",{ids:[record.id,file.id]})).toMatchObject({results:[{id:record.id,content:record.content,truncated:true},{id:file.id,error:expect.any(String)}]})
+  await tools.execute("search_workspace",{query:"marketing",kinds:["document"]})
+  expect(await tools.execute("read_workspace",{ids:[readable.id,file.id]})).toMatchObject({results:[{id:readable.id,content:readable.content,truncated:true},{id:file.id,error:expect.any(String)}]})
  })
 })
 
@@ -55,15 +56,15 @@ describe("direct authorized workspace reads",()=>{
   const known={...record,id:`${prefix}:${ID(80)}`,kind}
   mocks.load.mockResolvedValue([known])
   const tools=createKnowledgeTools(context)
-  expect(await tools.execute("read_workspace",{ids:[known.id,known.id]})).toMatchObject({results:[{id:known.id,content:known.content,evidence:{coverage:"complete",readAt:expect.any(String)}}]})
+  expect(await tools.execute("read_workspace",{ids:[known.id,known.id]})).toMatchObject({results:[{id:known.id,content:kind === "person" ? projectKnowledgePerson(known,null).content : known.content,evidence:{coverage:"complete",readAt:expect.any(String)}}]})
   expect(mocks.load).toHaveBeenCalledExactlyOnceWith(kind,"",known.id)
-  expect(mocks.file).toHaveBeenCalledTimes(1)
+  expect(mocks.file).toHaveBeenCalledTimes(kind === "person" ? 0 : 1)
   expect(tools.sources.get(known.id)?.revision).toBe("current")
-  expect(tools.dependencies().records).toEqual([{id:known.id,kind,fingerprint:knowledgeFingerprint(known),detailFingerprint:knowledgeFingerprint(known)}])
+  expect(tools.dependencies().records).toEqual([{id:known.id,kind,fingerprint:knowledgeFingerprint(known),...(kind === "person" ? { contactFields:[{field:"title",fingerprint:knowledgePersonFieldFingerprint(known,"title")}] } : {detailFingerprint:knowledgeFingerprint(known)})}])
   mocks.load.mockResolvedValue([])
   expect(await tools.revalidate()).toBe(false)
   expect(await tools.execute("read_workspace",{ids:[known.id]})).toMatchObject({results:[{id:known.id,error:expect.any(String)}]})
-  expect(mocks.file).toHaveBeenCalledTimes(1)
+  expect(mocks.file).toHaveBeenCalledTimes(kind === "person" ? 0 : 1)
  })
 
  it("makes missing, denied, wrong-ID and wrong-kind results indistinguishable",async()=>{
@@ -144,7 +145,7 @@ it("withholds changed or revoked records instead of replaying cached private con
  mocks.load.mockResolvedValue([])
  expect(await tools.execute("read_workspace",{ids:[record.id]})).toMatchObject({results:[{id:record.id,status:"unavailable",recovery:"retry_read"}]})
  expect(await tools.revalidate()).toBe(false)
- expect(mocks.file).toHaveBeenCalledTimes(1)
+ expect(mocks.file).not.toHaveBeenCalled()
 })
 it("does not let repeat searches overwrite evidence already disclosed to the model",async()=>{
  const tools=createKnowledgeTools(context)
@@ -220,7 +221,7 @@ it("keeps contact search to names and roles, then reads selected contact details
  expect(search).toMatchObject({results:[{content:"Marketing director",evidence:{coverage:"excerpt",readAt:null}}]})
  expect(JSON.stringify(search)).not.toMatch(/private@example|555-0100|Confidential|searchContent/)
  expect(await tools.execute("search_workspace",{query:"Confidential",kinds:["person"]})).toMatchObject({results:[]})
- const read=await tools.execute("read_workspace",{ids:[records[0].id]})
+ const read=await tools.execute("read_workspace",{ids:[records[0].id],personFields:["email"]})
  expect(JSON.stringify(read)).toContain("private@example.org")
  expect(read).toMatchObject({results:[{evidence:{coverage:"complete",scope:"record",readAt:expect.any(String)}}]})
 })
@@ -230,9 +231,9 @@ it("deduplicates reads and preserves read coverage through later searches and ci
  await tools.execute("search_workspace",{query:"marketing",kinds:["person"]})
  expect(tools.sources.get(record.id)?.evidence).toMatchObject({coverage:"excerpt",readAt:null})
  await tools.execute("read_workspace",{ids:[record.id,record.id]})
- expect(mocks.file).toHaveBeenCalledTimes(1)
+ expect(mocks.file).not.toHaveBeenCalled()
  const source=structuredClone(tools.sources.get(record.id))
- expect(source?.evidence).toMatchObject({coverage:"complete",characters:record.content.length,readAt:expect.any(String)})
+ expect(source?.evidence).toMatchObject({coverage:"complete",characters:projectKnowledgePerson(record,null).content.length,readAt:expect.any(String)})
  await tools.execute("search_workspace",{query:"marketing",kinds:["person"]})
  expect(tools.evidence([record.id])).toEqual([source])
 })

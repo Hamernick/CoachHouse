@@ -14,24 +14,33 @@ export function knowledgeDisclosure(record: KnowledgeRecord, mode: "search" | "r
     scope: record.contentScope ?? "record",
     checkedAt, readAt: mode === "read" ? checkedAt : null,
     characters: record.contentAvailable ? content.length : 0,
+    ...(record.contactFields ? { contactFields: record.contactFields } : {}),
   })
   const status = mode === "search" ? record.contentAvailable ? "truncated" : "metadata_only"
     : record.contentAvailable ? truncated ? "truncated" : "available" : record.availability ?? "unavailable"
-  const recovery = status === "available" ? "none" : status === "metadata_only" ? "read_detail" : status === "truncated" || status === "exhausted_budget" ? "narrow_source"
+  const recovery = status === "available" ? "none" : status === "metadata_only" ? "read_detail" : status === "truncated" ? mode === "search" ? "read_detail" : "narrow_source" : status === "exhausted_budget" ? "narrow_source"
     : status === "unsupported_format" || status === "empty" ? "choose_source" : "retry_read"
   return knowledgeDisclosedRecordSchema.parse({
     status, recovery,
     id: record.id, kind: record.kind, title: record.title, href: record.href,
     revision: record.revision, content, contentAvailable: record.contentAvailable,
     truncated: truncated || mode === "search", evidence,
+    ...(record.contactFields ? { contactFields: record.contactFields } : {}),
     ...(record.contentScope ? { contentScope: record.contentScope } : {}),
     ...(record.file ? { file: record.file } : {}),
   })
 }
 
 /** Keep the strongest actual disclosure; citation binding is not another read. */
-export function retainKnowledgeEvidence(previous: KnowledgeEvidence | undefined, next: KnowledgeEvidence) {
+export function retainKnowledgeEvidence(previous: KnowledgeEvidence | undefined, next: KnowledgeEvidence): KnowledgeEvidence {
   if (!previous) return next
+  if (previous.contactFields && !next.contactFields) return previous
+  if (previous.contactFields && next.contactFields) return { ...next,
+    contactFields: [...new Set([...previous.contactFields,...next.contactFields])].sort(),
+    coverage: previous.coverage === "excerpt" || next.coverage === "excerpt" ? "excerpt" : next.coverage,
+    // Strongest individual read length, not an invented cumulative/token count.
+    characters: Math.max(previous.characters,next.characters),
+  }
   if (next.coverage === "unavailable" || (previous.coverage === "unavailable" && next.readAt === null)) return next.readAt ? next : previous
   const rank = { unavailable: 0, metadata_only: 1, excerpt: 2, complete: 3 }
   if (rank[previous.coverage] > rank[next.coverage]) return previous

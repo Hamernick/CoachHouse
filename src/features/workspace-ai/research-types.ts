@@ -1,4 +1,6 @@
+import { researchPublicBriefSchema } from "./lib/research-public-brief"
 import { z } from "zod"
+import { knowledgePersonFieldSchema, knowledgePersonFieldsSchema, type KnowledgePersonData, type KnowledgePersonField } from "./lib/knowledge-person-fields"
 import type { KnowledgeAvailability } from "./lib/knowledge-availability"
 import { formDefinitionSchema } from "@/features/organization-forms"
 import { providerResearchFormSchema } from "./lib/research-form"
@@ -16,9 +18,11 @@ export const newObjectiveTargetSchema = z.strictObject({
 export const researchTargetSchema = z.union([existingResearchTargetSchema, newObjectiveTargetSchema])
 export type ExistingResearchTarget = z.infer<typeof existingResearchTargetSchema>
 export type NewObjectiveTarget = z.infer<typeof newObjectiveTargetSchema>
-export const researchRequestSchema = z.strictObject({ id: z.uuid(), target: researchTargetSchema, prompt: z.string().trim().min(1).max(2000), tariffVersion: z.string().min(1).max(80), maximumCredits: z.number().int().positive().max(125), skill: z.enum(["research", "partnerships", "planning"]) })
+export const researchRequestSchema = z.strictObject({ id: z.uuid(), target: researchTargetSchema, prompt: z.string().trim().min(1).max(2000), tariffVersion: z.string().min(1).max(80), maximumCredits: z.number().int().positive().max(125), skill: z.enum(["research", "partnerships", "planning"]), publicResearch: researchPublicBriefSchema.optional() })
 export const knowledgeSearchSchema = z.strictObject({ query: z.string().trim().min(1).max(160), kinds: z.array(knowledgeKindSchema).min(1).max(6) })
-export const knowledgeReadSchema = z.strictObject({ ids: z.array(z.string().min(1).max(200)).min(1).max(4) })
+export const knowledgeReadSchema = z.strictObject({ ids: z.array(z.string().min(1).max(200)).min(1).max(4), personFields: knowledgePersonFieldsSchema.nullable().optional() })
+// The model-facing strict tool declares every property; older callers may omit it safely.
+export const knowledgeProviderReadSchema = knowledgeReadSchema.extend({ personFields: knowledgePersonFieldsSchema.nullable() })
 export const knowledgeEvidenceSchema = z.strictObject({
   version: z.literal(1),
   coverage: z.enum(["metadata_only", "excerpt", "complete", "unavailable"]),
@@ -27,6 +31,7 @@ export const knowledgeEvidenceSchema = z.strictObject({
   readAt: z.iso.datetime().nullable(),
   // JavaScript string length: UTF-16 code units, not bytes or tokens.
   characters: z.number().int().nonnegative().max(20000),
+  contactFields: knowledgePersonFieldsSchema.optional(),
 })
 export type KnowledgeEvidence = z.infer<typeof knowledgeEvidenceSchema>
 export const researchSourceSchema = z.strictObject({ id: z.string().max(200), title: z.string().max(240), href: z.string().max(2000).refine(value => /^\/(?!\/)/.test(value) || /^https?:\/\//.test(value), "Invalid source link"), revision: z.string().nullable(), checkedAt: z.iso.datetime(), kind: z.enum(["workspace", "web"]), evidence: knowledgeEvidenceSchema.optional(), file: z.strictObject({size:z.number().int().positive().max(15728640),format:z.enum(["pdf","md","docx","doc","csv","txt","image"])}).optional() })
@@ -81,7 +86,8 @@ export const researchDependenciesSchema = z.strictObject({
     id: z.string().min(1).max(200), kind: knowledgeKindSchema,
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     detailFingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  })).max(256),
+    contactFields: z.array(z.strictObject({ field: knowledgePersonFieldSchema, fingerprint: z.string().regex(/^[a-f0-9]{64}$/) })).min(1).max(10).optional(),
+  }).refine(record => !record.contactFields || (record.kind === "person" && new Set(record.contactFields.map(item => item.field)).size === record.contactFields.length))).max(256),
 })
 export type ResearchDependencies = z.infer<typeof researchDependenciesSchema>
 export const researchResultSchema = z.strictObject({ ...generatedResearchSchema.shape, decisions: researchDecisionsSchema.optional(), removeReferences: removeReferencesSchema.optional(), sources: z.array(researchSourceSchema).max(40), dependencies: researchDependenciesSchema.optional(), outputBindings: researchOutputBindingsSchema.optional(), target: researchTargetSchema, runId: z.uuid() })
@@ -94,5 +100,5 @@ export type ResearchHistory = z.infer<typeof researchHistorySchema>
 export type ResearchResult = z.infer<typeof researchResultSchema>
 export type ResearchRequest = z.infer<typeof researchRequestSchema>
 export type KnowledgeKind = z.infer<typeof knowledgeKindSchema>
-export type KnowledgeRecord = { availability?: KnowledgeAvailability; id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; searchContent?: string; contentTruncated?: boolean; contentScope?: "document_body" | "text"; file?: ResearchSource["file"] }
+export type KnowledgeRecord = { personData?: KnowledgePersonData; contactFields?: KnowledgePersonField[]; availability?: KnowledgeAvailability; id: string; kind: KnowledgeKind; title: string; content: string; href: string; revision: string | null; contentAvailable: boolean; searchContent?: string; contentTruncated?: boolean; contentScope?: "document_body" | "text"; file?: ResearchSource["file"] }
 export type ResearchSource = z.infer<typeof researchSourceSchema>

@@ -1,5 +1,6 @@
 "use client"
 
+import { knowledgePersonFieldLabels } from "../lib/knowledge-person-fields"
 import { FileText, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -45,7 +46,7 @@ export function ResearchSources({ sources }: { sources: ResearchSource[] }) {
               <p className="font-medium">{status.label}</p>
               <p className="text-xs text-muted-foreground">{status.detail}</p>
               {source.evidence && <>
-                <p className="text-xs text-muted-foreground">{scopeLabels[source.evidence.scope]}</p>
+                <p className="text-xs text-muted-foreground">{source.evidence.contactFields ? `Selected contact fields: ${source.evidence.contactFields.map(field => knowledgePersonFieldLabels[field]).join(", ")}. Other contact fields were not included in this coverage.` : scopeLabels[source.evidence.scope]}</p>
                 <p className="text-xs text-muted-foreground">Coverage recorded <time dateTime={source.evidence.checkedAt}>{new Date(source.evidence.checkedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</time></p>
               </>}
             </div>

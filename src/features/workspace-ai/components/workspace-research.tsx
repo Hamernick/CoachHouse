@@ -1,5 +1,7 @@
 "use client"
 import { useEffect, useEffectEvent, useRef, useState } from "react"
+import { ResearchPublicOptions, ResearchScopeHelp } from "./research-public-brief"
+import { useResearchPublicBrief, type ResearchQuote } from "./use-research-public-brief"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
@@ -12,7 +14,7 @@ import { researchPhaseLabels } from "../lib/research-phase"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
 import { ResearchHistoryMenu } from "./research-history-menu"
 
-type Quote = { maximumCredits: number; tariffVersion: string }
+type Quote = ResearchQuote
 import { applyResearchDraft, createResearchDraft, researchDraftError, validateResearchRecoveryDraft, type ResearchDraft } from "../lib/research-draft"
 import { ResearchDraftEditor } from "./research-draft-editor"
 import { sameResearchDraft } from "../lib/research-draft-checkpoint"
@@ -36,6 +38,8 @@ export function WorkspaceResearch(props: Props) {
 function ResearchSession({ target, userId, planContext, stale: targetStale, initialPrompt = "", onPromptChange, onProposal, onClose }: Props) {
   const [prompt, setPrompt] = useState(initialPrompt), [skill, setSkill] = useState<ResearchRequest["skill"]>(target.plan || target.mode === "new_objective" ? "planning" : "research")
   const [quote, setQuote] = useState<Quote | null>(null), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false)
+  const alive=useRef(true)
+  const {publicResearch,publicAvailable,setPublicAvailable,updatePublicResearch}=useResearchPublicBrief(target,alive,setQuote,setError)
   const [runId, setRunId] = useState<string | null>(null), [result, setResult] = useState<ResearchResult | null>(null), [message, setMessage] = useState("")
   const sourceEffects = useResearchSourceEffects(runId, target, result)
   const [unsavedPreview, setUnsavedPreview] = useState<ResearchResult | null>(null)
@@ -58,7 +62,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
   })
   const [failure, setFailure] = useState<ResearchRecoveryCode | null>(null)
   const checkingRun = useRef<string | null>(null), readVersion = useRef(0)
-  const alive = useRef(true), working = useRef(false), activeRun = useRef<string | null>(null)
+  const working = useRef(false), activeRun = useRef<string | null>(null)
   const streamAbort = useRef<AbortController | null>(null)
   const key = target.mode === "new_objective" ? `workspace-research:${userId}:${scopeIdentity(target)}` : `workspace-research:${userId}:${target.organizationId}:${target.objectiveId}${target.plan ? `:plan:${target.plan.id}` : ""}`
   const { organizationId, objectiveId, revision } = target
@@ -117,7 +121,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     const generationVersion = readVersion.current
     const controller = new AbortController(); streamAbort.current = controller
     try {
-      const response = await fetch("/api/workspace-ai/research", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Accept: "text/event-stream, application/json" }, body: JSON.stringify({ id, target, prompt, skill, ...quote }) })
+      const response = await fetch("/api/workspace-ai/research", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Accept: "text/event-stream, application/json" }, body: JSON.stringify({ id, target, prompt, skill, maximumCredits:quote.maximumCredits,tariffVersion:quote.tariffVersion,...(publicResearch ? {publicResearch} : {}) }) })
       if (!alive.current || activeRun.current !== id || readVersion.current !== generationVersion) { await response.body?.cancel(); return }
       if (response.headers.get("content-type")?.startsWith("text/event-stream")) {
         const { readResearchProgress } = await import("../lib/research-progress-client")
@@ -194,10 +198,10 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     void quoteWorkspaceResearch(mode === "new_objective" ? {mode, organizationId, revision, canvasId} : {organizationId, objectiveId:objectiveId!, revision, ...(planId !== undefined && planRevision !== undefined ? {plan:{id:planId,revision:planRevision}} : {})}).then(value => {
       if (!current) return
       if ("error" in value) setError(value.error ?? "Research unavailable.")
-      else setQuote(value)
+      else {setQuote(value);setPublicAvailable(Boolean(value.publicResearchAvailable))}
     }).catch(() => { if (current) setError("Research pricing could not be loaded. Reopen research to retry.") })
     return () => { current = false; alive.current = false; activeRun.current = null; streamAbort.current?.abort() }
-  }, [key, organizationId, objectiveId, revision, planId, planRevision, mode, canvasId])
+  }, [key, organizationId, objectiveId, revision, planId, planRevision, mode, canvasId, setPublicAvailable])
   const recheckVisibleResult = useEffectEvent((reconnect: boolean) => {
     const resumable = reconnect && runId && (!failure || researchRecovery[failure].action === "check_status")
     if (document.visibilityState === "visible" && (result || resumable) && !targetStale) void recover(false, runId, reconnect)
@@ -267,9 +271,9 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
   const canCheck = !failure || researchRecovery[failure].action === "check_status"
   return <form aria-label={target.mode === "new_objective" ? "Plan a new objective" : target.plan ? "Revise plan with AI" : "Research objective"} className="space-y-3 px-2 py-3" onSubmit={event => { event.preventDefault(); void start() }}>
     {planContext && <p className="text-sm font-medium">Revise {planContext.title}</p>}
-    {!result && <><p className="text-xs text-muted-foreground">Creates plan proposals and notes from workspace sources. Forms, tables and web search are unavailable.</p><Textarea aria-label="Research request" placeholder={target.mode === "new_objective" ? "What do you want to accomplish?" : target.plan ? "What should change in this plan?" : "What should we find or develop?"} value={prompt} onChange={event => { setPrompt(event.target.value); onPromptChange?.(event.target.value) }} maxLength={2000} required rows={3} disabled={busy || Boolean(runId)} className="rounded-xl px-3 py-2" />
+    {!result && <><ResearchScopeHelp publicAvailable={publicAvailable} /><Textarea aria-label="Research request" placeholder={target.mode === "new_objective" ? "What do you want to accomplish?" : target.plan ? "What should change in this plan?" : "What should we find or develop?"} value={prompt} onChange={event => { setPrompt(event.target.value); onPromptChange?.(event.target.value) }} maxLength={2000} required rows={3} disabled={busy || Boolean(runId)} className="rounded-xl px-3 py-2" />
       {target.mode !== "new_objective" && <Select value={skill} onValueChange={value => setSkill(value as ResearchRequest["skill"])} disabled={busy || Boolean(runId)}><SelectTrigger aria-label="Research approach" className="h-9 w-fit rounded-lg"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="research">Research</SelectItem><SelectItem value="partnerships">Find partners & resources</SelectItem><SelectItem value="planning">Develop the plan</SelectItem></SelectContent></Select>}
-      {quote && !runId && <p className="text-xs text-muted-foreground">Up to {quote.maximumCredits} credits for workspace research.</p>}</>}
+      <ResearchPublicOptions available={publicAvailable} disabled={busy || Boolean(runId)} quote={quote} publicResearch={publicResearch} hasRun={Boolean(runId)} onChange={(value,awaitingReview)=>void updatePublicResearch(value,awaitingReview)} /></>}
     {preview && !stale && !checking && <>
       {editing && draft ? <ResearchDraftEditor result={result!} draft={draft.value} disabled={busy || attempted || (recovery.busy && !autosaving) || recovery.uncertain || !recovery.ready} onChange={value => setDraft({ ...draft, value })} />
         : <><p className="text-sm font-medium">{preview.title}</p><ResearchReview result={preview} plan={planContext} /></>}

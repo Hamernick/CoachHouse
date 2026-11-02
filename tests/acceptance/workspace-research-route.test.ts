@@ -496,3 +496,34 @@ const snapshot = { version: 1, id: ID(2), status: "succeeded", credits: 2, resul
     expect(researchSnapshotSchema.safeParse({ ...snapshot, ...patch }).success).toBe(false)
   })
 })
+
+describe("reviewed public brief admission and recovery",()=>{
+ const publicResearch={version:1 as const,destination:"openai_web_search" as const,brief:"Public community garden planning",approved:true as const}
+ it("quotes only the exact reviewed public intent and hashes it into the existing reservation",async()=>{
+  const base=mocks.config();mocks.config.mockReturnValue({...base,maxSearchCalls:1,publicResearchAvailable:true})
+  expect(await quoteWorkspaceResearch(target,publicResearch)).toMatchObject({maximumCredits:20,publicResearchAvailable:true})
+  expect(mocks.config).toHaveBeenLastCalledWith(publicResearch)
+  await handleWorkspaceResearch(request({...input,publicResearch}))
+  expect(mocks.provider.mock.calls[0][0].request.publicResearch).toEqual(publicResearch)
+  const first=mocks.reserve.mock.calls[0][0].hash
+  await handleWorkspaceResearch(request({...input,publicResearch:{...publicResearch,brief:"Different exact approved public brief"}}))
+  expect(mocks.reserve.mock.calls[1][0].hash).not.toBe(first)
+  expect(mocks.reserve.mock.calls[0][0]).toMatchObject({id:input.id,actorId:ID(90),organizationId:WORKSPACE})
+ })
+ it("rejects model-purpose consent, stale public quotes and malformed destination before reservation",async()=>{
+  for(const publicResearchValue of [{...publicResearch,approved:false},{...publicResearch,purpose:"safe"},{...publicResearch,destination:"unapproved"}]) expect((await handleWorkspaceResearch(request({...input,publicResearch:publicResearchValue}))).status).toBe(400)
+  const base=mocks.config();mocks.config.mockReturnValue({...base,tariff:{...base.tariff,version:"changed-explicit-search-price"}})
+  expect(await (await handleWorkspaceResearch(request({...input,publicResearch}))).json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("retains interrupted public effects under existing response correlation without replay or false zero-cost settlement",async()=>{
+  mocks.provider.mockImplementation(async hooks=>{await hooks.onResponse("public-response");throw new Error("unknown search usage")})
+  const response=await handleWorkspaceResearch(request({...input,publicResearch}))
+  expect((await response.json()).reserved).toBe(true)
+  expect(mocks.correlate).toHaveBeenCalledWith(input.id,"public-response")
+  expect(mocks.reconcile).toHaveBeenCalledWith(input.id,"public-response");expect(mocks.settle).not.toHaveBeenCalled()
+  mocks.reserve.mockResolvedValue({created:false})
+  await handleWorkspaceResearch(request({...input,publicResearch}))
+  expect(mocks.provider).toHaveBeenCalledTimes(1)
+ })
+})

@@ -1,5 +1,6 @@
 import "server-only"
 import { validateKnowledgeToolResult } from "../lib/knowledge-tool-contract"
+import { projectKnowledgePerson } from "./knowledge-person"
 import { knowledgeReadFailure } from "./knowledge-failure"
 import { knowledgeSearchSchema, knowledgeReadSchema, type KnowledgeRecord, type ResearchSource, type KnowledgeEvidence } from "../research-types"
 import { searchKnowledge } from "../lib/research-contract"
@@ -68,8 +69,9 @@ export function createKnowledgeTools(context: ResearchContext, signal?: AbortSig
             const record = previous ? await freshness.read(load, previous) : await readKnowledgeRecord(load, id)
             signal?.throwIfAborted()
             if (!record) throw new Error("Unavailable record")
-            const detail=await readKnowledgeFile(current,record,freshness.fileCache)
-            freshness.observe(record,detail)
+            const detail=record.kind === "person" ? projectKnowledgePerson(record,input.personFields) : await readKnowledgeFile(current,record,freshness.fileCache)
+            if (detail.contactFields) freshness.observeContact(record,detail.contactFields)
+            else freshness.observe(record,detail)
             const disclosed = knowledgeDisclosure(detail, "read", Math.floor(6000 / ids.length))
             remember(record, disclosed.evidence)
             return disclosed
@@ -77,7 +79,7 @@ export function createKnowledgeTools(context: ResearchContext, signal?: AbortSig
         })) }
       } else throw new Error("Tool is not available.")
       signal?.throwIfAborted()
-      return validateKnowledgeToolResult(name,result,envelope.scope)
+      return validateKnowledgeToolResult(name,result,envelope.scope,args)
     },
   }
 }

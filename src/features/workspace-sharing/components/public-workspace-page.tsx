@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { PublicEventTime } from "./public-event-time"
 import { PublicPageDocument } from "./public-page-document"
 import { PublicPageImage } from "./public-page-image"
+import { pageBrandStyle } from "../lib/page-brand"
 
 type AssetPresentation = { interactiveForms?: boolean; documentPreviews?: Record<string, string>; imagePreviews?: Record<string, string>; imageAudience?: "public" | "guest" | "editor" }
 type PublicItem = WorkspacePageSnapshot["items"][number]
@@ -38,9 +39,9 @@ function PublicParticleContent({ content, locale, embedded, formId, organization
     )
     case "drive_link": return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <a className={buttonVariants({ variant: "outline", className: "h-auto min-h-11 min-w-0 max-w-full whitespace-normal rounded-full gap-2 shadow-none transition-colors motion-reduce:transition-none" })}
+        <a className={cn(buttonVariants({ variant: "outline" }), "h-auto min-h-11 min-w-0 max-w-full whitespace-normal rounded-full gap-2 shadow-none transition-colors motion-reduce:transition-none")}
           href={content.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
-          Open in Google Drive <ExternalLinkIcon className="size-3.5" aria-hidden />
+          <span className="min-w-0 break-words">Open in Google Drive</span> <ExternalLinkIcon className="size-3.5" aria-hidden />
         </a>
         <span className="text-muted-foreground text-xs">Google sign-in may be required.</span>
       </div>
@@ -50,7 +51,7 @@ function PublicParticleContent({ content, locale, embedded, formId, organization
         {content.startsAt && <div className="flex items-center gap-2"><dt className="sr-only">When</dt><CalendarIcon className="text-muted-foreground size-4 shrink-0" aria-hidden />
           <dd className="min-w-0 break-words"><PublicEventTime value={content.startsAt} locale={locale} /></dd>
         </div>}
-        {content.location && <div className="flex items-start gap-2"><dt className="sr-only">Where</dt><MapPinIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden /><dd className="break-words">{content.location}</dd></div>}
+        {content.location && <div className="flex items-start gap-2"><dt className="sr-only">Where</dt><MapPinIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden /><dd className="min-w-0 break-words">{content.location}</dd></div>}
       </dl>
     )
     case "color": return <div className="flex items-center gap-2"><span className="size-6 rounded-full border border-border/60" style={{ backgroundColor: content.hex }} aria-hidden /><span className="font-mono text-sm">{content.hex}</span></div>
@@ -75,7 +76,7 @@ export function PublicWorkspacePage({ snapshot, locale, embedded = false, intera
   return <Root aria-label={embedded ? "Public page preview" : undefined} className={cn("mx-auto flex w-full max-w-[46rem] flex-col gap-6 px-4 sm:px-6", embedded ? "py-4" : "min-h-svh pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pt-16")}>
     <header className="flex min-w-0 flex-col gap-4 px-1">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-medium" aria-hidden>{snapshot.brand.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()}</span>
+        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-medium" style={pageBrandStyle(snapshot.brand.primaryColor)} aria-hidden>{snapshot.brand.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()}</span>
         <BrandHeading className="min-w-0 break-words text-xl font-semibold tracking-tight sm:text-2xl">{snapshot.brand.name}</BrandHeading>
       </div>
       {(snapshot.title || snapshot.description) && <div className="flex flex-col gap-2">{snapshot.title && <ContentHeading className="break-words text-lg font-medium">{snapshot.title}</ContentHeading>}{snapshot.description && <p className="text-muted-foreground whitespace-pre-wrap break-words text-sm leading-relaxed">{snapshot.description}</p>}</div>}

@@ -53,11 +53,11 @@ export async function handleWorkspaceResearch(request:Request) {
       try { return researchRequestSchema.parse(await readAiRequestBody(request)) }
       catch { throw new ResearchRecoveryError("invalid_request") }
     })()
-    const context=await loadResearchContext(input.target), config=researchConfig()
+    const context=await loadResearchContext(input.target), config=researchConfig(input.publicResearch)
     if(input.tariffVersion!==config.tariff.version || input.maximumCredits!==config.maxCredits) throw new ResearchRecoveryError("pricing_changed")
     assertInitialResearchRequestFits(context,input,config)
     const target={...input.target,kind:"particle_research",userId:context.user.id,canvasId:context.canvasId}
-    const hash=createHash("sha256").update(JSON.stringify({target,prompt:input.prompt,skill:input.skill,tariff:config.tariff})).digest("hex")
+    const hash=createHash("sha256").update(JSON.stringify({target,prompt:input.prompt,skill:input.skill,...(input.publicResearch ? {publicResearch:input.publicResearch} : {}),tariff:config.tariff})).digest("hex")
     // A rejected transport promise cannot prove that the reservation did not commit.
     reservationAttempt=input.id
     const reservation=await reserveAiRun({id:input.id,organizationId:input.target.organizationId,actorId:context.user.id,hash,target,task:"research",prompt:input.prompt,tariff:config.tariff,maxCredits:config.maxCredits,maxCost:config.maxCost})

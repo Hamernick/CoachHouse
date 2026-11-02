@@ -147,6 +147,27 @@ only explicit reload or the user's acknowledged edit replaces their draft.
 Concurrent edits still conflict through the existing server writer. Browser
 fixtures prove these interactions; authenticated app navigation remains separate.
 
+Selected-note authoring adds an explicit organization-editor opt-in in the existing
+People controls. Existing Edit/Manage invitations remain page-details-only until
+each selected, reviewed workspace note is enabled after a full-source preview.
+The opt-in covers that canonical note's full current/future content, formatting
+and links, including changes visible in its other workspace references. It grants
+no unrelated board, module, provider, response or publication access.
+
+`20261103040000_workspace_page_note_edit_scope.sql` owns private scope and immutable
+receipt stores. The service prepares the existing canonical Particle mutation;
+the transaction rechecks current page grants, exact root/named canvas, source
+incarnation, note/page revisions, graph identity and organization closure.
+Removing/replacing a source, removing it from the reviewed selection, or changing
+the page's canvas permanently revokes the opt-in, even if IDs/timestamps return.
+Re-enabling requires another explicit organization-editor action. Public and guest
+snapshots never follow source writes automatically. Lost replies retain the exact
+operation for explicit retry; invalid content is rejected before dispatch.
+Local SQL/service and controlled browser fixtures are
+`workspace-page-note-access.test.ts` and `workspace-page-note-access-browser.test.ts`.
+Authenticated Next, hosted migration/RLS, live collaboration and user appearance
+acceptance remain separate gates; no hosted migration or publication is performed.
+
 Saved-page recovery (November1): `/workspace/shared-pages` lists thin page metadata
 across the active organization, including pages whose canvas was deleted. The
 workspace sidebar exposes it even when no workspaces remain. Existing editor

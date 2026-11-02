@@ -1,4 +1,5 @@
 import "server-only"
+import { knowledgePersonFieldFingerprint } from "./knowledge-person"
 import type { KnowledgeKind, ResearchResult, ResearchTarget } from "../research-types"
 import type { ResearchContext } from "./research-context"
 import { knowledgeFingerprint, researchContextFingerprint } from "./research-dependencies"
@@ -35,6 +36,8 @@ export async function assertResearchSourcesAccessible(context: ResearchContext, 
         const current = kind === "particle" ? particles.get(source.id)
           : kind ? (await load(kind, "", source.id)).find(record => record.id === source.id) : undefined
         if (!current || kind !== source.kind || knowledgeFingerprint(current) !== source.fingerprint)
+          throw new ResearchRecoveryError("sources_changed")
+        for (const field of source.contactFields ?? []) if (knowledgePersonFieldFingerprint(current,field.field) !== field.fingerprint)
           throw new ResearchRecoveryError("sources_changed")
         if (source.detailFingerprint && knowledgeFingerprint(await readKnowledgeFile(context, current)) !== source.detailFingerprint)
           throw new ResearchRecoveryError("sources_changed")
