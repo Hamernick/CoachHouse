@@ -284,6 +284,7 @@
     "cli": [
       "tests/acceptance/account-organization-boundary-database.test.ts",
       "tests/acceptance/document-collaboration-database.test.ts",
+      "tests/acceptance/existing-data-view-composition-database.test.ts",
       "tests/acceptance/fiscal-sponsorship-connected-storage.test.ts",
       "tests/acceptance/member-workspace.test.ts",
       "tests/acceptance/organization-closure-access-activity-database.test.ts",
@@ -330,6 +331,7 @@
       "tests/acceptance/workspace-page-note-access-browser.test.ts",
       "tests/acceptance/workspace-page-note-access.test.ts",
       "tests/acceptance/workspace-research-data-views-browser.test.ts",
+      "tests/acceptance/workspace-research-existing-views-browser.test.ts",
       "tests/acceptance/workspace-response-data-views-browser.test.ts",
       "tests/acceptance/workspace-response-data-views.test.ts",
       "tests/acceptance/workspace-sharing-database.test.ts",
@@ -707,6 +709,7 @@
       "tests/acceptance/workspace-research-decisions.test.ts",
       "tests/acceptance/workspace-research-draft-checkpoint.test.ts",
       "tests/acceptance/workspace-research-evidence.test.ts",
+      "tests/acceptance/workspace-research-existing-views.test.ts",
       "tests/acceptance/workspace-research-files.test.ts",
       "tests/acceptance/workspace-research-forms.test.ts",
       "tests/acceptance/workspace-research-knowledge.test.ts",

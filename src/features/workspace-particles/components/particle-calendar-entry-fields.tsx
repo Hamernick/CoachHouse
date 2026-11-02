@@ -1,23 +1,16 @@
 "use client"
 
+import { ParticleInput as Input, ParticleTextarea as Textarea, ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+
 import { useId } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
+
 import {
   Field,
   FieldGroup,
   FieldLabel,
   FieldMessage,
 } from "@/components/ui/field"
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-} from "@/components/ui/select"
+import { ParticleSelect } from "@/components/ui/particle-ui"
 import {
   CALENDAR_CHANNELS,
   CALENDAR_STATUSES,
@@ -45,27 +38,19 @@ function CalendarChoice<Value extends string>({
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Select
-        value={value}
-        disabled={disabled}
-        onValueChange={(next) => {
+      <ParticleSelect value={value} disabled={disabled} onChange={event => { const next = event.target.value;
           const option = options.find((item) => item.value === next)
           if (option) onChange(option.value)
-        }}
-      >
-        <SelectTrigger id={id}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
+         }} id={id}>
+<option value="" disabled>Choose…</option>
+          <>
             {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </SelectItem>
+              </option>
             ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+          </>
+        </ParticleSelect>
     </Field>
   )
 }
@@ -95,7 +80,7 @@ export function ParticleCalendarEntryFields({
     <FieldGroup {...surface()}>
       <Field data-invalid={Boolean(error("title"))}>
         <FieldLabel htmlFor={`${id}-title`}>Entry title</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-title`}
           value={entry.title}
           maxLength={240}
@@ -201,7 +186,7 @@ export function ParticleCalendarEntryFields({
       />
       <Field>
         <FieldLabel htmlFor={`${id}-content`}>Draft content</FieldLabel>
-        <Textarea
+        <Textarea size="2xl"
           id={`${id}-content`}
           value={entry.content}
           maxLength={10000}
@@ -214,7 +199,7 @@ export function ParticleCalendarEntryFields({
       </Field>
       <Field>
         <FieldLabel htmlFor={`${id}-cta`}>Call to action</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-cta`}
           value={entry.cta}
           maxLength={500}
@@ -224,7 +209,7 @@ export function ParticleCalendarEntryFields({
       </Field>
       <Field data-invalid={Boolean(error("externalUrl"))}>
         <FieldLabel htmlFor={`${id}-url`}>External URL</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-url`}
           type="url"
           value={entry.externalUrl ?? ""}

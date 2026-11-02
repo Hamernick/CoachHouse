@@ -1,10 +1,12 @@
 "use client"
 
+import { ParticleInput as Input, ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+
 import { OrganizationFormBuilder } from "@/features/organization-forms/client"
 import { useId } from "react"
 import { Field, FieldLabel, FieldMessage } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+
+
 import { ParticleModuleNotesEditor } from "./particle-module-notes-editor"
 import type { Particle } from "../types"
 import { ParticleImageFields } from "./particle-image-fields"
@@ -40,7 +42,7 @@ export function ParticleWidgetFields({
     return (
       <Field>
         <FieldLabel htmlFor={id}>Notes</FieldLabel>
-        <Textarea
+        <Textarea size="2xl"
           id={id}
           value={widget.source.content}
           disabled={disabled}
@@ -90,7 +92,7 @@ export function ParticleWidgetFields({
     return (
       <Field>
         <FieldLabel htmlFor={id}>Duration (seconds)</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={id}
           type="number"
           min={1}
@@ -113,7 +115,7 @@ export function ParticleWidgetFields({
       <>
         <Field>
           <FieldLabel htmlFor={`${id}-total`}>Total</FieldLabel>
-          <Input
+          <Input size="2xl"
             id={`${id}-total`}
             type="number"
             min={0}
@@ -127,7 +129,7 @@ export function ParticleWidgetFields({
         </Field>
         <Field>
           <FieldLabel htmlFor={`${id}-people`}>People</FieldLabel>
-          <Input
+          <Input size="2xl"
             id={`${id}-people`}
             type="number"
             min={1}
@@ -141,7 +143,7 @@ export function ParticleWidgetFields({
         </Field>
         <Field>
           <FieldLabel htmlFor={`${id}-currency`}>Currency code</FieldLabel>
-          <Input
+          <Input size="2xl"
             id={`${id}-currency`}
             maxLength={3}
             disabled={disabled}
@@ -157,7 +159,7 @@ export function ParticleWidgetFields({
     return (
       <Field>
         <FieldLabel htmlFor={id}>Hex color</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={id}
           disabled={disabled}
           value={widget.hex}
@@ -175,7 +177,7 @@ export function ParticleWidgetFields({
     return (
       <Field data-invalid={Boolean(error)}>
         <FieldLabel htmlFor={id}>Expression</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={id}
           disabled={disabled}
           value={widget.expression}
@@ -205,7 +207,7 @@ export function ParticleWidgetFields({
   return (
     <Field>
       <FieldLabel htmlFor={id}>Starts at (your local time)</FieldLabel>
-      <Input
+      <Input size="2xl"
         id={id}
         type="datetime-local"
         disabled={disabled}

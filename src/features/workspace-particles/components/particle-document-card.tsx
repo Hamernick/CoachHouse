@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button, ParticleButtonLink } from "@/components/ui/particle-ui"
+
 import dynamic from "next/dynamic"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { getParticleDocument } from "../lib/particle-file"
 import { useParticleFileUrl } from "../hooks/use-particle-file-url"
@@ -74,12 +76,10 @@ function DocumentSurface({
         <ParticleDrivePreview key={driveRefresh} url={drivePreviewUrl} name={file.name} />
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-5 text-center text-sm">
-          <Button variant="outline" size="sm" className="nodrag nopan h-11 rounded-full sm:h-8" onClick={() => setExpanded(true)}>
+          <Button color="secondary" variant="outline" size="md" className="nodrag nopan h-11 rounded-full sm:h-8" onClick={() => setExpanded(true)}>
             Preview file
           </Button>
-          <Button asChild variant="ghost" size="sm" className="nodrag nopan h-11 rounded-full sm:h-8">
-            <a href={preview.url ?? undefined} target="_blank" rel="noopener noreferrer">Open original</a>
-          </Button>
+          <ParticleButtonLink color="secondary" variant="ghost" size="md" className="nodrag nopan h-11 rounded-full sm:h-8" href={preview.url ?? undefined} target="_blank" rel="noopener noreferrer">Open original</ParticleButtonLink>
         </div>
       )
     ) : preview.error ? (
@@ -88,7 +88,7 @@ function DocumentSurface({
         className="flex h-full flex-col items-center justify-center gap-2 p-4 text-xs"
       >
         <p>{preview.error}</p>
-        <Button variant="outline" size="sm" onClick={preview.retry}>
+        <Button color="secondary" variant="outline" size="md" onClick={preview.retry}>
           Retry preview
         </Button>
       </div>

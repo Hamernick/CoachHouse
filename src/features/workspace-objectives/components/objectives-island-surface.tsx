@@ -1,9 +1,11 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
 import styles from "./planning-sidebar.module.css"
 import { CircularProgress } from "@/components/ui/circular-progress"
 
@@ -41,14 +43,14 @@ export function ObjectivesIslandSurface({ open, onOpenChange, completed = 0, tot
       onKeyDown={event => {
         if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); onOpenChange(false); (trigger.current ?? host.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]'))?.focus() }
       }}>
-      {header ?? <Button ref={trigger} variant="ghost" className={`relative flex ${centered && !open ? "h-8" : "h-[42px]"} w-full gap-2 rounded-full ${centered && open ? "px-12" : "px-3"} py-0 ${centered ? "justify-center" : "justify-start text-left"}`} aria-label={label} aria-description={showProgress ? (total > 0 ? `${completed} of ${total} objectives completed` : "No objectives yet") : undefined} aria-expanded={open} aria-controls={id}
+      {header ?? <Button color="secondary" size="lg" ref={trigger} variant="ghost" className={`relative flex ${centered && !open ? "h-8" : "h-[42px]"} w-full gap-2 rounded-full ${centered && open ? "px-12" : "px-3"} py-0 ${centered ? "justify-center" : "justify-start text-left"}`} aria-label={label} aria-description={showProgress ? (total > 0 ? `${completed} of ${total} objectives completed` : "No objectives yet") : undefined} aria-expanded={open} aria-controls={id}
         onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpenChange(!open) }}>
         {showProgress && <CircularProgress value={progress} size={16} strokeWidth={2} decorative className="shrink-0"
           trackClassName="stroke-muted-foreground/60 dark:stroke-muted-foreground/60"
           progressClassName={progress === 100 ? "stroke-emerald-600 dark:stroke-emerald-400" : "stroke-orange-600 dark:stroke-orange-400"} />}
         <span>{label}{count !== undefined && <> <span className="tabular-nums">({count})</span></>}</span>
       </Button>}
-      {centered && open && <Button type="button" variant="ghost" size="icon" className="absolute top-0.5 right-1 z-10 size-9 rounded-full" aria-label={`Close ${label.toLowerCase()}`} aria-controls={id}
+      {centered && open && <Button color="secondary" uniform type="button" variant="ghost" size="lg" className="absolute top-0.5 right-1 z-10 size-9 rounded-full" aria-label={`Close ${label.toLowerCase()}`} aria-controls={id}
         onClick={() => { onOpenChange(false); requestAnimationFrame(() => trigger.current?.focus()) }}>
         <X aria-hidden />
       </Button>}

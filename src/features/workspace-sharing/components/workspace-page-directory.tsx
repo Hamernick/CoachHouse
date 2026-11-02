@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { ParticleButtonLink as ButtonLink, ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleBadge as Badge } from "@/components/ui/particle-ui"
 import { loadWorkspacePageDirectoryAction, loadWorkspacePageManagementAction } from "../directory-actions"
 import type { PageDirectory } from "../lib/page-directory"
 import type { WorkspacePage } from "../types"
@@ -31,7 +31,7 @@ export function WorkspacePageDirectory({ pageId, after }: { pageId?: string; aft
   }, [pageId, after, reload])
   return <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
     <h1 className="text-2xl font-semibold">Shared pages</h1>
-    {error ? <div role="alert" className="flex flex-col items-start gap-3"><p className="text-sm">{error}</p><Button className="min-h-11 rounded-xl" variant="outline" onClick={() => setReload(reload + 1)}>Retry</Button><Link className="focus-ring rounded-md text-sm underline" href="/workspace">Back to workspace</Link></div>
+    {error ? <div role="alert" className="flex flex-col items-start gap-3"><p className="text-sm">{error}</p><Button size="lg" color="primary" className="min-h-11 rounded-xl" variant="outline" onClick={() => setReload(reload + 1)}>Retry</Button><Link className="focus-ring rounded-md text-sm underline" href="/workspace">Back to workspace</Link></div>
       : page ? <WorkspacePageManagement key={`${page.id}:${reload}`} page={page} onReload={() => setReload(reload + 1)} />
       : directory ? <>
         <p className="text-muted-foreground text-sm">Saved pages across this organization’s workspaces.</p>
@@ -41,9 +41,9 @@ export function WorkspacePageDirectory({ pageId, after }: { pageId?: string; aft
           </Link></li>)}
         </ul> : <p className="rounded-2xl border p-5 text-sm">No saved pages. Select a Particle on the board and choose Share.</p>}
         <nav aria-label="Shared page navigation" className="flex flex-wrap gap-2">
-          <Button className="min-h-11 rounded-xl" asChild variant="outline"><Link href="/workspace">Back to workspace</Link></Button>
-          {after && <Button className="min-h-11 rounded-xl" asChild variant="outline"><Link href="/workspace/shared-pages">First page</Link></Button>}
-          {directory.next && <Button className="min-h-11 rounded-xl" asChild variant="outline"><Link href={`/workspace/shared-pages?after=${directory.next}`}>More pages</Link></Button>}
+          <ButtonLink size="lg" color="primary" className="min-h-11 rounded-xl"  variant="outline" as={Link} href="/workspace">Back to workspace</ButtonLink>
+          {after && <ButtonLink size="lg" color="primary" className="min-h-11 rounded-xl"  variant="outline" as={Link} href="/workspace/shared-pages">First page</ButtonLink>}
+          {directory.next && <ButtonLink size="lg" color="primary" className="min-h-11 rounded-xl"  variant="outline" as={Link} href={`/workspace/shared-pages?after=${directory.next}`}>More pages</ButtonLink>}
         </nav>
       </> : <p role="status" className="text-muted-foreground text-sm">Loading shared pages…</p>}
   </main>

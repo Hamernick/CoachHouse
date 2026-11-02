@@ -1,12 +1,14 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useId, useState } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import ArrowDownIcon from "lucide-react/dist/esm/icons/arrow-down"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+
 import { Field, FieldLabel } from "@/components/ui/field"
 import {
   decisionCriteriaOrder,
@@ -47,10 +49,10 @@ export function ParticleDecisionCriteria({
         <h3 id={`${id}-heading`} className="text-sm font-medium">
           Criteria
         </h3>
-        <Button
+        <Button color="secondary"
           type="button"
           variant="outline"
-          size="sm"
+          size="md"
           aria-label="Add criterion"
           disabled={disabled || criteria.length >= 200}
           onClick={() => {
@@ -94,7 +96,7 @@ export function ParticleDecisionCriteria({
               <FieldLabel htmlFor={`${id}-${criterion.id}`}>
                 Criterion {index + 1}
               </FieldLabel>
-              <Input
+              <Input size="2xl"
                 id={`${id}-${criterion.id}`}
                 value={criterion.title}
                 disabled={disabled}
@@ -111,10 +113,10 @@ export function ParticleDecisionCriteria({
               />
             </Field>
             <div className="flex flex-wrap items-center gap-1">
-              <Button
+              <Button color="secondary" uniform
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="lg"
                 aria-label={`Move criterion ${index + 1} up`}
                 disabled={disabled || index === 0}
                 onClick={() => {
@@ -126,10 +128,10 @@ export function ParticleDecisionCriteria({
               >
                 <ArrowUpIcon aria-hidden />
               </Button>
-              <Button
+              <Button color="secondary" uniform
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="lg"
                 aria-label={`Move criterion ${index + 1} down`}
                 disabled={disabled || index === criteria.length - 1}
                 onClick={() => {
@@ -141,10 +143,10 @@ export function ParticleDecisionCriteria({
               >
                 <ArrowDownIcon aria-hidden />
               </Button>
-              <Button
+              <Button color="secondary" uniform
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="lg"
                 aria-label={`Remove criterion ${index + 1}`}
                 disabled={disabled}
                 onClick={() =>
@@ -167,10 +169,10 @@ export function ParticleDecisionCriteria({
       })}
       {pages > 1 ? (
         <div className="flex items-center justify-between gap-2">
-          <Button
+          <Button color="secondary"
             type="button"
             variant="ghost"
-            size="sm"
+            size="md"
             disabled={currentPage === 0}
             onClick={() => setPage(currentPage - 1)}
           >
@@ -179,10 +181,10 @@ export function ParticleDecisionCriteria({
           <span className="text-muted-foreground text-xs" aria-live="polite">
             Page {currentPage + 1} of {pages}
           </span>
-          <Button
+          <Button color="secondary"
             type="button"
             variant="ghost"
-            size="sm"
+            size="md"
             disabled={currentPage === pages - 1}
             onClick={() => setPage(currentPage + 1)}
           >

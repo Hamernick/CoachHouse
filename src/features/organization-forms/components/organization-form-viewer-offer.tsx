@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { formViewerAcceptanceSchema, formViewerOfferSchema } from "../lib/form-viewer-access"
 import { IntakeRequestError, sendFormCommand } from "../hooks/intake-client"
 export function OrganizationFormViewerOffer({ versionId, onAccepted, onLockChange }: {
@@ -43,7 +43,7 @@ export function OrganizationFormViewerOffer({ versionId, onAccepted, onLockChang
   return <section aria-label="Response invitation" className="flex min-w-0 flex-col gap-3 rounded-xl border p-3">
     <h2 className="break-words text-sm font-medium">{offer.title}</h2>
     <p className="text-muted-foreground text-sm">{offer.responsePermission === "manage" ? "You’re invited to edit this form, correct answers and invite View/Edit collaborators. Their access ends when yours ends." : offer.responsePermission === "edit" ? "You’re invited to edit this form and correct answers. Saving changes the draft, not its published versions." : offer.responsePermission === "correct" ? "You’re invited to view and correct answers." : "You’re invited to view responses."} {offer.responsePermission === "manage" ? "No workspace access, publication, removal or further Manage delegation." : offer.responsePermission === "edit" ? "No workspace access, publication or sharing rights." : "No form editing, workspace access or sharing rights."}</p>
-    <Button type="button" className="min-h-11 rounded-xl" disabled={pending} onClick={() => void accept()}>{uncertain ? "Retry acceptance" : offer.accepted ? "Open responses" : offer.responsePermission === "manage" ? "Accept form management" : offer.responsePermission === "edit" ? "Accept form editing" : offer.responsePermission === "correct" ? "Accept correction access" : "Accept viewing access"}</Button>
+    <Button size="lg" color="primary" type="button" className="min-h-11 rounded-xl" disabled={pending} onClick={() => void accept()}>{uncertain ? "Retry acceptance" : offer.accepted ? "Open responses" : offer.responsePermission === "manage" ? "Accept form management" : offer.responsePermission === "edit" ? "Accept form editing" : offer.responsePermission === "correct" ? "Accept correction access" : "Accept viewing access"}</Button>
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
   </section>
 }

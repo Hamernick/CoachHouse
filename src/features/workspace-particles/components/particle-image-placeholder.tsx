@@ -1,9 +1,11 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useRef, useState, type ReactNode } from "react"
 import ImageIcon from "lucide-react/dist/esm/icons/image"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
+
 import { PARTICLE_IMAGE_ACCEPT } from "../lib/particle-image"
 import { PARTICLE_IMAGE_CAPTION_HEIGHT } from "../lib/particle-size"
 import { ParticleFrame } from "./particle-frame"
@@ -99,7 +101,7 @@ export function ParticleImagePlaceholder({
           }}
         >
           {controls ? (
-            <Button
+            <Button color="secondary" size="lg"
               {...surface()}
               type="button"
               variant="ghost"

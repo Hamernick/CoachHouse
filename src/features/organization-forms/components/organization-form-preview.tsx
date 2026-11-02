@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useRef, useState } from "react"
 import { motion, useReducedMotion } from "motion/react"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 
 import { WORKSPACE_SURFACE_MOTION } from "@/lib/workspace-canvas/surface-motion"
 import {
@@ -101,10 +101,10 @@ export function OrganizationFormPreview({
         />
       ))}
       <div className={styles.actions}>
-        <Button
+        <Button color="secondary"
           type="button"
-          variant="secondary"
-          size="sm"
+          variant="soft"
+          size="md"
           className={styles.check}
           onClick={check}
         >

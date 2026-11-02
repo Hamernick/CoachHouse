@@ -1,10 +1,12 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "@/components/ui/button"
+
 import { ParticleFileViewer } from "./particle-file-viewer"
 import {
   getParticleImage,
@@ -155,10 +157,10 @@ function ParticleImageSurface({
             >
               <span>{error ?? "Loading image…"}</span>
               {error && (
-                <Button
+                <Button color="secondary"
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="md"
                   className="nodrag nopan"
                   onClick={() => setAttempt((value) => value + 1)}
                 >

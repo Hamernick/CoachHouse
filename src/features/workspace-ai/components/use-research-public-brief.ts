@@ -3,7 +3,7 @@ import { useRef, useState, type RefObject } from "react"
 import { quoteWorkspaceResearch } from "../research-actions"
 import type { ResearchTarget } from "../research-types"
 import type { ResearchPublicBrief } from "../lib/research-public-brief"
-export type ResearchQuote = {maximumCredits:number;tariffVersion:string;publicResearchAvailable?:boolean}
+export type ResearchQuote = {maximumCredits:number;tariffVersion:string;provider?:"OpenAI";model?:string;availableCredits?:number;publicResearchAvailable?:boolean}
 
 export function useResearchPublicBrief(target:ResearchTarget,alive:RefObject<boolean>,setQuote:(quote:ResearchQuote|null)=>void,setError:(error:string|null)=>void) {
   const [publicResearch,setPublicResearch]=useState<ResearchPublicBrief|undefined>(),[publicAvailable,setPublicAvailable]=useState(false),version=useRef(0)

@@ -1,9 +1,9 @@
 "use client"
 
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ParticleRadioGroup as RadioGroup } from "@/components/ui/particle-ui"
 import type { FormAnswer, FormSnapshotQuestion } from "../lib"
 import { FORM_OTHER_ID, FORM_OTHER_TEXT_LIMIT, isFormOtherAnswer } from "../lib/form-other-answer"
 import styles from "./organization-form-preview.module.css"
@@ -24,11 +24,10 @@ export function OrganizationFormChoiceAnswer({ question, id, value, error, onCha
   return <fieldset className={styles.choices}>
     <legend className={styles.label}>{question.label}{question.required && <span className="text-muted-foreground ml-1 text-xs">(required)</span>}</legend>
     {question.type === "single_choice" ? <RadioGroup id={id} aria-label={question.label} tabIndex={-1}
-      {...accessibility} aria-required={question.required} value={selected[0] ?? ""} onValueChange={value => select([value])} className="focus-ring gap-0">
-      {choices.map(option => <Label key={option.id} htmlFor={`${id}-${option.id}`} className={styles.choice}>
-        <RadioGroupItem id={`${id}-${option.id}`} value={option.id} />
+      {...accessibility} aria-required={question.required} value={selected[0] ?? ""} onChange={value => select([value])} direction="col" className="focus-ring gap-0">
+      {choices.map(option => <RadioGroup.Item key={option.id} value={option.id} className={styles.choice}>
         <span className="min-w-0 break-words">{option.label}</span>
-      </Label>)}
+      </RadioGroup.Item>)}
     </RadioGroup> : <div id={id} role="group" aria-label={question.label} tabIndex={-1}
       aria-describedby={accessibility["aria-describedby"]} className="focus-ring rounded-xl">
       {choices.map(option => <Label key={option.id} htmlFor={`${id}-${option.id}`} className={styles.choice}>
@@ -39,7 +38,7 @@ export function OrganizationFormChoiceAnswer({ question, id, value, error, onCha
     </div>}
     {question.allowOther && selected.includes(FORM_OTHER_ID) && <div className="mt-2 min-w-0 space-y-1.5">
       <Label htmlFor={`${id}-other-text`}>Other answer</Label>
-      <Input id={`${id}-other-text`} value={other?.otherText ?? ""} maxLength={FORM_OTHER_TEXT_LIMIT}
+      <Input size="2xl" id={`${id}-other-text`} value={other?.otherText ?? ""} maxLength={FORM_OTHER_TEXT_LIMIT}
         {...accessibility} aria-required className={`${styles.input} w-full min-w-0`} placeholder="Your answer…"
         onChange={event => onChange({ optionIds: selected, otherText: event.target.value })} />
     </div>}

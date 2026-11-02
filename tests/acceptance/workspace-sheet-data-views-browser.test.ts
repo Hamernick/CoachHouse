@@ -38,13 +38,13 @@ describe.skipIf(!databaseUrl)("linked Sheet browser with actual SQL and controll
  it("creates a linked range, saves/reloads filters, shows read-only source access and clears revoked data",async()=>{
   const page=await browser.newPage({viewport:{width:1100,height:850}}),errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));page.setDefaultTimeout(5000)
   try{
-   await page.goto(origin,{waitUntil:"domcontentloaded"});await page.getByRole("combobox",{name:"Source",exact:true}).click();await page.getByRole("option",{name:"Linked Google Sheet…"}).click()
+   await page.goto(origin,{waitUntil:"domcontentloaded"});await page.getByRole("combobox",{name:"Source",exact:true}).selectOption({ label: "Linked Google Sheet…" })
    await page.getByRole("textbox",{name:"Spreadsheet ID"}).fill("isolated-sheet-fixture")
    await page.getByRole("spinbutton",{name:"Sheet tab ID (gid)"}).fill("7");await page.getByRole("spinbutton",{name:"Column count"}).fill("2")
    await page.getByRole("textbox",{name:"View name"}).fill("Linked records")
    await page.getByRole("button",{name:"Create saved view",exact:true}).click();await page.getByText("Source record",{exact:true}).waitFor()
    expect(await page.getByRole("button",{name:/^Edit /}).count()).toBe(0);expect(await page.getByRole("link",{name:"Open in Sheets"}).getAttribute("href")).toContain("isolated-sheet-fixture/edit#gid=7")
-   await page.getByRole("button",{name:"View settings",exact:true}).click();await page.getByRole("combobox",{name:"Filter column"}).click();await page.getByRole("option",{name:"Name contains",exact:true}).click();await page.getByRole("textbox",{name:"Filter contains"}).fill("Source")
+   await page.getByRole("button",{name:"View settings",exact:true}).click();await page.getByRole("combobox",{name:"Filter column"}).selectOption({ label: "Name contains" });await page.getByRole("textbox",{name:"Filter contains"}).fill("Source")
    await page.getByRole("button",{name:"Save view settings"}).click();await page.getByText("Other record",{exact:true}).waitFor({state:"hidden"})
    await page.reload();await page.getByText("Source record",{exact:true}).waitFor();expect(await page.getByText("Other record",{exact:true}).count()).toBe(0)
    await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)

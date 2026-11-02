@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton, ParticleInput } from "@/components/ui/particle-ui"
+
 import { useId, useState } from "react"
 import { Check, X } from "lucide-react"
-import { ParticleButton, ParticleInput } from "@/components/ui/particle-ui"
+
 
 export function ObjectiveInlineTitle({ initial, pending, onSave, onCancel }: {
   initial: string; pending: boolean; onSave: (title: string) => Promise<boolean>; onCancel: () => void

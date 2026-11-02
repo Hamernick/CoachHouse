@@ -1,14 +1,16 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import type { ReactNode, KeyboardEvent } from "react"
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar-days"
 import ClockIcon from "lucide-react/dist/esm/icons/clock-3"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
 import CornerDownLeftIcon from "lucide-react/dist/esm/icons/corner-down-left"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+
+import { ParticleAvatar } from "@/components/ui/particle-ui"
 import { WorkspaceNodeFrameHeader, WorkspaceNodeFrameBody, WorkspaceNodeFrameFooter } from "@/components/workspace/workspace-node-frame"
 import { ParticleFrame } from "./particle-frame"
 import { ParticleEventDateControl } from "./particle-event-date-control"
@@ -35,7 +37,7 @@ export function ParticleEventCard({ title, event, draft, onChange, onAdd, onClea
       <ParticleFrame selected={selected} className="bg-card p-0" onKeyDown={keyDown}>
         {children}
         <WorkspaceNodeFrameHeader className="workspace-card-drag-handle cursor-grab items-center px-4 pt-4 pb-2 active:cursor-grabbing">
-          {draft ? <Input aria-label="Event title" name="event-title" placeholder="What’s the event?" value={draft.title} maxLength={240}
+          {draft ? <Input size="2xl" aria-label="Event title" name="event-title" placeholder="What’s the event?" value={draft.title} maxLength={240}
             disabled={disabled || pending} onChange={e => change("title", e.currentTarget.value)}
             className="nodrag nopan h-8 min-w-0 rounded-xl border-0 bg-transparent px-1 shadow-none dark:bg-transparent [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:pr-10"/>
             : <h3 className="min-w-0 px-1 text-sm font-medium break-words">{title}</h3>}
@@ -53,19 +55,19 @@ export function ParticleEventCard({ title, event, draft, onChange, onAdd, onClea
           </div>
           <div className="flex min-w-0 items-center gap-2">
             <MapPinIcon className="text-muted-foreground size-4 shrink-0" aria-hidden/>
-            {draft ? <Input aria-label="Event place" name="event-place" placeholder="+ Add place" value={draft.location} maxLength={500} disabled={disabled || pending} onChange={e => change("location", e.currentTarget.value)} className="nodrag nopan h-7 min-w-0 max-w-56 rounded-full border-dashed px-3 shadow-none [@media(pointer:coarse)]:min-h-11"/>
+            {draft ? <Input size="2xl" aria-label="Event place" name="event-place" placeholder="+ Add place" value={draft.location} maxLength={500} disabled={disabled || pending} onChange={e => change("location", e.currentTarget.value)} className="nodrag nopan h-7 min-w-0 max-w-56 rounded-full border-dashed px-3 shadow-none [@media(pointer:coarse)]:min-h-11"/>
               : <span className="text-muted-foreground text-xs break-words">{event.location || "Place to be confirmed"}</span>}
           </div>
           <div className="flex min-w-0 items-center gap-2">
-            <Avatar className="size-7 shrink-0"><AvatarFallback className="text-[10px]">{names[0]?.slice(0, 1).toUpperCase() || "+"}</AvatarFallback></Avatar>
-            {draft ? <Input aria-label="Event attendees" name="event-attendees" placeholder="Add people…" title="Separate names with commas" value={draft.guests} maxLength={6000} disabled={disabled || pending} onChange={e => change("guests", e.currentTarget.value)} className="nodrag nopan h-7 min-w-0 rounded-xl border-0 bg-transparent px-1 shadow-none dark:bg-transparent [@media(pointer:coarse)]:min-h-11"/>
+            <ParticleAvatar className="particle-ui shrink-0" size={28} name={names[0] || "+"} />
+            {draft ? <Input size="2xl" aria-label="Event attendees" name="event-attendees" placeholder="Add people…" title="Separate names with commas" value={draft.guests} maxLength={6000} disabled={disabled || pending} onChange={e => change("guests", e.currentTarget.value)} className="nodrag nopan h-7 min-w-0 rounded-xl border-0 bg-transparent px-1 shadow-none dark:bg-transparent [@media(pointer:coarse)]:min-h-11"/>
               : <span className="text-muted-foreground text-xs break-words">{names.length ? names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "") : "No attendees added"}</span>}
           </div>
           {draft && draft.title.trim() && problem ? <p role="status" className="text-muted-foreground text-xs">{problem}</p> : null}
         </WorkspaceNodeFrameBody>
         {onAdd ? <WorkspaceNodeFrameFooter className="justify-between gap-3 px-5 pt-2 pb-4">
-          <Button type="button" variant="ghost" size="sm" onClick={onClear} disabled={disabled || pending} className="nodrag nopan text-muted-foreground h-7 rounded-full px-0 text-xs [@media(pointer:coarse)]:min-h-11"><kbd className="bg-muted rounded px-1 py-0.5 text-[10px]">Esc</kbd> to clear</Button>
-          <Button type="button" size="sm" aria-label="Add event to canvas and calendar" disabled={disabled || pending || Boolean(problem)} onClick={onAdd} className="nodrag nopan h-8 rounded-full px-3 text-xs [@media(pointer:coarse)]:min-h-11">
+          <Button color="secondary" type="button" variant="ghost" size="md" onClick={onClear} disabled={disabled || pending} className="nodrag nopan text-muted-foreground h-7 rounded-full px-0 text-xs [@media(pointer:coarse)]:min-h-11"><kbd className="bg-muted rounded px-1 py-0.5 text-[10px]">Esc</kbd> to clear</Button>
+          <Button color="primary" type="button" size="md" aria-label="Add event to canvas and calendar" disabled={disabled || pending || Boolean(problem)} onClick={onAdd} className="nodrag nopan h-8 rounded-full px-3 text-xs [@media(pointer:coarse)]:min-h-11">
             {pending ? <LoaderIcon className="animate-spin motion-reduce:animate-none" aria-hidden/> : null}Add event<CornerDownLeftIcon data-icon="inline-end" aria-hidden/>
           </Button>
         </WorkspaceNodeFrameFooter> : null}

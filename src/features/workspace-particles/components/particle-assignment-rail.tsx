@@ -1,11 +1,13 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useContext, useEffect, useState } from "react"
 import UsersIcon from "lucide-react/dist/esm/icons/users"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+import { ParticleAvatar } from "@/components/ui/particle-ui"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ParticleSelect } from "@/components/ui/particle-ui"
 import { EMPTY_RESPONSIBILITY, supportsParticleResponsibility } from "../lib/particle-responsibility"
 import type { MembershipResponsibility } from "../lib/particle-membership-responsibility"
 import { ParticleResponsibilityPeople, ParticleResponsibilitySelector } from "./particle-responsibility-fields"
@@ -45,28 +47,26 @@ export function ParticleAssignmentRail({ data }: { data: ParticleNodeData }) {
       if (next) load(current)
       setOpen(next)
     }}>
-      <PopoverTrigger asChild><Button type="button" variant="ghost" className="h-7 min-w-0 max-w-full justify-start gap-2 rounded-md px-2 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11" aria-label={`Responsibility for ${particle.title}`} title={current?.label}>
+      <PopoverTrigger asChild><Button color="secondary" size="lg" type="button" variant="ghost" className="h-7 min-w-0 max-w-full justify-start gap-2 rounded-md px-2 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11" aria-label={`Responsibility for ${particle.title}`} title={current?.label}>
         <UsersIcon className="size-3.5 shrink-0" aria-hidden />
         <span className="min-w-0 truncate">{owner}{data.memberships && current && <span className="opacity-75"> · {current.label}</span>}</span>
         <span className="flex shrink-0 items-center gap-1">
-          {value.contributorIds.slice(0, 2).map(id => <Avatar key={id} className="size-5" title={name(id)} aria-label={`Contributor: ${name(id)}`}><AvatarFallback className="text-[10px]">{name(id) === "Unavailable person" ? "?" : name(id).split(/\s+/).slice(0, 2).map(part => part[0]).join("")}</AvatarFallback></Avatar>)}
+          {value.contributorIds.slice(0, 2).map(id => <span key={id} title={name(id)} role="img" aria-label={`Contributor: ${name(id)}`}><ParticleAvatar className="particle-ui" size={20} name={name(id) === "Unavailable person" ? "?" : name(id)} /></span>)}
           {value.contributorIds.length > 2 && <span aria-label={`${value.contributorIds.length - 2} more contributors`}>+{value.contributorIds.length - 2}</span>}
         </span>
       </Button></PopoverTrigger>
       <PopoverContent align="start" className="nodrag nopan nowheel w-72 space-y-3" onInteractOutside={event => { if (dirty || saving) event.preventDefault() }} onEscapeKeyDown={event => { if (dirty || saving) event.preventDefault() }}>
         <p className="text-sm font-medium">Responsibility</p>
-        {data.memberships && scopes.length > 1 ? <Select value={snapshot?.key ?? ""} disabled={dirty || saving} onValueChange={key => { setChoice({ key, walkthrough: data.assignmentContext }); load(scopes.find(item => item.key === key)) }}>
-          <SelectTrigger aria-label="Plan context" className="w-full min-w-0"><SelectValue placeholder="Choose plan" /></SelectTrigger>
-          <SelectContent>{scopes.map(scope => <SelectItem key={scope.key} value={scope.key}>{scope.label}</SelectItem>)}</SelectContent>
-        </Select> : <p className="text-xs text-muted-foreground">{snapshot?.label ?? current?.label ?? "Plan no longer available."}</p>}
+        {data.memberships && scopes.length > 1 ? <ParticleSelect value={snapshot?.key ?? ""} disabled={dirty || saving} onChange={event => { const key = event.target.value;  setChoice({ key, walkthrough: data.assignmentContext }); load(scopes.find(item => item.key === key))  }} aria-label="Plan context" className="w-full min-w-0">
+<option value="" disabled>Choose plan</option>{scopes.map(scope => <option key={scope.key} value={scope.key}>{scope.label}</option>)}</ParticleSelect> : <p className="text-xs text-muted-foreground">{snapshot?.label ?? current?.label ?? "Plan no longer available."}</p>}
         {snapshot && <>
           <ParticleResponsibilitySelector value={draft} disabled={!data.editable || !assignment || !current?.editable || saving || stale} onChange={setDraft} />
           {stale && <p role="status" className="text-xs">{current ? "Plan changed." : "Plan no longer available."} Your draft is kept.</p>}
           {failed && !stale && <p role="alert" className="text-xs">Not saved. Your draft is kept. Retry or reload from the workspace save notice.</p>}
         </>}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" disabled={saving} onClick={() => setOpen(false)}>{dirty ? "Discard" : "Close"}</Button>
-          {stale ? current && <Button size="sm" onClick={() => load(current)}>Load latest</Button> : assignment && snapshot && <Button size="sm" disabled={!data.editable || !current?.editable || saving || !dirty} onClick={async () => {
+          <Button color="secondary" variant="ghost" size="md" disabled={saving} onClick={() => setOpen(false)}>{dirty ? "Discard" : "Close"}</Button>
+          {stale ? current && <Button color="primary" size="md" onClick={() => load(current)}>Load latest</Button> : assignment && snapshot && <Button color="primary" size="md" disabled={!data.editable || !current?.editable || saving || !dirty} onClick={async () => {
             setSaving(true); setFailed(false)
             try {
               const saved = snapshot.membership

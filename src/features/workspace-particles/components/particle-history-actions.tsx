@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import UndoIcon from "lucide-react/dist/esm/icons/undo-2"
 import RedoIcon from "lucide-react/dist/esm/icons/redo-2"
-import { Button } from "@/components/ui/button"
+
 
 import type { useParticleHistoryControls } from "../hooks/use-particle-history-controls"
 
@@ -24,7 +26,7 @@ export function ParticleHistoryActions({
           direction === "undo" ? history.undoLabel : history.redoLabel
         const Icon = direction === "undo" ? UndoIcon : RedoIcon
         return (
-          <Button
+          <Button color="secondary" size="lg"
             key={direction}
             type="button"
             variant="ghost"

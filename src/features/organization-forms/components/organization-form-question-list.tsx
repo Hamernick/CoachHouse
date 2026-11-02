@@ -6,7 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities"
 import { useReducedMotion } from "motion/react"
 import GripVerticalIcon from "lucide-react/dist/esm/icons/grip-vertical"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { Collapsible } from "@/components/ui/collapsible"
 import { reorderFormQuestion } from "../lib/form-editing"
 import type { FormDefinition, FormQuestion } from "../types"
@@ -70,7 +70,7 @@ export function SortableFormQuestion({ question, index, disabled, open, onOpenCh
   const sortable = useSortable({ id: question.id, disabled, transition: reducedMotion ? null : { duration: 150, easing: "ease" } })
   return <Collapsible ref={sortable.setNodeRef} open={open} onOpenChange={onOpenChange} className={styles.row}
     style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, position: "relative", zIndex: sortable.isDragging ? 1 : undefined }}>
-    {children(<Button type="button" variant="ghost" size="icon" className={styles.dragHandle}
+    {children(<Button color="primary" type="button" variant="ghost" size="lg" uniform className={styles.dragHandle}
       ref={sortable.setActivatorNodeRef} disabled={disabled} {...sortable.attributes} {...sortable.listeners}
       aria-label={`Reorder question ${index + 1}: ${question.label.trim() || "Untitled"}`}><GripVerticalIcon aria-hidden /></Button>)}
   </Collapsible>

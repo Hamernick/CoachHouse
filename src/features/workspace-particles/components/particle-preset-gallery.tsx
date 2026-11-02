@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { particleInspectionProps } from "./particle-surface"
 
 import { InertPreview } from "@/components/shared/inert-preview"
@@ -10,7 +12,7 @@ import { ParticleAddControl } from "./particle-add-control"
 import { useParticlePresetPlacement } from "../hooks/use-particle-preset-placement"
 import type { Particle } from "../types"
 import { useMemo, useState, type ReactNode } from "react"
-import { Button } from "@/components/ui/button"
+
 import { cn } from "@/lib/utils"
 import {
   PARTICLE_LIBRARY_CARD_SHAPE,
@@ -154,7 +156,7 @@ export function ParticlePresetGallery({
                       <InertPreview>{card}</InertPreview>
                     )}
                     {!inlineNotes && !inlineEvent && (
-                      <Button
+                      <Button color="secondary" size="lg"
                       data-particle-drag-surface="true"
                       type="button"
                       variant="ghost"

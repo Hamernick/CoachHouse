@@ -1,4 +1,7 @@
 import path from "node:path"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { ResearchRunReceipt } from "@/features/workspace-ai/components/research-run-receipt"
 import type { AddressInfo } from "node:net"
 import { createServer, type ViteDevServer } from "vite"
 import { chromium, type Browser } from "@playwright/test"
@@ -86,14 +89,34 @@ describe("isolated approved public research",()=>{
  })
 })
 
+describe("saved run receipt presentation",()=>{
+ it("distinguishes confirmed charges, unresolved usage and unavailable historical model details",()=>{
+  const processing={provider:"OpenAI" as const,model:"saved-model",tariffVersion:"saved-version",maximumCredits:20}
+  const settled=renderToStaticMarkup(createElement(ResearchRunReceipt,{run:{id:ID(9),status:"succeeded",credits:3,processing}}))
+  expect(settled).toContain("3 credits charged.");expect(settled).toContain("Maximum approved: 20 credits.");expect(settled).toContain("saved-model")
+  for(const status of ["running","reconciling","failed","canceled"] as const){
+   const unknown=renderToStaticMarkup(createElement(ResearchRunReceipt,{run:{id:ID(9),status,credits:null}}))
+   expect(unknown).toContain("Credit charge not yet confirmed.");expect(unknown).toContain("Saved provider and model details unavailable.");expect(unknown).not.toContain("0 credits")
+  }
+  expect(renderToStaticMarkup(createElement(ResearchRunReceipt,{run:{id:ID(9),status:"canceled",credits:0,processing}}))).toContain("0 credits charged.")
+  expect(renderToStaticMarkup(createElement(ResearchRunReceipt,{run:null}))).toBe("")
+  expect(renderToStaticMarkup(createElement(ResearchRunReceipt,{hidden:true,run:{id:ID(9),status:"succeeded",credits:3,processing}}))).toBe("")
+ })
+})
+
 describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session public brief review",()=>{
  let server:ViteDevServer,browser:Browser,origin:string
  beforeAll(async()=>{
-  server=await createServer({configFile:false,root:process.cwd(),resolve:{alias:{"@":path.resolve("src")}},esbuild:{jsx:"automatic"},define:{"process.env.NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION":JSON.stringify("0")},server:{host:"127.0.0.1",port:0},plugins:[{name:"public-brief-actions",enforce:"pre",transform(code,module){
-   if(module.endsWith("/workspace-ai/research-actions.ts")) return `export async function quoteWorkspaceResearch(target,publicBrief){return {maximumCredits:publicBrief?6:1,tariffVersion:publicBrief?'reviewed-public':'private',publicResearchAvailable:true}}; export async function getWorkspaceResearch(){throw Error('No automatic recovery expected')};export async function stopWorkspaceResearch(){return {ok:true}};export async function listWorkspaceResearch(){return {runs:[]}};export async function searchWorkspaceKnowledge(){throw Error('Source calls forbidden')}`
+  server=await createServer({configFile:false,root:process.cwd(),cacheDir:"/tmp/ch-p3-research-vite-cache",optimizeDeps:{entries:["tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"]},resolve:{alias:{"@":path.resolve("src")}},esbuild:{jsx:"automatic"},define:{"process.env":"{}"},server:{host:"127.0.0.1",port:0,watch:null},plugins:[{name:"public-brief-actions",enforce:"pre",transform(code,module){
+   if(module.endsWith("/workspace-ai/research-actions.ts")) return `export async function quoteWorkspaceResearch(target,publicBrief){return {maximumCredits:publicBrief?6:1,tariffVersion:publicBrief?'reviewed-public':'private',publicResearchAvailable:true,provider:'OpenAI',model:'fixture-quoted-model',availableCredits:42}}; export async function getWorkspaceResearch(){return (await fetch('/fixture-research-read')).json()};export async function stopWorkspaceResearch(){return {ok:true}};export async function listWorkspaceResearch(){return {runs:[]}};export async function searchWorkspaceKnowledge(){throw Error('Source calls forbidden')}`
    if(/^\s*["']use server["']/.test(code)) return [...code.matchAll(/export async function (\w+)/g)].map(match=>`export async function ${match[1]}(){throw Error('Source effects forbidden')}`).join("\n")
-  },configureServer(instance){instance.middlewares.use((request,response,next)=>{if(request.url!=="/")return next();response.setHeader("Content-Type","text/html");response.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"></script></body></html>')})}}]})
+  },configureServer(instance){instance.middlewares.use((request,response,next)=>{if(request.url!=="/")return next();response.setHeader("Content-Type","text/html");response.end('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"></script></body></html>')})}}]})
   await server.listen();origin=`http://127.0.0.1:${(server.httpServer!.address() as AddressInfo).port}`;browser=await chromium.launch({headless:true})
+  // Compile this isolated actual-component fixture during setup, before timing interactions.
+  const bootstrap=await browser.newPage()
+  await bootstrap.route("**/*",route=>new URL(route.request().url()).origin===origin?route.continue():route.abort())
+  try{await bootstrap.goto(origin,{waitUntil:"domcontentloaded"});await bootstrap.getByLabel("Research request",{exact:true}).waitFor()}finally{await bootstrap.close()}
+
  },30000)
  afterAll(async()=>{await browser?.close();await server?.close()})
  it("reviews the destination, invalidates edited consent, requotes and submits only exact reviewed intent",async()=>{
@@ -105,7 +128,7 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
    if(url.pathname==="/api/workspace-ai/research"){submitted.push(route.request().postDataJSON());return route.fulfill({status:400,contentType:"application/json",body:JSON.stringify({error:"Synthetic admission stopped",reserved:false})})}
    return route.continue()
   })
-  await page.goto(origin)
+  await page.goto(origin,{waitUntil:"domcontentloaded"})
   await page.getByLabel("Research request",{exact:true}).fill("Private planning instruction")
   const start=page.getByRole("button",{name:"Research",exact:true})
   await page.getByText("Up to 1 credits for workspace research.").waitFor()
@@ -126,4 +149,49 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
   expect(submitted[0]).not.toHaveProperty("publicResearchAvailable")
   expect(errors).toEqual([]);expect(external).toEqual([]);await page.close()
  },15000)
+ it.each(["light","dark"] as const)("shows exact saved charges and keeps keyboard recovery at320px in %s",async colorScheme=>{
+  const page=await browser.newPage({viewport:{width:320,height:900},isMobile:true,hasTouch:true,colorScheme,reducedMotion:"reduce"})
+  page.setDefaultTimeout(5000)
+  const errors:string[]=[],external:string[]=[],requests:unknown[]=[]
+  let id="",reads=0
+  page.on("pageerror",error=>errors.push(error.message))
+  const snapshot=(status:"running"|"failed")=>({version:1,id,status,credits:status==="failed"?0:null,result:null,resultRevision:null,applicability:"unavailable",processing:{provider:"OpenAI",model:"fixture-saved-model",tariffVersion:"saved-version",maximumCredits:1}})
+  await page.route("**/*",async route=>{
+   const url=new URL(route.request().url());if(url.origin!==origin){external.push(url.href);return route.abort()}
+   if(url.pathname==="/api/workspace-ai/research"){
+    const body=route.request().postDataJSON();requests.push(body);id=body.id
+    return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({run:snapshot("running")})})
+   }
+   if(url.pathname==="/fixture-research-read"){reads++;return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({run:snapshot("failed")})})}
+   return route.continue()
+  })
+  try{
+   await page.goto(origin,{waitUntil:"domcontentloaded"})
+   await page.getByText("OpenAI · fixture-quoted-model",{exact:true}).waitFor()
+   await page.getByText("Available at quote: 42 credits.",{exact:true}).waitFor()
+   await page.addStyleTag({content:"html{font-size:200%}"})
+   const history=page.getByRole("button",{name:"Previous research",exact:true});await history.focus();await page.keyboard.press("Enter")
+   await page.getByText("No previous research",{exact:true}).waitFor();await page.keyboard.press("Escape")
+   expect(await history.evaluate(node=>node===document.activeElement)).toBe(true)
+   const source=page.getByRole("button",{name:"Source details: Reviewed public source",exact:true});await source.focus();await page.keyboard.press("Enter")
+   const details=page.getByRole("region",{name:"Source details: Reviewed public source",exact:true});await details.getByRole("link",{name:"Open source in a new tab"}).waitFor()
+   expect(await details.textContent()).toContain("This result has no saved read coverage.")
+   const bounds=await details.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(320)
+   await page.keyboard.press("Escape");expect(await source.evaluate(node=>node===document.activeElement)).toBe(true)
+   const input=page.getByLabel("Research request",{exact:true});await input.fill("Research this workspace")
+   const select=page.getByRole("combobox",{name:"Research approach"});await select.focus();await select.selectOption("planning")
+   expect(await select.evaluate(node=>node===document.activeElement)).toBe(true)
+   const start=page.getByRole("button",{name:"Research",exact:true});await start.focus();await page.keyboard.press("Enter")
+   const receipt=page.getByRole("region",{name:"Research run receipt"})
+   await receipt.getByText("Credit charge not yet confirmed.",{exact:false}).waitFor()
+   await receipt.getByText("OpenAI · fixture-saved-model",{exact:true}).waitFor()
+   expect(await receipt.textContent()).not.toContain("fixture-quoted-model")
+   const check=page.getByRole("button",{name:"Check status",exact:true});await check.focus();await page.keyboard.press("Enter")
+   await receipt.getByText("0 credits charged. Maximum approved: 1 credits.",{exact:true}).waitFor()
+   expect(requests).toHaveLength(1);expect(requests[0]).toMatchObject({skill:"planning",maximumCredits:1,tariffVersion:"private"});expect(reads).toBe(1)
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+   expect(errors).toEqual([]);expect(external).toEqual([])
+  }finally{await page.close()}
+ },30000)
+
 })

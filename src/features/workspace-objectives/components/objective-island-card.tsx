@@ -1,8 +1,10 @@
 "use client"
+
+import { ParticleButton as Button, ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
 import { useState, type ReactNode } from "react"
-import { Button } from "@/components/ui/button"
+
 import { CircularProgress } from "@/components/ui/circular-progress"
-import { Checkbox } from "@/components/ui/checkbox"
+
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronDown, CircleCheck, CircleMinus, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,7 +34,7 @@ export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdi
       <div className="flex flex-col gap-1 px-1 py-1" style={editing ? { display: "none" } : undefined}>
         <div className="flex min-w-0 items-center gap-2">
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" aria-description={progressLabel} className="h-auto min-h-11 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left">
+            <Button color="secondary" size="lg" variant="ghost" aria-description={progressLabel} className="h-auto min-h-11 min-w-0 flex-1 justify-between whitespace-normal rounded-xl px-1 text-left">
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 <span className={cn("flex size-4 shrink-0 items-center justify-center", styles.marker)} aria-hidden>
                   {complete ? <CircleCheck className="text-emerald-600 dark:text-emerald-400" /> : blocked ? <CircleMinus className="text-destructive" /> : <CircularProgress
@@ -46,7 +48,7 @@ export function ObjectiveIslandCard({ objective, steps, editable, pending, onEdi
               <ChevronDown data-icon="inline-end" className={cn("transition-transform motion-reduce:transition-none", expanded && "rotate-180")} aria-hidden />
             </Button>
           </CollapsibleTrigger>
-          {canEdit && <Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Edit ${objective.title}`} disabled={pending} onClick={() => setEditing(true)}><Pencil aria-hidden /></Button>}
+          {canEdit && <Button color="secondary" uniform variant="ghost" size="lg" className="size-8 shrink-0 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Edit ${objective.title}`} disabled={pending} onClick={() => setEditing(true)}><Pencil aria-hidden /></Button>}
         </div>
 
       </div>

@@ -1,20 +1,14 @@
 "use client"
 
+import { ParticleButton as Button, ParticleTextarea as InputGroupTextarea } from "@/components/ui/particle-ui"
+
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
-import { Button } from "@/components/ui/button"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupTextarea,
-} from "@/components/ui/input-group"
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover"
+
+import { InputGroup, InputGroupAddon } from "@/components/ui/input-group"
+import { ParticlePopover as Popover } from "@/components/ui/particle-ui"
 
 import { ParticleCreateActions } from "./particle-create-actions"
 import type { ParticleType } from "../types"
@@ -109,21 +103,21 @@ export function ParticleComposer({
                 setMenuOpen(open)
               }}
             >
-              <PopoverTrigger asChild>
-                <Button
+              <Popover.Trigger>
+                <Button color="secondary" uniform
                   type="button"
                   data-workspace-composer-action="true"
                   aria-label="Add Particle"
                   disabled={disabled || pending}
                   variant="ghost"
-                  size="icon"
+                  size="lg"
 
                   className="text-muted-foreground hover:text-foreground size-9 rounded-full transition-colors duration-150 motion-reduce:transition-none"
                 >
                   <PlusIcon className="size-4" aria-hidden />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent
+              </Popover.Trigger>
+              <Popover.Content minWidth={0}
                 align="start"
                 side="top"
                 sideOffset={12}
@@ -137,13 +131,13 @@ export function ParticleComposer({
                     return onCreate(type, title)
                   }}
                 />
-              </PopoverContent>
+              </Popover.Content>
             </Popover>
           </InputGroupAddon>
-          <InputGroupTextarea
+          <InputGroupTextarea size="2xl" data-slot="input-group-control"
             ref={inputRef}
             aria-label={assistant?.active ? "Ask AI about this document" : planner ? "Plan an objective or search Particles" : "Search Particles or enter a command"}
-            placeholder={assistant?.revising ? "Describe changes to this draft…" : assistant?.active ? "Ask for help with this document…" : "Plan anything..."}
+            placeholder={assistant?.revising ? "Describe changes to this draft…" : assistant?.active ? "Ask for help with this document…" : "Plan anything…"}
             aria-describedby={feedbackId}
             aria-invalid={Boolean(error || hint)}
             value={input}
@@ -176,7 +170,7 @@ export function ParticleComposer({
             }}
           />
           <InputGroupAddon>
-            <Button
+            <Button color="primary" uniform
               data-workspace-composer-action="true"
               type="submit"
               disabled={disabled || pending || assistant?.pending || planner?.active || !input.trim()}
@@ -189,7 +183,7 @@ export function ParticleComposer({
                     ? "Search Particles"
                     : "Run command"
               }
-              size="icon"
+              size="lg"
               className="size-9 rounded-full shadow-none transition-[background-color,opacity] duration-150 motion-reduce:transition-none"
             >
               {pending ? (
@@ -223,9 +217,9 @@ export function ParticleComposer({
                 : "Type to filter Particles. Enter opens the results. Use /commands to browse all, or use create objective or create resource followed by a title. Shift + Enter adds a new line.")}
         </span>
         {error ? (
-          <Button
-            variant="link"
-            size="sm"
+          <Button color="secondary"
+            variant="ghost"
+            size="md"
             className="h-auto p-0"
             disabled={pending}
             onClick={onRetry}

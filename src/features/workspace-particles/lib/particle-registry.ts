@@ -7,7 +7,7 @@ import { z } from "zod"
 import { planCapability, workspaceNoteCapability, workspaceFormCapability, particleCommitSchema, type ParticleCapability, type ParticleSourceBinding } from "./particle-capability-contract"
 import type { Particle, ParticleType } from "../types"
 import { particleDataSchemas, particleSchema } from "./particle-schema"
-import { projectDataViewCapability } from "./particle-output-capabilities"
+import { projectDataViewCapability, existingDataViewCapability } from "./particle-output-capabilities"
 
 type Definition<K extends ParticleType> = {
   layouts: Readonly<
@@ -20,7 +20,7 @@ type Definition<K extends ParticleType> = {
   schema: z.ZodType<Extract<Particle, { type: K }>["data"]>
   defaults: () => Extract<Particle, { type: K }>["data"]
   capabilities?: Readonly<Record<string, ParticleCapability>>
-  outputCapabilities?: Readonly<Record<string, typeof projectDataViewCapability>>
+  outputCapabilities?: Readonly<Record<string, typeof projectDataViewCapability | typeof existingDataViewCapability>>
 }
 // Rendering definitions compose this domain registry at the canvas boundary.
 export const particleRegistry = {
@@ -35,7 +35,7 @@ export const particleRegistry = {
   },
   activity: {
     capabilities: { workspace_note: workspaceNoteCapability, workspace_form: workspaceFormCapability },
-    outputCapabilities: { project_data_view: projectDataViewCapability },
+    outputCapabilities: { project_data_view: projectDataViewCapability, existing_data_view:existingDataViewCapability },
     ...PARTICLE_SIZE_SUPPORT.activity,
     layouts: PARTICLE_SIZE_LAYOUTS,
     label: "Resource",

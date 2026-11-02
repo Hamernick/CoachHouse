@@ -1,8 +1,9 @@
 "use client"
 import {useCallback,useEffect,useId,useRef,useState} from "react"
-import {Button} from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import dynamic from "next/dynamic"
-import {AlertDialog,AlertDialogTrigger,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
+import { ParticleAlertDialogCancel as AlertDialogCancel, ParticleAlertDialogAction as AlertDialogAction } from "@/components/ui/particle-ui"
 import type {NoteContent} from "@/lib/modules/note-content"
 import type {PageNoteData,PageNoteCommand} from "../lib/page-note-access"
 import {usePageNoteAccess} from "../hooks/use-page-note-access"
@@ -31,12 +32,12 @@ export function GuestPageNoteEditor({pageId,disabled,onLockChange}:{pageId:strin
   <p className="text-muted-foreground text-xs">Only explicitly enabled notes can be edited. Edits change the same canonical note in every workspace reference. Public and guest previews change only after an organization editor reviews and shares them again.</p>
   {error&&<p role="alert" className="text-destructive text-sm">{error}</p>}
   {notice&&<p role="status" className="text-sm">{notice}</p>}
-  {uncertain&&<Button disabled={pending} onClick={()=>void save(uncertain)}>Retry same note save</Button>}
-  {!selected?data?.notes.filter(note=>note.enabled).map(note=><Button key={note.id} ref={element=>{if(element)triggers.current.set(note.id,element);else triggers.current.delete(note.id)}} variant="outline" disabled={disabled||pending} onClick={()=>void open(note.id)}>Edit shared note: {note.title}</Button>):<>
+  {uncertain&&<Button size="lg" color="primary" disabled={pending} onClick={()=>void save(uncertain)}>Retry same note save</Button>}
+  {!selected?data?.notes.filter(note=>note.enabled).map(note=><Button size="lg" color="primary" key={note.id} ref={element=>{if(element)triggers.current.set(note.id,element);else triggers.current.delete(note.id)}} variant="outline" disabled={disabled||pending} onClick={()=>void open(note.id)}>Edit shared note: {note.title}</Button>):<>
    {baseline&&latest&&<><h3 className="text-sm font-medium">{baseline.title}</h3><div id={toolbar} className="flex min-h-11 flex-wrap gap-1"/><div className="min-w-0 rounded-xl border"><NotesRichEditor key={`${selected}:${editorVersion}`} initialBody={initialBody} onChange={changed} toolbarId={toolbar} autoFocus readOnly={pending||Boolean(uncertain)}/></div>
-    {stale&&<div role="status" className="flex flex-col gap-2 text-sm"><p>The saved note changed. Your draft is preserved. Current saved content:</p><p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border p-2">{latest.content}</p><Button variant="outline" disabled={pending||Boolean(uncertain)} onClick={()=>setBaseline(current=>current?{...current,revision:latest.revision}:current)}>Use latest note revision</Button></div>}
-    <Button disabled={pending||Boolean(uncertain)||stale||!dirty} onClick={()=>void save({action:"write",pageId,particleId:selected,operationId:crypto.randomUUID(),expectedNoteRevision:baseline.revision,...body})}>Save shared note</Button></>}
-   <AlertDialog><AlertDialogTrigger asChild><Button variant="outline" disabled={pending||Boolean(uncertain)}>Close note</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Close this note?</AlertDialogTitle><AlertDialogDescription>{dirty?"Unsaved changes will be discarded.":"Your saved source is unchanged."}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep editing</AlertDialogCancel><AlertDialogAction onClick={close}>Close note</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    {stale&&<div role="status" className="flex flex-col gap-2 text-sm"><p>The saved note changed. Your draft is preserved. Current saved content:</p><p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border p-2">{latest.content}</p><Button size="lg" color="primary" variant="outline" disabled={pending||Boolean(uncertain)} onClick={()=>setBaseline(current=>current?{...current,revision:latest.revision}:current)}>Use latest note revision</Button></div>}
+    <Button size="lg" color="primary" disabled={pending||Boolean(uncertain)||stale||!dirty} onClick={()=>void save({action:"write",pageId,particleId:selected,operationId:crypto.randomUUID(),expectedNoteRevision:baseline.revision,...body})}>Save shared note</Button></>}
+   <AlertDialog><AlertDialogTrigger asChild><Button size="lg" color="primary" variant="outline" disabled={pending||Boolean(uncertain)}>Close note</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Close this note?</AlertDialogTitle><AlertDialogDescription>{dirty?"Unsaved changes will be discarded.":"Your saved source is unchanged."}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep editing</AlertDialogCancel><AlertDialogAction onClick={close}>Close note</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
    {dirty&&<p role="status" className="text-muted-foreground text-xs">Unsaved note changes</p>}
   </>}
  </section>

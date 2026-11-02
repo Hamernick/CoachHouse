@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useContext, useRef, useState, type ReactNode } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
-import { Button } from "@/components/ui/button"
+
 import { toast } from "@/lib/toast"
 import { ParticleLibraryDragContext } from "./particle-library-drag-context"
 import { ParticleLibraryDragSource } from "./particle-library-drag-source"
@@ -41,11 +43,11 @@ export function ModuleNotesParticleSource({
     }
   }
   const action = enabled ? (
-    <Button
+    <Button color="secondary" uniform
       {...surface()}
       type="button"
       variant="ghost"
-      size="icon"
+      size="lg"
       className="nodrag nopan size-7 rounded-full [@media(pointer:coarse)]:size-11"
       disabled={adding}
       aria-label="Add lesson notes to canvas"

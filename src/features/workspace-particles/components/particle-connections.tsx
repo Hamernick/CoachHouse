@@ -1,19 +1,15 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import {
   isWorkspaceToolId,
   workspaceToolLabel,
 } from "../lib/workspace-tool-contract"
 import { useId, useState } from "react"
-import { Button } from "@/components/ui/button"
+
 import { Field, FieldLabel } from "@/components/ui/field"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { ParticleSelect } from "@/components/ui/particle-ui"
 
 import { particleConnectionSchema } from "../lib/particle-schema"
 import { PARTICLE_RELATIONSHIP_LABELS } from "../lib/connection-editing"
@@ -97,7 +93,7 @@ export function ParticleConnections({
                 </div>
                 {edge.relationship !== "feedback" &&
                 edge.relationship !== "related_resource" ? (
-                  <Button
+                  <Button color="secondary" size="lg"
                     type="button"
                     variant="ghost"
                     className="min-h-11 rounded-xl text-xs"
@@ -109,7 +105,7 @@ export function ParticleConnections({
                     Insert Resource
                   </Button>
                 ) : null}
-                <Button
+                <Button color="secondary" size="lg"
                   type="button"
                   variant="ghost"
                   className="min-h-11 rounded-xl text-xs"
@@ -153,88 +149,64 @@ export function ParticleConnections({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor={`${id}-relationship`}>Relationship</FieldLabel>
-            <Select
-              value={relationship}
-              disabled={!editable}
-              onValueChange={(value) => {
+            <ParticleSelect value={relationship} disabled={!editable} onChange={event => { const value = event.target.value;
                 const result =
                   particleConnectionSchema.shape.relationship.safeParse(value)
                 if (result.success) {
                   setRelationship(result.data)
                   setTarget("")
                 }
-              }}
-            >
-              <SelectTrigger id={`${id}-relationship`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+               }} id={`${id}-relationship`} className="w-full">
+<option value="" disabled>Choose…</option>
                 {Object.entries(PARTICLE_RELATIONSHIP_LABELS)
                   .filter(([key]) => key !== "decision_outcome" || decision)
                   .map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
+                    <option key={key} value={key}>
                       {label}
-                    </SelectItem>
+                    </option>
                   ))}
-              </SelectContent>
-            </Select>
+              </ParticleSelect>
           </Field>
           <Field>
             <FieldLabel htmlFor={`${id}-target`}>Connect to</FieldLabel>
-            <Select
-              value={target}
-              disabled={
+            <ParticleSelect value={target} disabled={
                 !editable ||
                 (!targets.length &&
                   !(
                     relationship === "related_resource" &&
                     visibleToolIds.some(isWorkspaceToolId)
                   ))
-              }
-              onValueChange={setTarget}
-            >
-              <SelectTrigger id={`${id}-target`} className="w-full">
-                <SelectValue placeholder="Choose a Particle…" />
-              </SelectTrigger>
-              <SelectContent>
+              } onChange={event => (setTarget)(event.target.value)} id={`${id}-target`} className="w-full">
+<option value="" disabled>Choose a Particle…</option>
                 {relationship === "related_resource" &&
                   visibleToolIds.filter(isWorkspaceToolId).map((id) => (
-                    <SelectItem key={id} value={id}>
+                    <option key={id} value={id}>
                       {workspaceToolLabel(id)}
-                    </SelectItem>
+                    </option>
                   ))}
                 {targets.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
+                  <option key={item.id} value={item.id}>
                     {item.title}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </ParticleSelect>
           </Field>
         </div>
         {relationship === "decision_outcome" && decision ? (
           <Field>
             <FieldLabel htmlFor={`${id}-outcome`}>Outcome</FieldLabel>
-            <Select
-              value={outcome}
-              disabled={!editable}
-              onValueChange={setOutcome}
-            >
-              <SelectTrigger id={`${id}-outcome`}>
-                <SelectValue placeholder="Choose an outcome…" />
-              </SelectTrigger>
-              <SelectContent>
+            <ParticleSelect value={outcome} disabled={!editable} onChange={event => (setOutcome)(event.target.value)} id={`${id}-outcome`}>
+<option value="" disabled>Choose an outcome…</option>
                 {decision.data.outcomes.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
+                  <option key={item.id} value={item.id}>
                     {item.label}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </ParticleSelect>
           </Field>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
+          <Button color="secondary" size="lg"
             type="submit"
             variant="outline"
             className="min-h-11 rounded-xl"

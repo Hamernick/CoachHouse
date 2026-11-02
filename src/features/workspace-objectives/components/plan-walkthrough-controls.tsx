@@ -1,6 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
+
 import type { PlanningControls } from "../hooks/use-particle-plans"
 
 export function PlanWalkthroughControls({ walkthrough }: { walkthrough: PlanningControls["walkthrough"] }) {
@@ -14,9 +16,9 @@ export function PlanWalkthroughControls({ walkthrough }: { walkthrough: Planning
       {current?.condition && <p className="text-xs text-muted-foreground">If {current.condition} · {current.branch === "waiting" ? "Needs decision" : current.branch === "inactive" ? "Alternative" : "Selected path"}</p>}
     </div>
     <div className="mt-1 flex items-center gap-1">
-      <Button variant="ghost" size="sm" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" disabled={unavailable || index <= 0} onClick={() => walkthrough.step(-1)}>Back</Button>
-      <Button variant="ghost" size="sm" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" disabled={unavailable || index < 0 || index >= total - 1} onClick={() => walkthrough.step(1)}>Next</Button>
-      <Button variant="ghost" size="sm" className="ml-auto min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" onClick={() => walkthrough.exit()}>Exit</Button>
+      <Button color="secondary" variant="ghost" size="md" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" disabled={unavailable || index <= 0} onClick={() => walkthrough.step(-1)}>Back</Button>
+      <Button color="secondary" variant="ghost" size="md" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" disabled={unavailable || index < 0 || index >= total - 1} onClick={() => walkthrough.step(1)}>Next</Button>
+      <Button color="secondary" variant="ghost" size="md" className="ml-auto min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" onClick={() => walkthrough.exit()}>Exit</Button>
     </div>
   </div>
 }

@@ -5,7 +5,7 @@ vi.mock("@/features/workspace-ai/server/knowledge-records",()=>({knowledgeLoader
 vi.mock("@/features/workspace-ai/server/research-context",()=>({loadResearchContext:mocks.context}))
 vi.mock("@/features/workspace-ai/server/research-config",()=>({researchConfig:mocks.config}))
 vi.mock("@/features/workspace-ai/server/research-provider",()=>({runResearchProvider:mocks.provider}))
-vi.mock("@/features/ai-credits",async()=>({AiAdmissionDenied:(await import("@/features/ai-credits/server/admission-error")).AiAdmissionDenied,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,correlateAiResearchResponse:mocks.correlate,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read,cancelAiRun:vi.fn(),readAiAccount:mocks.account,listAiResearchRuns:mocks.history}))
+vi.mock("@/features/ai-credits",async()=>({aiCreditBalance:(await import("@/features/ai-credits/lib")).aiCreditBalance,priceAiUsage:(await import("@/features/ai-credits/lib")).priceAiUsage,AiAdmissionDenied:(await import("@/features/ai-credits/server/admission-error")).AiAdmissionDenied,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,correlateAiResearchResponse:mocks.correlate,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read,cancelAiRun:vi.fn(),readAiAccount:mocks.account,listAiResearchRuns:mocks.history}))
 import { AiAdmissionDenied } from "@/features/ai-credits/server/admission-error"
 import { knowledgeFingerprint, researchContextFingerprint } from "@/features/workspace-ai/server/research-dependencies"
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
@@ -25,7 +25,7 @@ beforeEach(()=>{
  vi.resetAllMocks()
  vi.unstubAllEnvs()
  mocks.load.mockResolvedValue([])
- mocks.account.mockResolvedValue({enabled:true,paymentReview:false})
+ mocks.account.mockResolvedValue({enabled:true,paymentReview:false,lots:[]})
  mocks.context.mockResolvedValue({user:{id:ID(90)},canvasId:null,graph:graph(),objective:particle(1,"objective"),target})
  mocks.config.mockReturnValue({tariff:{version:"test",model:"fixture"},maxRounds:3,maxOutputTokens:1500,maxCredits:20,maxCost:40000,maxInputBytes:20000})
  mocks.reserve.mockResolvedValue({created:true});mocks.claim.mockResolvedValue(true)
@@ -132,7 +132,7 @@ describe("complete request admission capacity", () => {
   const context = await mocks.context(), config = mocks.config()
   const quoteBytes = Buffer.byteLength(JSON.stringify(researchProviderRequest(config,[{role:"user",content:researchPrompt(context,{...input,prompt:""})}])))
   mocks.config.mockReturnValue({...config,maxInputBytes:quoteBytes + 1000})
-  expect(await quoteWorkspaceResearch(target)).toEqual({maximumCredits:20,tariffVersion:"test"})
+  expect(await quoteWorkspaceResearch(target)).toEqual({maximumCredits:20,tariffVersion:"test",provider:"OpenAI",model:"fixture",availableCredits:0})
   expect(await (await handleWorkspaceResearch(request({...input,prompt:"界".repeat(1000)}))).json()).toMatchObject({failure:{code:"context_too_large"},reserved:false})
   expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
  })
@@ -331,7 +331,7 @@ describe("saved research disclosure", () => {
   setRun();mocks.load.mockResolvedValue([record])
   await readResearchRun(ID(2),target)
   mocks.load.mockResolvedValue([])
- mocks.account.mockResolvedValue({enabled:true,paymentReview:false})
+ mocks.account.mockResolvedValue({enabled:true,paymentReview:false,lots:[]})
   await expect(readResearchRun(ID(2),target)).rejects.toThrow(/source changed/)
  })
  it("does not leak a saved result through duplicate-request recovery",async()=>{
@@ -354,7 +354,7 @@ describe("saved research disclosure", () => {
   mocks.load.mockResolvedValue([record])
   expect((await readResearchRun(ID(2),target)).result?.sources).toEqual([])
   mocks.load.mockResolvedValue([])
- mocks.account.mockResolvedValue({enabled:true,paymentReview:false})
+ mocks.account.mockResolvedValue({enabled:true,paymentReview:false,lots:[]})
   await expect(readResearchRun(ID(2),target)).rejects.toThrow(/source changed/)
  })
  it("detects changed content even when revisions are null or unchanged",async()=>{
@@ -525,5 +525,31 @@ describe("reviewed public brief admission and recovery",()=>{
   mocks.reserve.mockResolvedValue({created:false})
   await handleWorkspaceResearch(request({...input,publicResearch}))
   expect(mocks.provider).toHaveBeenCalledTimes(1)
+ })
+})
+
+
+describe("quoted model and durable research receipt",()=>{
+ it("binds the exact model even when operator version and maximum charge are unchanged",async()=>{
+  const {researchConfig}=await vi.importActual<typeof import("@/features/workspace-ai/server/research-config")>("@/features/workspace-ai/server/research-config")
+  vi.stubEnv("WORKSPACE_AI_ENABLED","true");vi.stubEnv("OPENAI_API_KEY","fixture-only")
+  const rate={version:"operator-unchanged",model:"fixture-model-a",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,microdollarsPerCredit:2000}
+  vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify(rate))
+  const approved=researchConfig();expect(researchConfig()).toEqual(approved)
+  vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify({...rate,model:"fixture-model-b"}))
+  const current=researchConfig();expect(current.maxCredits).toBe(approved.maxCredits);expect(current.tariff.version).not.toBe(approved.tariff.version)
+  mocks.config.mockReturnValue(current)
+  const response=await handleWorkspaceResearch(request({...input,tariffVersion:approved.tariff.version,maximumCredits:approved.maxCredits}))
+  expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("reads the saved model and approved maximum with the settled charge, never today's quote",async()=>{
+  mocks.read.mockResolvedValue({id:ID(2),status:"failed",target:{...target,kind:"particle_research"},proposal:null,charged_credits:0,cancel_requested_at:null,tariff:{version:"saved-version",model:"saved-model",privateExtra:"must-not-leak"},max_credits:12})
+  const receipt=await readResearchRun(ID(2),target)
+  expect(receipt).toMatchObject({credits:0,processing:{provider:"OpenAI",model:"saved-model",tariffVersion:"saved-version",maximumCredits:12}})
+  expect(JSON.stringify(receipt)).not.toContain("privateExtra");expect(mocks.config).not.toHaveBeenCalled()
+ })
+ it("keeps legacy missing receipt details unknown",async()=>{
+  expect(await readResearchRun(ID(2),target)).not.toHaveProperty("processing")
  })
 })

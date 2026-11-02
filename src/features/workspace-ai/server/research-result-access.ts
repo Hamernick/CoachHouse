@@ -1,4 +1,5 @@
 import "server-only"
+import { assertResearchDataViewSources } from "./research-data-view-sources"
 import { knowledgePersonFieldFingerprint } from "./knowledge-person"
 import type { KnowledgeKind, ResearchResult, ResearchTarget } from "../research-types"
 import type { ResearchContext } from "./research-context"
@@ -24,6 +25,7 @@ export async function assertResearchSourcesAccessible(context: ResearchContext, 
   const sources = result.dependencies.records
   const citations = result.sources.filter(source => source.kind === "workspace")
   try {
+    await assertResearchDataViewSources(context,result.dependencies.dataViews??[])
     if (researchContextFingerprint(context, result.target) !== result.dependencies.contextFingerprint)
       throw new ResearchRecoveryError("sources_changed")
     if (citations.some(source => !sources.some(dependency => dependency.id === source.id)))

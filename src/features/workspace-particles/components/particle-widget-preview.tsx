@@ -1,11 +1,11 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input, ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+
 import { WorkspaceDataViewsPanel } from "@/features/workspace-data-views"
 import { WorkspaceOpportunityPreview } from "@/features/workspace-finance"
 import { ParticleFormPreview } from "./particle-form-preview"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+
 import { ParticleCopyButton } from "./particle-copy-button"
 import { ParticleTimerPreview } from "./particle-timer-preview"
 import { MinusIcon, PlusIcon } from "./shapeshift-icons"
@@ -37,7 +37,7 @@ export function ParticleWidgetPreview({
       )
     if (onNotesDraftChange)
       return (
-        <Textarea
+        <Textarea size="2xl"
           aria-label="Draft notes"
           placeholder="Write a note…"
           value={widget.source.content}
@@ -48,7 +48,7 @@ export function ParticleWidgetPreview({
         />
       )
     return (
-      <Button
+      <Button color="secondary" size="lg"
         variant="ghost"
         onClick={() => onOpen()}
         aria-label={`Open ${particle.title}`}
@@ -88,10 +88,10 @@ export function ParticleWidgetPreview({
           Per person · equal split
         </span>
         <div className="nodrag nopan flex items-center gap-2">
-          <Button
+          <Button color="secondary" uniform
             type="button"
-            size="icon"
-            variant="secondary"
+            size="lg"
+            variant="soft"
             aria-label="One fewer person"
             disabled={!editable || widget.people <= 1}
             onClick={() => update({ ...widget, people: widget.people - 1 })}
@@ -101,10 +101,10 @@ export function ParticleWidgetPreview({
           <span className="min-w-16 text-center text-sm tabular-nums">
             {widget.people} people
           </span>
-          <Button
+          <Button color="secondary" uniform
             type="button"
-            size="icon"
-            variant="secondary"
+            size="lg"
+            variant="soft"
             aria-label="One more person"
             disabled={!editable || widget.people >= 10000}
             onClick={() => update({ ...widget, people: widget.people + 1 })}
@@ -122,7 +122,7 @@ export function ParticleWidgetPreview({
     return (
       <div className="flex flex-col gap-3">
         <div className="nodrag nopan flex items-center gap-3">
-          <Input
+          <Input size="2xl"
             key={widget.hex}
             type="color"
             aria-label="Choose color"

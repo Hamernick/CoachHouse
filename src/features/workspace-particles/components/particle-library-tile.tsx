@@ -1,12 +1,14 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { ParticleLibraryDragSource } from "./particle-library-drag-source"
 import { InertPreview } from "@/components/shared/inert-preview"
 
 import { ParticleAddControl } from "./particle-add-control"
 import type { ReactNode } from "react"
 import MinusIcon from "lucide-react/dist/esm/icons/minus"
-import { Button } from "@/components/ui/button"
+
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ParticleMenuOverlay } from "./particle-menu-overlay"
 
@@ -64,8 +66,8 @@ export function ParticleLibraryTile({
             <p className="py-1 text-sm font-medium break-words">{title}</p>
             <p className="text-muted-foreground text-xs">On canvas</p>
           </div>
-          <Button
-            size="icon"
+          <Button color="secondary" uniform
+            size="lg"
             variant="ghost"
             className="size-11 shrink-0 rounded-full"
             disabled={disabled}

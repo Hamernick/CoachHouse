@@ -13,24 +13,27 @@ import { ResearchRecoveryError, researchRecoveryResponse } from "./research-reco
 import { researchProgressStream } from "./research-progress-stream"
 import type { ResearchPhase } from "../lib/research-progress"
 import { researchSnapshotSchema } from "../lib/research-snapshot"
+import { savedResearchProcessing } from "../lib/research-processing"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
 
 const runIdentity = { kind:z.literal("particle_research"), userId:z.uuid().optional() }
 export const researchRunSchema=z.object({id:z.uuid(),status:researchSnapshotSchema.shape.status,target:z.union([
   existingResearchTargetSchema.extend({...runIdentity,canvasId:z.string().nullable().optional()}),
   newObjectiveTargetSchema.extend({...runIdentity,userId:z.uuid()}),
-]),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable()})
+]),proposal:z.string().nullable(),charged_credits:z.number().nullable(),cancel_requested_at:z.string().nullable(),tariff:z.unknown().optional(),max_credits:z.unknown().optional()})
 export async function readResearchRun(id:string,target:ResearchTarget) {
   z.uuid().parse(id)
   const context=await loadResearchContext(target,false)
   const run=researchRunSchema.parse(await readAiRun(id,target.organizationId,context.user.id))
+  const savedProcessing = savedResearchProcessing(run.tariff, run.max_credits)
+  const processing = savedProcessing ? { processing: savedProcessing } : {}
   if(run.id!==id || run.target.mode!==target.mode || (target.mode==="new_objective" && run.target.canvasId!==target.canvasId) || run.target.objectiveId!==target.objectiveId || run.target.organizationId!==target.organizationId ||
     run.target.plan?.id!==target.plan?.id ||
     (run.target.userId!==undefined && run.target.userId!==context.user.id) || (run.target.canvasId!==undefined && run.target.canvasId!==context.canvasId)) throw new ResearchRecoveryError("scope_mismatch")
   if (target.mode === "new_objective" && run.status === "succeeded") {
     const applied = context.graph.particles.find(p => p.type === "objective" &&
       [...(p.data.planning?.plans ?? []), ...(p.data.planning?.proposals ?? [])].some(plan => plan.researchRunId === run.id))
-    if (applied) return researchSnapshotSchema.parse({ version: 1, id: run.id, status: run.status, credits: run.charged_credits, result: null, appliedObjectiveId: applied.id, resultRevision: 1, applicability: "already_applied" })
+    if (applied) return researchSnapshotSchema.parse({ version: 1, id: run.id, status: run.status, credits: run.charged_credits, ...processing, result: null, appliedObjectiveId: applied.id, resultRevision: 1, applicability: "already_applied" })
   }
   let result = null
   if (run.status === "succeeded") {
@@ -41,7 +44,7 @@ export async function readResearchRun(id:string,target:ResearchTarget) {
     assertResearchProvenance(result, run.id, run.target)
     await assertResearchSourcesAccessible(context, result)
   }
-  return researchSnapshotSchema.parse({version:1,id:run.id,status:run.status,credits:run.charged_credits,result,
+  return researchSnapshotSchema.parse({version:1,id:run.id,status:run.status,credits:run.charged_credits,...processing,result,
     resultRevision:result?1:null,applicability:result?"review_required":"unavailable"})
 }
 export async function handleWorkspaceResearch(request:Request) {

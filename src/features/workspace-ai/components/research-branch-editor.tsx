@@ -1,5 +1,5 @@
 import { ParticleInput } from "@/components/ui/particle-ui"
-import { Checkbox } from "@/components/ui/checkbox"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
 import type { ResearchResult } from "../research-types"
 
 type Decision = NonNullable<ResearchResult["decisions"]>[number]
@@ -20,11 +20,10 @@ export function ResearchBranchEditor({ decision, candidates, disabled, onChange 
         </label>
         <div role="group" aria-label={`Next items for outcome ${index + 1}`}>
           <p className="py-1 text-muted-foreground">Continue to</p>
-          {candidates.filter(candidate => candidate.key !== decision.itemKey).map(candidate => <label key={candidate.key} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 hover:bg-muted">
-            <Checkbox checked={outcome.next.includes(candidate.key)} disabled={disabled}
+          {candidates.filter(candidate => candidate.key !== decision.itemKey).map(candidate => <div key={candidate.key} className="min-h-11 content-center rounded-lg px-2 hover:bg-muted">
+            <Checkbox label={<span className="min-w-0 break-words">{candidate.title || "Untitled item"}</span>} checked={outcome.next.includes(candidate.key)} disabled={disabled}
               onCheckedChange={checked => edit(outcome.key, { next: checked === true ? [...outcome.next, candidate.key] : outcome.next.filter(key => key !== candidate.key) })} />
-            <span className="min-w-0 break-words">{candidate.title || "Untitled item"}</span>
-          </label>)}
+          </div>)}
           {!outcome.next.length && <p className="py-1 text-muted-foreground">This path ends here.</p>}
         </div>
       </div>)}

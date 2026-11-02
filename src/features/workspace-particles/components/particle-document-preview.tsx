@@ -1,11 +1,13 @@
 "use client"
 
+import { ParticleButton as Button, ParticleButtonLink } from "@/components/ui/particle-ui"
+
 import { useCallback, useState } from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { motion, useReducedMotion } from "motion/react"
 import { WorkspaceFileTable } from "@/components/workspace/workspace-file-table"
-import { Button } from "@/components/ui/button"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { DocumentPdfViewer } from "@/components/organization/org-profile-card/tabs/documents-tab/components/document-pdf-viewer"
 import { useParticleDocumentContent } from "../hooks/use-particle-document-content"
@@ -50,14 +52,12 @@ export function ParticleDocumentPreview({
         className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-xs"
       >
         <p>{failure}</p>
-        <Button variant="outline" size="sm" onClick={retry}>
+        <Button color="secondary" variant="outline" size="md" onClick={retry}>
           Retry preview
         </Button>
-        <Button asChild variant="ghost" size="sm">
-          <a href={url} target="_blank" rel="noopener noreferrer">
+        <ParticleButtonLink color="secondary" variant="ghost" size="md" href={url} target="_blank" rel="noopener noreferrer">
             Open original
-          </a>
-        </Button>
+          </ParticleButtonLink>
       </div>
     )
   if (file.format === "pdf")
@@ -88,22 +88,18 @@ export function ParticleDocumentPreview({
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-5 text-center text-sm">
         <p>{file.name}</p>
-        <Button asChild variant="outline" size="sm">
-          <a href={url} target="_blank" rel="noopener noreferrer">
+        <ParticleButtonLink color="secondary" variant="outline" size="md" href={url} target="_blank" rel="noopener noreferrer">
             Open original
-          </a>
-        </Button>
+          </ParticleButtonLink>
       </div>
     )
   if (file.format === "doc")
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-5 text-center text-sm">
         <p>Save this Word document as .docx or PDF for an inline preview.</p>
-        <Button asChild variant="outline" size="sm">
-          <a href={url} target="_blank" rel="noopener noreferrer">
+        <ParticleButtonLink color="secondary" variant="outline" size="md" href={url} target="_blank" rel="noopener noreferrer">
             Open original
-          </a>
-        </Button>
+          </ParticleButtonLink>
       </div>
     )
   if (!content)

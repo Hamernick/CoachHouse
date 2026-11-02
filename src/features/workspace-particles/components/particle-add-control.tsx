@@ -1,7 +1,9 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+
 
 import { PlusIcon } from "./shapeshift-icons"
 
@@ -17,10 +19,10 @@ export function ParticleAddControl({
   onAdd: () => void
 }) {
   return (
-    <Button
+    <Button color="secondary" uniform
       type="button"
       variant="ghost"
-      size="icon"
+      size="lg"
       disabled={disabled}
       onClick={onAdd}
       aria-label={`Add ${title} to canvas`}

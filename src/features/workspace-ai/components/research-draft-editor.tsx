@@ -1,8 +1,8 @@
 import { ResearchOutputCoverage } from "./research-output-coverage"
 import { useEffect, useId, useState } from "react"
 import { ParticleButton, ParticleInput } from "@/components/ui/particle-ui"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
 import { OrganizationFormBuilder } from "@/features/organization-forms/client"
 import type { ResearchResult } from "../research-types"
 import { researchRemovalError, type createResearchDraft } from "../lib/research-draft"
@@ -77,11 +77,10 @@ export function ResearchDraftEditor({ draft, result, disabled, onChange }: {
             <p className="px-2 text-muted-foreground">Complete these first.</p>
             {candidates.filter(candidate => candidate.key !== item.key).map(candidate => {
               const checked = item.dependsOn.includes(candidate.key)
-              return <label key={candidate.key} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 hover:bg-muted">
-                <Checkbox checked={checked} disabled={disabled || (!checked && item.dependsOn.length >= 8)}
+              return <div key={candidate.key} className="min-h-11 content-center rounded-lg px-2 hover:bg-muted">
+                <Checkbox label={<span className="min-w-0 break-words">{candidate.title || "Untitled item"}</span>} checked={checked} disabled={disabled || (!checked && item.dependsOn.length >= 8)}
                   onCheckedChange={value => edit(item.key, { dependsOn: value === true ? [...item.dependsOn, candidate.key] : item.dependsOn.filter(key => key !== candidate.key) })} />
-                <span className="min-w-0 break-words">{candidate.title || "Untitled item"}</span>
-              </label>
+              </div>
             })}
           </div>
         </details>}

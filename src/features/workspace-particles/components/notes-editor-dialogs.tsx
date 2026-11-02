@@ -1,7 +1,9 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog"
+import { ParticleButton as Button, ParticleAlertDialogCancel as AlertDialogCancel } from "@/components/ui/particle-ui"
+
+
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
 
 export type NoteConfirmation = "delete" | "discard" | "reload" | null
 export function NotesEditorDialogs({ confirmation, onCancel, onConfirm, pending, personal, error, returnFocusRef }: {
@@ -21,8 +23,8 @@ export function NotesEditorDialogs({ confirmation, onCancel, onConfirm, pending,
       </AlertDialogHeader>
       {deleting && error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       <AlertDialogFooter>
-        <AlertDialogCancel asChild><Button variant="ghost" disabled={pending} className="h-11 rounded-full shadow-none sm:h-9">Keep editing</Button></AlertDialogCancel>
-        <Button variant="destructive" disabled={pending} aria-busy={pending} className="h-11 rounded-full shadow-none sm:h-9" onClick={onConfirm}>{deleting ? "Delete note" : confirmation === "reload" ? "Load latest" : "Discard changes"}</Button>
+        <AlertDialogCancel disabled={pending} className="h-11 rounded-full shadow-none sm:h-9">Keep editing</AlertDialogCancel>
+        <Button color="danger" size="lg" variant="solid" disabled={pending} aria-busy={pending} className="h-11 rounded-full shadow-none sm:h-9" onClick={onConfirm}>{deleting ? "Delete note" : confirmation === "reload" ? "Load latest" : "Discard changes"}</Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

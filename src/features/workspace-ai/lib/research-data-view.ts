@@ -1,9 +1,9 @@
 import { z } from "zod"
-import { projectDataViewSourceSchema } from "@/features/workspace-data-views"
+import { projectDataViewSourceSchema, composableDataViewSchema } from "@/features/workspace-data-views"
 
-export const researchDataViewSchema = projectDataViewSourceSchema
+export const researchDataViewSchema = z.union([projectDataViewSourceSchema, z.strictObject({kind:z.enum(["table","responses"]),sourceViewId:z.uuid()})])
 export const researchOutputBindingsSchema = z.array(z.strictObject({
-  kind: z.literal("data_view"), itemKey: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/), viewId: z.uuid(), requestId: z.uuid(),
+  kind: z.literal("data_view"), itemKey: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/), viewId: z.uuid(), requestId: z.uuid(), existingSource:composableDataViewSchema.optional(),
 })).max(12).refine(bindings => ["itemKey", "viewId", "requestId"].every(field =>
   new Set(bindings.map(binding => binding[field as keyof typeof binding])).size === bindings.length), "Output identities must be distinct.")
 export type ResearchOutputBinding = z.infer<typeof researchOutputBindingsSchema>[number]
@@ -19,9 +19,15 @@ export function validateResearchDataViews(items: readonly ViewItem[]) {
 }
 
 /** Server authoring only. These IDs are absent from every provider schema. */
-export function createResearchOutputBindings(items: readonly ViewItem[], uuid: () => string): ResearchOutputBinding[] {
+export function createResearchOutputBindings(items: readonly ViewItem[], uuid: () => string, sources:z.infer<typeof composableDataViewSchema>[] = []): ResearchOutputBinding[] {
   return researchOutputBindingsSchema.parse(items.filter(item => item.kind === "data_view")
-    .map(item => ({ kind: "data_view", itemKey: item.key, viewId: uuid(), requestId: uuid() })))
+    .map(item => {
+      const source=item.dataView
+      if(!source)throw Error("Data view source unavailable")
+      const existingSource=source.kind==="projects"?undefined:sources.find(value=>value.viewId===source.sourceViewId&&value.source.kind===source.kind&&value.canCreate)
+      if(source.kind!=="projects"&&!existingSource)throw Error("Data view source unavailable")
+      return { kind: "data_view", itemKey: item.key, viewId: uuid(), requestId: uuid(),...(existingSource?{existingSource}:{}) }
+    }))
 }
 
 export function researchViewBinding(bindings: ResearchOutputBinding[] | undefined, key: string) {

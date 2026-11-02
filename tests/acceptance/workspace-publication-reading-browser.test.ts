@@ -7,15 +7,23 @@ describe("branded publication reading and review, controlled local transport", (
   let server: ViteDevServer, browser: Browser, origin: string
   beforeAll(async () => {
     server = await createServer({ configFile: false, root: process.cwd(), cacheDir: "/tmp/ch-s06-reading-vite-cache",
-      optimizeDeps: { entries: ["tests/acceptance/fixtures/workspace-publication-reading-browser.tsx"] },
+      optimizeDeps: { entries: ["tests/acceptance/fixtures/workspace-publication-reading-browser.tsx"],
+        // The adapter's SDK exports are also reached through the dynamic Share
+        // preview. Resolve that known dependency set during fixture setup so
+        // a late optimizer reload cannot interrupt a reading interaction.
+        include: ["Button", "Input", "Textarea", "Checkbox", "Switch", "Badge", "Alert", "SelectControl", "RadioGroup", "Popover", "Menu", "EmptyMessage", "Avatar", "SegmentedControl"].map(component => `@openai/apps-sdk-ui/components/${component}`),
+      },
       define: { "process.env": "{}" }, resolve: { alias: { "@": path.resolve("src") } }, esbuild: { jsx: "automatic" }, server: { host: "127.0.0.1", port: 0, watch: null },
       plugins: [{ name: "publication-reading-boundaries", enforce: "pre", resolveId(source, importer) {
         if ((source === "@/features/workspace-particles" || source === path.resolve("src/features/workspace-particles")) && importer?.includes("workspace-sharing/")) return path.resolve("src/features/workspace-particles/lib/particle-public-content.ts")
         if ((source === "@/features/workspace-particles/client" || source === path.resolve("src/features/workspace-particles/client")) && importer?.includes("workspace-sharing/")) return path.resolve("src/features/workspace-particles/components/notes-rich-editor.tsx")
         if ((source === "../actions" || source === "../server/actions") && importer?.includes("workspace-sharing/")) return path.resolve("tests/browser/workspace-ai/sharing-actions.ts")
+        if (source === "../note-actions" && importer?.includes("workspace-sharing/")) return "\0publication-note-action"
+        if (source === "../source-actions" && importer?.includes("workspace-data-views/")) return "\0publication-data-view-action"
         if (source === "../access-actions" && importer?.includes("workspace-sharing/")) return path.resolve("tests/browser/workspace-ai/guest-actions.ts")
-      }, transform(_code, id) {
-        if (id.endsWith("/workspace-sharing/note-actions.ts")) return 'export async function workspacePageNoteAction(){throw new Error("No note operation authorized by reading fixture")} '
+      }, load(id) {
+        if (id === "\0publication-data-view-action") return 'export async function runDataViewCommand(){throw new Error("No data view operation authorized by reading fixture")}'
+        if (id === "\0publication-note-action") return 'export async function workspacePageNoteAction(){throw new Error("No note operation authorized by reading fixture")} '
       }, configureServer(instance) { instance.middlewares.use((request, response, next) => {
         if (request.url?.split("?")[0] !== "/") return next()
         response.setHeader("Content-Type", "text/html")
@@ -68,7 +76,7 @@ describe("branded publication reading and review, controlled local transport", (
       const image = page.getByRole("article", { name: "Workshop image" }); await image.scrollIntoViewIfNeeded()
       await image.getByText("Image unavailable. Reload the page.").waitFor()
       const controls = await page.locator("button,a[href*='docs.google.com']").evaluateAll(elements => elements.map(element => {
-        const rect = element.getBoundingClientRect(), parent = element.closest('[data-workspace-node-part="body"]')!.getBoundingClientRect(); return { label: element.textContent, left: rect.left, right: rect.right, parentLeft: parent.left, parentRight: parent.right, height: rect.height, clipped: element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth }
+        const rect = element.getBoundingClientRect(), parent = element.closest('[data-workspace-node-part="body"]')!.getBoundingClientRect(); return { label: element.textContent, left: rect.left, right: rect.right, parentLeft: parent.left, parentRight: parent.right, height: rect.height, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, clipped: element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth }
       }))
       expect(controls.filter(item => item.left < item.parentLeft || item.right > item.parentRight || item.height < 44 || item.clipped)).toEqual([])
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
@@ -76,8 +84,8 @@ describe("branded publication reading and review, controlled local transport", (
       await page.screenshot({ path: `/tmp/ch-s06-public-reading-${colorScheme}.png`, fullPage: true })
     } finally { if(errors.length) console.error(errors); await context.close() }
   }, 45000)
-  it("reviews actual selected-content controls without publishing and invalidates changed draft preview", async () => {
-    const context = await browser.newContext({ viewport: { width: 320, height: 840 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" })
+  it.each(["light", "dark"] as const)("reviews actual selected-content controls without publishing and invalidates changed draft preview in %s", async colorScheme => {
+    const context = await browser.newContext({ viewport: { width: 320, height: 840 }, isMobile: true, hasTouch: true, colorScheme, reducedMotion: "reduce" })
     const page = await context.newPage(); page.setDefaultTimeout(5000)
     page.on("pageerror", error => console.error(error.stack))
     await page.route("**/*", route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort())
@@ -85,6 +93,14 @@ describe("branded publication reading and review, controlled local transport", (
       await page.goto(`${origin}/?review`, { waitUntil: "domcontentloaded" })
       const title = page.getByRole("textbox", { name: "Page title" }); await title.waitFor()
       await page.addStyleTag({ content: "html{font-size:200%}" }); await title.fill("Reviewed community page")
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+      expect(await page.getByText("Named first", { exact: true }).evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(120)
+      await page.screenshot({ path: `/tmp/ch-b1-sharing-${colorScheme}.png`, fullPage: true })
+      const actions = page.getByRole("button", { name: "Page actions", exact: true })
+      await actions.focus(); await page.keyboard.press("Enter")
+      await page.getByRole("menuitem", { name: "Save draft", exact: true }).waitFor()
+      await page.keyboard.press("Escape")
+      expect(await actions.evaluate(element => element === document.activeElement)).toBe(true)
       await page.getByRole("button", { name: "Preview", exact: true }).focus(); await page.keyboard.press("Enter")
       const preview = page.getByLabel("Public page preview"); await preview.waitFor()
       expect(await preview.innerText()).toContain("Fixture organization")

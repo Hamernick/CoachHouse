@@ -82,6 +82,7 @@ export const providerWorkingResearchSchema = generatedResearchSchema.extend({ un
 export const researchDependenciesSchema = z.strictObject({
   version: z.literal(1),
   contextFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  dataViews:z.array(z.strictObject({viewId:z.uuid(),fingerprint:z.string().regex(/^[a-f0-9]{64}$/)})).max(8).optional(),
   records: z.array(z.strictObject({
     id: z.string().min(1).max(200), kind: knowledgeKindSchema,
     fingerprint: z.string().regex(/^[a-f0-9]{64}$/),

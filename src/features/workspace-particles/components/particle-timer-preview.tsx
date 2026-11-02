@@ -1,7 +1,9 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
+
 import { useMediaActivity } from "@/components/media/media-activity"
 import {
   changeTimer,
@@ -78,20 +80,20 @@ export function ParticleTimerPreview({
         </span>
       </div>
       <div className="nodrag nopan flex flex-wrap items-center gap-1">
-        <Button
+        <Button color="secondary" uniform
           type="button"
           variant="ghost"
-          size="icon"
+          size="lg"
           aria-label="Reset timer"
           disabled={!editable}
           onClick={() => onChange(changeTimer(widget, "reset", Date.now()))}
         >
           <ResetIcon />
         </Button>
-        <Button
+        <Button color="secondary"
           type="button"
-          size="sm"
-          variant="secondary"
+          size="md"
+          variant="soft"
           disabled={!editable || left === 0}
           onClick={() =>
             onChange(

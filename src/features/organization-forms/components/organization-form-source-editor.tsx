@@ -1,8 +1,8 @@
 "use client"
 import { useEffect, useId, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
 import { formSourceContentSchema, formSourceReceiptSchema, formSourceSchema } from "../lib/form-source"
 import type { FormSource, FormSourceCommand, FormSourceContent } from "../lib/form-source"
 import { IntakeRequestError, sendFormCommand } from "../hooks/intake-client"
@@ -65,7 +65,7 @@ export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
   }
   if (saved) return <section aria-label="Edit form" className="space-y-3 rounded-xl border p-3">
     <p role="status" className="text-sm">Form saved. Published versions are unchanged.</p>
-    <Button type="button" className="min-h-11 rounded-xl" onClick={onClose}>Done</Button>
+    <Button size="lg" color="primary" type="button" className="min-h-11 rounded-xl" onClick={onClose}>Done</Button>
   </section>
   return <section aria-label="Edit form" className="flex min-w-0 flex-col gap-3 rounded-xl border p-3">
     <h2 ref={heading} tabIndex={-1} className="text-sm font-medium">Edit form</h2>
@@ -74,9 +74,9 @@ export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
     {draft && <fieldset disabled={locked} className="flex min-w-0 flex-col gap-3">
       <legend className="sr-only">Form draft</legend>
       <label htmlFor={`${id}-title`} className="text-xs">Title</label>
-      <Input id={`${id}-title`} value={draft.title} maxLength={240} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+      <Input size="2xl" id={`${id}-title`} value={draft.title} maxLength={240} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
       <label htmlFor={`${id}-description`} className="text-xs">Description</label>
-      <Textarea id={`${id}-description`} value={draft.description} maxLength={10000} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+      <Textarea size="2xl" id={`${id}-description`} value={draft.description} maxLength={10000} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
       <OrganizationFormBuilder definition={draft.definition} disabled={locked} onChange={(definition) => setDraft({ ...draft, definition })} />
     </fieldset>}
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
@@ -86,14 +86,14 @@ export function OrganizationFormSourceEditor({ versionId, formId, onClose }: {
       <OrganizationFormBuilder definition={review.definition} disabled onChange={() => {}} />
       <p className="text-muted-foreground text-xs">Review the saved form. Keeping your draft will replace these fields when you save.</p>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="min-h-11 rounded-xl" onClick={() => { setSource(review); setReview(null); setConflict(false); setError("") }}>Keep my draft</Button>
-        <Button type="button" variant="ghost" className="min-h-11 rounded-xl" onClick={() => { setSource(review); setDraft({ title: review.title, description: review.description, definition: review.definition }); setReview(null); setConflict(false); setError("") }}>Use saved form</Button>
+        <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" onClick={() => { setSource(review); setReview(null); setConflict(false); setError("") }}>Keep my draft</Button>
+        <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" onClick={() => { setSource(review); setDraft({ title: review.title, description: review.description, definition: review.definition }); setReview(null); setConflict(false); setError("") }}>Use saved form</Button>
       </div>
     </section>}
     <div className="flex flex-wrap gap-2">
-      {draft && <Button type="button" className="min-h-11 rounded-xl" disabled={pending || conflict || Boolean(review)} onClick={() => void save()}>{retry ? "Retry save" : pending ? "Saving…" : "Save form"}</Button>}
-      {(conflict || (!draft && error)) && <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={locked} onClick={() => void reload()}>Review saved form</Button>}
-      <Button type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={locked} onClick={onClose}>Cancel</Button>
+      {draft && <Button size="lg" color="primary" type="button" className="min-h-11 rounded-xl" disabled={pending || conflict || Boolean(review)} onClick={() => void save()}>{retry ? "Retry save" : pending ? "Saving…" : "Save form"}</Button>}
+      {(conflict || (!draft && error)) && <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={locked} onClick={() => void reload()}>Review saved form</Button>}
+      <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={locked} onClick={onClose}>Cancel</Button>
     </div>
   </section>
 }

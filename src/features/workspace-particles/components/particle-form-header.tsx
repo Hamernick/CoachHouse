@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleBadge as Badge } from "@/components/ui/particle-ui"
+
 import type { ReactNode } from "react"
 import ClipboardListIcon from "lucide-react/dist/esm/icons/clipboard-list"
-import { Badge } from "@/components/ui/badge"
+
 import { WorkspaceNodeFrameHeader } from "@/components/workspace/workspace-node-frame"
 import { WORKSPACE_PARTICLE_CHROME } from "@/components/workspace/workspace-particle-chrome"
 import { useParticleSurface } from "./particle-surface"
@@ -23,7 +25,7 @@ export function ParticleFormHeader({ count, title = "Form", actions }: {
       </div>
       <div className="flex w-full items-center justify-between gap-2">
         <span {...surface()} className="text-muted-foreground text-xs tabular-nums">{count} {count === 1 ? "question" : "questions"}</span>
-        <Badge {...surface()} variant="secondary" className="rounded-full font-normal">Private draft</Badge>
+        <Badge color="secondary" {...surface()} variant="soft" className="rounded-full font-normal">Private draft</Badge>
       </div>
     </WorkspaceNodeFrameHeader>
   )

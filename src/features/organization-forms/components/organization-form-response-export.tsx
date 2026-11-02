@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react"
 import DownloadIcon from "lucide-react/dist/esm/icons/download"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { FORM_RESPONSE_EXPORT_LIMIT } from "../lib/form-response-export"
 
 export function OrganizationFormResponseExport({ versionId, before, disabled, onPending, onDenied }: {
@@ -40,7 +40,7 @@ export function OrganizationFormResponseExport({ versionId, before, disabled, on
     }
   }
   return <div className="flex min-w-0 flex-col gap-1">
-    <Button type="button" variant="outline" className="min-h-11 self-start rounded-xl" disabled={disabled || pending} onClick={() => void download()}>
+    <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 self-start rounded-xl" disabled={disabled || pending} onClick={() => void download()}>
       {pending ? <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" /> : <DownloadIcon aria-hidden />}Export page (CSV)
     </Button>
     <p className="text-muted-foreground text-xs">Current page only, up to 50 responses. Uses the latest saved answers.</p>

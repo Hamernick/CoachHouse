@@ -1,13 +1,15 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import type { Editor } from "@tiptap/core"
 import LinkIcon from "lucide-react/dist/esm/icons/link"
 import { RichTextEditor } from "@/components/rich-text-editor"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ParticlePopover as Popover } from "@/components/ui/particle-ui"
 import { noteEditorHtml, type NoteContent } from "@/lib/modules/note-content"
 import { PARTICLE_EDITOR_HEADER_ACTION } from "./particle-editor-header"
 
@@ -17,8 +19,8 @@ function NoteLinkControl({ editor }: { editor: Editor | null }) {
   const [error, setError] = useState("")
   const id = useId()
   return <Popover open={open} onOpenChange={(next) => { setOpen(next); setError(""); if (next) setUrl(editor?.getAttributes("link").href ?? "") }}>
-    <PopoverTrigger asChild><Button variant="ghost" size="icon" className={PARTICLE_EDITOR_HEADER_ACTION} disabled={!editor} aria-label="Edit link"><LinkIcon aria-hidden /></Button></PopoverTrigger>
-    <PopoverContent align="start" className="rounded-2xl shadow-none">
+    <Popover.Trigger><Button color="secondary" uniform variant="ghost" size="lg" className={PARTICLE_EDITOR_HEADER_ACTION} disabled={!editor} aria-label="Edit link"><LinkIcon aria-hidden /></Button></Popover.Trigger>
+    <Popover.Content minWidth={0} align="start" className="rounded-2xl shadow-none">
       <form className="flex flex-col gap-3" onSubmit={(event) => {
         event.preventDefault()
         const href = url.trim()
@@ -27,11 +29,11 @@ function NoteLinkControl({ editor }: { editor: Editor | null }) {
         else editor?.chain().focus().extendMarkRange("link").unsetLink().run()
         setOpen(false)
       }}>
-        <Field><FieldLabel htmlFor={id}>Link</FieldLabel><Input id={id} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" className="rounded-xl" /></Field>
+        <Field><FieldLabel htmlFor={id}>Link</FieldLabel><Input autoFocus size="2xl" id={id} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" className="rounded-xl" /></Field>
         {error && <p role="alert" className="text-destructive text-xs">{error}</p>}
-        <div className="flex justify-end gap-2"><Button variant="ghost" type="button" className="rounded-full" onClick={() => { editor?.chain().focus().extendMarkRange("link").unsetLink().run(); setOpen(false) }}>Remove</Button><Button className="rounded-full" type="submit">Apply</Button></div>
+        <div className="flex justify-end gap-2"><Button color="secondary" size="lg" variant="ghost" type="button" className="rounded-full" onClick={() => { editor?.chain().focus().extendMarkRange("link").unsetLink().run(); setOpen(false) }}>Remove</Button><Button color="primary" size="lg" className="rounded-full" type="submit">Apply</Button></div>
       </form>
-    </PopoverContent>
+    </Popover.Content>
   </Popover>
 }
 export function NotesRichEditor({ initialBody, onChange, toolbarId, readOnly, autoFocus = false }: {

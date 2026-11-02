@@ -1,11 +1,13 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { createContext, useContext, useState } from "react"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
 import UsersIcon from "lucide-react/dist/esm/icons/users"
-import { Button } from "@/components/ui/button"
+
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ParticlePopover as Popover } from "@/components/ui/particle-ui"
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { EMPTY_RESPONSIBILITY, supportsParticleResponsibility, type ParticleResponsibility } from "../lib/particle-responsibility"
 import type { Particle } from "../types"
@@ -26,10 +28,10 @@ function PersonPicker({ label, people, selected, disabled, onSelect, limit }: {
   const [query, setQuery] = useState("")
   const matching = people.filter(person => person.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   return <Popover open={open && !disabled} onOpenChange={value => { setOpen(value); setQuery("") }}>
-    <PopoverTrigger asChild><Button type="button" variant="outline" disabled={disabled} aria-label={label} className="min-h-11 w-full justify-start truncate"><UsersIcon aria-hidden />{label}</Button></PopoverTrigger>
-    <PopoverContent className="nodrag nopan nowheel w-72 p-0" align="start">
+    <Popover.Trigger><Button color="secondary" size="lg" type="button" variant="outline" disabled={disabled} aria-label={label} className="min-h-11 w-full justify-start truncate"><UsersIcon aria-hidden />{label}</Button></Popover.Trigger>
+    <Popover.Content minWidth={0} className="nodrag nopan nowheel w-72 p-0" align="start">
       <Command shouldFilter={false}>
-        <CommandInput aria-label="Search people" placeholder="Search people…" value={query} onValueChange={setQuery} />
+        <CommandInput autoFocus aria-label="Search people" placeholder="Search people…" value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>No people found.</CommandEmpty>
           <CommandGroup>
@@ -42,7 +44,7 @@ function PersonPicker({ label, people, selected, disabled, onSelect, limit }: {
         </CommandList>
         {matching.length > 50 && <p className="px-3 py-2 text-xs text-muted-foreground">Keep typing to narrow results.</p>}
       </Command>
-    </PopoverContent>
+    </Popover.Content>
   </Popover>
 }
 

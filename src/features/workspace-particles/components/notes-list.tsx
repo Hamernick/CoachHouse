@@ -1,10 +1,12 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useEffect, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { Button } from "@/components/ui/button"
+
 import { Skeleton } from "@/components/ui/skeleton"
-import { Empty } from "@/components/ui/empty"
+import { ParticleEmptyMessage } from "@/components/ui/particle-ui"
 import { cn } from "@/lib/utils"
 import type { NoteDocument } from "../lib/particle-notes"
 import type { useNotePages } from "../hooks/use-note-pages"
@@ -35,12 +37,12 @@ export function NotesList({ pages, selectedId, onSelect, busy }: {
     {pages.loading && !pages.notes.length ? <div aria-label="Loading notes" role="status" className="flex flex-col gap-2">
       {[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-16 w-full rounded-xl" />)}
     </div> : null}
-    {!pages.loading && !pages.error && !pages.notes.length ? <Empty title="No notes" description="Notes you create in the workspace and Accelerator appear here." size="sm" className="border-0 bg-transparent px-2 shadow-none" /> : null}
+    {!pages.loading && !pages.error && !pages.notes.length ? <div ><ParticleEmptyMessage className="particle-ui border-0 bg-transparent px-2 shadow-none"><ParticleEmptyMessage.Title>No notes</ParticleEmptyMessage.Title><ParticleEmptyMessage.Description>Notes you create in the workspace and Accelerator appear here.</ParticleEmptyMessage.Description></ParticleEmptyMessage></div> : null}
     <ul className="relative m-0 p-0" style={{ height: virtualizer.getTotalSize() }}>
       {virtualizer.getVirtualItems().map((row) => {
         const note = pages.notes[row.index]
         return <li key={note.id} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: row.size, transform: `translateY(${row.start}px)` }}>
-          <Button variant="ghost" disabled={busy} aria-current={selectedId === note.id ? "true" : undefined}
+          <Button color="secondary" size="lg" variant="ghost" disabled={busy} aria-current={selectedId === note.id ? "true" : undefined}
             data-note-index={row.index}
             onKeyDown={(event) => {
               const next = event.key === "ArrowDown" ? Math.min(pages.notes.length - 1, row.index + 1)
@@ -61,7 +63,7 @@ export function NotesList({ pages, selectedId, onSelect, busy }: {
         </li>
       })}
     </ul>
-    {pages.error ? <div role="alert" className="flex flex-col gap-2 p-2 text-sm"><p>{pages.error}</p><Button variant="ghost" size="sm" className="rounded-full" onClick={pages.hasMore ? pages.more : pages.reload}>Retry</Button></div> : null}
-    {pages.hasMore && !pages.error ? <Button variant="ghost" size="sm" className="my-2 w-full rounded-full" disabled={pages.loading} onClick={pages.more}>{pages.loading ? "Loading…" : "Load more"}</Button> : null}
+    {pages.error ? <div role="alert" className="flex flex-col gap-2 p-2 text-sm"><p>{pages.error}</p><Button color="secondary" variant="ghost" size="md" className="rounded-full" onClick={pages.hasMore ? pages.more : pages.reload}>Retry</Button></div> : null}
+    {pages.hasMore && !pages.error ? <Button color="secondary" variant="ghost" size="md" className="my-2 w-full rounded-full" disabled={pages.loading} onClick={pages.more}>{pages.loading ? "Loading…" : "Load more"}</Button> : null}
   </div>
 }

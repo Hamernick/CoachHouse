@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react"
 import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleSelect as Select } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { formReviewAccessSchema, formRecoveryReceiptSchema } from "../lib"
 import type { FormAccessTarget } from "../lib/form-review-access"
 import type { FormIntakeCommand } from "../lib"
@@ -70,28 +70,28 @@ export function OrganizationFormReviewAccess({ target, disabled, onLockChange, c
       if (data && !locked && (role !== "manage" || data.canGrantManage)) void change({ action: "grant_reviewer", ...target, email: email.trim(), role, expectedRevision: data.revision, operationId: crypto.randomUUID() })
     }}>
       <label htmlFor={id} className="text-xs">Teammate email</label>
-      <Input ref={input} id={id} type="email" required maxLength={320} autoComplete="off" aria-describedby={`${id}-help`} value={email}
+      <Input size="2xl" ref={input} id={id} type="email" required maxLength={320} autoComplete="off" aria-describedby={`${id}-help`} value={email}
         className="min-h-11" disabled={disabled || locked || !data} onChange={(event) => setEmail(event.target.value)} />
       <label htmlFor={`${id}-role`} className="text-xs">Access</label>
-      <Select value={role} onValueChange={(value) => { if (value === "view" || value === "edit" || (value === "manage" && data?.canGrantManage)) setRole(value) }} disabled={disabled || locked || !data}>
-        <SelectTrigger id={`${id}-role`} className="min-h-11 w-full"><SelectValue /></SelectTrigger>
-        <SelectContent><SelectItem value="view">View</SelectItem><SelectItem value="edit">Edit</SelectItem>{data?.canGrantManage && <SelectItem value="manage">Manage</SelectItem>}</SelectContent>
+      <Select id={`${id}-role`} className="min-h-11 w-full" value={role} onChange={event => ((value: string) => { if (value === "view" || value === "edit" || (value === "manage" && data?.canGrantManage)) setRole(value) })(event.target.value)} disabled={disabled || locked || !data}>
+
+        <option value="view">View</option><option value="edit">Edit</option>{data?.canGrantManage && <option value="manage">Manage</option>}
       </Select>
-      <Button type="submit" variant="outline" className="min-h-11 rounded-xl" disabled={disabled || locked || !data || !email.trim() || (role === "manage" && !data.canGrantManage)}>Save access</Button>
+      <Button size="lg" color="primary" type="submit" variant="outline" className="min-h-11 rounded-xl" disabled={disabled || locked || !data || !email.trim() || (role === "manage" && !data.canGrantManage)}>Save access</Button>
     </form>
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
     {!data && !error && <p role="status" className="text-muted-foreground text-sm">Loading access…</p>}
-    {retry ? <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => void change(retry)}>Retry access change</Button>
-      : error && <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => setReload((value) => value + 1)}>Reload access</Button>}
+    {retry ? <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => void change(retry)}>Retry access change</Button>
+      : error && <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => setReload((value) => value + 1)}>Reload access</Button>}
     {data?.reviewers.length === 0 && <p className="text-muted-foreground text-xs">{data.canGrantManage ? "No additional collaborators." : "No access granted by you."}</p>}
     {versionId && data && (data.canGrantManage || canManageInvitations) && <OrganizationFormViewerInvitations versionId={versionId} disabled={disabled || pending || Boolean(retry)} onLockChange={setViewersLocked}
       onRevisionChange={(revision) => setData((current) => current ? { ...current, revision } : current)} />}
     {data?.reviewers.map((reviewer) => <div key={reviewer.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2">
       <span className="min-w-0 break-all text-sm">{reviewer.email} <span className="text-muted-foreground">· {reviewer.role === "manage" ? "Manage" : reviewer.role === "edit" ? "Edit" : "View"}</span></span>
-      <Button type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Change access for ${reviewer.email}`}
+      <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Change access for ${reviewer.email}`}
         onClick={() => { setEmail(reviewer.email); setRole(reviewer.role); input.current?.focus() }}>Change</Button>
-      <Button type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Remove access for ${reviewer.email}`}
+      <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Remove access for ${reviewer.email}`}
         onClick={() => void change({ action: "revoke_reviewer", ...target, memberId: reviewer.id, expectedRevision: data.revision, operationId: crypto.randomUUID() })}>Remove access</Button>
     </div>)}
   </section>

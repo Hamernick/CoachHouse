@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -7,10 +9,10 @@ import { requestWorkspaceAcceleratorDrawer } from "@/lib/workspace/data-drawer-e
 import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
 import TrashIcon from "lucide-react/dist/esm/icons/trash-2"
 import XIcon from "lucide-react/dist/esm/icons/x"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+
 import { Skeleton } from "@/components/ui/skeleton"
-import { Empty } from "@/components/ui/empty"
+import { ParticleEmptyMessage } from "@/components/ui/particle-ui"
 import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
@@ -67,12 +69,12 @@ export function NotesEditor({ initialNote, organizationId, editable, onClose, on
       : [{ ...selected, ...notePreview(editor.draft.content), updatedAt: editor.detail.updatedAt ?? selected.updatedAt }, ...pages.notes],
   } : pages
   return <section aria-label="Notes editor" className={cn("nodrag nopan nowheel", styles.root)}>
-    <ParticleEditorHeader title="Notes" actions={<Button variant="ghost" size="icon" className={PARTICLE_EDITOR_HEADER_ACTION} aria-label="Close notes" disabled={navigating} onClick={() => void navigate(onClose)}><XIcon aria-hidden /></Button>} />
+    <ParticleEditorHeader title="Notes" actions={<Button color="secondary" uniform variant="ghost" size="lg" className={PARTICLE_EDITOR_HEADER_ACTION} aria-label="Close notes" disabled={navigating} onClick={() => void navigate(onClose)}><XIcon aria-hidden /></Button>} />
     <div className={styles.toolbar}>
-      <Button variant="ghost" size="icon" className={cn(PARTICLE_EDITOR_HEADER_ACTION, styles.back)} aria-label="Back to notes" onClick={() => void navigate(() => setShowDetail(false))}><ArrowLeftIcon aria-hidden /></Button>
-      <Input type="search" aria-label="Search notes" placeholder="Search notes…" value={query} onChange={(event) => { setQuery(event.target.value); setShowDetail(false) }} className={cn("h-9 rounded-full bg-muted/40 shadow-none md:h-8", styles.search)} />
+      <Button color="secondary" uniform variant="ghost" size="lg" className={cn(PARTICLE_EDITOR_HEADER_ACTION, styles.back)} aria-label="Back to notes" onClick={() => void navigate(() => setShowDetail(false))}><ArrowLeftIcon aria-hidden /></Button>
+      <Input size="2xl" type="search" aria-label="Search notes" placeholder="Search notes…" value={query} onChange={(event) => { setQuery(event.target.value); setShowDetail(false) }} className={cn("h-9 rounded-full bg-muted/40 shadow-none md:h-8", styles.search)} />
       <div id={toolbarId} className={styles.formatting} />
-      <Button variant="ghost" size="icon" className={PARTICLE_EDITOR_HEADER_ACTION} aria-label="Delete note" data-note-edit-control disabled={!editor.detail || !editor.canEdit || editor.pending || navigating} onClick={(event) => { returnFocusRef.current = event.currentTarget; setConfirmation("delete") }}><TrashIcon aria-hidden /></Button>
+      <Button color="secondary" uniform variant="ghost" size="lg" className={PARTICLE_EDITOR_HEADER_ACTION} aria-label="Delete note" data-note-edit-control disabled={!editor.detail || !editor.canEdit || editor.pending || navigating} onClick={(event) => { returnFocusRef.current = event.currentTarget; setConfirmation("delete") }}><TrashIcon aria-hidden /></Button>
     </div>
     <div className={styles.layout} data-detail={showDetail && Boolean(selected)}>
       <aside className={styles.list}>
@@ -82,7 +84,7 @@ export function NotesEditor({ initialNote, organizationId, editable, onClose, on
         }} />
       </aside>
       <div className={styles.detail}>
-        {!selected ? <Empty title="Select a note" size="sm" className="border-0 bg-transparent shadow-none" /> : editor.detail ? <>
+        {!selected ? <div ><ParticleEmptyMessage className="particle-ui border-0 bg-transparent shadow-none"><ParticleEmptyMessage.Title>Select a note</ParticleEmptyMessage.Title></ParticleEmptyMessage></div> : editor.detail ? <>
           <div className="flex flex-col items-center gap-1 px-4 pt-3 pb-1">
             <div className="text-muted-foreground flex max-w-full flex-wrap items-center justify-center gap-x-1.5 text-center text-xs">
               {editor.detail.updatedAt && <time className="tabular-nums" dateTime={editor.detail.updatedAt} aria-label="Last edited">{new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" }).format(new Date(editor.detail.updatedAt))}</time>}
@@ -106,8 +108,8 @@ export function NotesEditor({ initialNote, organizationId, editable, onClose, on
         </> : !editor.error ? <div role="status" aria-label="Loading note" className="flex flex-col gap-3 p-5"><Skeleton className="mx-auto h-4 w-48" /><Skeleton className="mt-5 h-6 w-2/3" /><Skeleton className="h-4 w-full" /></div> : null}
         {editor.error && <div role="alert" className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t bg-card p-3 text-sm">
           <p className="w-full text-destructive">{editor.error}</p>
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={() => void (editor.detail ? editor.save() : editor.reload())}>Retry</Button>
-          {editor.detail && <><Button variant="ghost" size="sm" className="rounded-full" onClick={() => void navigator.clipboard.writeText(editor.draft.content).catch(() => toast.error("Unable to copy. Select and copy the note text."))}>Copy draft</Button><Button variant="ghost" size="sm" className="rounded-full" onClick={(event) => { returnFocusRef.current = event.currentTarget; setConfirmation("reload") }}>Load latest</Button></>}
+          <Button color="secondary" variant="ghost" size="md" className="rounded-full" onClick={() => void (editor.detail ? editor.save() : editor.reload())}>Retry</Button>
+          {editor.detail && <><Button color="secondary" variant="ghost" size="md" className="rounded-full" onClick={() => void navigator.clipboard.writeText(editor.draft.content).catch(() => toast.error("Unable to copy. Select and copy the note text."))}>Copy draft</Button><Button color="secondary" variant="ghost" size="md" className="rounded-full" onClick={(event) => { returnFocusRef.current = event.currentTarget; setConfirmation("reload") }}>Load latest</Button></>}
         </div>}
       </div>
     </div>

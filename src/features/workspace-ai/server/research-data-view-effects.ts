@@ -1,14 +1,17 @@
 import "server-only"
-import { createProjectDataViewCommandSchema, dataViewCreateReceiptSchema } from "@/features/workspace-data-views"
-import { readProjectDataViewCreation, runDataViewCommand } from "@/features/workspace-data-views/server"
+import { createProjectDataViewCommandSchema, createExistingDataViewCommandSchema, dataViewCreateReceiptSchema } from "@/features/workspace-data-views"
+import { readProjectDataViewCreation, readExistingDataViewCreation, runDataViewCommand } from "@/features/workspace-data-views/server"
 import { researchViewBinding, type ResearchSourceEffect } from "../lib/research-data-view"
 import type { ResearchResult } from "../research-types"
 
 export function researchDataViewCommands(result: ResearchResult) {
   return result.items.filter(item => item.kind === "data_view").map(item => {
     const binding = researchViewBinding(result.outputBindings, item.key)
-    return { key: item.key, command: createProjectDataViewCommandSchema.parse({ action: "create_view", organizationId: result.target.organizationId,
-      viewId: binding.viewId, requestId: binding.requestId, name: item.title, source: item.dataView }) }
+    const source=item.dataView?.kind==="projects"?item.dataView:binding.existingSource?.source
+    if(!source || (item.dataView?.kind!=="projects" && (item.dataView?.sourceViewId!==binding.existingSource?.viewId||item.dataView?.kind!==source.kind)))throw Error("Data view source identity changed")
+    const schema=source.kind==="projects"?createProjectDataViewCommandSchema:createExistingDataViewCommandSchema
+    return { key: item.key, command: schema.parse({ action: "create_view", organizationId: result.target.organizationId,
+      viewId: binding.viewId, requestId: binding.requestId, name: item.title, source }) }
   })
 }
 
@@ -16,7 +19,7 @@ export function researchDataViewCommands(result: ResearchResult) {
  * actor with access can find a view with the same public UUID. */
 export async function inspectResearchDataViewEffects(result: ResearchResult): Promise<ResearchSourceEffect[]> {
   return Promise.all(researchDataViewCommands(result).map(async ({ key, command }) => {
-    const reply = await readProjectDataViewCreation(command)
+    const reply = await (command.source.kind==="projects"?readProjectDataViewCreation(command):readExistingDataViewCreation(command))
     const base = { key, kind: "data_view" as const, viewId: command.viewId, name: null }
     if (!reply.ok) return { ...base, status: reply.code === "denied" ? "denied" as const : reply.code === "conflict" ? "conflict" as const : "uncertain" as const,
       message: reply.code === "denied" ? "Current source access could not be verified. Creation status is unavailable." : "Creation could not be confirmed. Retry the same saved draft." }

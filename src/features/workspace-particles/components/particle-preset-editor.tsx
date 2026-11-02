@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input, ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+
 import { OrganizationFormBuilder } from "@/features/organization-forms/client"
 import type { FormDefinition } from "@/features/organization-forms"
 import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
@@ -9,12 +11,12 @@ import { WORKSPACE_SURFACE_MOTION } from "@/lib/workspace-canvas/surface-motion"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Input } from "@/components/ui/input"
+
+import { ParticleSegmentedControl } from "@/components/ui/particle-ui"
+
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Textarea } from "@/components/ui/textarea"
+
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 
 import { ParticleCard } from "./particle-card"
@@ -169,7 +171,7 @@ export function ParticlePresetEditor({
       ) : <>
       <Field>
         <FieldLabel className={preset.id === "form" ? undefined : "sr-only"} htmlFor={`${id}-title`}>{preset.id === "form" ? "Form name" : "Title"}</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-title`}
           ref={titleInput}
           className={styles.titleInput}
@@ -183,14 +185,14 @@ export function ParticlePresetEditor({
       </Field>
       <Collapsible className={styles.optionalDetails}>
         <CollapsibleTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" className={styles.detailTrigger}>
+          <Button color="secondary" type="button" variant="ghost" size="md" className={styles.detailTrigger}>
             {description ? "Edit description" : "Add description"}
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className={styles.descriptionContent}>
           <Field className={styles.description}>
             <FieldLabel className="sr-only" htmlFor={`${id}-description`}>Description</FieldLabel>
-            <Textarea
+            <Textarea size="2xl"
               id={`${id}-description`}
               value={description}
               placeholder="Add context, details, or a brief…"
@@ -208,7 +210,7 @@ export function ParticlePresetEditor({
             {field.label}
           </FieldLabel>
           {field.input === "textarea" ? (
-            <Textarea
+            <Textarea size="2xl"
               id={`${id}-${field.key}`}
               value={fields[field.key]}
               maxLength={10000}
@@ -218,7 +220,7 @@ export function ParticlePresetEditor({
               }
             />
           ) : (
-            <Input
+            <Input size="2xl"
               id={`${id}-${field.key}`}
               type={field.input ?? "text"}
               step="any"
@@ -265,10 +267,10 @@ export function ParticlePresetEditor({
       <ParticleEditorHeader title={preset.label} leading={
         <ParticleDraftBackButton dirty={dirty} pending={busy} onBack={onBack} />
       } actions={
-        <Button
+        <Button color="primary" uniform
           type="submit"
           form={`${id}-form`}
-          size="icon"
+          size="lg"
           className={PARTICLE_EDITOR_HEADER_ACTION}
           aria-label={busy ? "Adding to canvas" : "Add to canvas"}
           title="Add to canvas"
@@ -287,10 +289,10 @@ export function ParticlePresetEditor({
           <ParticleCard
             editorFields={editorFields}
             headerAction={preset.id === "form" ? (
-              <ToggleGroup type="single" value={formPreview ? "preview" : "edit"} onValueChange={value => { if (value) setFormPreview(value === "preview") }} aria-label="Form mode" className="nodrag nopan rounded-full bg-background/70 p-0.5" spacing={1}>
-                <ToggleGroupItem value="edit" className={styles.formHeaderAction} aria-controls={`${id}-fields`}>Edit</ToggleGroupItem>
-                <ToggleGroupItem value="preview" className={styles.formHeaderAction} aria-controls={`${id}-fields`}>Preview</ToggleGroupItem>
-              </ToggleGroup>
+              <ParticleSegmentedControl size="sm" pill value={formPreview ? "preview" : "edit"} onChange={value => setFormPreview(value === "preview")} aria-label="Form mode" className="particle-ui nodrag nopan [@media(pointer:coarse)]:[&_button]:min-h-11">
+                <ParticleSegmentedControl.Option value="edit" aria-controls={`${id}-fields`}>Edit</ParticleSegmentedControl.Option>
+                <ParticleSegmentedControl.Option value="preview" aria-controls={`${id}-fields`}>Preview</ParticleSegmentedControl.Option>
+              </ParticleSegmentedControl>
             ) : undefined}
             controls={false}
             data={{
@@ -308,9 +310,9 @@ export function ParticlePresetEditor({
       <div role="status" className={cn(styles.feedback, "text-muted-foreground px-4 pb-3")}>
         {error ?? message}
         {error && (
-          <Button
+          <Button color="secondary" size="lg"
             type="button"
-            variant="link"
+            variant="ghost"
             disabled={busy}
             onClick={() => {
               if (result.particle) void submit(true)

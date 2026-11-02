@@ -325,7 +325,7 @@ describe("dropdown and timezone-free form answers", () => {
   })
   it("renders a labelled dropdown and native date/time pickers without submitting the editor", () => {
     const html = renderToStaticMarkup(createElement(OrganizationFormPreview, { snapshot: published.definition }))
-    expect(html).toContain('role="combobox"')
+    expect(html).toContain("<select")
     expect(html).toContain('type="date"')
     expect(html).toContain('type="time"')
     expect(html).not.toContain('type="submit"')

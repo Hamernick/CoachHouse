@@ -7,14 +7,26 @@
 @source "../../node_modules/@openai/apps-sdk-ui/dist/es";
 @particle-ui-foundation;
 
+/* Preserve the SDK's 20px default while allowing enlarged text to reflow. */
+.particle-ui-textarea { --textarea-line-height: 1.25rem; }
+
+/* SDK sizes remain unchanged for precise pointers. Touch targets preserve the
+   existing Particle accessibility contract across standalone and portaled UI. */
+@media (pointer: coarse) {
+  :is(.particle-ui[data-color][data-size], .particle-ui [data-color][data-size], [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover)) [data-color][data-size]) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
 /* Shared Particle adaptation: honor reduced motion, including portaled controls. */
 @media (prefers-reduced-motion: reduce) {
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)),
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *,
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu))::before,
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu))::after,
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *::before,
-  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *::after {
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover))),
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover))) *,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover)))::before,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover)))::after,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover))) *::before,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(:is(.particle-ui-menu, .particle-ui-popover))) *::after {
     animation: none !important;
     transition: none !important;
   }

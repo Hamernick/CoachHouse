@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react"
 import FileTextIcon from "lucide-react/dist/esm/icons/file-text"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 
 type Reading = { status: "loading" } | { status: "ready"; text: string } | { status: "failed" }
 
@@ -31,7 +31,7 @@ export function PublicPageDocument({ src, name }: { src: string; name: string })
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <FileTextIcon className="text-muted-foreground size-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 break-words text-sm">{name}</span>
-      <Button type="button" variant="outline" className="h-auto min-h-11 max-w-full shrink-0 whitespace-normal break-words rounded-full shadow-none"
+      <Button size="lg" color="primary" type="button" variant="outline" className="h-auto min-h-11 max-w-full shrink-0 whitespace-normal break-words rounded-full shadow-none"
         aria-expanded={open} aria-controls={id} onClick={() => { setReading({ status: "loading" }); setOpen(!open) }}>
         {open ? "Close document" : "Read document"}
       </Button>
@@ -40,7 +40,7 @@ export function PublicPageDocument({ src, name }: { src: string; name: string })
       {open && reading.status === "loading" && <p className="text-muted-foreground text-sm" role="status">Loading document…</p>}
       {open && reading.status === "failed" && <div className="flex flex-wrap items-center gap-2">
         <p className="text-muted-foreground text-sm" role="status">Document unavailable.</p>
-        <Button type="button" variant="outline" className="min-h-11" onClick={() => { setReading({ status: "loading" }); setAttempt(attempt + 1) }}>Retry</Button>
+        <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11" onClick={() => { setReading({ status: "loading" }); setAttempt(attempt + 1) }}>Retry</Button>
       </div>}
       {open && reading.status === "ready" && <div className="flex min-w-0 flex-col gap-2">
         <p className="text-muted-foreground text-xs">Read-only text</p>

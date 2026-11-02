@@ -27,10 +27,11 @@ const { registry } = defineRegistry(researchRenderCatalog, { components: {
   </li>,
   ProjectDataView: ({ props }) => <li className="space-y-2 break-words">
     <ItemContent props={props} />
-    <p className="text-xs text-muted-foreground">Existing projects · sorted by Project · no copied records</p>
-    <dl aria-label="Declared data view columns" className="grid grid-cols-2 gap-1 text-xs">
+    {props.sourceName && <p className="text-xs">Source: {props.sourceName}</p>}
+    <p className="text-xs text-muted-foreground">{props.source.kind==="projects"?"Existing projects · sorted by Project":props.source.kind==="responses"?"Existing native response source · default saved view":"Existing shared table · default saved view"} · no copied records</p>
+    {props.source.kind==="projects" && <dl aria-label="Declared data view columns" className="grid grid-cols-2 gap-1 text-xs">
       {PROJECT_DATA_VIEW_COLUMNS.map(column => <div key={column.key}><dt className="font-medium">{column.label}</dt><dd>{column.writable ? "Editable at source" : "Read only"}</dd></div>)}
-    </dl>
+    </dl>}
     <p className="text-xs text-muted-foreground">Records and counts load only after saving and opening the authorized source. No view has been created by this preview.</p>
   </li>,
 } })

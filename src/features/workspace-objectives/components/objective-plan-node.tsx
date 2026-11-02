@@ -1,8 +1,10 @@
 "use client"
+
+import { ParticleButton as Button, ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
 import { Handle, Position, type Node, type NodeProps, type Edge } from "@xyflow/react"
 import { Pencil } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+
+
 import { WorkspaceNodeFrameRoot, WorkspaceNodeFrameHeader, WorkspaceNodeFrameBody } from "@/components/workspace/workspace-node-frame"
 import type { PlanDecision, PlanEdge } from "../plan-types"
 import type { PlanApplicability } from "../lib/plan-progress"
@@ -15,7 +17,7 @@ export function ObjectivePlanNode({ data }: NodeProps<ObjectivePlanFlowNode>) {
   return <WorkspaceNodeFrameRoot className="pointer-events-auto flex h-full min-h-[120px] w-[260px] flex-col gap-2 rounded-3xl p-3 shadow-none" data-applicability={data.applicability} aria-label={`Plan step: ${data.step.title}`}>
     <Handle type="target" position={Position.Left} isConnectable={false} />
     <WorkspaceNodeFrameHeader className="items-center justify-between gap-2"><span className="truncate text-xs text-muted-foreground" title={data.plans}>{data.plans}</span>
-      {data.canEdit && <Button variant="ghost" size="icon" className="nodrag nopan size-8 rounded-full" disabled={data.pending} aria-label={`Edit plan for ${data.step.title}`} onClick={data.onEdit}><Pencil aria-hidden /></Button>}
+      {data.canEdit && <Button color="secondary" uniform variant="ghost" size="lg" className="nodrag nopan size-8 rounded-full" disabled={data.pending} aria-label={`Edit plan for ${data.step.title}`} onClick={data.onEdit}><Pencil aria-hidden /></Button>}
     </WorkspaceNodeFrameHeader>
     <WorkspaceNodeFrameBody className="flex flex-col gap-2"><div className="flex items-start gap-2">{!data.decisions.length && <Checkbox className="nodrag nopan mt-0.5 rounded-full" aria-label={`Complete ${data.step.title}`} checked={data.step.status === "done"} disabled={!data.canEdit || data.pending || data.applicability !== "active"} onCheckedChange={value => data.onComplete(value === true)} />}
       <span className={`line-clamp-2 text-sm ${!data.decisions.length && data.step.status === "done" ? "text-muted-foreground line-through" : ""}`} title={data.step.title}>{data.step.title}</span></div>

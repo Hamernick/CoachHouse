@@ -1,7 +1,9 @@
 "use client"
+
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { memo, useRef, useState } from "react"
 import { useOpportunityCanvasActions } from "../hooks/use-opportunity-canvas-actions"
-import { Button } from "@/components/ui/button"
+
 import { Plus } from "lucide-react"
 import { ScrollFadeEffect } from "@/components/scroll-fade-effect"
 import styles from "./planning-sidebar.module.css"
@@ -83,7 +85,7 @@ export function ParticleObjectivesIsland({
       <div className={styles.objectivesPosition}>
       <PlanningSidebarSurface>
       <PlanningFeedSection label="Objectives" count={objectives.length} open={open} onOpenChange={openObjectives}
-        action={controls.canEdit && !controls.error && <Button variant="ghost" size="icon" className={styles.addButton}
+        action={controls.canEdit && !controls.error && <Button color="secondary" uniform variant="ghost" size="lg" className={styles.addButton}
           aria-label="Create objective" disabled={controls.pending} onClick={() => {
             openObjectives(true)
             requestAnimationFrame(() => objectiveForm.current?.querySelector("input")?.focus({ preventScroll: true }))
@@ -98,9 +100,9 @@ export function ParticleObjectivesIsland({
                 <p role="alert" className="text-destructive px-2 py-1 text-xs">
                   {controls.error || actions.accessError}
                   {controls.error && (
-                    <Button
-                      variant="link"
-                      size="sm"
+                    <Button color="secondary"
+                      variant="ghost"
+                      size="md"
                       onClick={() => void controls.retry()}
                     >
                       Retry

@@ -1,9 +1,9 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ParticleRadioGroup as RadioGroup } from "@/components/ui/particle-ui"
 import type { FormAnswer, FormSnapshotQuestion } from "../lib"
 import type { FormGridAnswer } from "../lib/form-grid-schema"
 import styles from "./organization-form-preview.module.css"
@@ -28,12 +28,11 @@ export function OrganizationFormGridAnswer({ question, id, value, error, onChang
         const labelId = `${id}-${row.id}-label`
         return <div key={row.id} className="min-w-0 space-y-1">
           <p id={labelId} className="break-words text-sm font-medium [overflow-wrap:anywhere]">{row.label}</p>
-          {question.type === "multiple_choice_grid" ? <RadioGroup aria-labelledby={labelId} aria-required={question.required} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined}
-            value={typeof selected === "string" ? selected : ""} onValueChange={next => change(row.id, next)} className="gap-0">
-            {question.columns.map(column => <Label key={column.id} htmlFor={`${id}-${row.id}-${column.id}`} className={styles.choice}>
-              <RadioGroupItem id={`${id}-${row.id}-${column.id}`} value={column.id} />
+          {question.type === "multiple_choice_grid" ? <RadioGroup aria-label={row.label} aria-labelledby={labelId} aria-required={question.required} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined}
+            value={typeof selected === "string" ? selected : ""} onChange={next => change(row.id, next)} direction="col" className="gap-0">
+            {question.columns.map(column => <RadioGroup.Item key={column.id} value={column.id} className={styles.choice}>
               <span className="min-w-0 break-words [overflow-wrap:anywhere]">{column.label}</span>
-            </Label>)}
+            </RadioGroup.Item>)}
           </RadioGroup> : <div role="group" aria-labelledby={labelId}>
             {question.columns.map(column => <Label key={column.id} htmlFor={`${id}-${row.id}-${column.id}`} className={styles.choice}>
               <Checkbox id={`${id}-${row.id}-${column.id}`} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} checked={Array.isArray(selected) && selected.includes(column.id)}
@@ -44,7 +43,7 @@ export function OrganizationFormGridAnswer({ question, id, value, error, onChang
               <span className="min-w-0 break-words [overflow-wrap:anywhere]">{column.label}</span>
             </Label>)}
           </div>}
-          {selected !== undefined && <Button type="button" variant="ghost" className="min-h-11 rounded-xl" aria-label={`Clear ${row.label}`} onClick={() => change(row.id, undefined)}>Clear selection</Button>}
+          {selected !== undefined && <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" aria-label={`Clear ${row.label}`} onClick={() => change(row.id, undefined)}>Clear selection</Button>}
         </div>
       })}
     </div>

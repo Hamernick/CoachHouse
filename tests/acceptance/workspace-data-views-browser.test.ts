@@ -15,8 +15,8 @@ describe.skipIf(!databaseUrl)("saved views real browser and disposable SQL", () 
   beforeAll(async () => {
     const reset = await db.query("select public.fixture_data_views();")
     expect(reset.code, reset.stderr).toBe(0)
-    server = await createServer({ configFile: false, root: process.cwd(), resolve: { alias: { "@": path.resolve("src") } }, esbuild: { jsx: "automatic" },
-      server: { host: "127.0.0.1", port: 0 }, plugins: [{ name: "isolated-data-view-action", enforce: "pre", transform(_code, module) {
+    server = await createServer({ configFile: false, root: process.cwd(), cacheDir: "/tmp/ch-b1-data-view-vite-cache", optimizeDeps: { entries: ["tests/acceptance/fixtures/workspace-data-views-browser.tsx"] }, resolve: { alias: { "@": path.resolve("src") } }, esbuild: { jsx: "automatic" },
+      server: { host: "127.0.0.1", port: 0, watch: null }, plugins: [{ name: "isolated-data-view-action", enforce: "pre", transform(_code, module) {
         if (module.endsWith("/workspace-data-views/server/actions.ts")) return `export async function runDataViewCommand(command) { const response = await fetch('/fixture-command', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(command) }); return response.json(); }`
       }, configureServer(instance) {
         instance.middlewares.use(async (request, response, next) => {
@@ -40,9 +40,9 @@ describe.skipIf(!databaseUrl)("saved views real browser and disposable SQL", () 
   it("creates/imports, edits, saves settings, reloads and preserves a conflicted draft", async () => {
     const page = await browser.newPage({ viewport: { width: 1100, height: 850 } })
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message))
+    await page.route("**/*", route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort())
     await page.goto(origin)
-    await page.getByLabel("Source", { exact: true }).click()
-    await page.getByRole("option", { name: "Import a CSV copy…" }).click()
+    await page.getByLabel("Source", { exact: true }).selectOption({ label: "Import a CSV copy…" })
     await page.getByLabel("View name").fill("Imported people")
     await page.getByLabel("CSV file").setInputFiles({ name: "people.csv", mimeType: "text/csv", buffer: Buffer.from("Name,City\nAda,Boston\nGrace,Chicago") })
     await page.getByRole("checkbox").check()
@@ -53,6 +53,16 @@ describe.skipIf(!databaseUrl)("saved views real browser and disposable SQL", () 
     await page.getByRole("button", { name: "Save cell", exact: true }).click()
     await page.getByRole("button", { name: "Edit Name: Ada Lovelace", exact: true }).waitFor()
     await page.getByRole("button", { name: "View settings" }).click()
+    await page.setViewportSize({ width: 320, height: 900 })
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.evaluate(dark => { document.documentElement.classList.toggle("dark", dark); document.documentElement.style.fontSize = "200%" }, colorScheme === "dark")
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+      expect(await page.getByRole("button", { name: "Save view settings", exact: true }).evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      await page.screenshot({ path: `/tmp/ch-b1-data-view-${colorScheme}.png`, fullPage: true })
+    }
+    await page.evaluate(() => { document.documentElement.classList.remove("dark"); document.documentElement.style.fontSize = "" })
+    await page.setViewportSize({ width: 1100, height: 850 })
     await page.getByRole("checkbox", { name: "City", exact: true }).uncheck()
     await page.getByRole("button", { name: "Save view settings" }).click()
     await page.getByRole("button", { name: "View settings" }).waitFor()

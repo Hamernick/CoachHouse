@@ -1,4 +1,6 @@
 import "server-only"
+import type { ComposableDataView } from "@/features/workspace-data-views"
+import { withResearchDataViewSources } from "./research-data-view-sources"
 import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { canEditOrganization } from "@/lib/organization/active-org"
 import { allWorkspaceStates } from "@/features/workspace-management"
@@ -8,7 +10,7 @@ import { researchTargetSchema, type ExistingResearchTarget, type ResearchTarget 
 type Actor = Awaited<ReturnType<typeof resolveAuthenticatedAppContext>>
 type Graph = Extract<ReturnType<typeof readParticleGraph>, { ok: true }>['value']
 type Objective = Extract<Graph['particles'][number], { type: "objective" }>
-export type ResearchContext = Actor & { graph: Graph; objective?: Objective; canvasId: string | null; target: ResearchTarget }
+export type ResearchContext = Actor & { graph: Graph; objective?: Objective; canvasId: string | null; target: ResearchTarget; dataViewSources?:ComposableDataView[] }
 export function loadResearchContext(target: ExistingResearchTarget, requireRevision?: boolean): Promise<ResearchContext & { objective: Objective }>
 export function loadResearchContext(target: ResearchTarget, requireRevision?: boolean): Promise<ResearchContext>
 export async function loadResearchContext(target: ResearchTarget, requireRevision = true): Promise<ResearchContext> {
@@ -24,7 +26,7 @@ export async function loadResearchContext(target: ResearchTarget, requireRevisio
     const graph = readParticleGraph(matches[0].state.particleGraph, target.organizationId)
     if (!graph.ok || (requireRevision && graph.value.revision !== target.revision))
       throw new Error("Workspace changed. Reopen planning from the current workspace.")
-    return { ...actor, graph: graph.value, canvasId: matches[0].id, target }
+    return withResearchDataViewSources({ ...actor, graph: graph.value, canvasId: matches[0].id, target })
   }
   const matches = canvases.flatMap(canvas => {
     const parsed = readParticleGraph(canvas.state.particleGraph, target.organizationId)
@@ -36,5 +38,5 @@ export async function loadResearchContext(target: ResearchTarget, requireRevisio
   const selectedPlan = target.plan ? matches[0].objective.data.planning?.plans.find(plan => plan.id === target.plan!.id) : undefined
   if (requireRevision && target.plan && (!selectedPlan || selectedPlan.revision !== target.plan.revision))
     throw new Error("This plan changed. Reopen research from the current plan.")
-  return { ...actor, ...matches[0], target }
+  return withResearchDataViewSources({ ...actor, ...matches[0], target })
 }

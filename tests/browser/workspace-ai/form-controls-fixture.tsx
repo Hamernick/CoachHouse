@@ -29,13 +29,13 @@ export function FormControlsFixture() {
       setSaveCount(count => count + 1)
     }}>
       <OrganizationFormBuilder key={generation} definition={definition} disabled={locked} onChange={setDefinition} />
-      <Button type="submit">Save draft</Button>
+      <Button className="h-auto min-h-9 max-w-full whitespace-normal" type="submit">Save draft</Button>
     </form>
-    <Button type="button" onClick={() => {
+    <Button className="h-auto min-h-9 max-w-full whitespace-normal" type="button" onClick={() => {
       setDefinition(formDefinitionSchema.parse(JSON.parse(saved)))
       setGeneration(value => value + 1)
     }}>Reopen draft</Button>
-    <Button type="button" onClick={() => setLocked(value => !value)}>Toggle editing lock</Button>
+    <Button className="h-auto min-h-9 max-w-full whitespace-normal" type="button" onClick={() => setLocked(value => !value)}>Toggle editing lock</Button>
     <output aria-label="Current definition" className="sr-only">{JSON.stringify(definition)}</output>
     <output aria-label="Draft saves">{saveCount}</output>
   </main>

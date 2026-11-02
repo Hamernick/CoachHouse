@@ -1,9 +1,11 @@
 "use client"
+
+import { ParticleButton as Button, ParticleInput as InputGroupInput } from "@/components/ui/particle-ui"
 import { useCallback, useId, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
 import { Field, FieldLabel } from "@/components/ui/field"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { InputGroup, InputGroupAddon } from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ObjectivesIslandSurface } from "./objectives-island-surface"
 import type { ObjectiveIslandTransport, ObjectiveScope } from "../island-types"
@@ -56,9 +58,9 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
             if (title.trim() && await state.mutate(() => transport.create(scope, title))) setTitle("")
           }}>
             <Field className="min-w-0"><FieldLabel className="sr-only" htmlFor={id}>New objective</FieldLabel>
-              <InputGroup className="items-center gap-0 rounded-full border border-border/70 bg-muted/30 p-1"><InputGroupInput id={id} placeholder="What do you want to accomplish?" value={title} onChange={event => setTitle(event.target.value)} maxLength={240} disabled={state.pending} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
+              <InputGroup className="items-center gap-0 rounded-full border border-border/70 bg-muted/30 p-1"><InputGroupInput size="2xl" data-slot="input-group-control" id={id} placeholder="What do you want to accomplish?" value={title} onChange={event => setTitle(event.target.value)} maxLength={240} disabled={state.pending} className="h-9 min-w-0 rounded-full border-0 bg-transparent shadow-none dark:bg-transparent focus-visible:ring-0" />
             <InputGroupAddon>
-            <Button type="submit" variant="ghost" size="icon" className="size-9 rounded-full" disabled={state.pending || !title.trim()} aria-label="Add objective"><Plus aria-hidden /></Button></InputGroupAddon></InputGroup></Field>
+            <Button color="secondary" uniform type="submit" variant="ghost" size="lg" className="size-9 rounded-full" disabled={state.pending || !title.trim()} aria-label="Add objective"><Plus aria-hidden /></Button></InputGroupAddon></InputGroup></Field>
           </form>}
           {projectionError && <p role="alert" className="px-2 text-xs text-destructive">{projectionError}</p>}
           {state.error && <p role="alert" className="px-2 py-1 text-xs text-destructive">{state.error}</p>}
@@ -73,7 +75,7 @@ function ObjectivesIslandSession({ scope: suppliedScope, canEdit, transport, onP
               canEdit={Boolean(editable) && objective.kind === "custom"} pending={state.pending} visible={selected}
               onToggle={id => { setSelected(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]); setOpen(false) }}
               onRename={(plan, title) => state.mutate(() => transport.savePlan ? transport.savePlan(scope, { ...draftFromPlan(plan, state.data?.steps ?? []), title }) : Promise.resolve({ ok: false, error: "Plan editing is unavailable." }))} onStep={onStep} onCreate={() => setPlanDraft({ id: crypto.randomUUID(), objectiveId: objective.id, revision: 0, title: "", steps: [], edges: [] })} />}
-            {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button variant="ghost" size="sm" className="rounded-full" disabled={state.pending} onClick={() => { setAiPlan(null); setAiObjective(objective) }}>Plan with AI</Button>}
+            {editable && objective.kind === "custom" && state.data?.planning?.decisionsAvailable && transport.ai && <Button color="secondary" variant="ghost" size="md" className="rounded-full" disabled={state.pending} onClick={() => { setAiPlan(null); setAiObjective(objective) }}>Plan with AI</Button>}
           </ObjectiveIslandCard>)}
     </div>
     {aiObjective && transport.ai && <AiPlanDialog plan={aiPlan ?? undefined} key={`${aiObjective.id}:${aiPlan?.id ?? "new"}`} scope={scope} objective={aiObjective} transport={transport.ai} onClose={() => setAiObjective(null)} onChanged={() => void state.refresh()} />}

@@ -1,9 +1,11 @@
 "use client"
 
+import { ParticleTextarea as Textarea, ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useId } from "react"
 import { useModuleNotes } from "@/hooks/use-module-notes"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
+
+
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 
 export function ParticleModuleNotesEditor({
@@ -57,7 +59,7 @@ export function ModuleNotesFields({
       <label htmlFor={id} className="sr-only">
         Lesson notes
       </label>
-      <Textarea
+      <Textarea size="2xl"
         id={id}
         value={value}
         disabled={!loaded || Boolean(error)}
@@ -84,9 +86,9 @@ export function ModuleNotesFields({
           <>
             <span>{error}</span>
             {!readOnly && (
-              <Button
+              <Button color="secondary"
                 variant="ghost"
-                size="sm"
+                size="md"
                 onClick={() => void (loaded ? onSave() : onReload())}
               >
                 Retry

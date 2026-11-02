@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm"
 import ExternalLinkIcon from "lucide-react/dist/esm/icons/external-link"
 import CalendarIcon from "lucide-react/dist/esm/icons/calendar-days"
 import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
-import { buttonVariants } from "@/components/ui/button"
+import { ParticleButtonLink } from "@/components/ui/particle-ui"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WorkspaceNodeFrameRoot, WorkspaceNodeFrameHeader, WorkspaceNodeFrameBody } from "@/components/workspace/workspace-node-frame"
 import type { WorkspacePageSnapshot } from "../types"
@@ -39,10 +39,10 @@ function PublicParticleContent({ content, locale, embedded, formId, organization
     )
     case "drive_link": return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <a className={cn(buttonVariants({ variant: "outline" }), "h-auto min-h-11 min-w-0 max-w-full whitespace-normal rounded-full gap-2 shadow-none transition-colors motion-reduce:transition-none")}
+        <ParticleButtonLink color="primary" variant="outline" size="lg" className="h-auto min-h-11 min-w-0 max-w-full whitespace-normal rounded-full gap-2 py-2 leading-normal shadow-none transition-colors motion-reduce:transition-none"
           href={content.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
           <span className="min-w-0 break-words">Open in Google Drive</span> <ExternalLinkIcon className="size-3.5" aria-hidden />
-        </a>
+        </ParticleButtonLink>
         <span className="text-muted-foreground text-xs">Google sign-in may be required.</span>
       </div>
     )

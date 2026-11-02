@@ -46,7 +46,7 @@ if (localStorage.getItem("membership-fixture")) {
 }
 function Fixture() {
   const [responsibility, setResponsibility] = useState(false)
-  const [expansion, setExpansion] = useState(false)
+  const [expansion, setExpansion] = useState(() => localStorage.getItem("fixture-near-cap") === "1")
   const [camera, setCamera] = useState(false)
   const [loadCanvas, setLoadCanvas] = useState(false)
   const [loadingDemo, setLoadingDemo] = useState(false)

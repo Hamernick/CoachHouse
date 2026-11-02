@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { createFormSnapshot, formReceiptSchema, normalizeFormAnswerInputs, validateFormAnswers } from "../lib"
 import type { FormAnswer, FormAnswerIssue, FormIntakeCommand } from "../lib"
 import type { FormDefinition } from "../types"
@@ -68,6 +68,6 @@ export function OrganizationFormIntake({ formId, versionId, definition, organiza
     <p className="text-muted-foreground text-xs leading-relaxed">{organization} receives your answers privately in Coach House and keeps them until deleted. Contact the organization about your response.</p>
     {error && <p role="alert" className="text-destructive text-sm">{error}{retry && " Keep this page open while retrying."}</p>}
     {issues.some((issue) => !issue.questionId) && <p role="alert" className="text-destructive text-sm">{issues.find((issue) => !issue.questionId)?.message}</p>}
-    <Button type="submit" className="min-h-11 w-fit rounded-xl" disabled={pending}>{pending && <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" />}{retry ? "Retry submission" : "Submit"}</Button>
+    <Button size="lg" color="primary" type="submit" className="min-h-11 w-fit rounded-xl" disabled={pending}>{pending && <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" />}{retry ? "Retry submission" : "Submit"}</Button>
   </form>
 }

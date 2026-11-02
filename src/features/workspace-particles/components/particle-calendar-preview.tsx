@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { particlePreviewLimit } from "../lib/particle-registry"
 import { useEffect, useState } from "react"
 import MailIcon from "lucide-react/dist/esm/icons/mail"
@@ -11,7 +13,7 @@ import CircleIcon from "lucide-react/dist/esm/icons/circle"
 import ClockIcon from "lucide-react/dist/esm/icons/clock"
 import CircleCheckIcon from "lucide-react/dist/esm/icons/circle-check"
 import BanIcon from "lucide-react/dist/esm/icons/ban"
-import { Button } from "@/components/ui/button"
+
 import {
   CALENDAR_CHANNELS,
   CALENDAR_STATUSES,
@@ -90,7 +92,7 @@ export function ParticleCalendarPreview({
           (item) => item.value === entry.status
         )?.label
         return (
-          <Button
+          <Button color="secondary" size="lg"
             key={entry.id}
             type="button"
             variant="ghost"

@@ -1,8 +1,8 @@
 "use client"
 
 import { useId, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { formResponsePath } from "../lib/form-response-link"
 
 export function OrganizationFormResponseLink({ versionId, disabled, forInvitation = false }: { versionId: string; disabled: boolean; forInvitation?: boolean }) {
@@ -20,13 +20,13 @@ export function OrganizationFormResponseLink({ versionId, disabled, forInvitatio
     finally { busy.current = false; setPending(false) }
   }
   return <div className="flex min-w-0 flex-col gap-2">
-    <Button type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || pending} onClick={() => void copy()}>
+    <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || pending} onClick={() => void copy()}>
       {pending ? "Copying link…" : "Copy response link"}
     </Button>
     {copied && <p role="status" className="text-muted-foreground text-xs">{forInvitation ? "Link copied. Sign in with the invited email to accept." : "Link copied. Existing form access required."}</p>}
     {fallback && <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className="text-xs">Copy this response link</label>
-      <Input id={id} value={fallback} readOnly className="min-h-11 text-base" onFocus={(event) => event.currentTarget.select()} />
+      <Input size="2xl" id={id} value={fallback} readOnly className="min-h-11 text-base" onFocus={(event) => event.currentTarget.select()} />
       <p role="status" className="text-muted-foreground text-xs">{forInvitation ? "Select and copy the link. Sign in with the invited email to accept." : "Select and copy the link. Existing form access required."}</p>
     </div>}
   </div>

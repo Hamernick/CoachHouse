@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useContext, useRef, useState, type ReactNode } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
-import { Button } from "@/components/ui/button"
+
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 import { ParticleLibraryDragContext } from "./particle-library-drag-context"
@@ -77,9 +79,9 @@ export function ParticleDocumentLibrarySource({
     >
       {children}
       {available && (
-        <Button
+        <Button color="secondary" uniform
           variant="ghost"
-          size="icon"
+          size="lg"
           className={cn(
             "nodrag nopan bg-card text-card-foreground border-border/60 pointer-events-none absolute top-2 left-2 z-30 size-8 rounded-full border opacity-0 transition-opacity duration-100 group-hover/document-source:pointer-events-auto group-hover/document-source:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:size-11",
             layout === "list" && "top-1/2 right-24 left-auto -translate-y-1/2"

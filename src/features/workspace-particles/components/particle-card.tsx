@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import type { ComponentProps, ReactNode } from "react"
 import { particleIcon } from "./particle-preset-icons"
 import { ParticleActionMenu } from "./particle-action-menu"
@@ -10,7 +12,7 @@ import { ParticleImagePlaceholder } from "./particle-image-placeholder"
 import { getParticleImage, isImagePlaceholder } from "../lib/particle-image"
 import { ParticleFrame, ParticleHeader, ParticleBody } from "./particle-frame"
 import { PARTICLE_PREVIEWS } from "./particle-preview"
-import { Button } from "@/components/ui/button"
+
 import { ParticleSurfaceContext } from "./particle-surface"
 import { ParticleFormHeader } from "./particle-form-header"
 import { ParticleEventCard } from "./particle-event-card"
@@ -76,7 +78,7 @@ function ParticleCardContent({
       {form ? <ParticleFormHeader
         count={form.definition.questions.length}
         title={editorFields ? "Form" : particle.title}
-        actions={headerAction ?? <Button type="button" variant="ghost" size="sm" className="nodrag nopan h-7 rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11" onClick={() => open()}>{editable ? "Edit" : "View"}</Button>}
+        actions={headerAction ?? <Button color="secondary" type="button" variant="ghost" size="md" className="nodrag nopan h-7 rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11" onClick={() => open()}>{editable ? "Edit" : "View"}</Button>}
       /> : <ParticleHeader
         title={particle.title}
         action={headerAction}

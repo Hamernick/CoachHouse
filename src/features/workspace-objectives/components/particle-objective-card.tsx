@@ -1,4 +1,6 @@
 "use client"
+
+import { ParticleButton as Button, ParticleAlertDialogCancel as AlertDialogCancel, ParticleAlertDialogAction as AlertDialogAction } from "@/components/ui/particle-ui"
 import { useEffect, useRef, useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
@@ -6,10 +8,10 @@ import { useReducedMotion } from "motion/react"
 import { WorkspaceResearch } from "@/features/workspace-ai/client"
 import { planFromProposal } from "@/features/workspace-particles/client"
 import { MoreHorizontal, ChevronRight, Plus, Search, Pencil, Scan, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { ParticleMenu } from "@/components/ui/particle-ui"
 import type { Particle, ParticlePlan } from "@/features/workspace-particles/client"
 import { planningOf, type ObjectiveParticle, type PlanningControls, type useParticlePlans } from "../hooks/use-particle-plans"
 import { ObjectiveStatusMenu } from "./objective-status-menu"
@@ -46,16 +48,16 @@ export function ParticleObjectiveCard({ objective, controls, actions, userId }: 
   return <Collapsible asChild open={open} onOpenChange={setOpen} className={styles.objective} data-selected={selectedHere} data-status={objective.status} data-has-branches={hasBranches}>
     <li ref={sortable.setNodeRef} style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, opacity: sortable.isDragging ? 0.35 : 1 }}>
     <div className={`${styles.objectiveHeader} flex min-w-0 items-center gap-0`}>
-      {rename ? <ObjectiveInlineTitle initial={objective.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...objective, title })} /> : <CollapsibleTrigger asChild><Button ref={sortable.setActivatorNodeRef} {...(canDrag ? sortable.attributes : {})} {...sortable.listeners} onClick={event => { if (!sortable.isDragging && !objective.canvasHidden && !controls.focusCanvas(objective.id)) event.preventDefault() }} variant="ghost" className={`touch-manipulation select-none ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} h-auto min-h-9 min-w-0 flex-1 text-[13px] [@media(pointer:coarse)]:min-h-11 justify-start gap-2 whitespace-normal rounded-xl pl-2 pr-0 has-[>svg]:pl-2 has-[>svg]:pr-0 text-left`}><ParticleStatusMark particle={objective} particles={controls.graph?.particles} /><span className="min-w-0 flex-1 truncate" title={objective.title}>{objective.title}</span><ParticleStatusLabel particle={objective} particles={controls.graph?.particles} visuallyHidden /><ChevronRight aria-hidden className={`size-3.5 shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /></Button></CollapsibleTrigger>}
-      {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button ref={menuTrigger} size="icon" variant="ghost" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${objective.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60 rounded-lg border-border bg-popover p-2 text-sm shadow-lg [&_[role=menuitem]]:rounded-md [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-2 [&_[role=menuitem]]:gap-2 [&_[role=separator]]:mx-0 [&_[role=separator]]:my-2 [&_[role=separator]]:bg-border/60">
-        <DropdownMenuItem onSelect={() => { setNewPlan(true); setOpen(true) }}><Plus aria-hidden />New plan</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => { setResearch({ revision: objective.revision }); setOpen(true) }}><Search aria-hidden />Research & develop</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => setRename(true)}><Pencil aria-hidden />Rename</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => controls.select(objective.id)}><Scan aria-hidden />Open on canvas</DropdownMenuItem>
+      {rename ? <ObjectiveInlineTitle initial={objective.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...objective, title })} /> : <CollapsibleTrigger asChild><Button color="secondary" size="lg" ref={sortable.setActivatorNodeRef} {...(canDrag ? sortable.attributes : {})} {...sortable.listeners} onClick={event => { if (!sortable.isDragging && !objective.canvasHidden && !controls.focusCanvas(objective.id)) event.preventDefault() }} variant="ghost" className={`touch-manipulation select-none ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} h-auto min-h-9 min-w-0 flex-1 text-[13px] [@media(pointer:coarse)]:min-h-11 justify-start gap-2 whitespace-normal rounded-xl pl-2 pr-0 has-[>svg]:pl-2 has-[>svg]:pr-0 text-left`}><ParticleStatusMark particle={objective} particles={controls.graph?.particles} /><span className="min-w-0 flex-1 truncate" title={objective.title}>{objective.title}</span><ParticleStatusLabel particle={objective} particles={controls.graph?.particles} visuallyHidden /><ChevronRight aria-hidden className={`size-3.5 shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /></Button></CollapsibleTrigger>}
+      {controls.canEdit && !controls.error && <ParticleMenu modal><ParticleMenu.Trigger ><Button color="secondary" uniform ref={menuTrigger} size="lg" variant="ghost" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${objective.title}`}><MoreHorizontal aria-hidden /></Button></ParticleMenu.Trigger><ParticleMenu.Content align="end" minWidth={0} width={240}>
+        <ParticleMenu.Item onSelect={() => { setNewPlan(true); setOpen(true) }}><Plus aria-hidden />New plan</ParticleMenu.Item>
+        <ParticleMenu.Item onSelect={() => { setResearch({ revision: objective.revision }); setOpen(true) }}><Search aria-hidden />Research & develop</ParticleMenu.Item>
+        <ParticleMenu.Separator />
+        <ParticleMenu.Item onSelect={() => setRename(true)}><Pencil aria-hidden />Rename</ParticleMenu.Item>
+        <ParticleMenu.Item onSelect={() => controls.select(objective.id)}><Scan aria-hidden />Open on canvas</ParticleMenu.Item>
         {actions.owner && <ObjectiveStatusMenu value={objective.status} disabled={controls.pending} onChange={status => void controls.edit({ ...objective, status })} />}
-        {(actions.owner || (!planning.plans.length && !planning.proposals.length)) && <><DropdownMenuSeparator /><DropdownMenuItem variant="destructive" disabled={controls.pending} onSelect={() => { setDeleteError(null); setConfirmDelete(true) }}><Trash2 aria-hidden />Delete</DropdownMenuItem></>}
-      </DropdownMenuContent></DropdownMenu>}
+        {(actions.owner || (!planning.plans.length && !planning.proposals.length)) && <><ParticleMenu.Separator /><ParticleMenu.Item className="text-destructive" disabled={controls.pending} onSelect={() => { setDeleteError(null); setConfirmDelete(true) }}><Trash2 aria-hidden />Delete</ParticleMenu.Item></>}
+      </ParticleMenu.Content></ParticleMenu>}
     </div>
     <PlanningDisclosure open={open}>
       {research && <WorkspaceResearch stale={objective.revision !== research.revision || Boolean(research.plan && planning.plans.find(plan=>plan.id===research.plan?.id)?.revision !== research.plan.revision)} userId={userId} target={{organizationId:objective.workspaceId,objectiveId:objective.id,revision:research.revision,...(research.plan ? {plan:{id:research.plan.id,revision:research.plan.revision}} : {})}} planContext={research.plan ? {title:research.plan.title,members:research.plan.particleIds.map(id=>({id,title:controls.graph?.particles.find(item=>item.id===id)?.title ?? "Existing item"}))} : undefined} onClose={()=>setResearch(null)} onProposal={async (result, draft)=>{

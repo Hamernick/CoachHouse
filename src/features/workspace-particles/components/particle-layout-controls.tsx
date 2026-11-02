@@ -1,9 +1,11 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { useEffect, useMemo } from "react"
 import { useStore } from "@xyflow/react"
-import { Button } from "@/components/ui/button"
+
 
 import type { useParticleLayout } from "../hooks/use-particle-layout"
 import { createParticleGeometrySelector } from "../lib/particle-geometry-observer"
@@ -58,7 +60,7 @@ export function ParticleLayoutActions({
       aria-label="Arrange Particles"
     >
       {actions.map((action) => (
-        <Button
+        <Button color="secondary" size="lg"
           key={action.id}
           type="button"
           variant="ghost"

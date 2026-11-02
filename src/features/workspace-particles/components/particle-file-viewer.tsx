@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button, ParticleButtonLink } from "@/components/ui/particle-ui"
+
 import {
   useLayoutEffect,
   useState,
@@ -15,7 +17,7 @@ import {
   DialogTitle,
   DialogSurface,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+
 import { WORKSPACE_CANVAS_STAGED_EASE } from "@/lib/workspace-canvas/motion-spec"
 import { useParticleSurface } from "./particle-surface"
 
@@ -90,9 +92,9 @@ export function ParticleFileViewer({
                     {title}
                   </DialogTitle>
                   {onRefresh && (
-                    <Button
+                    <Button color="secondary" uniform
                       variant="ghost"
-                      size="icon"
+                      size="lg"
                       className="size-11 rounded-full sm:size-8"
                       aria-label="Refresh Google Drive preview"
                       title="Refresh preview"
@@ -102,15 +104,13 @@ export function ParticleFileViewer({
                     </Button>
                   )}
                   {url && (
-                    <Button asChild variant="ghost" size="sm">
-                      <a href={url} target="_blank" rel="noopener noreferrer">
+                    <ParticleButtonLink color="secondary" variant="ghost" size="md" href={url} target="_blank" rel="noopener noreferrer">
                         Open original
-                      </a>
-                    </Button>
+                      </ParticleButtonLink>
                   )}
-                  <Button
+                  <Button color="secondary" uniform
                     variant="ghost"
-                    size="icon"
+                    size="lg"
                     className="size-11 rounded-full sm:size-8"
                     aria-label="Exit full screen"
                     onClick={() => onOpenChange(false)}

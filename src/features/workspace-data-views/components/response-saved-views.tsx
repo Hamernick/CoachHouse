@@ -1,7 +1,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { responseViewDirectorySchema } from "../lib/response-source"
 import { runDataViewCommand } from "../source-actions"
 import { WorkspaceDataViewsPanel } from "./workspace-data-views-panel"
@@ -24,8 +24,8 @@ export function ResponseSavedViews({ versionId, onDirtyChange }: { versionId: st
   useEffect(() => { onDirtyChange?.(dirty || pending || Boolean(request)); return () => onDirtyChange?.(false) }, [dirty, pending, request, onDirtyChange])
   return <section aria-label="Saved response views" className="flex min-w-0 flex-col gap-3">
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
-    {!directory ? <Button variant="outline" onClick={() => void load()}>Reload response views</Button> : <>
-      <div className="flex flex-wrap gap-2">{directory.views.map(view => <Button key={view.id} variant={view.id === selected ? "secondary" : "outline"} disabled={dirty || pending || Boolean(request)} onClick={() => setSelected(view.id)}>{view.name}</Button>)}</div>
+    {!directory ? <Button size="lg" color="primary" variant="outline" onClick={() => void load()}>Reload response views</Button> : <>
+      <div className="flex flex-wrap gap-2">{directory.views.map(view => <Button size="lg" color="primary" key={view.id} variant={view.id === selected ? "soft" : "outline"} disabled={dirty || pending || Boolean(request)} onClick={() => setSelected(view.id)}>{view.name}</Button>)}</div>
       {directory.canCreate && !selected && <form className="flex flex-wrap gap-2" onSubmit={async event => {
         event.preventDefault(); if (pending) return
         const next = request ?? { viewId: crypto.randomUUID(), requestId: crypto.randomUUID(), name }
@@ -34,8 +34,8 @@ export function ResponseSavedViews({ versionId, onDirtyChange }: { versionId: st
         setPending(false)
         if (!result.ok) { setError(result.error); if (result.code !== "unavailable") setRequest(null); return }
         setRequest(null); setSelected(next.viewId); await load()
-      }}><Input aria-label="Response view name" className="min-w-24 flex-1" maxLength={100} value={name} disabled={Boolean(request)} onChange={event => setName(event.target.value)} /><Button type="submit" disabled={pending}>{request ? "Retry same creation" : "Create response view"}</Button></form>}
-      {selected && <><Button variant="ghost" disabled={dirty || pending} onClick={() => setSelected("")}>All saved views</Button><WorkspaceDataViewsPanel key={selected} organizationId={directory.organizationId} viewId={selected} onDirtyChange={setDirty} /></>}
+      }}><Input size="2xl" aria-label="Response view name" className="min-w-24 flex-1" maxLength={100} value={name} disabled={Boolean(request)} onChange={event => setName(event.target.value)} /><Button size="lg" color="primary" type="submit" disabled={pending}>{request ? "Retry same creation" : "Create response view"}</Button></form>}
+      {selected && <><Button size="lg" color="primary" variant="ghost" disabled={dirty || pending} onClick={() => setSelected("")}>All saved views</Button><WorkspaceDataViewsPanel key={selected} organizationId={directory.organizationId} viewId={selected} onDirtyChange={setDirty} /></>}
       {!selected && !directory.canCreate && directory.views.length === 0 && <p className="text-muted-foreground text-sm">A form editor can create a saved response view. Your current response access is unchanged.</p>}
     </>}
   </section>

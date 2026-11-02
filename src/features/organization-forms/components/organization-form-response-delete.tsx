@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { formDeletionReceiptSchema, type FormIntakeCommand, type FormResponse } from "../lib"
 import { IntakeRequestError, sendFormCommand } from "../hooks/intake-client"
 
@@ -37,9 +37,9 @@ export function OrganizationFormResponseDelete({ response, onDeleted, onCancel, 
     <p className="text-muted-foreground text-sm">This removes its answers from Coach House. You cannot undo this. Previously downloaded copies and backups are not erased here.</p>
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
     <div className="flex flex-wrap gap-2">
-      <Button ref={cancel} type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || uncertain} onClick={onCancel}>Cancel</Button>
-      {conflict ? <Button type="button" variant="outline" className="min-h-11 rounded-xl" onClick={onConflict}>Review latest response</Button>
-        : <Button type="button" variant="destructive" className="min-h-11 rounded-xl" disabled={pending} onClick={() => void remove()}>
+      <Button size="lg" color="primary" ref={cancel} type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || uncertain} onClick={onCancel}>Cancel</Button>
+      {conflict ? <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" onClick={onConflict}>Review latest response</Button>
+        : <Button size="lg" color="danger" type="button" variant="solid" className="min-h-11 rounded-xl" disabled={pending} onClick={() => void remove()}>
           {pending && <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" />}{uncertain ? "Retry deletion" : "Delete permanently"}
         </Button>}
     </div>

@@ -110,16 +110,18 @@
 .dragHandle:active { cursor: grabbing; }
 .dragHandle:disabled { cursor: default; }
 
+.questionSummary { display: flex; align-items: center; gap: 0.5rem; min-width: 0; width: 100%; }
+
 /* Labels and enlarged controls must fit the actual editor, including a narrow
    embedded form. Wrapping retains every action instead of clipping a row. */
 @container organization-form (max-width: 28rem) {
-  .questionTrigger {
+  .questionSummary {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     white-space: normal;
   }
-  .questionTrigger > span:nth-child(2) { grid-area: 2 / 1 / 3 / 4; }
-  .questionTrigger > span:nth-child(2) > span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
-  .questionTrigger > span:nth-child(3) { grid-area: 1 / 2; justify-self: end; }
-  .questionTrigger > svg { grid-area: 1 / 3; }
+  .questionSummary > span:nth-child(2) { grid-area: 2 / 1 / 3 / 3; }
+  .questionSummary > span:nth-child(2) > span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+  .questionSummary > span:nth-child(3) { grid-area: 3 / 1 / 4 / 3; justify-self: start; }
+  .questionSummary > svg { grid-area: 1 / 2; }
 }

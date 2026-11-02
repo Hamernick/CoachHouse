@@ -1,7 +1,9 @@
 "use client"
 
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { ParticleAlertDialogCancel as AlertDialogCancel, ParticleButton as Button } from "@/components/ui/particle-ui"
+
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
+
 import type { useParticleCloseGuard } from "../hooks/use-particle-close-guard"
 
 export function ParticleDiscardDialog({ guard }: { guard: ReturnType<typeof useParticleCloseGuard> }) {
@@ -16,8 +18,8 @@ export function ParticleDiscardDialog({ guard }: { guard: ReturnType<typeof useP
         <AlertDialogDescription>Your changes to this card haven’t been saved.</AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel asChild><Button variant="ghost" className="h-11 rounded-full shadow-none sm:h-9" onClick={guard.cancel}>Keep editing</Button></AlertDialogCancel>
-        <Button variant="destructive" className="h-11 rounded-full shadow-none sm:h-9" onClick={guard.discard}>Discard changes</Button>
+        <AlertDialogCancel className="h-11 rounded-full shadow-none sm:h-9" onClick={guard.cancel}>Keep editing</AlertDialogCancel>
+        <Button color="danger" size="lg" variant="solid" className="h-11 rounded-full shadow-none sm:h-9" onClick={guard.discard}>Discard changes</Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

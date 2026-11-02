@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
-import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
+import { ParticleAlertDialogCancel as AlertDialogCancel, ParticleAlertDialogAction as AlertDialogAction } from "@/components/ui/particle-ui"
 import { formRecoveryListSchema, formRecoveryReceiptSchema } from "../lib"
 import type { FormIntakeCommand, FormRecoveryTarget } from "../lib/form-intake"
 import { IntakeRequestError, sendFormCommand } from "../hooks/intake-client"
@@ -62,7 +62,7 @@ export function OrganizationFormRecovery({ target, disabled, onLockChange, onRec
   if (!data?.forms.length && !data?.next && !after && !selected && !request && !pending && !error && !notice) return null
   return <div className="flex min-w-0 flex-col gap-3">
     {(error || notice) && <p ref={feedback} tabIndex={-1} role={error ? "alert" : "status"} className="focus-ring text-sm">{error || notice}</p>}
-    {error && <Button type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={pending || disabled}
+    {error && <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={pending || disabled}
       onClick={() => request ? void recover(request) : setRefresh((value) => value + 1)}>{pending && <LoaderIcon aria-hidden className="animate-spin motion-reduce:animate-none" />}{request ? "Retry recovery" : "Reload access"}</Button>}
     {pending && !error && <p role="status" className="text-muted-foreground text-sm">Recovering form…</p>}
     {Boolean(data?.forms.length) && <section aria-label="Recover form access" className="flex min-w-0 flex-col gap-3 rounded-2xl border p-4">
@@ -70,11 +70,11 @@ export function OrganizationFormRecovery({ target, disabled, onLockChange, onRec
       <p className="text-muted-foreground text-xs">As organization owner, you can take over these forms and their private responses.</p>
       {data?.forms.map((form) => <div key={form.id} className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <span className="min-w-0 break-words text-sm">{form.title}</span>
-        <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={locked || disabled} onClick={(event) => { returnFocus.current = event.currentTarget; setSelected(form) }} aria-label={`Recover ${form.title}`}>Recover access</Button>
+        <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={locked || disabled} onClick={(event) => { returnFocus.current = event.currentTarget; setSelected(form) }} aria-label={`Recover ${form.title}`}>Recover access</Button>
       </div>)}
     </section>}
-    {data?.next && <Button type="button" variant="ghost" disabled={locked || disabled} onClick={() => setAfter(data.next ?? undefined)}>More forms</Button>}
-    {after && <Button type="button" variant="ghost" disabled={locked || disabled} onClick={() => setAfter(undefined)}>First forms</Button>}
+    {data?.next && <Button size="lg" color="primary" type="button" variant="ghost" disabled={locked || disabled} onClick={() => setAfter(data.next ?? undefined)}>More forms</Button>}
+    {after && <Button size="lg" color="primary" type="button" variant="ghost" disabled={locked || disabled} onClick={() => setAfter(undefined)}>First forms</Button>}
     <AlertDialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(null) }}>
       <AlertDialogContent className="rounded-2xl" onCloseAutoFocus={(event) => { event.preventDefault(); returnFocus.current?.focus() }}><AlertDialogHeader>
         <AlertDialogTitle>Recover form access?</AlertDialogTitle>

@@ -1,7 +1,9 @@
 "use client"
 
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useId, useState } from "react"
-import { Input } from "@/components/ui/input"
+
 import { Field, FieldLabel, FieldMessage } from "@/components/ui/field"
 import {
   getParticleImage,
@@ -30,7 +32,7 @@ export function ParticleImageFields({
     <>
       <Field>
         <FieldLabel htmlFor={`${id}-alt`}>Image description</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-alt`}
           placeholder="Describe the image for screen readers"
           maxLength={1000}
@@ -49,7 +51,7 @@ export function ParticleImageFields({
       </Field>
       <Field>
         <FieldLabel htmlFor={`${id}-file`}>Replace image</FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-file`}
           type="file"
           accept={PARTICLE_IMAGE_ACCEPT}

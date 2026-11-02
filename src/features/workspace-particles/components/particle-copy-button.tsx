@@ -1,7 +1,9 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
+
 import { CheckIcon, CopyIcon } from "./shapeshift-icons"
 
 export function ParticleCopyButton({
@@ -19,10 +21,10 @@ export function ParticleCopyButton({
   }, [status])
   return (
     <div className="nodrag nopan flex items-center gap-2">
-      <Button
+      <Button color="secondary"
         type="button"
-        size="sm"
-        variant="secondary"
+        size="md"
+        variant="soft"
         className="rounded-full"
         onClick={async () => {
           try {

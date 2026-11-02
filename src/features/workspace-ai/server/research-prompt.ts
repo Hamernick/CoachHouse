@@ -47,10 +47,10 @@ export function researchPrompt(context: ResearchContext, request: Pick<ResearchR
   if (!plan || !note) throw new Error("Planning outputs unavailable.")
   const forms = researchFormOutputsEnabled()
   const dataViews = researchDataViewOutputsEnabled()
-  assertResearchCapabilities(catalog, forms, dataViews)
+  assertResearchCapabilities(catalog, forms, dataViews,Boolean(context.dataViewSources?.length))
   const outputs = { version: catalog.version, binding: "plan_proposal", capabilities: [plan.id, note.id],
     ...(forms ? { additionalCapabilities: ["workspace_form"], formMode: "new_private_draft", maxFormQuestions: 50 } : {}),
-    ...(dataViews ? { dataViewCapability: "project_data_view", dataViewSource: "projects", dataViewMode: "default_view_of_existing_source" } : {}),
+    ...(dataViews ? { dataViewCapability: "project_data_view", dataViewSource: "projects", dataViewMode: "default_view_of_existing_source", availableSavedViews:(context.dataViewSources??[]).map(source=>({sourceViewId:source.viewId,kind:source.source.kind,title:source.sourceTitle,name:source.name})) } : {}),
     unavailable: [...(forms ? [] : ["form_creation"]), "data_table_creation", ...(dataViews ? [] : ["data_view_creation"]), "publishing", "sending", "calendar_booking"], maxItems: 12 }
   return JSON.stringify({ outputs, task: request.prompt, objective: researchContextProjection(context, request.target), skill: researchSkills[request.skill] })
 }

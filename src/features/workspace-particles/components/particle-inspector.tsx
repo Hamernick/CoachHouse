@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input, ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+
 import { WorkspaceDataViewsPanel } from "@/features/workspace-data-views"
 import { OrganizationFormSourceSharing, useFormSourceAccess } from "@/features/organization-forms/client"
 import { getParticleNotes, workspaceNoteDocuments } from "../lib/particle-notes"
@@ -11,9 +13,7 @@ import XIcon from "lucide-react/dist/esm/icons/x"
 import CopyIcon from "lucide-react/dist/esm/icons/copy"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -49,7 +49,7 @@ const DocumentFileWindow = dynamic(() => import("@/features/document-editing/cli
 
 export function ParticleInspector(props: Parameters<typeof ParticleMetadataInspector>[0]) {
   if (props.particle.type === "activity" && props.particle.data.widget?.kind === "data_view") return <section className="flex min-w-0 flex-col">
-    <ParticleEditorHeader title={props.particle.title} actions={<Button variant="ghost" size="icon" aria-label="Close data view" onClick={props.onClose}><XIcon aria-hidden /></Button>} />
+    <ParticleEditorHeader title={props.particle.title} actions={<Button color="secondary" uniform variant="ghost" size="lg" aria-label="Close data view" onClick={props.onClose}><XIcon aria-hidden /></Button>} />
     <div className="p-3"><WorkspaceDataViewsPanel organizationId={props.particle.workspaceId} viewId={props.particle.data.widget.viewId} editable={props.editable} onDirtyChange={props.onDirtyChange} /></div>
   </section>
   const note = getParticleNotes(props.particle)
@@ -147,9 +147,9 @@ function ParticleMetadataInspector({
       className={cn("nodrag nopan nowheel focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset", styles.editor)}
     >
       <ParticleEditorHeader title={particle.title} actions={<>
-            <Button
+            <Button color="secondary" uniform
               variant="ghost"
-              size="icon"
+              size="lg"
               className={PARTICLE_EDITOR_HEADER_ACTION}
               aria-label="Copy Particle"
               onClick={async () => {
@@ -165,9 +165,9 @@ function ParticleMetadataInspector({
             >
               <CopyIcon aria-hidden />
             </Button>
-            <Button
+            <Button color="secondary" uniform
               variant="ghost"
-              size="icon"
+              size="lg"
               className={PARTICLE_EDITOR_HEADER_ACTION}
               aria-label="Close inspector"
               disabled={accessLocked}
@@ -185,9 +185,9 @@ function ParticleMetadataInspector({
       {stale ? (
         <div role="status" className="px-4 py-3 text-sm">
           This Particle changed. Copy your draft or load the latest details.
-          <Button
+          <Button color="secondary"
             variant="outline"
-            size="sm"
+            size="md"
             onClick={() => {
               setDraft(particle)
               setBaseline(particle)
@@ -260,7 +260,7 @@ function ParticleMetadataInspector({
               <FieldGroup className={styles.identity}>
                 <Field>
                   <FieldLabel htmlFor={`${id}-title`}>Title</FieldLabel>
-                  <Input
+                  <Input size="2xl"
                     id={`${id}-title`}
                     name="title"
                     value={draft.title}
@@ -276,7 +276,7 @@ function ParticleMetadataInspector({
                     <FieldLabel htmlFor={`${id}-description`}>
                       Description
                     </FieldLabel>
-                    <Textarea
+                    <Textarea size="2xl"
                       id={`${id}-description`}
                       name="description"
                       className="min-h-36"
@@ -330,7 +330,7 @@ function ParticleMetadataInspector({
           <Separator />
           <div className={styles.footer}>
             <p role="status" className={cn(styles.feedback, message?.error ? "text-destructive" : "text-muted-foreground")}>{message?.text}</p>
-            <Button
+            <Button color="primary" size="lg"
               type="submit"
               disabled={!editable || pending || !dirty || stale}
               className={styles.submit}

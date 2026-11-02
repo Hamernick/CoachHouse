@@ -11,6 +11,7 @@ export function createResearchItemProgress(input: {
   revalidate: () => Promise<boolean>
   isCanceled: () => Promise<boolean>
   evidence: (ids: readonly string[]) => ResearchSource[]
+  allowedDataView?: (source:NonNullable<ResearchItemPreview["dataView"]>)=>boolean
 }) {
   const parse = createResearchItemParser()
   let part: string | undefined, sequence = -1, disabled = false, shown = false
@@ -34,6 +35,7 @@ export function createResearchItemProgress(input: {
         assertResearchOutputAvailability(parsed.items)
         const sources = input.evidence(parsed.items.flatMap(item => [...item.evidenceIds, ...(item.referenceId ? [item.referenceId] : [])]))
         for (const item of parsed.items) {
+          if(item.dataView&&item.dataView.kind!=="projects"&&!input.allowedDataView?.(item.dataView))throw new Error("Unavailable view source.")
           if (item.evidenceIds.some(id => !sources.some(source => source.id === id)) ||
             (item.kind === "reference" ? !sources.some(source => source.kind === "workspace" && source.id === item.referenceId) : item.referenceId !== null))
             throw new Error("Unavailable preview evidence.")

@@ -1,10 +1,12 @@
 "use client"
+
+import { ParticleButton as Button, ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
 import { useState } from "react"
 import { ObjectiveInlineTitle } from "./objective-inline-title"
 import styles from "./objective-timeline.module.css"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+
+
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Pencil, Plus } from "lucide-react"
 import type { ObjectiveStep } from "../island-types"
@@ -24,8 +26,8 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, onRename, on
         <div className="flex min-w-0 items-center gap-1">
           {editing?.id === plan.id ? <ObjectiveInlineTitle key={editing.id} initial={editing.title} pending={pending}
             onSave={title => onRename(editing, title)} onCancel={() => setEditing(null)} /> : <>
-            <CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-9 min-w-0 flex-1 justify-start whitespace-normal rounded-xl px-1 text-left">{plan.title}</Button></CollapsibleTrigger>
-            {canEdit && <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={`Edit ${plan.title} plan`} disabled={pending} onClick={() => setEditing(plan)}><Pencil aria-hidden /></Button>}
+            <CollapsibleTrigger asChild><Button color="secondary" size="lg" variant="ghost" className="h-auto min-h-9 min-w-0 flex-1 justify-start whitespace-normal rounded-xl px-1 text-left">{plan.title}</Button></CollapsibleTrigger>
+            {canEdit && <Button color="secondary" uniform variant="ghost" size="lg" className="size-9 rounded-full" aria-label={`Edit ${plan.title} plan`} disabled={pending} onClick={() => setEditing(plan)}><Pencil aria-hidden /></Button>}
           </>}
         </div>
         <CollapsibleContent><ul aria-label={`${plan.title} plan steps`} className="flex flex-col gap-1 pt-1">{members.map(step => {
@@ -38,9 +40,9 @@ export function ObjectivePlanList({ plans, steps, canEdit, pending, onRename, on
             </>}
             {applicable !== "active" && <span className="text-xs text-muted-foreground">{applicable === "waiting" ? "Awaiting a decision" : "Not selected"}</span>}
           </li>
-        })}</ul>{canEdit && onRevise && <Button variant="ghost" size="sm" className="rounded-full" disabled={pending} onClick={() => onRevise(plan)}>Revise with AI</Button>}</CollapsibleContent>
+        })}</ul>{canEdit && onRevise && <Button color="secondary" variant="ghost" size="md" className="rounded-full" disabled={pending} onClick={() => onRevise(plan)}>Revise with AI</Button>}</CollapsibleContent>
       </Collapsible>
     })}
-    {canEdit && <Button variant="ghost" size="sm" className="w-fit rounded-full" disabled={pending} onClick={onCreate}><Plus data-icon="inline-start" aria-hidden />Add to plan</Button>}
+    {canEdit && <Button color="secondary" variant="ghost" size="md" className="w-fit rounded-full" disabled={pending} onClick={onCreate}><Plus data-icon="inline-start" aria-hidden />Add to plan</Button>}
   </div>
 }

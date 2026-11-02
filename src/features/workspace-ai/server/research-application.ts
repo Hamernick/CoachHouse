@@ -41,7 +41,7 @@ export async function prepareResearchApplication(input: unknown, { prepareSource
   if (!objectiveId) throw new Error("Research objective unavailable.")
   if (!operations.length) return { context, batch: null, runId: run.id, objectiveId, sourceResult: edited }
   const dataViews = edited.items.some(item => item.kind === "data_view")
-  assertResearchCapabilities(undefined, edited.items.some(item => item.kind === "form"), dataViews)
+  assertResearchCapabilities(undefined, edited.items.some(item => item.kind === "form"), dataViews, edited.items.some(item=>item.kind==="data_view"&&item.dataView?.kind!=="projects"))
   assertResearchOutputAvailability(edited.items)
   await assertResearchSourcesAccessible(context, result)
   if (dataViews) {

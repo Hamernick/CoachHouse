@@ -1,11 +1,13 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { useLayoutEffect, useRef, useState } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import ArrowDownIcon from "lucide-react/dist/esm/icons/arrow-down"
 import TrashIcon from "lucide-react/dist/esm/icons/trash-2"
-import { Button } from "@/components/ui/button"
+
 import { cn } from "@/lib/utils"
 import {
   CALENDAR_STATUSES,
@@ -83,7 +85,7 @@ export function ParticleCalendarEditor({
             ({entries.length})
           </span>
         </h3>
-        <Button
+        <Button color="secondary" size="lg"
           type="button"
           variant="outline"
           className="min-h-11 rounded-xl"
@@ -118,7 +120,7 @@ export function ParticleCalendarEditor({
             {entries
               .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
               .map((entry) => (
-                <Button
+                <Button color="secondary" size="lg"
                   key={entry.id}
                   type="button"
                   variant="ghost"
@@ -147,7 +149,7 @@ export function ParticleCalendarEditor({
           </div>
           {pages > 1 ? (
             <div className="flex items-center justify-between gap-2 text-xs">
-              <Button
+              <Button color="secondary" size="lg"
                 type="button"
                 variant="ghost"
                 disabled={currentPage === 0}
@@ -158,7 +160,7 @@ export function ParticleCalendarEditor({
               <span>
                 Page {currentPage + 1} of {pages}
               </span>
-              <Button
+              <Button color="secondary" size="lg"
                 type="button"
                 variant="ghost"
                 disabled={currentPage === pages - 1}
@@ -179,7 +181,7 @@ export function ParticleCalendarEditor({
         </p>
       )}
       {removed && !entries.some((entry) => entry.id === removed.id) ? (
-        <Button
+        <Button color="secondary" size="lg"
           type="button"
           variant="ghost"
           disabled={disabled || entries.length >= 250}
@@ -209,11 +211,11 @@ export function ParticleCalendarEditor({
               </h4>
               <div className="flex shrink-0 gap-1">
                 {([-1, 1] as const).map((direction) => (
-                  <Button
+                  <Button color="secondary" uniform
                     key={direction}
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="lg"
                     className="size-11"
                     aria-label={
                       direction === -1
@@ -243,10 +245,10 @@ export function ParticleCalendarEditor({
                     )}
                   </Button>
                 ))}
-                <Button
+                <Button color="secondary" uniform
                   type="button"
                   variant="ghost"
-                  size="icon"
+                  size="lg"
                   className="size-11"
                   disabled={disabled}
                   aria-label="Remove entry"

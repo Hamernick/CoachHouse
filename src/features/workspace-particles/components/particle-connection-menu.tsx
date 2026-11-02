@@ -1,6 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,14 +47,13 @@ export function ParticleConnectionMenu({
       modal={false}
     >
       <DropdownMenuTrigger asChild>
-        <Button
+        <Button color="secondary" size="lg"
           aria-label="Connection actions"
           tabIndex={-1}
           variant="ghost"
           className="pointer-events-none fixed size-px min-h-0 p-0 opacity-0"
-          style={{ left: state.x, top: state.y }}
-
-        />
+          style={{ left: state.x, top: state.y, width: 1, height: 1, minWidth: 0, minHeight: 0 }}
+        >{null}</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"

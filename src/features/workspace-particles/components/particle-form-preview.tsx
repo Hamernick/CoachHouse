@@ -1,6 +1,6 @@
 "use client"
 
-import { Empty } from "@/components/ui/empty"
+import { ParticleEmptyMessage } from "@/components/ui/particle-ui"
 import { FORM_QUESTION_LABELS, type FormDefinition } from "@/features/organization-forms"
 import { useParticleSurface } from "./particle-surface"
 
@@ -10,12 +10,7 @@ export function ParticleFormPreview({ definition, expanded = false }: { definiti
   return (
     <div {...surface()} className="flex min-w-0 flex-col gap-3">
       {questions.length === 0 ? (
-        <Empty
-          {...surface()}
-          title="Create a custom form"
-          description="Add questions and choose how people answer."
-          className="min-h-28 gap-2 border-0 bg-transparent px-2 py-4 shadow-none"
-        />
+        <div {...surface()}><ParticleEmptyMessage className="particle-ui min-h-28 gap-2 border-0 bg-transparent px-2 py-4 shadow-none"><ParticleEmptyMessage.Title>Create a custom form</ParticleEmptyMessage.Title><ParticleEmptyMessage.Description>Add questions and choose how people answer.</ParticleEmptyMessage.Description></ParticleEmptyMessage></div>
       ) : (
         <ol className="flex min-w-0 flex-col gap-3">
           {questions.map((question, index) => (

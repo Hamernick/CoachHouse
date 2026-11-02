@@ -33,12 +33,19 @@ export default defineConfig({
       if (source === "../usage-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "credit-actions.ts")
       if (source === "../limit-actions" && importer?.includes("ai-credits/components/")) return resolve(__dirname, "credit-actions.ts")
       if (source === "../actions" && (importer?.includes("workspace-ai/components/") || importer?.includes("workspace-ai/hooks/"))) return actions
+      if (source === "../research-source-actions" && importer?.includes("workspace-ai/")) return "\0fixture-research-source-actions"
+      if (source === "../source-actions" && importer?.includes("workspace-data-views/")) return "\0fixture-data-view-actions"
+      if (source === "../note-actions" && importer?.includes("workspace-sharing/")) return "\0fixture-note-actions"
       if (source === "../directory-actions" && importer?.includes("workspace-sharing/")) return resolve(__dirname, "sharing-actions.ts")
       if (source === "../access-actions" && importer?.includes("workspace-sharing/")) return resolve(__dirname, "guest-actions.ts")
       if ((source === "../server/actions" || source === "../actions") && importer?.includes("workspace-sharing/")) return resolve(__dirname, "sharing-actions.ts")
       return null
+    }, load(id) {
+      if (id === "\0fixture-research-source-actions") return 'export async function readWorkspaceResearchSourceEffects(){throw new Error("Source receipt outside this controlled fixture")} export async function applyWorkspaceResearchSourceEffects(){throw new Error("Source effects outside this controlled fixture")}'
+      if (id === "\0fixture-data-view-actions") return 'export async function runDataViewCommand(){throw new Error("Data view command outside this controlled fixture")}'
+      if (id === "\0fixture-note-actions") return 'export async function workspacePageNoteAction(){throw new Error("Note operation outside this controlled fixture")}'
     } },
     fixtureServer(),
   ],
-  server: { host: "127.0.0.1", port: 3187, strictPort: true, fs: { allow: [repo] } },
+  server: { host: "127.0.0.1", port: 3187, strictPort: true, watch: null, fs: { allow: [repo] } },
 })

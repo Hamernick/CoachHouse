@@ -1,10 +1,12 @@
 "use client"
+
+import { ParticleButton as Button, ParticleButton, ParticleMenu } from "@/components/ui/particle-ui"
 import { useRef, useState } from "react"
 import { toast } from "@/lib/toast"
 import { MoreHorizontal, Check, X, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ParticleButton, ParticleMenu } from "@/components/ui/particle-ui"
+
 import { summarizePlanWork, isParticleWork, particlePlanBranchStates, particlePlanBranchLabel, PARTICLE_DRAG_MIME, readParticleDrag, type ParticlePlan, type ParticlePlanProposal, type Particle } from "@/features/workspace-particles/client"
 import { PlanParticlePicker } from "./plan-particle-picker"
 import { PlanMemberResponsibility } from "./plan-member-responsibility"
@@ -93,8 +95,8 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const selected = plan.particleIds.includes(focusedId ?? "")
   return <Collapsible data-selected={selected} data-proposal={Boolean(proposal)} open={open} onOpenChange={setOpen} className={`${styles.plan} ${proposal ? styles.proposal : ""}`}>
     <div className={`${styles.planHeader} flex min-h-8 min-w-0 items-center gap-1 [@media(pointer:coarse)]:min-h-11`}>
-      {rename ? <ObjectiveInlineTitle initial={plan.title} pending={controls.pending} onCancel={() => { setRename(false); requestAnimationFrame(() => optionsRef.current?.focus({ preventScroll: true })) }} onSave={title => save({ ...plan, title })} /> : <CollapsibleTrigger asChild><Button variant="ghost" className="h-auto min-h-8 min-w-0 flex-1 justify-start whitespace-normal rounded-md px-2 py-1 has-[>svg]:px-2 text-left [@media(pointer:coarse)]:min-h-11"><ChevronRight aria-hidden className={`size-[18px] shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /><span className="min-w-0 break-words">{plan.title}{proposal && <span className={styles.reviewLabel}>Proposed</span>}</span></Button></CollapsibleTrigger>}
-      {proposal && actions.owner && <><Button size="icon" variant="ghost" className="size-9 rounded-full text-emerald-600 [@media(pointer:coarse)]:size-11" aria-label={`Accept ${plan.title}`} disabled={controls.pending || Boolean(stale) || Boolean(unchanged)} onClick={() => review("accepted")}><Check aria-hidden /></Button><Button size="icon" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Reject ${plan.title}`} disabled={controls.pending} onClick={() => review("rejected")}><X aria-hidden /></Button></>}
+      {rename ? <ObjectiveInlineTitle initial={plan.title} pending={controls.pending} onCancel={() => { setRename(false); requestAnimationFrame(() => optionsRef.current?.focus({ preventScroll: true })) }} onSave={title => save({ ...plan, title })} /> : <CollapsibleTrigger asChild><Button color="secondary" size="lg" variant="ghost" className="h-auto min-h-8 min-w-0 flex-1 justify-start whitespace-normal rounded-md px-2 py-1 has-[>svg]:px-2 text-left [@media(pointer:coarse)]:min-h-11"><ChevronRight aria-hidden className={`size-[18px] shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /><span className="min-w-0 break-words">{plan.title}{proposal && <span className={styles.reviewLabel}>Proposed</span>}</span></Button></CollapsibleTrigger>}
+      {proposal && actions.owner && <><Button color="secondary" uniform size="lg" variant="ghost" className="size-9 rounded-full text-emerald-600 [@media(pointer:coarse)]:size-11" aria-label={`Accept ${plan.title}`} disabled={controls.pending || Boolean(stale) || Boolean(unchanged)} onClick={() => review("accepted")}><Check aria-hidden /></Button><Button color="secondary" uniform size="lg" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Reject ${plan.title}`} disabled={controls.pending} onClick={() => review("rejected")}><X aria-hidden /></Button></>}
       {!controls.error && <ParticleMenu><ParticleMenu.Trigger><ParticleButton ref={optionsRef} color="secondary" size="2xl" uniform pill={false} variant="ghost" className="particle-ui shrink-0" disabled={controls.pending} aria-label={`Options for ${plan.title}`}><MoreHorizontal aria-hidden /></ParticleButton></ParticleMenu.Trigger><ParticleMenu.Content align="end" minWidth={220}>
         <ParticleMenu.Item className="particle-ui-menu" disabled={!walkthrough || !plan.particleIds.length} onSelect={() => walkthrough.start({ workspaceId: objective.workspaceId, objectiveId: objective.id, planId: plan.id, ...(proposal ? { proposalId: proposal.id } : {}) }, optionsRef.current)}>Walk through</ParticleMenu.Item>
         {editable && <ParticleMenu.Item className="particle-ui-menu" onSelect={() => setRename(true)}>Rename</ParticleMenu.Item>}

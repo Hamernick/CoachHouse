@@ -1,20 +1,16 @@
 "use client"
 
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useId } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import ArrowDownIcon from "lucide-react/dist/esm/icons/arrow-down"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+
 import { Field, FieldLabel } from "@/components/ui/field"
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select"
+import { ParticleSelect } from "@/components/ui/particle-ui"
 import type { DecisionBranchReference } from "../lib/particle-decision"
 import {
   createDecisionOutcome,
@@ -57,10 +53,10 @@ export function ParticleDecisionEditor({
           <h3 id={`${id}-outcomes`} className="text-sm font-medium">
             Outcomes
           </h3>
-          <Button
+          <Button color="secondary"
             type="button"
             variant="outline"
-            size="sm"
+            size="md"
             aria-label="Add outcome"
             disabled={disabled || particle.data.outcomes.length >= 12}
             onClick={() =>
@@ -96,7 +92,7 @@ export function ParticleDecisionEditor({
                 <FieldLabel htmlFor={`${id}-${outcome.id}`}>
                   Outcome {index + 1}
                 </FieldLabel>
-                <Input
+                <Input size="2xl"
                   id={`${id}-${outcome.id}`}
                   value={outcome.label}
                   required
@@ -118,10 +114,10 @@ export function ParticleDecisionEditor({
                 />
               </Field>
               <div className="flex items-center justify-end gap-1">
-                <Button
+                <Button color="secondary" uniform
                   type="button"
                   variant="ghost"
-                  size="icon"
+                  size="lg"
                   aria-label={`Move outcome ${index + 1} up`}
                   disabled={disabled || index === 0}
                   onClick={() =>
@@ -132,10 +128,10 @@ export function ParticleDecisionEditor({
                 >
                   <ArrowUpIcon aria-hidden />
                 </Button>
-                <Button
+                <Button color="secondary" uniform
                   type="button"
                   variant="ghost"
-                  size="icon"
+                  size="lg"
                   aria-label={`Move outcome ${index + 1} down`}
                   disabled={
                     disabled || index === particle.data.outcomes.length - 1
@@ -148,10 +144,10 @@ export function ParticleDecisionEditor({
                 >
                   <ArrowDownIcon aria-hidden />
                 </Button>
-                <Button
+                <Button color="secondary" uniform
                   type="button"
                   variant="ghost"
-                  size="icon"
+                  size="lg"
                   aria-label={`Remove outcome ${index + 1}`}
                   aria-describedby={
                     reason ? `${id}-${outcome.id}-reason` : undefined
@@ -181,28 +177,18 @@ export function ParticleDecisionEditor({
       <Field {...surface()}>
         <FieldLabel htmlFor={`${id}-result`}>Selected outcome</FieldLabel>
         <div className="flex items-center gap-2">
-          <Select
-            value={particle.data.selectedOutcome ?? ""}
-            disabled={disabled}
-            onValueChange={(value) =>
-              onChange(selectDecisionOutcome(particle, value))
-            }
-          >
-            <SelectTrigger id={`${id}-result`} className="min-w-0 flex-1">
-              <SelectValue placeholder="Not decided" />
-            </SelectTrigger>
-            <SelectContent>
+          <ParticleSelect value={particle.data.selectedOutcome ?? ""} disabled={disabled} onChange={event => { const value = event.target.value; return (onChange(selectDecisionOutcome(particle, value))); }} id={`${id}-result`} className="min-w-0 flex-1">
+<option value="" disabled>Not decided</option>
               {particle.data.outcomes.map((outcome) => (
-                <SelectItem key={outcome.id} value={outcome.id}>
+                <option key={outcome.id} value={outcome.id}>
                   {outcome.label || "Untitled outcome"}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-          <Button
+            </ParticleSelect>
+          <Button color="secondary"
             type="button"
             variant="ghost"
-            size="sm"
+            size="md"
             disabled={disabled || particle.data.selectedOutcome === null}
             onClick={() => onChange(selectDecisionOutcome(particle, null))}
           >

@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react"
 import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { WorkspaceWindowHeaderPortal, WORKSPACE_HEADER_BUTTON } from "@/components/workspace/workspace-window-header-slots"
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
+import { ParticleAlertDialogCancel as AlertDialogCancel, ParticleAlertDialogAction as AlertDialogAction } from "@/components/ui/particle-ui"
 
 export function SharePageHeader({ dirty = false, locked = false, onBack, actions }: {
   dirty?: boolean; locked?: boolean; onBack: () => void; actions?: ReactNode
@@ -15,7 +15,7 @@ export function SharePageHeader({ dirty = false, locked = false, onBack, actions
       <div className="flex min-w-0 items-center gap-1">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="size-7 rounded-full shadow-none transition-none [@media(pointer:coarse)]:size-11"
+            <Button color="primary" type="button" variant="ghost" size="lg" uniform className="size-7 rounded-full shadow-none transition-none [@media(pointer:coarse)]:size-11"
               aria-label="Back to Particle" disabled={locked} onClick={(event) => { if (!dirty) { event.preventDefault(); onBack() } }}>
               <ArrowLeftIcon aria-hidden />
             </Button>

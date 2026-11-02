@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { researchHistorySchema, researchResultSchema } from "../research-types"
+import { researchProcessingSchema } from "./research-processing"
 
 // Only a validated, durable success can expose a proposal. Progress and terminal
 // failure are never substitutes for a saved result or an application receipt.
@@ -8,6 +9,7 @@ export const researchSnapshotSchema = z.strictObject({
   id: z.uuid(),
   status: researchHistorySchema.element.shape.status,
   credits: z.number().nonnegative().nullable(),
+  processing: researchProcessingSchema.optional(),
   result: researchResultSchema.nullable(),
   appliedObjectiveId: z.uuid().optional(),
   // A run has one immutable saved result. Preview revision zero is never durable;

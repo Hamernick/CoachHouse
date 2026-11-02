@@ -1,11 +1,13 @@
 "use client"
+
+import { ParticleButton as Button, ParticleInput as Input } from "@/components/ui/particle-ui"
 import { ParticleProgressFields } from "./particle-progress-fields"
 
 import { useId } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+
 import { Field, FieldGroup, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field"
 import { replaceParticleSteps } from "../lib/particle-editing"
 import type { Particle } from "../types"
@@ -34,7 +36,7 @@ export function ParticleWorkFields({
               <FieldLabel htmlFor={`${id}-${field}`}>
                 {field === "current" ? "Current" : "Target"}
               </FieldLabel>
-              <Input
+              <Input size="2xl"
                 id={`${id}-${field}`}
                 type="number"
                 min={0}
@@ -58,7 +60,7 @@ export function ParticleWorkFields({
           ))}
           <Field className="col-span-2">
             <FieldLabel htmlFor={`${id}-unit`}>Unit</FieldLabel>
-            <Input
+            <Input size="2xl"
               id={`${id}-unit`}
               value={draft.data.unit}
               disabled={!editable}
@@ -80,7 +82,7 @@ export function ParticleWorkFields({
           <FieldLegend>Checklist</FieldLegend>
           {draft.data.steps.map((step, index) => (
             <div key={step.id} className="flex items-center gap-2">
-              <Input
+              <Input size="2xl"
                 aria-label={`Step ${index + 1}`}
                 value={step.title}
                 disabled={!editable}
@@ -98,10 +100,10 @@ export function ParticleWorkFields({
                   )
                 }
               />
-              <Button
+              <Button color="secondary" uniform
                 type="button"
                 variant="ghost"
-                size="icon"
+                size="lg"
                 className={styles.rowAction}
                 disabled={!editable}
                 aria-label={`Remove step ${index + 1}`}
@@ -118,10 +120,10 @@ export function ParticleWorkFields({
               </Button>
             </div>
           ))}
-          <Button
+          <Button color="secondary"
             type="button"
             variant="outline"
-            size="sm"
+            size="md"
             disabled={!editable || draft.data.steps.length >= 200}
             onClick={() =>
               setDraft(

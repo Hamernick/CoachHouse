@@ -1,8 +1,8 @@
 "use client"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { DataViewSelect, DataViewOption } from "./data-view-select"
 import type { DataColumn, DataViewConfig } from "../lib/schema"
 
@@ -18,9 +18,9 @@ export function DataViewSettings({ columns, initial, revision, pending, onSave, 
       <DataViewSelect aria-label="Sort direction" value={draft.sort.direction} onChange={event => change({ ...draft, sort: { ...draft.sort, direction: event.target.value as "asc" | "desc" } })}><DataViewOption value="asc">Ascending</DataViewOption><DataViewOption value="desc">Descending</DataViewOption></DataViewSelect>
     </div>
     <div className="flex flex-wrap gap-2"><DataViewSelect aria-label="Filter column" value={draft.filter?.column ?? "none"} onChange={event => change({ ...draft, filter: event.target.value === "none" ? null : { column: event.target.value, value: draft.filter?.value ?? "" } })}><DataViewOption value="none">No filter</DataViewOption>{columns.filter(column => column.queryable !== false).map(column => <DataViewOption key={column.key} value={column.key}>{column.label} contains</DataViewOption>)}</DataViewSelect>
-      {draft.filter && <Input aria-label="Filter contains" className="min-w-24 flex-1" value={draft.filter.value} maxLength={120} onChange={event => change({ ...draft, filter: { column: draft.filter!.column, value: event.target.value } })} />}
+      {draft.filter && <Input size="2xl" aria-label="Filter contains" className="min-w-24 flex-1" value={draft.filter.value} maxLength={120} onChange={event => change({ ...draft, filter: { column: draft.filter!.column, value: event.target.value } })} />}
     </div>
-    {baseRevision !== revision && <div role="status" className="text-xs">Saved settings changed: {initial.columns.map(key => columns.find(column => column.key === key)?.label).join(", ")}; {initial.sort.column} {initial.sort.direction}; filter {initial.filter ? `${initial.filter.column} contains ${initial.filter.value}` : "none"}. Your settings draft is preserved.<Button type="button" variant="link" onClick={() => setBaseRevision(revision)}>Use latest view revision</Button></div>}
-    <Button type="submit" disabled={pending}>Save view settings</Button>
+    {baseRevision !== revision && <div role="status" className="text-xs">Saved settings changed: {initial.columns.map(key => columns.find(column => column.key === key)?.label).join(", ")}; {initial.sort.column} {initial.sort.direction}; filter {initial.filter ? `${initial.filter.column} contains ${initial.filter.value}` : "none"}. Your settings draft is preserved.<Button size="lg" color="primary" type="button" variant="ghost" onClick={() => setBaseRevision(revision)}>Use latest view revision</Button></div>}
+    <Button size="lg" color="primary" type="submit" className="h-auto min-h-9 max-w-full whitespace-normal" disabled={pending}>Save view settings</Button>
   </form>
 }

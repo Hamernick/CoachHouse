@@ -8,16 +8,17 @@ import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
 import MoreIcon from "lucide-react/dist/esm/icons/ellipsis"
 import CopyIcon from "lucide-react/dist/esm/icons/copy"
 import LockIcon from "lucide-react/dist/esm/icons/lock"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ParticleBadge as Badge } from "@/components/ui/particle-ui"
+import { ParticleAlert as Alert } from "@/components/ui/particle-ui"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { ParticleSelect as Select } from "@/components/ui/particle-ui"
+import { ParticleMenu as Menu } from "@/components/ui/particle-ui"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog"
+import { ParticleAlertDialogCancel as AlertDialogCancel, ParticleAlertDialogAction as AlertDialogAction } from "@/components/ui/particle-ui"
 import { useWorkspaceEditorStatus } from "@/components/workspace/workspace-editor-status"
 
 import { loadWorkspacePageEditorAction } from "../actions"
@@ -63,7 +64,7 @@ export function WorkspaceSharePanel({ workspaceId, canvasId = null, particleId, 
     }} />
   return <div className="flex flex-col gap-3 p-3">
     <SharePageHeader onBack={back} />
-    {error ? <Alert variant="destructive"><AlertDescription>{error}<Button type="button" variant="outline" size="sm" className="mt-2 w-fit rounded-full" onClick={() => setRequest((value) => ({ ...value, key: value.key + 1 }))}>Retry</Button></AlertDescription></Alert>
+    {error ? <Alert color="danger" description={error} actions={<Button color="primary" type="button" variant="outline" size="md" className="mt-2 w-fit rounded-full" onClick={() => setRequest((value) => ({ ...value, key: value.key + 1 }))}>Retry</Button>} />
       : <div role="status" aria-label="Loading Share" className="flex flex-col gap-3"><Skeleton className="h-9 rounded-xl motion-reduce:animate-none" /><Skeleton className="h-28 rounded-xl motion-reduce:animate-none" /><Skeleton className="h-44 rounded-3xl motion-reduce:animate-none" /></div>}
   </div>
 }
@@ -109,46 +110,46 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
     ref={region} tabIndex={-1} aria-label="Share page" className="nodrag nopan nowheel focus-ring flex min-h-0 min-w-0 flex-col" aria-busy={state.pending}>
     <SharePageHeader dirty={dirty} locked={locked} onBack={onBack} actions={<>
       {state.preview ? <>
-        <Button type="button" variant="ghost" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={(event) => { event.preventDefault(); editor.edit() }}>Edit</Button>
-        <Button type="button" variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={() => void editor.write("share_with_guests")}>Share privately</Button>
-        <Button type="button" className={SHARE_HEADER_BUTTON} disabled={locked || !data.publishingEnabled} onClick={() => void editor.write("publish")}>{editor.activeAction === "publish" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}{currentPage?.visibility === "public" ? "Update" : "Publish"}</Button>
+        <Button size="lg" color="primary" type="button" variant="ghost" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={(event) => { event.preventDefault(); editor.edit() }}>Edit</Button>
+        <Button size="lg" color="primary" type="button" variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={() => void editor.write("share_with_guests")}>Share privately</Button>
+        <Button size="lg" color="primary" type="button" className={SHARE_HEADER_BUTTON} disabled={locked || !data.publishingEnabled} onClick={() => void editor.write("publish")}>{editor.activeAction === "publish" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}{currentPage?.visibility === "public" ? "Update" : "Publish"}</Button>
       </> : <>
-        <Button type="submit" form={id} variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked}>{editor.activeAction === "review" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}Preview</Button>
+        <Button size="lg" color="primary" type="submit" form={id} variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked}>{editor.activeAction === "review" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}Preview</Button>
       </>}
-      <DropdownMenu key="page-actions"><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="Page actions" className="size-7 rounded-full shadow-none [@media(pointer:coarse)]:size-11" disabled={locked}>{editor.activeAction === "save_draft" ? <LoaderIcon className="animate-spin motion-reduce:animate-none" aria-hidden /> : <MoreIcon aria-hidden />}</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="rounded-2xl shadow-none"><DropdownMenuGroup>
-        <DropdownMenuItem className={MENU_ITEM} disabled={Boolean(currentPage && !dirty)} onSelect={() => void editor.write("save_draft")}>Save draft</DropdownMenuItem>
-        {publicPath && <><DropdownMenuItem className={MENU_ITEM} onSelect={() => void copyLink()}><CopyIcon aria-hidden />Copy link</DropdownMenuItem>
-        <DropdownMenuItem className={MENU_ITEM} onSelect={() => { setCopyNotice(null); void editor.write("make_private") }}><LockIcon aria-hidden />Make Private</DropdownMenuItem></>}
-      </DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
+      <Menu key="page-actions" modal><Menu.Trigger disabled={locked}><Button color="primary" type="button" variant="ghost" size="lg" uniform aria-label="Page actions" className="size-7 rounded-full shadow-none [@media(pointer:coarse)]:size-11" disabled={locked}>{editor.activeAction === "save_draft" ? <LoaderIcon className="animate-spin motion-reduce:animate-none" aria-hidden /> : <MoreIcon aria-hidden />}</Button></Menu.Trigger><Menu.Content align="end" minWidth={180}><div className="particle-ui particle-ui-menu">
+        <Menu.Item className={MENU_ITEM} disabled={Boolean(currentPage && !dirty)} onSelect={() => void editor.write("save_draft")}>Save draft</Menu.Item>
+        {publicPath && <><Menu.Item className={MENU_ITEM} onSelect={() => void copyLink()}><CopyIcon aria-hidden />Copy link</Menu.Item>
+        <Menu.Item className={MENU_ITEM} onSelect={() => { setCopyNotice(null); void editor.write("make_private") }}><LockIcon aria-hidden />Make Private</Menu.Item></>}
+      </div></Menu.Content></Menu>
     </>} />
     <div className="flex flex-col gap-3 p-3">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <Field className="min-w-0 flex-1"><FieldLabel htmlFor={`${id}-page`} className="sr-only">Recent pages</FieldLabel><Select value={currentPage?.id ?? "new"} onValueChange={choose} disabled={locked}>
-          <SelectTrigger id={`${id}-page`} className="w-full [@media(pointer:coarse)]:min-h-11"><SelectValue placeholder="New page" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="new">New page</SelectItem>
-            {currentPage && !data.pages.some((page) => page.id === currentPage.id) && <SelectItem value={currentPage.id}>{currentPage.draft.title || "Untitled page"}</SelectItem>}
-            {data.pages.map((page) => <SelectItem key={page.id} value={page.id}>{page.id === currentPage?.id ? currentPage.draft.title || "Untitled page" : page.title || "Untitled page"}</SelectItem>)}
-          </SelectGroup></SelectContent>
+        <Field className="min-w-0 flex-1"><FieldLabel htmlFor={`${id}-page`} className="sr-only">Recent pages</FieldLabel><Select id={`${id}-page`} className="w-full [@media(pointer:coarse)]:min-h-11" value={currentPage?.id ?? "new"} onChange={event => (choose)(event.target.value)} disabled={locked}><option value="" disabled>New page</option>
+          <option value="new">New page</option>
+            {currentPage && !data.pages.some((page) => page.id === currentPage.id) && <option value={currentPage.id}>{currentPage.draft.title || "Untitled page"}</option>}
+            {data.pages.map((page) => <option key={page.id} value={page.id}>{page.id === currentPage?.id ? currentPage.draft.title || "Untitled page" : page.title || "Untitled page"}</option>)}
+
         </Select></Field>
         <Badge variant="outline" className="shrink-0 rounded-full">{currentPage?.visibility === "public" ? "Public" : "Private"}</Badge>
       </div>
       {!data.publishingEnabled && <p className="text-muted-foreground text-xs">Public sharing is unavailable. You can save a private draft.</p>}
-      {currentPage?.guestSharingReady && <><Button type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked || dirty} aria-expanded={peopleOpen} aria-controls={`${id}-people`} onClick={() => setPeopleOpen(!peopleOpen)}>People</Button>
+      {currentPage?.guestSharingReady && <><Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked || dirty} aria-expanded={peopleOpen} aria-controls={`${id}-people`} onClick={() => setPeopleOpen(!peopleOpen)}>People</Button>
         {peopleOpen && <div id={`${id}-people`}><PageAccessManager key={currentPage.id} pageId={currentPage.id} onLockChange={setAccessLocked} /></div>}</>}
       {publicPath && <a href={publicPath} target="_blank" rel="noopener noreferrer" className="focus-ring text-muted-foreground inline-flex min-h-7 w-fit items-center rounded-md text-xs underline underline-offset-4 [@media(pointer:coarse)]:min-h-11">Open public page</a>}
       {copyNotice && <p className="text-muted-foreground text-xs" role="status">{copyNotice}</p>}
       {currentPage && <>
-        <Button type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked} aria-expanded={responsesOpen} onClick={() => setResponsesOpen(!responsesOpen)}>Responses</Button>
+        <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked} aria-expanded={responsesOpen} onClick={() => setResponsesOpen(!responsesOpen)}>Responses</Button>
         {responsesOpen && <OrganizationFormResponseBrowser key={currentPage.id} pageId={currentPage.id} onLockChange={setResponseLocked} />}
       </>}
       {state.preview?.snapshot.items.some((item) => item.content.kind === "form") && <p className="text-muted-foreground text-xs">Sharing enables these forms to receive private responses in Coach House. Only the primary form manager can publish. Form collaborators can review responses according to their access. Page access does not grant response access.</p>}
-      {state.error && <Alert ref={errorRegion} tabIndex={-1} variant="destructive" id={`${id}-error`} className="focus-ring rounded-2xl"><AlertDescription>{state.error}<Button type="button" variant="outline" size="sm" className="mt-2 w-fit rounded-full" disabled={state.pending} onClick={() => state.uncertain ? void editor.retry() : choose(currentPage?.id ?? "new")}>{state.uncertain ? "Retry save" : "Reload saved page"}</Button></AlertDescription></Alert>}
+      {state.error && <Alert ref={errorRegion} tabIndex={-1} color="danger" id={`${id}-error`} className="focus-ring rounded-2xl" description={state.error} actions={<Button color="primary" type="button" variant="outline" size="md" className="mt-2 w-fit rounded-full" disabled={state.pending} onClick={() => state.uncertain ? void editor.retry() : choose(currentPage?.id ?? "new")}>{state.uncertain ? "Retry save" : "Reload saved page"}</Button>} />}
       <p className="sr-only" role="status" aria-live="polite">{state.pending ? "Saving or preparing preview…" : state.notice ?? ""}</p>
     </div>
     <motion.div key={state.preview ? "preview" : "edit"} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduce ? 0 : 0.15 }} className="min-w-0">
       {state.preview ? <Preview snapshot={state.preview.snapshot} imagePreviews={state.preview.imagePreviews} documentPreviews={state.preview.documentPreviews} embedded /> : <form id={id} className="flex min-w-0 flex-col gap-4 px-3 pb-4" onSubmit={(event) => { event.preventDefault(); void editor.review() }} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); void editor.review() } }}>
         <FieldGroup>
-          <Field data-invalid={state.field === "title"}><FieldLabel htmlFor={`${id}-title`} className="sr-only">Page title</FieldLabel><Input id={`${id}-title`} name="page-title" placeholder="Name this page…" value={state.draft.title} disabled={locked} aria-invalid={state.field === "title"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, title: event.target.value })} /></Field>
-          <Field data-invalid={state.field === "description"}><FieldLabel htmlFor={`${id}-description`} className="sr-only">Description</FieldLabel><Textarea id={`${id}-description`} name="page-description" className="min-h-28" placeholder="Add an introduction…" value={state.draft.description} disabled={locked} aria-invalid={state.field === "description"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, description: event.target.value })} /></Field>
+          <Field data-invalid={state.field === "title"}><FieldLabel htmlFor={`${id}-title`} className="sr-only">Page title</FieldLabel><Input size="2xl" id={`${id}-title`} name="page-title" placeholder="Name this page…" value={state.draft.title} disabled={locked} aria-invalid={state.field === "title"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, title: event.target.value })} /></Field>
+          <Field data-invalid={state.field === "description"}><FieldLabel htmlFor={`${id}-description`} className="sr-only">Description</FieldLabel><Textarea size="2xl" id={`${id}-description`} name="page-description" className="min-h-28" placeholder="Add an introduction…" value={state.draft.description} disabled={locked} aria-invalid={state.field === "description"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, description: event.target.value })} /></Field>
         </FieldGroup>
         <SharePageMembers choices={data.choices} selected={state.draft.particleIds} disabled={locked} invalid={state.field === "particleIds"} errorId={state.error ? `${id}-error` : undefined} onToggle={editor.toggle} onMove={editor.move} onReorder={editor.reorder} />
       </form>}

@@ -1,9 +1,9 @@
 "use client"
 
 import { memo } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+import { ParticleSelect as Select } from "@/components/ui/particle-ui"
 import { Label } from "@/components/ui/label"
 import {
   FORM_ANSWER_LIMITS,
@@ -52,19 +52,15 @@ export const OrganizationFormAnswerField = memo(
         ) : question.type === "dropdown" ? (
           <>
             <Label htmlFor={id} className={styles.label}>{label}</Label>
-            <Select
+            <Select id={id} {...accessibility} className={`${styles.input} w-full min-w-0`}
               value={typeof value === "string" ? value : ""}
-              onValueChange={(next) => change(next === "__empty__" ? "" : next)}
-            >
-              <SelectTrigger id={id} {...accessibility} className={`${styles.input} w-full min-w-0`}>
-                <SelectValue placeholder="Choose an option…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__empty__">No selection</SelectItem>
+              onChange={event => ((next: string) => change(next === "__empty__" ? "" : next))(event.target.value)}
+            ><option value="" disabled>Choose an option…</option>
+                <option value="__empty__">No selection</option>
                 {question.options.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                  <option key={option.id} value={option.id}>{option.label}</option>
                 ))}
-              </SelectContent>
+
             </Select>
           </>
         ) : question.type === "single_choice" || question.type === "multiple_choice" ? (
@@ -75,7 +71,7 @@ export const OrganizationFormAnswerField = memo(
               {label}
             </Label>
             {question.type === "paragraph" ? (
-              <Textarea
+              <Textarea size="2xl"
                 id={id}
                 name={question.id}
                 {...accessibility}
@@ -86,7 +82,7 @@ export const OrganizationFormAnswerField = memo(
                 onChange={(event) => change(event.target.value)}
               />
             ) : (
-              <Input
+              <Input size="2xl"
                 id={id}
                 name={question.id}
                 {...accessibility}

@@ -1,18 +1,10 @@
 "use client"
 
+import { ParticleButton as Button, ParticleAlertDialogAction as AlertDialogAction, ParticleAlertDialogCancel as AlertDialogCancel } from "@/components/ui/particle-ui"
+
 import ArrowLeftIcon from "lucide-react/dist/esm/icons/arrow-left"
-import { Button } from "@/components/ui/button"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { PARTICLE_EDITOR_HEADER_ACTION } from "./particle-editor-header"
 
 /** In-app discard guard; Radix owns focus, Escape and return to the Back button. */
@@ -28,10 +20,10 @@ export function ParticleDraftBackButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
+        <Button color="secondary" uniform
           type="button"
           variant="ghost"
-          size="icon"
+          size="lg"
           className={PARTICLE_EDITOR_HEADER_ACTION}
           aria-label="Back to Particles"
           disabled={pending}

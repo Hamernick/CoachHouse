@@ -2,8 +2,7 @@
 
 import { knowledgePersonFieldLabels } from "../lib/knowledge-person-fields"
 import { FileText, Globe } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ParticleButton as Button, ParticleButtonLink, ParticlePopover as Popover } from "@/components/ui/particle-ui"
 import type { KnowledgeEvidence, ResearchSource } from "../research-types"
 
 const scopeLabels: Record<KnowledgeEvidence["scope"], string> = {
@@ -33,14 +32,14 @@ export function ResearchSources({ sources }: { sources: ResearchSource[] }) {
       const Icon = source.kind === "web" ? Globe : FileText
       return <li key={source.id} className="min-w-0 max-w-full">
         <Popover>
-          <PopoverTrigger asChild>
-            <Button type="button" variant="secondary" aria-label={`Source details: ${title}`} className="h-auto min-h-8 max-w-full gap-2 rounded-full px-3 py-1.5 text-xs font-normal [@media(pointer:coarse)]:min-h-11">
+          <Popover.Trigger>
+            <Button color="secondary" type="button" variant="soft" aria-label={`Source details: ${title}`} className="h-auto min-h-8 max-w-full gap-2 rounded-full px-3 py-1.5 text-xs font-normal [@media(pointer:coarse)]:min-h-11">
               <Icon aria-hidden="true" className="size-3.5 shrink-0" />
               <span className="min-w-0 max-w-40 truncate">{title}</span>
               <span className="shrink-0 text-muted-foreground">{status.label}</span>
             </Button>
-          </PopoverTrigger>
-          <PopoverContent aria-label={`Source details: ${title}`} align="start" collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)] space-y-3 rounded-xl text-sm motion-reduce:animate-none">
+          </Popover.Trigger>
+          <Popover.Content align="start" width={320} minWidth={0} className="particle-ui max-w-[calc(100vw-1.5rem)] text-sm motion-reduce:animate-none"><section aria-label={`Source details: ${title}`} className="space-y-3">
             <p className="break-words font-medium">{title}</p>
             <div className="space-y-1">
               <p className="font-medium">{status.label}</p>
@@ -50,10 +49,8 @@ export function ResearchSources({ sources }: { sources: ResearchSource[] }) {
                 <p className="text-xs text-muted-foreground">Coverage recorded <time dateTime={source.evidence.checkedAt}>{new Date(source.evidence.checkedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</time></p>
               </>}
             </div>
-            <Button asChild variant="outline" size="sm" className="[@media(pointer:coarse)]:min-h-11">
-              <a href={source.href} target={source.kind === "web" ? "_blank" : undefined} rel="noreferrer">Open source{source.kind === "web" && <span className="sr-only"> in a new tab</span>}</a>
-            </Button>
-          </PopoverContent>
+            <ParticleButtonLink color="secondary" variant="outline" size="2xl" href={source.href} target={source.kind === "web" ? "_blank" : undefined} rel="noreferrer">Open source{source.kind === "web" && <span className="sr-only"> in a new tab</span>}</ParticleButtonLink>
+          </section></Popover.Content>
         </Popover>
       </li>
     })}

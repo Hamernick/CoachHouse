@@ -1,12 +1,14 @@
 "use client"
 
+import { ParticleButton as Button, ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+
 import { ParticleObjectiveProgress } from "./particle-objective-progress"
 import type { ObjectiveProgress } from "../lib/particle-progress"
 import { particlePreviewLimit } from "../lib/particle-registry"
 import { useParticleSurface } from "./particle-surface"
 import { ParticleWidgetPreview } from "./particle-widget-preview"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+
+
 import type { Particle } from "../types"
 import { getParticleProgress } from "../lib/particle-registry"
 import { replaceParticleSteps } from "../lib/particle-editing"
@@ -168,16 +170,16 @@ function DecisionPreview({ particle, onEdit, editable, expanded }: ParticlePrevi
       ) : null}
       <div className="flex flex-wrap gap-2">
         {particle.data.outcomes.map((outcome) => (
-          <Button
+          <Button color="primary"
             type="button"
             key={outcome.id}
             {...surface()}
             variant={
               outcome.id === particle.data.selectedOutcome
-                ? "secondary"
+                ? "soft"
                 : "outline"
             }
-            size="sm"
+            size="md"
             className="nodrag nopan min-h-11 md:min-h-8"
             aria-pressed={outcome.id === particle.data.selectedOutcome}
             disabled={!editable}

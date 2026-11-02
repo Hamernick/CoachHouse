@@ -32,6 +32,10 @@ describe.skipIf(!origin)("Particle dependencies in actual Next", () => {
     await fixture.getByLabel("Plan title", { exact: true }).waitFor()
     // SSR controls can precede hydration; wait for the actual stream listener.
     await page.locator("section[data-progress-ready=true]").waitFor()
+    // Independently loaded SDK CSS must retain its component layer after the
+    // app reset is loaded by Next, not only in isolated Vite fixtures.
+    expect(await fixture.getByLabel("Plan title", { exact: true }).evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))).toBeGreaterThan(0)
+    expect(await fixture.getByRole("switch", { name: "Required", exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)")
     // The renderer receives actual canonical artifact shapes; strings are not a mock component.
     await expect.poll(() => fixture.locator('[aria-label="Typed artifact preview"]').innerText()).toContain("Hello neighbors")
     const title = fixture.getByLabel("Item 1 title", { exact: true })

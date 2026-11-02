@@ -76,7 +76,7 @@ export async function runResearchProvider(input: {
     input.onPhase?.(repairUsed ? "repairing" : "planning")
     const stream=await client.responses.create(params,{signal:deadline,headers:{"X-Client-Request-Id":`${input.request.id}:${round}`}})
     let terminal:OpenAI.Responses.Response|null=null
-    const partial=!isPublic && input.onPartial ? createResearchItemProgress({publish:input.onPartial,revalidate,isCanceled,evidence}) : null
+    const partial=!isPublic && input.onPartial ? createResearchItemProgress({publish:input.onPartial,revalidate,isCanceled,evidence,allowedDataView:source=>source.kind==="projects"||Boolean(input.context.dataViewSources?.some(value=>value.viewId===source.sourceViewId&&value.source.kind===source.kind&&value.canCreate))}) : null
     try {
     for await(const event of stream) {
       if(event.type==="response.created") {responseId=event.response.id;await input.onResponse(responseId)}
@@ -131,7 +131,7 @@ export async function runResearchProvider(input: {
         const decisions=new Map(input.context.graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[]))
         repairIssue="relationships"
         const bound=bindResearch(text,evidence(ids),input.request.target,input.request.id,decisions)
-        const candidate={...bound,...(bound.items.some(item=>item.kind==="data_view")?{outputBindings:createResearchOutputBindings(bound.items,randomUUID)}:{})}
+        const candidate={...bound,...(bound.items.some(item=>item.kind==="data_view")?{outputBindings:createResearchOutputBindings(bound.items,randomUUID,input.context.dataViewSources)}:{})}
         assertResearchOutputAvailability(candidate.items)
         // Validate the full merged plan before a change proposal can be billed as successful.
         repairIssue="plan"

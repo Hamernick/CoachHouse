@@ -1,12 +1,14 @@
 "use client"
+
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { useState, type ReactNode } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useReducedMotion } from "motion/react"
 import { MoreHorizontal } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
 import { HoverRevealText } from "@/components/ui/hover-reveal-text"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu"
+import { ParticleMenu } from "@/components/ui/particle-ui"
 import { PARTICLE_DRAG_MIME, isParticleWork, getParticleCapabilities, type Particle, type PlanBranchState } from "@/features/workspace-particles/client"
 import { ParticleStatusMark, ParticleStatusLabel } from "./particle-status"
 import { ObjectiveStatusMenu } from "./objective-status-menu"
@@ -35,23 +37,23 @@ export function PlanParticleRow({ particle, controls, canOrganize, onRemove, onM
   return <li ref={sortable.setNodeRef} style={{ transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, opacity: sortable.isDragging ? 0.35 : 1 }} className={styles.member} data-plan-member={particle.id} data-selected={selected} data-branch-state={branchState} onDragOver={event => { if (canDrag && event.dataTransfer.types.includes(PARTICLE_DRAG_MIME)) event.preventDefault() }}
     onDrop={event => { event.preventDefault(); event.stopPropagation(); if (canDrag) onDrop(event.dataTransfer.getData(PARTICLE_DRAG_MIME)) }}>
     <div className={styles.memberRow}>
-      {rename ? <ObjectiveInlineTitle initial={particle.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...particle, title })} /> : <Button
+      {rename ? <ObjectiveInlineTitle initial={particle.title} pending={controls.pending} onCancel={() => setRename(false)} onSave={title => controls.edit({ ...particle, title })} /> : <Button color="secondary" size="lg"
         ref={sortable.setActivatorNodeRef} {...(canDrag ? sortable.attributes : {})} {...sortable.listeners}
         title={particle.title} variant="ghost" className={`${styles.memberButton} touch-manipulation select-none ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} h-auto min-h-10 min-w-0 flex-1 justify-start gap-2 whitespace-normal rounded-xl px-2 text-left [@media(pointer:coarse)]:min-h-11`}
         aria-pressed={sortable.isDragging || selected}
         onClick={() => { if (!sortable.isDragging) controls.focusCanvas(particle.id) }}>
         <ParticleStatusMark particle={particle} /><span className="min-w-0 flex-1 overflow-hidden"><HoverRevealText label={particle.title} />{optional && <span className="block text-xs font-normal text-muted-foreground">Optional</span>}{branchLabel && <span className="block text-xs font-normal text-muted-foreground">If {branchLabel}</span>}</span>{branchState && branchState !== "active" ? <span data-branch-state-label className="shrink-0 pl-2 text-xs font-normal text-muted-foreground">{branchState === "waiting" ? "Needs decision" : "Not selected"}</span> : <ParticleStatusLabel particle={particle} visuallyHidden />}
       </Button>}
-      {controls.canEdit && !controls.error && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${particle.title}`}><MoreHorizontal aria-hidden /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {workspaceNote && <DropdownMenuItem onSelect={() => controls.select(particle.id)}>{shared ? "Edit shared note…" : "Edit note…"}</DropdownMenuItem>}
-          <DropdownMenuItem onSelect={() => setRename(true)}>{shared ? "Rename everywhere…" : "Rename"}</DropdownMenuItem>
+      {controls.canEdit && !controls.error && <ParticleMenu modal><ParticleMenu.Trigger ><Button color="secondary" uniform variant="ghost" size="lg" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${particle.title}`}><MoreHorizontal aria-hidden /></Button></ParticleMenu.Trigger>
+        <ParticleMenu.Content minWidth={0} width={224} align="end">
+          {workspaceNote && <ParticleMenu.Item onSelect={() => controls.select(particle.id)}>{shared ? "Edit shared note…" : "Edit note…"}</ParticleMenu.Item>}
+          <ParticleMenu.Item onSelect={() => setRename(true)}>{shared ? "Rename everywhere…" : "Rename"}</ParticleMenu.Item>
           {isParticleWork(particle) && !("source" in particle.data && particle.data.source) && <ObjectiveStatusMenu value={particle.status} completionLabel="Done" disabled={controls.pending || particle.locked} onChange={status => void controls.edit({ ...particle, status })} />}
-          {canOrganize && onOptional && <DropdownMenuCheckboxItem checked={!optional} onCheckedChange={required => onOptional(!required)}>Required work</DropdownMenuCheckboxItem>}
-          {canOrganize && Boolean(conditions?.length) && <DropdownMenuSub><DropdownMenuSubTrigger>Branch</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-h-64 overflow-y-auto">{conditions?.map(condition=><DropdownMenuCheckboxItem key={`${condition.source}:${condition.outcome}`} checked={condition.selected} onCheckedChange={selected=>onCondition?.(condition.source,condition.outcome,selected)}>{condition.label}</DropdownMenuCheckboxItem>)}</DropdownMenuSubContent></DropdownMenuSub>}
-          {canOrganize && <><DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}>Move up</DropdownMenuItem><DropdownMenuItem disabled={last} onSelect={() => onMove(1)}>Move down</DropdownMenuItem><DropdownMenuItem onSelect={onRemove}>Remove from plan</DropdownMenuItem></>}
-        </DropdownMenuContent>
-      </DropdownMenu>}
+          {canOrganize && onOptional && <ParticleMenu.CheckboxItem checked={!optional} onCheckedChange={required => onOptional(!required)}>Required work</ParticleMenu.CheckboxItem>}
+          {canOrganize && Boolean(conditions?.length) && <ParticleMenu.Sub><ParticleMenu.SubTrigger>Branch</ParticleMenu.SubTrigger><ParticleMenu.SubContent minWidth={0} width={224} maxHeight={256}>{conditions?.map(condition=><ParticleMenu.CheckboxItem key={`${condition.source}:${condition.outcome}`} checked={condition.selected} onCheckedChange={selected=>onCondition?.(condition.source,condition.outcome,selected)}>{condition.label}</ParticleMenu.CheckboxItem>)}</ParticleMenu.SubContent></ParticleMenu.Sub>}
+          {canOrganize && <><ParticleMenu.Item disabled={first} onSelect={() => onMove(-1)}>Move up</ParticleMenu.Item><ParticleMenu.Item disabled={last} onSelect={() => onMove(1)}>Move down</ParticleMenu.Item><ParticleMenu.Item onSelect={onRemove}>Remove from plan</ParticleMenu.Item></>}
+        </ParticleMenu.Content>
+      </ParticleMenu>}
     </div>
     {responsibility && <div className="pl-7">{responsibility}</div>}
   </li>

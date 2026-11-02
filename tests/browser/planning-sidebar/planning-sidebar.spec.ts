@@ -3,6 +3,7 @@ import { build } from "vite"
 import tailwindcss from "@tailwindcss/postcss"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import particleUiFoundation from "../../../src/components/ui/particle-ui/postcss.cjs"
 
 let script = "", css = ""
 test.beforeAll(async () => {
@@ -33,7 +34,7 @@ test.beforeAll(async () => {
         return `import {callFixtureAction} from ${JSON.stringify(resolve(__dirname, "action-mocks.ts"))};\n` + names.map(name => `export async function ${name}(input){return callFixtureAction(${JSON.stringify(name)},input)}`).join("\n")
       },
     }],
-    esbuild: { jsx: "automatic" }, css: { postcss: { plugins: [tailwindcss()] } },
+    esbuild: { jsx: "automatic" }, css: { postcss: { plugins: [particleUiFoundation(), tailwindcss()] } },
     define: { "process.env.NODE_ENV": JSON.stringify("development") },
     build: { write: false, minify: false, rollupOptions: { input: resolve(__dirname, "fixture.tsx"), output: { inlineDynamicImports: true } } },
   })
@@ -43,11 +44,21 @@ test.beforeAll(async () => {
     else if (entry.fileName.endsWith(".css")) css += entry.source
   }
 })
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   await page.route("https://planning.test/", route => route.fulfill({ contentType: "text/html", body: '<div id="root"></div>' }))
   await page.goto("https://planning.test/")
+  const nearCap = testInfo.titlePath.includes("near-cap actual source editor")
+  // This source-editor flow does not use the unrelated planning-sidebar setup.
+  // Mount its same 250-record fixture directly, including on actual reload.
+  if (nearCap) {
+    const mobile = testInfo.title.includes("touch reduced motion")
+    await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 })
+    await page.emulateMedia({ reducedMotion: mobile ? "reduce" : "no-preference" })
+    await page.evaluate(() => localStorage.setItem("fixture-near-cap", "1"))
+  }
   await page.addStyleTag({ content: css })
   await page.addScriptTag({ type: "module", content: script })
+  if (nearCap) return
   await expect(page.getByRole("complementary", { name: "Workspace planning" })).toBeVisible()
   const objectives = page.getByRole("button", { name: "Objectives", exact: true })
   await expect(objectives).toHaveAttribute("aria-expanded", "false")
@@ -1238,6 +1249,9 @@ for (const reduced of [false, true]) {
 test("responsibility edits save, reload and preserve drafts on failure", async ({ page }) => {
   await page.getByRole("button", { name: "Show responsibility fixture" }).click()
   await page.getByRole("button", { name: "Assign owner", exact: true }).click()
+  await expect(page.getByRole("combobox", { name: "Search people" })).toBeFocused()
+  await page.keyboard.type("Alex")
+  await expect(page.getByRole("option", { name: "Sam Chen", exact: true })).toHaveCount(0)
   await page.getByRole("option", { name: "Alex Rivera", exact: true }).click()
   await page.getByRole("button", { name: "Add or remove contributors" }).click()
   await page.getByRole("option", { name: "Sam Chen", exact: true }).click()
@@ -1370,8 +1384,7 @@ test("shared assignment rail selects an explicit context, isolates writes and re
   await expect(rail).toContainText("Choose plan")
   await rail.getByRole("button").click()
   await expect(page.getByRole("button", { name: "Assign owner", exact: true })).toHaveCount(0)
-  await page.getByRole("combobox", { name: "Plan context" }).click()
-  await page.getByRole("option", { name: "Workshop / Preparation", exact: true }).click()
+  await page.getByRole("combobox", { name: "Plan context" }).selectOption({ label: "Workshop / Preparation" })
   await page.getByRole("button", { name: "Assign owner", exact: true }).click()
   await page.getByRole("option", { name: "Alex Rivera" }).click()
   await expect(page.getByRole("combobox", { name: "Plan context" })).toBeDisabled()
@@ -1388,8 +1401,7 @@ test("shared assignment rail selects an explicit context, isolates writes and re
   await page.getByRole("button", { name: "Show responsibility fixture" }).click()
   await page.getByRole("button", { name: "Show assignment canvas" }).click()
   await rail.getByRole("button").click()
-  await page.getByRole("combobox", { name: "Plan context" }).click()
-  await page.getByRole("option", { name: "Workshop / Preparation", exact: true }).click()
+  await page.getByRole("combobox", { name: "Plan context" }).selectOption({ label: "Workshop / Preparation" })
   await expect(page.getByRole("button", { name: "Alex Rivera", exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Close", exact: true }).click()
   await page.getByRole("button", { name: "Walk alternative" }).click()
@@ -1404,11 +1416,9 @@ test("shared assignment rail protects drafts and applies proposal-author permiss
   await page.getByRole("button", { name: "Toggle organization owner" }).click()
   const rail = page.locator("[data-particle-assignment-rail]")
   await rail.getByRole("button").click()
-  await page.getByRole("combobox", { name: "Plan context" }).click()
-  await page.getByRole("option", { name: "Workshop / Preparation", exact: true }).click()
+  await page.getByRole("combobox", { name: "Plan context" }).selectOption({ label: "Workshop / Preparation" })
   await expect(page.getByRole("button", { name: "Assign owner", exact: true })).toBeDisabled()
-  await page.getByRole("combobox", { name: "Plan context" }).click()
-  await page.getByRole("option", { name: "Workshop / Alternative · Proposed", exact: true }).click()
+  await page.getByRole("combobox", { name: "Plan context" }).selectOption({ label: "Workshop / Alternative · Proposed" })
   await page.getByRole("button", { name: "Assign owner", exact: true }).click()
   await page.getByRole("option", { name: "Sam Chen" }).click()
   await page.getByRole("button", { name: "Simulate plan change" }).click()
@@ -1437,8 +1447,7 @@ test("shared assignment rail protects drafts and applies proposal-author permiss
 test("progress modes save, reload and render separate work and time without completing the objective", async ({ page }) => {
   await page.evaluate(() => localStorage.setItem("progress-fixture", "true"))
   await page.getByRole("button", { name: "Show responsibility fixture" }).click()
-  await page.getByRole("combobox", { name: "Measure progress" }).click()
-  await page.getByRole("option", { name: "Work and time", exact: true }).click()
+  await page.getByRole("combobox", { name: "Measure progress" }).selectOption({ label: "Work and time" })
   await page.getByLabel("Start", { exact: true }).fill("2026-01-01T09:00")
   await page.getByLabel("End", { exact: true }).fill("2026-01-02T09:00")
   await page.getByRole("button", { name: "Save changes", exact: true }).click()
@@ -1453,9 +1462,8 @@ test("progress modes save, reload and render separate work and time without comp
   await page.reload()
   await page.addStyleTag({ content: css }); await page.addScriptTag({ type: "module", content: script })
   await page.getByRole("button", { name: "Show responsibility fixture" }).click()
-  await expect(page.getByRole("combobox", { name: "Measure progress" })).toContainText("Work and time")
-  await page.getByRole("combobox", { name: "Measure progress" }).click()
-  await page.getByRole("option", { name: "Ongoing", exact: true }).click()
+  await expect(page.getByRole("combobox", { name: "Measure progress" })).toHaveValue("both")
+  await page.getByRole("combobox", { name: "Measure progress" }).selectOption({ label: "Ongoing" })
   await page.getByRole("button", { name: "Save changes", exact: true }).click()
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("responsibility-graph") ?? "null")?.particles[0].data.progress?.mode)).toBe("ongoing")
   await page.getByRole("button", { name: "Show assignment canvas" }).click()
@@ -1469,12 +1477,11 @@ test("progress mode edits preserve failed drafts and disable non-owner controls"
   await page.getByRole("button", { name: "Toggle organization owner" }).click()
   await expect(page.getByRole("combobox", { name: "Measure progress" })).toBeDisabled()
   await page.getByRole("button", { name: "Toggle organization owner" }).click()
-  await page.getByRole("combobox", { name: "Measure progress" }).click()
-  await page.getByRole("option", { name: "Ongoing", exact: true }).click()
+  await page.getByRole("combobox", { name: "Measure progress" }).selectOption({ label: "Ongoing" })
   await page.getByRole("button", { name: "Toggle connection failure" }).click()
   await page.getByRole("button", { name: "Save changes", exact: true }).click()
   await expect(page.getByTestId("responsibility-state")).toContainText('"dirty":true')
-  await expect(page.getByRole("combobox", { name: "Measure progress" })).toContainText("Ongoing")
+  await expect(page.getByRole("combobox", { name: "Measure progress" })).toHaveValue("ongoing")
   expect(await page.evaluate(() => localStorage.getItem("responsibility-graph"))).toBeNull()
   await page.getByRole("button", { name: "Toggle connection failure" }).click()
   await page.getByRole("button", { name: "Retry save", exact: true }).click()
@@ -1504,10 +1511,6 @@ test.describe("near-cap actual source editor", () => {
   test.use({ hasTouch: true })
   for (const mobile of [false, true]) {
     test(`250 records retain draft, conflict and failed-save recovery (${mobile ? "touch reduced motion" : "keyboard"})`, async ({ page }) => {
-      await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1400, height: 1000 })
-      await page.emulateMedia({ reducedMotion: mobile ? "reduce" : "no-preference" })
-      await page.evaluate(() => localStorage.setItem("fixture-near-cap", "1"))
-      await page.getByRole("button", { name: "Show expansion fixture", exact: true }).click()
       const state = page.getByTestId("inspection-state")
       await expect(state).toContainText('"count":250')
       const open = page.getByRole("button", { name: "Open dirty editor", exact: true })
@@ -1539,7 +1542,6 @@ test.describe("near-cap actual source editor", () => {
       await page.reload()
       await page.addStyleTag({ content: css })
       await page.addScriptTag({ type: "module", content: script })
-      await page.getByRole("button", { name: "Show expansion fixture", exact: true }).click()
       await expect(page.getByTestId("inspection-state")).toContainText('"title":"Recovered near-cap edit"')
       await expect(page.getByTestId("inspection-state")).toContainText('"count":250')
     })

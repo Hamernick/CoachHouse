@@ -1,18 +1,11 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+import { ParticleTextarea as Textarea } from "@/components/ui/particle-ui"
+import { ParticleSwitch as Switch } from "@/components/ui/particle-ui"
+import { ParticleSelect as Select } from "@/components/ui/particle-ui"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import ArrowDownIcon from "lucide-react/dist/esm/icons/arrow-down"
 import CopyIcon from "lucide-react/dist/esm/icons/copy"
@@ -58,7 +51,7 @@ export function OrganizationFormQuestionEditor({
         <FieldLabel htmlFor={`${id}-label`} className="sr-only">
           Question {index + 1} label
         </FieldLabel>
-        <Input
+        <Input size="2xl"
           id={`${id}-label`}
           autoFocus={autoFocus}
           value={question.label}
@@ -75,27 +68,20 @@ export function OrganizationFormQuestionEditor({
           <FieldLabel className="sr-only" htmlFor={`${id}-type`}>
             Question {index + 1} type
           </FieldLabel>
-          <Select
+          <Select id={`${id}-type`} className={styles.pill}
             value={question.type}
             disabled={disabled}
-            onValueChange={(value) => {
+            onChange={event => ((value: string) => {
               const parsed = formQuestionTypeSchema.safeParse(value)
               if (parsed.success)
                 onChange(changeFormQuestionType(question, parsed.data))
-            }}
+            })(event.target.value)}
           >
-            <SelectTrigger id={`${id}-type`} className={styles.pill}>
-              <SelectValue>{FORM_QUESTION_LABELS[question.type]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
                 {FORM_QUESTION_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
+                  <option key={type} value={type}>
                     {FORM_QUESTION_LABELS[type]}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectGroup>
-            </SelectContent>
           </Select>
         </Field>
         <Field orientation="horizontal" className={styles.required}>
@@ -113,7 +99,7 @@ export function OrganizationFormQuestionEditor({
       {"options" in question && (
         <Field>
           <FieldLabel htmlFor={`${id}-options`}>Options</FieldLabel>
-          <Textarea
+          <Textarea size="2xl"
             id={`${id}-options`}
             disabled={disabled}
             value={question.options.join("\n")}
@@ -133,14 +119,14 @@ export function OrganizationFormQuestionEditor({
         </Field>
       )}
       <div className={styles.actions}>
-        <Button type="button" size="icon" variant="ghost" className={styles.iconAction}
+        <Button color="primary" type="button" size="lg" uniform variant="ghost" className={styles.iconAction}
           aria-label={`Duplicate question ${index + 1}`}
           disabled={disabled || definition.questions.length >= 50} onClick={onDuplicate}>
           <CopyIcon aria-hidden />
         </Button>
-        <Button
+        <Button color="primary"
           type="button"
-          size="icon"
+          size="lg" uniform
           variant="ghost"
           className={styles.iconAction}
           aria-label={`Move question ${index + 1} up`}
@@ -151,9 +137,9 @@ export function OrganizationFormQuestionEditor({
         >
           <ArrowUpIcon aria-hidden />
         </Button>
-        <Button
+        <Button color="primary"
           type="button"
-          size="icon"
+          size="lg" uniform
           variant="ghost"
           className={styles.iconAction}
           aria-label={`Move question ${index + 1} down`}
@@ -164,9 +150,9 @@ export function OrganizationFormQuestionEditor({
         >
           <ArrowDownIcon aria-hidden />
         </Button>
-        <Button
+        <Button color="primary"
           type="button"
-          size="icon"
+          size="lg" uniform
           variant="ghost"
           className={styles.iconAction}
           aria-label={`Remove question ${index + 1}`}

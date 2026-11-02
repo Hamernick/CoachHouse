@@ -7,8 +7,8 @@ import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import ChevronDownIcon from "lucide-react/dist/esm/icons/chevron-down"
 import EyeIcon from "lucide-react/dist/esm/icons/eye"
 
-import { Empty } from "@/components/ui/empty"
-import { Button } from "@/components/ui/button"
+import { ParticleEmptyMessage as EmptyMessage } from "@/components/ui/particle-ui"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
 import {
   CollapsibleContent,
   CollapsibleTrigger,
@@ -80,10 +80,10 @@ export function OrganizationFormBuilder({
 
     >
       <div className={styles.toolbar}>
-        <Button
+        <Button color="secondary"
           type="button"
-          variant="secondary"
-          size="sm"
+          variant="soft"
+          size="md"
           className={styles.pill}
           disabled={disabled || preview || definition.questions.length >= 50}
           onClick={() => {
@@ -98,10 +98,10 @@ export function OrganizationFormBuilder({
         >
           <PlusIcon aria-hidden /> Add question
         </Button>
-        {showPreviewControl && <Button
+        {showPreviewControl && <Button color="primary"
             type="button"
             variant="ghost"
-            size="sm"
+            size="md"
             className={styles.pill}
             aria-pressed={preview}
             aria-controls={`${id}-content`}
@@ -127,7 +127,7 @@ export function OrganizationFormBuilder({
             </p>
           )
         ) : definition.questions.length === 0 ? (
-          <Empty title="No questions yet" description="Add your first question to get started." className={styles.empty} />
+          <EmptyMessage className={`particle-ui ${styles.empty}`}><EmptyMessage.Title>No questions yet</EmptyMessage.Title><EmptyMessage.Description>Add your first question to get started.</EmptyMessage.Description></EmptyMessage>
         ) : (
           <FormQuestionList definition={definition} disabled={disabled} onChange={onChange}>
             {definition.questions.map((question, index) => (
@@ -143,11 +143,12 @@ export function OrganizationFormBuilder({
                 <div className={styles.questionHeader}>
                 {handle}
                 <CollapsibleTrigger asChild>
-                  <Button
+                  <Button size="lg" color="primary"
                     type="button"
                     variant="ghost"
                     className={styles.questionTrigger}
                   >
+                    <span className={styles.questionSummary}>
                     <span className="text-muted-foreground w-4 shrink-0 text-xs tabular-nums">{index + 1}</span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
                       <span className="truncate font-medium">{question.label.trim() || `Question ${index + 1}`}</span>
@@ -159,6 +160,7 @@ export function OrganizationFormBuilder({
                       </span>
                     )}
                     <ChevronDownIcon className="transition-transform duration-150 motion-reduce:transition-none" style={{ transform: expanded === question.id ? "rotate(180deg)" : undefined }} aria-hidden />
+                    </span>
                   </Button>
                 </CollapsibleTrigger>
                 </div>

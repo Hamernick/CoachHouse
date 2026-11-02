@@ -1,9 +1,11 @@
 "use client"
 
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useId } from "react"
-import { Input } from "@/components/ui/input"
+
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { ParticleSelect } from "@/components/ui/particle-ui"
 import { DEFAULT_PROGRESS, type ParticleProgressConfig } from "../lib/particle-progress"
 import type { Particle } from "../types"
 
@@ -21,16 +23,17 @@ export function ParticleProgressFields({ particle, disabled, onChange }: {
   const set = (next: Partial<ParticleProgressConfig>) => onChange({ ...particle, data: { ...particle.data, progress: { ...value, ...next } } })
   return <FieldGroup>
     <Field><FieldLabel htmlFor={`${id}-mode`}>Measure progress</FieldLabel>
-      <Select value={value.mode} disabled={disabled} onValueChange={mode => {
+      <ParticleSelect value={value.mode} disabled={disabled} onChange={event => { const mode = event.target.value;
         if (mode === "work" || mode === "time" || mode === "both" || mode === "ongoing") set({ mode })
-      }}><SelectTrigger id={`${id}-mode`}><SelectValue /></SelectTrigger><SelectContent>
-        <SelectItem value="work">Work</SelectItem><SelectItem value="time">Time</SelectItem>
-        <SelectItem value="both">Work and time</SelectItem><SelectItem value="ongoing">Ongoing</SelectItem>
-      </SelectContent></Select>
+       }} id={`${id}-mode`}>
+<option value="" disabled>Choose…</option>
+        <option value="work">Work</option><option value="time">Time</option>
+        <option value="both">Work and time</option><option value="ongoing">Ongoing</option>
+      </ParticleSelect>
     </Field>
     {(value.mode === "time" || value.mode === "both") && <div className="grid gap-3 sm:grid-cols-2">
       {(["startsAt", "endsAt"] as const).map(key => <Field key={key}><FieldLabel htmlFor={`${id}-${key}`}>{key === "startsAt" ? "Start" : "End"}</FieldLabel>
-        <Input id={`${id}-${key}`} type="datetime-local" disabled={disabled} value={localDate(value[key])} onChange={event => {
+        <Input size="2xl" id={`${id}-${key}`} type="datetime-local" disabled={disabled} value={localDate(value[key])} onChange={event => {
           const raw = event.target.value
           if (!raw) set({ [key]: null })
           else if (Number.isFinite(new Date(raw).getTime())) set({ [key]: new Date(raw).toISOString() })

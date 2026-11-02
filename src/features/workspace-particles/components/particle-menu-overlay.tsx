@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import EllipsisIcon from "lucide-react/dist/esm/icons/ellipsis"
-import { Button } from "@/components/ui/button"
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -56,11 +58,11 @@ export function ParticleMenuOverlay({
         }}
       >
         <DropdownMenuTrigger asChild>
-          <Button
+          <Button color="secondary" uniform
             {...surface()}
             type="button"
-            variant="secondary"
-            size="icon"
+            variant="soft"
+            size="lg"
             aria-label={`Actions for ${title}`}
             className="size-8 rounded-full border shadow-none transition-none [@media(hover:none)]:size-11"
           >

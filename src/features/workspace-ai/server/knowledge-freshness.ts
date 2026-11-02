@@ -1,4 +1,5 @@
 import "server-only"
+import { researchDataViewFingerprint, assertResearchDataViewSources } from "./research-data-view-sources"
 import { knowledgePersonFieldFingerprint } from "./knowledge-person"
 import type { KnowledgePersonField } from "../lib/knowledge-person-fields"
 import { KnowledgeChangedError } from "./knowledge-failure"
@@ -41,6 +42,7 @@ export function createKnowledgeFreshness(initial: ResearchContext, signal?: Abor
     context,
     dependencies() {
       return researchDependenciesSchema.parse({ version: 1, contextFingerprint,
+        ...(initial.dataViewSources?.length ? {dataViews:initial.dataViewSources.map(value=>({viewId:value.viewId,fingerprint:researchDataViewFingerprint(value)}))}:{}),
         records: [...observed.values()].map(({ record, detail, contactFields }) => ({
           id: record.id, kind: record.kind, fingerprint: knowledgeFingerprint(record),
           ...(detail ? { detailFingerprint: knowledgeFingerprint(detail) } : {}),
@@ -68,6 +70,7 @@ export function createKnowledgeFreshness(initial: ResearchContext, signal?: Abor
     async revalidate() {
       try {
         const current = await context(), load = knowledgeLoader(current)
+        await assertResearchDataViewSources(current,(initial.dataViewSources??[]).map(value=>({viewId:value.viewId,fingerprint:researchDataViewFingerprint(value)})))
         const entries = [...observed.values()]
         // Profile reads coalesce inside this fresh loader; source reads are bounded.
         for (let index = 0; index < entries.length; index += 4) {

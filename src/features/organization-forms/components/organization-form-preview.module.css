@@ -41,15 +41,10 @@
   color: var(--accent-foreground);
 }
 .input {
-  border-radius: 999px;
-  background: var(--background);
-  box-shadow: none;
+  min-width: 0;
 }
 .textarea {
   min-height: 7rem;
-  border-radius: 1rem;
-  background: var(--background);
-  box-shadow: none;
 }
 .actions {
   display: flex;
@@ -57,9 +52,6 @@
   align-items: center;
   gap: 0.75rem;
   padding-top: 0.5rem;
-}
-.check {
-  border-radius: 999px;
 }
 @media (pointer: coarse), (max-width: 640px) {
   .input,

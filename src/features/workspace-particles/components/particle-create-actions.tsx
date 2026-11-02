@@ -1,8 +1,10 @@
 "use client"
 
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+
 import TargetIcon from "lucide-react/dist/esm/icons/target"
 import CheckSquareIcon from "lucide-react/dist/esm/icons/square-check"
-import { Button } from "@/components/ui/button"
+
 
 import { PARTICLE_CREATE_TYPES } from "../lib/particle-command"
 import { particleRegistry } from "../lib/particle-registry"
@@ -31,7 +33,7 @@ export function ParticleCreateActions({
       {PARTICLE_CREATE_TYPES.map((type) => {
         const Icon = ICONS[type]
         return (
-          <Button
+          <Button color="secondary" size="lg"
             key={type}
             type="button"
             variant="ghost"

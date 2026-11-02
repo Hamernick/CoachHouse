@@ -1,9 +1,9 @@
 "use client"
 import { useEffect, useId, useRef, useState } from "react"
 import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleSelect as Select } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { formViewerListSchema, formViewerReceiptSchema } from "../lib/form-viewer-access"
 import type { FormViewerCommand } from "../lib/form-viewer-access"
@@ -53,7 +53,7 @@ export function OrganizationFormViewerInvitations({ versionId, disabled, onLockC
     } finally { busy.current = false; setPending(false) }
   }
   return <Collapsible open={open} onOpenChange={(value) => { if (!locked) setOpen(value) }} className="border-t pt-3">
-    <CollapsibleTrigger asChild><Button type="button" variant="ghost" className="min-h-11 w-full justify-start rounded-xl" disabled={disabled || locked}>Invited response collaborators</Button></CollapsibleTrigger>
+    <CollapsibleTrigger asChild><Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 w-full justify-start rounded-xl" disabled={disabled || locked}>Invited response collaborators</Button></CollapsibleTrigger>
     <CollapsibleContent className="space-y-3 pt-3">
       <p className="text-muted-foreground text-xs">View reads responses. Edit changes the form and corrects answers. Manage also invites View/Edit collaborators. No workspace access, publication or removal rights. Recipients accept within seven days. No email is sent. Reinviting requires acceptance again.</p>
       {data && <p className="text-muted-foreground text-xs">{data.canGrantManage
@@ -64,23 +64,23 @@ export function OrganizationFormViewerInvitations({ versionId, disabled, onLockC
         if (data && !locked && (responsePermission !== "manage" || data.canGrantManage)) void change({ action: "invite_viewer", versionId, email: email.trim(), responsePermission, expectedRevision: data.revision, operationId: crypto.randomUUID() })
       }}>
         <label htmlFor={id} className="text-xs">Invitee email</label>
-        <Input id={id} type="email" autoComplete="off" required maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-11" disabled={disabled || locked || !data} />
+        <Input size="2xl" id={id} type="email" autoComplete="off" required maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-11" disabled={disabled || locked || !data} />
         <label htmlFor={`${id}-permission`} className="text-xs">Response access</label>
-        <Select value={responsePermission} onValueChange={(value) => { if (value === "view" || value === "correct" || value === "edit" || (value === "manage" && data?.canGrantManage)) setResponsePermission(value) }} disabled={disabled || locked || !data}>
-          <SelectTrigger id={`${id}-permission`} className="min-h-11 w-full"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="view">View responses</SelectItem><SelectItem value="correct">Correct responses</SelectItem><SelectItem value="edit">Edit form and responses</SelectItem>{data?.canGrantManage && <SelectItem value="manage">Manage form access</SelectItem>}</SelectContent>
+        <Select id={`${id}-permission`} className="min-h-11 w-full" value={responsePermission} onChange={event => ((value: string) => { if (value === "view" || value === "correct" || value === "edit" || (value === "manage" && data?.canGrantManage)) setResponsePermission(value) })(event.target.value)} disabled={disabled || locked || !data}>
+
+          <option value="view">View responses</option><option value="correct">Correct responses</option><option value="edit">Edit form and responses</option>{data?.canGrantManage && <option value="manage">Manage form access</option>}
         </Select>
-        <Button type="submit" variant="outline" className="min-h-11 rounded-xl" disabled={disabled || locked || !data || !email.trim() || (responsePermission === "manage" && !data.canGrantManage)}>Create response invitation</Button>
+        <Button size="lg" color="primary" type="submit" variant="outline" className="min-h-11 rounded-xl" disabled={disabled || locked || !data || !email.trim() || (responsePermission === "manage" && !data.canGrantManage)}>Create response invitation</Button>
       </form>
       {notice && <p role="status" className="text-sm">{notice}</p>}
       {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       {!data && !error && <p role="status" className="text-muted-foreground text-sm">Loading invitations…</p>}
-      {retry ? <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => void change(retry)}>Retry invitation change</Button>
-        : error && <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => setReload((value) => value + 1)}>Reload invitations</Button>}
+      {retry ? <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => void change(retry)}>Retry invitation change</Button>
+        : error && <Button size="lg" color="primary" type="button" variant="outline" className="min-h-11 rounded-xl" disabled={pending || disabled} onClick={() => setReload((value) => value + 1)}>Reload invitations</Button>}
       {data && <OrganizationFormResponseLink forInvitation versionId={versionId} disabled={disabled || locked} />}
       {data?.invitations.map((invitation) => <div key={invitation.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <p className="min-w-0 break-all text-sm">{invitation.email}<span className="text-muted-foreground"> · {invitation.responsePermission === "manage" ? "Manage form access" : invitation.responsePermission === "edit" ? "Edit form and responses" : invitation.responsePermission === "correct" ? "Correct responses" : "View responses"} · {invitation.accepted ? "Accepted" : "Awaiting acceptance"}</span></p>
-        <Button type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Revoke response invitation for ${invitation.email}`}
+        <Button size="lg" color="primary" type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={disabled || locked} aria-label={`Revoke response invitation for ${invitation.email}`}
           onClick={() => void change({ action: "revoke_viewer", versionId, invitationId: invitation.id, operationId: crypto.randomUUID(), expectedRevision: data.revision })}>Revoke</Button>
       </div>)}
       {data?.invitations.length === 0 && <p className="text-muted-foreground text-xs">No invited collaborators.</p>}

@@ -114,8 +114,7 @@ for (const permission of ["view", "correct", "edit", "manage"] as const) test(`p
   await page.getByRole("button", { name: "Invited response collaborators" }).click()
   await page.getByLabel("Invitee email", { exact: true }).fill("external@example.org")
   if (permission !== "view") {
-    await page.getByRole("combobox", { name: "Response access", exact: true }).click()
-    await page.getByRole("option", { name: permission === "manage" ? "Manage form access" : permission === "edit" ? "Edit form and responses" : "Correct responses", exact: true }).click()
+    await page.getByRole("combobox", { name: "Response access", exact: true }).selectOption({ label: permission === "manage" ? "Manage form access" : permission === "edit" ? "Edit form and responses" : "Correct responses" })
   }
   await page.getByRole("button", { name: "Create response invitation" }).click()
   await expect(page.getByRole("combobox", { name: "Response access", exact: true })).toBeDisabled()

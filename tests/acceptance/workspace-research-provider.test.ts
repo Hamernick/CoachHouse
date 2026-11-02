@@ -151,7 +151,7 @@ it("quotes workspace-only research without requiring or charging unavailable sea
   expect(quote.maxSearchCalls).toBe(0)
   expect(quote.maxCost).toBe(1) // ceil((60,000 + 4,500) / 1,000,000)
   expect(quote.maxCredits).toBe(1)
-  expect(quote.tariff.version).toBe("test-research-v14-public-brief")
+  expect(quote.tariff.version).toMatch(/^private-[a-f0-9]{40}$/)
   vi.stubEnv("WORKSPACE_AI_RESEARCH_TOOL_PRICES",'{"webSearchMicrodollarsPerCall":100000}')
   expect(researchConfig()).toEqual(quote)
 })

@@ -1,9 +1,9 @@
 "use client"
 import { useEffect, useState } from "react"
 import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleCheckbox as Checkbox } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { DataViewSelect, DataViewOption } from "./data-view-select"
 import { runDataViewCommand } from "../source-actions"
@@ -54,18 +54,18 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
         <DataViewOption value="import">Import a CSV copy…</DataViewOption>
         {tables.map(table => <DataViewOption key={table.id} value={table.id}>{table.name}</DataViewOption>)}
       </DataViewSelect></Field>
-      <Field><FieldLabel htmlFor={`${viewId}-name`}>View name</FieldLabel><Input id={`${viewId}-name`} name="view-name" autoComplete="off" required maxLength={100} value={name} onChange={event => setName(event.target.value)} /></Field>
+      <Field><FieldLabel htmlFor={`${viewId}-name`}>View name</FieldLabel><Input size="2xl" id={`${viewId}-name`} name="view-name" autoComplete="off" required maxLength={100} value={name} onChange={event => setName(event.target.value)} /></Field>
     </FieldGroup>
     {source === "sheets" && <DataViewSheetSource value={sheetRange} onChange={setSheetRange} disabled={pending} onError={onError} />}
-    {source === "responses" && <Field><FieldLabel htmlFor={`${viewId}-version`}>Response version ID or response page URL</FieldLabel><Input id={`${viewId}-version`} value={versionId} autoComplete="off" onChange={event => setVersionId(event.target.value)} /><p className="text-muted-foreground text-xs">Only this form’s authorized collaborators can access its answers. Workspace ownership does not grant access.</p></Field>}
+    {source === "responses" && <Field><FieldLabel htmlFor={`${viewId}-version`}>Response version ID or response page URL</FieldLabel><Input size="2xl" id={`${viewId}-version`} value={versionId} autoComplete="off" onChange={event => setVersionId(event.target.value)} /><p className="text-muted-foreground text-xs">Only this form’s authorized collaborators can access its answers. Workspace ownership does not grant access.</p></Field>}
     {source === "new" && <div className="flex flex-col gap-2"><p className="text-muted-foreground text-xs">Declare columns before creating the table.</p>{columns.map((column, index) => <div key={column.key} className="flex flex-wrap gap-2">
-      <Input className="min-w-24 flex-1" aria-label={`Column ${index + 1} name`} value={column.label} maxLength={80} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, label: event.target.value } : item))} />
+      <Input size="2xl" className="min-w-24 flex-1" aria-label={`Column ${index + 1} name`} value={column.label} maxLength={80} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, label: event.target.value } : item))} />
       <DataViewSelect aria-label={`Column ${index + 1} type`} value={column.type} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, type: event.target.value as DataColumn["type"] } : item))}>
         {(["text", "number", "boolean", "date", "select"] as const).map(type => <DataViewOption key={type} value={type}>{type}</DataViewOption>)}
       </DataViewSelect>
-      {column.type === "select" && <Input aria-label={`Column ${index + 1} options, comma separated`} placeholder="First option, second option…" value={column.options.join(",")} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, options: event.target.value.split(",") } : item))} />}
-    </div>)}<Button type="button" variant="outline" disabled={columns.length >= 12 || pending} onClick={() => setColumns(current => [...current, { key: `column_${current.length + 1}`, label: `Column ${current.length + 1}`, type: "text", options: [], writable: true }])}>Add column</Button></div>}
-    {source === "import" && <Field><FieldLabel htmlFor={`${viewId}-file`}>CSV file</FieldLabel><Input id={`${viewId}-file`} type="file" accept=".csv,text/csv" disabled={pending} onChange={async event => {
+      {column.type === "select" && <Input size="2xl" aria-label={`Column ${index + 1} options, comma separated`} placeholder="First option, second option…" value={column.options.join(",")} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, options: event.target.value.split(",") } : item))} />}
+    </div>)}<Button size="lg" color="primary" type="button" variant="outline" disabled={columns.length >= 12 || pending} onClick={() => setColumns(current => [...current, { key: `column_${current.length + 1}`, label: `Column ${current.length + 1}`, type: "text", options: [], writable: true }])}>Add column</Button></div>}
+    {source === "import" && <Field><FieldLabel htmlFor={`${viewId}-file`}>CSV file</FieldLabel><Input size="2xl" id={`${viewId}-file`} type="file" accept=".csv,text/csv" disabled={pending} onChange={async event => {
       const file = event.target.files?.[0]; setImported(null)
       if (!file) return
       try { if (file.size > 1_000_000) throw new Error("Use a CSV smaller than 1 MB."); const parsed = parseDataTableCsv(await file.text()); setColumns(parsed.columns); setImported({ filename: file.name, rows: parsed.rows }) }
@@ -73,6 +73,6 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
     }} />{imported && <p className="text-muted-foreground text-xs">{imported.rows.length} rows · {columns.map(column => column.label).join(", ")}. All imported columns are editable text. The original file stays unchanged.</p>}</Field>}
     {(source === "new" || source === "import") && <label className="flex min-h-11 items-center gap-2 text-sm"><Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} />I approve this workspace’s existing member audience for this table.</label>}
     {source !== "responses" && source !== "sheets" && <p className="text-muted-foreground text-xs">Workspace owners, admins and staff can edit; other authorized workspace members can read. Tables are private. Views share source records, and hiding a column does not change access.</p>}
-    <Button type="submit" disabled={pending}>{pending ? "Creating…" : "Create saved view"}</Button>
+    <Button size="lg" color="primary" type="submit" disabled={pending}>{pending ? "Creating…" : "Create saved view"}</Button>
   </form>
 }

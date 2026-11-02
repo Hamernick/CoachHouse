@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
 import { DataViewSelect, DataViewOption } from "./data-view-select"
 import type { DataColumn } from "../lib/schema"
 import { parseDataCell } from "../lib/import"
@@ -16,16 +16,16 @@ export function DataViewCell({ column, value, revision, writable, pending, canSt
   const [error, setError] = useState<string | null>(null)
   const formatted = value == null ? "Empty" : typeof value === "number" ? value.toLocaleString() : String(value)
   if (!writable || !column.writable) return <span className="text-muted-foreground break-words" title="Read only">{formatted}</span>
-  if (!editing) return <Button variant="ghost" disabled={pending || !canStartEdit} className="h-auto min-h-11 w-full justify-start whitespace-normal text-left" aria-label={`Edit ${column.label}: ${formatted}`} onClick={() => { setDraft(value == null ? "" : String(value)); setBaseRevision(revision); setEditing(true); onDirty(true) }}>{formatted}</Button>
+  if (!editing) return <Button size="lg" color="primary" variant="ghost" disabled={pending || !canStartEdit} className="h-auto min-h-11 w-full justify-start whitespace-normal text-left" aria-label={`Edit ${column.label}: ${formatted}`} onClick={() => { setDraft(value == null ? "" : String(value)); setBaseRevision(revision); setEditing(true); onDirty(true) }}>{formatted}</Button>
   return <form className="flex min-w-44 flex-col gap-2" onSubmit={async event => {
     event.preventDefault(); setError(null)
     try { if (await onSave(parseDataCell(column, draft), baseRevision)) { setEditing(false); onDirty(false) } }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Check the value.") }
   }}>
     {column.type === "select" || column.type === "boolean" ? <DataViewSelect autoFocus aria-label={column.label} value={draft} onChange={event => setDraft(event.target.value)}><DataViewOption value="">Empty</DataViewOption>{(column.type === "boolean" ? ["true", "false"] : column.options).map(option => <DataViewOption key={option} value={option}>{option}</DataViewOption>)}</DataViewSelect>
-      : <Input autoFocus aria-label={column.label} aria-invalid={Boolean(error)} type={column.type === "date" ? "date" : "text"} inputMode={column.type === "number" ? "decimal" : "text"} value={draft} maxLength={4000} onChange={event => setDraft(event.target.value)} />}
-    {baseRevision !== revision && <p className="text-xs" role="status">Source changed. Saved value: {formatted}. Your draft is preserved. <Button type="button" variant="link" onClick={() => setBaseRevision(revision)}>Use latest revision</Button></p>}
+      : <Input size="2xl" autoFocus aria-label={column.label} aria-invalid={Boolean(error)} type={column.type === "date" ? "date" : "text"} inputMode={column.type === "number" ? "decimal" : "text"} value={draft} maxLength={4000} onChange={event => setDraft(event.target.value)} />}
+    {baseRevision !== revision && <p className="text-xs" role="status">Source changed. Saved value: {formatted}. Your draft is preserved. <Button size="lg" color="primary" type="button" variant="ghost" onClick={() => setBaseRevision(revision)}>Use latest revision</Button></p>}
     {error && <p role="alert" className="text-destructive text-xs">{error}</p>}
-    <div className="flex gap-2"><Button size="sm" type="submit" disabled={pending}>Save cell</Button><Button size="sm" type="button" variant="ghost" disabled={pending} onClick={() => { setEditing(false); onDirty(false) }}>Cancel</Button></div>
+    <div className="flex gap-2"><Button color="primary" size="md" type="submit" disabled={pending}>Save cell</Button><Button color="primary" size="md" type="button" variant="ghost" disabled={pending} onClick={() => { setEditing(false); onDirty(false) }}>Cancel</Button></div>
   </form>
 }

@@ -1,9 +1,9 @@
 "use client"
 
+import { ParticleButton as Button, ParticleAlert, ParticleEmptyMessage } from "@/components/ui/particle-ui"
+
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Empty } from "@/components/ui/empty"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+
 import { ParticlePresetEditor } from "./particle-preset-editor"
 import { ParticlePresetGallery } from "./particle-preset-gallery"
 import {
@@ -137,20 +137,13 @@ export function ParticleLibrary({
         <p className="text-muted-foreground text-xs">View only</p>
       ) : null}
       {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {error}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={onRetry}
-            >
+        <div role="alert">
+          <ParticleAlert className="particle-ui" color="danger" description={error} actions={
+            <Button color="secondary" type="button" variant="outline" size="md" disabled={pending} onClick={onRetry}>
               {pending ? "Retrying…" : "Retry"}
             </Button>
-          </AlertDescription>
-        </Alert>
+          } />
+        </div>
       ) : null}
       {workspaceId && onAddPreset && (
         <ParticlePresetGallery
@@ -168,10 +161,10 @@ export function ParticleLibrary({
         <p role="status" className="text-muted-foreground text-xs">
           {images.message}
           {images.canRetry && (
-            <Button
+            <Button color="secondary"
               type="button"
               variant="ghost"
-              size="sm"
+              size="md"
               disabled={images.pending || !canEdit}
               onClick={() => void images.retry()}
             >
@@ -189,24 +182,10 @@ export function ParticleLibrary({
         </ul>
       ) : entries.length === 0 && particles &&
         !(workspaceId && onAddPreset && filterParticlePresets(query).length) ? (
-        <Empty
-          size="sm"
-          className="h-auto shadow-none"
-          title={
-            query.trim()
-              ? "No matches"
-              : particles.length || tools.length
-                ? "No available Particles"
-                : "No Particles yet"
-          }
-          description={
-            query.trim()
-              ? "Try another title or type."
-              : particles.length || tools.length
-                ? undefined
-                : "Add a Particle to start your plan."
-          }
-        />
+        <ParticleEmptyMessage className="particle-ui h-auto">
+          <ParticleEmptyMessage.Title>{query.trim() ? "No matches" : particles.length || tools.length ? "No available Particles" : "No Particles yet"}</ParticleEmptyMessage.Title>
+          {query.trim() || !(particles.length || tools.length) ? <ParticleEmptyMessage.Description>{query.trim() ? "Try another title or type." : "Add a Particle to start your plan."}</ParticleEmptyMessage.Description> : null}
+        </ParticleEmptyMessage>
       ) : null}
     </section>
     </>

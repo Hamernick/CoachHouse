@@ -21,7 +21,7 @@ const itemProps = z.strictObject({
   outcomes: z.array(z.strictObject({ key: z.string().max(48), label: z.string().max(240), next: z.string().max(3000) })).max(12),
 })
 const formProps = itemProps.extend({ definition: formDefinitionSchema })
-const dataViewProps = itemProps.extend({ source: researchDataViewSchema })
+const dataViewProps = itemProps.extend({ source: researchDataViewSchema, sourceName:z.string().max(240).optional() })
 
 /** The manual registry is the capability authority. This catalog only projects
  * its qualified plan/note subset; it contains no source commands or state paths. */
@@ -34,7 +34,7 @@ export const researchRenderCatalog = defineCatalog(schema, { components: {
     PlanItem: { props: itemProps, description: "Proposed work or existing reference; no external action" },
     WorkspaceNote: { props: itemProps, description: "Actual editable workspace note draft text" },
     WorkspaceForm: { props: formProps, description: "Actual private form definition, with no publication or intake" },
-    ProjectDataView: { props: dataViewProps, description: "Declared projects view; rows and counts are unavailable before an authorized saved-source read" },
+    ProjectDataView: { props: dataViewProps, description: "Declared existing-source view; rows, answers and counts are unavailable before an authorized saved-source read" },
 }, actions: {} })
 const elementSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("PlanRows"), props: rowsProps, children: z.array(keySchema).max(12) }),
@@ -55,7 +55,7 @@ export function validateResearchPresentation(input: unknown, capabilities = getP
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > 96_000) throw new Error("Plan preview is too large.")
   const value = presentationSchema.parse(input)
   assertResearchCapabilities(capabilities, Object.values(value.spec.elements).some(element => element.type === "WorkspaceForm"),
-    Object.values(value.spec.elements).some(element => element.type === "ProjectDataView"))
+    Object.values(value.spec.elements).some(element => element.type === "ProjectDataView"),Object.values(value.spec.elements).some(element=>element.type==="ProjectDataView"&&element.props.source.kind!=="projects"))
   const root = value.spec.elements.plan
   if (root?.type !== "PlanRows" || Object.keys(value.spec.elements).length !== root.children.length + 1 ||
       new Set(root.children).size !== root.children.length ||
@@ -91,7 +91,7 @@ export function projectResearchPresentation(input: ResearchResult, plan?: Resear
         key: outcome.key, label: outcome.label, next: outcome.next.length ? outcome.next.map(itemTitle).join(", ") : "No further action proposed",
       })) ?? [],
       ...(item.form ? { definition: item.form } : {}),
-      ...(item.dataView ? { source: item.dataView } : {}),
+      ...(item.dataView ? { source: item.dataView,...(result.outputBindings?.find(binding=>binding.itemKey===item.key)?.existingSource ? {sourceName:result.outputBindings.find(binding=>binding.itemKey===item.key)!.existingSource!.sourceTitle}:{}) } : {}),
     },
   })
   return validateResearchPresentation({ version: 1, capabilityVersion: 1, spec: { root: "plan", elements } })

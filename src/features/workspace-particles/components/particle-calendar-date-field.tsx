@@ -1,7 +1,9 @@
 "use client"
 
+import { ParticleInput as Input } from "@/components/ui/particle-ui"
+
 import { useEffect, useId, useRef, useState } from "react"
-import { Input } from "@/components/ui/input"
+
 import { Field, FieldLabel, FieldMessage } from "@/components/ui/field"
 import {
   calendarLocalDateTime,
@@ -34,7 +36,7 @@ export function ParticleCalendarDateField({
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label} (your local time)</FieldLabel>
-      <Input
+      <Input size="2xl"
         ref={input}
         id={id}
         type="datetime-local"
