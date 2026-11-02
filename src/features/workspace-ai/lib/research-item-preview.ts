@@ -1,11 +1,12 @@
 import { generatedResearchSchema } from "../research-types"
 import { z } from "zod"
 import { validateResearchForms } from "./research-form"
+import { validateResearchDataViews } from "./research-data-view"
 
 const itemSchema = generatedResearchSchema.shape.items.element
 // Presentation cannot carry bindings, links, executable relationships or sources.
-export const researchItemPreviewSchema = itemSchema.pick({ key: true, title: true, kind: true, description: true, form: true })
-  .superRefine((item, context) => { try { validateResearchForms([item]) } catch { context.addIssue({ code: "custom", message: "Invalid form draft." }) } })
+export const researchItemPreviewSchema = itemSchema.pick({ key: true, title: true, kind: true, description: true, form: true, dataView: true })
+  .superRefine((item, context) => { try { validateResearchForms([item]); validateResearchDataViews([item]) } catch { context.addIssue({ code: "custom", message: "Invalid working output." }) } })
 export type ResearchItemPreview = z.infer<typeof researchItemPreviewSchema>
 
 /** Frame only closed objects inside the root items array. JSON/schema validation
@@ -48,6 +49,7 @@ export function createResearchItemParser() {
           if (inItems && stack.length === 3 && char === "}" && itemStart >= 0) {
             const item = itemSchema.parse(JSON.parse(buffer.slice(itemStart, index + 1)))
             validateResearchForms([item])
+            validateResearchDataViews([item])
             if (keys.has(item.key) || keys.size >= 12) throw new Error("Invalid preview items.")
             keys.add(item.key); items.push(item); itemStart = -1
           }

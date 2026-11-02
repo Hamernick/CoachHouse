@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { formDefinitionSchema } from "@/features/organization-forms"
 import { providerResearchFormSchema } from "./lib/research-form"
+import { researchDataViewSchema, researchOutputBindingsSchema } from "./lib/research-data-view"
 
 export const knowledgeKindSchema = z.enum(["organization", "person", "document", "calendar", "particle", "opportunity"])
 export const existingResearchTargetSchema = z.strictObject({ organizationId: z.uuid(), objectiveId: z.uuid(), revision: z.number().int().nonnegative(),
@@ -44,20 +45,31 @@ export const generatedResearchSchema = z.strictObject({
   decisions: researchDecisionsSchema,
   removeReferences: removeReferencesSchema,
   items: z.array(z.strictObject({ key: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/), title: z.string().min(1).max(240),
-    kind: z.enum(["resource", "note", "event", "decision", "reference", "form"]), description: z.string().max(1800),
+    kind: z.enum(["resource", "note", "event", "decision", "reference", "form", "data_view"]), description: z.string().max(1800),
     form: formDefinitionSchema.nullable().optional(),
+    dataView: researchDataViewSchema.nullable().optional(),
     referenceId: z.string().max(200).nullable(), evidenceIds: z.array(z.string().max(200)).max(8),
     dependsOn: z.array(z.string().max(40)).max(8),
   })).max(12),
 })
 // The provider must report omitted outputs; an empty list is not proof of completeness.
 export const providerResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
-  items: z.array(generatedResearchSchema.shape.items.element.omit({ form: true }).extend({
+  items: z.array(generatedResearchSchema.shape.items.element.omit({ form: true, dataView: true }).extend({
     kind: z.enum(["resource", "note", "event", "decision", "reference"]),
   })).max(12),
 })
 export const providerFormResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
-  items: z.array(generatedResearchSchema.shape.items.element.extend({ form: providerResearchFormSchema.nullable() })).max(12),
+  items: z.array(generatedResearchSchema.shape.items.element.omit({ dataView: true }).extend({ form: providerResearchFormSchema.nullable(),
+    kind: z.enum(["resource", "note", "event", "decision", "reference", "form"]),
+  })).max(12),
+})
+export const providerDataViewResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
+  items: z.array(generatedResearchSchema.shape.items.element.omit({ form: true }).extend({ dataView: researchDataViewSchema.nullable(),
+    kind: z.enum(["resource", "note", "event", "decision", "reference", "data_view"]),
+  })).max(12),
+})
+export const providerWorkingResearchSchema = generatedResearchSchema.extend({ unfulfilled: unfulfilledOutputsSchema,
+  items: z.array(generatedResearchSchema.shape.items.element.extend({ form: providerResearchFormSchema.nullable(), dataView: researchDataViewSchema.nullable() })).max(12),
 })
 
 // Server-authored dependency metadata; never part of the model output schema.
@@ -71,7 +83,7 @@ export const researchDependenciesSchema = z.strictObject({
   })).max(256),
 })
 export type ResearchDependencies = z.infer<typeof researchDependenciesSchema>
-export const researchResultSchema = z.strictObject({ ...generatedResearchSchema.shape, decisions: researchDecisionsSchema.optional(), removeReferences: removeReferencesSchema.optional(), sources: z.array(researchSourceSchema).max(40), dependencies: researchDependenciesSchema.optional(), target: researchTargetSchema, runId: z.uuid() })
+export const researchResultSchema = z.strictObject({ ...generatedResearchSchema.shape, decisions: researchDecisionsSchema.optional(), removeReferences: removeReferencesSchema.optional(), sources: z.array(researchSourceSchema).max(40), dependencies: researchDependenciesSchema.optional(), outputBindings: researchOutputBindingsSchema.optional(), target: researchTargetSchema, runId: z.uuid() })
 export type ResearchTarget = z.infer<typeof researchTargetSchema>
 export const researchHistorySchema = z.array(z.strictObject({
   id: z.uuid(), created_at: z.iso.datetime({ offset: true }),

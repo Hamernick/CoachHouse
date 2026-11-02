@@ -584,3 +584,15 @@ describe("declared generation output scope", () => {
     expect(value.result?.unfulfilled).toEqual(["Working form creation"])
   })
 })
+
+it("binds server-issued project-view identities after validated provider output without executing sources", async () => {
+ vi.stubEnv("WORKSPACE_AI_DATA_VIEW_OUTPUTS", "1"); vi.stubEnv("NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION", "1")
+ const generated = { ...draft, items: [{ ...draft.items[0], kind: "data_view", title: "Projects", evidenceIds: [], dataView: { kind: "projects" } }] }
+ mocks.create.mockResolvedValueOnce(stream("view-run", [{ ...message, content: [{ type: "output_text", text: JSON.stringify(generated), annotations: [] }] }]))
+ const value = await runResearchProvider({ request, config: { ...config, maxRounds: 1 }, context, onResponse: vi.fn(), isCanceled: async () => false })
+ expect(value.result?.items[0].dataView).toEqual({ kind: "projects" })
+ expect(value.result?.outputBindings).toEqual([{ kind: "data_view", itemKey: "review", viewId: expect.stringMatching(/^[a-f0-9-]{36}$/), requestId: expect.stringMatching(/^[a-f0-9-]{36}$/) }])
+ expect(value.result?.outputBindings?.[0].viewId).not.toBe(value.result?.outputBindings?.[0].requestId)
+ expect(JSON.stringify(mocks.create.mock.calls[0][0].text)).not.toContain("outputBindings")
+ expect(mocks.execute).not.toHaveBeenCalled()
+})

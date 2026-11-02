@@ -7,8 +7,8 @@ import { ResearchPlanPresentation } from "./research-presentation"
 export type ResearchPlanContext = { title: string; members: { id: string; title: string }[] }
 
 export function ResearchReview({ result, plan }: { result: ResearchResult; plan?: ResearchPlanContext }) {
-  if (!researchPresentationEnabled && result.items.some(item => item.kind === "form"))
-    return <p role="alert" className="text-sm text-muted-foreground">Form composition is unavailable. Your saved draft is retained.</p>
+  if (!researchPresentationEnabled && result.items.some(item => item.kind === "form" || item.kind === "data_view"))
+    return <p role="alert" className="text-sm text-muted-foreground">Working-output composition is unavailable. Your saved draft is retained.</p>
   const removed = result.removeReferences ?? []
   const title = (reference: string) => plan?.members.find(member => `particle:${member.id}` === reference)?.title
     ?? result.sources.find(source => source.id === reference)?.title ?? "Existing item"

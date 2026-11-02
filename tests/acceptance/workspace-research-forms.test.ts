@@ -113,7 +113,7 @@ describe("private form working outputs", () => {
     expect(editor).toContain('aria-label="Form questions"')
     expect(editor).toContain("Your name")
     expect(original).toEqual(copy); expect(fetch).not.toHaveBeenCalled()
-    expect(renderToStaticMarkup(createElement(ResearchReview, { result: original }))).toContain("Form composition is unavailable")
+    expect(renderToStaticMarkup(createElement(ResearchReview, { result: original }))).toContain("Working-output composition is unavailable")
   })
   it("keeps exact form edits across durable draft serialization and incomplete recovery", () => {
     const original = result(), draft = createResearchDraft(original)

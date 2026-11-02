@@ -4,6 +4,7 @@ import { z } from "zod"
 import { researchResultSchema, researchTargetSchema } from "../research-types"
 import { validateResearchRelationships } from "./research-relationships"
 import { validateResearchForms } from "./research-form"
+import { validateResearchDataViews } from "./research-data-view"
 
 import { researchSnapshotSchema } from "./research-snapshot"
 import { researchPhaseSchema } from "./research-phase"
@@ -11,11 +12,12 @@ import { researchItemPreviewSchema } from "./research-item-preview"
 export type { ResearchPhase } from "./research-phase"
 // Presentation only: do not disclose internal dependency fingerprints. One
 // complete candidate follows optional typed items; raw fragments never cross.
-export const researchPreviewSchema = researchResultSchema.omit({ dependencies: true }).superRefine((result, context) => {
+export const researchPreviewSchema = researchResultSchema.omit({ dependencies: true, outputBindings: true }).superRefine((result, context) => {
   try {
     if (new Set(result.items.map(item => item.key)).size !== result.items.length) throw new Error("Duplicate item.")
     validateResearchRelationships(result)
     validateResearchForms(result.items)
+    validateResearchDataViews(result.items)
   } catch { context.addIssue({ code: "custom", message: "Invalid preview relationships." }) }
 })
 const identity = {
@@ -93,7 +95,7 @@ export function createResearchProgressReceiver(expected: Pick<ResearchProgressId
         (run.appliedObjectiveId && expected.target.mode !== "new_objective") ||
         (run.result && JSON.stringify(run.result.target) !== JSON.stringify(event.target))) throw new Error("Invalid research snapshot.")
       if (run.result) {
-        const { dependencies: _dependencies, ...preview } = run.result
+        const { dependencies: _dependencies, outputBindings: _outputBindings, ...preview } = run.result
         researchPreviewSchema.parse(preview)
       }
       savedStatus = run.status

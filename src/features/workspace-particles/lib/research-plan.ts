@@ -1,7 +1,7 @@
 import { createParticle, particleRegistry } from "./particle-registry"
 import type { Particle, ParticleGraph, ParticleOperation } from "../types"
 import { particlePlanProposalSchema } from "./particle-plan-schema"
-import { bindResearch } from "@/features/workspace-ai"
+import { bindResearch, researchViewBinding } from "@/features/workspace-ai"
 import { validateParticleGraph } from "./graph-validation"
 import type { ResearchResult } from "@/features/workspace-ai/client"
 
@@ -35,7 +35,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
   // Saved runs from before declared branches used the registry’s unselected defaults.
   if(result.decisions===undefined) result={...result,decisions:result.items.filter(item=>item.kind==="decision").map(item=>({itemKey:item.key,
     outcomes:particleRegistry.decision.defaults().outcomes.map(outcome=>({key:outcome.id,label:outcome.label,next:[]}))}))}
-  const {sources,target,runId,dependencies:_dependencies,...generated}=result
+  const {sources,target,runId,dependencies:_dependencies,outputBindings:_outputBindings,...generated}=result
   bindResearch(JSON.stringify({...generated,decisions:result.decisions??[],removeReferences:result.removeReferences??[]}),sources,target,runId,
     new Map(graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[])))
   if(!result.items.length && !removed.size) throw new Error("Answer the research questions before adding a plan.")
@@ -61,7 +61,8 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     }
     if(person && particle.type==="people") particle.data={personIds:[person],presentation:"person",segment:""}
     if(particle.type==="activity") {
-      if(item.kind==="form" && item.form) { particle.data.widget={kind:"form",definition:structuredClone(item.form)}; particle.size="large" }
+      if(item.kind==="data_view") { particle.data.widget={kind:"data_view",viewId:researchViewBinding(result.outputBindings,item.key).viewId}; particle.size="large" }
+      else if(item.kind==="form" && item.form) { particle.data.widget={kind:"form",definition:structuredClone(item.form)}; particle.size="large" }
       else if(item.referenceId?.startsWith("document:")) particle.data.widget={kind:"document",source:{kind:"roadmap",sectionId:item.referenceId.slice(9)},format:"roadmap",name:item.title}
       else if(item.referenceId?.startsWith("opportunity:")) particle.data.widget={kind:"opportunity",organizationId:graph.workspaceId,opportunityId:item.referenceId.slice(12)}
       else if(item.referenceId?.startsWith("file:")) {

@@ -20,6 +20,9 @@ import { useResearchDraftCheckpoint } from "./use-research-draft-checkpoint"
 import { useResearchDraftAutosave } from "./use-research-draft-autosave"
 import { useResearchNavigationGuard } from "./use-research-navigation-guard"
 import { IncomingResearchPreview } from "./research-presentation"
+import { useResearchSourceEffects } from "./use-research-source-effects"
+import { ResearchSourceEffects } from "./research-source-effects"
+import { prepareReviewedResearchSources } from "../lib/research-source-application"
 
 type Props = { target: ResearchTarget; userId: string; planContext?: ResearchPlanContext; stale?: boolean; initialPrompt?: string; onPromptChange?: (prompt: string) => void; onProposal: (result: ResearchResult, draft?: ResearchDraft) => Promise<boolean>; onClose: () => void }
 type RunResponse = { run?: unknown; error?: string; failure?: { code?: unknown } }
@@ -34,6 +37,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
   const [prompt, setPrompt] = useState(initialPrompt), [skill, setSkill] = useState<ResearchRequest["skill"]>(target.plan || target.mode === "new_objective" ? "planning" : "research")
   const [quote, setQuote] = useState<Quote | null>(null), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false)
   const [runId, setRunId] = useState<string | null>(null), [result, setResult] = useState<ResearchResult | null>(null), [message, setMessage] = useState("")
+  const sourceEffects = useResearchSourceEffects(runId, target, result)
   const [unsavedPreview, setUnsavedPreview] = useState<ResearchResult | null>(null)
   const [partialItems, setPartialItems] = useState<ResearchItemPreview[]>([])
   const clearPreviews = () => { setUnsavedPreview(null); setPartialItems([]) }
@@ -217,12 +221,14 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     if (!result || working.current || checkingRun.current || stale || !recovery.ready || recovery.busy || recovery.uncertain) return
     working.current = true; setBusy(true); setError(null)
     try {
-      if (draft) { const invalid = researchDraftError(result, draft.value); if (invalid) { setError(invalid); return } }
       setAttempted(true)
       // Freeze the exact retry payload durably before any canonical save attempt.
-      if (draft && !await recovery.save(draft.value, true)) return
+      const prepared = await prepareReviewedResearchSources({ result, draft: draft?.value, saveDraft: recovery.save,
+        applySources: sourceEffects.apply, isCurrent: () => alive.current && activeRun.current === result.runId })
+      if (!prepared.ready) return
       if (!alive.current || activeRun.current !== result.runId) return
-      const saved = await onProposal(result, draft?.value)
+      const saved = await onProposal(result, prepared.draft)
+      sourceEffects.markPlan(saved)
       if (!alive.current) return
       if (saved) { retain(null); onClose() }
       else { setResult(null); setMessage(""); setError("Proposal could not be added. Check status before retrying.") }
@@ -278,6 +284,8 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
       }}>{editing ? "Review changes" : "Edit preview"}</Button>}
       {attempted && <p className="text-xs text-muted-foreground">Saving was attempted. Retry uses these same edits.</p>}
     </>}
+    <ResearchSourceEffects key={`${runId}:${scopeIdentity(target)}`} available={sourceEffects.available} organizationId={target.organizationId} effects={sourceEffects.effects}
+      error={sourceEffects.error} pending={sourceEffects.pending} plan={sourceEffects.plan} onCheck={() => { void sourceEffects.check() }} />
     {partialItems.length > 0 && !unsavedPreview && !result && !targetStale && !checking && <section aria-label="Plan taking shape" className="space-y-2">
       <p className="text-xs text-muted-foreground">Unconfirmed items. Connections pending.</p>
       <IncomingResearchPreview items={partialItems} />

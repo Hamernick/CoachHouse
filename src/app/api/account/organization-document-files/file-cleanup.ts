@@ -6,6 +6,12 @@ export async function purgeExpiredFiles(
   supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
   orgId: string
 ) {
+  // GET can serve restricted export during closure, including support clients.
+  // Never start opportunistic deletion from that read-only window. Storage's
+  // metadata trigger rechecks admission independently of this preflight.
+  const admit = supabase.rpc.bind(supabase) as unknown as (name: string, input: { p_org: string }) => PromiseLike<{ data: unknown; error: unknown }>
+  const admission = await admit("organization_storage_write_admitted", { p_org: orgId })
+  if (admission.error || admission.data !== true) return
   const cutoff = new Date(
     Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
   ).toISOString()
@@ -33,6 +39,8 @@ export async function purgeExpiredFiles(
   await supabase
     .from("organization_document_files")
     .delete()
+    .eq("org_id", orgId)
+    .lt("deleted_at", cutoff)
     .in(
       "id",
       scopedFiles.map((file) => file.id)

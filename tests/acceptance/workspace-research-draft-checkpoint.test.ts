@@ -22,6 +22,15 @@ beforeEach(() => {
   mocks.rpc.mockResolvedValue({ data: { revision: 1, draft: draft(), attempted: false }, error: null })
 })
 describe("private research draft checkpoints", () => {
+  it("retains attempted source-effect requests rather than discarding recovery identities", async () => {
+    const value = { ...result, outputBindings: [{ kind: "data_view", itemKey: "first", viewId: ID(201), requestId: ID(202) }] }
+    mocks.read.mockResolvedValue({ result: value, applicability: "review_required" })
+    mocks.rpc.mockResolvedValue({ data: { revision: 2, draft: draft(), attempted: true } })
+    expect(await accessWorkspaceResearchDraft(ID(2), target, { ...write(), revision: 2, draft: null })).toHaveProperty("error", expect.stringContaining("Source application has started"))
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(mocks.rpc.mock.calls[0][1]).toMatchObject({ p_edit_id: null, p_revision: null })
+  })
+
   it("compares normalized fields despite JSON key order", () => {
     const { title, ...rest } = draft()
     expect(sameResearchDraft(draft(), { title, ...rest })).toBe(true)

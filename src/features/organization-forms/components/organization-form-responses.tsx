@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import LoaderIcon from "lucide-react/dist/esm/icons/loader-circle"
 import { Button } from "@/components/ui/button"
@@ -26,8 +27,12 @@ function display(question: FormSnapshotQuestion, value: FormAnswer["value"] | un
   if ("options" in question) return displayChoiceAnswer(question, value)
   return String(value)
 }
+const ResponseSavedViews = dynamic(() => import("@/features/workspace-data-views").then(module => module.ResponseSavedViews), { ssr: false })
+
 export function OrganizationFormResponses({ versionId, onLockChange, standalone = false }: { versionId: string; onLockChange?: (locked: boolean) => void; standalone?: boolean }) {
   const refreshButton = useRef<HTMLButtonElement>(null); const deleteTriggers = useRef(new Map<string, HTMLButtonElement>())
+  const [tableOpen, setTableOpen] = useState(false)
+  const [tableDirty, setTableDirty] = useState(false)
   const [notice, setNotice] = useState("")
   const [exporting, setExporting] = useState(false)
   const [sourceEditing, setSourceEditing] = useState(false)
@@ -43,7 +48,7 @@ export function OrganizationFormResponses({ versionId, onLockChange, standalone 
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState(""); const [loading, setLoading] = useState(true)
   const [refresh, setRefresh] = useState(0)
-  useEffect(() => { onLockChange?.(Boolean(editing) || accessLocked || sourceEditing || exporting); return () => onLockChange?.(false) }, [editing, accessLocked, sourceEditing, exporting, onLockChange])
+  useEffect(() => { onLockChange?.(Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty); return () => onLockChange?.(false) }, [editing, accessLocked, sourceEditing, exporting, tableDirty, onLockChange])
   useEffect(() => {
     if (!editing) return
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = "" }
@@ -81,15 +86,15 @@ export function OrganizationFormResponses({ versionId, onLockChange, standalone 
   return <section aria-label="Form responses" className="flex min-w-0 flex-col gap-4 rounded-2xl border p-4">
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-3">
       {standalone ? <h1 className="min-w-0 break-words text-lg font-medium [overflow-wrap:anywhere]">{data?.version.title ?? "Form responses"}</h1> : <h3 className="text-sm font-medium">Responses</h3>}
-      <Button ref={refreshButton} type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} onClick={() => { setBefore(undefined); setRefresh((value) => value + 1) }}>Refresh</Button></header>
+      <Button ref={refreshButton} type="button" variant="ghost" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onClick={() => { setBefore(undefined); setRefresh((value) => value + 1) }}>Refresh</Button></header>
     {data && <OrganizationFormResponseExport key={`${versionId}:${before ?? "latest"}`} versionId={versionId} before={before}
-      disabled={Boolean(editing) || accessLocked || sourceEditing || loading || exporting} onPending={setExporting}
+      disabled={Boolean(editing) || accessLocked || sourceEditing || loading || exporting || tableDirty} onPending={setExporting}
       onDenied={(message) => { setData(null); setError(message); setDenied(true); setExporting(false) }} />}
-    {standalone && data?.permissions.canEditDefinition && <Button ref={sourceTrigger} type="button" variant="outline" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || exporting} onClick={() => setSourceEditing(true)}>Edit form</Button>}
-    {data && <OrganizationFormResponseLink key={versionId} versionId={versionId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} />}
+    {standalone && data?.permissions.canEditDefinition && <Button ref={sourceTrigger} type="button" variant="outline" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || exporting || tableDirty} onClick={() => setSourceEditing(true)}>Edit form</Button>}
+    {data && <OrganizationFormResponseLink key={versionId} versionId={versionId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} />}
     {standalone && data && <p className="text-muted-foreground text-xs">Version {data.version.revision}</p>}
-    {standalone && data && <OrganizationFormResponseVersions key={`versions:${versionId}`} versionId={versionId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} onDenied={versionsDenied} />}
-    {standalone && data && <OrganizationFormResponseDirectory key={`forms:${versionId}`} versionId={versionId} formId={data.version.formId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} onDenied={versionsDenied} />}
+    {standalone && data && <OrganizationFormResponseVersions key={`versions:${versionId}`} versionId={versionId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onDenied={versionsDenied} />}
+    {standalone && data && <OrganizationFormResponseDirectory key={`forms:${versionId}`} versionId={versionId} formId={data.version.formId} disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onDenied={versionsDenied} />}
     <p className="text-muted-foreground text-xs">Private responses. New submissions appear within five seconds.</p>
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
@@ -97,8 +102,10 @@ export function OrganizationFormResponses({ versionId, onLockChange, standalone 
       onAccepted={() => { setDenied(false); setRefresh((value) => value + 1) }} />}
     {loading && <p role="status" className="text-muted-foreground text-sm">Loading responses…</p>}
     {data && <p className="text-muted-foreground text-xs">{data.permissions.canCorrect ? "You can correct answers." : "Read-only access."}</p>}
-    {data?.permissions.canManageAccess && <OrganizationFormReviewAccess canManageInvitations={data.permissions.canManageInvitations} target={{ versionId }} disabled={Boolean(editing) || exporting} onLockChange={setAccessLocked} />}
-    {data?.permissions.canManageInvitations && !data.permissions.canManageAccess && <OrganizationFormViewerInvitations versionId={versionId} disabled={Boolean(editing) || exporting} onLockChange={setAccessLocked} onRevisionChange={() => setRefresh((value) => value + 1)} />}
+    {data?.permissions.canManageAccess && <OrganizationFormReviewAccess canManageInvitations={data.permissions.canManageInvitations} target={{ versionId }} disabled={Boolean(editing) || exporting || tableDirty} onLockChange={setAccessLocked} />}
+    {data?.permissions.canManageInvitations && !data.permissions.canManageAccess && <OrganizationFormViewerInvitations versionId={versionId} disabled={Boolean(editing) || exporting || tableDirty} onLockChange={setAccessLocked} onRevisionChange={() => setRefresh((value) => value + 1)} />}
+    {data && <Button variant="outline" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onClick={() => setTableOpen(value => !value)}>{tableOpen ? "Close saved table views" : "Saved table views"}</Button>}
+    {data && tableOpen && <ResponseSavedViews versionId={versionId} onDirtyChange={setTableDirty} />}
     {data && !data.responses.length && <p className="text-muted-foreground text-sm">No responses yet.</p>}
     {data?.responses.map((response) => editing === `delete:${response.id}` ? <OrganizationFormResponseDelete key={response.id} response={response}
       onCancel={() => { setEditing(null); requestAnimationFrame(() => deleteTriggers.current.get(response.id)?.focus()) }}
@@ -108,20 +115,20 @@ export function OrganizationFormResponses({ versionId, onLockChange, standalone 
     /> : <article key={response.id} className="flex min-w-0 flex-col gap-3 border-t pt-4">
       <p className="text-muted-foreground text-xs"><time dateTime={response.submittedAt}>{new Date(response.submittedAt).toLocaleString()}</time></p>
       {data.permissions.canDelete && <Button ref={(node) => { if (node) deleteTriggers.current.set(response.id, node); else deleteTriggers.current.delete(response.id) }} type="button" variant="ghost" className="min-h-11 self-end rounded-xl text-destructive"
-        disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} onClick={() => { setNotice(""); setEditing(`delete:${response.id}`) }}>Delete response</Button>}
+        disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onClick={() => { setNotice(""); setEditing(`delete:${response.id}`) }}>Delete response</Button>}
       {data.version.definition.questions.map((question) => {
         const key = `${response.id}:${question.id}`
         const value = response.answers.find((answer) => answer.questionId === question.id)?.value
         return editing === key ? <ResponseCellEditor key={key} response={response} question={question} value={value}
           onSaved={saved} onCancel={() => setEditing(null)} /> : <div key={key} className="flex min-w-0 flex-col gap-1">
           <p className="text-muted-foreground break-words text-xs">{question.label}</p>
-          {data.permissions.canCorrect ? <Button type="button" variant="ghost" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} aria-label={`Edit ${question.label}`}
+          {data.permissions.canCorrect ? <Button type="button" variant="ghost" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} aria-label={`Edit ${question.label}`}
             className="h-auto min-h-11 w-full justify-start whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-left font-normal [overflow-wrap:anywhere]"
             onClick={() => setEditing(key)}>{display(question, value)}</Button> : <p className="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{display(question, value)}</p>}
         </div>
       })}
     </article>)}
-    {data?.next && <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting} onClick={() => { setBefore(data.next ?? undefined); setLoading(true) }}>Older responses</Button>}
+    {data?.next && <Button type="button" variant="outline" className="min-h-11 rounded-xl" disabled={Boolean(editing) || accessLocked || sourceEditing || exporting || tableDirty} onClick={() => { setBefore(data.next ?? undefined); setLoading(true) }}>Older responses</Button>}
   </section>
 }
 function ResponseCellEditor({ response, question, value: initial, onSaved, onCancel }: {

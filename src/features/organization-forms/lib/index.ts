@@ -5,3 +5,6 @@ export * from "./form-answers"
 export * from "./form-intake"
 export * from "./form-review-access"
 export * from "./form-response-directory"
+
+export { displayChoiceAnswer } from "./form-other-answer"
+export { displayGridAnswer } from "./form-grid-answers"

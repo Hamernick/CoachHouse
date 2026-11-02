@@ -5,6 +5,7 @@ import type { ResearchResult } from "../research-types"
 import { mergeResearchBranches, researchBranchDraftSchema } from "./research-branch-draft"
 import { validateResearchRelationships } from "./research-relationships"
 import { validateResearchForms } from "./research-form"
+import { validateResearchDataViews } from "./research-data-view"
 
 const copyItem = z.strictObject({
   key: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/),
@@ -82,6 +83,7 @@ function materializeResearchDraft(result: ResearchResult, draft: ResearchDraft, 
     }), ...added.map(item => ({ ...item, kind: "note" as const, referenceId: null, evidenceIds: [] }))] }
   validateResearchRelationships(edited)
   validateResearchForms(edited.items, allowIncompleteLabels)
+  if (!allowIncompleteLabels) validateResearchDataViews(edited.items)
   return edited
 }
 

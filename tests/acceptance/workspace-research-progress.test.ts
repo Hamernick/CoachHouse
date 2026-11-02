@@ -271,3 +271,17 @@ describe("incremental item presentation", () => {
   expect(receive(researchProgressWire(event(4,{kind:"preview.item",resultRevision:0,payload:{item:{...item,title:"Repaired"}}})))?.kind).toBe("preview.item")
  })
 })
+
+it("withholds source effect identities from inert previews and retains them exactly in saved stream recovery", async () => {
+ const result = { ...preview, items: [{ ...preview.items[0], kind: "data_view" as const, dataView: { kind: "projects" as const } }],
+  outputBindings: [{ kind: "data_view" as const, itemKey: "prepare", viewId: ID(201), requestId: ID(202) }] }
+ const updates = vi.fn()
+ const snapshot = await readResearchProgress(researchProgressStream(identity, async (_phase, onPreview) => {
+  onPreview(result)
+  return Response.json({ run: { version: 1, id: ID(2), credits: 0, status: "succeeded", result, resultRevision: 1, applicability: "review_required" } })
+ }), expected, vi.fn(), undefined, updates)
+ expect(snapshot?.payload.run.result?.outputBindings).toEqual(result.outputBindings)
+ const generated = updates.mock.calls[0][0]
+ expect(generated.outputBindings).toBeUndefined()
+ expect(generated.items[0].dataView).toEqual({ kind: "projects" })
+})

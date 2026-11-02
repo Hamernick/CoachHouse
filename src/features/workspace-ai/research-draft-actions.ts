@@ -20,7 +20,17 @@ export async function accessWorkspaceResearchDraft(id: string, target: ResearchT
     if (!run.result || run.applicability !== "review_required") throw new Error("Result unavailable")
     if (write?.draft) validateResearchRecoveryDraft(run.result, write.draft, write.attempted)
     const base = createHash("sha256").update(JSON.stringify(run.result)).digest("hex")
-    const { data, error } = await createSupabaseAdminClient({ actorId: actor.user.id, requestTimeoutMs: 10000 }).rpc("access_workspace_research_draft", {
+    const client = createSupabaseAdminClient({ actorId: actor.user.id, requestTimeoutMs: 10000 })
+    if (write && write.draft === null && run.result.outputBindings?.length) {
+      const prior = await client.rpc("access_workspace_research_draft", { p_run_id: id, p_org_id: target.organizationId, p_actor_id: actor.user.id, p_base: base,
+        p_edit_id: null, p_revision: null, p_draft: null, p_attempted: false })
+      if (prior.error) throw new Error("Draft unavailable")
+      if (researchDraftCheckpointSchema.parse(prior.data).attempted)
+        return { error: "Source application has started. Keep this saved draft to recover its exact requests; earlier source effects may already exist." }
+      // A concurrent attempt increments the same checkpoint revision; the
+      // canonical CAS below then rejects this stale discard atomically.
+    }
+    const { data, error } = await client.rpc("access_workspace_research_draft", {
       p_run_id: id, p_org_id: target.organizationId, p_actor_id: actor.user.id, p_base: base,
       p_edit_id: write?.editId ?? null, p_revision: write?.revision ?? null,
       p_draft: write?.draft ?? null, p_attempted: write?.attempted ?? false,

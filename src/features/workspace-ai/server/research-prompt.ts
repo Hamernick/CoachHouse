@@ -3,7 +3,7 @@ import { getParticleCapabilityCatalog } from "@/features/workspace-particles"
 import { researchSkills } from "../lib/research-skills"
 import type { ResearchRequest } from "../research-types"
 import type { ResearchContext } from "./research-context"
-import { researchFormOutputsEnabled } from "./research-output-config"
+import { researchFormOutputsEnabled, researchDataViewOutputsEnabled } from "./research-output-config"
 import { assertResearchCapabilities } from "../lib/research-capabilities"
 
 const coverage = (total: number, limit: number) => ({ shown: Math.min(total, limit), total, omitted: Math.max(0, total - limit) })
@@ -46,9 +46,11 @@ export function researchPrompt(context: ResearchContext, request: Pick<ResearchR
   const note = catalog.entries.find(entry => entry.id === "workspace_note" && entry.action === "edit_note")
   if (!plan || !note) throw new Error("Planning outputs unavailable.")
   const forms = researchFormOutputsEnabled()
-  assertResearchCapabilities(catalog, forms)
+  const dataViews = researchDataViewOutputsEnabled()
+  assertResearchCapabilities(catalog, forms, dataViews)
   const outputs = { version: catalog.version, binding: "plan_proposal", capabilities: [plan.id, note.id],
     ...(forms ? { additionalCapabilities: ["workspace_form"], formMode: "new_private_draft", maxFormQuestions: 50 } : {}),
-    unavailable: [...(forms ? [] : ["form_creation"]), "data_table_creation", "publishing", "sending", "calendar_booking"], maxItems: 12 }
+    ...(dataViews ? { dataViewCapability: "project_data_view", dataViewSource: "projects", dataViewMode: "default_view_of_existing_source" } : {}),
+    unavailable: [...(forms ? [] : ["form_creation"]), "data_table_creation", ...(dataViews ? [] : ["data_view_creation"]), "publishing", "sending", "calendar_booking"], maxItems: 12 }
   return JSON.stringify({ outputs, task: request.prompt, objective: researchContextProjection(context, request.target), skill: researchSkills[request.skill] })
 }

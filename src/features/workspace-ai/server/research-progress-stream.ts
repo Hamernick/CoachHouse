@@ -25,7 +25,7 @@ export function researchProgressStream(identity: Omit<ResearchProgressIdentity, 
       try {
         send({ kind: "run.started", payload: {} })
         const response = await execute(phase => send({ kind: "phase.changed", payload: { phase } }), result => {
-          const { dependencies: _dependencies, ...preview } = result
+          const { dependencies: _dependencies, outputBindings: _outputBindings, ...preview } = result
           send({ kind: "preview.updated", resultRevision: 0, payload: { result: preview } })
         }, item => send(item ? { kind: "preview.item", resultRevision: 0, payload: { item } } : { kind: "preview.cleared", resultRevision: 0, payload: {} }))
         const value = await response.json()

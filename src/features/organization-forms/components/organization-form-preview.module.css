@@ -78,3 +78,6 @@
     transition: none;
   }
 }
+
+/* Enlarged text must wrap inside a narrow embedded form. */
+.check { max-width: 100%; height: auto; white-space: normal; }

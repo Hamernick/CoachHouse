@@ -52,22 +52,22 @@ export function ResearchDraftEditor({ draft, result, disabled, onChange }: {
     <ResearchOutputCoverage result={result} />
     <legend className="sr-only">Edit plan preview</legend>
     <label className="block space-y-1 text-xs">Plan title
-      <ParticleInput autoFocus size="2xl" value={draft.title} required maxLength={240}
+      <ParticleInput size="2xl" value={draft.title} required maxLength={240}
         onChange={event => change({ ...draft, title: event.target.value })} />
     </label>
-    <label className="block space-y-1 text-xs">Summary
-      <Textarea value={draft.summary} rows={2} maxLength={1500} className="rounded-xl px-3 py-2 text-base"
+    <label htmlFor={`${id}-summary`} className="block space-y-1 text-xs">Summary
+      <Textarea id={`${id}-summary`} value={draft.summary} rows={2} maxLength={1500} className="rounded-xl px-3 py-2 text-base"
         onChange={event => change({ ...draft, summary: event.target.value })} />
     </label>
     {items.map((item, index) => {
       const removalError = researchRemovalError({ ...result, decisions: [...(result.decisions ?? []).filter(decision => !draft.decisions.some(edit => edit.itemKey === decision.itemKey)), ...draft.decisions] }, item.key)
       return <div key={item.key} className="space-y-2 border-t border-border pt-3">
         <label className="block space-y-1 text-xs">Item {index + 1} title
-          <ParticleInput id={`${id}-${item.key}`} size="2xl" value={item.title} required maxLength={240}
+          <ParticleInput id={`${id}-${item.key}`} size="2xl" value={item.title} required maxLength={result.items.find(value => value.key === item.key)?.kind === "data_view" ? 100 : 240}
             onChange={event => edit(item.key, { title: event.target.value })} />
         </label>
-        <label className="block space-y-1 text-xs">Item {index + 1} details
-          <Textarea value={item.description} rows={2} maxLength={1800} className="rounded-xl px-3 py-2 text-base"
+        <label htmlFor={`${id}-${item.key}-details`} className="block space-y-1 text-xs">Item {index + 1} details
+          <Textarea id={`${id}-${item.key}-details`} value={item.description} rows={2} maxLength={1800} className="rounded-xl px-3 py-2 text-base"
             onChange={event => edit(item.key, { description: event.target.value })} />
         </label>
         {item.form && <OrganizationFormBuilder definition={item.form} disabled={disabled} onChange={form => edit(item.key, { form })} />}

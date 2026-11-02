@@ -8,6 +8,7 @@ import { researchItemPreviewSchema, type ResearchItemPreview } from "./research-
 import { validateResearchRelationships } from "./research-relationships"
 import { assertResearchCapabilities } from "./research-capabilities"
 import { validateResearchForms } from "./research-form"
+import { researchDataViewSchema, validateResearchDataViews } from "./research-data-view"
 
 export const researchPresentationEnabled = process.env.NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION === "1"
 export type ResearchPlanContext = { title: string; members: { id: string; title: string }[] }
@@ -20,6 +21,7 @@ const itemProps = z.strictObject({
   outcomes: z.array(z.strictObject({ key: z.string().max(48), label: z.string().max(240), next: z.string().max(3000) })).max(12),
 })
 const formProps = itemProps.extend({ definition: formDefinitionSchema })
+const dataViewProps = itemProps.extend({ source: researchDataViewSchema })
 
 /** The manual registry is the capability authority. This catalog only projects
  * its qualified plan/note subset; it contains no source commands or state paths. */
@@ -32,11 +34,13 @@ export const researchRenderCatalog = defineCatalog(schema, { components: {
     PlanItem: { props: itemProps, description: "Proposed work or existing reference; no external action" },
     WorkspaceNote: { props: itemProps, description: "Actual editable workspace note draft text" },
     WorkspaceForm: { props: formProps, description: "Actual private form definition, with no publication or intake" },
+    ProjectDataView: { props: dataViewProps, description: "Declared projects view; rows and counts are unavailable before an authorized saved-source read" },
 }, actions: {} })
 const elementSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("PlanRows"), props: rowsProps, children: z.array(keySchema).max(12) }),
   z.strictObject({ type: z.enum(["PlanItem", "WorkspaceNote"]), props: itemProps }),
   z.strictObject({ type: z.literal("WorkspaceForm"), props: formProps }),
+  z.strictObject({ type: z.literal("ProjectDataView"), props: dataViewProps }),
 ])
 const presentationSchema = z.strictObject({
   version: z.literal(1), capabilityVersion: z.literal(1),
@@ -50,7 +54,8 @@ export function validateResearchPresentation(input: unknown, capabilities = getP
   researchPresentationCatalog(capabilities)
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > 96_000) throw new Error("Plan preview is too large.")
   const value = presentationSchema.parse(input)
-  assertResearchCapabilities(capabilities, Object.values(value.spec.elements).some(element => element.type === "WorkspaceForm"))
+  assertResearchCapabilities(capabilities, Object.values(value.spec.elements).some(element => element.type === "WorkspaceForm"),
+    Object.values(value.spec.elements).some(element => element.type === "ProjectDataView"))
   const root = value.spec.elements.plan
   if (root?.type !== "PlanRows" || Object.keys(value.spec.elements).length !== root.children.length + 1 ||
       new Set(root.children).size !== root.children.length ||
@@ -64,6 +69,7 @@ export function validateResearchPresentation(input: unknown, capabilities = getP
 export function projectResearchPresentation(input: ResearchResult, plan?: ResearchPlanContext): ResearchPresentation {
   const result = researchResultSchema.parse(input)
   validateResearchForms(result.items)
+  validateResearchDataViews(result.items)
   validateResearchRelationships(result)
   if (new Set(result.items.map(item => item.key)).size !== result.items.length) throw new Error("Repeated preview item.")
   const referenceTitle = (reference: string) => plan?.members.find(member => `particle:${member.id}` === reference)?.title
@@ -76,7 +82,7 @@ export function projectResearchPresentation(input: ResearchResult, plan?: Resear
     plan: { type: "PlanRows", props: { label: "Proposed plan items" }, children: result.items.map(item => `item_${item.key}`) },
   }
   for (const item of result.items) elements[`item_${item.key}`] = elementSchema.parse({
-    type: item.kind === "form" ? "WorkspaceForm" : item.kind === "note" ? "WorkspaceNote" : "PlanItem",
+    type: item.kind === "data_view" ? "ProjectDataView" : item.kind === "form" ? "WorkspaceForm" : item.kind === "note" ? "WorkspaceNote" : "PlanItem",
     props: {
       title: itemTitle(item.key), content: item.kind === "reference" ? null : item.description,
       membership: plan ? item.kind === "reference" && plan.members.some(member => `particle:${member.id}` === item.referenceId) ? "Existing" : "Add to plan" : null,
@@ -85,6 +91,7 @@ export function projectResearchPresentation(input: ResearchResult, plan?: Resear
         key: outcome.key, label: outcome.label, next: outcome.next.length ? outcome.next.map(itemTitle).join(", ") : "No further action proposed",
       })) ?? [],
       ...(item.form ? { definition: item.form } : {}),
+      ...(item.dataView ? { source: item.dataView } : {}),
     },
   })
   return validateResearchPresentation({ version: 1, capabilityVersion: 1, spec: { root: "plan", elements } })
@@ -99,8 +106,8 @@ export function projectIncomingResearchPresentation(input: ResearchItemPreview[]
     plan: { type: "PlanRows", props: { label: "Incoming plan items" }, children: items.map(item => `item_${item.key}`) },
   }
   for (const item of items) elements[`item_${item.key}`] = elementSchema.parse({
-    type: item.kind === "form" ? "WorkspaceForm" : item.kind === "note" ? "WorkspaceNote" : "PlanItem",
-    props: { title: item.title, content: item.description, membership: null, prerequisites: null, outcomes: [], ...(item.form ? { definition: item.form } : {}) },
+    type: item.kind === "data_view" ? "ProjectDataView" : item.kind === "form" ? "WorkspaceForm" : item.kind === "note" ? "WorkspaceNote" : "PlanItem",
+    props: { title: item.title, content: item.description, membership: null, prerequisites: null, outcomes: [], ...(item.form ? { definition: item.form } : {}), ...(item.dataView ? { source: item.dataView } : {}) },
   })
   return validateResearchPresentation({ version: 1, capabilityVersion: 1, spec: { root: "plan", elements } })
 }

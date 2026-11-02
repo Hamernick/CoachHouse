@@ -14,6 +14,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
   organizationId: string; viewId: string; pending: boolean; onCreate: (command: DataViewCommand) => Promise<boolean>; onError: (error: string) => void
 }) {
   const [source, setSource] = useState("projects")
+  const [versionId, setVersionId] = useState("")
   const [name, setName] = useState("Projects")
   const [tables, setTables] = useState<{ id: string; name: string }[]>([])
   const [columns, setColumns] = useState<DataColumn[]>([{ key: "column_1", label: "Name", type: "text", options: [], writable: true }])
@@ -32,7 +33,7 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
   return <form className="flex flex-col gap-3" onSubmit={async event => {
     event.preventDefault()
     try {
-      const selected: Extract<DataViewCommand, { action: "create_view" }>["source"] = source === "projects" ? { kind: "projects" }
+      const selected: Extract<DataViewCommand, { action: "create_view" }>["source"] = source === "responses" ? { kind: "responses", versionId: z.uuid().parse(versionId.trim().split("/").at(-1)) } : source === "projects" ? { kind: "projects" }
         : source === "new" || source === "import" ? { kind: "new_table", columns: dataColumnsSchema.parse(columns), rows: imported?.rows ?? [],
           provenance: { kind: imported ? "csv_copy" : "new", filename: imported?.filename ?? null, rowCount: imported?.rows.length ?? 0 }, audienceConfirmed: true }
         : { kind: "table", tableId: source }
@@ -44,12 +45,14 @@ export function DataViewSourcePicker({ organizationId, viewId, pending, onCreate
     <FieldGroup>
       <Field><FieldLabel htmlFor={`${viewId}-source`}>Source</FieldLabel><DataViewSelect id={`${viewId}-source`} value={source} onChange={event => { const value = event.target.value; setSource(value); setImported(null); setConfirmed(false); setName(value === "projects" ? "Projects" : "My table") }} disabled={pending}>
         <DataViewOption value="projects">Coach House projects</DataViewOption>
+        <DataViewOption value="responses">Private form responses…</DataViewOption>
         <DataViewOption value="new">New workspace table</DataViewOption>
         <DataViewOption value="import">Import a CSV copy…</DataViewOption>
         {tables.map(table => <DataViewOption key={table.id} value={table.id}>{table.name}</DataViewOption>)}
       </DataViewSelect></Field>
       <Field><FieldLabel htmlFor={`${viewId}-name`}>View name</FieldLabel><Input id={`${viewId}-name`} name="view-name" autoComplete="off" required maxLength={100} value={name} onChange={event => setName(event.target.value)} /></Field>
     </FieldGroup>
+    {source === "responses" && <Field><FieldLabel htmlFor={`${viewId}-version`}>Response version ID or response page URL</FieldLabel><Input id={`${viewId}-version`} value={versionId} autoComplete="off" onChange={event => setVersionId(event.target.value)} /><p className="text-muted-foreground text-xs">Only this form’s authorized collaborators can access its answers. Workspace ownership does not grant access.</p></Field>}
     {source === "new" && <div className="flex flex-col gap-2"><p className="text-muted-foreground text-xs">Declare columns before creating the table.</p>{columns.map((column, index) => <div key={column.key} className="flex flex-wrap gap-2">
       <Input className="min-w-24 flex-1" aria-label={`Column ${index + 1} name`} value={column.label} maxLength={80} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, label: event.target.value } : item))} />
       <DataViewSelect aria-label={`Column ${index + 1} type`} value={column.type} onChange={event => setColumns(current => current.map((item, position) => position === index ? { ...item, type: event.target.value as DataColumn["type"] } : item))}>

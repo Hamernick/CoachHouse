@@ -2,6 +2,7 @@
 
 import { defineRegistry, JSONUIProvider, Renderer, type ComponentContext } from "@json-render/react"
 import { OrganizationFormBuilder } from "@/features/organization-forms/client"
+import { PROJECT_DATA_VIEW_COLUMNS } from "@/features/workspace-data-views"
 import { projectIncomingResearchPresentation, projectResearchPresentation, researchPresentationEnabled, researchRenderCatalog, validateResearchPresentation, type ResearchPlanContext } from "../lib/research-presentation"
 import type { ResearchResult } from "../research-types"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
@@ -23,6 +24,14 @@ const { registry } = defineRegistry(researchRenderCatalog, { components: {
   WorkspaceForm: ({ props }) => <li className="space-y-2 break-words">
     <ItemContent props={props} />
     <OrganizationFormBuilder definition={props.definition} disabled preview showPreviewControl={false} onChange={() => {}} />
+  </li>,
+  ProjectDataView: ({ props }) => <li className="space-y-2 break-words">
+    <ItemContent props={props} />
+    <p className="text-xs text-muted-foreground">Existing projects · sorted by Project · no copied records</p>
+    <dl aria-label="Declared data view columns" className="grid grid-cols-2 gap-1 text-xs">
+      {PROJECT_DATA_VIEW_COLUMNS.map(column => <div key={column.key}><dt className="font-medium">{column.label}</dt><dd>{column.writable ? "Editable at source" : "Read only"}</dd></div>)}
+    </dl>
+    <p className="text-xs text-muted-foreground">Records and counts load only after saving and opening the authorized source. No view has been created by this preview.</p>
   </li>,
 } })
 const unavailable = <p role="alert" className="text-sm text-destructive">This plan preview is unavailable. Reopen the saved research.</p>
@@ -53,7 +62,7 @@ export function IncomingResearchPresentation({ items }: { items: ResearchItemPre
 }
 
 export function IncomingResearchPreview({ items }: { items: ResearchItemPreview[] }) {
-  if (!researchPresentationEnabled && items.some(item => item.kind === "form")) return unavailable
+  if (!researchPresentationEnabled && items.some(item => item.kind === "form" || item.kind === "data_view")) return unavailable
   return researchPresentationEnabled ? <IncomingResearchPresentation items={items} /> :
     <ul aria-label="Incoming plan items" className="space-y-2 text-sm">{items.map(item => <li key={item.key} className="break-words">
       <span className="font-medium">{item.title}</span>

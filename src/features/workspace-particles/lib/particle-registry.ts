@@ -7,6 +7,7 @@ import { z } from "zod"
 import { planCapability, workspaceNoteCapability, workspaceFormCapability, particleCommitSchema, type ParticleCapability, type ParticleSourceBinding } from "./particle-capability-contract"
 import type { Particle, ParticleType } from "../types"
 import { particleDataSchemas, particleSchema } from "./particle-schema"
+import { projectDataViewCapability } from "./particle-output-capabilities"
 
 type Definition<K extends ParticleType> = {
   layouts: Readonly<
@@ -19,6 +20,7 @@ type Definition<K extends ParticleType> = {
   schema: z.ZodType<Extract<Particle, { type: K }>["data"]>
   defaults: () => Extract<Particle, { type: K }>["data"]
   capabilities?: Readonly<Record<string, ParticleCapability>>
+  outputCapabilities?: Readonly<Record<string, typeof projectDataViewCapability>>
 }
 // Rendering definitions compose this domain registry at the canvas boundary.
 export const particleRegistry = {
@@ -33,6 +35,7 @@ export const particleRegistry = {
   },
   activity: {
     capabilities: { workspace_note: workspaceNoteCapability, workspace_form: workspaceFormCapability },
+    outputCapabilities: { project_data_view: projectDataViewCapability },
     ...PARTICLE_SIZE_SUPPORT.activity,
     layouts: PARTICLE_SIZE_LAYOUTS,
     label: "Resource",
@@ -123,23 +126,27 @@ export function bindParticleSource(particle: Particle): ParticleSourceBinding | 
 export function getParticleCapabilityCatalog({ includeSchemas = false }: { includeSchemas?: boolean } = {}) {
   const registered = Object.entries(particleRegistry).flatMap(([particleType, definition]) => {
     const capabilities = "capabilities" in definition ? Object.values(definition.capabilities) : []
-    return capabilities.map(capability => ({ particleType, capability }))
+    return capabilities.map(capability => ({ particleType, capability, resultKey: "particle_commit" }))
   })
+  const outputs = Object.entries(particleRegistry).flatMap(([particleType, definition]) =>
+    "outputCapabilities" in definition ? Object.values(definition.outputCapabilities).map(capability => ({ particleType, capability, resultKey: "data_view_create_receipt" })) : [])
+  const catalog = [...registered, ...outputs]
   const schemas: Record<string, z.core.JSONSchema.JSONSchema> | undefined = includeSchemas ? {
-    ...Object.fromEntries(registered.flatMap(({ capability }) => [
+    ...Object.fromEntries(catalog.flatMap(({ capability, resultKey }) => [
       [`${capability.id}.source`, z.toJSONSchema(capability.sourceSchema)],
       [`${capability.id}.input`, z.toJSONSchema(capability.inputSchema, { io: "input" })],
+      [resultKey, z.toJSONSchema(capability.resultSchema)],
     ])),
     particle_commit: z.toJSONSchema(particleCommitSchema),
   } : undefined
   return {
     version: 1 as const,
-    entries: registered.map(({ particleType, capability }) => ({
+    entries: catalog.map(({ particleType, capability, resultKey }) => ({
       id: capability.id, particleType, label: capability.label, sourceKind: capability.sourceKind,
       views: [...capability.views], action: capability.action, editScope: capability.editScope,
       permission: capability.permission, availability: "manual" as const,
       sourceSchema: `${capability.id}.source`, inputSchema: `${capability.id}.input`,
-      resultSchema: "particle_commit" as const,
+      resultSchema: resultKey,
     })),
     ...(schemas ? { schemas } : {}),
   }

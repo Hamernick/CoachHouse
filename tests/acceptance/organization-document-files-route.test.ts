@@ -129,6 +129,7 @@ function setup(
       }),
     },
     from,
+    rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
     storage: {
       from: vi.fn(() => ({ upload, remove, createSignedUrl: signed })),
     },

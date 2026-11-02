@@ -6,8 +6,8 @@ import { DataViewSelect, DataViewOption } from "./data-view-select"
 import type { DataColumn } from "../lib/schema"
 import { parseDataCell } from "../lib/import"
 
-export function DataViewCell({ column, value, revision, writable, pending, onSave, onDirty }: {
-  column: DataColumn; value: string | number | boolean | null | undefined; revision: string; writable: boolean; pending: boolean;
+export function DataViewCell({ column, value, revision, writable, pending, canStartEdit = true, onSave, onDirty }: {
+  column: DataColumn; value: string | number | boolean | null | undefined; revision: string; writable: boolean; pending: boolean; canStartEdit?: boolean;
   onSave: (value: string | number | boolean | null, revision: string) => Promise<boolean>; onDirty: (dirty: boolean) => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -16,7 +16,7 @@ export function DataViewCell({ column, value, revision, writable, pending, onSav
   const [error, setError] = useState<string | null>(null)
   const formatted = value == null ? "Empty" : typeof value === "number" ? value.toLocaleString() : String(value)
   if (!writable || !column.writable) return <span className="text-muted-foreground break-words" title="Read only">{formatted}</span>
-  if (!editing) return <Button variant="ghost" className="h-auto min-h-11 w-full justify-start whitespace-normal text-left" aria-label={`Edit ${column.label}: ${formatted}`} onClick={() => { setDraft(value == null ? "" : String(value)); setBaseRevision(revision); setEditing(true); onDirty(true) }}>{formatted}</Button>
+  if (!editing) return <Button variant="ghost" disabled={pending || !canStartEdit} className="h-auto min-h-11 w-full justify-start whitespace-normal text-left" aria-label={`Edit ${column.label}: ${formatted}`} onClick={() => { setDraft(value == null ? "" : String(value)); setBaseRevision(revision); setEditing(true); onDirty(true) }}>{formatted}</Button>
   return <form className="flex min-w-44 flex-col gap-2" onSubmit={async event => {
     event.preventDefault(); setError(null)
     try { if (await onSave(parseDataCell(column, draft), baseRevision)) { setEditing(false); onDirty(false) } }

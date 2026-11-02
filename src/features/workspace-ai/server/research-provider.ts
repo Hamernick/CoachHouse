@@ -4,9 +4,10 @@ import { randomUUID } from "node:crypto"
 import { researchPlanOperations } from "@/features/workspace-particles"
 import type { ResponseInputItem } from "openai/resources/responses/responses"
 import { priceAiUsage, type AiUsage } from "@/features/ai-credits"
-import { researchResultSchema, providerResearchSchema, providerFormResearchSchema, type ResearchRequest } from "../research-types"
+import { researchResultSchema, type ResearchRequest } from "../research-types"
 import { bindResearch } from "../lib/research-contract"
-import { assertResearchOutputAvailability, researchFormOutputsEnabled } from "./research-output-config"
+import { assertResearchOutputAvailability, researchProviderOutputSchema } from "./research-output-config"
+import { createResearchOutputBindings } from "../lib/research-data-view"
 import type { researchConfig } from "./research-config"
 import type { ResearchContext } from "./research-context"
 import { createKnowledgeTools } from "./knowledge-tools"
@@ -98,11 +99,12 @@ export async function runResearchProvider(input: {
       let repairIssue:ResearchRepairIssue|null="format"
       try {
         const text=terminal.output.flatMap(item=>item.type==="message"?item.content.flatMap(part=>part.type==="output_text"?[part.text]:[]):[]).join("")
-        const draft=(researchFormOutputsEnabled() ? providerFormResearchSchema : providerResearchSchema).parse(JSON.parse(text))
+        const draft=researchProviderOutputSchema().parse(JSON.parse(text))
         const ids=[...draft.removeReferences,...draft.items.flatMap(item=>[...item.evidenceIds,...(item.referenceId?[item.referenceId]:[])])]
         const decisions=new Map(input.context.graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[]))
         repairIssue="relationships"
-        const candidate=bindResearch(text,knowledge.evidence(ids),input.request.target,input.request.id,decisions)
+        const bound=bindResearch(text,knowledge.evidence(ids),input.request.target,input.request.id,decisions)
+        const candidate={...bound,...(bound.items.some(item=>item.kind==="data_view")?{outputBindings:createResearchOutputBindings(bound.items,randomUUID)}:{})}
         assertResearchOutputAvailability(candidate.items)
         // Validate the full merged plan before a change proposal can be billed as successful.
         repairIssue="plan"

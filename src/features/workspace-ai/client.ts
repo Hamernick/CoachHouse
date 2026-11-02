@@ -9,3 +9,5 @@ export { WorkspaceResearch } from "./components/workspace-research"
 export type { ResearchDraft } from "./lib/research-draft"
 
 export { WorkspaceNewPlan } from "./components/workspace-new-plan"
+
+export { ResearchDependencyVisualFixture } from "./components/research-dependency-visual-fixture"

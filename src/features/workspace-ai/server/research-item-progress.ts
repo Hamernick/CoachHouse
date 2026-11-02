@@ -40,7 +40,7 @@ export function createResearchItemProgress(input: {
         }
         if (!await input.revalidate() || await input.isCanceled()) throw new Error("Preview access changed.")
         for (const item of parsed.items) { shown = true; input.publish(researchItemPreviewSchema.parse({ key: item.key, title: item.title, kind: item.kind, description: item.description,
-          ...(item.form ? { form: item.form } : {}) })) }
+          ...(item.form ? { form: item.form } : {}), ...(item.dataView ? { dataView: item.dataView } : {}) })) }
       } catch {
         disabled = true; clear()
         // Presentation failure cannot discard measured usage or create a retry.
