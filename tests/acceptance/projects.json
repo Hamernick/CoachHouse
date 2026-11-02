@@ -280,6 +280,7 @@
       "tests/acceptance/fiscal-sponsorship-connected-storage.test.ts",
       "tests/acceptance/member-workspace.test.ts",
       "tests/acceptance/organization-closure-calendar-database.test.ts",
+      "tests/acceptance/organization-closure-core-documents-database.test.ts",
       "tests/acceptance/organization-closure-database.test.ts",
       "tests/acceptance/organization-closure-documents-database.test.ts",
       "tests/acceptance/organization-closure-external-documents-database.test.ts",
