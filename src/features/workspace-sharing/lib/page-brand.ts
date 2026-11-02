@@ -1,6 +1,18 @@
 import { z } from "zod"
 
 export const pageBrandColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/)
+export const PAGE_LOGO_IMAGE_KEY = "brand-logo"
+export const pageBrandLogoSchema = z.strictObject({
+  assetId: z.uuid(), width: z.int().min(1).max(2048), height: z.int().min(1).max(2048),
+})
+
+/** Canonical library identity only. Legacy URLs are never fetched or copied. */
+export function pageLogoFileId(profile: unknown): string | undefined {
+  const parsed = z.object({ brandIdentity: z.object({ assets: z.object({
+    "primary-logo": z.object({ fileId: z.uuid() }).nullable().optional(),
+  }).optional() }).nullable().optional() }).parse(profile)
+  return parsed.brandIdentity?.assets?.["primary-logo"]?.fileId
+}
 
 /** Only the existing saved profile color enters review, never arbitrary CSS,
  * private kit contents, asset URLs or remote font requests. */

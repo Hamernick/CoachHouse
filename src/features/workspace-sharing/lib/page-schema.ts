@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { publicParticleContentSchema } from "@/features/workspace-particles"
-import { pageBrandColorSchema } from "./page-brand"
+import { pageBrandColorSchema, pageBrandLogoSchema } from "./page-brand"
 
 import { WORKSPACE_PAGE_PARTICLE_LIMIT, workspacePageDraftSchema } from "./page-draft"
 export { WORKSPACE_PAGE_PARTICLE_LIMIT, workspacePageDraftSchema } from "./page-draft"
@@ -17,6 +17,7 @@ export const workspacePageSnapshotSchema = z.strictObject({
     name: z.string().trim().min(1).max(240),
     organizationSlug: z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     primaryColor: pageBrandColorSchema.optional(),
+    logo: pageBrandLogoSchema.optional(),
   }),
   title,
   description,

@@ -1,6 +1,6 @@
 import sharp from "sharp"
 import { test, expect } from "@playwright/test"
-import { shareId } from "./sharing-actions"
+const shareId = (value: number) => `10000000-0000-4000-8000-${String(value).padStart(12, "0")}`
 const state = (page: import("@playwright/test").Page) => page.evaluate(() => JSON.parse(localStorage.getItem("sharing-canvas-fixture")!))
 async function action(page: import("@playwright/test").Page, name: string) {
   await page.getByRole("button", { name: "Page actions" }).click()
@@ -154,6 +154,42 @@ test("reviewed images render at mobile width and fail visibly after their audien
   await expect.poll(() => guest.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(600)
 })
 
+
+test("reviewed primary logos preserve audience access and recover after a newly reviewed logo", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 840 })
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  const image = await sharp({ create: { width: 100, height: 50, channels: 3, background: "#287265" } }).webp().toBuffer()
+  let revoked = false
+  const requests: string[] = []
+  await page.route(/\/api\/(?:account\/workspace-page-image|public\/workspace-page-assets\/)/, async route => {
+    const url = new URL(route.request().url())
+    requests.push(url.toString())
+    const oldPublicLogo = url.pathname.endsWith(shareId(61)) && url.searchParams.get("audience") === "public"
+    await route.fulfill(revoked && oldPublicLogo ? { status: 404, body: "" }
+      : { status: 200, contentType: "image/webp", body: image, headers: { "cache-control": "no-store" } })
+  })
+  await page.goto("/?public-images")
+  await page.addStyleTag({ content: "html { font-size: 200% }" })
+  for (const name of ["Review", "Public", "Invited"]) {
+    const logo = page.getByRole("region", { name, exact: true }).locator("header img")
+    await expect.poll(() => logo.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(100)
+    expect(await logo.evaluate(element => element.getBoundingClientRect().right <= innerWidth)).toBe(true)
+  }
+  expect(requests.some(url => url.includes("logo=primary"))).toBe(true)
+  await page.screenshot({ path: test.info().outputPath("reviewed-logo-mobile.png"), fullPage: true })
+  revoked = true
+  await page.reload()
+  const publicHeader = page.getByRole("region", { name: "Public", exact: true }).locator("header")
+  await expect(publicHeader.locator("img")).toHaveCount(0)
+  await expect(publicHeader.locator("span[aria-hidden]")).toHaveText("CO")
+  const guestLogo = page.getByRole("region", { name: "Invited", exact: true }).locator("header img")
+  await expect.poll(() => guestLogo.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(100)
+  await page.keyboard.press("Tab")
+  await expect(page.getByRole("button", { name: "Review another logo" })).toBeFocused()
+  await page.keyboard.press("Enter")
+  await expect.poll(() => publicHeader.locator("img").evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(100)
+  await expect(publicHeader.locator("img")).toHaveAttribute("src", new RegExp(shareId(62)))
+})
 
 test("reviewed documents remain inert, readable on mobile and recheck access when reopened", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 840 })

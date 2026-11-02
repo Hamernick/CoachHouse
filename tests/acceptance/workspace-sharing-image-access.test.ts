@@ -93,6 +93,17 @@ describe("direct image grants", () => {
 })
 
 describe("review and orphan recovery", () => {
+  it("previews only the current canonical primary logo and rejects ambiguous source requests", async () => {
+    const profile = { brandIdentity: { assets: { "primary-logo": { fileId: ID(40) } } } }
+    mocks.sources.mockResolvedValue({ graph: {}, profile })
+    mocks.images.mockResolvedValue(new Map([["brand-logo", { representation: { bytes, sha256 } }]]))
+    const url = `https://fixture.test/api/account/workspace-page-image?logo=primary&digest=${sha256}`
+    expect((await handlePageImagePreview(new Request(url))).status).toBe(200)
+    expect(mocks.images.mock.calls[0][1]).toMatchObject({ profile, draft: { particleIds: [] } })
+    expect((await handlePageImagePreview(new Request(`${url}&particleId=${ID(1)}`))).status).toBe(404)
+    expect((await handlePageImagePreview(new Request(url.replace(sha256, "0".repeat(64))))).status).toBe(404)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
   it("previews exact prepared bytes only through the current session and selected saved canvas", async () => {
     expect((await handlePageImagePreview(preview())).status).toBe(200)
     expect(mocks.sources).toHaveBeenCalledWith({ actorId: WORKSPACE, orgId: WORKSPACE }, ID(50))

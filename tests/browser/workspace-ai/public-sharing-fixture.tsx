@@ -1,6 +1,7 @@
 import { PublicWorkspacePage } from "../../../src/features/workspace-sharing/components/public-workspace-page"
 import type { WorkspacePageSnapshot } from "../../../src/features/workspace-sharing/types"
 import { shareId } from "./sharing-actions"
+import { useState } from "react"
 
 const snapshot: WorkspacePageSnapshot = {
   version: 1, brand: { name: "Community organization", organizationSlug: "community" },
@@ -15,11 +16,13 @@ export function PublicSharingFixture() {
 
 
 export function PublicSharingImageFixture() {
-  const imageSnapshot: WorkspacePageSnapshot = { ...snapshot, items: [
+  const [logoId, setLogoId] = useState(shareId(61))
+  const imageSnapshot: WorkspacePageSnapshot = { ...snapshot, brand: { ...snapshot.brand, logo: { assetId: logoId, width: 100, height: 50 } }, items: [
     { id: shareId(22), title: "Workshop photo", content: { kind: "image", assetId: shareId(60), alt: "Workshop participants", width: 600, height: 300 } },
   ] }
   return <main><h1>Reviewed images</h1>
-    <section aria-label="Review"><PublicWorkspacePage snapshot={imageSnapshot} imagePreviews={{ [shareId(60)]: "/api/account/workspace-page-image?fixture=reviewed" }} embedded /></section>
+    <button onClick={() => setLogoId(shareId(62))}>Review another logo</button>
+    <section aria-label="Review"><PublicWorkspacePage snapshot={imageSnapshot} imagePreviews={{ [shareId(60)]: "/api/account/workspace-page-image?fixture=reviewed", [logoId]: "/api/account/workspace-page-image?logo=primary&fixture=reviewed" }} embedded /></section>
     <section aria-label="Public"><PublicWorkspacePage snapshot={imageSnapshot} embedded /></section>
     <section aria-label="Invited"><PublicWorkspacePage snapshot={imageSnapshot} imageAudience="guest" embedded /></section>
   </main>

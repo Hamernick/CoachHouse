@@ -74,6 +74,28 @@ describe("bounded public image representation", () => {
 })
 
 describe("selected private image source preparation", () => {
+  it("prepares a canonical primary logo with selected images and deduplicates its library read", async () => {
+    const result = await resolvePageImageSources(actor, { ...input(), profile: {
+      logoUrl: "https://private.example/never-fetch.png",
+      brandIdentity: { assets: { "primary-logo": { fileId: ID(40) } } },
+    } })
+    expect([...result.keys()]).toEqual([ID(1), "brand-logo"])
+    expect(result.get("brand-logo")?.representation).toBe(result.get(ID(1))?.representation)
+    expect(mocks.download).toHaveBeenCalledTimes(1)
+  })
+  it("prepares logo-only review without inventing a Particle and rejects invalid logo identity", async () => {
+    const request = { graph: graph(), draft: { title: "", description: "", particleIds: [] } }
+    const result = await resolvePageImageSources(actor, { ...request, profile: { brandIdentity: { assets: { "primary-logo": { fileId: ID(40) } } } } })
+    expect([...result.keys()]).toEqual(["brand-logo"])
+    await expect(resolvePageImageSources(actor, { ...request, profile: { brandIdentity: { assets: { "primary-logo": { fileId: "https://private.example" } } } } })).rejects.toMatchObject({ code: "invalid" })
+  })
+  it("never falls back to a legacy URL or explicitly removed logo", async () => {
+    for (const profile of [{ logoUrl: "https://private.example/logo.png" }, { brandIdentity: { assets: { "primary-logo": null } } }]) {
+      const result = await resolvePageImageSources(actor, { graph: graph(), draft: { title: "", description: "", particleIds: [] }, profile })
+      expect(result.size).toBe(0)
+    }
+    expect(storage).not.toHaveBeenCalled()
+  })
   it("uses session RLS and canonical paths, rechecks authority and metadata, and deduplicates file reads", async () => {
     const request = input()
     request.graph = graph([image(), image(2), image(3, ID(41))])

@@ -3,6 +3,7 @@ import "server-only"
 import { z } from "zod"
 import { readParticleGraph } from "@/features/workspace-particles"
 import type { WorkspacePageDraft } from "../types"
+import { PAGE_LOGO_IMAGE_KEY, pageLogoFileId } from "../lib/page-brand"
 import { loadPageActor, type PageActor } from "./page-context"
 import { publicationHash, WorkspaceSharingError } from "./page-projection"
 import {
@@ -50,7 +51,7 @@ async function loadSources(actor: PageActor, ids: string[], signal: AbortSignal)
  * The eventual publication transaction must lock/check returned source evidence.
  */
 export async function resolvePageImageSources(actor: PageActor, input: {
-  graph: unknown; draft: WorkspacePageDraft
+  graph: unknown; draft: WorkspacePageDraft; profile?: unknown
 }) {
   const graph = readParticleGraph(input.graph, actor.orgId)
   if (!graph.ok) throw new WorkspaceSharingError("invalid", graph.error)
@@ -62,6 +63,12 @@ export async function resolvePageImageSources(actor: PageActor, input: {
       || particle.data.widget?.kind !== "image") return []
     return [{ particleId: particle.id, fileId: particle.data.widget.fileId }]
   })
+  if (input.profile !== undefined) {
+    let logoId: string | undefined
+    try { logoId = pageLogoFileId(input.profile) }
+    catch { throw new WorkspaceSharingError("invalid", "The saved primary logo is invalid. Update it in Brand kit before sharing.") }
+    if (logoId) candidates.push({ particleId: PAGE_LOGO_IMAGE_KEY, fileId: logoId })
+  }
   const ids = [...new Set(candidates.map(({ fileId }) => fileId))].sort()
   const images = new Map<string, {
     source: PageImageSource; representation: Awaited<ReturnType<typeof preparePageImage>>

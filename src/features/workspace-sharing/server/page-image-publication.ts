@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import type { PageActor } from "./page-context"
 import { publicationHash, WorkspaceSharingError } from "./page-projection"
 import type { resolvePageImageSources, PageImageSource } from "./page-asset-sources"
+import { PAGE_LOGO_IMAGE_KEY } from "../lib/page-brand"
 
 type Images = Awaited<ReturnType<typeof resolvePageImageSources>>
 type ImageGrant = { id: string; source: PageImageSource; path: string; sha256: string; size: number; width: number; height: number }
@@ -18,7 +19,7 @@ export function identifyPageImages(images: Images, pageId: string, revision: num
     const hash = publicationHash({ pageId, revision, source, sha256: representation.sha256 })
     const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`
     ids.set(particleId, { assetId: id, width: representation.width, height: representation.height })
-    previews[id] = `/api/account/workspace-page-image?${new URLSearchParams({ particleId, digest: representation.sha256, ...(canvasId ? { canvasId } : {}) })}`
+    previews[id] = `/api/account/workspace-page-image?${new URLSearchParams({ ...(particleId === PAGE_LOGO_IMAGE_KEY ? { logo: "primary" } : { particleId }), digest: representation.sha256, ...(canvasId ? { canvasId } : {}) })}`
   }
   return { ids, previews }
 }

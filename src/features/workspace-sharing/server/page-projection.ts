@@ -5,7 +5,7 @@ import { z } from "zod"
 import { projectParticlePublicContent, readParticleGraph } from "@/features/workspace-particles"
 import type { WorkspacePageDraft } from "../types"
 import { workspacePageSnapshotSchema } from "../lib"
-import { projectPageBrandColor } from "../lib/page-brand"
+import { PAGE_LOGO_IMAGE_KEY, projectPageBrandColor } from "../lib/page-brand"
 
 export class WorkspaceSharingError extends Error {
   constructor(public readonly code: "invalid" | "scope" | "conflict" | "unsupported" | "unavailable", message: string, public readonly uncertain = false) {
@@ -58,9 +58,10 @@ export function projectWorkspacePage(input: {
   if (!profile.success || !input.publicSlug)
     throw new WorkspaceSharingError("invalid", "Add an organization name and public URL in organization settings first.")
   const primaryColor = projectPageBrandColor(profile.data.brandPrimary)
+  const logo = input.imageIds?.get(PAGE_LOGO_IMAGE_KEY)
   const snapshot = workspacePageSnapshotSchema.safeParse({
     version: 1,
-    brand: { name: profile.data.name, organizationSlug: input.publicSlug, ...(primaryColor ? { primaryColor } : {}) },
+    brand: { name: profile.data.name, organizationSlug: input.publicSlug, ...(primaryColor ? { primaryColor } : {}), ...(logo ? { logo } : {}) },
     title: input.draft.title,
     description: input.draft.description,
     items,

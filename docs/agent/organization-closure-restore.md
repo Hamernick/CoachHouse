@@ -402,3 +402,121 @@ remain unqualified. This suppresses access; it does not erase account/PII histor
 Keep `historyRequiresReconciliation:true`, `captureComplete:false`,
 `releaseQualified:false` and restored targets quarantined. Local database proof is
 not hosted/release acceptance. The authoritative S08 checkpoint owns the next slice.
+
+
+## Bounded capture admission (migration 20261103190000)
+
+Every event insertion now checks the same complete UTC JSON envelope used by the
+exporter. The 1,000-event and 1,048,576-byte limits are transactional: overflow
+raises `54000` and rolls back the entire canonical operation, including earlier
+shutdown changes, operation receipts and the sequence counter. A rejected
+withdrawal has **not** revoked access. Exact successful operation retries do not
+consume another slot. Do not clear the journal, reset its counter or drop events
+to recover capacity; this bounded rehearsal needs a separately qualified capacity
+solution before activation. Installation rejects existing oversized/inconsistent
+history without changing it. Export/replay also reject a missing, disabled or
+narrowed capacity hook. Private helper privileges remain unavailable to API roles.
+
+## Frozen remaining access domains (C1)
+
+This inventory is fixed at the November 2 continuation checkpoint. It replaces
+open-ended “other grants” discovery; it does not certify current authority.
+Existing exact form invitation/reviewer/primary manager, page invitation and
+note-source consent recovery remains unchanged.
+
+| Domain | Restore disposition and source owner |
+| --- | --- |
+| Page public/guest/link and native intake selection | Independent publication consent generations in `organization_workspace_pages`; native intake follows the current selected page snapshot. Draft revision alone is not consent. |
+| Copied page image/document access | Exact IDs in `workspace_page_image_grants` and `workspace_page_document_grants`; source files and copied Storage objects are preserved. Editor access is distinct from public access. |
+| Legacy public flags | Reconcile current consent for `organizations.is_public/is_public_roadmap` and organization-owned `programs.is_public`; an old true flag is insufficient. Preserve unrelated personal programs. |
+| Calendar authority | Reconcile/retire restored public/internal feed and event authority (`roadmap_calendar_*_feeds`, `roadmap_calendar_public_events`, `organization_calendar_publication_revocations`). Never journal bearer tokens. |
+| Organization admission | Reconcile memberships/roles, invites, access requests and invite settings. Form-dependent suppression does not prove workspace membership authority. Preserve other organizations and shared Auth users. |
+| Staff/support/fiscal authority | Independently reconcile staff/support grants, Auth restrictions, fiscal reviewers/applicants and session credentials. Preserve separately owned financial/security records; do not sweep global roles on behalf of one organization. |
+| Connector consent | Keep restored credentials and workers inactive until current provider/scoped consent is verified. Shared Google identity and externally owned files are preserved. |
+| Runtime/environment admission | Reconcile canceled/pending AI and delivery work, effect/settlement receipts, Auth sessions, service keys and operator privileges before any application/worker connection. Restored queued rows are not execution authorization. |
+
+The last six domains remain under verified database quarantine, with explicit
+`requires_current_authority_reconciliation` status. An offline connection-denial
+receipt proves no restored database admission at that moment; it does not prove
+historical authorities are correct or that a managed hosted environment has the
+same controls. Keep one operator during replay and zero sessions after exit.
+There is no reopening operation in this procedure. C2 owns actual hosted isolation;
+C3/C5 own retained content, connector effects and financial/runtime reconciliation.
+Historical/pre-installation histories, missing later grants and missing source
+records require reconciliation across all eight domains. Direct public Storage
+URLs and already delivered bytes remain C3 retention/retirement obligations.
+
+## C2 hosted qualification inputs and exact failure drill
+
+Local SQLite evidence remains reusable. It does not establish source-and-host
+loss survival; no remote retention destination, scheduler or authenticated remote
+acknowledgement is configured by these migrations.
+
+Before a hosted drill, retain these concrete inputs in the existing checkpoint
+without copying credentials into logs:
+
+- Exact source project/database, original source/capture identifiers and domain
+  installation generations, candidate migration revision and actual collector role.
+- Independent retention account/project, container/key prefix, region/failure
+  domain and collector identity. Source/collector credentials must not erase or
+  overwrite acknowledged versions; retain actual retention-setting permissions.
+- Verified database/PITR/manual-export/object/log horizons from C3. Remote
+  suppression retention must cover every restorable history; no horizon is
+  assumed from the 30-day user export window.
+- Scheduler owner and approved transport, authenticated append/readback/receipt
+  protocol, collection interval and outage admission policy. Bind acknowledged
+  source/capture ID, high-water, digest/chain and remote immutable version. A local
+  heartbeat or freshness lease cannot prove an uncaptured suffix never existed.
+- Exact isolated recovery project/operator and maintenance admission controls.
+  The current replay requires actual `rolsuper`, `ALLOW_CONNECTIONS=false`, sole
+  session and no prepared transactions. If hosted privileges cannot provide this,
+  qualify an equivalent procedure; never weaken checks to manufacture a pass.
+- Backup inventory/install boundaries and a reconciliation or authorized retirement
+  disposition for each unsupported history. Installing new generation IDs into an
+  older backup does not recover its original lineage.
+- Scoped authority for the named nonproduction source/target/sink failure drill.
+  Local implementation authorization does not authorize remote configuration,
+  permanent retention changes, deletion, deployment or reopening.
+
+With those inputs, recover pinned retained bytes without source/collector-host
+access; compare lineage, sequence and digest independently. Prove coverage of the
+latest required committed withdrawals. Exercise missing/stale/regressed/forked
+receipts, collector outage, source loss, tampered/truncated payload, remote
+rewrite/delete denial and count/byte boundaries. Any unproven suffix keeps the
+target quarantined. Under actual hosted privileges prove denial **before import**,
+replay exact history, inspect canonical withdrawals and preserved identities,
+then disconnect the sole operator and verify zero sessions/admission still denied.
+Keep `captureComplete:false` and `releaseQualified:false` until all corresponding
+qualification gates are actually satisfied; this checklist is not their receipt.
+
+
+## Exact publication and copied-asset recovery (migration 20261103210000)
+
+Require migration `20261103190000` and the original private
+`page_access_generation_id` from installation. Public and guest snapshots have
+independent opaque consent generations. Draft-only/no-op changes preserve them;
+withdrawal, content replacement, link rotation and deletion retire the affected
+old generation. Copied image/document grants retain their exact ID; their identity
+and contents cannot be changed in place. Issue a new reviewed grant instead.
+Deletion records suppression, including cascades. No source file or Storage object
+is deleted by access replay. The reviewed primary logo uses the existing image
+grant table and the same exact retirement boundary.
+
+The existing bounded journal adds `workspace_page_access_revoked` with only
+opaque organization/page/grant/installation IDs, domain (`public`, `guest`, `image`
+or `document`), original allocation time and revision. It contains no snapshot,
+actor, token, storage path or source content. The collector's strict parser and
+the exporter/replay require the new kind, exact payload and enabled hooks. An old
+collector must reject it rather than silently omit it.
+
+Quarantined replay withdraws only the matching public/guest channel or copied
+grant, or records its already-absent identity. Newer independent consent survives;
+missing replacement grants are never invented. A public withdrawal alone does
+not erase a separate guest snapshot or editor asset entitlement. Exact asset
+retirement denies all its audience readers while preserving the copied bytes for
+separate retention/cleanup ownership. Cancellation restores none of these grants.
+
+The resulting receipt explicitly lists the six frozen non-exact reconciliation
+domains above. Keep the database offline and verify zero sessions after operator
+exit. This is local restoration mechanics, not hosted admission, complete current
+authority reconciliation, personal-data erasure or permission to reopen.

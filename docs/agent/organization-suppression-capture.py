@@ -75,7 +75,8 @@ def validate(snapshot, expected_source_id):
                           "form_reviewer_revoked": {"reviewer"},
                           "form_primary_manager_revoked": {"primaryManager"},
                           "workspace_page_invitation_revoked": {"pageInvitation"},
-                          "workspace_page_note_scope_revoked": {"pageNoteScope"}}
+                          "workspace_page_note_scope_revoked": {"pageNoteScope"},
+                          "workspace_page_access_revoked": {"pageAccess"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -148,6 +149,18 @@ def validate(snapshot, expected_source_id):
             require(scope["grantId"] == event["operationId"], "Page note scope suppression identity mismatch")
             timestamp(scope["sourceCreatedAt"])
             require(timestamp(scope["createdAt"]) <= occurred, "Invalid page note scope suppression timing")
+        elif kind == "workspace_page_access_revoked":
+            access = event["pageAccess"]
+            require(isinstance(access, dict) and set(access) == {
+                "domain", "pageId", "grantId", "generationId", "createdAt",
+            }, "Invalid page access suppression event")
+            require(access["domain"] in ("public", "guest", "image", "document"), "Invalid page access domain")
+            for field in ("pageId", "grantId", "generationId"):
+                uuid(access[field])
+            require(access["grantId"] == event["operationId"], "Page access suppression identity mismatch")
+            if access["domain"] in ("public", "guest"):
+                require(event["revision"] == 1, "Invalid publication suppression revision")
+            require(timestamp(access["createdAt"]) <= occurred, "Invalid page access suppression timing")
         elif kind == "form_primary_manager_revoked":
             primary = event["primaryManager"]
             require(isinstance(primary, dict) and set(primary) == {

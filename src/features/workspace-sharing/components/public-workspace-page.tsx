@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { PublicEventTime } from "./public-event-time"
 import { PublicPageDocument } from "./public-page-document"
 import { PublicPageImage } from "./public-page-image"
-import { pageBrandStyle } from "../lib/page-brand"
+import { PublicPageLogo } from "./public-page-logo"
 
 type AssetPresentation = { interactiveForms?: boolean; documentPreviews?: Record<string, string>; imagePreviews?: Record<string, string>; imageAudience?: "public" | "guest" | "editor" }
 type PublicItem = WorkspacePageSnapshot["items"][number]
@@ -73,10 +73,12 @@ export function PublicWorkspacePage({ snapshot, locale, embedded = false, intera
   const Root = embedded ? "div" : "main"
   const BrandHeading = embedded ? "h2" : "h1"
   const ContentHeading = embedded ? "h3" : "h2"
+  const logoId = snapshot.brand.logo?.assetId
+  const logoSrc = logoId ? imagePreviews?.[logoId] ?? `/api/public/workspace-page-assets/${logoId}?audience=${imageAudience ?? "public"}` : undefined
   return <Root aria-label={embedded ? "Public page preview" : undefined} className={cn("mx-auto flex w-full max-w-[46rem] flex-col gap-6 px-4 sm:px-6", embedded ? "py-4" : "min-h-svh pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pt-16")}>
     <header className="flex min-w-0 flex-col gap-4 px-1">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-medium" style={pageBrandStyle(snapshot.brand.primaryColor)} aria-hidden>{snapshot.brand.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()}</span>
+        <PublicPageLogo key={logoSrc ?? "initials"} src={logoSrc} name={snapshot.brand.name} primaryColor={snapshot.brand.primaryColor} />
         <BrandHeading className="min-w-0 break-words text-xl font-semibold tracking-tight sm:text-2xl">{snapshot.brand.name}</BrandHeading>
       </div>
       {(snapshot.title || snapshot.description) && <div className="flex flex-col gap-2">{snapshot.title && <ContentHeading className="break-words text-lg font-medium">{snapshot.title}</ContentHeading>}{snapshot.description && <p className="text-muted-foreground whitespace-pre-wrap break-words text-sm leading-relaxed">{snapshot.description}</p>}</div>}
