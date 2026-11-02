@@ -116,7 +116,7 @@ describe("review and orphan recovery", () => {
       expect(mocks.rpc).not.toHaveBeenCalled()
       mocks.rpc.mockResolvedValue({ data: [grant.path], error: null })
       const response = await handlePageImageCleanup(new Request("https://fixture.test/cron", { headers: { authorization: "Bearer fixture-secret" } }))
-      expect(await response.json()).toEqual({ removed: 1, morePossible: false })
+      expect(await response.json()).toEqual({ removed: 1, morePossible: true })
       expect(mocks.remove).toHaveBeenCalledWith([grant.path])
       expect(mocks.storage).toHaveBeenCalledWith("workspace-page-assets")
     } finally { vi.unstubAllEnvs() }

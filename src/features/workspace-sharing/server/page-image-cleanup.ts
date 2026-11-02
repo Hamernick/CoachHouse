@@ -4,7 +4,7 @@ import { timingSafeEqual } from "node:crypto"
 import { z } from "zod"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
-/** Only unused, expired copies; committed assets and original Documents are
+/** Only unused, expired copies; current reviewed assets and original Documents are
  * excluded. Storage remove is idempotent; failures remain eligible next sweep. */
 export async function handlePageImageCleanup(request: Request) {
   const headers = { "Cache-Control": "no-store" }
@@ -23,6 +23,8 @@ export async function handlePageImageCleanup(request: Request) {
       const removed = await admin.storage.from("workspace-page-assets").remove(paths.data)
       if (removed.error) throw new Error("Unavailable")
     }
-    return Response.json({ removed: paths.data.length, morePossible: paths.data.length === 100 }, { headers })
+    // Grant retirement has its own smaller bound. A nonempty batch requires
+    // another pass; only an empty pass reports no candidates at that moment.
+    return Response.json({ removed: paths.data.length, morePossible: paths.data.length > 0 }, { headers })
   } catch { return Response.json({ error: "Asset cleanup unavailable" }, { status: 503, headers }) }
 }

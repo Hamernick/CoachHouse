@@ -119,6 +119,23 @@ describe("review and orphan recovery", () => {
     expect((await handlePageImagePreview(preview())).status).toBe(404)
     expect(mocks.images).not.toHaveBeenCalled()
   })
+  it("keeps cleanup retryable after provider failure and reports an empty follow-up", async () => {
+    vi.stubEnv("INTERNAL_CRON_SECRET", "fixture-secret")
+    const cleanupRequest = () => new Request("https://fixture.test/cron", { headers: { authorization: "Bearer fixture-secret" } })
+    try {
+      mocks.rpc.mockResolvedValue({ data: [grant.path], error: null })
+      mocks.remove.mockResolvedValueOnce({ error: new Error("Provider unavailable") })
+      expect((await handlePageImageCleanup(cleanupRequest())).status).toBe(503)
+      expect(await (await handlePageImageCleanup(cleanupRequest())).json()).toEqual({ removed: 1, morePossible: true })
+      expect(mocks.remove).toHaveBeenCalledTimes(2)
+      mocks.rpc.mockResolvedValue({ data: [], error: null })
+      const empty = await handlePageImageCleanup(cleanupRequest())
+      expect(empty.headers.get("cache-control")).toBe("no-store")
+      expect(await empty.json()).toEqual({ removed: 0, morePossible: false })
+      expect(await (await handlePageImageCleanup(cleanupRequest())).json()).toEqual({ removed: 0, morePossible: false })
+      expect(mocks.remove).toHaveBeenCalledTimes(2)
+    } finally { vi.unstubAllEnvs() }
+  })
   it("requires cron authentication and removes only the bounded RPC candidates", async () => {
     vi.stubEnv("INTERNAL_CRON_SECRET", "fixture-secret")
     try {
@@ -126,7 +143,7 @@ describe("review and orphan recovery", () => {
       expect(mocks.rpc).not.toHaveBeenCalled()
       mocks.rpc.mockResolvedValue({ data: [grant.path], error: null })
       const response = await handlePageImageCleanup(new Request("https://fixture.test/cron", { headers: { authorization: "Bearer fixture-secret" } }))
-      expect(await response.json()).toEqual({ removed: 1, morePossible: false })
+      expect(await response.json()).toEqual({ removed: 1, morePossible: true })
       expect(mocks.remove).toHaveBeenCalledWith([grant.path])
       expect(mocks.storage).toHaveBeenCalledWith("workspace-page-assets")
     } finally { vi.unstubAllEnvs() }
