@@ -97,3 +97,53 @@ history, unknown organizations, wrong source/digest, malformed entries, other
 sessions and an open target are rejected. A failed statement rolls back all
 replay changes; connection quarantine remains. Unsupported history and omitted
 deletions remain unresolved even if supported entries replay successfully.
+
+## Local suppression capture rehearsal
+
+Migration `20261103090000` captures new canonical closure requests,
+cancellations and explicit native response deletions in the same transaction as
+their operation receipts. Events contain opaque IDs, revisions and timestamps;
+never answers, actor identities or credentials. They have no cascading content
+foreign keys and reject modification/truncation. Cancellation retains the prior
+request event and its original deadline. This is capture, not history replay.
+
+The counter and event commit together. Contention returns retryable `40001`
+without a partial operation; retry the entire canonical operation with its
+original operation ID. The private exporter returns the complete committed set,
+at most 1,000 events/1 MiB, and rejects busy capture, missing hooks or gaps.
+Overflow fails closed; this rehearsal does not implement an unbounded service.
+Capture starts at installation. `historyRequiresReconciliation` always remains
+true; existing receipts are not silently reconstructed as complete history.
+
+The adjacent [operator collector](organization-suppression-capture.py) copies
+that bounded set to a private SQLite file outside the source database backup.
+It uses only Python's standard library and `psql`, supports password-free local
+PostgreSQL URLs, and never changes the source. Supply the independently checked
+source UUID and an absolute journal path inside an operator-owned directory
+with mode `0700`; the journal itself must be mode `0600`:
+
+```sh
+python3 docs/agent/organization-suppression-capture.py \
+  --source 'postgresql://127.0.0.1:55439/explicit_source_database' \
+  --journal '/absolute/private-directory/suppression.sqlite' \
+  --expected-source-id 'independently-checked-source-uuid'
+```
+
+Replace placeholders; do not use a restored database as a new authority or
+silently replace its journal. The sink pins source/capture lineage, compares the
+entire existing event prefix, and atomically appends exact new events using
+SQLite `synchronous=FULL` and `fullfsync`, then closes and reopens for readback.
+Exact retry is safe. Missing prior events, changed payloads, wrong source or a
+changed capture boundary fail without removing retained history. After an
+ambiguous reply, retry against the same journal. Do not delete it to bypass a
+conflict. Output contains counts and a digest, not event payloads.
+
+The file survives a source-only SQL restore, but shares the local machine's
+failure domain. It is **not** independently hosted durable capture. There is no
+background collector, freshness/completeness attestation, outage admission gate
+or protected remote retention configured. Deletion after the last successful
+capture can still be lost if the source is lost. Independent grant revocations
+and historical cancellations/deletions are not reconstructed. Both
+`captureComplete` and `releaseQualified` remain false. Keep the journal private
+and retained; this slice grants no expiry, physical purge, replay, reopening or
+closure activation authority.
