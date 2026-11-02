@@ -9,6 +9,8 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react"
+import { hasParticleMembership } from "../lib/particle-membership-responsibility"
+import { withParticleAssignmentBounds, particleAssignmentCardSize } from "../lib/particle-assignment-geometry"
 import { animate } from "motion/react"
 import type { Node } from "@xyflow/react"
 import type { ParticleNodeData } from "../components/particle-node"
@@ -43,6 +45,7 @@ export function useParticleResize(input: Input) {
     start: Dimensions
     last: Dimensions
     workspaceId: string
+    membership: boolean
   } | null>(null)
   const animation = useRef<ReturnType<typeof animate> | null>(null)
   const endAnimation = useRef<(() => void) | null>(null)
@@ -76,6 +79,7 @@ export function useParticleResize(input: Input) {
       start: dimensions,
       last: dimensions,
       workspaceId: particle.workspaceId,
+      membership: hasParticleMembership(current.session.getCurrentGraph(), id),
     }
     setBusy(true)
     return true
@@ -98,16 +102,16 @@ export function useParticleResize(input: Input) {
         !current.dirty.current &&
         !current.blocked
           ? resolveParticleResize(
-              start.start,
-              dimensions,
+              particleAssignmentCardSize(particle, start.start, start.membership),
+              particleAssignmentCardSize(particle, dimensions, start.membership),
               supportedParticleSizes(particle),
               particle
             )
           : null
-      if (particle) dimensions = particleResizeDimensions(particle, dimensions)
+      if (particle) dimensions = withParticleAssignmentBounds(particle, particleResizeDimensions(particle, particleAssignmentCardSize(particle, dimensions, start.membership)), start.membership)
       const target =
         family && particle
-          ? particleFamilyDimensions(particle, family)
+          ? withParticleAssignmentBounds(particle, particleFamilyDimensions(particle, family), start.membership)
           : start.start
       const reduced =
         typeof matchMedia !== "undefined" &&
@@ -170,10 +174,10 @@ export function useParticleResize(input: Input) {
                     ...node,
                     width: undefined,
                     height: undefined,
-                    style: particleSizeStyle(
+                    style: withParticleAssignmentBounds(saved, particleSizeStyle(
                       saved,
                       particleRegistry[saved.type].width
-                    ),
+                    ), hasParticleMembership(latest.current.session.getCurrentGraph(), id)),
                     resizing: false,
                   }
                 : node

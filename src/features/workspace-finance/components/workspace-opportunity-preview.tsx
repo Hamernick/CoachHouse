@@ -24,7 +24,7 @@ export function WorkspaceOpportunityPreview({ organizationId, opportunityId }: {
   }, [organizationId, opportunityId])
   if (!result) return <p role="status" className="text-sm text-muted-foreground">Loading opportunity…</p>
   if ("error" in result) return <p role="status" className="text-sm text-muted-foreground">{result.error}</p>
-  return <div className="nodrag nopan nowheel max-h-96 space-y-4 overflow-y-auto text-sm">
+  return <div className="nopan nowheel max-h-96 space-y-4 overflow-y-auto text-sm">
     <OpportunityReportContent report={readOpportunityReport(result.opportunity.report)} options={result.options} organizationId={organizationId} />
     {!!result.opportunity.sources?.length && <div className="flex flex-wrap gap-1.5">{result.opportunity.sources.map(source => <OpportunitySourcePill key={sourceKey(source)} source={source} organizationId={organizationId} option={result.options.find(option => sourceKey(option.source) === sourceKey(source))} />)}</div>}
   </div>

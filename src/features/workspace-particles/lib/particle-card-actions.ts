@@ -13,6 +13,7 @@ export type ParticleCardAction =
   | "lock"
   | "unlock"
   | "remove"
+  | "delete"
   | "size_compact"
   | "size_default"
   | "size_wide"
@@ -52,6 +53,10 @@ export function duplicateParticle(
     createdAt: now,
     updatedAt: now,
   })
+  if (copy.type === "objective") {
+    copy.status = "backlog"
+    delete copy.data.outcomeConfirmation
+  }
   const cloneSteps = (
     steps: Extract<Particle, { type: "workflow" }>["data"]["steps"]
   ) =>
@@ -78,6 +83,7 @@ export function particleCardOperation(
   uuid: () => string,
   now: string
 ): ParticleOperation | null {
+  if (action === "delete") return { kind: "remove_particle", id: particle.id, expectedRevision: particle.revision }
   if (action === "duplicate")
     return {
       kind: "put_particle",

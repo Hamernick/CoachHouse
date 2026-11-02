@@ -70,7 +70,7 @@ export const ParticleEdge = memo(function ParticleEdge(
       labelX={middle.x}
       labelY={middle.y}
       labelStyle={{ fill: "var(--foreground)" }}
-      labelBgStyle={{ fill: "var(--card)" }}
+      labelShowBg={false}
     />
   )
 })

@@ -21,7 +21,7 @@ export type RoadmapCalendarRecurrence = {
 
 export type RoadmapCalendarEvent = {
   id: string
-  source?: { kind: "workspace_particle"; particleId: string; workspaceCanvasId?: string }
+  source?: { kind: "workspace_particle"; particleId: string; workspaceCanvasId?: string } | { kind: "workspace_opportunity"; opportunityId: string; window?: { from: string; to: string }; deadlineAt?: string | null }
   orgId: string
   title: string
   description: string | null

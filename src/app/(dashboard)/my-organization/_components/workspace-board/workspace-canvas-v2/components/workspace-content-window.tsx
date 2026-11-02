@@ -123,11 +123,13 @@ function WorkspaceContentWindowSurface({
         inert={collapsed ? true : undefined}
         hidden={desktop && !present && !sidebar}
         data-workspace-content-window={desktop ? "true" : undefined}
+        data-workspace-window-maximized={desktop && windowState?.maximized && !collapsed ? "true" : undefined}
         data-workspace-presentation={windowState?.presentation ?? "window"}
         className={cn(
           "flex min-h-0 flex-1 flex-col overflow-hidden",
           styles.contentSurface,
           desktop && styles.contentWindow,
+          desktop && "canvas-glass",
           sidebar && styles.organizationSidebar,
           desktop && !present && !sidebar && "hidden"
         )}
@@ -137,7 +139,7 @@ function WorkspaceContentWindowSurface({
                 willChange,
                 width: sidebar && collapsed ? triggerSize.width : paintedGeometry.width,
                 height: sidebar && collapsed ? triggerSize.height : paintedGeometry.height,
-                borderRadius: sidebar && collapsed ? 12 : 20,
+                borderRadius: sidebar && collapsed ? triggerSize.height / 2 : windowState?.maximized ? 0 : 20,
                 pointerEvents: collapsed ? "none" : "auto",
               }
             : undefined

@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { stripHtml } from "@/lib/markdown/convert"
 import { isDocumentsSectionVisible } from "@/lib/organization/core-document-uploads"
 import { hasMeaningfulRoadmapBudgetRows } from "@/lib/roadmap/budget"
@@ -167,7 +168,7 @@ export function buildDocumentsPolicyPeopleOptions(
 ): DocumentsOption[] {
   return (
     Array.isArray(profile.org_people)
-      ? (profile.org_people as Array<unknown>)
+      ? (profile.org_people as Array<unknown>).filter(isActiveContact)
       : []
   )
     .map((entry) => (isRecord(entry) ? entry : null))

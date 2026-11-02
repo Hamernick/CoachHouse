@@ -27,6 +27,8 @@ export const workspacePageSnapshotSchema = z.strictObject({
 export const workspacePageSchema = z.strictObject({
   id: z.uuid(),
   orgId: z.uuid(),
+  canvasId: z.uuid().nullable().optional(),
+  guestSharingReady: z.boolean().optional(),
   linkId: z.uuid(),
   revision: z.int().min(1).max(2147483647),
   draft: workspacePageDraftSchema,

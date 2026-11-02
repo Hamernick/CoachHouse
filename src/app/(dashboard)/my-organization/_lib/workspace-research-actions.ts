@@ -11,7 +11,7 @@ export async function applyWorkspaceResearchAction(input: unknown, workspaceCanv
       return { ok: false, code: "scope", error: "Open the workspace where this research began." }
     if (!prepared.batch) return { ok: true, value: { graph: prepared.context.graph, inverse: [], replayed: true } }
     return await writeWorkspaceParticleBatch(prepared.batch, workspaceCanvasId, {
-      runId: prepared.runId, objectiveId: prepared.context.objective.id,
+      runId: prepared.runId, objectiveId: prepared.objectiveId,
     })
   } catch (error) {
     return { ok: false, code: "invalid", error: error instanceof Error ? error.message : "Research could not be added. Try again." }

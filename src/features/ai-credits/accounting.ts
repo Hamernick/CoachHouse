@@ -7,3 +7,6 @@ export { handleAiRecovery } from "./server/recovery"
 export { correlateAiResearchResponse, correlateAiResponse, reserveAiRun, claimAiRun, settleAiRun, reconcileAiRun, cancelAiRun, readAiRun, readAiAccount } from "./server/accounting"
 
 export { processAiAllowanceInvoice } from "./server/allowance-webhook"
+
+export { AiAdmissionDenied } from "./server/admission-error"
+export { listAiResearchRuns } from "./server/accounting"

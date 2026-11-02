@@ -8,6 +8,7 @@ import type { WorkspaceFunctions } from "./workspace-functions"
 import type { ObjectivePlanFunctions } from "./objective-plan-functions"
 
 export type PublicFunctions = AiRefillFunctions & AiCreditFunctions & DocumentFunctions & ObjectivePlanFunctions & WorkspaceFunctions & {
+  reorder_opportunity_feed: { Args: { p_org_id: string; p_previous: string[]; p_ordered: string[] }; Returns: Json }
   fiscal_profile_owner_linked: { Args: { p_reference: string }; Returns: boolean }
   register_fiscal_guest_project_asset: { Args: { p_actor_id: string; p_project_id: string; p_asset_id: string; p_filename: string; p_title: string; p_description: string | null; p_mime: string | null; p_size_bytes: number; p_storage_path: string }; Returns: Json }
   search_fiscal_organization_link: { Args: { p_project_id: string; p_query: string }; Returns: Json }

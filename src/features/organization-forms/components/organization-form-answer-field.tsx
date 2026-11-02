@@ -3,14 +3,16 @@
 import { memo } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import {
   FORM_ANSWER_LIMITS,
   type FormAnswer,
   type FormSnapshotQuestion,
 } from "../lib"
+import { OrganizationFormChoiceAnswer } from "./organization-form-choice-answer"
+import { OrganizationFormGridAnswer } from "./organization-form-grid-answer"
+import { OrganizationFormScaleAnswer } from "./organization-form-scale-answer"
 import styles from "./organization-form-preview.module.css"
 
 export const OrganizationFormAnswerField = memo(
@@ -41,77 +43,32 @@ export const OrganizationFormAnswerField = memo(
       "aria-required": question.required,
     }
     const change = (next: FormAnswer["value"]) => onChange(question.id, next)
-    const options = "options" in question ? question.options : null
     return (
       <div className={styles.field}>
-        {options ? (
-          <fieldset className={styles.choices}>
-            <legend className={styles.label}>{label}</legend>
-            {question.type === "single_choice" ? (
-              <RadioGroup
-                id={id}
-                aria-label={question.label}
-                tabIndex={-1}
-                {...accessibility}
-                value={typeof value === "string" ? value : ""}
-                onValueChange={change}
-                className="focus-ring gap-0"
-              >
-                {options.map((option) => (
-                  <Label
-                    key={option.id}
-                    htmlFor={`${id}-${option.id}`}
-                    className={styles.choice}
-                  >
-                    <RadioGroupItem
-                      id={`${id}-${option.id}`}
-                      value={option.id}
-                    />
-                    <span className="min-w-0 break-words">{option.label}</span>
-                  </Label>
+        {question.type === "multiple_choice_grid" || question.type === "checkbox_grid" ? (
+          <OrganizationFormGridAnswer question={question} id={id} value={value} error={error} onChange={change} />
+        ) : question.type === "linear_scale" || question.type === "rating" ? (
+          <OrganizationFormScaleAnswer question={question} id={id} value={value} error={error} onChange={change} />
+        ) : question.type === "dropdown" ? (
+          <>
+            <Label htmlFor={id} className={styles.label}>{label}</Label>
+            <Select
+              value={typeof value === "string" ? value : ""}
+              onValueChange={(next) => change(next === "__empty__" ? "" : next)}
+            >
+              <SelectTrigger id={id} {...accessibility} className={`${styles.input} w-full min-w-0`}>
+                <SelectValue placeholder="Choose an option…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__empty__">No selection</SelectItem>
+                {question.options.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
                 ))}
-              </RadioGroup>
-            ) : (
-              <div
-                id={id}
-                role="group"
-                aria-label={question.label}
-                tabIndex={-1}
-                {...accessibility}
-                aria-required={undefined}
-                className="focus-ring rounded-xl"
-              >
-                {options.map((option) => (
-                  <Label
-                    key={option.id}
-                    htmlFor={`${id}-${option.id}`}
-                    className={styles.choice}
-                  >
-                    <Checkbox
-                      id={`${id}-${option.id}`}
-                      checked={
-                        Array.isArray(value) && value.includes(option.id)
-                      }
-                      onCheckedChange={(checked) => {
-                        const current = Array.isArray(value) ? value : []
-                        change(
-                          checked === true
-                            ? [
-                                ...current.filter(
-                                  (entry) => entry !== option.id
-                                ),
-                                option.id,
-                              ]
-                            : current.filter((entry) => entry !== option.id)
-                        )
-                      }}
-                    />
-                    <span className="min-w-0 break-words">{option.label}</span>
-                  </Label>
-                ))}
-              </div>
-            )}
-          </fieldset>
+              </SelectContent>
+            </Select>
+          </>
+        ) : question.type === "single_choice" || question.type === "multiple_choice" ? (
+          <OrganizationFormChoiceAnswer question={question} id={id} value={value} error={error} onChange={change} />
         ) : (
           <>
             <Label htmlFor={id} className={styles.label}>
@@ -133,10 +90,10 @@ export const OrganizationFormAnswerField = memo(
                 id={id}
                 name={question.id}
                 {...accessibility}
-                className={styles.input}
+                className={`${styles.input} min-w-0`}
                 // Preview answers must never block the host Particle's Add/Save.
                 // Email validation belongs to the explicit local check below.
-                type="text"
+                type={question.type === "date" || question.type === "time" ? question.type : "text"}
                 inputMode={
                   question.type === "number"
                     ? "decimal"

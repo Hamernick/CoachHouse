@@ -24,6 +24,8 @@ export function captureParticleScene(
       !height ||
       !position ||
       node.dragging ||
+      node.resizing ||
+      node.data.inspectionTransition ||
       width < 0 ||
       height < 0 ||
       ![width, height, position.x, position.y].every(Number.isFinite)
@@ -31,7 +33,7 @@ export function captureParticleScene(
       return {
         ok: false,
         code: "unavailable",
-        error: "Waiting for card measurements. Finish dragging and try again.",
+        error: "Waiting for card measurements. Finish movement and try again.",
       }
     if (!visible.has(node.id)) {
       obstacles.push({ id: node.id, ...position, width, height })

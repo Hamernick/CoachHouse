@@ -4,6 +4,7 @@ import { useEffect, useReducer } from "react"
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 import { WORKSPACE_CALENDAR_CHANGED } from "@/lib/roadmap/calendar-events"
+import { OPPORTUNITY_CHANGED } from "@/features/workspace-finance/client"
 import { useSupabaseClient } from "@/hooks/use-supabase-client"
 
 /** Subscription is separate from rendering so lifecycle, coalescing and account
@@ -61,6 +62,7 @@ export function subscribeWorkspaceCalendar(client: SupabaseClient<Database>, org
     refresh()
   })
   window.addEventListener(WORKSPACE_CALENDAR_CHANGED, changed)
+  window.addEventListener(OPPORTUNITY_CHANGED, focused)
   window.addEventListener("focus", focused)
   document.addEventListener("visibilitychange", focused)
   return () => {
@@ -68,6 +70,7 @@ export function subscribeWorkspaceCalendar(client: SupabaseClient<Database>, org
     disconnect()
     auth.data.subscription.unsubscribe()
     window.removeEventListener(WORKSPACE_CALENDAR_CHANGED, changed)
+    window.removeEventListener(OPPORTUNITY_CHANGED, focused)
     window.removeEventListener("focus", focused)
     document.removeEventListener("visibilitychange", focused)
   }

@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useEffect, useRef, type MutableRefObject } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 
@@ -101,6 +102,7 @@ export function useWorkspaceCanvasCameraController({
     const flowInstance = flowInstanceRef.current
     if (!flowInstance) return
 
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     let cancelled = false
     let cancelPendingFrame: (() => void) | null = null
     let delayTimer = 0
@@ -124,6 +126,7 @@ export function useWorkspaceCanvasCameraController({
     if (hasAuthoredViewport) {
       const applySceneCenter = () => {
         if (cancelled) return
+        if (!cameraIsCurrent()) { markSceneFitHandled(); return }
         const result = executeWorkspaceCanvasViewportCommand({
           flowInstance,
           command: {
@@ -157,6 +160,7 @@ export function useWorkspaceCanvasCameraController({
       }
 
       return () => {
+        if (!cameraIsCurrent()) markSceneFitHandled()
         cancelled = true
         pendingSceneFitRequestRef.current = null
         window.clearTimeout(delayTimer)
@@ -182,6 +186,7 @@ export function useWorkspaceCanvasCameraController({
     const attemptSceneFit = (remainingAttempts: number) => {
       cancelPendingFrame = scheduleDoubleFrame(() => {
         if (cancelled) return
+        if (!cameraIsCurrent()) { markSceneFitHandled(); return }
         const nodes = resolveFlowNodesForIds(
           flowInstance,
           sceneFitRequest.nodeIds
@@ -230,6 +235,7 @@ export function useWorkspaceCanvasCameraController({
     attemptSceneFit(8)
 
     return () => {
+      if (!cameraIsCurrent()) markSceneFitHandled()
       cancelled = true
       pendingSceneFitRequestRef.current = null
       cancelPendingFrame?.()

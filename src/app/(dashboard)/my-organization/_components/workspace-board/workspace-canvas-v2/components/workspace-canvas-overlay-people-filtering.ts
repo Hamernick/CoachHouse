@@ -23,6 +23,7 @@ export function buildPeopleSegments({
   people: OrgPersonWithImage[]
   customSegments: WorkspaceCustomPeopleSegment[]
 }): WorkspacePeopleSegment[] {
+  const activeIds = new Set(people.map((person) => person.id))
   const categoryCounts = new Map<PersonCategory, number>()
   for (const person of people) {
     categoryCounts.set(
@@ -50,7 +51,7 @@ export function buildPeopleSegments({
     ),
     ...customSegments.map((segment) => ({
       ...segment,
-      count: segment.memberIds.length,
+      count: segment.memberIds.filter((id) => activeIds.has(id)).length,
     })),
   ]
 }
@@ -87,6 +88,8 @@ function personMatchesSearch(
     person.name,
     person.title,
     person.email,
+    person.phone,
+    ...Object.values(person.details ?? {}),
     person.category,
     person.customRole,
     categoryLabel,

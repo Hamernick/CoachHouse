@@ -32,3 +32,8 @@ export function particleComposerSearchQuery(input: string): string | null {
   if (/^create\b/i.test(input.trimStart())) return null
   return particlePresetQuery(input) ?? input.trim()
 }
+
+/** Explicit commands/search keep their meaning when objective planning is enabled. */
+export function isParticlePlanningRequest(input: string): boolean {
+  return Boolean(input.trim()) && !/^create\b/i.test(input.trimStart()) && particlePresetQuery(input) === null
+}

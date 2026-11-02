@@ -1,3 +1,4 @@
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { setupGuideStackViewport } from "@/features/workspace-canvas-tutorial"
 
 import {
@@ -251,6 +252,7 @@ export function executeWorkspaceCanvasViewportCommand({
   acceleratorFocusOptions?: WorkspaceCanvasCameraFitOptions
   focusViewportSize?: WorkspaceCanvasFocusViewportSize | null
 }): WorkspaceCanvasViewportExecutionResult {
+  beginWorkspaceCameraIntent(flowInstance)
   if (command.kind === "scene-fit") {
     const { sceneFitRequest } = command
     const hasAuthoredViewport =

@@ -10,6 +10,9 @@ export {
 } from "./operation-schema"
 export {
   particleRegistry,
+  getParticleCapabilities,
+  bindParticleSource,
+  getParticleCapabilityCatalog,
   createParticle,
   getParticleHandles,
   getParticleProgress,

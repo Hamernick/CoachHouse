@@ -220,7 +220,7 @@ describe("workspace canvas overlay drawer", () => {
       "data-[vaul-drawer-direction=bottom]:rounded-t-[24px]"
     )
     expect(source).toContain(
-      "bg-background !z-40 backdrop-blur-none data-[vaul-drawer-direction=bottom]:rounded-t-none data-[vaul-drawer-direction=bottom]:border-t-0"
+      "!z-40 data-[vaul-drawer-direction=bottom]:rounded-t-none data-[vaul-drawer-direction=bottom]:border-t-0"
     )
     expect(source).not.toContain("w-[min(38rem,calc(100%-1rem))]")
     expect(source).not.toContain(

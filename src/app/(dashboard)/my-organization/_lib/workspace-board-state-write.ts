@@ -84,6 +84,14 @@ function isUniqueViolation(error: { code?: string } | null) {
   return error?.code === "23505"
 }
 
+export function workspaceBoardWriteError(error: { code?: string; message?: string }) {
+  if (error.code === "42501" && error.message === "Form source manager required")
+    return "You need form Edit access to change it, or primary manager access to remove it. Your changes were not saved."
+  if (error.code === "22023" && error.message === "Conflicting form identity")
+    return "This form has conflicting copies. Your changes were not saved."
+  return "Unable to save workspace layout."
+}
+
 export async function persistWorkspaceBoardState({
   buildState,
   orgId,
@@ -146,7 +154,7 @@ export async function persistWorkspaceBoardState({
         }
         if (isUniqueViolation(error)) return { status: "conflict" }
         if (error) {
-          return { status: "error", error: "Unable to save workspace layout." }
+          return { status: "error", error: workspaceBoardWriteError(error) }
         }
         return data ? { status: "written" } : { status: "conflict" }
       }
@@ -169,7 +177,7 @@ export async function persistWorkspaceBoardState({
         error = fallbackResult.error
       }
       if (error) {
-        return { status: "error", error: "Unable to save workspace layout." }
+        return { status: "error", error: workspaceBoardWriteError(error) }
       }
       return data ? { status: "written" } : { status: "conflict" }
     },

@@ -166,43 +166,40 @@ export function useOrgProfileEditorState({
 
   const persistProfileUpdates = useCallback(
     async (updates: Partial<OrgProfile>) => {
-      const keys = Object.keys(updates) as Array<keyof OrgProfile>
-      if (keys.length === 0) return
-
+      if (!canEdit) throw new Error("You do not have permission to edit this organization.")
+      if (Object.keys(updates).length === 0) return
+      const organizationId = savedCompanyRef.current.expectedOrganizationId
+      if (updates.expectedOrganizationId && updates.expectedOrganizationId !== organizationId) {
+        throw new Error("The organization changed. Reopen the brand kit before saving.")
+      }
+      const previous = savedCompanyRef.current
       setCompany((prev) => applyOrgProfileUpdates(prev, updates))
-
-      const res = await updateOrganizationProfileAction(updates)
-      const error = (res as { error?: string })?.error
-      if (error) {
-        const previous = savedCompanyRef.current
-        const rollbackUpdates: Partial<OrgProfile> = {}
-        const mutableRollback = rollbackUpdates as Record<
-          keyof OrgProfile,
-          OrgProfile[keyof OrgProfile] | undefined
-        >
-        for (const key of keys) {
-          mutableRollback[key] = previous[key]
+      try {
+        const res = await updateOrganizationProfileAction({ ...updates, expectedOrganizationId: organizationId })
+        if ("error" in res && res.error) throw new Error(res.error)
+        if (savedCompanyRef.current.expectedOrganizationId !== organizationId) return
+        const saved = acknowledgeOrgProfileSave(applyOrgProfileUpdates(savedCompanyRef.current, updates), "ok" in res ? res : {})
+        savedCompanyRef.current = saved
+        setSavedCompany(saved)
+        setCompany((prev) => acknowledgeOrgProfileSave(prev, "ok" in res ? res : {}))
+        setErrors((prev) => clearOrgProfileErrors(prev, updates))
+      } catch (error) {
+        if (savedCompanyRef.current.expectedOrganizationId === organizationId) {
+          setCompany((current) => {
+            const rollback = { ...current }
+            for (const key of Object.keys(updates) as Array<keyof OrgProfile>) {
+              if (JSON.stringify(current[key]) === JSON.stringify(updates[key])) {
+                Object.assign(rollback, { [key]: previous[key] })
+              }
+            }
+            return rollback
+          })
         }
-        setCompany((prev) => applyOrgProfileUpdates(prev, rollbackUpdates))
-        throw new Error(error)
+        throw error
       }
-
-      const narrativeRevisions = (
-        res as { narrativeRevisions?: OrgProfile["narrativeRevisions"] }
-      ).narrativeRevisions
-      if (narrativeRevisions) {
-        setCompany((prev) => ({ ...prev, narrativeRevisions }))
-      }
-      setSavedCompany((prev) => ({
-        ...prev,
-        ...updates,
-        ...(narrativeRevisions ? { narrativeRevisions } : {}),
-      }))
-      setErrors((prev) => clearOrgProfileErrors(prev, updates))
     },
-    []
+    [canEdit]
   )
-
   const handleSave = useCallback(() => {
     if (!canEdit) return
     startTransition(async () => {

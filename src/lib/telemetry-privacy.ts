@@ -1,4 +1,5 @@
 const PRIVATE_WORKFLOW_PATHS = [
+  "/forms/responses",
   "/documentation/fiscal-sponsorship/verify",
   "/documentation/fiscal-sponsorship/profile",
   "/documentation/fiscal-sponsorship/application",

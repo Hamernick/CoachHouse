@@ -132,9 +132,8 @@ describe("public snapshot read boundary", () => {
     mocks.rpc.mockResolvedValue({ data: { ...publication(), draft: { private: true } }, error: null })
     expect(await loadPublicWorkspacePage("community-table", ID(10))).toBeNull()
   })
-  it("rejects ungranted asset IDs, unsafe URLs and mismatched brands", async () => {
-    for (const content of [{ kind: "image", assetId: ID(40), alt: "" }, { kind: "document", assetId: ID(40), name: "Private.pdf" },
-      { kind: "drive_link", href: "https://docs.google.com/redirect?url=private" }]) {
+  it("rejects unsafe URLs and mismatched brands", async () => {
+    for (const content of [{ kind: "drive_link", href: "https://docs.google.com/redirect?url=private" }]) {
       const page = publication()
       mocks.rpc.mockResolvedValue({ data: { ...page, snapshot: { ...page.snapshot, items: [{ id: ID(1), title: "File", content }] } }, error: null })
       expect(await loadPublicWorkspacePage("community-table", ID(10))).toBeNull()

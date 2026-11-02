@@ -55,8 +55,12 @@ describe("organization launch", () => {
   })
 
   it("shows saved location directly without a switch and offers inline setup only when missing", () => {
-    const known = renderToStaticMarkup(React.createElement(OrganizationLaunchMap, { location: { latitude: 41.88, longitude: -87.63 }, locationLabel: "Chicago, IL", onAddLocation: vi.fn() }))
+    const known = renderToStaticMarkup(React.createElement(OrganizationLaunchMap, { location: { latitude: 41.88, longitude: -87.63 }, locationLabel: "Chicago, IL", organizationName: "Community House", photoUrl: "https://example.org/logo.png", onAddLocation: vi.fn() }))
     expect(known).toContain("Chicago, IL")
+    expect(known).toContain("Community House")
+    expect(known).toContain("saved location")
+    expect(known).toContain("Loading map")
+    expect(known).not.toContain("Globe centered")
     expect(known).not.toContain('role="switch"')
     expect(known).not.toContain("Add location")
     const missing = renderToStaticMarkup(React.createElement(OrganizationLaunchMap, { onAddLocation: vi.fn() }))
@@ -312,10 +316,13 @@ it("defaults to the central U.S. view without inventing a location marker", () =
 
 
 describe("online resource viewer location", () => {
-  it("offers device location instead of opening organization address setup", () => {
-    const html = renderToStaticMarkup(React.createElement(OrganizationLaunchMap, { useViewerLocation: true, onAddLocation: vi.fn() }))
-    expect(html).toContain("Use my location")
-    expect(html).not.toContain("Add location")
+  it("labels online organizations without presenting the viewer as their location", () => {
+    const html = renderToStaticMarkup(React.createElement(OrganizationLaunchMap, { online: true, organizationName: "Community House", onAddLocation: vi.fn() }))
+    expect(html).toContain("Online organization")
+    expect(html).toContain("Community House")
+    expect(html).toContain("Edit location")
+    expect(html).not.toContain("Use my location")
+    expect(html).not.toContain("data-launch-location-marker")
   })
 
   it("returns valid device coordinates with a bounded, low-power request", async () => {

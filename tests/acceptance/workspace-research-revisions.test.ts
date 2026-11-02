@@ -56,6 +56,21 @@ describe("partial research plan revisions", () => {
     expect(proposalOf(accepted).objective.data.planning!.plans[0].researchRunId).toBe(research.runId)
     expect(operations(accepted, research)).toEqual([])
   })
+  it("preserves existing responsibility, removes detached assignments and never assigns new work", async () => {
+    const before = fixture(), { objective } = proposalOf(before)
+    const assignment = (id: number) => ({ particleId: ID(id), responsibility: { version: 1 as const, ownerId: ID(701), contributorIds: [ID(702)] } })
+    objective.data.planning!.plans[0].assignments = [assignment(2), assignment(3)]
+    objective.data.planning!.plans[0].optionalParticleIds = [ID(2), ID(3)]
+    const research = result({ removeReferences: [source(3).id], items: [{ key: "new", kind: "note", title: "New work", description: "Draft", referenceId: null, evidenceIds: [], dependsOn: [] }] })
+    const saved = await write(before, operations(before, research), true, research.runId)
+    expect(proposalOf(saved).proposal.assignments).toEqual([assignment(2)])
+    expect(proposalOf(saved).proposal.optionalParticleIds).toEqual([ID(2)])
+    expect(proposalOf(saved).objective.data.planning!.plans[0].assignments).toEqual([assignment(2), assignment(3)])
+    expect(planFromProposal(proposalOf(saved).proposal).assignments).toEqual([assignment(2)])
+    const accepted = await write(saved, review(saved))
+    expect(proposalOf(accepted).objective.data.planning!.plans[0].assignments).toEqual([assignment(2)])
+    expect(proposalOf(accepted).objective.data.planning!.plans[0].optionalParticleIds).toEqual([ID(2)])
+  })
   it("allows removal-only proposals, deleting incident links but never canvas particles", async () => {
     const before = fixture(), research = result({ removeReferences: [source(3).id] })
     const saved = await write(before, operations(before, research), true, research.runId)

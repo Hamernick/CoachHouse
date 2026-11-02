@@ -1,5 +1,6 @@
 "use client"
 
+import { InlineEdit } from "@/components/ui/inline-edit"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,13 +41,14 @@ function ErrorMessage({ id, error }: { id: string; error?: string }) {
 
 export function WorkspaceBrandKitProfileVoice({
   hideAudience = false,
+  inlineEdit = false, disabled = false, onSave,
   profile,
   errors,
   onChange,
 }: Pick<
   WorkspaceBrandKitProfileEditorProps,
   "profile" | "errors" | "onChange"
-> & { hideAudience?: boolean }) {
+> & { hideAudience?: boolean; inlineEdit?: boolean; disabled?: boolean; onSave?: WorkspaceBrandKitProfileEditorProps["onAutoSave"] }) {
   return (
     <section className="space-y-3">
       <div>
@@ -64,6 +66,7 @@ export function WorkspaceBrandKitProfileVoice({
           return (
             <div key={field.name} className="grid gap-2">
               <Label htmlFor={field.name}>{field.label}</Label>
+              {inlineEdit ? <InlineEdit id={field.name} label={field.label} value={profile[field.name] ?? ""} placeholder={field.placeholder} maxLength={240} disabled={disabled} onSave={(value) => onSave?.({ [field.name]: value })} /> : (
               <Input
                 id={field.name}
                 name={field.name}
@@ -76,6 +79,7 @@ export function WorkspaceBrandKitProfileVoice({
                   onChange({ [field.name]: event.currentTarget.value })
                 }
               />
+              )}
               <ErrorMessage id={field.name} error={error} />
             </div>
           )
@@ -85,6 +89,7 @@ export function WorkspaceBrandKitProfileVoice({
       <div className="grid gap-3">
         <div className="grid gap-2">
           <Label htmlFor="brandVoiceGuidelines">Guidelines</Label>
+          {inlineEdit ? <InlineEdit id="brandVoiceGuidelines" label="Guidelines" value={profile.brandVoiceGuidelines ?? ""} placeholder="Add guidelines…" multiline maxLength={5000} disabled={disabled} onSave={(value) => onSave?.({ brandVoiceGuidelines: value })} /> : (
           <Textarea
             id="brandVoiceGuidelines"
             name="brandVoiceGuidelines"
@@ -102,6 +107,7 @@ export function WorkspaceBrandKitProfileVoice({
               onChange({ brandVoiceGuidelines: event.currentTarget.value })
             }
           />
+          )}
           <ErrorMessage
             id="brandVoiceGuidelines"
             error={errors.brandVoiceGuidelines}
@@ -109,6 +115,7 @@ export function WorkspaceBrandKitProfileVoice({
         </div>
         <div className="grid gap-2">
           <Label htmlFor="brandVoiceAvoid">Avoid</Label>
+          {inlineEdit ? <InlineEdit id="brandVoiceAvoid" label="Avoid" value={profile.brandVoiceAvoid ?? ""} placeholder="Add avoid…" multiline maxLength={5000} disabled={disabled} onSave={(value) => onSave?.({ brandVoiceAvoid: value })} /> : (
           <Textarea
             id="brandVoiceAvoid"
             name="brandVoiceAvoid"
@@ -124,6 +131,7 @@ export function WorkspaceBrandKitProfileVoice({
               onChange({ brandVoiceAvoid: event.currentTarget.value })
             }
           />
+          )}
           <ErrorMessage id="brandVoiceAvoid" error={errors.brandVoiceAvoid} />
         </div>
       </div>

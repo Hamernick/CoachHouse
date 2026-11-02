@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { priceAiUsage, aiCreditBalance } from "@/features/ai-credits/lib"
-import { settleAiRun } from "@/features/ai-credits/server/accounting"
+import { reserveAiRun, settleAiRun } from "@/features/ai-credits/server/accounting"
 import { handleAiRecovery } from "@/features/ai-credits/server/recovery"
+
+import { AiAdmissionDenied } from "@/features/ai-credits/server/admission-error"
 
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock("@/lib/supabase/admin",() => ({ createSupabaseAdminClient: () => ({ rpc }) }))
@@ -61,4 +63,44 @@ describe("AI credit accounting", () => {
     expect(await response.json()).toEqual({recovered:2,morePossible:false})
     expect(rpc).toHaveBeenCalledWith("recover_workspace_ai_runs",{})
   })
+})
+
+describe("reservation rejection evidence",()=>{
+ const input={id:"run",organizationId:"org",actorId:"actor",hash:"hash",task:"research" as const,target:{},prompt:"Research",tariff:rate,maxCredits:10,maxCost:20000}
+ it.each([
+  ["Not enough AI credits","credits_unavailable"],
+  ["AI daily service limit reached","usage_limit"],
+  ["Organization daily AI service limit reached","usage_limit"],
+  ["AI provider safety limits are not configured","ai_disabled"],
+  ["AI daily member limit reached","usage_limit"],
+  ["AI hourly request limit reached","usage_limit"],
+  ["Organization monthly AI credit limit reached","usage_limit"],
+  ["Your monthly AI credit limit reached","usage_limit"],
+  ["An AI request is already running","capacity_busy"],
+  ["AI is not enabled for this organization","ai_disabled"],
+ ])("classifies the confirmed SQL rejection %s",async(message,reason)=>{
+  rpc.mockResolvedValue({error:{code:"P0001",message}})
+  await expect(reserveAiRun(input)).rejects.toMatchObject({name:"AiAdmissionDenied",reason,message})
+  expect(rpc).toHaveBeenCalledOnce()
+ })
+ it.each([
+  {code:"42501",message:"AI access denied"},
+  {code:"40001",message:"Objective changed"},
+  {code:"P0001",message:"AI request identity conflict"},
+  {code:"P0001",message:"Not enough AI credits: unexpected detail"},
+  {code:"P0001",message:"toString"},
+  {code:"PGRST000",message:"Not enough AI credits"},
+  {message:"Not enough AI credits"},
+ ])("keeps unqualified errors uncertain: $message / $code",async error=>{
+  rpc.mockResolvedValue({error})
+  const caught=await reserveAiRun(input).catch(error=>error)
+  expect(caught).toBeInstanceOf(Error);expect(caught).not.toBeInstanceOf(AiAdmissionDenied)
+ })
+ it("does not infer rollback from a rejected transport or malformed success",async()=>{
+  rpc.mockRejectedValueOnce(new Error("Not enough AI credits"))
+  expect(await reserveAiRun(input).catch(error=>error)).not.toBeInstanceOf(AiAdmissionDenied)
+  rpc.mockResolvedValueOnce({data:{created:"unknown"},error:null})
+  const caught=await reserveAiRun(input).catch(error=>error)
+  expect(caught).toBeInstanceOf(Error);expect(caught).not.toBeInstanceOf(AiAdmissionDenied)
+ })
 })

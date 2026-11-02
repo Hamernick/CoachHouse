@@ -429,6 +429,29 @@ Each non-background scale runs 10 steps (`100`–`1000`), and the step encodes i
 
 `background-100` is the primary page and card surface; `background-200` is a secondary surface for subtle separation. The `gray-alpha-*` tokens are translucent, so they layer over any background; use them for borders, dividers, overlays, and hover states. Solid `gray-*` holds its contrast on any surface, so use it for text and opaque fills. Accent scales carry meaning: `blue` for success, links, and focus; `red` for errors; `amber` for warnings; plus `green`, `teal`, `purple`, and `pink`. Use the hex tokens everywhere; each accent scale also ships a `*-p3` wide-gamut value in `oklch()` for Display P3 screens. The Dark theme redefines the same names at `/design.dark.md`.
 
+### Image Outlines
+
+Use a faint inner edge to keep photos, image previews and avatars visually distinct from their surrounding surface. This is the default treatment for framed media in both themes, applied through shared components rather than a global `img` selector.
+
+- **Default:** A 1px inset outline, black at 10% opacity in light mode and white at 10% in dark mode. Tune within roughly 5–20% after checking the actual image and background; the edge should clarify the shape without becoming a prominent frame.
+- **No layout shift:** Paint over the outermost image pixels with a negative outline offset or a positioned overlay. Do not add padding or change image dimensions solely for this effect. Preserve the existing radius, crop and aspect ratio.
+- **Avatars:** Apply the treatment consistently to photos and initials/logo fallback surfaces. If the shared avatar already supplies an inner edge, reuse it instead of stacking another one.
+- **Layering:** For image wrappers, an inset shadow on the wrapper may be covered by its image child. Use an above-image overlay with inherited radius, `pointer-events: none` and `aria-hidden="true"` when needed; keep controls and focus indicators visible above it.
+- **Exceptions:** Skip transparent standalone logos/icons, decorative backgrounds, edge-to-edge artwork intentionally blending into a surface, and media already framed equivalently. Do not add a rectangular frame around transparent artwork by default.
+- **Accessibility and review:** The decorative edge never replaces a focus ring, selection indicator or required control contrast. Preserve image alternatives and keyboard interaction. Check pale/dark image edges, rounded corners and fallback/loading states in both themes, following the existing visual-baseline process when rendered output changes.
+
+For a non-focusable image without an existing frame:
+
+```tsx
+<img
+  className="rounded-lg outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
+  src="/cover.jpg"
+  alt="Album cover"
+/>
+```
+
+Reference: Gustavo Fior, [Image Outlines](https://craft.gustavofior.com/image-outlines) ([source](https://github.com/gustavo-fior/craft/blob/main/content/color/image-outlines.mdx)), supplied by the user.
+
 ## Typography
 
 Geist Sans sets UI and prose; Geist Mono sets code, data, and tabular figures. Both are open-source. The `typography` tokens above carry concrete `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, and `letterSpacing`:
@@ -440,9 +463,39 @@ Geist Sans sets UI and prose; Geist Mono sets code, data, and tabular figures. B
 
 `copy-14` and `label-14` cover most text. The `-mono` tokens pair Geist Mono with the same metrics; prefer tabular figures when numbers need to align.
 
+### Optical Alignment
+
+> Center for the eye, not the math.
+
+Apply this standard in both light and dark themes. Start with the shared grid, spacing and baseline rules; make a small optical correction only when the rendered shape needs it.
+
+- **Icons:** Judge the visible shape, not just its SVG box. Squint or temporarily blur it in the inspector to locate its visual weight, then remove the blur and verify at its actual display size. Direction and distance are specific to the icon, size and stroke/fill variant; there is no universal play-icon offset.
+- **Icon buttons:** Balance the icon and label together. Internal SVG whitespace can justify slightly less padding on the icon side. Keep the accessible hit area and focus ring intact, and account for leading/trailing placement in RTL layouts.
+- **Shape weight:** Circles, triangles and squares may need different visible sizes to feel equally prominent. Preserve the shared layout box rather than changing neighboring spacing to compensate.
+- **Type:** Retain `font-optical-sizing: auto` for fonts with an optical-size axis. It has no effect when the selected font lacks that axis; do not assume every variable font supports it or force one optical size across all text sizes.
+- **Opening punctuation:** Where a quotation looks indented, use progressive enhancement with `hanging-punctuation: first`. A negative `text-indent` fallback must be scoped to a known opening character and font, with enough room to avoid clipping. Never apply it to arbitrary user content or every blockquote.
+- **Keep the correction:** Store a justified offset or padding adjustment in the relevant shared component/variant with a short rationale. Reuse it for the same icon and context; do not introduce global SVG transforms, replace spacing tokens, or overwrite existing animation transforms.
+- **Review:** Compare before/after at actual size, in both themes and affected control states; check zoom, wrapping and RTL where applicable. Verify that focus outlines, hit targets and neighboring alignment remain correct. Remove diagnostic blur before shipping and follow the existing visual-baseline process when rendered output changes.
+
+Reference: Gustavo Fior, [Optical Alignment](https://craft.gustavofior.com/optical-alignment) ([source](https://github.com/gustavo-fior/craft/blob/main/content/typography/optical-alignment.mdx)), supplied by the user. Examples illustrate a technique, not fixed offsets to copy universally.
+
 ## Layout
 
 Spacing follows a 4px scale: 4, 8, 12, 16, 24, 32, 40, 64, 96px. Keep a three-step rhythm: 8px inside a group, 16px between groups, 32–40px between sections. Cards use 24px padding, 16px when compact and 32px for hero areas. Center content in a 1200px column with side padding that grows at wider breakpoints, and make every layout work on mobile and desktop. Breakpoints are `sm` 401px, `md` 601px, `lg` 961px, `xl` 1200px, and `2xl` 1400px.
+
+### Scroll Fades
+
+Fade only an edge with more content beyond it. At the beginning, the leading edge is clear; at the end, the trailing edge is clear. Empty and nonoverflowing containers have no fade. This applies to vertical lists and horizontal rows in both themes.
+
+- **Shared implementation:** Use `ScrollFadeEffect`, or the existing `ScrollArea` viewport with `scroll-fade-effect-y`/`scroll-fade-effect-x`. For an existing scroll element, use `useScrollFadeEffect`. A bare utility without measurement intentionally stays clear. Do not add a second nested fade to the same content.
+- **Treatment:** Use a transparent-to-opaque CSS mask, not a background-colored overlay. The shared implementation measures the actual scroll viewport, coalesces updates per animation frame, and caps the fade by remaining scroll distance, configured size and one quarter of the viewport. `--mask-height`/`--mask-width` and `--scroll-buffer` cap its size; the default is 2rem. This produces a small gradual reveal instead of switching immediately to a full fade.
+- **State:** Recompute on scroll, viewport/content resizing, content/text changes, media loading and font loading. Clamp overscroll and tolerate fractional edge rounding. Horizontal masks must follow physical edges correctly in RTL. Keep mask state local to each viewport.
+- **Fallback:** Without measurement or mask support, show all content. Never use permanent two-ended fades as an unsupported-browser fallback. Our existing measured implementation does not require CSS scroll timelines or registered-property animations.
+- **Interaction:** Keep fixed headers, footers and actions outside the masked scroller. Do not obscure focus indicators: shared fades clear while the viewport or its contents have visible keyboard focus. Preserve keyboard scrolling, pointer interaction and reduced-motion behavior; no decorative timed fade animation is needed.
+- **Scrollbars:** Do not hide vertical scrollbars merely to enable fades. A mask on the native scroll element also affects its scrollbar; use the shared Radix ScrollArea when a separate, unmasked scrollbar is needed. Compact horizontal rows may hide scrollbars only when their scrolling remains discoverable and keyboard-accessible.
+- **Review:** Verify empty/short/long content, both boundaries and middle positions, dynamic loading, resize, nested scrollers, RTL, keyboard focus and light/dark backgrounds. Keep decorative map/canvas reveal masks separate from overflow indicators. Follow the existing visual-baseline process for changed rendered output.
+
+Reference: Gustavo Fior, [Scroll Fades](https://craft.gustavofior.com/scroll-fades) ([source](https://github.com/gustavo-fior/craft/blob/main/content/layout/scroll-fades.mdx)), supplied by the user. We deliberately replace the article's static fallback with fully visible content.
 
 ## Elevation & Depth
 
@@ -474,6 +527,40 @@ The `components` tokens above give ready-to-use values per element (`backgroundC
 
 The variant tokens are the default medium (40px) size. Use the `button-small`/`input-small` (32px) and `button-large`/`input-large` (48px) tokens for the other sizes; large buttons step up to `button-16`. Hover and active states step up the scale: a `100` fill becomes `200` on hover and `300` on active, and borders move from `400` to `500` to `600`. Disabled uses a `gray-100` fill, `gray-700` text, and a not-allowed cursor. Shared controls use a crisp 2px neutral outline on `:focus-visible`, with a 2px offset. The semantic `--focus-ring` token maintains at least 3:1 contrast on standard light/dark surfaces; forced-colors mode uses the system Highlight color. Tabs and scroll viewports draw the outline directly inside their edge to avoid clipping. Text-entry fields may show focus after a pointer click, following browser accessibility heuristics.
 
+### Canvas Overlay Material
+
+Canvas overlay shells share `.canvas-glass`: the floating dock’s neutral translucent tint (72% light, 86% dark), 24px backdrop blur and subtle border, with no drop shadow. Use it for planning, navigation, composer, organization/viewport controls, shortcut rails, contextual menus and floating content windows. Keep component-specific geometry and accessible targets; do not stack blur on controls inside an already frosted shell. Planning footers remain transparent to the shared shell. Preserve focus rings and opaque tree-connector colors. Unsupported blur, reduced transparency, increased contrast and forced colors use a solid readable surface. Canvas nodes and ordinary document content keep their own surfaces.
+
+### Canvas Creation and Placement
+
+- Objective → named plan → connected items is the planning hierarchy. Plan membership is not a prerequisite chain. Only explicit dependency links advance a new card into a downstream column; document, image and note support uses a dashed connection without a dependency arrow.
+- Creating or attaching within a plan saves membership and placement atomically. Find a free slot beside that objective, within the named branch, using measured card/tool bounds. Do not reposition existing cards to make room.
+- Global creation, opportunities and uploads without a drop location use the stable, labeled Unassigned area. Explicit drops retain their exact coordinates and become manual placements. Revealing a managed card uses its existing plan context when present.
+- Preserve manual and locked positions. Whole-board arrangement excludes manual cards and unassigned independent items; an explicit arrange-selection command may reposition the selected unlocked cards.
+- Use 240ms ease-in/out only for necessary managed movement, interpolating React Flow positions so connectors travel with cards. Fade entry/exit, make exiting cards inert, and honor reduced motion immediately. Pan only to reveal an offscreen result; a newer reveal supersedes an unfinished reveal. Never infer context from incidental selection.
+
+### Planning Sidebar
+
+Objectives stay in the collapsible left sidebar below the organization control. Opportunities use a separate dynamic island centered at the top of the canvas. Each heading shows its count without an icon or an extra Planning title. Counts use tabular numerals in both open and closed states. Both closed pills match the navigation control scale: 34px outer height, 32px control and 17px radius on fine pointers; touch targets retain 44px outer height and 42px controls. Closed pills are compact, with centered labels and balanced horizontal padding; the Objectives label itself opens the sidebar, without a separate expand button. Reuse the existing top-anchored morph, glass material and count styling; no tab selector joins the two surfaces. Opening one collapses the other while keeping forms, scroll positions and drafts mounted. On narrow canvases, hide the collapsed Objectives shell while Opportunities is expanded to prevent overlap; closing Opportunities restores it. The expanded opportunity feed respects available canvas height and keeps its composer outside the scroll area. Use [sidebar-submenu](https://lab.xevrion.dev/r/sidebar-submenu.json) curved hierarchy rails for Objectives, adapted to real state, variable-height rows and existing controls.
+
+Plan submenus use the reference’s continuous neutral SVG trunk, curved branches and spring-animated colored route to the selected item. Measure actual row centers so conditional labels, resizing and reordering stay aligned. Rail colors must be opaque theme blends, not alpha strokes: overlapping connectors must retain one shade. Align each trunk to its status/disclosure center and use a consistent stroke width. Keep inactive rows compact and muted; use selected text emphasis rather than full-row tinted cards. Selection may color the existing curved connector; do not add a separate vertical bar beside the plan. Preserve status labels and touch targets.
+
+Clicking a plan member selects and centers its canvas card with a 240ms ease-in/out transition; it does not open the editor. Honor unsaved inspector changes before closing it, preserve drag/reorder interactions, and make reduced-motion navigation immediate.
+
+Objective menus offer Delete with confirmation. Delete the objective and its plans while retaining linked cards and files. Accepted plans or proposals require organization-owner authority on the server. Keep reviewed proposal history immutable while an objective exists; whole-objective deletion with proposal history explicitly cannot be undone. Failed deletion keeps the confirmation and error visible; cancel returns focus to the menu trigger and successful deletion returns focus to the composer.
+
+Opportunity cards keep a neutral background and edges without separators between cards; do not add a blue tint or colored side rail. Use an X close control in both expanded surfaces; Opportunities keeps its title/count centered with balanced clearance for the close button. Keep headings and bottom composers outside their scrolling lists. Only the expanded feed is interactive. Clicking its heading collapses it; clicking the other heading opens that surface. Morph top-anchored shells with final-size content, respect reduced motion, and restore focus on open/close and Escape. Opportunity composition opens its existing report editor from the bottom input; compact Cancel/Save actions stay directly below the island heading; Add component sits centered after the report content with an 8px gap. Existing permissions, review, ordering, canvas selection and lifecycle actions remain authoritative.
+
+| Tone | Meaning | Reinforcement |
+| --- | --- | --- |
+| Blue | Current selection or work in progress | Selected rail/background, progress ring, existing status text |
+| Amber | Awaiting review or a decision | Proposed/Suggested/Needs decision labels; dashed proposal rail |
+| Green | Completed or awarded | Checkmark, Done/Awarded label |
+| Red | Blocked, error or destructive action | Blocked/error text or named destructive control |
+| Neutral | Not started, inactive or ordinary structure | Dashed empty ring, muted rails, existing labels |
+
+Color represents state, not ownership, department, or arbitrary node identity. Keep descriptive labels and distinct shapes; do not add a color legend to the product UI. Selected connections use blue while unrelated rails remain neutral. Never infer completion from an expanded or selected row.
+
 ## Voice & Content
 
 Copy is part of the design; keep it precise and free of filler.
@@ -497,3 +584,27 @@ Copy is part of the design; keep it precise and free of filler.
 - Don’t use `background-200` as a general fill; it is for subtle separation only.
 - Don’t mix rounded and sharp corners, or more than two font weights, in one view.
 - Don’t swap `gray-*` for `background-*`; they are separate scales.
+
+
+Opportunity feed navigation uses the overflow-tabs pattern from https://lab.xevrion.dev/r/overflow-tabs.json, adapted to shared Button/Motion primitives. Pin the filter strip below the expanded island heading and above the scrollable cards; keep the composer pinned below. Limit navigation to three tabs: All, Saved and Archived. All shows every non-archived card, including suggestions, applications and completed outcomes; Saved includes user-created new cards and explicitly saved suggestions; Archived shows stored dismissed records. Workflow statuses remain data, not additional tabs. Keep the island count scoped to non-archived cards, independent of the selected filter. Check means Save, archive icon means Archive with Undo, and Move to Saved recovers an archived card. Add to workspace remains a separate action. The X in the island heading only closes the surface. Use neutral tabs with a moving underline, edge-aware fades, keyboard navigation and reduced-motion support; do not introduce tinted card backgrounds or side accents.
+
+
+Opportunity editing uses navigation-stack behavior within the island: list → one editor → list. Creating and editing share one discriminated view state, so filters, composer and other cards are absent while the editor is active. Compact Cancel/Save controls stay fixed directly below the island heading, outside the scrolling editor. Add component sits centered at the bottom of the report, with 8px bottom padding and no reserved footer gap. Successful editing or Cancel returns to the same filter, scroll offset and card-menu focus; a failed save keeps the editor and draft intact. Collapsing/reopening the island preserves the current editor. Use a sequenced directional slide/fade (100ms exit, 160ms entry) without replacing the surrounding island shell. Animate the portaled controls too; exiting views are inert. Reduced motion switches immediately, including when the preference changes while the app is open.
+
+Opportunity cards use a lighter neutral surface with a subtle 150ms color-only hover (no motion under reduced motion). Three-dot menu buttons are transparent at rest, with a distinct neutral fill only on hover or while open; closing the menu and leaving the button restores transparency. Retain keyboard focus indicators and avoid colored accents or shadows.
+
+Opportunity cards support persisted organization-wide ordering, independent of canvas placement. Drag into Saved/Applied/Archived to change workflow; Closed asks for Awarded/Not awarded. All is an overview, and user-created cards cannot become provider suggestions. A canvas drop sets a manual position and reuses an existing opportunity card. Filtered reorders retain hidden cards' slots; stale saves fail visibly rather than overwriting another editor.
+
+Objective and plan disclosures animate a persistent inner grid (200ms ease-in/out), outside Radix's measurement overrides, so rapid reversals do not restart a height keyframe. Closed contents are inert and hidden from assistive technology; reduced motion is immediate. Opportunity report fields reveal a right-side pencil on hover/focus without changing their geometry. Changes remain drafts until the report's Save action. The editor toolbar uses 28px controls on fine pointers (44px touch targets), a short Save label, and no duplicate sticky footer. The list composer remains at the bottom.
+
+Opportunity header artwork prioritizes uploaded report/source images, then an explicitly linked source website's icon, then a neutral globe if that icon fails. Reuse cached provider artwork where available. Source website images fill their 36px rounded container edge to edge with object-cover and clipped corners; keep the fallback globe centered. Identify them as source websites rather than inferring the funding organization from a listing portal. Do not guess domains from organization names or transmit source paths/query strings for icon lookup.
+
+Planning footer inputs use the shared `InlineAddInput`: canvas-glass pill, transparent borderless field, circular Add action inside, 38px fine-pointer shell and 44px coarse-pointer action target. Use 6px vertical footer padding; avoid a second divider or stacked outer bottom padding.
+
+Opportunity Timeline uses the shared shadcn Popover/Calendar with Date and Range modes. Single dates remain supported; ranges store validated date-only `from`/`to` values in report metadata, with the end date as the existing indexed deadline. Incomplete selections stay local until completed; Escape discards an incomplete range. Cards show both endpoints, and Clear dates removes both range metadata and deadline. Keep one month visible for compact/mobile layouts and preserve keyboard focus return.
+
+Opportunity card headings keep AI/provider suggestions to at most five words, retaining a supplied acronym where possible. AI instructions target three to five words; existing long official titles use a deterministic compact display label, with the complete title retained in details, tooltip, search and stored data. User-authored titles stay unchanged. Show an explicit Award fact directly below the heading using compact dollar notation (for example $12k–$50k, Up to $50k, From $12k). Preserve bounds and full values in the tooltip; never substitute a program funding pool, budget, estimated in-kind value or unknown amount.
+
+The expanded Objectives sidebar follows its measured content height, capped by available canvas height. Keep its final content width stable during shell morphing. Observe the natural expanded frame so adding, deleting and expanding items changes height; overflowing lists scroll while heading and composer remain fixed. Preserve mounted drafts and reduced-motion behavior.
+
+Opportunity Sources embeds grant discovery in its existing command list: typed keywords offer Add text and Search Grants.gov; @ remains workspace lookup, pasted URLs remain links and attachments retain their existing control. Public lookup occurs only on explicit selection, never per keystroke. Show at most three current official notices; selecting one adds a named link pill with its title persisted. Keep source identity URL-based for deduplication. Preserve existing Save/Cancel and do not generate a separate report or overwrite title/budget from a selected source. Loading, retry and no-result feedback stay in the list; stale responses cannot replace a newer query.

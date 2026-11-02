@@ -40,7 +40,7 @@ export function useParticleCardActions(input: Input) {
       )
         return false
       const particle = graph?.particles.find((item) => item.id === id)
-      if (!particle || particle.canvasHidden) return false
+      if (!particle || (particle.canvasHidden && action !== "delete")) return false
       const operation = particleCardOperation(
         particle,
         action,
@@ -49,7 +49,7 @@ export function useParticleCardActions(input: Input) {
       )
       if (!operation) return false
       const applied = await next.session.commit([operation])
-      if (applied && action === "remove" && next.session.selectedId === id)
+      if (applied && (action === "remove" || action === "delete") && next.session.selectedId === id)
         next.session.select(null)
       return applied
     } catch {

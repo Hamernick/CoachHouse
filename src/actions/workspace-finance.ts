@@ -28,7 +28,7 @@ type WorkspaceFinanceCsvImportResult =
   | { ok: true; imported: number; skipped: number }
   | { error: string }
 
-type WorkspaceFinanceOpportunityStatusResult = { ok: true } | { error: string }
+type WorkspaceFinanceOpportunityStatusResult = { ok: true; updatedAt?: string } | { error: string }
 type WorkspaceFinanceRecordProgramResult = { ok: true } | { error: string }
 type WorkspaceFinanceManualRecordResult =
   | { ok: true; record: WorkspaceFinanceRecordInput }
@@ -290,7 +290,7 @@ export async function updateWorkspaceFinanceOpportunityStatus(input: {
     .update({ status: input.status })
     .eq("id", input.opportunityId)
     .eq("org_id", activeOrg.orgId)
-    .select("id")
+    .select("id,updated_at")
     .maybeSingle()
 
   if (error || !data) {
@@ -298,7 +298,7 @@ export async function updateWorkspaceFinanceOpportunityStatus(input: {
   }
 
   revalidateFinanceRoutes()
-  return { ok: true }
+  return { ok: true, updatedAt: data.updated_at }
 }
 
 export async function updateWorkspaceFinanceRecordProgram(input: {

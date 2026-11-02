@@ -97,7 +97,7 @@ export function OrganizationLaunchPanel({ input, hasAccess }: {
         </div>
       </CardHeader>
       <CardContent inert={!hasAccess} className="px-3 pb-3">
-        <OrganizationLaunchMap useViewerLocation={hasAccess && profile.locationType === "online"} location={resolveLaunchGlobeLocation(profile)} locationLabel={launch.locationLabel} onAddLocation={canEdit ? openLocation : undefined} />
+        <OrganizationLaunchMap online={profile.locationType === "online"} organizationName={profile.name} photoUrl={profile.logoUrl} location={resolveLaunchGlobeLocation(profile)} locationLabel={launch.locationLabel} onAddLocation={canEdit ? openLocation : undefined} />
         <Accordion type="single" collapsible value={openStep} onValueChange={setOpenStep} className="flex flex-col gap-0.5">
           {launch.steps.map((step) => {
             const isNext = !profile.isPublic && step.id === launch.next.id

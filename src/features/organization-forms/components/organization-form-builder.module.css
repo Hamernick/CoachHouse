@@ -95,3 +95,9 @@
 }
 
 .typeField { flex: 1; width: auto; min-width: 0; }
+
+.questionHeader { display: flex; align-items: center; padding-left: 0.25rem; }
+.questionHeader .questionTrigger { flex: 1; min-width: 0; width: auto; padding-left: 0.25rem; }
+.dragHandle { flex-shrink: 0; width: 2.75rem; height: 2.75rem; touch-action: none; cursor: grab; }
+.dragHandle:active { cursor: grabbing; }
+.dragHandle:disabled { cursor: default; }

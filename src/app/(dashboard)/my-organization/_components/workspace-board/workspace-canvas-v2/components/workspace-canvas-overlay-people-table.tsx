@@ -10,6 +10,11 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table"
 
+import { WorkspacePeopleNetworkSplit } from "@/features/workspace-people-network/client"
+import {
+  hasWorkspaceCanvasPersonDragPayload,
+  readWorkspaceCanvasPersonDragPayload,
+} from "./workspace-canvas-people-dnd"
 import { PeopleTablePagination } from "@/components/people/people-table-pagination"
 import { CreatePersonDialog } from "@/components/people/create-person-dialog"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
@@ -84,6 +89,8 @@ function WorkspacePeopleDrawerTableContent({
   canEdit,
   showReportsTo,
   label,
+  networkLoading,
+  onMoveNetworkPerson,
   onDragStart,
   onDragEnd,
   onAdd,
@@ -258,7 +265,21 @@ function WorkspacePeopleDrawerTableContent({
 
   return (
     <WorkspacePeopleTableLayout columnSizeVars={columnSizeVars}>
-      <div className="bg-background flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+      <WorkspacePeopleNetworkSplit
+        people={people}
+        segments={segments}
+        tags={tags}
+        canEdit={canEdit}
+        loading={networkLoading}
+        placedPersonIds={placedPersonIds}
+        onEdit={onEditPerson}
+        onMove={onMoveNetworkPerson}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        readDragPeople={readWorkspaceCanvasPersonDragPayload}
+        hasDragPeople={hasWorkspaceCanvasPersonDragPayload}
+        onAddToCanvas={onAddPeopleToCanvas}
+      >
         <WorkspacePeopleDrawerTableToolbar
           segmentControls={segmentControls}
           addControls={addControls}
@@ -287,7 +308,7 @@ function WorkspacePeopleDrawerTableContent({
           onRemoveFromSegment={(personIds) => personIds.forEach(onRemove)}
         />
         {people.length === 0 ? (
-          <div className="text-muted-foreground grid min-h-32 place-items-center px-6 text-center text-sm">
+          <div className="text-muted-foreground grid min-h-0 flex-1 place-items-center overflow-auto px-6 text-center text-sm">
             {emptyMessage}
           </div>
         ) : (
@@ -395,7 +416,7 @@ function WorkspacePeopleDrawerTableContent({
             />
           </>
         )}
-      </div>
+      </WorkspacePeopleNetworkSplit>
     </WorkspacePeopleTableLayout>
   )
 }

@@ -31,7 +31,7 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
       data-workspace-canvas-viewport-controls="true"
       className="pointer-events-none absolute right-2 bottom-[84px] z-10 flex items-start justify-end group-has-[[data-workspace-canvas-drawer-fullscreen=true]]/workspace-canvas-surface:hidden md:top-2 md:bottom-auto"
     >
-      <div className="border-border/70 bg-card/92 pointer-events-auto flex items-center gap-1 rounded-full border p-1 shadow-none backdrop-blur transition-[background-color] duration-180 ease-out">
+      <div className="canvas-glass pointer-events-auto flex items-center gap-1 rounded-full border p-1 transition-[background-color] duration-180 ease-out">
         <Button
           type="button"
           variant="ghost"

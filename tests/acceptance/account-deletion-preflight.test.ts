@@ -113,6 +113,10 @@ describe("account deletion preflight", () => {
       isAdmin: false,
     })
 
+    expect(preflight.canDelete).toBe(false)
+    expect(preflight.blockingIssues).toContainEqual(expect.objectContaining({
+      id: "organization-closure-required", description: expect.stringContaining("closed separately"),
+    }))
     expect(preflight.accountType).toBe("paid_owner")
     expect(preflight.billing).toMatchObject({
       hasCancellationRisk: true,
@@ -132,7 +136,6 @@ describe("account deletion preflight", () => {
     expect(preflight.warnings.map((warning) => warning.id)).toEqual(
       expect.arrayContaining([
         "billing-risk",
-        "owned-organizations",
         "joined-organizations",
         "shared-workspace-author-references",
       ]),
@@ -142,7 +145,7 @@ describe("account deletion preflight", () => {
         expect.objectContaining({
           id: "owned-organizations",
           count: 1,
-          disposition: "deleted",
+          disposition: "retained",
         }),
         expect.objectContaining({
           id: "shared-workspace-author-references",
@@ -151,5 +154,13 @@ describe("account deletion preflight", () => {
         }),
       ]),
     )
+  })
+  it("blocks an unpaid owner too, while a non-owner remains independently deletable", async () => {
+    const owner = await getAccountDeletionPreflight({ admin: buildAdminStub({ counts: { organizations: 1 } }) as never, userId: "owner", isAdmin: true })
+    expect(owner.canDelete).toBe(false)
+    expect(owner.blockingIssues[0]?.id).toBe("organization-closure-required")
+    const member = await getAccountDeletionPreflight({ admin: buildAdminStub({ counts: { organization_memberships: 1 } }) as never, userId: "member", isAdmin: false })
+    expect(member.canDelete).toBe(true)
+    expect(member.counts.joinedOrganizations).toBe(1)
   })
 })

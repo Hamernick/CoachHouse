@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import {
   useCallback,
   useEffect,
@@ -82,6 +83,7 @@ export function useWorkspaceCanvasViewportPreferences({
     const flowInstance = flowInstanceRef.current
     if (!flowInstance) return
 
+    beginWorkspaceCameraIntent(flowInstance)
     void flowInstance.setViewport(canvasViewportPreferenceState.viewport, {
       duration: 0,
     })

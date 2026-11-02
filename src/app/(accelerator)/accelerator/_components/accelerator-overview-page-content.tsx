@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { Empty } from "@/components/ui/empty"
 import { AcceleratorOrgSnapshotStrip } from "@/components/accelerator/accelerator-org-snapshot-strip"
 import { AcceleratorWelcomeBanner } from "@/components/accelerator/accelerator-welcome-banner"
@@ -127,7 +128,7 @@ export async function AcceleratorOverviewPageContent() {
   const peopleCount = Math.max(
     1,
     Array.isArray(orgProfile["org_people"])
-      ? orgProfile["org_people"].length
+      ? orgProfile["org_people"].filter(isActiveContact).length
       : 0
   )
   const programs = programsResult.data ?? []

@@ -1,3 +1,4 @@
+import { particleResponsiblePeople, particleResponsibilityScopes } from "../lib/particle-responsibility"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 import type { Particle, ParticleGraph } from "../types"
@@ -12,7 +13,7 @@ type ParticleSourceReference =
   | { kind: "person"; id: string }
   | ParticleDocumentSource
 
-function references(particle: Particle): ParticleSourceReference[] {
+function contentReferences(particle: Particle): ParticleSourceReference[] {
   if (particle.type === "people")
     return particle.data.personIds.map((id) => ({ kind: "person", id }))
   if (particle.type !== "activity") return []
@@ -24,6 +25,10 @@ function references(particle: Particle): ParticleSourceReference[] {
   if (widget?.kind !== "document") return []
   if (widget.fileId) return [{ kind: "file", id: widget.fileId }]
   return widget.source ? [widget.source] : []
+}
+
+function references(particle: Particle): ParticleSourceReference[] {
+  return [...contentReferences(particle), ...particleResponsiblePeople(particle).map(id => ({ kind: "person" as const, id }))]
 }
 
 /** Validate new/replaced/re-added source references with the actor's RLS client.
@@ -56,6 +61,20 @@ export async function assertParticleSourceReferenceAccess({
         ? references(before).map((source) => JSON.stringify(source))
         : []
     )
+    // A changed responsibility role is a new assignment, even when the contact
+    // already appeared as a contributor or content reference.
+    const priorScopes = new Map((before ? particleResponsibilityScopes(before) : []).map(item => [item.key, item.value]))
+    for (const { key, value } of particleResponsibilityScopes(particle)) {
+      const prior = priorScopes.get(key)
+      const changedRoles = [
+        ...(value.ownerId && value.ownerId !== prior?.ownerId ? [value.ownerId] : []),
+        ...value.contributorIds.filter(id => !prior?.contributorIds.includes(id)),
+      ]
+      for (const id of changedRoles) {
+        const source = { kind: "person" as const, id }
+        pending.set(JSON.stringify(source), source)
+      }
+    }
     for (const source of references(particle)) {
       const key = JSON.stringify(source)
       if (!retained.has(key)) pending.set(key, source)

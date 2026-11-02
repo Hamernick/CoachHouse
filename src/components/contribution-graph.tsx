@@ -21,6 +21,7 @@ import {
 export type { Activity } from "@/lib/contribution-graph-calendar"
 
 import { cn } from "@/lib/utils"
+import { useScrollFadeEffect } from "@/lib/scroll-fade-effect"
 
 export type Labels = {
   months?: string[]
@@ -223,6 +224,8 @@ export const ContributionGraphCalendar = ({
   const { weeks, width, height, blockSize, blockMargin, labels } =
     useContributionGraph()
 
+  const scrollFadeRef = useScrollFadeEffect(true, "horizontal")
+
   const monthLabels = useMemo(
     () => getMonthLabels(weeks, labels.months),
     [weeks, labels.months]
@@ -230,8 +233,9 @@ export const ContributionGraphCalendar = ({
 
   return (
     <div
+      ref={scrollFadeRef}
       className={cn(
-        "no-scrollbar scroll-fade-x max-w-full overflow-x-auto overflow-y-hidden",
+        "no-scrollbar scroll-fade-effect-x max-w-full overflow-x-auto overflow-y-hidden",
         className
       )}
       {...props}

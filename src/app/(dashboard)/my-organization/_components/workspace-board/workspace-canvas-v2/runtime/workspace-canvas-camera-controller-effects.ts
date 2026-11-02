@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useEffect, type MutableRefObject } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 
@@ -84,7 +85,9 @@ export function useWorkspaceCanvasFitEffects({
     if (!flowInstance) return
 
     didInitialFitRef.current = true
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const result = executeWorkspaceCanvasViewportCommand({
         flowInstance,
         command: {
@@ -129,7 +132,9 @@ export function useWorkspaceCanvasFitEffects({
     const flowInstance = flowInstanceRef.current
     if (!flowInstance) return
 
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const result = executeWorkspaceCanvasViewportCommand({
         flowInstance,
         command: {
@@ -173,7 +178,9 @@ export function useWorkspaceCanvasFitEffects({
     if (visibleNodeIds.length === 0) return
 
     handledLayoutFitRequestKeyRef.current = layoutFitRequestKey
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const result = executeWorkspaceCanvasViewportCommand({
         flowInstance,
         command: {
@@ -249,7 +256,9 @@ export function useWorkspaceCanvasFocusRequestEffects({
     if (!visibleNodeIds.includes("accelerator")) return
 
     handledAcceleratorFocusRequestKeyRef.current = acceleratorFocusRequestKey
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const result = executeWorkspaceCanvasViewportCommand({
         flowInstance,
         command: {
@@ -297,7 +306,9 @@ export function useWorkspaceCanvasFocusRequestEffects({
     if (!visibleNodeIds.includes(focusCardRequest.cardId)) return
 
     handledFocusCardRequestKeyRef.current = focusCardRequest.requestKey
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const result = executeWorkspaceCanvasViewportCommand({
         flowInstance,
         command: {

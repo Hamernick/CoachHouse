@@ -3,3 +3,6 @@ export { correlateAiResearchResponse, correlateAiResponse, reserveAiRun, claimAi
 export type { AiRateCard, AiUsage, AiCreditAccount } from "./types"
 export { handleAiRecovery } from "./accounting"
 export { processAiCreditPurchase, processAiAllowanceInvoice } from "./accounting"
+
+export { AiAdmissionDenied } from "./accounting"
+export { listAiResearchRuns } from "./accounting"

@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { BrandTextField } from "./brand-text-field"
 import type {
   BrandAssetId,
   BrandIdentityDraft,
@@ -23,16 +23,18 @@ export function MarksSection({
   uploadAsset,
   deleteAsset,
   disabled = false,
+  inlineEdit = false,
   downloadAsset,
 }: {
   draft: BrandIdentityDraft
   assets: BrandAssetPreview[]
   assetUrls: Partial<Record<BrandAssetId, string>>
-  updateDraft: (value: Partial<BrandIdentityDraft>) => void
+  updateDraft: (value: Partial<BrandIdentityDraft>) => void | Promise<void>
   uploadAsset: (id: BrandAssetId, file: File) => Promise<boolean>
   deleteAsset: (id: BrandAssetId) => Promise<void>
   downloadAsset?: (id: BrandAssetId) => Promise<void>
   disabled?: boolean
+  inlineEdit?: boolean
 }) {
   const logo = assets.find((asset) => asset.id === "primary-logo")
   const mark = assets.find((asset) => asset.id === "brand-mark")
@@ -152,14 +154,13 @@ export function MarksSection({
             >
               Usage guidance
             </Label>
-            <Textarea
+            <BrandTextField
               id="logo-guidance"
               rows={6}
               className="mt-3"
               value={draft.logoGuidance}
-              onChange={(event) =>
-                updateDraft({ logoGuidance: event.target.value })
-              }
+            label="Usage guidance" inlineEdit={inlineEdit} disabled={disabled} maxLength={5000} multiline
+              onSave={(value) => updateDraft({ logoGuidance: value })}
             />
           </div>
         </div>

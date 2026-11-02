@@ -183,9 +183,10 @@ function normalizeOpportunities(
     applied: 2,
     awarded: 3,
     not_awarded: 4,
+    dismissed: 5,
   }
   return opportunities
-    .filter((opportunity) => opportunity.id && opportunity.title.trim())
+    .filter((opportunity) => opportunity.status !== "dismissed" && opportunity.id && opportunity.title.trim())
     .map((opportunity) => ({
       ...opportunity,
       title: opportunity.title.trim(),
@@ -193,6 +194,7 @@ function normalizeOpportunities(
     }))
     .sort(
       (left, right) =>
+        (left.feedPosition ?? Number.MAX_SAFE_INTEGER) - (right.feedPosition ?? Number.MAX_SAFE_INTEGER) ||
         statusOrder[left.status] - statusOrder[right.status] ||
         (left.dueAt ?? "9999").localeCompare(right.dueAt ?? "9999")
     )

@@ -5,3 +5,7 @@ export { opportunityReportSchema, readOpportunityReport, opportunityReportSource
 export type { OpportunityReport } from "./lib/opportunity-report"
 export type { WorkspaceFinanceOpportunityInput } from "./types"
 export { loadOpportunitySourceOptions } from "./server/opportunity-sources"
+
+export { mapOrganizationFinanceOpportunity, loadOrganizationFinanceOpportunities } from "./server/opportunities"
+
+export { opportunityCalendarEvents } from "./lib/opportunity-calendar"

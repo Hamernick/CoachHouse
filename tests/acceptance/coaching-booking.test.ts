@@ -690,17 +690,11 @@ describe("coaching booking feature", () => {
       "data-rwp-focused:inset-ring-ring/50 data-rwp-focused:inset-ring-2"
     )
     expect(globals).toContain("@utility scroll-fade-effect-y")
-    expect(globals).toContain("animation-timeline: scroll(self), scroll(self)")
-    expect(globals).toContain("--top-mask-height: 0px")
-    expect(globals).toContain("--bottom-mask-height: var(--mask-height)")
-    expect(globals).toContain("--left-mask-width: 0px")
-    expect(globals).toContain("--right-mask-width: var(--mask-width)")
-    expect(globals).toContain(
-      '.scroll-fade-effect-y[data-scroll-fade-managed="true"]'
-    )
-    expect(globals).toContain(
-      '.scroll-fade-effect-y[data-scroll-fade-start="visible"]'
-    )
+    expect(globals).toContain("--scroll-fade-start-distance: 0px")
+    expect(globals).toContain("--scroll-fade-end-distance: 0px")
+    expect(globals).toContain('.scroll-fade-effect-y:not([data-scroll-fade-managed="true"])')
+    expect(globals).toContain('.scroll-fade-effect-y:has(:focus-visible)')
+    expect(globals).not.toContain("mask-composite: exclude")
   })
 
   it("loads availability for every visible fixed-week calendar date", () => {

@@ -1,5 +1,6 @@
 "use client"
 
+import { OrganizationFormSourceSharing, useFormSourceAccess } from "@/features/organization-forms/client"
 import { getParticleNotes, workspaceNoteDocuments } from "../lib/particle-notes"
 import { useEffect, useId, useRef, useState } from "react"
 import dynamic from "next/dynamic"
@@ -23,6 +24,7 @@ import { particleSchema } from "../lib/particle-schema"
 import type { DecisionBranchReference } from "../lib/particle-decision"
 import type { Particle, ParticleConnection } from "../types"
 import { ParticleWidgetFields } from "./particle-widget-fields"
+import { ParticleResponsibilityFields } from "./particle-responsibility-fields"
 import { ParticleWorkFields } from "./particle-work-fields"
 import { ParticleDecisionEditor } from "./particle-decision-editor"
 import {
@@ -60,7 +62,7 @@ export function ParticleInspector(props: Parameters<typeof ParticleMetadataInspe
 
 function ParticleMetadataInspector({
   particle,
-  editable,
+  editable: workspaceEditable,
   pending,
   onSave,
   onClose,
@@ -69,8 +71,12 @@ function ParticleMetadataInspector({
   activities,
   connections = [],
   decisionLinks = [],
+  responsibilityOnCanvas = false,
+  canEditObjectiveProgress = false,
 }: {
   particle: Particle
+  responsibilityOnCanvas?: boolean
+  canEditObjectiveProgress?: boolean
   calendarEntryRequest?: CalendarEntryRequest
   activities?: readonly CalendarActivity[]
   connections?: readonly ParticleConnection[]
@@ -81,10 +87,14 @@ function ParticleMetadataInspector({
   onClose: () => void
   onDirtyChange: (dirty: boolean) => void
 }) {
+  const intrinsicForm = particle.type === "activity" && particle.data.widget?.kind === "form" && !particle.data.source
+  const formAccess = useFormSourceAccess(particle.workspaceId, intrinsicForm ? particle.id : null)
+  const editable = workspaceEditable && formAccess.canEdit
   const [draft, setDraft] = useState(particle)
   const [baseline, setBaseline] = useState(particle)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [accessLocked, setAccessLocked] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
   const isImage = Boolean(
     getParticleImage(particle) || getParticleDocument(particle)
@@ -100,9 +110,9 @@ function ParticleMetadataInspector({
   const dirty =
     imageUploading || JSON.stringify(draft) !== JSON.stringify(baseline)
   useEffect(() => {
-    onDirtyChange(dirty)
+    onDirtyChange(dirty || accessLocked)
     return () => onDirtyChange(false)
-  }, [dirty, onDirtyChange])
+  }, [dirty, accessLocked, onDirtyChange])
   useEffect(() => {
     if (dirty) return
     setDraft(particle)
@@ -121,7 +131,7 @@ function ParticleMetadataInspector({
   useWorkspaceEditorStatus({
     label: particle.title,
     dirty,
-    pending: imageUploading || saving || (dirty && pending),
+    pending: accessLocked || imageUploading || saving || (dirty && pending),
     error: stale || (dirty && saveFailed),
   })
   return (
@@ -155,11 +165,18 @@ function ParticleMetadataInspector({
               size="icon"
               className={PARTICLE_EDITOR_HEADER_ACTION}
               aria-label="Close inspector"
+              disabled={accessLocked}
               onClick={onClose}
             >
               <XIcon aria-hidden />
             </Button>
       </>} />
+      {intrinsicForm && !editable && <p role="status" className="px-4 py-3 text-sm text-muted-foreground">
+        {formAccess.loading ? "Checking form access…" : formAccess.unavailable ? "Unable to verify form access. Your draft is still here." : "Read-only form. Ask its manager for Edit access."}
+      </p>}
+      {intrinsicForm && <OrganizationFormSourceSharing key={particle.id} organizationId={particle.workspaceId} formId={particle.id}
+        canManage={workspaceEditable && formAccess.canManageAccess} disabled={pending || saving || imageUploading}
+        locked={accessLocked} onLockChange={setAccessLocked} onRecovered={formAccess.refresh} />}
       {stale ? (
         <div role="status" className="px-4 py-3 text-sm">
           This Particle changed. Copy your draft or load the latest details.
@@ -181,6 +198,7 @@ function ParticleMetadataInspector({
           event.preventDefault()
           if (
             !editable ||
+            accessLocked ||
             pending ||
             imageUploading ||
             saveInFlight.current ||
@@ -229,7 +247,7 @@ function ParticleMetadataInspector({
         }}
       >
         <fieldset
-          disabled={pending || saving || imageUploading}
+          disabled={accessLocked || pending || saving || imageUploading}
           className="contents"
         >
           <FieldGroup className={styles.fields}>
@@ -270,6 +288,7 @@ function ParticleMetadataInspector({
               </FieldGroup>
             )}
             <FieldGroup className={styles.details}>
+              {!responsibilityOnCanvas && <ParticleResponsibilityFields particle={draft} disabled={!editable || pending || saving || imageUploading || stale} onChange={setDraft} />}
               <ParticleWidgetFields
                 particle={draft}
                 disabled={!editable}
@@ -280,6 +299,7 @@ function ParticleMetadataInspector({
                 <ParticleWorkFields
                   draft={draft}
                   editable={editable}
+                  canEditObjectiveProgress={canEditObjectiveProgress && !pending && !saving && !stale}
                   setDraft={setDraft}
                 />
               )}

@@ -14,6 +14,9 @@ do $$ begin
   if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if;
 end $$;
 create schema auth;
+create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+insert into auth.users select ('10000000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,
+  'person'||i||'@example.org',case when i=9 then null else now() end from generate_series(1,12) i;
 grant usage on schema public,auth to anon,authenticated,service_role;
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid;
@@ -43,6 +46,10 @@ insert into public.public_handles values ('community-table','organization','1000
 \ir ../migrations/20261016183000_workspace_page_membership.sql
 \ir ../migrations/20261016190000_workspace_page_commit.sql
 \ir ../migrations/20261018120000_workspace_page_public_read.sql
+commit;
+\ir ../migrations/20261031210000_workspace_page_canvas.sql
+\ir ../migrations/20261031220000_workspace_page_guests.sql
+begin;
 insert into public.organization_external_documents values
   ('10000000-0000-4000-8000-000000000040','10000000-0000-4000-8000-000000000001','google_drive',
    'canonicalFile01','https://docs.google.com/document/d/canonicalFile01/edit','2026-10-16T18:30:00Z','available');
@@ -51,13 +58,14 @@ create function public.fixture_page_commit(
   revision integer,intent text,operation_id uuid,
   actor uuid default '10000000-0000-4000-8000-000000000001',
   expected_graph jsonb default '{"workspaceId":"10000000-0000-4000-8000-000000000001","particles":[{"id":"10000000-0000-4000-8000-000000000020","title":"Saved"}]}',
-  hash text default repeat('a',64), drive_checks jsonb default '[]', expected_profile jsonb default null
+  hash text default repeat('a',64), drive_checks jsonb default '[]', expected_profile jsonb default null,
+  canvas uuid default null
 ) returns jsonb language sql security invoker set search_path='' as $$
   select public.commit_workspace_page(actor,'10000000-0000-4000-8000-000000000001',
     '10000000-0000-4000-8000-000000000010',operation_id,hash,revision,intent,
     '{"title":"Gather together","description":"Welcome","particleIds":["10000000-0000-4000-8000-000000000020"]}',
     '{"version":1,"brand":{"name":"Community table","organizationSlug":"community-table"},"title":"Gather together","description":"Welcome","items":[{"id":"10000000-0000-4000-8000-000000000020","title":"Saved","content":{"kind":"text"}}]}',
-    expected_graph,'2026-10-16T18:30:00Z',drive_checks,expected_profile);
+    expected_graph,'2026-10-16T18:30:00Z',drive_checks,expected_profile,canvas);
 $$;
-grant execute on function public.fixture_page_commit(integer,text,uuid,uuid,jsonb,text,jsonb,jsonb) to service_role,authenticated,anon;
+grant execute on function public.fixture_page_commit(integer,text,uuid,uuid,jsonb,text,jsonb,jsonb,uuid) to service_role,authenticated,anon;
 commit;

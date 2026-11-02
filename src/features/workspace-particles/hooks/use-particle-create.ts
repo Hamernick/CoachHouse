@@ -1,63 +1,35 @@
 "use client"
 
 import { useCallback, useRef, type RefObject } from "react"
-import type { ReactFlowInstance } from "@xyflow/react"
-import type { Particle, ParticlePosition, ParticleType } from "../types"
+import type { Particle, ParticleGraph, ParticlePosition, ParticleType } from "../types"
 import { isImagePlaceholder } from "../lib/particle-image"
+import { createParticle } from "../lib/particle-registry"
+import { prepareParticlePlacementReveal, particlePlacementMeasurements, type ParticlePlacementViewport } from "../lib/particle-placement-viewport"
+import { particleCreationPosition } from "../lib/particle-creation-placement"
 import type { useParticleSession } from "./use-particle-session"
 
-export function useParticleCreate({
-  add,
-  count,
-  dirty,
-  flow,
-}: {
+export function useParticleCreate({ add, dirty, getCurrentGraph, flow }: {
   add: ReturnType<typeof useParticleSession>["add"]
-  count: number
   dirty: RefObject<boolean>
-  flow: RefObject<Pick<ReactFlowInstance, "screenToFlowPosition"> | null>
+  getCurrentGraph: () => ParticleGraph | null
+  flow: RefObject<ParticlePlacementViewport | null>
 }) {
-  const latest = useRef({ add, count, dirty, flow })
-  latest.current = { add, count, dirty, flow }
-  return useCallback(
-    (
-      type: ParticleType,
-      title: string,
-      prepared?: Particle,
-      placement?: { position: ParticlePosition; inspect?: boolean }
-    ) => {
-      const { add, count, dirty, flow } = latest.current
-      if (dirty.current && !window.confirm("Discard unsaved Particle changes?"))
-        return Promise.resolve(false)
-      const canvas = placement
-        ? null
-        : document
-            .querySelector("[data-workspace-canvas-flow-frame]")
-            ?.getBoundingClientRect()
-      const position =
-        placement?.position ??
-        (canvas && flow.current
-          ? flow.current.screenToFlowPosition({
-              x: canvas.left + canvas.width / 2 - 140,
-              y: canvas.top + Math.min(canvas.height * 0.2, 150),
-            })
-          : { x: 100, y: 100 })
-      return add(
-        type,
-        title,
-        placement
-          ? position
-          : {
-              x: position.x + (count % 4) * 28,
-              y: position.y + (count % 4) * 28,
-            },
-        prepared,
-        {
-          inspect:
-            placement?.inspect ?? (!prepared || !isImagePlaceholder(prepared)),
-        }
-      )
-    },
-    []
-  )
+  const latest = useRef({ add, dirty, getCurrentGraph, flow })
+  latest.current = { add, dirty, getCurrentGraph, flow }
+  return useCallback(async (type: ParticleType, title: string, prepared?: Particle,
+    placement?: { position?: ParticlePosition; inspect?: boolean }) => {
+    const { add, dirty, getCurrentGraph, flow } = latest.current
+    if (dirty.current && !window.confirm("Discard unsaved Particle changes?")) return Promise.resolve(false)
+    const graph = getCurrentGraph()
+    if (!graph) return Promise.resolve(false)
+    const particle = prepared ?? createParticle(type, { id: crypto.randomUUID(), workspaceId: graph.workspaceId, title, now: new Date().toISOString() })
+    const position = placement?.position ?? particleCreationPosition(graph, particle, undefined, particlePlacementMeasurements(flow.current))
+    const reveal = prepareParticlePlacementReveal(flow)
+    const saved = await add(type, title, position, particle, {
+      positionMode: placement?.position ? "manual" : "managed",
+      inspect: placement?.inspect ?? (!prepared || !isImagePlaceholder(prepared)),
+    })
+    if (saved && !placement?.position) reveal({ ...particle, position })
+    return saved
+  }, [])
 }

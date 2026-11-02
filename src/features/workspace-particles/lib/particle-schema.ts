@@ -1,3 +1,5 @@
+import { particleProgressConfigSchema, particleOutcomeConfirmationSchema } from "./particle-progress"
+import { particleResponsibilitySchema, supportsParticleResponsibility } from "./particle-responsibility"
 import { particlePlanningSchema } from "./particle-plan-schema"
 import { PARTICLE_SIZE_NAMES, PARTICLE_SIZE_SUPPORT } from "./particle-size"
 import { particleWidgetSchema } from "./particle-widget-schema"
@@ -85,6 +87,8 @@ export const particleCalendarEntrySchema = z
 export const particleDataSchemas = {
   objective: z.strictObject({
     planning: particlePlanningSchema.optional(),
+    progress: particleProgressConfigSchema.optional(),
+    outcomeConfirmation: particleOutcomeConfirmationSchema.optional(),
     listOrder: z.number().int().min(0).max(10_000).optional(),
     target: amount.nullable(),
     current: amount.nullable(),
@@ -177,6 +181,7 @@ export const particleSchema = z.discriminatedUnion("type", [
   z.strictObject({
     ...base,
     type: z.literal("objective"),
+    responsibility: particleResponsibilitySchema.optional(),
     size: z.enum(PARTICLE_SIZE_SUPPORT.objective.supportedSizes).optional(),
     data: particleDataSchemas.objective,
   }),
@@ -222,7 +227,7 @@ export const particleSchema = z.discriminatedUnion("type", [
     size: z.enum(PARTICLE_SIZE_SUPPORT.finance.supportedSizes).optional(),
     data: particleDataSchemas.finance,
   }),
-])
+]).refine(particle => particle.type !== "objective" || !particle.responsibility || supportsParticleResponsibility(particle), "Edit responsibility at its source.")
 export const particleConnectionSchema = z.strictObject({
   id: particleIdSchema,
   source: z.union([particleIdSchema, workspaceToolIdSchema]),

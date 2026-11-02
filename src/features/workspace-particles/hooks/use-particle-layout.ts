@@ -1,5 +1,7 @@
 "use client"
 
+import { particleArrangementIds } from "../lib/particle-creation-placement"
+
 import {
   useCallback,
   useEffect,
@@ -40,7 +42,6 @@ export function useParticleLayout({
   dirty,
   setNodes,
 }: Input) {
-  const [needsMeasurements, setNeedsMeasurements] = useState(true)
   const [phase, setPhase] = useState<Phase>("idle")
   const [message, setMessage] = useState<string | null>(null)
   const [geometry, geometryChanged] = useReducer(
@@ -68,20 +69,21 @@ export function useParticleLayout({
 
   // Routing follows persisted/manual geometry; it never invokes ELK or moves cards.
   useEffect(() => {
-    setRoutes([])
-    if (phase !== "idle" || !session.graph || !flow.current) return
+    if (phase !== "idle") {
+      setRoutes(current => current.length ? [] : current)
+      return
+    }
+    if (!session.graph || !flow.current) return
     if (routedIds.current?.workspaceId !== session.graph.workspaceId)
       routedIds.current = {
         workspaceId: session.graph.workspaceId,
         ids: new Set(session.graph.connections.map((edge) => edge.id)),
       }
     const captured = captureParticleScene(session.graph, flow.current)
-    if (!captured.ok) {
-      if (!flow.current.getNodes().some((node) => node.dragging))
-        setNeedsMeasurements(true)
-      return
-    }
-    setNeedsMeasurements(false)
+    // Background routing must not mount every offscreen card. Native edges
+    // remain available; deliberate layout mounts the full scene for measurement.
+    if (!captured.ok) return
+    setRoutes(current => current.length ? [] : current)
     if (!captured.value.graph.connections.length) return
     const controller = new AbortController()
     const key = particleSceneKey(captured.value)
@@ -126,7 +128,14 @@ export function useParticleLayout({
       setMessage("Save or discard the open Particle edits before arranging.")
       return
     }
+    const workspaceId = input.session.getCurrentGraph()?.workspaceId
+    const canvas = input.flow.current
+    if (!workspaceId || !canvas) return
+    const sameCanvas = () => latest.current.flow.current === canvas &&
+      latest.current.session.getCurrentGraph()?.workspaceId === workspaceId
     const controller = new AbortController()
+    let saved = false
+    let superseded = false
     active.current = controller
     setMessage(null)
     setPhase("measuring")
@@ -139,6 +148,7 @@ export function useParticleLayout({
       for (let attempt = 0; attempt < 40; attempt += 1) {
         await delay()
         if (controller.signal.aborted) return
+        if (!sameCanvas()) { controller.abort(); return }
         const graph = latest.current.session.getCurrentGraph()
         const instance = input.flow.current
         if (!graph || !instance) throw new Error("Workspace is unavailable.")
@@ -169,17 +179,9 @@ export function useParticleLayout({
           .filter((node) => node.selected)
           .map((node) => node.id)
       )
-      const scopeIds = captured.graph.particles
-        .filter(
-          (item) =>
-            !item.canvasHidden &&
-            !item.locked &&
-            (!requestedIds || requestedIds.includes(item.id)) &&
-            (!selectionOnly || selected.has(item.id))
-        )
-        .map((item) => item.id)
+      const scopeIds = particleArrangementIds(captured.graph, selectionOnly ? selected : undefined, requestedIds)
       if (!scopeIds.length)
-        throw new Error("Choose visible, unlocked Particles to arrange.")
+        throw new Error("No automatically placed plan cards to arrange. Select unlocked cards to arrange them explicitly.")
       setPhase("calculating")
       const result = await runParticleWorker(
         { kind: "layout", scene: captured, scopeIds },
@@ -189,7 +191,7 @@ export function useParticleLayout({
       if (!result.ok) throw new Error(result.error)
       const graph = latest.current.session.getCurrentGraph()
       const instance = input.flow.current
-      if (!graph || !instance) throw new Error("Workspace changed. Try again.")
+      if (!sameCanvas() || !graph || !instance) throw new Error("Workspace changed. Try again.")
       const current = captureParticleScene(graph, instance)
       if (
         !current.ok ||
@@ -208,19 +210,34 @@ export function useParticleLayout({
       saving.current = true
       const receipt = await latest.current.session.commitBatch(batch.value)
       saving.current = false
+      saved = Boolean(receipt)
       if (controller.signal.aborted) return
       if (!receipt)
         throw new Error(
           "Layout was not confirmed. Check the save status before trying again."
         )
+      // A confirmed write owns only this revision and this canvas. A newer
+      // snapshot or local gesture wins, including while React queues an updater.
+      const isCurrent = () => !controller.signal.aborted && sameCanvas() &&
+        latest.current.session.getCurrentGraph()?.revision === receipt.graph.revision &&
+        !canvas.getNodes().some(node => node.dragging || node.resizing)
+      const continueAnimation = () => {
+        if (isCurrent()) return true
+        superseded ||= !controller.signal.aborted
+        controller.abort()
+        return false
+      }
+      if (!continueAnimation()) return
       setPhase("animating")
       const starts = new Map(
         instance.getNodes().map((node) => [node.id, node.position])
       )
       const targets = new Map(result.value.nodes.map((node) => [node.id, node]))
-      const apply = (progress: number) =>
-        input.setNodes((nodes) =>
-          nodes.map((node) => {
+      const apply = (progress: number) => {
+        if (!continueAnimation()) return
+        input.setNodes((nodes) => {
+          if (!isCurrent() || nodes.some(node => node.dragging || node.resizing)) return nodes
+          return nodes.map((node) => {
             const target = targets.get(node.id),
               start = starts.get(node.id)
             return target && start
@@ -233,7 +250,8 @@ export function useParticleLayout({
                 }
               : node
           })
-        )
+        })
+      }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
         apply(1)
       else
@@ -252,8 +270,9 @@ export function useParticleLayout({
             finish()
           }
           controller.signal.addEventListener("abort", stop, { once: true })
+          if (controller.signal.aborted) stop()
         })
-      if (!controller.signal.aborted) {
+      if (continueAnimation()) {
         routedIds.current = {
           workspaceId: receipt.graph.workspaceId,
           ids: new Set(receipt.graph.connections.map((edge) => edge.id)),
@@ -279,14 +298,16 @@ export function useParticleLayout({
       if (active.current === controller) {
         active.current = null
         setPhase("idle")
-        if (controller.signal.aborted) setMessage("Layout cancelled.")
+        if (controller.signal.aborted) setMessage(saved
+          ? superseded ? "Layout saved; newer changes preserved." : "Layout saved; animation stopped."
+          : "Layout cancelled.")
       }
     }
   }, [])
 
   return useMemo(
     () => ({
-      measureAll: needsMeasurements || phase !== "idle",
+      measureAll: phase !== "idle",
       busy: phase !== "idle",
       phase,
       message,
@@ -295,6 +316,6 @@ export function useParticleLayout({
       cancel,
       geometryChanged,
     }),
-    [needsMeasurements, phase, message, routes, run, cancel, geometryChanged]
+    [phase, message, routes, run, cancel, geometryChanged]
   )
 }

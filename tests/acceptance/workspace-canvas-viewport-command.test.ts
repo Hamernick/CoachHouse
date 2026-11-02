@@ -1,3 +1,10 @@
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import type { ReactFlowInstance } from "@xyflow/react"
+import { useWorkspaceCanvasViewportControls } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-viewport-controls"
+import { beginWorkspaceCameraIntent, captureWorkspaceCameraIntent, interruptWorkspaceCamera } from "@/lib/workspace-canvas/camera-intent"
+import { prepareParticlePlacementReveal } from "@/features/workspace-particles/lib/particle-placement-viewport"
+import { particle } from "./fixtures/particle-fixtures"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { focusWorkspaceCanvasPeople } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-person-fit-request"
 
@@ -335,5 +342,73 @@ describe("workspace canvas viewport command", () => {
       duration: 260,
     })
     expect(setCenter).not.toHaveBeenCalled()
+  })
+})
+
+
+describe("Shared camera intent", () => {
+  const canvas = () => ({
+    getViewport: () => ({ x: 20, y: 30, zoom: 0.8 }),
+    setViewport: vi.fn(async () => true),
+    setCenter: vi.fn(async () => true),
+    getZoom: () => 0.8,
+    getNodes: () => [],
+  })
+  it("invalidates older requests without crossing canvas instances", () => {
+    const first = canvas(), second = canvas()
+    const old = beginWorkspaceCameraIntent(first)
+    const unrelated = beginWorkspaceCameraIntent(second)
+    const latest = interruptWorkspaceCamera(first)
+    expect(old()).toBe(false)
+    expect(latest()).toBe(true)
+    expect(unrelated()).toBe(true)
+    expect(first.setViewport).toHaveBeenCalledWith(first.getViewport(), { duration: 0 })
+  })
+  it("does not replay an interrupted camera when its promise rejects", async () => {
+    const flow = canvas()
+    flow.setViewport.mockRejectedValueOnce(new Error("unmounted"))
+    const interrupted = interruptWorkspaceCamera(flow)
+    beginWorkspaceCameraIntent(flow)
+    await Promise.resolve()
+    expect(interrupted()).toBe(false)
+    expect(flow.setViewport).toHaveBeenCalledTimes(1)
+  })
+  it("a late save cannot reveal after selection, or into a replaced canvas", () => {
+    const ref = { current: canvas() }
+    const beforeSelection = prepareParticlePlacementReveal(ref)
+    interruptWorkspaceCamera(ref.current)
+    beforeSelection(particle(2))
+    expect(ref.current.setCenter).not.toHaveBeenCalled()
+    const beforeScopeChange = prepareParticlePlacementReveal(ref)
+    ref.current = canvas()
+    beforeScopeChange(particle(2))
+    expect(ref.current.setCenter).not.toHaveBeenCalled()
+  })
+  it("a still-current save reveals and invalidates older queued fits", () => {
+    vi.stubGlobal("document", { querySelector: () => null })
+    vi.stubGlobal("window", { matchMedia: () => ({ matches: true }) })
+    const ref = { current: canvas() }
+    const queued = captureWorkspaceCameraIntent(ref.current)
+    prepareParticlePlacementReveal(ref)(particle(2))
+    expect(ref.current.setCenter).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), expect.objectContaining({ duration: 0 }))
+    expect(queued()).toBe(false)
+  })
+})
+
+
+describe("Explicit viewport controls", () => {
+  it.each(["handleZoomIn", "handleZoomOut"] as const)("%s supersedes queued camera work", action => {
+    const canvas = { zoomIn: vi.fn(async () => true), zoomOut: vi.fn(async () => true) }
+    const pending = beginWorkspaceCameraIntent(canvas)
+    let controls: ReturnType<typeof useWorkspaceCanvasViewportControls> | undefined
+    function Harness() {
+      controls = useWorkspaceCanvasViewportControls({ flowInstanceRef: { current: canvas as unknown as ReactFlowInstance }, tutorialActive: false,
+        tutorialSceneFitRequest: null, tutorialCompletionExitRequest: null, focusCardRequest: null, visibleNodeIds: [] })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    controls![action]()
+    expect(pending()).toBe(false)
+    expect(action === "handleZoomIn" ? canvas.zoomIn : canvas.zoomOut).toHaveBeenCalledOnce()
   })
 })

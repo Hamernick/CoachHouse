@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { WorkspaceAiComposer } from "@/features/workspace-ai/client"
+import { WorkspaceAiComposer, WorkspaceNewPlan } from "@/features/workspace-ai/client"
 
 import {
   ParticleComposer,
@@ -11,6 +11,7 @@ import {
   ParticleLibrary,
   ParticleCreateActions,
   ParticleInspector,
+  ParticleFocusedPreview,
   type useParticleFlow,
   type ParticleLibraryTool,
 } from "@/features/workspace-particles/client"
@@ -20,16 +21,23 @@ const SharePanel = dynamic(() => import("@/features/workspace-sharing/client").t
   ssr: false, loading: () => <div className="p-3 text-sm" role="status">Loading Share…</div>,
 })
 
-export function WorkspaceParticleInspectorSlot({ session }: Props) {
+export function WorkspaceParticleInspectorSlot({ session, workspaceCanvasId }: Props & { workspaceCanvasId?: string }) {
   if (session.selected && session.graph && session.inspectorView === "share") return <SharePanel
-    key={`${session.graph.workspaceId}:${session.selected.id}`}
-    workspaceId={session.graph.workspaceId} particleId={session.selected.id}
+    key={`${session.graph.workspaceId}:${workspaceCanvasId ?? "default"}:${session.selected.id}`}
+    canvasId={workspaceCanvasId ?? null} workspaceId={session.graph.workspaceId} particleId={session.selected.id}
     initialParticleIds={session.shareParticleIds}
     onDirtyChange={session.setDirty}
     onBack={() => { session.setDirty(false); session.select(session.selected?.id ?? null, { view: "details" }) }}
   />
+  if (session.selected && session.inspectorView === "preview") return <ParticleFocusedPreview
+    key={session.selected.id} particle={session.selected} particles={session.graph?.particles} editable={session.editable}
+    onOpen={calendarEntryId => session.select(session.selected!.id, { view: "details", calendarEntryId })}
+    onClose={() => { session.closeGuard.request() }}
+  />
   return session.selected ? (
     <ParticleInspector
+      canEditObjectiveProgress={Boolean(session.planningAccess?.isOrganizationOwner && !session.planningAccess.error)}
+      responsibilityOnCanvas={!session.selected.canvasHidden}
       key={session.selected.id}
       particle={session.selected}
       editable={session.editable}
@@ -47,11 +55,25 @@ export function WorkspaceParticleInspectorSlot({ session }: Props) {
   ) : null
 }
 
-export function WorkspaceParticleComposerSlot({ session,sourceScope,organizationName }: Props & {sourceScope:{userId:string;organizationId:string};organizationName?:string}) {
+export function WorkspaceParticleComposerSlot({ session,sourceScope,organizationName,workspaceCanvasId }: Props & {workspaceCanvasId?:string;sourceScope:{userId:string;organizationId:string};organizationName?:string}) {
   const request = useWorkspaceCanvasOverlayDrawerRequest()
   return (
-    <WorkspaceAiComposer sourceScope={sourceScope} organizationName={organizationName}>{assistant => <ParticleComposer
+    <>
+    <WorkspaceNewPlan
+      enabled={process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED === "true" && Boolean(session.graph) && session.canEdit}
+      {...sourceScope} canvasId={workspaceCanvasId ?? null} revision={session.graph?.revision ?? 0}
+      disabled={!session.editable || session.pending || Boolean(session.error)} onProposal={async (result, draft) => {
+        if (result.target.mode !== "new_objective") return false
+        const graph = session.getCurrentGraph()
+        if (!graph) return false
+        const previous = new Set(graph.particles.map(item => item.id))
+        const saved = await session.applyResearch(result.runId, result.target, draft)
+        const added = saved?.graph.particles.filter(item => !previous.has(item.id)).map(item => item.id) ?? []
+        if (saved && added.length) void session.layout.run(false, added)
+        return Boolean(saved)
+      }}>{planner => <WorkspaceAiComposer sourceScope={sourceScope} organizationName={organizationName}>{assistant => <ParticleComposer
       assistant={assistant}
+      planner={planner}
       disabled={!session.editable}
       pending={session.pending}
       error={session.error}
@@ -62,7 +84,8 @@ export function WorkspaceParticleComposerSlot({ session,sourceScope,organization
         if (open) request?.({ tab: "particles" })
       }}
       onRetry={() => void session.retry()}
-    />}</WorkspaceAiComposer>
+    />}</WorkspaceAiComposer>}</WorkspaceNewPlan>
+    </>
   )
 }
 

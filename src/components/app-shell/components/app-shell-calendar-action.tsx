@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useId,
   useState,
   type ComponentProps,
@@ -32,6 +33,7 @@ import {
   WORKSPACE_TUTORIAL_INVERSE_TOOLTIP_CLASSNAME,
 } from "@/components/workspace/workspace-tutorial-theme"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { WORKSPACE_CALENDAR_OPEN } from "@/lib/roadmap/calendar-events"
 import { cn } from "@/lib/utils"
 
 const RoadmapCalendar = dynamic<
@@ -68,6 +70,20 @@ export function AppShellCalendarAction({
   const [calendarHasOpened, setCalendarHasOpened] = useState(false)
   const [calendarView, setCalendarView] = useState<RoadmapCalendarView>()
   const calendarRegionId = useId()
+  const [calendarRequest, setCalendarRequest] = useState(0)
+  useEffect(() => {
+    if (placement !== "header") return
+    const open = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !Number.isFinite(event.detail?.at) || event.defaultPrevented) return
+      event.preventDefault()
+      const date = new Date(event.detail.at)
+      setCalendarView({ month: date, selectedDate: date })
+      setCalendarRequest(value => value + 1)
+      setCalendarHasOpened(true); setCalendarOpen(true)
+    }
+    window.addEventListener(WORKSPACE_CALENDAR_OPEN, open)
+    return () => window.removeEventListener(WORKSPACE_CALENDAR_OPEN, open)
+  }, [placement])
   const tutorialCalendarButtonActive = tutorialCalendarButtonCallout !== null
 
   const handleCalendarOpenChange = useCallback((open: boolean) => {
@@ -99,6 +115,7 @@ export function AppShellCalendarAction({
       onClick={handleCalendarTriggerClick}
       className={cn(
         "relative",
+        placement === "header" && "max-md:hidden",
         placement === "sidebar" && "min-h-11 w-full justify-start gap-2 px-2",
         calendarOpen &&
           "bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground shadow-sm",
@@ -131,6 +148,7 @@ export function AppShellCalendarAction({
   // Keep only the selected view here, outside the popup's lifecycle.
   const calendarBody = calendarHasOpened ? (
     <RoadmapCalendar
+      key={calendarRequest}
       hideHeaderCopy
       compactHeaderControls
       initialView={calendarView}

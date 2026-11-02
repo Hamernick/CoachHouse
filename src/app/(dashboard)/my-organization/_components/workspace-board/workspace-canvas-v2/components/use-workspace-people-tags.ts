@@ -166,19 +166,19 @@ export function useWorkspacePeopleTags(initialTags: OrganizationPeopleTag[]) {
   const addPersonToTag = useCallback(
     async (tagId: string, personId: string) => {
       const tag = tags.find((item) => item.id === tagId)
-      if (!tag || tag.memberIds.includes(personId)) return true
+      if (!tag) return false
       const mutationKey = `tag:${tagId}`
       const mutationToken = mutationCoordinator.begin(mutationKey)
       setTags((current) =>
         current.map((item) =>
           item.id === tagId
-            ? withTagMemberIds(item, [...item.memberIds, personId])
+            ? withTagMemberIds(item, Array.from(new Set([...item.memberIds, personId])))
             : item
         )
       )
       const result = await mutationCoordinator.run(mutationKey, () =>
         addOrganizationPeopleTagMembersAction(tagId, [personId])
-      )
+      ).catch(() => ({ error: "Could not save the group. Please try again." }))
       if ("error" in result) {
         if (mutationCoordinator.isLatest(mutationToken)) {
           const confirmedTag = confirmedTags.get(tagId)
@@ -215,8 +215,7 @@ export function useWorkspacePeopleTags(initialTags: OrganizationPeopleTag[]) {
   const removePersonFromTag = useCallback(
     async (tagId: string, personId: string) => {
       const tag = tags.find((item) => item.id === tagId)
-      const removedIndex = tag?.memberIds.indexOf(personId) ?? -1
-      if (removedIndex < 0) return true
+      if (!tag) return false
       const mutationKey = `tag:${tagId}`
       const mutationToken = mutationCoordinator.begin(mutationKey)
       setTags((current) =>
@@ -231,7 +230,7 @@ export function useWorkspacePeopleTags(initialTags: OrganizationPeopleTag[]) {
       )
       const result = await mutationCoordinator.run(mutationKey, () =>
         removeOrganizationPeopleTagMembersAction(tagId, [personId])
-      )
+      ).catch(() => ({ error: "Could not save the group. Please try again." }))
       if ("error" in result) {
         if (mutationCoordinator.isLatest(mutationToken)) {
           const confirmedTag = confirmedTags.get(tagId)

@@ -187,7 +187,7 @@ describe("Particle persistence through existing board writer", () => {
         expect(graphResult.value.particles.map((item) => item.title)).toEqual([
           "Objective",
           "Concurrent edit",
-          "Activity",
+          "Resource",
         ])
         return { status: "written" }
       },

@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useEffect, type MutableRefObject } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 
@@ -76,7 +77,9 @@ export function useWorkspaceCanvasTutorialCompletionExitEffects({
     pendingTutorialCompletionExitRequestKeyRef.current =
       tutorialCompletionExitRequest.requestKey
 
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     return scheduleDoubleFrame(() => {
+      if (!cameraIsCurrent()) return
       const command = resolveWorkspaceCanvasViewportCommand({
         tutorialSceneFitRequest: null,
         tutorialCompletionExitRequest,

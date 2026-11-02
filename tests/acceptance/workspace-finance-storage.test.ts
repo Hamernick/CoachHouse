@@ -405,7 +405,7 @@ describe("workspace finance storage contract", () => {
     )
   })
 
-  it("maps only active opportunity display fields into the drawer", () => {
+  it("loads active opportunities by default and maps archived records for the archive", () => {
     expect(opportunityLoader).toContain('.eq("org_id", orgId)')
     expect(opportunityLoader).toContain('.neq("status", "dismissed")')
     expect(opportunityLoader).toContain('.order("due_at"')
@@ -457,7 +457,7 @@ describe("workspace finance storage contract", () => {
         created_at: "2026-08-07T17:20:00.000Z",
         updated_at: "2026-08-07T17:20:00.000Z",
       })
-    ).toBeNull()
+    ).toMatchObject({ id: "dismissed", status: "dismissed" })
   })
 
   it("stores only the Finance engagement stages needed by History", () => {

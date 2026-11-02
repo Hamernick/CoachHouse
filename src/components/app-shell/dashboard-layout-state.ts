@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { cache } from "react"
 import { hasCoachCoachingAccess } from "@/features/platform-access"
 import { hasWorkspaceSupportAccess } from "@/lib/organization/support-access"
@@ -203,7 +204,7 @@ const resolveDashboardLayoutStateCached = cache(
     const orgProfile =
       (orgRowResult.data?.profile as Record<string, unknown> | null) ?? null
     const orgPeople = Array.isArray(orgProfile?.org_people)
-      ? (orgProfile.org_people as Array<Record<string, unknown>>)
+      ? (orgProfile.org_people as Array<Record<string, unknown>>).filter(isActiveContact)
       : []
     const orgSlug =
       typeof orgRowResult.data?.public_slug === "string"

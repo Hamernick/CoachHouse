@@ -15,6 +15,10 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react"
 import type { ParticleNodeData } from "../components/particle-node"
+import { useParticleAssignments } from "./use-particle-assignments"
+import { membershipResponsibilityKey } from "../lib/particle-membership-responsibility"
+import type { PlanningActor } from "../lib/particle-plan-authority"
+import { useParticleDirtyState } from "./use-particle-dirty-state"
 import { useParticleConnections } from "./use-particle-connections"
 import { useParticleLayout } from "./use-particle-layout"
 import { useParticleHistoryControls } from "./use-particle-history-controls"
@@ -22,15 +26,17 @@ import { useParticleCloseGuard } from "./use-particle-close-guard"
 import { useParticleSelection } from "./use-particle-selection"
 import { useParticleResize } from "./use-particle-resize"
 import {
-  reconcileParticleNode,
   visibleParticleIds,
   particleResizeChanges,
 } from "../lib/particle-node-state"
 import { useParticleCardActions } from "./use-particle-card-actions"
+import { useParticleNodeProjection } from "./use-particle-node-projection"
 import { useParticleCreate } from "./use-particle-create"
 import { useParticleImageUpload } from "./use-particle-image-upload"
 import { particleFlowStateChanges } from "../lib/particle-flow-changes"
 import { particleConnectionsToFlow } from "../lib/particle-flow-adapters"
+import { particlePlacementMeasurements } from "../lib/particle-placement-viewport"
+import { particleCreationPosition, particlePlanMemberships } from "../lib/particle-creation-placement"
 import { placeParticle } from "../lib/particle-placement"
 import { createParticlePositionPersistence } from "../lib/position-persistence"
 import type {
@@ -44,11 +50,13 @@ export function useParticleFlow({
   session,
   canEdit,
   visibleToolIds = [],
+  planningAccess,
 }: {
   workspaceId: string
   session: ParticleSession
   canEdit: boolean
   visibleToolIds?: readonly string[]
+  planningAccess?: PlanningActor & { workspaceId: string; error: string | null }
 }) {
   const {
     select: selectParticle,
@@ -63,6 +71,8 @@ export function useParticleFlow({
   } = session
   const [libraryQuery, setLibraryQuery] = useState("")
   const [nodes, setNodes] = useState<Node<ParticleNodeData>[]>([])
+  const currentNodes = useRef(nodes)
+  currentNodes.current = nodes
   const flow = useRef<ReactFlowInstance | null>(null)
   const [positionVersion, reconcilePositions] = useReducer(
     (value: number) => value + 1,
@@ -86,7 +96,8 @@ export function useParticleFlow({
     [workspaceId]
   )
   useEffect(() => () => positions.cancel(), [positions])
-  const dirty = useRef(false)
+  const { dirty, setDirty, assignmentDirtyChange, isAssignmentDirty, assignmentVersion } = useParticleDirtyState()
+  const { assignment, memberships } = useParticleAssignments(session, planningAccess?.workspaceId === workspaceId && !planningAccess.error ? planningAccess : undefined, canEdit, assignmentDirtyChange)
   const [resizeBusy, setResizeBusy] = useState(false)
   const flushBeforeLayout = useCallback(
     () => (resizeBusy ? Promise.resolve(false) : positions.flush()),
@@ -113,7 +124,7 @@ export function useParticleFlow({
     dirty,
     blocked: layout.busy || resizeBusy,
   })
-  const editable = sessionEditable && !layout.busy && !history.busy
+  const editable = canEdit && sessionEditable && !layout.busy && !history.busy
   const images = useParticleImageUpload({
     session,
     dirty,
@@ -127,6 +138,10 @@ export function useParticleFlow({
     dirty,
     blocked: layout.busy || history.busy,
   })
+  const deleteObjective = useCallback((id: string) => {
+    if (!getCurrentGraph()?.particles.some(item => item.id === id && item.type === "objective")) return Promise.resolve(false)
+    return cardAction(id, "delete")
+  }, [getCurrentGraph, cardAction])
   const resize = useParticleResize({
     session,
     dirty,
@@ -151,17 +166,16 @@ export function useParticleFlow({
     !layout.busy &&
     !history.busy &&
     (!pending || positions.isSaving())
-  const setDirty = useCallback((value: boolean) => {
-    dirty.current = value
-  }, [])
   const getSelectedIds = useCallback(() => flow.current?.getNodes().filter((node) => node.selected).map((node) => node.id) ?? [], [])
-  const { select, calendarEntryRequest, inspectorView, shareParticleIds } = useParticleSelection({
+  const { expandedId, expand, collapse, select, focusCanvas, walkthrough, calendarEntryRequest, inspectorView, shareParticleIds } = useParticleSelection({
     graph,
     selectedId,
     selectParticle,
     setNodes,
     dirty,
     getSelectedIds,
+    flow,
+    expansionBlocked: layout.busy || history.busy || resizeBusy,
   })
   const closeGuard = useParticleCloseGuard({
     dirty,
@@ -185,20 +199,11 @@ export function useParticleFlow({
         (item) => item.id === id
       )
       if (!current) return false
-      let placement = position
-      if (visible && !placement) {
-        const canvas = document
-          .querySelector("[data-workspace-canvas-flow-frame]")
-          ?.getBoundingClientRect()
-        if (canvas && flow.current)
-          placement = flow.current.screenToFlowPosition({
-            x: canvas.left + canvas.width / 2 - 140,
-            y: canvas.top + 80,
-          })
-      }
-      return editParticle(placeParticle(current, visible, placement), {
-        optimistic: true,
-      })
+      const snapshot = getCurrentGraph()
+      const context = snapshot && particlePlanMemberships(snapshot).find(({ plan }) => plan.particleIds.includes(current.id))
+      const managed = visible && !position && current.positionMode === "managed" && !current.locked && snapshot
+      const placed = managed ? { ...current, canvasHidden: false, position: particleCreationPosition(snapshot, current, context || undefined, particlePlacementMeasurements(flow.current)) } : placeParticle(current, visible, position)
+      return editParticle(placed, { optimistic: true })
     },
     [
       editable,
@@ -210,60 +215,25 @@ export function useParticleFlow({
       getCurrentGraph,
     ]
   )
-  useEffect(() => {
-    setNodes((previous) =>
-      (graph?.particles ?? [])
-        .filter((particle) => !particle.canvasHidden)
-        .map((particle) => {
-          const old = previous.find((node) => node.id === particle.id)
-          return reconcileParticleNode({
-            old,
-            particle,
-            selectedId,
-            movable,
-            resizing: isResizing(particle.id),
-            keepPosition: Boolean(
-              old?.dragging ||
-              pending ||
-              layout.busy ||
-              positions.has(particle.id)
-            ),
-            data: {
-              particle,
-              editable,
-              onOpen: select,
-              onEdit: edit,
-              onAction: cardAction,
-              onUploadImage: images.uploadToPlaceholder,
-              resize: resizeControls,
-            },
-          })
-        })
-    )
-  }, [
-    graph,
-    editable,
-    movable,
-    pending,
-    select,
-    edit,
-    selectedId,
-    positions,
-    positionVersion,
-    layout.busy,
-    cardAction,
-    resizeControls,
-    images.uploadToPlaceholder,
-    isResizing,
-  ])
+  const assignmentContext = walkthrough.reference ? membershipResponsibilityKey(walkthrough.reference) : undefined
+  const nodeData = useMemo(() => ({ assignment, onExpand: expand, onCollapse: collapse, editable,
+    onOpen: select, onEdit: edit, onAction: cardAction, onUploadImage: images.uploadToPlaceholder, resize: resizeControls }),
+  [assignment, expand, collapse, editable, select, edit, cardAction, images.uploadToPlaceholder, resizeControls])
+  useParticleNodeProjection({ graph, previous: currentNodes, setNodes, selectedId, expandedId, movable, pending,
+    layoutBusy: layout.busy, positionVersion, positionPending: positions.has, isResizing, isAssignmentDirty,
+    memberships, assignmentContext, assignmentVersion, walkthroughId: walkthrough.currentId, data: nodeData })
   const records = useMemo(
     () => new Map(graph?.particles.map((particle) => [particle.id, particle])),
     [graph]
   )
   const ids = useMemo(() => visibleParticleIds(graph), [graph])
+  const walkthroughId = walkthrough.currentId
+  const cancelWalkthrough = walkthrough.cancel
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       const stateChanges = particleFlowStateChanges(changes)
+      if (expandedId && changes.some(change => (change.type === "position" && change.dragging) || (change.type === "dimensions" && change.resizing))) collapse(false)
+      if (stateChanges.some(change => change.type === "select" && change.selected && change.id !== walkthroughId)) cancelWalkthrough()
       const accepted = stateChanges.filter((change) => {
         if (change.type === "remove") return false
         if (change.type !== "position") return true
@@ -277,7 +247,7 @@ export function useParticleFlow({
       })
       setNodes((current) =>
         applyNodeChanges<Node<ParticleNodeData>>(
-          particleResizeChanges(accepted, records),
+          particleResizeChanges(accepted, records, new Set(memberships.keys())),
           current
         )
       )
@@ -289,7 +259,7 @@ export function useParticleFlow({
       )
         positions.schedule()
     },
-    [movable, records, positions, isResizing]
+    [movable, records, memberships, positions, isResizing, walkthroughId, cancelWalkthrough, expandedId, collapse]
   )
   const move = useCallback(
     async (moved: Node[]) => {
@@ -307,14 +277,17 @@ export function useParticleFlow({
   )
   const create = useParticleCreate({
     add,
-    count: graph?.particles.length ?? 0,
+    getCurrentGraph,
     dirty,
     flow,
   })
   // Canvas positions change every frame; controls only need domain/edit state.
+  const canvasSelectedId = nodes.find(node => node.selected)?.id ?? null
   const controls = useMemo(
     () => ({
       ...session,
+      planningAccess,
+      assignmentOnCanvas: true,
       canEdit,
       images,
       visibleToolIds,
@@ -328,6 +301,11 @@ export function useParticleFlow({
       closeGuard,
       inspectorView,
       shareParticleIds,
+      focusCanvas,
+      walkthrough,
+      canvasSelectedId,
+      expandedId, expand, collapse,
+      deleteObjective,
       select,
       setDirty,
       setPlacement,
@@ -337,6 +315,7 @@ export function useParticleFlow({
     }),
     [
       session,
+      planningAccess,
       canEdit,
       images,
       visibleToolIds,
@@ -349,6 +328,11 @@ export function useParticleFlow({
       closeGuard,
       inspectorView,
       shareParticleIds,
+      focusCanvas,
+      walkthrough,
+      canvasSelectedId,
+      expandedId, expand, collapse,
+      deleteObjective,
       select,
       setDirty,
       setPlacement,

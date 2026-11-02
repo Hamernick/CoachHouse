@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent, interruptWorkspaceCamera } from "@/lib/workspace-canvas/camera-intent"
 import type { WorkspaceSelectionDragHandler } from "@/lib/workspace-canvas/drag-events"
 import {
   useCallback,
@@ -11,6 +12,7 @@ import {
 } from "react"
 import type {
   NodeChange,
+  OnMoveStart,
   OnNodeDrag,
   NodeMouseHandler,
   OnNodesChange,
@@ -89,6 +91,7 @@ export function useWorkspaceCanvasOntologyInteractions({
   })
   const handleNodeClick = useCallback<NodeMouseHandler>(
     (event, node) => {
+      if (flowInstanceRef.current) interruptWorkspaceCamera(flowInstanceRef.current)
       if (!node.id.startsWith("ontology:")) return
       if (event.shiftKey || event.metaKey || event.ctrlKey) return
       if (
@@ -99,7 +102,7 @@ export function useWorkspaceCanvasOntologyInteractions({
       }
       activateNode(node.id)
     },
-    [activateNode]
+    [activateNode, flowInstanceRef]
   )
   const handleKeyDownCapture = useCallback<
     KeyboardEventHandler<HTMLDivElement>
@@ -203,8 +206,9 @@ export function useWorkspaceCanvasOntologyInteractions({
       const dragging = changes.some(
         (change) => change.type === "position" && change.dragging === true
       )
-      if (dragging) {
+      if (dragging || changes.some(change => change.type === "select")) {
         cancelPendingFit()
+        if (flowInstanceRef.current) interruptWorkspaceCamera(flowInstanceRef.current)
       }
       const ontologyChanges = changes.filter((change) =>
         resolveNodeChangeId(change).startsWith("ontology:")
@@ -222,7 +226,7 @@ export function useWorkspaceCanvasOntologyInteractions({
       }
       if (workspaceChanges.length > 0) onNodesChange(workspaceChanges)
     },
-    [cancelPendingFit, onNodesChange]
+    [cancelPendingFit, onNodesChange, flowInstanceRef]
   )
   const handleNodeDragStop = useCallback<OnNodeDrag>(
     (event, node, draggedNodes) => {
@@ -242,6 +246,10 @@ export function useWorkspaceCanvasOntologyInteractions({
     },
     [onSelectionDragStop]
   )
+  const handleMoveStart = useCallback<OnMoveStart>((event) => {
+    cancelPendingFit()
+    if (event && flowInstanceRef.current) beginWorkspaceCameraIntent(flowInstanceRef.current)
+  }, [cancelPendingFit, flowInstanceRef])
   return {
     nodes,
     visibleNodeIds,
@@ -250,6 +258,6 @@ export function useWorkspaceCanvasOntologyInteractions({
     onKeyDownCapture: handleKeyDownCapture,
     onNodeDragStop: handleNodeDragStop,
     onSelectionDragStop: handleSelectionDragStop,
-    onMoveStart: cancelPendingFit,
+    onMoveStart: handleMoveStart,
   }
 }

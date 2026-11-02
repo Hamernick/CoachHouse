@@ -9,6 +9,18 @@ export function particlePlanningPermissionError(before: ParticleGraph, after: Pa
   for (const id of objectives) {
     const previous = before.particles.find(item => item.id === id)
     const next = after.particles.find(item => item.id === id)
+    if (previous?.type === "objective" && !next && ((previous.data.planning?.plans.length ?? 0) > 0 || (previous.data.planning?.proposals.length ?? 0) > 0)) {
+      if (!actor?.isOrganizationOwner) return "Only the organization owner can delete objectives."
+      continue
+    }
+    if (next?.type === "objective") {
+      const prior = previous?.type === "objective" ? previous : undefined
+      if (prior?.status === next.status && !same(prior?.data.outcomeConfirmation, next.data.outcomeConfirmation)) return "Outcome confirmation is server-owned. Reopen and confirm the outcome."
+      if ((prior ? prior.status !== next.status : next.status !== "backlog") || !same(prior?.data.progress, next.data.progress)) {
+        if (!actor?.isOrganizationOwner) return "Only the organization owner can change objective progress or confirm its outcome."
+        if (prior?.data.source || next.data.source) return "Edit objective progress at its source."
+      }
+    }
     const old = previous?.type === "objective" ? previous.data.planning : undefined
     const value = next?.type === "objective" ? next.data.planning : undefined
     if (same(old, value)) continue
@@ -41,7 +53,7 @@ export function particlePlanningPermissionError(before: ParticleGraph, after: Pa
       if ((base?.revision ?? null) !== proposal.baseRevision)
         return "The accepted plan changed. Create a fresh proposal before accepting."
       const accepted = value?.plans.find(item => item.id === proposal.planId)
-      if (!accepted || accepted.title !== updated.title || !same(accepted.particleIds, updated.particleIds) || !same(accepted.links, updated.links) || !same(accepted.sources, updated.sources) || accepted.researchRunId !== updated.researchRunId || accepted.summary !== updated.summary)
+      if (!accepted || accepted.title !== updated.title || !same(accepted.particleIds, updated.particleIds) || !same(accepted.optionalParticleIds, updated.optionalParticleIds) || !same(accepted.assignments, updated.assignments) || !same(accepted.links, updated.links) || !same(accepted.sources, updated.sources) || accepted.researchRunId !== updated.researchRunId || accepted.summary !== updated.summary)
         return "Accept the proposal and its plan changes together."
     }
     for (const proposal of value?.proposals ?? []) {

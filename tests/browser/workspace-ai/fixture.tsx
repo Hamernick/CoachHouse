@@ -1,3 +1,11 @@
+import { FormSourceFixture } from "./form-source-fixture"
+import { FormIntakeFixture } from "./form-intake-fixture"
+import { FormControlsFixture } from "./form-controls-fixture"
+import { PublicSharingFixture, PublicSharingImageFixture, PublicSharingDocumentFixture } from "./public-sharing-fixture"
+import { renderToString } from "react-dom/server"
+import { WorkspacePageDirectory } from "../../../src/features/workspace-sharing/components/workspace-page-directory"
+import { GuestFixture } from "./guest-fixture"
+import { SharingFixture } from "./sharing-fixture"
 import { MatchingFixture } from "./matching-fixture"
 import { RevisionFixture } from "./revision-fixture"
 import { AppShellAccountMenuActionsProvider, useAppShellAccountMenuActions } from "../../../src/components/app-shell/account-menu-actions-context"
@@ -8,11 +16,12 @@ import { ObjectivesFixture } from "./objectives-fixture"
 import { RoadmapConflictReview } from "../../../src/components/roadmap/roadmap-editor/components/roadmap-conflict-review"
 import { WorkspaceWindowHeaderScope,useWorkspaceWindowHeaderActive } from "../../../src/components/workspace/workspace-window-header-slots"
 import { StrictMode, useEffect, useMemo, useState } from "react"
-import { createRoot } from "react-dom/client"
+import { createRoot, hydrateRoot } from "react-dom/client"
 import { Toaster } from "sonner"
 import { Button } from "../../../src/components/ui/button"
 import { RichTextEditor } from "../../../src/components/rich-text-editor"
 import { useRoadmapEditorState } from "../../../src/components/roadmap/roadmap-editor/hooks/use-roadmap-editor-state"
+import { WorkspaceNewPlan } from "../../../src/features/workspace-ai/components/workspace-new-plan"
 import { WorkspaceAiComposer } from "../../../src/features/workspace-ai/components/workspace-ai-composer"
 import { useAiDocumentBridge } from "../../../src/features/workspace-ai/hooks/document-bridge"
 import { ParticleComposer } from "../../../src/features/workspace-particles/components/particle-composer"
@@ -81,8 +90,8 @@ function Fixture() {
     </div></WorkspaceWindowHeaderScope>
     {showAdditional ? <DocumentEditor section={additionalSection} sourceScope={sourceScope} /> : null}
     <div className="min-w-0">
-      <WorkspaceAiComposer sourceScope={sourceScope} organizationName="Fictional Garden Collective">{assistant => <ParticleComposer disabled={false} pending={false} error={null}
-        saved={false} assistant={assistant} onCreate={async () => false} onRetry={() => undefined} />}</WorkspaceAiComposer>
+      <WorkspaceNewPlan {...sourceScope} canvasId={null} revision={0} disabled={false} enabled={new URLSearchParams(window.location.search).has("planner")} onProposal={async()=>false}>{planner => <WorkspaceAiComposer sourceScope={sourceScope} organizationName="Fictional Garden Collective">{assistant => <ParticleComposer disabled={false} pending={false} error={null}
+        saved={false} assistant={assistant} planner={planner} onCreate={async () => false} onRetry={() => undefined} />}</WorkspaceAiComposer>}</WorkspaceNewPlan>
     </div>
     <Toaster />
   </main>
@@ -94,4 +103,23 @@ function UsageNavigation() {
     <WorkspaceAiComposer sourceScope={{ organizationId: creditOrg, userId: creditOrg }}>{() => null}</WorkspaceAiComposer>
   </main>
 }
-createRoot(document.getElementById("root")!).render(<StrictMode>{new URLSearchParams(window.location.search).has("matching") ? <MatchingFixture/> : new URLSearchParams(window.location.search).has("revisions") ? <RevisionFixture /> : new URLSearchParams(window.location.search).has("usage-navigation") ? <AppShellAccountMenuActionsProvider><UsageNavigation /></AppShellAccountMenuActionsProvider> : new URLSearchParams(window.location.search).has("credits") ? <main className="mx-auto w-full max-w-sm bg-background p-3 text-foreground"><AiCreditsPanel account={creditAccount} organizationId={creditOrg} /></main> : new URLSearchParams(window.location.search).has("fixture-checkout") ? <p>Simulated checkout · no payment</p> : new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)
+const root = document.getElementById("root")!
+if (new URLSearchParams(location.search).has("form-source")) {
+  root.innerHTML = renderToString(<FormSourceFixture />)
+  hydrateRoot(root, <FormSourceFixture />)
+} else if (new URLSearchParams(location.search).has("form-intake") || location.pathname.startsWith("/forms/responses/")) {
+  root.innerHTML = renderToString(<FormIntakeFixture />)
+  hydrateRoot(root, <FormIntakeFixture />)
+} else if (new URLSearchParams(location.search).has("form-controls")) {
+  root.innerHTML = renderToString(<FormControlsFixture />)
+  hydrateRoot(root, <FormControlsFixture />)
+} else if (new URLSearchParams(location.search).has("public-documents")) {
+  root.innerHTML = renderToString(<PublicSharingDocumentFixture />)
+  hydrateRoot(root, <PublicSharingDocumentFixture />)
+} else if (new URLSearchParams(location.search).has("public-images")) {
+  root.innerHTML = renderToString(<PublicSharingImageFixture />)
+  hydrateRoot(root, <PublicSharingImageFixture />)
+} else if (new URLSearchParams(location.search).has("public-page")) {
+  root.innerHTML = renderToString(<PublicSharingFixture />)
+  hydrateRoot(root, <PublicSharingFixture />)
+} else createRoot(root).render(<StrictMode>{window.location.pathname === "/workspace/shared-pages" ? <WorkspacePageDirectory pageId={new URLSearchParams(location.search).get("page") ?? undefined} after={new URLSearchParams(location.search).get("after") ?? undefined} /> : new URLSearchParams(window.location.search).has("guest") ? <GuestFixture /> : new URLSearchParams(window.location.search).has("sharing") ? <SharingFixture /> : new URLSearchParams(window.location.search).has("matching") ? <MatchingFixture/> : new URLSearchParams(window.location.search).has("revisions") ? <RevisionFixture /> : new URLSearchParams(window.location.search).has("usage-navigation") ? <AppShellAccountMenuActionsProvider><UsageNavigation /></AppShellAccountMenuActionsProvider> : new URLSearchParams(window.location.search).has("credits") ? <main className="mx-auto w-full max-w-sm bg-background p-3 text-foreground"><AiCreditsPanel account={creditAccount} organizationId={creditOrg} /></main> : new URLSearchParams(window.location.search).has("fixture-checkout") ? <p>Simulated checkout · no payment</p> : new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)

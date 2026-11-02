@@ -5,7 +5,7 @@ import type { ResearchContext } from "./research-context"
 import { extractKnowledgeDocx, MAX_KNOWLEDGE_DOCX_BYTES } from "./knowledge-docx"
 
 /** Read supported files only after explicit tool selection; never fetch arbitrary URLs. */
-export async function readKnowledgeFile(context:ResearchContext,record:KnowledgeRecord):Promise<KnowledgeRecord> {
+export async function readKnowledgeFile(context:ResearchContext,record:KnowledgeRecord, cache?:Map<string,KnowledgeRecord>):Promise<KnowledgeRecord> {
   if(!record.id.startsWith("file:"))return record
   const {supabase,target}=context
   const access=await resolveOrganizationDocumentStorageAccess({supabase,orgId:target.organizationId})
@@ -15,6 +15,11 @@ export async function readKnowledgeFile(context:ResearchContext,record:Knowledge
   const {data:file,error}=await readFile()
   if(error||!file||!file.storage_path.startsWith(`${target.organizationId}/library/`)||file.storage_path.split("/").includes(".."))throw new Error("File is unavailable.")
   if(file.updated_at!==record.revision)throw new Error("File changed. Search again to use its current revision.")
+  // Cache extraction only, never authority: every hit follows fresh access and
+  // exact file metadata checks. Storage paths remain server-side cache keys.
+  const cacheKey=JSON.stringify(file)
+  const cached=cache?.get(cacheKey)
+  if(cached)return cached
   const docx=file.mime_type==="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   const limit=docx?MAX_KNOWLEDGE_DOCX_BYTES:256000
   const unavailable=(reason:string):KnowledgeRecord=>({...record,contentAvailable:false,contentTruncated:false,content:`${record.title}: ${reason} Do not infer its contents.`})
@@ -32,5 +37,7 @@ export async function readKnowledgeFile(context:ResearchContext,record:Knowledge
   if(currentError||!current||current.updated_at!==file.updated_at||current.storage_path!==file.storage_path||current.mime_type!==file.mime_type||current.size_bytes!==file.size_bytes)throw new Error("File changed. Search again to use its current revision.")
   if("error" in currentAccess||!currentAccess.hasStorageAccess)throw new Error("Document access is unavailable.")
   if(!content.trim())return unavailable("No readable text was found; images and scanned pages are not transcribed.")
-  return {...record,content:content.slice(0,20000),contentAvailable:true,contentTruncated:content.length>20000,contentScope:docx?"document_body":"text"}
+  const result:KnowledgeRecord={...record,content:content.slice(0,20000),contentAvailable:true,contentTruncated:content.length>20000,contentScope:docx?"document_body":"text"}
+  cache?.set(cacheKey,result)
+  return result
 }

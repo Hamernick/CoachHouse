@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import type { OrgPerson } from "@/actions/people"
 import {
   attachCanonicalProjectIdsToOrganizations,
@@ -62,7 +63,7 @@ export async function loadMemberWorkspacePeoplePage(): Promise<MemberWorkspacePe
 
   const profile = (org?.profile ?? {}) as Record<string, unknown>
   const peopleRaw = (
-    Array.isArray(profile.org_people) ? profile.org_people : []
+    Array.isArray(profile.org_people) ? profile.org_people.filter(isActiveContact) : []
   ) as OrgPerson[]
 
   if (org && !activeOrg.supportAccess) {

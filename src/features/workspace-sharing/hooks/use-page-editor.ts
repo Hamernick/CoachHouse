@@ -13,7 +13,7 @@ type EditorState = {
   pageId: string
   draft: WorkspacePageDraft
   baseline: WorkspacePageDraft
-  preview: { snapshot: WorkspacePageSnapshot; reviewToken: string } | null
+  preview: { snapshot: WorkspacePageSnapshot; reviewToken: string; imagePreviews?: Record<string, string>; documentPreviews?: Record<string, string> } | null
   pending: boolean
   uncertain: boolean
   error: string | null
@@ -77,10 +77,10 @@ export function usePageEditor({ data, particleId, onDirtyChange, onSaved }: {
     publish({ ...before, pending: true, error: null, field: null, notice: null })
     try {
       const result = await reviewWorkspacePageAction({ pageId: before.pageId,
-        expectedRevision: before.page?.revision ?? 0, draft })
+        expectedRevision: before.page?.revision ?? 0, canvasId: data.canvasId ?? null, draft })
       if (!alive.current) return
       publish(result.ok
-        ? { ...current.current, pending: false, preview: { snapshot: result.value.snapshot, reviewToken: result.value.reviewToken } }
+        ? { ...current.current, pending: false, preview: { snapshot: result.value.snapshot, reviewToken: result.value.reviewToken, imagePreviews: result.value.imagePreviews, documentPreviews: result.value.documentPreviews } }
         : { ...current.current, pending: false, preview: null, error: result.error })
     } catch {
       publish({ ...current.current, pending: false, error: "Unable to load the preview. Try again." })
@@ -103,7 +103,7 @@ export function usePageEditor({ data, particleId, onDirtyChange, onSaved }: {
       const page = result.value.page
       publish({ ...current.current, page, draft: command.intent === "make_private" ? current.current.draft : page.draft, baseline: page.draft,
         preview: null, pending: false, uncertain: false, error: null,
-        notice: command.intent === "save_draft" ? "Draft saved." : command.intent === "make_private" ? "This page is now private." : "Published." })
+        notice: command.intent === "save_draft" ? "Draft saved." : command.intent === "make_private" ? "This page is now private. Invited guests keep access." : command.intent === "share_with_guests" ? "Guest preview saved. Choose who can access it." : "Published." })
       onSaved?.(page)
     } catch {
       publish({ ...current.current, pending: false, uncertain: true,
@@ -113,15 +113,15 @@ export function usePageEditor({ data, particleId, onDirtyChange, onSaved }: {
   async function write(intent: WorkspacePageCommand["intent"]) {
     const before = current.current
     if (before.pending || before.uncertain) return
-    const identity = { pageId: before.pageId, operationId: crypto.randomUUID(), expectedRevision: before.page?.revision ?? 0 }
+    const identity = { canvasId: data.canvasId ?? null, pageId: before.pageId, operationId: crypto.randomUUID(), expectedRevision: before.page?.revision ?? 0 }
     if (intent === "make_private") {
       if (before.page) await send({ ...identity, intent })
       return
     }
     const draft = validate()
     if (!draft) return
-    if (intent === "publish") {
-      if (!data.publishingEnabled || !before.preview) return
+    if (intent === "publish" || intent === "share_with_guests") {
+      if ((intent === "publish" && !data.publishingEnabled) || !before.preview) return
       await send({ ...identity, intent, draft, reviewToken: before.preview.reviewToken })
     } else await send({ ...identity, intent, draft })
   }

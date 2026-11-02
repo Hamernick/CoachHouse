@@ -13,10 +13,12 @@ export async function loadPageEditorData(input: unknown) {
   const actor = await loadPageActor()
   if (actor.orgId !== parsed.data.workspaceId)
     throw new WorkspaceSharingError("scope", "The organization changed. Reopen Share from the current workspace.")
+  const canvasId = parsed.data.canvasId ?? null
+  const pageQuery = actor.supabase.from("organization_workspace_pages").select("id,title,visibility,particle_ids")
+    .eq("org_id", actor.orgId)
   const [sources, pages] = await Promise.all([
-    loadSavedPageSources(actor),
-    actor.supabase.from("organization_workspace_pages").select("id,title,visibility,particle_ids")
-      .eq("org_id", actor.orgId).order("updated_at", { ascending: false }).order("id")
+    loadSavedPageSources(actor, canvasId),
+    (canvasId ? pageQuery.eq("canvas_id", canvasId) : pageQuery.is("canvas_id", null)).order("updated_at", { ascending: false }).order("id")
       .limit(50).abortSignal(AbortSignal.timeout(15_000)),
   ])
   if (pages.error) throw new WorkspaceSharingError("unavailable", "Unable to load shared pages. Try again.")
@@ -29,9 +31,9 @@ export async function loadPageEditorData(input: unknown) {
   const summaries = (pages.data ?? []).map((row) => ({ id: row.id, title: row.title, visibility: row.visibility, particleIds: row.particle_ids }))
   const pageId = parsed.data.pageId ?? (initialParticleIds.length === 1 ? summaries.find((page) => page.particleIds.includes(parsed.data.particleId))?.id : undefined)
   const page = pageId ? await loadSavedPage(actor, pageId) : null
-  if (pageId && !page) throw new WorkspaceSharingError("conflict", "This page is no longer available. Reopen Share.")
+  if (pageId && (!page || (page.canvas_id ?? null) !== canvasId)) throw new WorkspaceSharingError("conflict", "This page is no longer available. Reopen Share.")
   return pageEditorDataSchema.parse({
-    workspaceId: actor.orgId, publishingEnabled: publicSharingEnabled,
+    workspaceId: actor.orgId, canvasId, publishingEnabled: publicSharingEnabled,
     suggestedPageId: randomUUID(), page: page ? decodeWorkspacePage(page) : null,
     pages: summaries, choices: graph.value.particles.map(pageChoice),
     initialParticleIds,

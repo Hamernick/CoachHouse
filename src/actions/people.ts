@@ -13,7 +13,6 @@ import {
 import {
   findPersonSocialLinkError,
   normalizePersonSocialLinks,
-  type PersonSocialPlatform,
 } from "@/lib/people/social-links"
 import { mutateOrganizationPeopleProfile } from "@/lib/people/profile-write"
 import { fetchLinkedInProfileImage } from "@/lib/people/linkedin-image-refresh"
@@ -24,18 +23,13 @@ import {
   resolveActiveOrganization,
 } from "@/lib/organization/active-org"
 
-export type OrgPerson = {
-  id: string
-  name: string
-  title?: string | null
-  email?: string | null
-  category: PersonCategory
-  customRole?: string | null
-  image?: string | null
-  reportsToId?: string | null
-  pos?: { x: number; y: number } | null
-  tags?: string[]
-} & Partial<Record<PersonSocialPlatform, string | null>>
+import {
+  contactCoreSchema,
+  contactDetailsSchema,
+} from "@/lib/people/contact-schema"
+import { stampContactChange } from "@/lib/people/contact-provenance"
+
+export type OrgPerson = import("@/lib/people/contact-schema").ContactRecord
 
 function resolvePeopleAvatarCleanupPath(
   previous: string | null | undefined,
@@ -79,8 +73,27 @@ async function resolvePeopleManagementAccess(
 }
 
 export async function upsertPersonAction(
-  person: Omit<OrgPerson, "id"> & { id?: string }
+  person: Omit<OrgPerson, "id" | "contactMetadata"> & {
+    id?: string
+    expectedRevision?: number
+  }
 ) {
+  if (!person || typeof person !== "object")
+    return { error: "Review the contact fields." }
+  const fields = contactCoreSchema.safeParse({
+    name:
+      typeof person.name === "string"
+        ? person.name.trim() || "Untitled"
+        : person.name,
+    title: person.title ?? "",
+    email: person.email ?? "",
+    phone: person.phone ?? "",
+    ...(person.details !== undefined ? { details: person.details } : {}),
+  })
+  if (!fields.success)
+    return {
+      error: fields.error.issues[0]?.message ?? "Review the contact fields.",
+    }
   const socialLinkError = findPersonSocialLinkError(person)
   if (socialLinkError) return { error: socialLinkError }
 
@@ -142,16 +155,45 @@ export async function upsertPersonAction(
       }
 
       const existingPerson = existingIndex >= 0 ? people[existingIndex] : null
+      if (
+        existingPerson &&
+        person.expectedRevision !== undefined &&
+        person.expectedRevision !==
+          (existingPerson.contactMetadata?.revision ?? 0)
+      )
+        return {
+          error:
+            "This contact changed while you were editing. Reopen it before saving.",
+        }
       const roles = readPeopleRoles(profile)
-      const role = resolvePersonRole({ category: normalizedCategory, customRole:
-        person.customRole === undefined ? existingPerson?.customRole : person.customRole }, roles)
+      const role = resolvePersonRole(
+        {
+          category: normalizedCategory,
+          customRole:
+            person.customRole === undefined
+              ? existingPerson?.customRole
+              : person.customRole,
+        },
+        roles
+      )
       if ("error" in role) return role
       const socialLinks = normalizePersonSocialLinks(person, existingPerson)
-      const nextItem: OrgPerson = {
+      let nextItem: OrgPerson = {
         id,
+        ...(existingPerson?.contactMetadata
+          ? { contactMetadata: existingPerson.contactMetadata }
+          : {}),
+        details:
+          person.details === undefined
+            ? existingPerson?.details
+            : contactDetailsSchema.parse(person.details),
         name: person.name?.trim() || "Untitled",
         title: person.title?.trim() || null,
         email: person.email?.trim() || null,
+        phone:
+          person.phone === undefined
+            ? (existingPerson?.phone ?? null)
+            : person.phone?.trim() || null,
         ...socialLinks,
         ...role,
         image,
@@ -167,6 +209,13 @@ export async function upsertPersonAction(
             ? normalizePersonTags(existingPerson?.tags)
             : normalizePersonTags(person.tags),
       }
+      nextItem = stampContactChange(existingPerson, nextItem, {
+        kind: "manual",
+        label: "Contact editor",
+        recordedAt: new Date().toISOString(),
+        recordedBy: userId,
+        verification: "unverified",
+      })
       const nextPeople = [...people]
       if (existingIndex >= 0) nextPeople[existingIndex] = nextItem
       else nextPeople.push(nextItem)
@@ -175,7 +224,9 @@ export async function upsertPersonAction(
         ok: true,
         changed: true,
         people: nextPeople,
-        peopleRoles: role.customRole ? [...new Set([...roles, role.customRole])] : roles,
+        peopleRoles: role.customRole
+          ? [...new Set([...roles, role.customRole])]
+          : roles,
         value: {
           id,
           previousImage:
@@ -234,7 +285,10 @@ export async function updatePersonCategoryAction(
       const roles = readPeopleRoles(profile)
       const role = resolvePersonRole({ category, customRole }, roles)
       if ("error" in role) return role
-      if (person.category === role.category && (person.customRole ?? null) === role.customRole) {
+      if (
+        person.category === role.category &&
+        (person.customRole ?? null) === role.customRole
+      ) {
         return { ok: true, changed: false, value: null }
       }
       return {
@@ -243,7 +297,9 @@ export async function updatePersonCategoryAction(
         people: people.map((item) =>
           item.id === personId ? { ...item, ...role } : item
         ),
-        peopleRoles: role.customRole ? [...new Set([...roles, role.customRole])] : roles,
+        peopleRoles: role.customRole
+          ? [...new Set([...roles, role.customRole])]
+          : roles,
         value: null,
       }
     },

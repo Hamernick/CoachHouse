@@ -7,6 +7,9 @@ import {
   createFormQuestion,
   changeFormQuestionType,
   moveFormQuestion,
+  reorderFormQuestion,
+  duplicateFormQuestion,
+  type FormDefinition,
 } from "@/features/organization-forms"
 import { OrganizationFormBuilder } from "@/features/organization-forms/client"
 import { WorkspaceFileTable } from "@/components/workspace/workspace-file-table"
@@ -24,7 +27,7 @@ import { ID, NOW, WORKSPACE, batch, graph } from "./fixtures/particle-fixtures"
 
 const question = { ...createFormQuestion(ID(801)), label: "Your name" }
 const definition = { questions: [question] }
-function formParticle() {
+function formParticle(form: FormDefinition = definition) {
   const preset = PARTICLE_PRESETS.find((preset) => preset.id === "form")
   if (!preset) throw new Error("Missing Form preset")
   return buildParticlePreset(preset, {
@@ -34,7 +37,7 @@ function formParticle() {
     title: "Volunteer intake",
     description: "",
     fields: DEFAULT_PRESET_FIELDS,
-    form: definition,
+    form,
   })
 }
 
@@ -48,7 +51,8 @@ describe("organization form drafts", () => {
     expect(html).toContain(`data-particle-id="${ID(800)}"`)
     expect(html).toContain('data-particle-title="Volunteer intake"')
     expect(html).toContain('data-particle-storage-type="activity"')
-    expect(html).toContain(`workspace-particle:form:${ID(800)}:`)
+    // October 21 React Grab contract removed custom ownership/clipboard stamps.
+    expect(html).not.toContain(`workspace-particle:form:${ID(800)}:`)
     expect(html).toContain("Your name")
     expect(html).toContain("Short answer")
     expect(html).toContain(">View</button>")
@@ -126,6 +130,31 @@ describe("organization form drafts", () => {
     expect(moved.questions.map((q) => q.id)).toEqual([ID(803), question.id])
     expect(original.questions[0]).toBe(question)
     expect(moveFormQuestion(original, question.id, -1)).toBe(original)
+  })
+  it("duplicates definitions with independent identities and preserves order through graph serialization", async () => {
+    const choice = { ...question, type: "dropdown" as const, required: true, options: ["North", "South"] }
+    const original = { questions: [choice, createFormQuestion(ID(803))] }
+    const copied = duplicateFormQuestion(original, choice.id, ID(804))
+    expect(copied.questions.map(q => q.id)).toEqual([choice.id, ID(804), ID(803)])
+    expect(copied.questions[1]).toEqual({ ...choice, id: ID(804) })
+    if (!("options" in copied.questions[1])) throw new Error("Missing copied options")
+    copied.questions[1].options[0] = "East"
+    expect(choice.options[0]).toBe("North")
+    const reordered = reorderFormQuestion(copied, ID(804), ID(803))
+    expect(reordered.questions.map(q => q.id)).toEqual([choice.id, ID(803), ID(804)])
+    const particle = formParticle(reordered)
+    const result = await applyParticleBatch(graph(), batch(815, [{ kind: "put_particle", particle, expectedRevision: null }]), NOW)
+    if (!result.ok) throw new Error(result.error)
+    const stored = JSON.parse(JSON.stringify(result.value.graph))
+    expect(stored.particles.find((p: { id: string }) => p.id === particle.id).data.widget.definition).toEqual(reordered)
+    expect(original.questions.map(q => q.id)).toEqual([choice.id, ID(803)])
+    expect(reorderFormQuestion(original, "missing", choice.id)).toBe(original)
+    expect(reorderFormQuestion(original, choice.id, "missing")).toBe(original)
+    expect(reorderFormQuestion(original, choice.id, choice.id)).toBe(original)
+    expect(duplicateFormQuestion(original, "missing", ID(804))).toBe(original)
+    expect(duplicateFormQuestion(original, choice.id, ID(803))).toBe(original)
+    const full = { questions: Array.from({ length: 50 }, (_, i) => createFormQuestion(ID(900 + i))) }
+    expect(duplicateFormQuestion(full, ID(900), ID(999))).toBe(full)
   })
   it("persists the definition in the existing atomic graph and supports its inverse", async () => {
     const particle = formParticle()
@@ -271,5 +300,35 @@ describe("workspace CSV table", () => {
     expect(html).toContain("Previous")
     expect(html).toContain("Next")
     expect(html).toContain("1 / 200")
+  })
+})
+
+
+describe("extended form draft persistence", () => {
+  it("preserves options when switching choice presentation and strips them for date/time", () => {
+    const choice = changeFormQuestionType(question, "single_choice")
+    const dropdown = changeFormQuestionType(choice, "dropdown")
+    expect(dropdown).toMatchObject({ type: "dropdown", options: ["Option 1", "Option 2"] })
+    expect(changeFormQuestionType(dropdown, "multiple_choice")).toMatchObject({ options: ["Option 1", "Option 2"] })
+    for (const type of ["date", "time"] as const) {
+      const changed = changeFormQuestionType(dropdown, type)
+      expect(changed).toEqual({ ...question, type })
+      expect(formDefinitionSchema.safeParse({ questions: [changed] }).success).toBe(true)
+    }
+  })
+  it("roundtrips new controls through the actual graph schema/writer and undo without changing existing definitions", async () => {
+    const form: FormDefinition = { questions: [
+      { ...question, type: "dropdown", options: ["North", "South"] },
+      { id: ID(820), type: "date", label: "Day", required: false },
+      { id: ID(821), type: "time", label: "Time", required: true },
+    ] }
+    const particle = formParticle(form)
+    const added = await applyParticleBatch(graph(), batch(822, [{ kind: "put_particle", particle, expectedRevision: null }]), NOW)
+    if (!added.ok) throw new Error(added.error)
+    const reloaded = JSON.parse(JSON.stringify(added.value.graph))
+    expect(reloaded.particles.find((item: { id: string }) => item.id === particle.id)).toMatchObject({ data: { widget: { definition: form } } })
+    const undone = await applyParticleBatch(reloaded, batch(823, added.value.inverse), NOW)
+    expect(undone.ok && undone.value.graph.particles.some(item => item.id === particle.id)).toBe(false)
+    expect(definition.questions[0].type).toBe("text")
   })
 })

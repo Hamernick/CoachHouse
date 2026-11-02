@@ -69,6 +69,7 @@ export type WorkspaceFinanceOpportunityWorkflowStatus =
   | "dismissed"
 
 export type WorkspaceFinanceOpportunityInput = {
+  feedPosition?: number
   origin?: "manual" | "suggested"
   updatedAt?: string
   report?: import("./lib/opportunity-report").OpportunityReport
@@ -78,7 +79,7 @@ export type WorkspaceFinanceOpportunityInput = {
   sources?: import("./lib/opportunity-sources").OpportunitySource[]
   dueAt?: string | null
   discoveredAt?: string | null
-  status: WorkspaceFinanceOpportunityStatus
+  status: WorkspaceFinanceOpportunityWorkflowStatus
   attribution?: "grants_gov"
 }
 

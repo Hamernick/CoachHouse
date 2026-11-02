@@ -1,11 +1,13 @@
 "use client"
 
-import type { ComponentProps } from "react"
-import { ParticleLibraryDragProvider } from "@/features/workspace-particles/client"
+import { useMemo, type ComponentProps } from "react"
+import { useParticleFlow, ParticleLibraryDragProvider, ParticleResponsibilityPeople } from "@/features/workspace-particles/client"
+import { useObjectivePlanningAccess } from "@/features/workspace-objectives/client"
 import { WorkspaceCanvasOverlayDrawerContainerProvider } from "./workspace-canvas-overlay-drawer-container"
 
 export function WorkspaceParticleCanvasProviders({
   children,
+  people,
   container,
   onPlaceParticle,
   workspaceId,
@@ -13,6 +15,7 @@ export function WorkspaceParticleCanvasProviders({
   ...props
 }: ComponentProps<typeof WorkspaceCanvasOverlayDrawerContainerProvider> & {
   onPlaceParticle: ComponentProps<typeof ParticleLibraryDragProvider>["onPlace"]
+  people: readonly { id: string; name: string }[]
   workspaceId: string
   canPlaceParticles: boolean
 }) {
@@ -27,8 +30,16 @@ export function WorkspaceParticleCanvasProviders({
         container={container}
         {...props}
       >
-        {children}
+        <ParticleResponsibilityPeople value={people}>{children}</ParticleResponsibilityPeople>
       </WorkspaceCanvasOverlayDrawerContainerProvider>
     </ParticleLibraryDragProvider>
   )
+}
+
+/** Application composition supplies the same checked actor to both feature surfaces. */
+export function useWorkspaceParticleFlow({ nodes, ...input }: Parameters<typeof useParticleFlow>[0] & { userId: string; nodes: readonly { id: string; hidden?: boolean }[] }) {
+  const visibleKey = nodes.filter(node => !node.hidden).map(node => node.id).join("\0")
+  const visibleToolIds = useMemo(() => visibleKey ? visibleKey.split("\0") : [], [visibleKey])
+  const planningAccess = useObjectivePlanningAccess({ userId: input.userId, organizationId: input.workspaceId })
+  return useParticleFlow({ ...input, planningAccess, visibleToolIds })
 }

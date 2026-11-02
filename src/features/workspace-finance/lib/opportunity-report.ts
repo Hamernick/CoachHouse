@@ -12,7 +12,10 @@ export const opportunityReportBlockSchema = z.discriminatedUnion("kind", [
   z.strictObject({ ...base, kind: z.literal("sources"), sources: opportunitySourcesSchema }),
   z.strictObject({ ...base, kind: z.literal("image"), fileId: z.uuid().nullable(), alt: z.string().max(240) }),
 ])
-export const opportunityReportSchema = z.strictObject({ version: z.literal(1), blocks: z.array(opportunityReportBlockSchema).max(12) }).refine(report => new Set(report.blocks.map(block => block.id)).size === report.blocks.length && report.blocks.every(block => block.kind !== "facts" || new Set(block.items.map(item => item.id)).size === block.items.length), "Each report component needs a unique ID.")
+export const opportunityTimelineRangeSchema = z.strictObject({ from: z.iso.date(), to: z.iso.date() }).refine(range => range.from <= range.to, "The end date must follow the start date.")
+export type OpportunityTimelineRange = z.infer<typeof opportunityTimelineRangeSchema>
+
+export const opportunityReportSchema = z.strictObject({ version: z.literal(1), blocks: z.array(opportunityReportBlockSchema).max(12), timeline: opportunityTimelineRangeSchema.optional() }).refine(report => new Set(report.blocks.map(block => block.id)).size === report.blocks.length && report.blocks.every(block => block.kind !== "facts" || new Set(block.items.map(item => item.id)).size === block.items.length), "Each report component needs a unique ID.")
 export type OpportunityReport = z.infer<typeof opportunityReportSchema>
 export type OpportunityReportBlock = z.infer<typeof opportunityReportBlockSchema>
 export const emptyOpportunityReport = (): OpportunityReport => ({ version: 1, blocks: [] })

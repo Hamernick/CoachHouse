@@ -21,6 +21,7 @@ import {
   type CalendarEvent,
 } from "@/features/google-calendar/client"
 
+import { opportunityWindowIncludesDate } from "@/features/workspace-finance/client"
 import { cn } from "@/lib/utils"
 
 import { RoadmapCalendarDayWithEventDots } from "./roadmap-calendar-day-with-event-dots"
@@ -182,6 +183,7 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
             onSelect={(date) => onSelectDate(date ?? undefined)}
             modifiers={{
               ...eventModifiers,
+              opportunityWindow: date => events.some(event => opportunityWindowIncludesDate(event, date)),
               google_calendar: (date) =>
                 personalEvents.some((event) =>
                   calendarEventOccursOnDay(event, date)
@@ -208,6 +210,7 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
             components={{ DayButton: RoadmapCalendarDayWithEventDots }}
           />
 
+          {events.some(event => event.source?.kind === "workspace_opportunity" && event.source.window) && <p className="mt-2 flex items-center justify-center gap-3 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><span aria-hidden className="h-0.5 w-3 bg-sky-400/60" />Opportunity window</span><span className="inline-flex items-center gap-1"><span aria-hidden className="size-1.5 rounded-full bg-rose-500" />Deadline</span></p>}
           {googleCalendarControls}
 
           <Separator className="bg-border/40 mt-3" />
@@ -232,6 +235,7 @@ export const RoadmapCalendarMonthAgendaPanel = memo(
                     <RoadmapCalendarAgendaRow
                       key={event.id}
                       event={event}
+                      selectedDate={selectedDate}
                       canManageCalendar={canManageCalendar}
                       formatTimeRange={formatTimeRange}
                       onEditEvent={onEditEvent}

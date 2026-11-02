@@ -50,6 +50,7 @@ export function WorkspaceRetainedPanel({
       hidden={!painted}
       aria-hidden={!active}
       aria-label={props["aria-label"] ?? value.charAt(0).toUpperCase() + value.slice(1)}
+      data-workspace-retained-panel="true"
       className={cn(props.className, !painted && "hidden")}
       inert={!active ? true : undefined}
       onScroll={(event) => {

@@ -1,3 +1,6 @@
+import { useParticleDirtyState } from "@/features/workspace-particles/hooks/use-particle-dirty-state"
+import { particleAssignmentCardSize, withParticleAssignmentBounds } from "@/features/workspace-particles/lib/particle-assignment-geometry"
+import { particleExpansionFits } from "@/features/workspace-particles/lib/particle-expansion"
 import {
   reconcileParticleNode,
   particleResizeChanges,
@@ -229,8 +232,8 @@ describe("Particle size families", () => {
 
 afterEach(() => vi.unstubAllGlobals())
 describe("Resize session", () => {
-  function controller(options: { dirty?: boolean; save?: boolean } = {}) {
-    let current = graph([make()])
+  function controller(options: { dirty?: boolean; save?: boolean; objective?: boolean } = {}) {
+    let current = graph([options.objective ? createParticle("objective", { id: ID(1), workspaceId: WORKSPACE, now: NOW }) : make()])
     const action = vi.fn(
       async (
         _id: string,
@@ -288,6 +291,16 @@ describe("Resize session", () => {
     expect(action).toHaveBeenCalledExactlyOnceWith(ID(1), "family_large")
     expect(current().particles[0].size).toBe("large")
   })
+  it("excludes the assignment rail when choosing a persisted size family", async () => {
+    const { control, action, current } = controller({ objective: true })
+    expect(control.begin(ID(1), { width: 400, height: 244 })).toBe(true)
+    await control.finish(ID(1), { width: 400, height: 300 })
+    expect(action).not.toHaveBeenCalled()
+    expect(current().particles[0].size).toBe("medium")
+    expect(control.begin(ID(1), { width: 400, height: 244 })).toBe(true)
+    await control.finish(ID(1), { width: 400, height: 452 })
+    expect(action).toHaveBeenCalledExactlyOnceWith(ID(1), "family_large")
+  })
   it("preserves saved size on cancellation, conflict and failed save", async () => {
     for (const mode of ["cancel", "conflict", "failed"] as const) {
       const state = controller({ save: mode !== "failed" })
@@ -337,6 +350,30 @@ describe("Resize session", () => {
 })
 
 describe("Size adapter", () => {
+  it("provides exact fixed-size endpoints for offscreen cards without guessing auto-height", () => {
+    const adapt = (particle: ReturnType<typeof createParticle>) => reconcileParticleNode({
+      particle, selectedId: null, movable: true, resizing: false, keepPosition: false,
+      data: { particle, editable: true, onOpen: vi.fn(), onEdit: vi.fn() },
+    })
+    const fixed = adapt(make())
+    expect([fixed.initialWidth, fixed.initialHeight]).toEqual([400, 192])
+    expect(fixed.handles).toEqual([
+      { id: "in", type: "target", position: "left", x: 0, y: 96, width: 0, height: 0 },
+      { id: "out", type: "source", position: "right", x: 400, y: 96, width: 0, height: 0 },
+    ])
+    const legacy = make()
+    delete legacy.size
+    const auto = adapt(legacy)
+    expect(auto.initialHeight).toBeUndefined()
+    expect(auto.handles).toBeUndefined()
+    const decision = createParticle("decision", { id: ID(5), workspaceId: WORKSPACE, now: NOW })
+    if (decision.type !== "decision") throw Error("Expected decision")
+    const branch = adapt(decision)
+    const outputs = branch.handles!.filter(handle => handle.type === "source")
+    expect(outputs.map(handle => handle.id)).toEqual(["out", ...decision.data.outcomes.map(outcome => `outcome:${outcome.id}`)])
+    expect(new Set(outputs.map(handle => handle.y)).size).toBe(outputs.length)
+    expect(outputs.every(handle => handle.y > 0 && handle.y < branch.initialHeight!)).toBe(true)
+  })
   it("reconstructs dimensions after reload without moving a saved Particle", () => {
     const particle = { ...make(), position: { x: 155, y: 287 } }
     const node = reconcileParticleNode({
@@ -362,4 +399,72 @@ describe("Size adapter", () => {
     expect(during.height).toBe(305)
     expect(during.data.particle.size).toBe("medium")
   })
+})
+
+
+describe("Personal in-place inspection", () => {
+  const target = { x: 60, y: 200, width: 560, height: 400 }
+  const frame = { x: 0, y: 0, width: 1400, height: 1000 }
+  const viewport = { x: 0, y: 0, zoom: 1 }
+  it("fits at the original anchor without moving the camera", () => {
+    expect(particleExpansionFits(target, [{ ...target, x: 740 }], viewport, frame, [])).toBe(true)
+  })
+  it("uses focused fallback instead of covering neighbors, overlays or a small screen", () => {
+    expect(particleExpansionFits(target, [{ ...target, x: 500 }], viewport, frame, [])).toBe(false)
+    expect(particleExpansionFits(target, [], viewport, frame, [{ x: 0, y: 0, width: 300, height: 1000 }])).toBe(false)
+    expect(particleExpansionFits(target, [], viewport, { ...frame, width: 390 }, [])).toBe(false)
+    expect(particleExpansionFits(target, [{ ...target, width: NaN }], viewport, frame, [])).toBe(false)
+  })
+  it("reserves full dimensions without changing persisted family or position; collapse uses the latest record", () => {
+    const original = make()
+    const snapshot = JSON.stringify(original)
+    const options = { particle: original, selectedId: null, movable: true, resizing: false, keepPosition: false, data: { particle: original, editable: false, expanded: true, onOpen: vi.fn(), onEdit: vi.fn() } }
+    const expanded = reconcileParticleNode(options)
+    expect(expanded.style).toEqual({ width: 560, height: 400 })
+    expect(expanded.position).toEqual(original.position)
+    expect(JSON.stringify(original)).toBe(snapshot)
+    const updated = { ...original, position: { x: 900, y: 500 }, revision: original.revision + 1 }
+    const collapsed = reconcileParticleNode({ ...options, old: expanded, particle: updated, data: { ...options.data, particle: updated, expanded: false } })
+    expect(collapsed.position).toEqual(updated.position)
+    expect(collapsed.style).toEqual({ width: 400, height: 192 })
+  })
+})
+
+
+describe("Objective assignment bounds", () => {
+  it("reserves touch controls outside the shell without moving anchors or persisting a new size", () => {
+    const objective = createParticle("objective", { id: ID(1), workspaceId: WORKSPACE, now: NOW })
+    const before = JSON.stringify(objective)
+    const card = particleFamilyDimensions(objective, objective.size!)
+    const data = { particle: objective, editable: true, onOpen: vi.fn(), onEdit: vi.fn() }
+    const node = reconcileParticleNode({ particle: objective, data, selectedId: null, movable: true, resizing: false, keepPosition: false })
+    expect(node.initialHeight).toBe(card.height + 52)
+    expect(node.handles![0].y).toBe(card.height / 2)
+    expect(node.position).toEqual(objective.position)
+    expect(particleAssignmentCardSize(objective, { width: card.width, height: node.initialHeight! })).toEqual(card)
+    expect(withParticleAssignmentBounds(objective, card)).toEqual(node.style)
+    const expanded = reconcileParticleNode({ particle: objective, data: { ...data, expanded: true }, selectedId: null, movable: true, resizing: false, keepPosition: false })
+    expect(expanded.style).toEqual({ width: 560, height: 452 })
+    // A neighbor clear of the shell still intersects the external touch rail.
+    const neighbor = { x: 60, y: 625, width: 200, height: 100 }
+    expect(particleExpansionFits({ x: 60, y: 200, width: 560, height: 400 }, [neighbor], { x: 0, y: 0, zoom: 1 }, { x: 0, y: 0, width: 1200, height: 1000 }, [])).toBe(true)
+    expect(particleExpansionFits({ x: 60, y: 200, width: 560, height: 452 }, [neighbor], { x: 0, y: 0, zoom: 1 }, { x: 0, y: 0, width: 1200, height: 1000 }, [])).toBe(false)
+    expect(JSON.stringify(objective)).toBe(before)
+  })
+})
+
+
+it("keeps assignment and inspector drafts in the same guard without clearing each other", () => {
+  let state: ReturnType<typeof useParticleDirtyState> | undefined
+  function Harness() { state = useParticleDirtyState(); return null }
+  renderToStaticMarkup(createElement(Harness))
+  if (!state) throw Error("Missing guard")
+  state.assignmentDirtyChange("objective-a", true)
+  state.setDirty(false)
+  expect(state.dirty.current).toBe(true)
+  state.setDirty(true)
+  state.assignmentDirtyChange("objective-a", false)
+  expect(state.dirty.current).toBe(true)
+  state.setDirty(false)
+  expect(state.dirty.current).toBe(false)
 })

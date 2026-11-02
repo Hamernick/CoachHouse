@@ -489,6 +489,7 @@ describe("workspace-finance feature contract", () => {
     const normalized = normalizeWorkspaceFinanceInput({
       opportunities: [
         { id: "saved", title: " Saved match ", status: "saved" },
+        { id: "archived", title: "Archived match", status: "dismissed" },
         { id: "new", title: "New match", status: "new" },
       ],
       records: [

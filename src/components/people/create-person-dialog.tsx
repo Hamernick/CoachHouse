@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 
 import { upsertPersonAction, type OrgPerson } from "@/actions/people"
+import { PersonAdditionalFields } from "@/components/people/person-additional-fields"
+import {
+  contactDetailsSchema,
+  type ContactDetails,
+} from "@/lib/people/contact-schema"
 import { PersonProfileFormFields } from "@/components/people/person-profile-form-fields"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,6 +57,10 @@ export function CreatePersonDialog({
   const open = controlledOpen ?? uncontrolledOpen
   const [name, setName] = React.useState(initial?.name ?? "")
   const [title, setTitle] = React.useState(initial?.title ?? "")
+  const [details, setDetails] = React.useState<ContactDetails>(
+    initial?.details ?? {}
+  )
+  const [phone, setPhone] = React.useState(initial?.phone ?? "")
   const [email, setEmail] = React.useState(initial?.email ?? "")
   const [socialLinks, setSocialLinks] = React.useState<PersonSocialLinks>(() =>
     readPersonSocialLinks(initial)
@@ -59,7 +68,9 @@ export function CreatePersonDialog({
   const [category, setCategory] = React.useState<OrgPerson["category"]>(
     initial?.category ?? "staff"
   )
-  const [customRole, setCustomRole] = React.useState<string | null>(initial?.customRole ?? null)
+  const [customRole, setCustomRole] = React.useState<string | null>(
+    initial?.customRole ?? null
+  )
   const [image, setImage] = React.useState<string | null>(
     initial?.image ?? null
   )
@@ -70,11 +81,13 @@ export function CreatePersonDialog({
   const primaryLabel = isEditing ? "Save changes" : "Add person"
   const submittingLabel = isEditing ? "Saving…" : "Adding…"
   const socialLinkError = findPersonSocialLinkError(socialLinks)
+  const detailsValidation = contactDetailsSchema.safeParse(details)
   const canSubmit =
     !readOnly &&
     Boolean(name.trim()) &&
     Boolean(category) &&
     !socialLinkError &&
+    detailsValidation.success &&
     !pending
 
   const setOpen = React.useCallback(
@@ -89,6 +102,8 @@ export function CreatePersonDialog({
     setName(initial?.name ?? "")
     setTitle(initial?.title ?? "")
     setEmail(initial?.email ?? "")
+    setPhone(initial?.phone ?? "")
+    setDetails(initial?.details ?? {})
     setSocialLinks(readPersonSocialLinks(initial))
     setCategory(initial?.category ?? "staff")
     setCustomRole(initial?.customRole ?? null)
@@ -120,9 +135,14 @@ export function CreatePersonDialog({
       )
       const result = await upsertPersonAction({
         id: initial?.id,
+        expectedRevision: initial?.id
+          ? (initial.contactMetadata?.revision ?? 0)
+          : undefined,
         name: name.trim(),
         title: title.trim(),
         email: email.trim(),
+        phone: phone.trim(),
+        details,
         ...(extendedSocialLinksEnabled
           ? socialLinks
           : { linkedin: socialLinks.linkedin }),
@@ -196,6 +216,8 @@ export function CreatePersonDialog({
               reportsToId={reportsToId}
               onNameChange={setName}
               onTitleChange={setTitle}
+              phone={phone}
+              onPhoneChange={setPhone}
               onEmailChange={setEmail}
               onSocialLinkChange={(
                 platform: PersonSocialPlatform,
@@ -211,6 +233,19 @@ export function CreatePersonDialog({
               onReportsToChange={setReportsToId}
               readOnly={readOnly}
             />
+            <PersonAdditionalFields
+              value={details}
+              onChange={setDetails}
+              metadata={initial?.contactMetadata}
+              formId={formId}
+              readOnly={readOnly || pending}
+            />
+            {!detailsValidation.success && (
+              <p role="alert" className="text-destructive mt-3 text-sm">
+                Check the additional fields: use a full website URL and a valid
+                date.
+              </p>
+            )}
           </div>
 
           <SheetFooter className="border-border/60 bg-background/95 shrink-0 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">

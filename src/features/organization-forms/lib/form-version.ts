@@ -1,5 +1,6 @@
 import { z } from "zod"
-import { publishedFormDefinitionSchema } from "./form-schema"
+import { formGridSnapshotFields } from "./form-grid-schema"
+import { publishedFormDefinitionSchema, formScaleFields } from "./form-schema"
 import type { FormDefinition } from "../types"
 
 const question = {
@@ -15,15 +16,20 @@ const option = z
   .readonly()
 export const formSnapshotQuestionSchema = z
   .discriminatedUnion("type", [
+    z.strictObject({ ...question, ...formGridSnapshotFields, type: z.enum(["multiple_choice_grid", "checkbox_grid"]) }),
+    z.strictObject({ ...question, ...formScaleFields, type: z.literal("linear_scale"), min: z.union([z.literal(0), z.literal(1)]) }),
+    z.strictObject({ ...question, ...formScaleFields, type: z.literal("rating"), min: z.literal(1) }),
     z.strictObject({
       ...question,
-      type: z.enum(["text", "paragraph", "email", "number"]),
+      type: z.enum(["text", "paragraph", "email", "number", "date", "time"]),
     }),
     z.strictObject({
       ...question,
       type: z.enum(["single_choice", "multiple_choice"]),
+      allowOther: z.boolean().optional(),
       options: z.array(option).min(2).max(50).readonly(),
     }),
+    z.strictObject({ ...question, type: z.literal("dropdown"), options: z.array(option).min(2).max(50).readonly() }),
   ])
   .readonly()
 

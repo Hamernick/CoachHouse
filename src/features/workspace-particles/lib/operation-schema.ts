@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { particlePlanCommandSchema } from "./particle-plan-command"
 import {
   particleConnectionSchema,
   particleIdSchema,
@@ -9,6 +10,7 @@ import {
 
 const expected = particleRevisionSchema.nullable()
 export const particleOperationSchema = z.discriminatedUnion("kind", [
+  particlePlanCommandSchema,
   z.strictObject({
     kind: z.literal("put_particle"),
     particle: particleSchema,

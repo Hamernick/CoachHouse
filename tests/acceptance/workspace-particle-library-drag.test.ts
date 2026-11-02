@@ -15,7 +15,7 @@ import {
 import { useParticleCreate } from "@/features/workspace-particles/hooks/use-particle-create"
 import { useParticlePresetPlacement } from "@/features/workspace-particles/hooks/use-particle-preset-placement"
 import { PARTICLE_PRESETS } from "@/features/workspace-particles/lib/particle-presets"
-import { particle, ID, WORKSPACE } from "./fixtures/particle-fixtures"
+import { particle, graph, ID, WORKSPACE } from "./fixtures/particle-fixtures"
 import { ParticleLibraryCardStack } from "@/features/workspace-particles/components/particle-library-card-stack"
 import {
   createParticleStackPlacement,
@@ -353,9 +353,9 @@ describe("Preset placement identity and explicit canvas positions", () => {
     function Harness() {
       create = useParticleCreate({
         add,
-        count: 3,
-        dirty: { current: false },
+        getCurrentGraph: () => graph(),
         flow: { current: null },
+        dirty: { current: false },
       })
       return null
     }
@@ -370,7 +370,7 @@ describe("Preset placement identity and explicit canvas positions", () => {
       prepared.title,
       { x: 42, y: -12 },
       prepared,
-      { inspect: false }
+      { inspect: false, positionMode: "manual" }
     )
     expect(document.querySelector).not.toHaveBeenCalled()
   })

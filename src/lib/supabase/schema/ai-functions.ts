@@ -41,6 +41,8 @@ export type AiCreditFunctions = {
   recover_workspace_ai_runs: { Args: { p_org_id?: string }; Returns: number }
   read_workspace_ai_account: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
   read_workspace_ai_run: { Args: { p_id: string; p_org_id: string; p_actor_id: string }; Returns: Json }
+  access_workspace_research_draft: { Args: { p_run_id: string; p_org_id: string; p_actor_id: string; p_base: string; p_edit_id: string | null; p_revision: number | null; p_draft: Json; p_attempted: boolean }; Returns: Json }
+  list_workspace_research_runs: { Args: { p_org_id: string; p_actor_id: string; p_objective_id: string | null; p_canvas_id: string | null; p_plan_id: string | null }; Returns: Json }
   reconcile_workspace_ai_run: { Args: { p_id: string; p_response_id: string | null }; Returns: undefined }
   cancel_workspace_ai_run: { Args: { p_id: string; p_org_id: string; p_actor_id: string }; Returns: boolean }
 }

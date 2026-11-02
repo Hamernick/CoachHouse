@@ -527,25 +527,27 @@ describe("responsive content window geometry", () => {
       )
       expect(markup).toContain(`width:${expectedWidth}px`)
       expect(markup).not.toContain("margin-left:")
+      expect(markup.includes('data-workspace-window-maximized="true"')).toBe(maximized)
+      expect(markup).toContain(`border-radius:${maximized ? "0;" : "20px;"}`)
     }
   })
 
-  it("sizes each destination independently and lets Accelerator use tall screens", () => {
+  it("keeps destination widths and grows every window to the canvas top", () => {
     const canvas = { canvasWidth: 1440, canvasHeight: 1400, dockHeight: 100, maximized: false }
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization" })).toEqual({ width: 440, height: 1384 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization", preferredWidth: 760 })).toEqual({ width: 760, height: 1276 })
     expect(resolveWorkspaceContentWindowGeometry({ ...canvas, canvasWidth: 375, tab: "organization", preferredWidth: 760 })).toEqual({ width: 359, height: 1276 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization", preferredWidth: 760, maximized: true })).toEqual({ width: 1424, height: 1276 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "people" })).toEqual({ width: 960, height: 560 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "tools" })).toEqual({ width: 560, height: 360 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "documents" })).toEqual({ width: 760, height: 560 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "accelerator" })).toEqual({ width: 1040, height: 1000 })
-    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, canvasWidth: 650, tab: "accelerator" })).toEqual({ width: 520, height: 1164 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "organization", preferredWidth: 760, maximized: true })).toEqual({ width: 1440, height: 1400 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "people" })).toEqual({ width: 960, height: 1284 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "tools" })).toEqual({ width: 560, height: 1284 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "documents" })).toEqual({ width: 760, height: 1284 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab: "accelerator" })).toEqual({ width: 1040, height: 1284 })
+    expect(resolveWorkspaceContentWindowGeometry({ ...canvas, canvasWidth: 650, tab: "accelerator" })).toEqual({ width: 520, height: 1284 })
     for (const tab of ["organization", "people", "tools", "documents", "accelerator"] as const) {
       const narrow = resolveWorkspaceContentWindowGeometry({ ...canvas, tab, canvasWidth: 390, canvasHeight: 700 })!
       expect(narrow.width).toBeLessThanOrEqual(374)
-      expect(narrow.height).toBeLessThanOrEqual(tab === "organization" ? 576 : 464)
-      expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab, maximized: true })).toEqual({ width: 1424, height: tab === "organization" ? 1276 : 1214 })
+      expect(narrow.height).toBeLessThanOrEqual(tab === "organization" ? 576 : 584)
+      expect(resolveWorkspaceContentWindowGeometry({ ...canvas, tab, maximized: true })).toEqual({ width: 1440, height: 1400 })
     }
   })
 
@@ -562,7 +564,7 @@ describe("responsive content window geometry", () => {
           expect(geometry).not.toBeNull()
           expect(geometry!.width).toBeLessThanOrEqual(canvasWidth - 16)
           expect(geometry!.height).toBeGreaterThan(0)
-          expect(geometry!.height + dockHeight + (canvasWidth <= 700 ? 120 : 70) + 16).toBeLessThanOrEqual(
+          expect(geometry!.height + dockHeight + 16).toBeLessThanOrEqual(
             canvasHeight
           )
         }
@@ -577,7 +579,7 @@ describe("responsive content window geometry", () => {
       })
     ).toBeNull()
   })
-  it("keeps normal and maximized top panels inside the canvas with composer clearance", () => {
+  it("reserves dock clearance normally and fills the entire canvas when maximized", () => {
     for (const canvasWidth of [900, 1024, 1600]) {
       for (const dockHeight of [116, 158, 210]) {
         const normal = resolveWorkspaceContentWindowGeometry({
@@ -594,8 +596,8 @@ describe("responsive content window geometry", () => {
         })!
         expect(normal.width).toBeLessThanOrEqual(canvasWidth - 16)
         expect(normal.height).toBeLessThanOrEqual(maximized.height)
-        expect(maximized.width).toBe(canvasWidth - 16)
-        expect(900 - (70 + dockHeight + 8 + maximized.height)).toBe(8)
+        expect(normal.height + dockHeight + 16).toBe(900)
+        expect(maximized).toEqual({ width: canvasWidth, height: 900 })
       }
     }
   })

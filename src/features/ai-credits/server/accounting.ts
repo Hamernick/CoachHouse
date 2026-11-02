@@ -1,5 +1,6 @@
 import "server-only"
 import { z } from "zod"
+import { reservationError } from "./admission-error"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import type { Json } from "@/lib/supabase"
 import { priceAiUsage } from "../lib"
@@ -16,7 +17,7 @@ export async function reserveAiRun(input: {
     p_target: input.target, p_prompt: input.prompt, p_tariff: input.tariff,
     p_max_credits: input.maxCredits, p_max_cost: input.maxCost,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw reservationError(error)
   return z.object({ created: z.boolean(), run: z.record(z.string(),z.unknown()) }).parse(data)
 }
 export async function claimAiRun(id: string, actorId: string) {
@@ -57,6 +58,14 @@ export async function cancelAiRun(id: string, organizationId: string, actorId: s
 export async function readAiRun(id: string, organizationId: string, actorId: string) {
   const { data, error } = await createSupabaseAdminClient({ actorId }).rpc("read_workspace_ai_run", { p_id: id, p_org_id: organizationId, p_actor_id: actorId })
   if (error) throw new Error(error.message)
+  return data
+}
+export async function listAiResearchRuns(scope: { organizationId: string; actorId: string; objectiveId: string | null; canvasId: string | null; planId: string | null }) {
+  const { data, error } = await createSupabaseAdminClient({ actorId: scope.actorId, requestTimeoutMs: 10000 }).rpc("list_workspace_research_runs", {
+    p_org_id: scope.organizationId, p_actor_id: scope.actorId, p_objective_id: scope.objectiveId,
+    p_canvas_id: scope.canvasId, p_plan_id: scope.planId,
+  })
+  if (error) throw new Error("Previous research could not be loaded. Try again.")
   return data
 }
 export async function readAiAccount(organizationId: string, actorId: string): Promise<AiCreditAccount> {

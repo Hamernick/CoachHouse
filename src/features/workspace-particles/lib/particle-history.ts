@@ -12,6 +12,7 @@ const MAX_BYTES = 2_000_000
 
 function labelFor(batch: ParticleBatch) {
   const operations = batch.operations
+  if (operations.some(item => item.kind === "change_plan")) return "plan edit"
   if (operations.some((item) => item.kind === "move_particles"))
     return operations.some(
       (item) => item.kind === "move_particles" && item.mode === "managed"
@@ -44,6 +45,10 @@ function rebase(
   )
   return operations.map((operation) => {
     switch (operation.kind) {
+      case "change_plan":
+        // Inverses are canonical put operations. Preserve the fence if a caller
+        // supplies an intent; never silently rebase a stale user command.
+        return operation
       case "put_particle":
         return {
           ...operation,
@@ -143,6 +148,14 @@ export function createParticleHistory(workspaceId: string) {
       // A replay confirms persistence but intentionally has no inverse payload.
       // Never invent an undo from an uncertain client snapshot.
       if (receipt.replayed || !receipt.inverse.length) {
+        reset(graph.revision)
+        return
+      }
+      // Recreating authored/reviewed proposals is prohibited by server policy.
+      // A whole-objective deletion must not advertise an undo that cannot run.
+      if (receipt.inverse.some(operation => operation.kind === "put_particle" &&
+        operation.expectedRevision === null && operation.particle.type === "objective" &&
+        Boolean(operation.particle.data.planning?.proposals.length))) {
         reset(graph.revision)
         return
       }

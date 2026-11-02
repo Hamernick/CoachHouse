@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { openOpportunityReport } from "@/features/workspace-finance/client"
 import { calendarParticleHref } from "@/lib/roadmap/calendar-particle-link"
 import { useCalendarRefresh } from "./roadmap-calendar/use-calendar-refresh"
 
@@ -131,7 +132,9 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
     )
 
     for (const event of events) {
-      initial[event.eventType].push(...getRoadmapCalendarEventDates(event))
+      if (event.source?.kind === "workspace_opportunity") {
+        if (event.source.deadlineAt) initial.deadline.push(new Date(event.source.deadlineAt))
+      } else initial[event.eventType].push(...getRoadmapCalendarEventDates(event))
     }
 
     return initial
@@ -231,6 +234,11 @@ export function RoadmapCalendar(props: RoadmapCalendarProps) {
 
   const handleEditEvent = useCallback(
     (event: RoadmapCalendarEvent) => {
+      if (event.source?.kind === "workspace_opportunity") {
+        onOpenParticle?.()
+        if (!openOpportunityReport(event.source.opportunityId, event.orgId)) router.push(`/workspace?opportunity=${encodeURIComponent(event.source.opportunityId)}`, { scroll: false })
+        return
+      }
       if (event.source?.kind === "workspace_particle") {
         onOpenParticle?.()
         router.push(calendarParticleHref(event.source.particleId, event.source.workspaceCanvasId), { scroll: false })

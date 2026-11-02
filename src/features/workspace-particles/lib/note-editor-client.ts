@@ -2,7 +2,8 @@ import { z } from "zod"
 import type { NoteContent } from "@/lib/modules/note-content"
 import { loadPersonalNote, writePersonalNote } from "../note-actions"
 import { getParticleNotes, type NoteDocument } from "./particle-notes"
-import { particleSchema, particleGraphSchema } from "./particle-schema"
+import { workspaceNoteDetailSchema, particleCommitSchema } from "./particle-capability-contract"
+import { bindParticleSource, particleRegistry } from "./particle-registry"
 import type { Particle } from "../types"
 
 export class NoteSaveError extends Error {
@@ -17,8 +18,7 @@ export type NoteDetail = {
   particle?: Particle
   revision?: number
 }
-const detailSchema = z.object({ particle: particleSchema, revision: z.number().int().min(0) })
-const saveSchema = z.object({ ok: z.literal(true), value: z.object({ graph: particleGraphSchema }) })
+const saveSchema = z.object({ ok: z.literal(true), value: particleCommitSchema })
 function workspaceDetail(particle: Particle, revision: number): NoteDetail {
   const note = getParticleNotes(particle)
   if (note?.kind !== "workspace") throw new Error("This note is no longer available.")
@@ -33,7 +33,9 @@ export async function readNote(note: NoteDocument, organizationId: string, signa
   }
   const response = await fetch(`/api/account/workspace-notes?${new URLSearchParams({ organizationId, id: note.source.id })}`, { cache: "no-store", signal })
   if (!response.ok) throw new Error(response.status === 404 ? "This note is no longer available." : "Unable to load this note. Try again.")
-  const detail = detailSchema.parse(await response.json())
+  const detail = workspaceNoteDetailSchema.parse(await response.json())
+  if (detail.particle.id !== note.source.id || detail.particle.workspaceId !== organizationId)
+    throw new Error("This note belongs to another source. Reload before editing.")
   return workspaceDetail(detail.particle, detail.revision)
 }
 export async function writeNote(note: NoteDocument, detail: NoteDetail, body: NoteContent | null, editId: string): Promise<NoteDetail | null> {
@@ -47,10 +49,14 @@ export async function writeNote(note: NoteDocument, detail: NoteDetail, body: No
   }
   const particle = detail.particle
   if (!particle || particle.type !== "activity") throw new Error("Reload this note before saving.")
+  if (particle.id !== note.source.id) throw new Error("Reload this note before saving.")
+  const edit = body === null ? null : particleRegistry.activity.capabilities.workspace_note.inputSchema.parse({ source: bindParticleSource(particle), body: {
+    content: body.content, ...(body.html !== undefined ? { html: body.html } : {}),
+  } })
   const operation = body === null
     ? { kind: "remove_particle", id: particle.id, expectedRevision: particle.revision }
     : { kind: "put_particle", expectedRevision: particle.revision, particle: {
-      ...particle, data: { ...particle.data, widget: { kind: "notes", source: { kind: "workspace", ...body } } },
+      ...particle, data: { ...particle.data, widget: { kind: "notes", source: { kind: "workspace", ...edit!.body } } },
     } }
   const response = await fetch("/api/account/workspace-notes", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: editId, workspaceId: particle.workspaceId, baseRevision: detail.revision, operations: [operation] }) })
@@ -61,6 +67,8 @@ export async function writeNote(note: NoteDocument, detail: NoteDetail, body: No
     const failure = z.object({ error: z.string() }).safeParse(payload)
     throw new NoteSaveError(failure.success ? failure.data.error : "Unable to confirm this save. Your draft is still here.", response.status >= 500)
   }
+  if (result.data.value.graph.workspaceId !== particle.workspaceId)
+    throw new NoteSaveError("Organization changed. Reload before confirming this save.", false)
   if (body === null) return null
   const saved = result.data.value.graph.particles.find((item) => item.id === particle.id)
   if (!saved) throw new Error("This note was removed elsewhere. Copy your draft before closing.")

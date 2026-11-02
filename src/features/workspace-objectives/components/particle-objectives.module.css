@@ -1,48 +1,77 @@
 .objective {
-  --tree-line: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+  --tree-line: color-mix(in srgb, var(--muted-foreground) 32%, var(--sidebar));
   position: relative;
   min-width: 0;
 }
 .objectiveHeader, .planHeader { position: relative; }
+.objectiveHeader > :global(button), .planHeader > :global(button) {
+  font-size: 13px; font-weight: 400; line-height: 20px;
+  color: var(--planning-panel-text, var(--foreground));
+}
 .objective + .objective > .objectiveHeader::before {
-  content: "";
-  position: absolute;
-  left: 16px;
-  top: -4px;
-  width: 2px;
-  height: calc(50% - 5px);
-  background: var(--tree-line);
-  pointer-events: none;
+  content: ""; position: absolute; left: 16px; top: -4px;
+  width: 2px; height: calc(50% - 5px); background: var(--tree-line); pointer-events: none;
 }
-.objective[data-state="open"] > .objectiveHeader::after,
+.objective[data-state="open"][data-has-branches="true"] > .objectiveHeader::after,
 .objective:not(:last-child) > .objectiveHeader::after {
-  content: "";
-  position: absolute;
-  left: 16px;
-  bottom: 0;
-  width: 2px;
-  height: calc(50% - 9px);
-  background: var(--tree-line);
-  pointer-events: none;
+  content: ""; position: absolute; left: 16px; bottom: 0;
+  width: 2px; height: calc(50% - 9px); background: var(--tree-line); pointer-events: none;
 }
-.branch {
-  margin-left: 16px;
-  padding-left: 14px;
-  border-left: 2px solid var(--tree-line);
+/* Curved submenu rails follow actual row heights, including wrapped titles.
+   Inspired by xevrion sidebar-submenu; no fixed-height demo geometry. */
+.branch { position: relative; margin-left: 16px; padding-left: 10px; }
+.objective:not(:last-child) > [data-state] > .disclosure > div > .branch {
+  border-left: 2px solid var(--tree-line); padding-left: 8px;
 }
-.plan { position: relative; min-width: 0; padding-block: 3px; }
-.planHeader::before, .member::before {
-  content: "";
-  position: absolute;
-  left: -16px;
-  top: 0;
-  width: 24px;
-  height: calc(50% + 1px);
-  border-left: 2px solid var(--tree-line);
-  border-bottom: 2px solid var(--tree-line);
-  border-bottom-left-radius: 10px;
-  pointer-events: none;
+.plan { position: relative; min-width: 0; padding-block: 0; }
+.planLabel {
+  position: relative; margin: 0; padding: 4px 8px;
+  font-size: 13px; font-weight: 400; line-height: 20px;
+  color: var(--planning-panel-text, var(--muted-foreground));
+}
+.objective[data-has-branches="true"] .planLabel::before {
+  content: ""; position: absolute; left: -10px; top: 0; bottom: 0;
+  border-left: 2px solid var(--tree-line); pointer-events: none;
+}
+.planHeader::before {
+  content: ""; position: absolute; left: -10px; top: 0;
+  width: 16px; height: calc(50% + 1px);
+  border-left: 2px solid var(--tree-line); border-bottom: 2px solid var(--tree-line);
+  border-bottom-left-radius: 10px; pointer-events: none;
+}
+.plan:not(:last-child)::before {
+  content: ""; position: absolute; left: -10px; top: 0; bottom: -1px;
+  border-left: 2px solid var(--tree-line); pointer-events: none;
 }
 .member { position: relative; min-width: 0; }
-.proposal { border-left: 2px solid var(--primary); padding-left: 10px; margin-block: 6px; }
-.proposal > .planHeader::before { left: -28px; width: 36px; }
+.plan[data-selected="true"] > .planHeader::before { border-color: var(--planning-active); }
+
+.submenu { position: relative; padding-bottom: 8px; }
+.submenuRail { position: absolute; left: 9px; top: 0; pointer-events: none; overflow: visible; }
+.submenuTrack { stroke: var(--tree-line); }
+.submenuActive { stroke: var(--planning-active); }
+.memberList { margin: 0; padding: 0 0 0 28px; }
+.memberRow { display: flex; align-items: center; gap: 2px; min-width: 0; min-height: 32px; }
+.memberRow .memberButton, .addButton {
+  min-height: 32px; padding: 4px 0; gap: 6px; font-size: 13px; line-height: 20px; border-radius: 6px;
+  font-weight: 400; color: var(--planning-panel-text, var(--muted-foreground));
+}
+.memberRow .memberButton:hover, .memberRow .memberButton:focus-visible, .addButton:hover, .addButton:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  color: var(--foreground);
+}
+.member[data-selected="true"] .memberButton { color: var(--foreground); font-weight: 400; }
+@media (pointer: coarse) { .memberRow .memberButton, .addButton { min-height: 44px; } }
+.proposal > .planHeader::before { border-color: var(--planning-review); border-left-style: dashed; }
+.reviewLabel { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--planning-review); }
+@media (forced-colors: active) {
+  .member[data-selected="true"] > div, .objective[data-selected="true"] > .objectiveHeader { outline: 1px solid Highlight; }
+}
+
+.member[data-branch-state="waiting"] :global([data-branch-state-label]) { color: var(--planning-review); }
+
+/* Persistent grid tracks reverse smoothly mid-toggle without scaling text. */
+.disclosure { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 200ms cubic-bezier(.4, 0, .2, 1), visibility 200ms; }
+.disclosure[data-open="false"] { grid-template-rows: 0fr; visibility: hidden; }
+.disclosure > div { min-height: 0; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .disclosure { transition: none; } }

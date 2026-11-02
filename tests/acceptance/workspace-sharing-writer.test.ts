@@ -2,13 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { workspacePageCommandSchema } from "@/features/workspace-sharing"
 import { projectWorkspacePage } from "@/features/workspace-sharing/server/page-projection"
 import { commitWorkspacePageAction, reviewWorkspacePageAction } from "@/features/workspace-sharing/server/actions"
+import { createFileParticle } from "@/features/workspace-particles/lib/particle-file"
+import { createImageParticle } from "@/features/workspace-particles/lib/particle-image"
 import { graph, ID, NOW, particle, WORKSPACE } from "./fixtures/particle-fixtures"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), page: vi.fn(), sources: vi.fn(), rpc: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), flags: { publicSharingEnabled: true } }))
+const mocks = vi.hoisted(() => ({ documents: vi.fn(), images: vi.fn(), upload: vi.fn(), actor: vi.fn(), page: vi.fn(), sources: vi.fn(), rpc: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), flags: { publicSharingEnabled: true } }))
 vi.mock("@/features/workspace-sharing/server/page-context", async () => ({
   ...await vi.importActual<typeof import("@/features/workspace-sharing/server/page-context")>("@/features/workspace-sharing/server/page-context"),
   loadPageActor: mocks.actor, loadSavedPage: mocks.page, loadSavedPageSources: mocks.sources,
 }))
+vi.mock("@/features/workspace-sharing/server/page-asset-sources", () => ({ resolvePageImageSources: mocks.images }))
+vi.mock("@/features/workspace-sharing/server/page-document-sources", () => ({ resolvePageDocumentSources: mocks.documents }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
 vi.mock("@/lib/feature-flags", () => mocks.flags)
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }))
@@ -25,10 +29,13 @@ const row = (revision = 1) => ({
 beforeEach(() => {
   vi.resetAllMocks()
   mocks.flags.publicSharingEnabled = true
+  mocks.images.mockResolvedValue(new Map())
+  mocks.documents.mockResolvedValue(new Map())
+  mocks.upload.mockResolvedValue({ error: null })
   mocks.actor.mockResolvedValue({ actorId: WORKSPACE, orgId: WORKSPACE, supabase: {} })
   mocks.page.mockResolvedValue(null)
   mocks.sources.mockResolvedValue(sources())
-  mocks.admin.mockReturnValue({ rpc: mocks.rpc })
+  mocks.admin.mockReturnValue({ rpc: mocks.rpc, storage: { from: () => ({ upload: mocks.upload }) } })
   mocks.rpc.mockResolvedValue({ data: { page: row(), replayed: false }, error: null })
 })
 async function reviewedCommand() {
@@ -38,6 +45,22 @@ async function reviewedCommand() {
 }
 
 describe("workspace page writer", () => {
+  it("explains a form ownership denial without suggesting publication succeeded", async () => {
+    const request = await reviewedCommand()
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: "42501", message: "Form manager required" } })
+    const result = await commitWorkspacePageAction(request)
+    expect(result).toMatchObject({ ok: false, error: "Only this form's manager can publish it." })
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+  it("saves a reviewed guest projection without requiring public publishing", async () => {
+    mocks.flags.publicSharingEnabled = false
+    const request = { ...await reviewedCommand(), intent: "share_with_guests" }
+    const result = await commitWorkspacePageAction(request)
+    expect(result.ok).toBe(true)
+    expect(mocks.rpc.mock.calls[0][1]).toMatchObject({ p_intent: "share_with_guests", p_expected_graph: sources().graph })
+    expect(mocks.rpc.mock.calls[0][1].p_snapshot.items.map((item: { id: string }) => item.id)).toEqual(draft.particleIds)
+  })
+
   it("reviews selected saved content in explicit order without private profile fields", async () => {
     const review = await reviewWorkspacePageAction({ ...identity, draft })
     expect(review.ok).toBe(true)
@@ -142,5 +165,145 @@ describe("workspace page writer", () => {
   })
   it("requires a known revision and command for make Private", () => {
     expect(workspacePageCommandSchema.safeParse({ ...identity, operationId: ID(11), intent: "make_private" }).success).toBe(false)
+  })
+})
+
+describe("immutable publication canvas scope", () => {
+  it("includes the named source in review and commit without changing the public snapshot", async () => {
+    const review = await reviewWorkspacePageAction({ ...identity, draft, canvasId: ID(70) })
+    if (!review.ok) throw new Error(review.error)
+    expect(mocks.sources).toHaveBeenCalledWith(expect.objectContaining({ orgId: WORKSPACE }), ID(70))
+    expect(JSON.stringify(review.value.snapshot)).not.toContain(ID(70))
+    const request = { ...command, canvasId: ID(70), reviewToken: review.value.reviewToken }
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: true })
+    expect(mocks.rpc.mock.calls[0][1].p_canvas_id).toBe(ID(70))
+  })
+  it("rejects moving a review token to another canvas even with identical projected content", async () => {
+    const request = await reviewedCommand()
+    expect(await commitWorkspacePageAction({ ...request, canvasId: ID(70) })).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it.each(["save_draft", "publish", "make_private"])("rejects %s from another canvas before sources or commit", async intent => {
+    mocks.page.mockResolvedValue({ ...row(), canvas_id: ID(70) })
+    const input = { ...command, expectedRevision: 1, intent, operationId: ID(12),
+      ...(intent === "publish" ? { reviewToken: "a".repeat(64) } : {}) }
+    const request = intent === "make_private" ? { pageId: ID(10), expectedRevision: 1, operationId: ID(12), intent } : input
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, code: "scope" })
+    expect(mocks.sources).not.toHaveBeenCalled(); expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("revokes a named page after canvas deletion without reading its sources", async () => {
+    mocks.page.mockResolvedValue({ ...row(), canvas_id: ID(70) })
+    expect(await commitWorkspacePageAction({ pageId: ID(10), canvasId: ID(70), expectedRevision: 1, operationId: ID(12), intent: "make_private" })).toMatchObject({ ok: true })
+    expect(mocks.sources).not.toHaveBeenCalled()
+    expect(mocks.rpc.mock.calls[0][1].p_canvas_id).toBe(ID(70))
+  })
+})
+
+
+describe("reviewed image publication", () => {
+  function setupImage() {
+    const image = createImageParticle(WORKSPACE, "Photo", { kind: "image", fileId: ID(40), width: 10, height: 10, alt: "Workshop" }, { x: 0, y: 0 }, ID(1), NOW)
+    const saved = sources()
+    saved.graph = graph([image, particle(2)])
+    mocks.sources.mockResolvedValue(saved)
+    const source = { id: ID(40), org_id: WORKSPACE, document_kind: null, deleted_at: null, mime_type: "image/png", size_bytes: 10,
+      storage_path: `${WORKSPACE}/library/private-original.png`, updated_at: NOW }
+    const representation = { version: 1 as const, mimeType: "image/webp" as const, bytes: Buffer.from("approved"), sha256: "b".repeat(64), width: 10, height: 10 }
+    mocks.images.mockResolvedValue(new Map([[ID(1), { source, representation }]]))
+    return { source, representation }
+  }
+  it("reviews without uploading and commits an exact image grant with no original path in public JSON", async () => {
+    setupImage()
+    const request = await reviewedCommand()
+    expect(mocks.upload).not.toHaveBeenCalled()
+    const result = await commitWorkspacePageAction(request)
+    expect(result.ok).toBe(true)
+    expect(mocks.upload).toHaveBeenCalledOnce()
+    const args = mocks.rpc.mock.calls[0][1]
+    expect(args.p_snapshot.items[1].content).toMatchObject({ kind: "image", alt: "Workshop" })
+    expect(args.p_image_assets[0]).toMatchObject({ id: args.p_snapshot.items[1].content.assetId, sha256: "b".repeat(64), source: { id: ID(40) } })
+    expect(JSON.stringify(args.p_snapshot)).not.toContain("private-original")
+    expect(mocks.upload.mock.calls[0][2]).toEqual({ contentType: "image/webp", cacheControl: "0", upsert: false })
+  })
+  it("invalidates the review if bytes change without a metadata timestamp change", async () => {
+    const prepared = setupImage()
+    const request = await reviewedCommand()
+    mocks.images.mockResolvedValue(new Map([[ID(1), { ...prepared, representation: { ...prepared.representation, sha256: "c".repeat(64) } }]]))
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("does not call the page commit when preparation upload fails", async () => {
+    setupImage()
+    const request = await reviewedCommand()
+    mocks.upload.mockResolvedValue({ error: { message: "provider private detail" } })
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, uncertain: false })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("retains exact retry after an unconfirmed commit without re-reading or re-uploading images", async () => {
+    setupImage()
+    const request = await reviewedCommand()
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: "transport" } })
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, uncertain: true })
+    mocks.page.mockResolvedValue({ ...row(), last_operation_id: request.operationId })
+    mocks.rpc.mockResolvedValue({ data: { page: row(), replayed: true }, error: null })
+    mocks.images.mockClear()
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: true })
+    expect(mocks.images).not.toHaveBeenCalled()
+    expect(mocks.upload).toHaveBeenCalledOnce()
+  })
+})
+
+describe("reviewed document publication", () => {
+  function setupFile() {
+    const document = createFileParticle(WORKSPACE, "Guide", { kind: "document", fileId: ID(40), format: "md", name: "Guide.md", size: 10 }, { x: 0, y: 0 }, ID(1), NOW)
+    const saved = sources()
+    saved.graph = graph([document, particle(2)])
+    mocks.sources.mockResolvedValue(saved)
+    const source = { id: ID(40), org_id: WORKSPACE, document_kind: null, deleted_at: null, mime_type: "text/markdown", size_bytes: 10,
+      storage_path: `${WORKSPACE}/library/private-original.png`, updated_at: NOW }
+    const representation = { version: 1 as const, mimeType: "text/plain" as const, bytes: Buffer.from("approved"), sha256: "b".repeat(64), }
+    mocks.documents.mockResolvedValue(new Map([[ID(1), { source, representation }]]))
+    return { source, representation }
+  }
+  it("reviews without uploading and commits an exact document grant with no original path in public JSON", async () => {
+    setupFile()
+    const request = await reviewedCommand()
+    expect(mocks.upload).not.toHaveBeenCalled()
+    const result = await commitWorkspacePageAction(request)
+    expect(result.ok).toBe(true)
+    expect(mocks.upload).toHaveBeenCalledOnce()
+    const args = mocks.rpc.mock.calls[0][1]
+    expect(args.p_snapshot.items[1].content).toMatchObject({ kind: "document", name: "Guide.md" })
+    expect(args.p_document_assets[0]).toMatchObject({ id: args.p_snapshot.items[1].content.assetId, sha256: "b".repeat(64), source: { id: ID(40) } })
+    expect(JSON.stringify(args.p_snapshot)).not.toContain("private-original")
+    expect(mocks.upload.mock.calls[0][2]).toEqual({ contentType: "text/plain", cacheControl: "0", upsert: false })
+  })
+  it("invalidates the review if bytes change without a metadata timestamp change", async () => {
+    const prepared = setupFile()
+    const request = await reviewedCommand()
+    mocks.documents.mockResolvedValue(new Map([[ID(1), { ...prepared, representation: { ...prepared.representation, sha256: "c".repeat(64) } }]]))
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("does not call the page commit when preparation upload fails", async () => {
+    setupFile()
+    const request = await reviewedCommand()
+    mocks.upload.mockResolvedValue({ error: { message: "provider private detail" } })
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, uncertain: false })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("retains exact retry after an unconfirmed commit without re-reading or re-uploading documents", async () => {
+    setupFile()
+    const request = await reviewedCommand()
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: "transport" } })
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, uncertain: true })
+    mocks.page.mockResolvedValue({ ...row(), last_operation_id: request.operationId })
+    mocks.rpc.mockResolvedValue({ data: { page: row(), replayed: true }, error: null })
+    mocks.documents.mockClear()
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: true })
+    expect(mocks.documents).not.toHaveBeenCalled()
+    expect(mocks.upload).toHaveBeenCalledOnce()
   })
 })

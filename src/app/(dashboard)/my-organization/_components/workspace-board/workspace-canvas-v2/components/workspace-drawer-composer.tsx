@@ -25,6 +25,7 @@ export function WorkspaceDrawerComposer({
   return (
     <div
       ref={composerRef}
+      data-workspace-canvas-occluder
       className={desktop ? styles.composerShell : "shrink-0"}
       onFocusCapture={(event) => {
         if (desktop) return

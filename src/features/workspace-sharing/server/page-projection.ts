@@ -25,6 +25,8 @@ export function projectWorkspacePage(input: {
   graph: unknown
   draft: WorkspacePageDraft
   driveLinks?: ReadonlyMap<string, string>
+  documentIds?: ReadonlyMap<string, { assetId: string }>
+  imageIds?: ReadonlyMap<string, { assetId: string; width: number; height: number }>
 }) {
   const graph = readParticleGraph(input.graph, input.orgId)
   if (!graph.ok) throw new WorkspaceSharingError(graph.code === "scope" ? "scope" : "invalid", graph.error)
@@ -36,6 +38,16 @@ export function projectWorkspacePage(input: {
     if (driveLink) return {
       id: particle.id, title: particle.title, description: particle.description,
       content: { kind: "drive_link" as const, href: driveLink },
+    }
+    const imageId = input.imageIds?.get(id)
+    if (imageId && particle.type === "activity" && !particle.data.source && particle.data.widget?.kind === "image") return {
+      id: particle.id, title: particle.title, description: particle.description,
+      content: { kind: "image" as const, ...imageId, alt: particle.data.widget.alt || particle.title },
+    }
+    const documentId = input.documentIds?.get(id)
+    if (documentId && particle.type === "activity" && !particle.data.source && particle.data.widget?.kind === "document" && !particle.data.widget.source) return {
+      id: particle.id, title: particle.title, description: particle.description,
+      content: { kind: "document" as const, ...documentId, name: particle.data.widget.name || particle.title },
     }
     const result = projectParticlePublicContent(particle)
     if (!result.ok) throw new WorkspaceSharingError("unsupported", `${particle.title}: ${result.error}`)

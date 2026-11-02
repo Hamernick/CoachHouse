@@ -49,7 +49,7 @@ export function WorkspaceCanvasEdgeContextMenu({
         role="menu"
         aria-label="Connection context menu"
         className={cn(
-          "absolute min-w-[250px] max-w-[320px] overflow-hidden rounded-xl border border-border/70 bg-card/95 p-1 shadow-xl backdrop-blur",
+          "absolute min-w-[250px] max-w-[320px] overflow-hidden rounded-xl canvas-glass border p-1",
           "max-h-[min(70vh,420px)] overflow-y-auto",
         )}
         style={{

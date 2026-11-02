@@ -163,6 +163,8 @@ try {
 
   runSql("supabase/migrations/20261023223000_add_opportunity_sources.sql")
   runSql("supabase/migrations/20261024000000_add_opportunity_reports.sql")
+  runSql("supabase/migrations/20261026160000_opportunity_feed_order.sql")
+  runSql("supabase/tests/opportunity-feed-order.assertions.sql")
   run("psql", ["-h", socketDirectory, "-p", port, "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], {
     input: "create table public.organization_workspace_boards(org_id uuid primary key,state jsonb not null);",
   })

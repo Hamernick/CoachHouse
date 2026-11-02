@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useCallback, useEffect, useRef } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 
@@ -38,6 +39,7 @@ export function useWorkspaceOntologyWayfinding({
     new Map(nodes.map((node) => [node.id, node] as const))
   )
   const fitPendingRef = useRef(false)
+  const fitIntentRef = useRef<(() => boolean) | null>(null)
   const focusNodeIdRef = useRef<string | null>(null)
   const fitFrameRef = useRef<number | null>(null)
   const previousFocusSignatureRef = useRef("")
@@ -63,6 +65,7 @@ export function useWorkspaceOntologyWayfinding({
       previousFocusSignatureRef.current !== focusSignature
     ) {
       fitPendingRef.current = true
+      fitIntentRef.current = flowInstance ? beginWorkspaceCameraIntent(flowInstance) : null
       focusNodeIdRef.current =
         activeNodeIds[activeNodeIds.length - 1] ??
         addedNode?.id ??
@@ -81,9 +84,12 @@ export function useWorkspaceOntologyWayfinding({
     }
 
     fitPendingRef.current = false
+    if (!flowInstance) return
+    const cameraIsCurrent = fitIntentRef.current ?? beginWorkspaceCameraIntent(flowInstance)
+    if (!cameraIsCurrent()) return
     fitFrameRef.current = window.requestAnimationFrame(() => {
       fitFrameRef.current = null
-      if (!flowInstance) return
+      if (!cameraIsCurrent()) return
       const narrowViewport = window.innerWidth < 640
       const focusNodeId = focusNodeIdRef.current
       const focusNodes =

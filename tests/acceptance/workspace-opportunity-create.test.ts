@@ -85,7 +85,7 @@ describe("manual workspace opportunity creation", () => {
   })
   it("persists authorized references without copying private previews", async () => {
     const { query } = database()
-    const sources = [{ kind: "person" as const, id }, { kind: "link" as const, url: "https://example.org/" }]
+    const sources = [{ kind: "person" as const, id }, { kind: "link" as const, url: "https://example.org/", title: "Community facilities grant" }]
     mocks.sources.mockResolvedValue([{ source: sources[0], title: "Authorized person", description: "Private preview" }])
     expect(await createWorkspaceOpportunity({ ...input, sources })).toHaveProperty("opportunity")
     expect(query.insert.mock.calls[0][0].sources).toEqual(sources)
@@ -265,5 +265,27 @@ describe("opportunity cost breakdowns", () => {
     expect(opportunityCostsSchema.safeParse({ ...costs, items: [{ ...costs.items[0], type: "unknown" }] }).success).toBe(false)
     expect(opportunityCostsSchema.safeParse({ ...costs, items: [costs.items[0], costs.items[0]] }).success).toBe(false)
     expect(opportunityCostsSchema.safeParse({ ...costs, items: Array.from({ length: 21 }, () => ({ ...costs.items[0], id: crypto.randomUUID() })) }).success).toBe(false)
+  })
+})
+
+describe("opportunity timeline ranges", () => {
+  it("validates complete chronological ranges and matching deadlines before authorization", async () => {
+    for (const timeline of [
+      {from:"2027-01-20",to:"2027-01-15"},
+      {from:"2027-02-30",to:"2027-03-15"},
+      {from:"2027-01-01",to:"2027-01-14"},
+      {from:"2027-01-01"},
+    ]) expect(await createWorkspaceOpportunity({...input,report:{version:1,blocks:[],timeline}} as Parameters<typeof createWorkspaceOpportunity>[0])).toHaveProperty("error")
+    expect(mocks.context).not.toHaveBeenCalled()
+  })
+  it("persists both dates with the range end as the sortable deadline and returns them", async () => {
+    const {query}=database()
+    const report={version:1 as const,blocks:[],timeline:{from:"2027-01-10",to:"2027-01-15"}}
+    const stored={id,org_id:org,title:"Community workshop",source_label:"Foundation",due_at:"2027-01-15T12:00:00.000Z",status:"new",discovered_at:"2026-10-23T12:00:00.000Z",updated_at:"2026-10-23T12:00:00.000Z",report}
+    query.maybeSingle.mockResolvedValue({data:stored,error:null})
+    expect(await createWorkspaceOpportunity({...input,report})).toMatchObject({opportunity:{report,dueAt:"2027-01-15T12:00:00.000Z"}})
+    expect(query.insert).toHaveBeenCalledWith(expect.objectContaining({report,due_at:"2027-01-15T12:00:00.000Z"}))
+    await updateWorkspaceOpportunity({...input,updatedAt:"2026-10-23T12:00:00.000Z",deadline:"",report:{version:1,blocks:[]}})
+    expect(query.update).toHaveBeenCalledWith(expect.objectContaining({due_at:null,report:{version:1,blocks:[]}}))
   })
 })

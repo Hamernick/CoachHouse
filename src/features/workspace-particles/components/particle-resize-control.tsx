@@ -1,5 +1,6 @@
 "use client"
 
+import { withParticleAssignmentBounds, particleAssignmentCardSize } from "../lib/particle-assignment-geometry"
 import { useEffect, useRef, useState } from "react"
 import {
   NodeResizeControl,
@@ -33,7 +34,7 @@ export function ParticleResizeControl({
   const surface = useParticleSurface()
   const allowed = supportedParticleSizes(data.particle)
   const presets = allowed.map((size) =>
-    particleFamilyDimensions(data.particle, size)
+    withParticleAssignmentBounds(data.particle, particleFamilyDimensions(data.particle, size), Boolean(data.memberships))
   )
   const controls = data.resize
   useEffect(() => {
@@ -95,7 +96,7 @@ export function ParticleResizeControl({
           controls.preview(id, dimensions)
           setPreview(
             nearestParticleSize(
-              particleResizeDimensions(data.particle, dimensions),
+              isImageParticle(data.particle) ? particleResizeDimensions(data.particle, dimensions) : particleAssignmentCardSize(data.particle, dimensions, Boolean(data.memberships)),
               allowed,
               data.particle
             )

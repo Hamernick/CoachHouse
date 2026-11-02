@@ -89,25 +89,7 @@ export default async function MyOrganizationPage({
   const { supabase, user, profileAudience, activeOrg } = requestContext
   const { orgId, role } = activeOrg
   const isAdmin = profileAudience.isAdmin
-  const { orgRow, profile, initialProfile, roadmapSections } =
-    await loadWorkspaceProfileContext({ supabase, orgId })
-  const { userMeta, needsInitialOnboarding } = getOnboarding(requestContext, {
-    profile,
-    publicSlug: orgRow?.public_slug ?? null,
-  })
   const canEdit = isAdmin || canEditOrganization(role)
-  const { initialDrawerData } = resolveInitialWorkspaceDrawerData({
-    acceleratorGroupParam: searchState.acceleratorGroupParam,
-    acceleratorModuleParam: searchState.acceleratorModuleParam,
-    acceleratorStepParam: searchState.acceleratorStepParam,
-    drawerParam: searchState.drawerParam,
-    focusParam: searchState.focusParam,
-    needsInitialOnboarding,
-    programIdParam: searchState.programIdParam,
-    roadmapSectionParam: searchState.roadmapSectionParam,
-    tabParam: searchState.tabParam,
-    viewParam: searchState.viewParam,
-  })
   redirectLegacyMyOrganizationTab({
     tabParam: searchState.tabParam,
     focusParam: searchState.focusParam,
@@ -125,6 +107,7 @@ export default async function MyOrganizationPage({
     activeSubscriptionResult,
     entitlements,
     organizationPeopleTaxonomy,
+    { orgRow, profile, initialProfile, roadmapSections },
   ] = await measureServerStep(
     "workspace.content.load_parallel_data",
     () =>
@@ -168,9 +151,26 @@ export default async function MyOrganizationPage({
           isAdmin,
         }),
         loadOrganizationPeopleTaxonomy({ orgId, supabase }),
+        loadWorkspaceProfileContext({ supabase, orgId }),
       ]),
     { thresholdMs: 1_000 }
   )
+  const { userMeta, needsInitialOnboarding } = getOnboarding(requestContext, {
+    profile,
+    publicSlug: orgRow?.public_slug ?? null,
+  })
+  const { initialDrawerData } = resolveInitialWorkspaceDrawerData({
+    acceleratorGroupParam: searchState.acceleratorGroupParam,
+    acceleratorModuleParam: searchState.acceleratorModuleParam,
+    acceleratorStepParam: searchState.acceleratorStepParam,
+    drawerParam: searchState.drawerParam,
+    focusParam: searchState.focusParam,
+    needsInitialOnboarding,
+    programIdParam: searchState.programIdParam,
+    roadmapSectionParam: searchState.roadmapSectionParam,
+    tabParam: searchState.tabParam,
+    viewParam: searchState.viewParam,
+  })
   const upcomingEvents = mapUpcomingEvents(upcomingEventsResult.data)
   const currentPlanTier = resolvePricingPlanTier(
     activeSubscriptionResult.data ?? null

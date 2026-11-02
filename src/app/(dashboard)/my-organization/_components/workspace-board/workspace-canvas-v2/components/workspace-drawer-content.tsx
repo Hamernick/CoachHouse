@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import dynamic from "next/dynamic"
-import { Skeleton } from "@/components/ui/skeleton"
+import { WorkspacePanelLoading as PanelLoading } from "@/components/workspace/workspace-page-loading"
 import { cn } from "@/lib/utils"
 import {
   WorkspaceRetainedPanel,
@@ -11,16 +11,6 @@ import type { WorkspaceDrawerTabsProps } from "./workspace-drawer-content-types"
 
 // Unvisited retained panels never mount, so these boundaries load only when opened.
 // Keep each definition stable so a visited editor retains its draft and identity.
-function PanelLoading() {
-  return (
-    <div role="status" className="space-y-3 p-4">
-      <span className="sr-only">Loading workspace content…</span>
-      <Skeleton className="h-8 w-1/2 rounded-lg" />
-      <Skeleton className="h-40 w-full rounded-2xl" />
-    </div>
-  )
-}
-
 const DocumentsTab = dynamic(
   () =>
     import("@/components/organization/org-profile-card/tabs/documents-tab").then(

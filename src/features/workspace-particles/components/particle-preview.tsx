@@ -1,5 +1,7 @@
 "use client"
 
+import { ParticleObjectiveProgress } from "./particle-objective-progress"
+import type { ObjectiveProgress } from "../lib/particle-progress"
 import { particlePreviewLimit } from "../lib/particle-registry"
 import { useParticleSurface } from "./particle-surface"
 import { ParticleWidgetPreview } from "./particle-widget-preview"
@@ -17,7 +19,9 @@ import {
 } from "../lib/particle-decision"
 
 export type ParticlePreviewProps = {
+  objectiveProgress?: ObjectiveProgress
   particle: Particle
+  expanded?: boolean
   editable: boolean
   onEdit: (particle: Particle) => void
   onOpen: (calendarEntryId?: string) => void
@@ -30,6 +34,7 @@ export function ParticleChecklist({
   onEdit,
   onOpen,
   onNotesDraftChange,
+  expanded,
 }: ParticlePreviewProps) {
   const surface = useParticleSurface()
   if (particle.type !== "activity" && particle.type !== "workflow") return null
@@ -37,6 +42,7 @@ export function ParticleChecklist({
     return (
       <ParticleWidgetPreview
         particle={particle}
+        expanded={expanded}
         editable={editable}
         onEdit={onEdit}
         onOpen={onOpen}
@@ -44,7 +50,7 @@ export function ParticleChecklist({
       />
     )
   const progress = getParticleProgress(particle)
-  const limit = particlePreviewLimit(particle)
+  const limit = expanded ? Number.POSITIVE_INFINITY : particlePreviewLimit(particle)
   return (
     <div className="particle-detail-columns flex flex-col gap-3">
       <ParticleProgress
@@ -98,17 +104,17 @@ export function ParticleChecklist({
   )
 }
 
-function ObjectivePreview({ particle }: ParticlePreviewProps) {
+function ObjectivePreview({ particle, expanded, objectiveProgress }: ParticlePreviewProps) {
   if (particle.type !== "objective") return null
   const { current, target, unit } = particle.data
   return (
     <div className="particle-detail-columns flex flex-col gap-3">
-      {particle.size !== "small" && (
+      {(expanded || particle.size !== "small") && (
         <p className="text-muted-foreground text-xs">
           {particle.description || "Define the outcome you want to achieve."}
         </p>
       )}
-      {target !== null ? (
+      {objectiveProgress ? <><ParticleObjectiveProgress value={objectiveProgress} />{target !== null && <p className="text-xs text-muted-foreground">{`${current ?? "Unmeasured"} / ${target} ${unit}`.trim()}</p>}</> : target !== null ? (
         <ParticleProgress
           value={current !== null && target > 0 ? (current / target) * 100 : 0}
           label={`${current ?? "Unmeasured"} / ${target} ${unit}`.trim()}
@@ -120,11 +126,11 @@ function ObjectivePreview({ particle }: ParticlePreviewProps) {
   )
 }
 
-function DecisionPreview({ particle, onEdit, editable }: ParticlePreviewProps) {
+function DecisionPreview({ particle, onEdit, editable, expanded }: ParticlePreviewProps) {
   const surface = useParticleSurface()
   if (particle.type !== "decision") return null
   const progress = getParticleProgress(particle)
-  const limit = particlePreviewLimit(particle)
+  const limit = expanded ? Number.POSITIVE_INFINITY : particlePreviewLimit(particle)
   return (
     <div className="particle-detail-columns flex flex-col gap-3">
       <p className="text-xs">
@@ -202,7 +208,7 @@ function PeoplePreview({ particle }: ParticlePreviewProps) {
     </p>
   ) : null
 }
-function MetricPreview({ particle }: ParticlePreviewProps) {
+function MetricPreview({ particle, expanded }: ParticlePreviewProps) {
   if (particle.type !== "metric") return null
   const latest = [...particle.data.observations]
     .sort((a, b) => a.at.localeCompare(b.at))
@@ -212,7 +218,7 @@ function MetricPreview({ particle }: ParticlePreviewProps) {
       <p className="text-lg font-medium tabular-nums">
         {latest ? `${latest.value} ${particle.data.unit}` : "No observations"}
       </p>
-      {particle.size !== "small" && particle.data.target !== null ? (
+      {(expanded || particle.size !== "small") && particle.data.target !== null ? (
         <p className="text-muted-foreground text-xs">
           Target: {particle.data.target}
         </p>

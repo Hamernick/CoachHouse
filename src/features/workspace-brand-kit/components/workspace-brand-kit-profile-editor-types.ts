@@ -2,6 +2,7 @@ import type { OrgProfile } from "@/lib/organization/org-profile-brand-types"
 
 export type WorkspaceBrandKitProfileEditorProps = {
   readOnly?: boolean
+  inlineEdit?: boolean
   onBusyChange?: (busy: boolean) => void
   profile: OrgProfile
   errors: Record<string, string>

@@ -18,6 +18,9 @@ export function createWorkspaceParticleFlowHandlers(
     ReturnType<typeof useParticleFlow>,
     "ids" | "onNodesChange" | "select" | "selectedId" | "move"
   > & {
+    expand?: (id: string) => boolean
+    expandedId?: string | null
+    collapse?: () => void
     history?: Pick<ReturnType<typeof useParticleFlow>["history"], "onKeyDown">
     flow: { current: Pick<ReactFlowInstance, "getNodes" | "setNodes"> | null }
   },
@@ -39,20 +42,9 @@ export function createWorkspaceParticleFlowHandlers(
       if (legacyChanges.length) legacy.onNodesChange(legacyChanges)
     },
     onNodeClick: (event, node) => {
-      if (particles.ids.has(node.id)) {
-        // React Flow has already toggled this item's canvas selection.
-        // Additive clicks must never replace it or navigate away from a draft.
-        if (event.shiftKey || event.metaKey || event.ctrlKey) return
-        if (
-          event.target instanceof Element &&
-          event.target.closest(
-            "button,input,textarea,select,label,a,.react-flow__handle"
-          )
-        )
-          return
-        particles.select(node.id, { preserveSelection: true })
-        return
-      }
+      // React Flow owns canvas selection. Opening the editor is an explicit
+      // action, so ordinary and additive clicks never navigate away from a draft.
+      if (particles.ids.has(node.id)) return
       legacy.onNodeClick(event, node)
     },
     onKeyDownCapture: (event) => {
@@ -74,7 +66,14 @@ export function createWorkspaceParticleFlowHandlers(
         if (event.key === "Enter" && id && particles.ids.has(id)) {
           event.preventDefault()
           event.stopPropagation()
-          particles.select(id, { preserveSelection: true })
+          if (particles.expand) particles.expand(id)
+          else particles.select(id, { preserveSelection: true })
+          return
+        }
+        if (event.key === "Escape" && particles.expandedId) {
+          event.preventDefault()
+          event.stopPropagation()
+          particles.collapse?.()
           return
         }
         if (
@@ -130,6 +129,9 @@ export function useWorkspaceParticleFlowHandlers(
     onNodesChange: particleChanges,
     select,
     selectedId,
+    expand,
+    expandedId,
+    collapse,
     move,
     flow,
     history,
@@ -150,6 +152,9 @@ export function useWorkspaceParticleFlowHandlers(
           onNodesChange: particleChanges,
           select,
           selectedId,
+          expand,
+          expandedId,
+          collapse,
           move,
           flow,
           history,
@@ -168,6 +173,9 @@ export function useWorkspaceParticleFlowHandlers(
       particleChanges,
       select,
       selectedId,
+      expand,
+      expandedId,
+      collapse,
       move,
       flow,
       history,

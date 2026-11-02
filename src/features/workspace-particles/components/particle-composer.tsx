@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
-import CheckIcon from "lucide-react/dist/esm/icons/check"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +22,7 @@ import { particlePresetQuery } from "../lib/particle-presets"
 import {
   particleComposerSearchQuery,
   parseParticleCreateCommand,
+  isParticlePlanningRequest,
 } from "../lib/particle-command"
 
 export function ParticleComposer({
@@ -34,6 +34,7 @@ export function ParticleComposer({
   onRetry,
   onBrowse,
   assistant,
+  planner,
 }: {
   disabled: boolean
   pending: boolean
@@ -43,6 +44,7 @@ export function ParticleComposer({
   onRetry: () => void
   onBrowse?: (query: string, open?: boolean) => void
   assistant?: { revising?:boolean; active: boolean; pending: boolean; controls: ReactNode; submit: (prompt: string) => Promise<boolean> }
+  planner?: { active: boolean; submit: (prompt: string, onReturn: (draft: string, saved: boolean) => void) => void }
 }) {
   const feedbackId = useId()
   const inputRef=useRef<HTMLTextAreaElement>(null)
@@ -51,9 +53,17 @@ export function ParticleComposer({
   const [input, setInput] = useState("")
   const [hint, setHint] = useState<string | null>(null)
   const submit = async () => {
-    if (disabled || pending || assistant?.pending || !input.trim()) return
+    if (disabled || pending || assistant?.pending || planner?.active || !input.trim()) return
     if (assistant?.active) {
       if (await assistant.submit(input)) { setInput(""); setHint(null) }
+      return
+    }
+    if (planner && isParticlePlanningRequest(input)) {
+      if (input.length > 2000) { setHint("Keep the objective under 2,000 characters."); return }
+      planner.submit(input, (draft, saved) => {
+        setInput(saved ? "" : draft); setHint(null)
+        requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }))
+      })
       return
     }
     const query = particleComposerSearchQuery(input)
@@ -84,7 +94,7 @@ export function ParticleComposer({
           void submit()
         }}
       >
-        <InputGroup className="border-border/60 bg-card/95 backdrop-blur-xl focus-within-visible:border-ring flex items-end gap-1 rounded-[24px] border p-1 transition-colors duration-150 motion-reduce:transition-none">
+        <InputGroup className="canvas-glass focus-within-visible:border-ring flex items-end gap-1 rounded-[24px] border p-1 transition-colors duration-150 motion-reduce:transition-none">
           <InputGroupAddon>
             {assistant?.controls}
             <Popover
@@ -117,7 +127,7 @@ export function ParticleComposer({
                 align="start"
                 side="top"
                 sideOffset={12}
-                className="w-60 rounded-2xl p-0 motion-reduce:animate-none"
+                className="canvas-glass w-60 rounded-2xl p-0 motion-reduce:animate-none"
 
               >
                 <ParticleCreateActions
@@ -132,12 +142,12 @@ export function ParticleComposer({
           </InputGroupAddon>
           <InputGroupTextarea
             ref={inputRef}
-            aria-label={assistant?.active ? "Ask AI about this document" : "Search Particles or enter a command"}
-            placeholder={assistant?.revising ? "Describe changes to this draft…" : assistant?.active ? "Ask for help with this document…" : "Search Particles or add to the plan…"}
+            aria-label={assistant?.active ? "Ask AI about this document" : planner ? "Plan an objective or search Particles" : "Search Particles or enter a command"}
+            placeholder={assistant?.revising ? "Describe changes to this draft…" : assistant?.active ? "Ask for help with this document…" : "Plan anything..."}
             aria-describedby={feedbackId}
             aria-invalid={Boolean(error || hint)}
             value={input}
-            disabled={disabled || pending || assistant?.pending}
+            disabled={disabled || pending || assistant?.pending || planner?.active}
             rows={1}
             className="max-h-32 min-h-9 min-w-0 flex-1 resize-none rounded-none border-0 bg-transparent px-1.5 py-1.5 text-base leading-6 shadow-none focus-visible:ring-0 focus-visible:outline-none md:text-base dark:bg-transparent"
             onChange={(event) => {
@@ -145,6 +155,7 @@ export function ParticleComposer({
               setInput(value)
               setHint(null)
               if (assistant?.active) return
+              if (planner && isParticlePlanningRequest(value)) { onBrowse?.("", false); return }
               const query = particleComposerSearchQuery(value)
               const slashQuery = particlePresetQuery(value)
               onBrowse?.(
@@ -168,10 +179,12 @@ export function ParticleComposer({
             <Button
               data-workspace-composer-action="true"
               type="submit"
-              disabled={disabled || pending || assistant?.pending || !input.trim()}
+              disabled={disabled || pending || assistant?.pending || planner?.active || !input.trim()}
               aria-label={
                 assistant?.active ? "Generate document proposal" : pending
                   ? "Saving Particle"
+                  : planner && isParticlePlanningRequest(input)
+                    ? "Review planning request"
                   : onBrowse && particleComposerSearchQuery(input) !== null
                     ? "Search Particles"
                     : "Run command"
@@ -184,8 +197,6 @@ export function ParticleComposer({
                   className="size-4 animate-spin motion-reduce:animate-none"
                   aria-hidden
                 />
-              ) : saved && !input ? (
-                <CheckIcon className="size-4" aria-hidden />
               ) : (
                 <ArrowUpIcon className="size-4" aria-hidden />
               )}

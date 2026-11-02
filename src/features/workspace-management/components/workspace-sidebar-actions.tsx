@@ -32,6 +32,7 @@ export function WorkspaceSidebarActions({ children }: { children?: ReactNode }) 
         }} /> : null}
       </SidebarMenuSubItem>)}
     </SidebarMenuSub> : <p className="px-[var(--shell-rail-item-padding,0.5rem)] py-2 text-sm text-muted-foreground">No workspaces</p>}
+    {scope.canEdit && <SidebarMenuSub><SidebarMenuSubItem><SidebarMenuSubButton asChild><Link href="/workspace/shared-pages">Shared pages</Link></SidebarMenuSubButton></SidebarMenuSubItem></SidebarMenuSub>}
     {scope.workspaces.length > 0 ? children : null}
     </CollapsibleContent>
     {dialog?.kind === "edit" ? <WorkspaceNameDialog key={`${scope.orgId}:${dialog.workspace?.id ?? "create"}`} orgId={scope.orgId} workspace={dialog.workspace} returnFocus={dialog.returnFocus} onClose={() => setDialog(null)} onSaved={(workspaces, id, created) => {

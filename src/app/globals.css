@@ -4,6 +4,22 @@
 @import "../components/scroll-reveal.css";
 @import "../components/gradual-blur.css";
 
+@source "../../node_modules/@openai/apps-sdk-ui/dist/es";
+@particle-ui-foundation;
+
+/* Shared Particle adaptation: honor reduced motion, including portaled controls. */
+@media (prefers-reduced-motion: reduce) {
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)),
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu))::before,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu))::after,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *::before,
+  :where(.particle-ui, [data-radix-popper-content-wrapper]:has(.particle-ui-menu)) *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -58,6 +74,12 @@
     "Liberation Mono", "Courier New", monospace;
   --radius: 0.65rem;
   --app-surface: var(--background);
+  /* Planning state, not arbitrary section identity; see docs/design.md. */
+  --planning-active: light-dark(#1d4ed8, #93c5fd);
+  --planning-review: light-dark(#92400e, #fcd34d);
+  --planning-complete: light-dark(#047857, #6ee7b7);
+  --planning-complete-foreground: light-dark(white, #022c22);
+  --planning-blocked: var(--destructive);
   --surface: oklch(0.97 0 0);
   color-scheme: light;
   --background: oklch(1 0 0);
@@ -225,6 +247,10 @@ html body:has([data-public-home-landing]) {
 }
 
 @layer base {
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
   html {
     min-height: 100%;
     background-color: var(--app-surface);
@@ -326,46 +352,6 @@ html body:has([data-public-home-landing]) {
   .tiptap li > p {
     margin: 0;
     display: inline;
-  }
-
-  @keyframes show-top-mask {
-    from {
-      --top-mask-height: 0px;
-    }
-
-    to {
-      --top-mask-height: var(--mask-height);
-    }
-  }
-
-  @keyframes hide-bottom-mask {
-    from {
-      --bottom-mask-height: var(--mask-height);
-    }
-
-    to {
-      --bottom-mask-height: 0px;
-    }
-  }
-
-  @keyframes show-left-mask {
-    from {
-      --left-mask-width: 0px;
-    }
-
-    to {
-      --left-mask-width: var(--mask-width);
-    }
-  }
-
-  @keyframes hide-right-mask {
-    from {
-      --right-mask-width: var(--mask-width);
-    }
-
-    to {
-      --right-mask-width: 0px;
-    }
   }
 }
 
@@ -962,119 +948,77 @@ body[style*="pointer-events: none"] .workspace-flow * {
   }
 }
 
-@property --top-mask-height {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 0px;
-}
-
-@property --bottom-mask-height {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 64px;
-}
-
-@property --left-mask-width {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 0px;
-}
-
-@property --right-mask-width {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 64px;
-}
-
+/* Measured distances keep both edges clear before hydration and at scroll limits.
+   Cap fades to a quarter of the viewport so short panes stay readable. */
 @utility scroll-fade-effect-y {
-  --mask-height: 64px;
-  --mask-offset-top: 0px;
-  --mask-offset-bottom: 0px;
+  --mask-height: 2rem;
   --scroll-buffer: 2rem;
-  mask-image:
-    linear-gradient(to top, transparent, black 90%),
-    linear-gradient(to bottom, transparent 0%, black 100%),
-    linear-gradient(black, black);
-  mask-size:
-    100% var(--top-mask-height),
-    100% var(--bottom-mask-height),
-    100% 100%;
-  mask-repeat: no-repeat, no-repeat, no-repeat;
-  mask-position:
-    0 var(--mask-offset-top),
-    0 calc(100% - var(--mask-offset-bottom)),
-    0 0;
-  mask-composite: exclude;
-  animation-name: show-top-mask, hide-bottom-mask;
-  animation-timeline: scroll(self), scroll(self);
-  animation-range:
-    0 var(--scroll-buffer),
-    calc(100% - var(--scroll-buffer)) 100%;
-  animation-fill-mode: both;
+  --scroll-fade-start-distance: 0px;
+  --scroll-fade-end-distance: 0px;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black
+      min(
+        var(--mask-height),
+        var(--scroll-buffer),
+        var(--scroll-fade-start-distance),
+        25%
+      ),
+    black
+      calc(
+        100% -
+          min(
+            var(--mask-height),
+            var(--scroll-buffer),
+            var(--scroll-fade-end-distance),
+            25%
+          )
+      ),
+    transparent
+  );
 }
 
 @utility scroll-fade-effect-x {
-  --mask-width: 64px;
-  --mask-offset-left: 0px;
-  --mask-offset-right: 0px;
+  --mask-width: 2rem;
   --scroll-buffer: 2rem;
-  mask-image:
-    linear-gradient(to left, transparent, black 90%),
-    linear-gradient(to right, transparent 0%, black 100%),
-    linear-gradient(black, black);
-  mask-size:
-    var(--left-mask-width) 100%,
-    var(--right-mask-width) 100%,
-    100% 100%;
-  mask-repeat: no-repeat, no-repeat, no-repeat;
-  mask-position:
-    var(--mask-offset-left) 0,
-    calc(100% - var(--mask-offset-right)) 0,
-    0 0;
-  mask-composite: exclude;
-  animation-name: show-left-mask, hide-right-mask;
-  animation-timeline: scroll(self inline), scroll(self inline);
-  animation-range:
-    0 var(--scroll-buffer),
-    calc(100% - var(--scroll-buffer)) 100%;
-  animation-fill-mode: both;
+  --scroll-fade-start-distance: 0px;
+  --scroll-fade-end-distance: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black
+      min(
+        var(--mask-width),
+        var(--scroll-buffer),
+        var(--scroll-fade-start-distance),
+        25%
+      ),
+    black
+      calc(
+        100% -
+          min(
+            var(--mask-width),
+            var(--scroll-buffer),
+            var(--scroll-fade-end-distance),
+            25%
+          )
+      ),
+    transparent
+  );
 }
 
-.scroll-fade-effect-y[data-scroll-fade-managed="true"],
-.scroll-fade-effect-x[data-scroll-fade-managed="true"] {
-  animation: none !important;
-}
-
-.scroll-fade-effect-y[data-scroll-fade-managed="true"][data-scroll-fade-start="hidden"][data-scroll-fade-end="hidden"],
-.scroll-fade-effect-x[data-scroll-fade-managed="true"][data-scroll-fade-start="hidden"][data-scroll-fade-end="hidden"] {
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
-}
-
-.scroll-fade-effect-y[data-scroll-fade-managed="true"] {
-  --top-mask-height: 0px !important;
-  --bottom-mask-height: 0px !important;
-}
-
-.scroll-fade-effect-y[data-scroll-fade-start="visible"] {
-  --top-mask-height: var(--mask-height) !important;
-}
-
-.scroll-fade-effect-y[data-scroll-fade-end="visible"] {
-  --bottom-mask-height: var(--mask-height) !important;
-}
-
-.scroll-fade-effect-x[data-scroll-fade-managed="true"] {
-  --left-mask-width: 0px !important;
-  --right-mask-width: 0px !important;
-}
-
-.scroll-fade-effect-x[data-scroll-fade-start="visible"] {
-  --left-mask-width: var(--mask-width) !important;
-}
-
-.scroll-fade-effect-x[data-scroll-fade-end="visible"] {
-  --right-mask-width: var(--mask-width) !important;
+/* Clear fallback without measurement; never fade a completed or empty list.
+   Keyboard focus must remain fully visible, including the viewport's own ring. */
+.scroll-fade-effect-y:not([data-scroll-fade-managed="true"]),
+.scroll-fade-effect-x:not([data-scroll-fade-managed="true"]),
+.scroll-fade-effect-y[data-scroll-fade-start="hidden"][data-scroll-fade-end="hidden"],
+.scroll-fade-effect-x[data-scroll-fade-start="hidden"][data-scroll-fade-end="hidden"],
+.scroll-fade-effect-y:focus-visible,
+.scroll-fade-effect-x:focus-visible,
+.scroll-fade-effect-y:has(:focus-visible),
+.scroll-fade-effect-x:has(:focus-visible) {
+  mask-image: none;
 }
 
 /* The public front page uses borders and glass, without decorative elevation.
@@ -1087,4 +1031,75 @@ html:has([data-public-home-flat-surfaces]) body *::after {
   --tw-shadow: 0 0 #0000 !important;
   --tw-inset-shadow: 0 0 #0000 !important;
   --tw-drop-shadow: drop-shadow(0 0 0 transparent) !important;
+}
+
+
+/* Shared floating-dock material for workspace overlay shells. Apply once per
+   surface, not to nested controls; solid fallback keeps content readable. */
+:root {
+  --canvas-overlay-solid: light-dark(#f5f5f5, #171717);
+  --canvas-overlay-tint: light-dark(rgb(245 245 245 / 0.72), rgb(23 23 23 / 0.86));
+  --canvas-overlay-border: light-dark(rgb(212 212 212 / 0.65), rgb(64 64 64 / 0.7));
+}
+.canvas-glass {
+  background: var(--canvas-overlay-solid);
+  border-color: var(--canvas-overlay-border);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000);
+}
+@supports ((backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px))) {
+  .canvas-glass {
+    background: var(--canvas-overlay-tint);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+}
+.workspace-loading-surface {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Reveal ready regions once, without delaying data or animating node positions. */
+@keyframes workspace-content-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-layout-surface {
+    animation: workspace-content-reveal 180ms ease-out;
+  }
+
+  .workspace-layout-surface[data-canvas-ready="true"] .react-flow__viewport {
+    animation: workspace-content-reveal 180ms ease-out;
+  }
+
+  [data-workspace-retained-panel][data-state="active"]:not(:has([data-workspace-panel-loading])) {
+    animation: workspace-content-reveal 160ms ease-out;
+  }
+}
+
+/* Moving cards should not repeatedly rasterize every floating glass surface.
+   Restore the normal material as soon as React Flow finishes the gesture. */
+@media (forced-colors: none) {
+  .workspace-layout-surface:has(.workspace-flow .react-flow__node.dragging) .canvas-glass {
+    background: var(--canvas-overlay-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .canvas-glass {
+    background: var(--canvas-overlay-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .canvas-glass {
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

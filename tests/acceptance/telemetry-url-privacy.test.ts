@@ -25,6 +25,9 @@ describe("analytics URL privacy", () => {
     "/fiscal-sponsorship/sign/fixture-packet",
     "/fiscal-sponsorship/w9/fixture-project",
     "/%66iscal-sponsorship/sign/fixture-packet",
+    "/forms/responses/10000000-0000-4000-8000-000000000080",
+    "/forms/responses/10000000-0000-4000-8000-000000000080?private=1",
+    "/%66orms/responses/10000000-0000-4000-8000-000000000080",
   ])("suppresses private workflow URLs, including identifiers in paths: %s", (path) => {
     expect(filterPrivateTelemetry({ url: `https://coach.test${path}` })).toBeNull()
   })

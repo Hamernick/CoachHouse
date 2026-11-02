@@ -3,7 +3,7 @@ import type { WorkspaceCanvasDrawerTab } from "./workspace-canvas-overlay-drawer
 export type WorkspaceContentWindowGeometry = { width: number; height: number }
 
 // All dimensions are canvas-local CSS pixels. Include the measured composer in
-// dockHeight so multiline input can never cover the window or its controls.
+// dockHeight so multiline input has clearance in the regular window layout.
 export function resolveWorkspaceContentWindowGeometry({
   canvasWidth,
   canvasHeight,
@@ -21,39 +21,39 @@ export function resolveWorkspaceContentWindowGeometry({
 }): WorkspaceContentWindowGeometry | null {
   if (
     ![canvasWidth, canvasHeight, dockHeight].every(Number.isFinite) ||
-    dockHeight < 0
+    dockHeight < 0 || canvasWidth <= 16 || canvasHeight <= 0
   )
     return null
+  // Fullscreen owns the canvas; the dock stays layered above its padded body.
+  if (maximized) return { width: canvasWidth, height: canvasHeight }
   // Organization is a canvas-local sidebar that expands from its profile trigger.
   if (tab === "organization") {
     // On narrower canvases the centered dock intersects the sidebar width.
     const width = Number.isFinite(preferredWidth) ? Math.max(440, preferredWidth) : 440
-    const bottom = maximized || canvasWidth < 1424 + 2 * (width - 440) ? dockHeight + 16 : 8
+    const bottom = canvasWidth < 1424 + 2 * (width - 440) ? dockHeight + 16 : 8
     const height = canvasHeight - 8 - bottom
     if (canvasWidth <= 16 || height <= 0) return null
     return {
-      width: maximized ? canvasWidth - 16 : Math.min(width, canvasWidth - 16),
+      width: Math.min(width, canvasWidth - 16),
       height,
     }
   }
-  // Reserve the taller touch-navigation rows in workspace-dock.module.css.
-  // Mouse layouts start 12px higher; both retain composer and edge clearance.
-  const top = canvasWidth <= 700 ? 120 : 70
-  const availableHeight = canvasHeight - dockHeight - top - 16
+  // Use the canvas height with an 8px top inset and clearance above the dock.
+  const availableHeight = canvasHeight - dockHeight - 16
   if (canvasWidth <= 16 || availableHeight <= 0) return null
   const availableWidth = canvasWidth - 16
   // Accelerator's overview uses two columns at 640px of inner width (18px
   // shell/panel inset). Give its stacked layout a readable single-column width.
   const acceleratorStacked = availableWidth < 658
   const size = tab === "tools"
-    ? { width: 560, height: 360 }
+    ? { width: 560 }
     : tab === "documents"
-      ? { width: 760, height: 560 }
+      ? { width: 760 }
       : tab === "accelerator"
-        ? { width: acceleratorStacked ? 520 : 1040, height: acceleratorStacked ? 1200 : 1000 }
-        : { width: 960, height: 560 }
+        ? { width: acceleratorStacked ? 520 : 1040 }
+        : { width: 960 }
   return {
-    width: maximized ? availableWidth : Math.min(size.width, availableWidth),
-    height: maximized ? availableHeight : Math.min(size.height, availableHeight),
+    width: Math.min(size.width, availableWidth),
+    height: availableHeight,
   }
 }

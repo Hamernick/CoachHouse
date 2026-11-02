@@ -17,12 +17,13 @@ export function ParticleWidgetPreview({
   onEdit,
   onOpen,
   onNotesDraftChange,
+  expanded,
 }: ParticlePreviewProps) {
   if (particle.type !== "activity" || !particle.data.widget) return null
   const widget = particle.data.widget
   if (widget.kind === "opportunity") return <WorkspaceOpportunityPreview organizationId={widget.organizationId} opportunityId={widget.opportunityId} />
   if (widget.kind === "form")
-    return <ParticleFormPreview definition={widget.definition} />
+    return <ParticleFormPreview definition={widget.definition} expanded={expanded} />
   if (widget.kind === "notes") {
     if (widget.source.kind === "module")
       return (

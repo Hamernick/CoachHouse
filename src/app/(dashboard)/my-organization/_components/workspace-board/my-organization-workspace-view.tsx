@@ -1,13 +1,19 @@
 "use client"
 
+import dynamic from "next/dynamic"
+import { WorkspacePageLoading } from "@/components/workspace/workspace-page-loading"
 import { WorkspaceManagementBridge } from "@/features/workspace-management/client"
-import { WorkspaceBoardCanvas } from "./workspace-board-canvas"
 import type { WorkspaceFinanceInput } from "@/features/workspace-finance"
 import type {
   WorkspaceCardId,
   WorkspaceOrganizationEditorData,
   WorkspaceSeedData,
 } from "./workspace-board-types"
+
+const WorkspaceBoardCanvas = dynamic(
+  () => import("./workspace-board-canvas").then((module) => module.WorkspaceBoardCanvas),
+  { ssr: false, loading: () => <WorkspacePageLoading embedded /> }
+)
 
 export function MyOrganizationWorkspaceView({
   initialFocusCardId,

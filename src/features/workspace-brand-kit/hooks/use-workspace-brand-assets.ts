@@ -8,9 +8,9 @@ import type { WorkspaceBrandKitProfileEditorProps } from "../components/workspac
 import { resolveWorkspaceBrandIdentity } from "../lib/brand-identity-profile"
 import { brandFileEndpoint, loadWorkspaceBrandOriginal, resolveWorkspaceBrandAssetUrl, workspaceBrandAssetPreviews } from "../lib/brand-identity-assets"
 
-export function useWorkspaceBrandAssets({ profile, onChange, onBusyChange, readOnly }: WorkspaceBrandKitProfileEditorProps) {
-  const latest = useRef({ profile, onChange })
-  latest.current = { profile, onChange }
+export function useWorkspaceBrandAssets({ profile, onChange, onAutoSave, inlineEdit, onBusyChange, readOnly }: WorkspaceBrandKitProfileEditorProps) {
+  const latest = useRef({ profile, onChange, onAutoSave, inlineEdit })
+  latest.current = { profile, onChange, onAutoSave, inlineEdit }
   const mounted = useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -60,7 +60,8 @@ export function useWorkspaceBrandAssets({ profile, onChange, onBusyChange, readO
         fileId: result.file.id, name: result.file.name, type: result.file.mimeType,
         size: result.file.sizeBytes, updatedAt: result.file.updatedAt,
       } } })
-      latest.current.onChange({ brandIdentity: value })
+      if (latest.current.inlineEdit) await latest.current.onAutoSave({ brandIdentity: value, expectedOrganizationId: organizationId })
+      else latest.current.onChange({ brandIdentity: value })
       return true
     } finally { if (mounted.current) setBusy(false) }
   }

@@ -2,7 +2,7 @@
 import { useRef, useState } from "react"
 import { ChevronDown, Ellipsis } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { OpportunityTextField } from "./opportunity-text-field"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import type { OpportunityReportFact } from "../lib/opportunity-report"
@@ -22,8 +22,8 @@ export function OpportunityFactRow({ item, row, disabled, onChange, onRemove }: 
     setOpen(next)
   }} className="space-y-1">
     <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_28px] items-start gap-2 [@media(pointer:coarse)]:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_44px]">
-      <Textarea rows={1} aria-label={`Fact ${row + 1} label`} placeholder="Label" maxLength={80} value={item.label} disabled={disabled} className="min-h-9 min-w-0 resize-none border-0 bg-transparent px-1 py-2 text-muted-foreground shadow-none dark:bg-transparent" onChange={event => onChange({ ...item, label: event.target.value })} />
-      {item.costs ? <CollapsibleTrigger asChild><Button type="button" variant="ghost" aria-label={`${item.label || `Fact ${row + 1}`} cost breakdown`} className="h-auto min-h-9 min-w-0 justify-between gap-1 rounded-md px-1 py-2 text-left font-normal tabular-nums"><span className="min-w-0 break-words whitespace-normal">{costLabel(item)}</span><ChevronDown aria-hidden="true" className={`size-3.5 shrink-0 ${open ? "rotate-180" : ""}`} /></Button></CollapsibleTrigger> : <Textarea rows={1} aria-label={`Fact ${row + 1} value`} placeholder="Value" maxLength={500} value={item.value} disabled={disabled} className="min-h-9 min-w-0 resize-none border-0 bg-transparent px-1 py-2 shadow-none dark:bg-transparent" onChange={event => onChange({ ...item, value: event.target.value })} />}
+      <OpportunityTextField rows={1} aria-label={`Fact ${row + 1} label`} placeholder="Label" maxLength={80} value={item.label} disabled={disabled} className="min-h-9 min-w-0 resize-none border-0 bg-transparent px-1 py-2 text-muted-foreground shadow-none dark:bg-transparent" onChange={event => onChange({ ...item, label: event.target.value })} />
+      {item.costs ? <CollapsibleTrigger asChild><Button type="button" variant="ghost" aria-label={`${item.label || `Fact ${row + 1}`} cost breakdown`} className="h-auto min-h-9 min-w-0 justify-between gap-1 rounded-md px-1 py-2 text-left font-normal tabular-nums"><span className="min-w-0 break-words whitespace-normal">{costLabel(item)}</span><ChevronDown aria-hidden="true" className={`size-3.5 shrink-0 ${open ? "rotate-180" : ""}`} /></Button></CollapsibleTrigger> : <OpportunityTextField rows={1} aria-label={`Fact ${row + 1} value`} placeholder="Value" maxLength={500} value={item.value} disabled={disabled} className="min-h-9 min-w-0 resize-none border-0 bg-transparent px-1 py-2 shadow-none dark:bg-transparent" onChange={event => onChange({ ...item, value: event.target.value })} />}
       <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" size="icon" variant="ghost" disabled={disabled} className="h-9 w-7 shrink-0 rounded-lg [@media(pointer:coarse)]:size-11" aria-label={`Options for fact ${row + 1}`}><Ellipsis className="size-4" aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
         {!item.costs ? <DropdownMenuItem onSelect={() => { onChange({ ...item, costs: { currency: "USD", items: [] } }); setOpen(true) }}>Add cost breakdown</DropdownMenuItem> : <DropdownMenuItem onSelect={() => { const next = { ...item }; delete next.costs; onChange(next); setOpen(false) }}>Remove cost breakdown</DropdownMenuItem>}
         <DropdownMenuItem variant="destructive" onSelect={onRemove}>Remove fact</DropdownMenuItem>

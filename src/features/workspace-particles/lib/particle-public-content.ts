@@ -36,7 +36,7 @@ const googleLink = z.url().refine((value) => {
 
 /** Public DTO, deliberately independent of the board/domain payload. Every
  * object is strict: adding a private field fails instead of publishing it.
- * Asset IDs identify future explicit public grants, never private file paths.
+ * Asset IDs identify explicit page grants, never private file paths.
  */
 export const publicParticleContentSchema = z.strictObject({
   id: z.uuid(),
@@ -60,12 +60,15 @@ export const publicParticleContentSchema = z.strictObject({
     z.strictObject({
       kind: z.literal("form"),
       definition: publishedFormDefinitionSchema,
+      intakeVersionId: z.uuid().optional(),
     }),
     z.strictObject({ kind: z.literal("drive_link"), href: googleLink }),
     z.strictObject({
       kind: z.literal("image"),
       assetId: z.uuid(),
       alt: z.string().max(1000),
+      width: z.int().min(1).max(2048).optional(),
+      height: z.int().min(1).max(2048).optional(),
     }),
     z.strictObject({
       kind: z.literal("document"),

@@ -46,7 +46,7 @@ describe("permission-aware research contracts",()=>{
     expect(objective.data.planning?.proposals[0].particleIds).toContain(ID(2))
     expect(after.particles.find(item=>item.id===ID(2))).toEqual(before.particles[1])
     expect(particlePlanningPermissionError(before,after,{userId:ID(6),isOrganizationOwner:false},now)).toBeNull()
-    expect(particleConnectionsToFlow(after).filter(edge=>edge.ariaLabel==="Proposed plan relationship")).toHaveLength(2)
+    expect(particleConnectionsToFlow(after).map(edge=>edge.ariaLabel)).toEqual(["Proposed Plan membership: Proposed plan", "Proposed Dependency: Proposed plan"])
     expect(researchPlanOperations(after,result,ID(6),now,()=>ID(n++))).toEqual([])
   })
   it("rejects stale objectives and never overwrites concurrent work",()=>{

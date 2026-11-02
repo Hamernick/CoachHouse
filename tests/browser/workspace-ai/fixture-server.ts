@@ -4,6 +4,8 @@ import { initialSection, additionalSection, scope } from "./fixture-data"
 
 // Deterministic UI simulator only. Real authorization, CAS, accounting and atomic
 // application SQL are exercised separately by acceptance and disposable-PG tests.
+// Server memory emulates private persistence; never browser storage.
+const privateDrafts = new Map<string, { revision: number; draft: unknown; attempted: boolean; editId?: string }>()
 export function fixtureServer(): Plugin {
   let section = structuredClone(initialSection)
   let secondSection=structuredClone(additionalSection)
@@ -29,6 +31,16 @@ export function fixtureServer(): Plugin {
         for await (const chunk of req) chunks.push(Buffer.from(chunk))
         const body = JSON.parse(Buffer.concat(chunks).toString() || "{}")
         const sameScope = (target: AiDocumentTarget) => target?.userId === scope.userId && target?.organizationId === scope.organizationId
+        if (path === "/__fixture/research-draft") {
+          const old = privateDrafts.get(body.id) ?? { revision: 0, draft: null, attempted: false }
+          const input = body.input
+          if (input && input.editId !== old.editId) {
+            if (input.revision !== old.revision) { json({ error: "Draft changed elsewhere. Reopen research before saving.", conflict: true }); return }
+            privateDrafts.set(body.id, { revision: old.revision + 1, draft: input.draft, attempted: input.attempted, editId: input.editId })
+          }
+          const saved = privateDrafts.get(body.id) ?? old
+          json({ checkpoint: { revision: saved.revision, draft: saved.draft, attempted: saved.attempted } }); return
+        }
         if (path === "/__fixture/reset") {
           section = structuredClone(initialSection); secondSection=structuredClone(additionalSection); runs = new Map(); saves = 0; generations = 0
           control = { delaySave: 0, delayGeneration: 0, dropSaveReply: false, failGeneration: false, omitTerminal: false }

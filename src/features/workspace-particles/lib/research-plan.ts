@@ -7,6 +7,23 @@ import type { ResearchResult } from "@/features/workspace-ai/client"
 
 /** One revision-checked pending proposal; accepted work stays untouched until owner review. */
 export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult,actorId:string,now:string,uuid:()=>string):ParticleOperation[] {
+  if (result.target.mode === "new_objective") {
+    if (graph.workspaceId !== result.target.organizationId) throw new Error("Workspace unavailable.")
+    // The durable origin survives expired graph receipts and reviewed proposals.
+    if (graph.particles.some(p => p.type === "objective" &&
+      [...(p.data.planning?.plans ?? []), ...(p.data.planning?.proposals ?? [])].some(plan => plan.researchRunId === result.runId))) return []
+    if (graph.revision !== result.target.revision) throw new Error("Workspace changed. Research again before adding this proposal.")
+    const objective = createParticle("objective", { id: uuid(), workspaceId: graph.workspaceId, title: result.title, now })
+    objective.description = result.summary
+    objective.position = { x: 0, y: graph.particles.length ? Math.max(...graph.particles.map(p => p.position.y)) + 320 : 0 }
+    objective.positionMode = "managed"
+    // In-memory validation only. The canonical writer commits this objective and
+    // every proposed member together; admission/generation never save a placeholder.
+    const operations = researchPlanOperations({ ...graph, particles: [...graph.particles, objective] },
+      { ...result, target: { organizationId: graph.workspaceId, objectiveId: objective.id, revision: objective.revision } }, actorId, now, uuid)
+    return operations.map(operation => operation.kind === "put_particle" && operation.particle.id === objective.id
+      ? { ...operation, expectedRevision: null } : operation)
+  }
   const objective=graph.particles.find(p=>p.id===result.target.objectiveId)
   if(objective?.type!=="objective" || graph.workspaceId!==result.target.organizationId) throw new Error("Objective unavailable.")
   if(objective.data.planning?.proposals.some(p=>p.researchRunId===result.runId) || objective.data.planning?.plans.some(p=>p.researchRunId===result.runId)) return []
@@ -18,7 +35,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
   // Saved runs from before declared branches used the registry’s unselected defaults.
   if(result.decisions===undefined) result={...result,decisions:result.items.filter(item=>item.kind==="decision").map(item=>({itemKey:item.key,
     outcomes:particleRegistry.decision.defaults().outcomes.map(outcome=>({key:outcome.id,label:outcome.label,next:[]}))}))}
-  const {sources,target,runId,...generated}=result
+  const {sources,target,runId,dependencies:_dependencies,...generated}=result
   bindResearch(JSON.stringify({...generated,decisions:result.decisions??[],removeReferences:result.removeReferences??[]}),sources,target,runId,
     new Map(graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[])))
   if(!result.items.length && !removed.size) throw new Error("Answer the research questions before adding a plan.")
@@ -67,6 +84,8 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
   if(combinedSources.length>40) throw new Error("This revision exceeds the plan’s 40-source limit. Narrow the research before adding it.")
   const proposal=particlePlanProposalSchema.parse({id:uuid(),planId:plan?.id??uuid(),baseRevision:plan?.revision??null,title:result.title,
     particleIds:[...new Set([...(plan?.particleIds??[]).filter(id=>!removed.has(id)),...byKey.values()])],links:[...preservedLinks,...links,...decisionLinks],
+    ...(plan?.optionalParticleIds ? { optionalParticleIds: plan.optionalParticleIds.filter(id => !removed.has(id)) } : {}),
+    ...(plan?.assignments ? { assignments: plan.assignments.filter(item => !removed.has(item.particleId)) } : {}),
     authorId:actorId,createdAt:now,status:"pending",researchRunId:result.runId,summary:result.summary,
     sources:combinedSources})
   const updated={...objective,data:{...objective.data,planning:{plans:objective.data.planning?.plans??[],proposals:[...(objective.data.planning?.proposals??[]),proposal]}}}

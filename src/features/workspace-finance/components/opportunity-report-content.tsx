@@ -11,7 +11,7 @@ export function OpportunityReportImage({ block, organizationId }: { block: Extra
   if (!image.url) return <div className="flex aspect-video items-center justify-center rounded-xl bg-muted/40 p-3"><p role={image.error ? "alert" : "status"} className="text-xs text-muted-foreground">{image.error ?? "Loading image…"}</p></div>
   // Authenticated, short-lived storage URLs are issued by the existing file service.
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={image.url} alt={block.alt} loading="lazy" className="aspect-video w-full rounded-xl bg-muted/40 object-contain" />
+  return <img src={image.url} alt={block.alt} loading="lazy" draggable={false} className="block h-auto w-full rounded-xl bg-muted/40 object-contain" />
 }
 export function OpportunityReportContent({ report, options, organizationId, onOpenSource }: {
   report: OpportunityReport; options: OpportunitySourceOption[]; organizationId?: string; onOpenSource?: (id: string) => boolean

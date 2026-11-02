@@ -115,11 +115,11 @@ describe("authorized calendar reads", () => {
     const boardRead = vi.fn().mockResolvedValue({ data: { state: { particleGraph: graph([event()]) } }, error: null })
     const board = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: boardRead }
     const table = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
-      lte: vi.fn().mockReturnThis(), or: vi.fn().mockReturnThis(), then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve) }
+      neq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), lte: vi.fn().mockReturnThis(), or: vi.fn().mockReturnThis(), then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve) }
     const sdk = { auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ID(888) } }, error: null }) },
       from: vi.fn((name: string) => name === "organization_workspace_boards" ? board : table) }
     createSupabaseServerClientServerMock.mockResolvedValue(sdk)
-    return { sdk, board, boardRead }
+    return { sdk, board, boardRead, table }
   }
 
   it("scopes the read to the authorized organization and lists Event particles internally", async () => {
@@ -127,6 +127,8 @@ describe("authorized calendar reads", () => {
     const result = await listRoadmapCalendarEvents({ calendarType: "internal" })
     expect(result).toMatchObject({ ok: true, orgId: WORKSPACE, events: [{ id: `particle:${ID(30)}` }] })
     expect(f.board.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
+    expect(f.sdk.from).toHaveBeenCalledWith("organization_finance_opportunities")
+    expect(f.table.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
     expect(f.boardRead).toHaveBeenCalledOnce()
   })
 
@@ -134,6 +136,7 @@ describe("authorized calendar reads", () => {
     const f = client()
     expect(await listRoadmapCalendarEvents({ calendarType: "public" })).toMatchObject({ ok: true, events: [] })
     expect(f.boardRead).not.toHaveBeenCalled()
+    expect(f.sdk.from).not.toHaveBeenCalledWith("organization_finance_opportunities")
     f.sdk.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: null } as never)
     expect(await listRoadmapCalendarEvents({ calendarType: "internal" })).toEqual({ error: "Not authenticated." })
     expect(f.boardRead).not.toHaveBeenCalled()

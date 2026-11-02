@@ -1,6 +1,7 @@
 "use client"
 
-import { Input } from "@/components/ui/input"
+import { BrandTextField } from "./brand-text-field"
+import { ColorPicker } from "@/components/ui/color-picker"
 import { Label } from "@/components/ui/label"
 
 import type { BrandIdentityColor, BrandIdentityDraft } from "../../types"
@@ -20,16 +21,18 @@ import {
 
 export function PaletteSection({
   draft,
-  updateDraft,
+  updateDraft, inlineEdit = false, disabled = false,
 }: {
+  inlineEdit?: boolean
+  disabled?: boolean
   draft: BrandIdentityDraft
-  updateDraft: (value: Partial<BrandIdentityDraft>) => void
+  updateDraft: (value: Partial<BrandIdentityDraft>) => void | Promise<void>
 }) {
   const updateColor = (
     id: BrandIdentityColor["id"],
     value: Partial<BrandIdentityColor>
   ) => {
-    updateDraft({
+    return updateDraft({
       colors: draft.colors.map((color) =>
         color.id === id ? { ...color, ...value } : color
       ),
@@ -58,21 +61,19 @@ export function PaletteSection({
               className="overflow-hidden rounded-xl border"
               style={{ backgroundColor: value, color: foregroundFor(value) }}
             >
-              <div className="min-h-40 p-4">
+              <div className="flex h-40 flex-col p-4">
                 <p className="text-sm font-semibold">{color.role}</p>
-                {color.name.trim() ? (
-                  <p className="mt-1 text-xs break-words opacity-80">
-                    {color.name.trim()}
-                  </p>
-                ) : null}
-                <dl className="mt-16 grid grid-cols-[3rem_1fr] gap-y-1 font-mono text-[0.68rem] opacity-80">
+                <p className="mt-1 min-h-4 line-clamp-2 text-xs break-words opacity-80" title={color.name.trim() || undefined}>
+                  {color.name.trim()}
+                </p>
+                <dl className="mt-auto grid grid-cols-[3rem_1fr] gap-y-1 font-mono text-[0.68rem] opacity-80">
                   <dt>HEX</dt>
                   <dd>{value}</dd>
                   <dt>RGB</dt>
                   <dd>{rgbLabel(value)}</dd>
                 </dl>
               </div>
-              <div className="bg-background text-foreground grid grid-cols-[1fr_7rem] gap-3 border-t p-3">
+              <div className="bg-background text-foreground grid grid-cols-[minmax(0,1fr)_9.5rem] gap-3 border-t p-3">
                 <div>
                   <Label
                     htmlFor={`color-name-${color.id}`}
@@ -80,16 +81,17 @@ export function PaletteSection({
                   >
                     Custom name (optional)
                   </Label>
-                  <Input
+                  <BrandTextField
                     id={`color-name-${color.id}`}
-                    name={`${color.id}-color-name`}
+                    inlineEdit={inlineEdit} disabled={disabled} maxLength={120}
+                    label={`${color.role} custom color name`}
                     value={color.name}
                     placeholder="Add your own name…"
                     className="mt-1"
-                    onChange={(event) =>
-                      updateColor(color.id, { name: event.target.value })
+                    onSave={(name) =>
+                      updateColor(color.id, { name })
                     }
-                    aria-label={`${color.role} custom color name`}
+
                   />
                 </div>
                 <div>
@@ -99,21 +101,22 @@ export function PaletteSection({
                   >
                     HEX
                   </Label>
-                  <Input
+                  <div className="mt-1 flex items-start gap-1">
+                  <div className="min-w-0 flex-1">
+                  <BrandTextField
                     id={`color-value-${color.id}`}
-                    name={`${color.id}-hex-value`}
+                    inlineEdit={inlineEdit} disabled={disabled} maxLength={7}
+                    label={`${color.role} hex value`}
+                    onBlur={() => { void updateColor(color.id, { value: normalizeHex(color.value) }) }}
                     value={color.value}
-                    className="mt-1"
-                    onChange={(event) =>
-                      updateColor(color.id, { value: event.target.value })
-                    }
-                    onBlur={(event) =>
-                      updateColor(color.id, {
-                        value: normalizeHex(event.target.value, value),
-                      })
-                    }
-                    aria-label={`${color.role} hex value`}
+                    onSave={(next) => {
+                      if (inlineEdit && !/^#[0-9a-f]{6}$/i.test(next)) throw new Error("Use a six-digit HEX color, such as #214E3B.")
+                      return updateColor(color.id, { value: inlineEdit ? normalizeHex(next) : next })
+                    }}
                   />
+                  </div>
+                  <ColorPicker value={value} label={color.role} disabled={disabled} onSelect={(value) => updateColor(color.id, { value })} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -151,18 +154,18 @@ export function PaletteSection({
               <Label htmlFor={`color-proportion-${color.id}`}>
                 {brandColorLabel(color)}
               </Label>
-              <Input
+              <BrandTextField
                 id={`color-proportion-${color.id}`}
-                type="number"
-                min={0}
-                max={100}
-                value={color.proportion}
+                inlineEdit={inlineEdit} disabled={disabled}
+                label={`${brandColorLabel(color)} proportion`}
+                value={String(color.proportion)}
+                type="number" min={0} max={100}
                 className="mt-2"
-                onChange={(event) =>
-                  updateColor(color.id, {
-                    proportion: Math.max(0, Number(event.target.value)),
-                  })
-                }
+                onSave={(value) => {
+                  const proportion = Number(value)
+                  if (inlineEdit && (!value.trim() || !Number.isFinite(proportion) || proportion < 0 || proportion > 100)) throw new Error("Enter a percentage from 0 to 100.")
+                  return updateColor(color.id, { proportion: Math.max(0, proportion) })
+                }}
               />
             </div>
           ))}

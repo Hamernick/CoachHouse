@@ -1,12 +1,14 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-import { Paperclip } from "lucide-react"
+import { Paperclip, Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command"
 import { opportunitySourceSchema, sourceKey, type OpportunitySource, type OpportunitySourceOption } from "../lib/opportunity-sources"
+import { useFundingSourceSearch } from "./use-funding-source-search"
 import { OpportunitySourcePill, SourceIcon } from "./opportunity-source-pill"
 
-export function OpportunitySourcesInput({ value, onChange, organizationId, options, loadOptions, loading, error, disabled, query, onQueryChange, onAttachFiles, commitOnBlur = false }: {
+export function OpportunitySourcesInput({ value, onChange, organizationId, options, loadOptions, loading, error, disabled, query, onQueryChange, onAttachFiles, commitOnBlur = false, fundingSearch = false }: {
+  fundingSearch?: boolean
   value: OpportunitySource[]; onChange: (sources: OpportunitySource[]) => void; organizationId: string
   options: OpportunitySourceOption[]; loadOptions: () => void; loading: boolean; error: string | null; disabled: boolean
   query: string; onQueryChange: (value: string) => void
@@ -15,6 +17,12 @@ export function OpportunitySourcesInput({ value, onChange, organizationId, optio
   const [message, setMessage] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const mention = query.startsWith("@")
+  const keyword = query.trim()
+  const canSearch = fundingSearch && !mention && !/^https?:/i.test(keyword) && keyword.length >= 2 && keyword.length <= 100
+  const grants = useFundingSourceSearch(organizationId, query, disabled || !canSearch)
+  const [focused, setFocused] = useState(false)
+  const showFunding = canSearch && focused
+  const fundingOptions = grants.state?.options.filter(item => !value.some(source => sourceKey(source) === sourceKey(item.source))) ?? []
   useEffect(() => {
     if (!commitOnBlur) return
     const text = query.trim()
@@ -36,15 +44,24 @@ export function OpportunitySourcesInput({ value, onChange, organizationId, optio
   }
   return <div className="min-w-0 space-y-1">
     {value.length > 0 && <div className="flex flex-wrap gap-1.5">{value.map(source => <OpportunitySourcePill key={sourceKey(source)} source={source} organizationId={organizationId} option={options.find(item => sourceKey(item.source) === sourceKey(source))} disabled={disabled} onRemove={() => onChange(value.filter(item => sourceKey(item) !== sourceKey(source)))} />)}</div>}
-    <Command shouldFilter={false} className="h-auto bg-transparent [&_[data-slot=command-input-wrapper]]:border-0 [&_[data-slot=command-input-wrapper]]:px-1 [&_[data-slot=command-input-wrapper]>svg]:hidden">
-      <div className="relative"><CommandInput ref={input} onBlur={() => { if (commitOnBlur && !mention) addTyped() }} aria-label="Sources" aria-expanded={mention} placeholder="Sources" className="pr-10" disabled={disabled} maxLength={2048} value={query} onPaste={event => {
+    <Command onFocus={() => setFocused(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }} shouldFilter={false} className="h-auto bg-transparent [&_[data-slot=command-input-wrapper]]:border-0 [&_[data-slot=command-input-wrapper]]:px-1 [&_[data-slot=command-input-wrapper]>svg]:hidden">
+      <div className="relative"><CommandInput ref={input} onBlur={() => { if (commitOnBlur && !mention) addTyped() }} aria-label="Sources" aria-expanded={mention || showFunding} placeholder="Sources" className="pr-10" disabled={disabled} maxLength={2048} value={query} onPaste={event => {
         const text = event.clipboardData.getData("text").trim()
         const parsed = opportunitySourceSchema.safeParse({ kind: "link", url: text })
         if (parsed.success) { event.preventDefault(); add(parsed.data) }
       }} onValueChange={text => { onQueryChange(text); setMessage(null); if (text.startsWith("@")) loadOptions() }} onKeyDown={event => {
-        if (event.key === "Escape" && mention) { event.preventDefault(); event.stopPropagation(); onQueryChange("") }
-        if (event.key === "Enter" && !mention) { event.preventDefault(); addTyped() }
+        if (event.key === "Escape" && (mention || showFunding)) { event.preventDefault(); event.stopPropagation(); onQueryChange("") }
+        if (event.key === "Enter" && !mention && !showFunding) { event.preventDefault(); addTyped() }
       }} /><Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 size-9 rounded-full [@media(pointer:coarse)]:size-11" disabled={disabled} aria-label="Attach files to Sources" onClick={onAttachFiles} onKeyDown={event => event.stopPropagation()}><Paperclip className="size-4" aria-hidden="true" /></Button></div>
+      {showFunding && <CommandList aria-label="Funding sources" className="max-h-52 rounded-xl bg-background/60 p-1">
+        {grants.state?.pending ? <p role="status" className="p-2 text-xs text-muted-foreground">Searching Grants.gov…</p> : <>
+          {!grants.state && <CommandItem value="add-source-text" disabled={disabled} onSelect={addTyped} className="min-h-11 gap-2 rounded-lg"><Plus className="size-4" aria-hidden /><span className="truncate">Add “{keyword}”</span></CommandItem>}
+          {grants.state?.error && <p role="alert" className="p-2 text-xs text-destructive">{grants.state.error}</p>}
+          {grants.state && !grants.state.error && !fundingOptions.length && <p role="status" className="p-2 text-xs text-muted-foreground">No new grants found.</p>}
+          {fundingOptions.map(item => <CommandItem key={sourceKey(item.source)} value={sourceKey(item.source)} disabled={disabled} onSelect={() => add(item.source)} className="min-h-11 gap-2 rounded-lg"><SourceIcon category={item.category} /><span className="min-w-0"><span className="line-clamp-2 text-sm">{item.title}</span><span className="line-clamp-1 text-xs text-muted-foreground">{item.description}</span></span></CommandItem>)}
+          <CommandItem value="search-funding" disabled={disabled} onSelect={() => void grants.search()} className="min-h-11 gap-2 rounded-lg"><Search className="size-4" aria-hidden /><span>{grants.state?.error ? "Retry Grants.gov" : "Search Grants.gov"}</span></CommandItem>
+        </>}
+      </CommandList>}
       {mention && <CommandList aria-label="Source suggestions" className="max-h-52 rounded-xl bg-background/60 p-1">
         {loading ? <p role="status" className="p-2 text-xs text-muted-foreground">Loading sources…</p> : error ? <p role="alert" className="p-2 text-xs text-destructive">{error}</p> : matches.length === 0 ? <p className="p-2 text-xs text-muted-foreground">No matching workspace sources.</p> : matches.map(item => <CommandItem key={sourceKey(item.source)} value={sourceKey(item.source)} disabled={disabled} onSelect={() => add(item.source)} className="min-h-11 gap-2 rounded-lg"><SourceIcon category={item.category} /><span className="min-w-0 flex-1 truncate">{item.title}</span><span className="text-xs capitalize text-muted-foreground">{item.category}</span></CommandItem>)}
       </CommandList>}

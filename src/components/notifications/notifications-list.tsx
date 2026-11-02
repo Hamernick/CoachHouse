@@ -1,129 +1,82 @@
 "use client"
 
+import BellIcon from "lucide-react/dist/esm/icons/bell"
+import MailIcon from "lucide-react/dist/esm/icons/mail"
+import MailOpenIcon from "lucide-react/dist/esm/icons/mail-open"
+import Loader2Icon from "lucide-react/dist/esm/icons/loader-2"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Empty } from "@/components/ui/empty"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-
-import { NotificationToneIcon } from "@/components/notifications/notification-tone-icon"
-import { type NotificationItem } from "@/components/notifications/types"
+import { NotificationToneIcon } from "./notification-tone-icon"
+import type { NotificationItem } from "./types"
 
 type NotificationsListProps = {
   items: NotificationItem[]
-  selectedId: string | null
   loading: boolean
   error: string | null
+  updating: boolean
+  activeActionId: string | null
+  requestUpdating: "accepted" | "declined" | null
   className?: string
   viewportClassName?: string
-  onRetry?: () => void
+  onRetry: () => void
   emptyLabel?: string
-  onSelect: (item: NotificationItem) => void
+  onOpen: (item: NotificationItem) => void
+  onToggleRead: (item: NotificationItem) => void
+  onRespond: (item: NotificationItem, status: "accepted" | "declined") => void
 }
 
-export function NotificationsList({
-  items,
-  selectedId,
-  loading,
-  error,
-  className,
-  viewportClassName,
-  onRetry,
-  emptyLabel = "Inbox is empty",
-  onSelect,
-}: NotificationsListProps) {
-  if (loading) {
-    return (
-      <ScrollArea
-        className={cn(
-          "min-h-[12rem] max-h-[min(34dvh,18rem)] overflow-hidden md:min-h-0 md:max-h-none",
-          className,
-        )}
-        viewportClassName={viewportClassName}
-      >
-        <div className="space-y-2 px-4 py-4">
-          {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="border-border/60 bg-background/60 flex items-start gap-3 rounded-lg border px-3 py-3">
-              <Skeleton className="mt-1 h-8 w-8 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-56" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-    )
-  }
-
-  if (error) {
-    return (
-      <div
-        className={cn(
-          "text-muted-foreground px-4 py-6 text-center text-xs",
-          className,
-        )}
-      >
-        Unable to load notifications.
-        <div className="mt-3">
-          <Button type="button" size="sm" variant="outline" onClick={onRetry ?? (() => window.location.reload())}>
-            Retry
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (items.length === 0) {
-    return (
-      <div
-        className={cn(
-          "text-muted-foreground px-4 py-6 text-center text-xs",
-          className,
-        )}
-      >
-        {emptyLabel}
-      </div>
-    )
-  }
-
+export function NotificationsList({ items, loading, error, updating, activeActionId, requestUpdating, className, viewportClassName, onRetry, emptyLabel = "No notifications yet.", onOpen, onToggleRead, onRespond }: NotificationsListProps) {
   return (
-    <ScrollArea
-      className={cn(
-        "min-h-[12rem] max-h-[min(34dvh,18rem)] overflow-hidden md:min-h-0 md:max-h-none",
-        className,
-      )}
-      viewportClassName={viewportClassName}
-    >
-      <div className="divide-border/60 divide-y">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="px-4 py-3"
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              className={cn(
-                "h-auto w-full min-w-0 justify-start gap-3 whitespace-normal rounded-lg p-2 text-left hover:bg-transparent",
-                selectedId === item.id ? "bg-accent/50" : "hover:bg-accent/30",
-              )}
-              aria-pressed={selectedId === item.id}
-              onClick={() => onSelect(item)}
-            >
-              <NotificationToneIcon tone={item.tone} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-foreground text-sm font-medium">{item.title}</p>
-                  {item.unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-sky-500 dark:bg-sky-400" aria-hidden /> : null}
-                </div>
-                <p className="text-muted-foreground mt-1 text-xs">{item.description}</p>
-                <p className="text-muted-foreground mt-2 text-[11px]">{item.time}</p>
-              </div>
-            </Button>
+    <ScrollArea className={cn("overflow-hidden", className)} viewportClassName={viewportClassName}>
+      {loading ? <div aria-busy="true" aria-label="Loading notifications" className="flex flex-col gap-1 p-2">
+        {Array.from({ length: 4 }, (_, index) => <div key={index} className="flex items-start gap-3 rounded-xl p-3">
+          <Skeleton className="size-9 shrink-0 rounded-xl" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-16" />
           </div>
-        ))}
-      </div>
+        </div>)}
+      </div> : error ? <Empty size="sm" variant="subtle" className="m-2 border-0 shadow-none" role="alert"
+        description="Unable to load notifications." actions={<Button type="button" size="sm" variant="outline" onClick={onRetry}>Retry</Button>} />
+      : items.length === 0 ? <Empty size="sm" variant="subtle" className="m-2 border-0 shadow-none" role="status" icon={<BellIcon aria-hidden="true" className="size-5" />} description={emptyLabel} />
+      : <ul aria-label="Notifications" className="flex flex-col gap-1 p-2 pt-0">
+        {items.map(item => {
+          const active = activeActionId === item.id
+          const text = <span className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className={cn("text-sm leading-5 break-words", item.unread ? "font-semibold text-foreground" : "font-medium text-foreground/80")}>
+              {item.title}<span className="sr-only">{item.unread ? ", unread" : ", read"}</span>
+            </span>
+            <span className="text-sm leading-5 whitespace-pre-wrap break-words font-normal text-muted-foreground">{item.description}</span>
+            <span className="mt-0.5 text-xs font-normal text-muted-foreground">{item.time}</span>
+          </span>
+          return <li key={item.id} className={cn("rounded-xl p-3 transition-colors", item.unread ? "bg-muted/60 hover:bg-muted" : "hover:bg-muted/40")}>
+            <div className="flex items-start gap-3">
+              <NotificationToneIcon tone={item.tone} />
+              {item.href ? <Button type="button" variant="ghost" disabled={updating} onClick={() => onOpen(item)}
+                className="h-auto min-w-0 flex-1 items-start justify-start rounded-md p-0 text-left whitespace-normal hover:bg-transparent">
+                {text}
+              </Button> : text}
+              <Button type="button" variant="ghost" size="icon" disabled={updating}
+                className="-mt-1 -mr-1 shrink-0 rounded-lg text-muted-foreground"
+                aria-label={`${item.unread ? "Mark as read" : "Mark as unread"}: ${item.title}`}
+                title={item.unread ? "Mark as read" : "Mark as unread"} onClick={() => onToggleRead(item)}>
+                {active && updating && !requestUpdating ? <Loader2Icon aria-hidden="true" className="motion-safe:animate-spin" />
+                  : item.unread ? <MailOpenIcon aria-hidden="true" /> : <MailIcon aria-hidden="true" />}
+              </Button>
+            </div>
+            {item.organizationAccessRequestId ? <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={updating} onClick={() => onRespond(item, "declined")}>
+                {active && requestUpdating === "declined" ? <Loader2Icon aria-hidden="true" className="motion-safe:animate-spin" /> : null}Decline
+              </Button>
+              <Button type="button" size="sm" className="rounded-full" disabled={updating} onClick={() => onRespond(item, "accepted")}>
+                {active && requestUpdating === "accepted" ? <Loader2Icon aria-hidden="true" className="motion-safe:animate-spin" /> : null}Accept access
+              </Button>
+            </div> : null}
+          </li>
+        })}
+      </ul>}
     </ScrollArea>
   )
 }

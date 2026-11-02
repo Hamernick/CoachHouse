@@ -16,7 +16,7 @@ export function WorkspaceCardShortcutRail({
     <>
       {items.length > 0 ? (
         <div className="pointer-events-none absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 md:flex">
-          <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-border/70 bg-card/92 p-1 shadow-none backdrop-blur transition-[background-color] duration-180 ease-out md:flex-col">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-2xl canvas-glass border p-1 transition-[background-color] duration-180 ease-out md:flex-col">
             {items.map((item) => (
               <WorkspaceCardShortcutButton
                 key={item.id}

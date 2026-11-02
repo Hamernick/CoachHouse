@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase"
 
 import type {
   WorkspaceFinanceOpportunityInput,
-  WorkspaceFinanceOpportunityStatus,
+  WorkspaceFinanceOpportunityWorkflowStatus,
 } from "../types"
 import { GRANTS_GOV_SOURCE_KEY } from "../lib/grants-gov"
 import { readOpportunityReport } from "../lib/opportunity-report"
@@ -13,29 +13,31 @@ import { readOpportunitySources } from "../lib/opportunity-sources"
 type OrganizationFinanceOpportunityRow =
   Database["public"]["Tables"]["organization_finance_opportunities"]["Row"]
 
-const OPPORTUNITY_STATUSES = new Set<WorkspaceFinanceOpportunityStatus>([
+const OPPORTUNITY_STATUSES = new Set<WorkspaceFinanceOpportunityWorkflowStatus>([
   "new",
   "saved",
   "applied",
   "awarded",
   "not_awarded",
+  "dismissed",
 ])
 
-function isWorkspaceFinanceOpportunityStatus(
+function isWorkspaceFinanceOpportunityWorkflowStatus(
   status: string
-): status is WorkspaceFinanceOpportunityStatus {
-  return OPPORTUNITY_STATUSES.has(status as WorkspaceFinanceOpportunityStatus)
+): status is WorkspaceFinanceOpportunityWorkflowStatus {
+  return OPPORTUNITY_STATUSES.has(status as WorkspaceFinanceOpportunityWorkflowStatus)
 }
 
 export function mapOrganizationFinanceOpportunity(
   opportunity: OrganizationFinanceOpportunityRow
 ): WorkspaceFinanceOpportunityInput | null {
-  if (!isWorkspaceFinanceOpportunityStatus(opportunity.status)) {
+  if (!isWorkspaceFinanceOpportunityWorkflowStatus(opportunity.status)) {
     return null
   }
 
   return {
     id: opportunity.id,
+    ...(opportunity.feed_position !== undefined ? { feedPosition: opportunity.feed_position } : {}),
     origin: opportunity.external_provider === "manual" ? "manual" : "suggested",
     updatedAt: opportunity.updated_at,
     report: readOpportunityReport(opportunity.report),
@@ -61,10 +63,11 @@ export async function loadOrganizationFinanceOpportunities({
   const { data, error } = await supabase
     .from("organization_finance_opportunities")
     .select(
-      "id,org_id,title,source_label,sources,report,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
+      "id,org_id,feed_position,title,source_label,sources,report,opportunity_type,due_at,status,external_provider,external_opportunity_id,source_id,discovered_at,created_at,updated_at"
     )
     .eq("org_id", orgId)
     .neq("status", "dismissed")
+    .order("feed_position", { ascending: true })
     .order("due_at", { ascending: true, nullsFirst: false })
     .order("discovered_at", { ascending: false })
     .limit(100)

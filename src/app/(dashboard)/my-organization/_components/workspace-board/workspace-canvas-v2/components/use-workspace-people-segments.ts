@@ -199,14 +199,14 @@ export function useWorkspacePeopleSegments(
   )
 
   const addPeopleToSegment = useCallback(
-    (segmentId: string, personIds: string[]) => {
+    async (segmentId: string, personIds: string[]) => {
       const segment = customSegments.find((item) => item.id === segmentId)
-      if (!segment) return
-      const existingIds = new Set(segment.memberIds)
+      if (!segment) return false
       const addedIds = Array.from(
         new Set(personIds.map((personId) => personId.trim()).filter(Boolean))
-      ).filter((personId) => !existingIds.has(personId))
-      if (addedIds.length === 0) return
+      )
+      if (addedIds.length === 0) return true
+      // Always confirm through the queue, even if optimistic state already matches.
       const mutationKey = `segment:${segmentId}`
       const mutationToken = mutationCoordinator.begin(mutationKey)
       setCustomSegments((current) =>
@@ -219,46 +219,45 @@ export function useWorkspacePeopleSegments(
             : item
         )
       )
-      startMutation(async () => {
-        const result = await mutationCoordinator.run(mutationKey, () =>
-          addOrganizationPeopleSegmentMembersAction(segmentId, addedIds)
-        )
-        if (
-          !("error" in result) &&
-          mutationCoordinator.isCurrent(mutationToken)
-        ) {
-          const confirmedSegment = confirmedSegments.get(segmentId)
-          if (confirmedSegment) {
-            confirmedSegments.set(
-              segmentId,
-              withSegmentMemberIds(
-                confirmedSegment,
-                Array.from(
-                  new Set([...confirmedSegment.memberIds, ...addedIds])
-                )
+      const result = await mutationCoordinator.run(mutationKey, () =>
+        addOrganizationPeopleSegmentMembersAction(segmentId, addedIds)
+      ).catch(() => ({ error: "Could not save the group. Please try again." }))
+      if (
+        !("error" in result) &&
+        mutationCoordinator.isCurrent(mutationToken)
+      ) {
+        const confirmedSegment = confirmedSegments.get(segmentId)
+        if (confirmedSegment) {
+          confirmedSegments.set(
+            segmentId,
+            withSegmentMemberIds(
+              confirmedSegment,
+              Array.from(
+                new Set([...confirmedSegment.memberIds, ...addedIds])
               )
             )
-          }
+          )
         }
-        if (mutationCoordinator.isLatest(mutationToken)) {
-          const confirmedSegment = confirmedSegments.get(segmentId)
-          if (confirmedSegment) {
-            setCustomSegments((current) =>
-              replaceCustomSegment(current, confirmedSegment)
-            )
-          }
+      }
+      if (mutationCoordinator.isLatest(mutationToken)) {
+        const confirmedSegment = confirmedSegments.get(segmentId)
+        if (confirmedSegment) {
+          setCustomSegments((current) =>
+            replaceCustomSegment(current, confirmedSegment)
+          )
         }
-        if ("error" in result) toast.error(result.error)
-      })
+      }
+      if ("error" in result) toast.error(result.error)
+      return !("error" in result)
     },
-    [confirmedSegments, customSegments, mutationCoordinator, startMutation]
+    [confirmedSegments, customSegments, mutationCoordinator]
   )
 
   const removePersonFromSegment = useCallback(
-    (segmentId: string, personId: string) => {
+    async (segmentId: string, personId: string) => {
       const segment = customSegments.find((item) => item.id === segmentId)
-      const removedIndex = segment?.memberIds.indexOf(personId) ?? -1
-      if (removedIndex < 0) return
+      if (!segment) return false
+      // Always confirm through the queue, even if optimistic state already matches.
       const mutationKey = `segment:${segmentId}`
       const mutationToken = mutationCoordinator.begin(mutationKey)
       setCustomSegments((current) =>
@@ -271,39 +270,38 @@ export function useWorkspacePeopleSegments(
             : item
         )
       )
-      startMutation(async () => {
-        const result = await mutationCoordinator.run(mutationKey, () =>
-          removeOrganizationPeopleSegmentMembersAction(segmentId, [personId])
-        )
-        if (
-          !("error" in result) &&
-          mutationCoordinator.isCurrent(mutationToken)
-        ) {
-          const confirmedSegment = confirmedSegments.get(segmentId)
-          if (confirmedSegment) {
-            confirmedSegments.set(
-              segmentId,
-              withSegmentMemberIds(
-                confirmedSegment,
-                confirmedSegment.memberIds.filter(
-                  (memberId) => memberId !== personId
-                )
+      const result = await mutationCoordinator.run(mutationKey, () =>
+        removeOrganizationPeopleSegmentMembersAction(segmentId, [personId])
+      ).catch(() => ({ error: "Could not save the group. Please try again." }))
+      if (
+        !("error" in result) &&
+        mutationCoordinator.isCurrent(mutationToken)
+      ) {
+        const confirmedSegment = confirmedSegments.get(segmentId)
+        if (confirmedSegment) {
+          confirmedSegments.set(
+            segmentId,
+            withSegmentMemberIds(
+              confirmedSegment,
+              confirmedSegment.memberIds.filter(
+                (memberId) => memberId !== personId
               )
             )
-          }
+          )
         }
-        if (mutationCoordinator.isLatest(mutationToken)) {
-          const confirmedSegment = confirmedSegments.get(segmentId)
-          if (confirmedSegment) {
-            setCustomSegments((current) =>
-              replaceCustomSegment(current, confirmedSegment)
-            )
-          }
+      }
+      if (mutationCoordinator.isLatest(mutationToken)) {
+        const confirmedSegment = confirmedSegments.get(segmentId)
+        if (confirmedSegment) {
+          setCustomSegments((current) =>
+            replaceCustomSegment(current, confirmedSegment)
+          )
         }
-        if ("error" in result) toast.error(result.error)
-      })
+      }
+      if ("error" in result) toast.error(result.error)
+      return !("error" in result)
     },
-    [confirmedSegments, customSegments, mutationCoordinator, startMutation]
+    [confirmedSegments, customSegments, mutationCoordinator]
   )
 
   return {

@@ -1,24 +1,35 @@
 "use server"
 import { z } from "zod"
-import { cancelAiRun, readAiAccount } from "@/features/ai-credits"
+import { cancelAiRun, readAiAccount, listAiResearchRuns } from "@/features/ai-credits"
 import { loadResearchContext } from "./server/research-context"
-import { assertResearchContextFits } from "./server/research-prompt"
+import { assertInitialResearchRequestFits } from "./server/research-provider-request"
 import { researchConfig } from "./server/research-config"
 import { readResearchRun } from "./server/research-run"
 import { createKnowledgeTools } from "./server/knowledge-tools"
-import { knowledgeSearchSchema, type ResearchTarget } from "./research-types"
+import { knowledgeSearchSchema, researchHistorySchema, type ResearchTarget } from "./research-types"
+import { researchRecoveryResponse } from "./server/research-recovery"
 
 export async function quoteWorkspaceResearch(target:ResearchTarget) {
   try {
     const context=await loadResearchContext(target),config=researchConfig()
-    assertResearchContextFits(context,{target,prompt:"",skill:"planning"},config.maxInputBytes)
+    assertInitialResearchRequestFits(context,{target,prompt:"",skill:"planning"},config)
     const account=await readAiAccount(target.organizationId,context.user.id)
     if(!account.enabled || account.paymentReview) throw new Error("Research is not enabled for this organization.")
     return {maximumCredits:config.maxCredits,tariffVersion:config.tariff.version}
-  } catch(error) {return {error:error instanceof Error?error.message:"Research unavailable."}}
+  } catch(error) {return researchRecoveryResponse(error,"admission_unavailable")}
 }
 export async function getWorkspaceResearch(id:string,target:ResearchTarget) {
-  try {return {run:await readResearchRun(id,target)}} catch(error) {return {error:error instanceof Error?error.message:"Research unavailable."}}
+  try {return {run:await readResearchRun(id,target)}} catch(error) {return researchRecoveryResponse(error)}
+}
+export async function listWorkspaceResearch(target: ResearchTarget) {
+  try {
+    const context = await loadResearchContext(target, false)
+    const runs = researchHistorySchema.parse(await listAiResearchRuns({
+      organizationId: context.activeOrg.orgId, actorId: context.user.id,
+      objectiveId: context.objective?.id ?? null, canvasId: context.canvasId, planId: target.plan?.id ?? null,
+    }))
+    return { runs }
+  } catch { return { error: "Previous research could not be loaded. Try again." } }
 }
 export async function stopWorkspaceResearch(id:string,target:ResearchTarget) {
   try {

@@ -4,12 +4,18 @@ import {
   memo,
   useCallback,
   useDeferredValue,
+  useEffect,
   useMemo,
   useState,
   useTransition,
   type DragEvent,
 } from "react"
 
+import {
+  moveNetworkMembership,
+  type NetworkMove,
+} from "@/features/workspace-people-network"
+import { WorkspacePeopleImportPanel } from "@/features/workspace-people-import/client"
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
 import type { PersonRoleFilterValue } from "@/lib/people/roles"
 import type { OrganizationPeopleSegment } from "@/lib/people/segments"
@@ -48,9 +54,22 @@ type WorkspacePeopleDrawerPanelProps = {
   canvasActions: WorkspacePeopleCanvasActions
 }
 
+function preservePeopleImages(
+  next: OrgPersonWithImage[],
+  current: OrgPersonWithImage[]
+) {
+  const images = new Map(
+    current.map((person) => [person.id, person.displayImage])
+  )
+  return next.map((person) => ({
+    ...person,
+    displayImage: images.get(person.id),
+  }))
+}
+
 export const WorkspacePeopleDrawerPanel = memo(
   function WorkspacePeopleDrawerPanel({
-    people,
+    people: initialPeople,
     initialSegments,
     initialTags,
     viewerId,
@@ -59,6 +78,8 @@ export const WorkspacePeopleDrawerPanel = memo(
     canEdit,
     canvasActions,
   }: WorkspacePeopleDrawerPanelProps) {
+    const [people, setPeople] = useState(initialPeople)
+    useEffect(() => setPeople(initialPeople), [initialPeople])
     const [selectedSegmentId, setSelectedSegmentId] = useState("all")
     const {
       addPeopleToSegment,
@@ -196,6 +217,36 @@ export const WorkspacePeopleDrawerPanel = memo(
       [createSegment]
     )
 
+    const handleMoveNetworkPerson = useCallback(
+      async (move: NetworkMove) => {
+        if (!canEdit || !people.some((person) => person.id === move.personId))
+          return {
+            ok: false as const,
+            message: "This contact cannot be changed.",
+          }
+        return moveNetworkMembership(
+          move,
+          move.mode === "segments"
+            ? {
+                add: (id, personId) => addPeopleToSegment(id, [personId]),
+                remove: removePersonFromSegment,
+              }
+            : {
+                add: tagState.addPersonToTag,
+                remove: tagState.removePersonFromTag,
+              }
+        )
+      },
+      [
+        canEdit,
+        people,
+        addPeopleToSegment,
+        removePersonFromSegment,
+        tagState.addPersonToTag,
+        tagState.removePersonFromTag,
+      ]
+    )
+
     const handlePersonDragStart = useCallback(
       (personIds: string[], event: DragEvent<HTMLElement>) => {
         const normalizedPersonIds = Array.from(
@@ -280,85 +331,101 @@ export const WorkspacePeopleDrawerPanel = memo(
           draggingPersonIds.length > 0 && "select-none"
         )}
       >
-        <WorkspacePeopleDrawerTable
-          addControls={
-            canEdit ? (
-              <WorkspacePeopleAddMenu
-                people={people}
-                onCreateSegment={handleCreateSegment}
-              />
-            ) : null
-          }
-          segmentControls={
-            <>
-              <WorkspacePeopleSegmentRail
-                segments={segments}
-                selectedSegmentId={selectedSegment.id}
-                editingSegmentId={editingSegmentId}
-                draggingPersonCount={draggingPersonIds.length}
-                activeDropSegmentId={activeSegmentDropId}
-                canManageSegments={canEdit}
-                onSegmentChange={handleSegmentChange}
-                onRenameSegment={handleRenameSegment}
-                onEditSegment={setEditingSegmentId}
-                onRemoveSegment={handleRemoveSegment}
-                onCancelEditSegment={() => setEditingSegmentId(null)}
-                onSegmentDragOver={handleSegmentDragOver}
-                onSegmentDragEnter={handleSegmentDragEnter}
-                onSegmentDragLeave={handleSegmentDragLeave}
-                onPersonDrop={handlePersonDrop}
-              />
-            </>
-          }
-          people={filteredSelectedPeople}
-          allPeople={people}
-          viewerId={viewerId}
-          uiPreferencesScope={uiPreferencesScope}
-          placedPersonIds={placedPersonIds}
-          customSegment={selectedCustomSegment}
-          segments={customSegments}
-          tags={tagState.tags}
-          draggingPersonIds={draggingPersonIdSet}
+        <WorkspacePeopleImportPanel
+          key={uiPreferencesScope.orgId}
+          people={people}
+          organizationId={uiPreferencesScope.orgId}
           canEdit={canEdit}
-          showReportsTo={showReportsTo}
-          label={`${selectedSegment.label} people`}
-          emptyMessage={
-            people.length === 0
-              ? "No people yet. Add someone to get started."
-              : selectedCustomSegment && selectedPeople.length === 0
-                ? `No people in ${selectedCustomSegment.label} yet. Use Add people above to build this segment.`
-                : normalizedPeopleSearch
-                  ? "No people match your search."
-                  : "No people match these filters."
-          }
-          controls={
-            <WorkspacePeopleDrawerControls
-              canEdit={canEdit}
-              searchValue={peopleSearch}
-              onSearchChange={setPeopleSearch}
-              categoryFilter={peopleCategoryFilter}
-              onCategoryFilterChange={setPeopleCategoryFilter}
+          onImported={(next) => {
+            handleSegmentChange("all")
+            setPeople((current) => preservePeopleImages(next, current))
+          }}
+        >
+          {(openImport) => (
+            <WorkspacePeopleDrawerTable
+              addControls={
+                canEdit ? (
+                  <WorkspacePeopleAddMenu
+                    people={people}
+                    onCreateSegment={handleCreateSegment}
+                    onImportContacts={openImport}
+                  />
+                ) : null
+              }
+              segmentControls={
+                <>
+                  <WorkspacePeopleSegmentRail
+                    segments={segments}
+                    selectedSegmentId={selectedSegment.id}
+                    editingSegmentId={editingSegmentId}
+                    draggingPersonCount={draggingPersonIds.length}
+                    activeDropSegmentId={activeSegmentDropId}
+                    canManageSegments={canEdit}
+                    onSegmentChange={handleSegmentChange}
+                    onRenameSegment={handleRenameSegment}
+                    onEditSegment={setEditingSegmentId}
+                    onRemoveSegment={handleRemoveSegment}
+                    onCancelEditSegment={() => setEditingSegmentId(null)}
+                    onSegmentDragOver={handleSegmentDragOver}
+                    onSegmentDragEnter={handleSegmentDragEnter}
+                    onSegmentDragLeave={handleSegmentDragLeave}
+                    onPersonDrop={handlePersonDrop}
+                  />
+                </>
+              }
+              people={filteredSelectedPeople}
+              allPeople={people}
+              viewerId={viewerId}
+              uiPreferencesScope={uiPreferencesScope}
+              placedPersonIds={placedPersonIds}
               customSegment={selectedCustomSegment}
-              people={people}
-              availablePeople={availablePeople}
-              onAddPeopleToSegment={handleAddPeople}
+              segments={customSegments}
+              tags={tagState.tags}
+              draggingPersonIds={draggingPersonIdSet}
+              canEdit={canEdit}
+              showReportsTo={showReportsTo}
+              label={`${selectedSegment.label} people`}
+              emptyMessage={
+                people.length === 0
+                  ? "No people yet. Add someone to get started."
+                  : selectedCustomSegment && selectedPeople.length === 0
+                    ? `No people in ${selectedCustomSegment.label} yet. Use Add people above to build this segment.`
+                    : normalizedPeopleSearch
+                      ? "No people match your search."
+                      : "No people match these filters."
+              }
+              controls={
+                <WorkspacePeopleDrawerControls
+                  canEdit={canEdit}
+                  searchValue={peopleSearch}
+                  onSearchChange={setPeopleSearch}
+                  categoryFilter={peopleCategoryFilter}
+                  onCategoryFilterChange={setPeopleCategoryFilter}
+                  customSegment={selectedCustomSegment}
+                  people={people}
+                  availablePeople={availablePeople}
+                  onAddPeopleToSegment={handleAddPeople}
+                />
+              }
+              networkLoading={peopleSearch !== deferredPeopleSearch}
+              onMoveNetworkPerson={handleMoveNetworkPerson}
+              onDragStart={handlePersonDragStart}
+              onDragEnd={handlePersonDragEnd}
+              onAdd={handleAddPerson}
+              onRemove={handleRemovePerson}
+              onAddPersonToSegment={handleAddPersonToSegment}
+              onCreateSegment={handleCreateSegmentForPerson}
+              onRemovePersonFromSegment={removePersonFromSegment}
+              onAddPersonToTag={tagState.addPersonToTag}
+              onCreateTag={tagState.createTag}
+              onDeleteTag={tagState.deleteTag}
+              onRemovePersonFromTag={tagState.removePersonFromTag}
+              onUpdateTag={tagState.updateTag}
+              onAddPeopleToCanvas={canvasActions.add}
+              onRemovePersonFromCanvas={canvasActions.remove}
             />
-          }
-          onDragStart={handlePersonDragStart}
-          onDragEnd={handlePersonDragEnd}
-          onAdd={handleAddPerson}
-          onRemove={handleRemovePerson}
-          onAddPersonToSegment={handleAddPersonToSegment}
-          onCreateSegment={handleCreateSegmentForPerson}
-          onRemovePersonFromSegment={removePersonFromSegment}
-          onAddPersonToTag={tagState.addPersonToTag}
-          onCreateTag={tagState.createTag}
-          onDeleteTag={tagState.deleteTag}
-          onRemovePersonFromTag={tagState.removePersonFromTag}
-          onUpdateTag={tagState.updateTag}
-          onAddPeopleToCanvas={canvasActions.add}
-          onRemovePersonFromCanvas={canvasActions.remove}
-        />
+          )}
+        </WorkspacePeopleImportPanel>
       </div>
     )
   }

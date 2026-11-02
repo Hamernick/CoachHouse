@@ -7,6 +7,7 @@ import type {
   OnNodeDrag,
   NodeMouseHandler,
   OnMoveEnd,
+  OnMoveStart,
   OnNodesChange,
   ReactFlowInstance,
 } from "@xyflow/react"
@@ -67,7 +68,7 @@ export type WorkspaceCanvasSurfaceV2ViewProps = {
   onKeyDownCapture: KeyboardEventHandler<HTMLDivElement>
   onNodeDragStop: OnNodeDrag
   onSelectionDragStop: WorkspaceSelectionDragHandler
-  onMoveStart: () => void
+  onMoveStart: OnMoveStart
   onMoveEnd: OnMoveEnd
   onConnect: ReturnType<
     typeof useWorkspaceCanvasConnectionsController

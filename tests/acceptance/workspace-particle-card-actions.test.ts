@@ -199,7 +199,7 @@ describe("Shared Particle card actions", () => {
     }
   )
 
-  it("flushes positions before a single duplicate operation and keeps it undoable", async () => {
+  it.each(["duplicate", "delete"] as const)("flushes positions before a single %s operation and keeps it undoable", async (action) => {
     let persisted = graph([particle(1), particle(2)], [edge(50, 1, 2)])
     const transport = vi.fn<ParticleTransport>(async (request) => {
       const applied = await applyParticleBatch(persisted, request, NOW)
@@ -227,15 +227,16 @@ describe("Shared Particle card actions", () => {
     }
     renderToStaticMarkup(createElement(Harness))
     if (!run || !session) throw new Error("Not mounted")
-    const first = run(ID(1), "duplicate")
-    expect(await run(ID(1), "duplicate")).toBe(false)
+    const first = run(ID(1), action)
+    expect(await run(ID(1), action)).toBe(false)
     expect(await first).toBe(true)
     expect(flush).toHaveBeenCalledOnce()
-    expect(persisted.particles).toHaveLength(3)
-    expect(persisted.connections).toHaveLength(1)
+    expect(persisted.particles).toHaveLength(action === "delete" ? 1 : 3)
+    expect(persisted.connections).toHaveLength(action === "delete" ? 0 : 1)
+    expect(persisted.particles.some(item => item.id === ID(2))).toBe(true)
     expect(await session.travel("undo")).toBe(true)
     expect(persisted.particles).toHaveLength(2)
     expect(await session.travel("redo")).toBe(true)
-    expect(persisted.particles).toHaveLength(3)
+    expect(persisted.particles).toHaveLength(action === "delete" ? 1 : 3)
   })
 })

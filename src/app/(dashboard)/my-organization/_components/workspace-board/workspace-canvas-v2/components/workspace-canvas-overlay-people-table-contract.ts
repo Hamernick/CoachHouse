@@ -1,3 +1,4 @@
+import type { NetworkMove, NetworkMoveResult } from "@/features/workspace-people-network"
 import type { DragEvent, ReactNode } from "react"
 
 import type { OrgPersonWithImage } from "@/components/people/supporters-showcase"
@@ -26,6 +27,8 @@ export type WorkspacePeopleDrawerTableProps = {
   canEdit: boolean
   showReportsTo: boolean
   label: string
+  networkLoading?: boolean
+  onMoveNetworkPerson: (move: NetworkMove) => Promise<NetworkMoveResult>
   onDragStart: (personIds: string[], event: DragEvent<HTMLElement>) => void
   onDragEnd: () => void
   onAdd: (personId: string) => void

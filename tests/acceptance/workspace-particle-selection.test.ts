@@ -1,14 +1,111 @@
+import { workspaceFocusViewport } from "@/lib/workspace-canvas/focus-viewport"
 import { createWorkspaceParticleConnectionHandlers } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-particle-connection-handlers"
 import { particleFlowStateChanges } from "@/features/workspace-particles/lib/particle-flow-changes"
 import { nativeWorkspaceDragEvent } from "@/lib/workspace-canvas/drag-events"
 import { protectWorkspaceControlDrag } from "@/lib/workspace-canvas/control-drag-boundary"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { applyNodeChanges, type Node } from "@xyflow/react"
+import { applyNodeChanges, type Node, type ReactFlowInstance } from "@xyflow/react"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { useParticleSelection } from "@/features/workspace-particles/hooks/use-particle-selection"
 import { createParticlePositionPersistence } from "@/features/workspace-particles/lib/position-persistence"
 import { createWorkspaceParticleFlowHandlers } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-particle-flow-handlers"
 import { resolveWorkspaceCanvasSelection } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/use-workspace-canvas-selection"
 import type { ParticleOperation } from "@/features/workspace-particles/types"
-import { particle, ID } from "./fixtures/particle-fixtures"
+import { particle, graph, ID } from "./fixtures/particle-fixtures"
+
+describe("Plan row canvas focus", () => {
+  function setup({ dirty = false, reduced = false, measured = true, hidden = false, internalMeasured = false, selected = ID(1), obscured = false } = {}) {
+    const target = { ...particle(2), canvasHidden: hidden, position: { x: 800, y: 500 } }
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal("window", { confirm, matchMedia: () => ({ matches: reduced }) })
+    if (obscured) {
+      const bounds = { left: 0, top: 0, width: 900, height: 600 }
+      const overlay = { closest: () => null, getBoundingClientRect: () => bounds }
+      const frame = { getBoundingClientRect: () => bounds, closest: () => null, querySelectorAll: () => [overlay] }
+      vi.stubGlobal("document", { querySelector: () => frame })
+      vi.stubGlobal("getComputedStyle", () => ({ visibility: "visible", display: "block" }))
+    }
+    const selectParticle = vi.fn()
+    const setNodes = vi.fn()
+    const fitView = vi.fn<ReactFlowInstance["fitView"]>(async () => true)
+    const setCenter = vi.fn<ReactFlowInstance["setCenter"]>(async () => true)
+    const flow = { current: { getInternalNode: () => internalMeasured ? { measured: { width: 816, height: 600 }, internals: { positionAbsolute: { x: 900, y: 600 } } } : undefined, getViewport: () => ({ x: 0, y: 0, zoom: 1 }), setViewport: vi.fn(async () => true), getNode: () => measured ? { id: target.id, position: target.position, measured: { width: 400, height: 192 } } : undefined, fitView, setCenter } as unknown as ReactFlowInstance }
+    let controls: ReturnType<typeof useParticleSelection> | undefined
+    function Harness() {
+      controls = useParticleSelection({ graph: graph([particle(1), target]), selectedId: selected, selectParticle, setNodes, dirty: { current: dirty }, flow })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    return { focus: controls!.focusCanvas, select: controls!.select, selectParticle, setNodes, fitView, setCenter, confirm }
+  }
+
+  it("closes the inspector and selects only the target with a short eased camera move", () => {
+    const state = setup()
+    expect(state.focus(ID(2))).toBe(true)
+    expect(state.selectParticle).toHaveBeenCalledExactlyOnceWith(null)
+    const update = state.setNodes.mock.calls[0][0]
+    expect(update([{ id: ID(1), selected: true }, { id: ID(2), selected: false }]).map((node: Node) => node.selected)).toEqual([false, true])
+    expect(state.fitView).not.toHaveBeenCalled()
+    expect(state.setCenter).toHaveBeenCalledWith(1000, 596, expect.any(Object))
+    const options = state.setCenter.mock.calls[0][2]!
+    expect(options).toMatchObject({ duration: 380, zoom: 1, interpolate: "linear" })
+    expect(options.ease!(0)).toBe(0)
+    expect(options.ease!(0.25)).toBeLessThan(0.25)
+    expect(options.ease!(0.75)).toBeGreaterThan(0.75)
+    expect(options.ease!(1)).toBe(1)
+  })
+
+  it("opens read-only preview without a camera move when the measured canvas is covered", () => {
+    const state = setup({ obscured: true })
+    expect(state.focus(ID(2))).toBe(true)
+    expect(state.selectParticle).toHaveBeenCalledExactlyOnceWith(ID(2))
+    expect(state.setCenter).not.toHaveBeenCalled()
+    expect(state.fitView).not.toHaveBeenCalled()
+    expect(state.setNodes).toHaveBeenCalledOnce()
+  })
+
+  it("does not replace the same record's dirty editor with a focused preview", () => {
+    const state = setup({ obscured: true, dirty: true, selected: ID(2) })
+    expect(state.focus(ID(2))).toBe(false)
+    expect(state.confirm).toHaveBeenCalledOnce()
+    expect(state.selectParticle).not.toHaveBeenCalled()
+    expect(state.setNodes).not.toHaveBeenCalled()
+    expect(state.setCenter).not.toHaveBeenCalled()
+  })
+
+  it("prefers current internal measurement and absolute position over the saved preview", () => {
+    const state = setup({ internalMeasured: true })
+    expect(state.focus(ID(2))).toBe(true)
+    expect(state.setCenter).toHaveBeenCalledWith(1308, 900, expect.any(Object))
+  })
+
+  it("keeps unsaved edits and camera unchanged when discarding is refused", () => {
+    const state = setup({ dirty: true })
+    expect(state.focus(ID(2))).toBe(false)
+    expect(state.confirm).toHaveBeenCalledOnce()
+    expect(state.selectParticle).not.toHaveBeenCalled()
+    expect(state.setNodes).not.toHaveBeenCalled()
+    expect(state.fitView).not.toHaveBeenCalled()
+    expect(state.setCenter).not.toHaveBeenCalled()
+  })
+
+  it("can reach an unmeasured offscreen card and disables motion when requested", () => {
+    const state = setup({ measured: false, reduced: true })
+    expect(state.focus(ID(2))).toBe(true)
+    expect(state.setCenter).toHaveBeenCalledWith(1000, 596, expect.objectContaining({ duration: 0, zoom: 1 }))
+    expect(state.fitView).not.toHaveBeenCalled()
+  })
+
+  it("does not open an editor or move the camera for hidden or missing cards", () => {
+    const state = setup({ hidden: true })
+    expect(state.focus(ID(2))).toBe(false)
+    expect(state.focus(ID(99))).toBe(false)
+    expect(state.selectParticle).not.toHaveBeenCalled()
+    expect(state.fitView).not.toHaveBeenCalled()
+    expect(state.setCenter).not.toHaveBeenCalled()
+  })
+})
 
 afterEach(() => {
   vi.useRealTimers()
@@ -227,16 +324,14 @@ describe("Particle canvas selection adapter", () => {
     }
   )
 
-  it("opens an ordinary card click without replacing the current group", () => {
+  it("leaves an ordinary card click as canvas selection without opening an editor", () => {
     vi.stubGlobal("Element", class {})
     const { particles, events } = handlers()
     events.onNodeClick(
       { target: null } as unknown as Parameters<typeof events.onNodeClick>[0],
       node(ID(2))
     )
-    expect(particles.select).toHaveBeenCalledWith(ID(2), {
-      preserveSelection: true,
-    })
+    expect(particles.select).not.toHaveBeenCalled()
   })
 
   it("splits selection changes without losing deselection or legacy cards", () => {
@@ -581,5 +676,97 @@ describe("movement during an in-flight save", () => {
       { type: "position", id: ID(1), dragging: true, position: { x: 5, y: 5 } },
     ])
     expect(legacy.onNodesChange).not.toHaveBeenCalled()
+  })
+})
+
+
+describe("Inspector return focus", () => {
+  function setup() {
+    const state = graph([particle(1), particle(2)])
+    const frames = new Map<number, FrameRequestCallback>()
+    const focus = vi.fn()
+    const querySelector = vi.fn(() => ({ focus }))
+    vi.stubGlobal("window", {
+      requestAnimationFrame: (callback: FrameRequestCallback) => { frames.set(1, callback); return 1 },
+      cancelAnimationFrame: (id: number) => frames.delete(id),
+    })
+    vi.stubGlobal("document", { querySelector })
+    let controls: ReturnType<typeof useParticleSelection> | undefined
+    function Harness() {
+      controls = useParticleSelection({ graph: state, selectedId: ID(1), selectParticle: vi.fn(), setNodes: vi.fn(), dirty: { current: false } })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    return { select: controls!.select, frames, state, querySelector, focus }
+  }
+  it("cancels a queued return when a later selection takes over", () => {
+    const current = setup()
+    expect(current.select(null)).toBe(true)
+    expect(current.frames.size).toBe(1)
+    expect(current.select(ID(2))).toBe(true)
+    expect(current.frames.size).toBe(0)
+    expect(current.focus).not.toHaveBeenCalled()
+  })
+  it("does not return keyboard focus to a removed target", () => {
+    const current = setup()
+    current.select(null)
+    current.state.particles = current.state.particles.filter(item => item.id !== ID(1))
+    current.frames.get(1)!(0)
+    expect(current.querySelector).not.toHaveBeenCalled()
+  })
+})
+
+
+describe("Unobstructed Particle focus", () => {
+  const frame = { x: 0, y: 0, width: 1200, height: 800 }
+  const target = { x: 1600, y: 400, width: 816, height: 600 }
+  it("fits a measured large card beside the island and above the composer", () => {
+    const obstacles = [{ x: 0, y: 0, width: 420, height: 800 }, { x: 0, y: 700, width: 1200, height: 100 }]
+    const viewport = workspaceFocusViewport(frame, target, obstacles)!
+    expect(viewport.zoom).toBeLessThan(1)
+    const left = target.x * viewport.zoom + viewport.x
+    const top = target.y * viewport.zoom + viewport.y
+    expect(left).toBeGreaterThanOrEqual(444)
+    expect(left + target.width * viewport.zoom).toBeLessThanOrEqual(1176)
+    expect(top).toBeGreaterThanOrEqual(24)
+    expect(top + target.height * viewport.zoom).toBeLessThanOrEqual(676)
+  })
+  it("uses mobile space between top and bottom surfaces without enlarging cards", () => {
+    const viewport = workspaceFocusViewport({ ...frame, width: 390, height: 844 }, target, [
+      { x: 0, y: 0, width: 390, height: 180 }, { x: 0, y: 690, width: 390, height: 154 },
+    ])!
+    expect(viewport.zoom).toBeCloseTo(342 / 816)
+    const top = target.y * viewport.zoom + viewport.y
+    expect(top).toBeGreaterThanOrEqual(204)
+    expect(top + target.height * viewport.zoom).toBeLessThanOrEqual(666)
+    expect(workspaceFocusViewport(frame, { ...target, width: 100, height: 100 }, [])?.zoom).toBe(1)
+  })
+  it("clips overlapping obstacles and never invents room when covered", () => {
+    expect(workspaceFocusViewport(frame, target, [{ x: -100, y: -100, width: 1400, height: 1000 }])).toBeNull()
+    expect(workspaceFocusViewport({ ...frame, width: 0 }, target, [])).toBeNull()
+    expect(workspaceFocusViewport(frame, { ...target, width: NaN }, [])).toBeNull()
+    expect(workspaceFocusViewport(frame, target, [{ x: 1500, y: 0, width: 300, height: 100 }])).toEqual(workspaceFocusViewport(frame, target, []))
+  })
+})
+
+
+describe("Particle inspection shortcuts", () => {
+  it("routes Enter to inspection and Escape to collapse before deselecting", () => {
+    class Target {
+      closest(selector: string) { return selector === ".react-flow__node" ? this : null }
+      getAttribute() { return ID(1) }
+    }
+    vi.stubGlobal("Element", Target)
+    const { particles, events } = handlers()
+    particles.expand = vi.fn(() => true)
+    particles.collapse = vi.fn()
+    const event = { target: new Target(), key: "Enter", preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as Parameters<typeof events.onKeyDownCapture>[0]
+    events.onKeyDownCapture(event)
+    expect(particles.expand).toHaveBeenCalledWith(ID(1))
+    expect(particles.select).not.toHaveBeenCalled()
+    particles.expandedId = ID(1)
+    events.onKeyDownCapture({ ...event, key: "Escape" })
+    expect(particles.collapse).toHaveBeenCalledOnce()
+    expect(particles.select).not.toHaveBeenCalled()
   })
 })

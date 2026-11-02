@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -54,12 +55,17 @@ export function TypographySection({
   draft,
   updateDraft,
   disabled = false,
+  inlineEdit = false,
 }: {
   disabled?: boolean
+  inlineEdit?: boolean
   draft: BrandIdentityDraft
   updateDraft: (value: Partial<BrandIdentityDraft>) => void
 }) {
-  const scale = typeScale(draft.baseSize, draft.typeRatio)
+  const [baseSize, setBaseSize] = useState(draft.baseSize)
+  const [typeRatio, setTypeRatio] = useState(draft.typeRatio)
+  useEffect(() => { setBaseSize(draft.baseSize); setTypeRatio(draft.typeRatio) }, [draft.baseSize, draft.typeRatio, disabled])
+  const scale = typeScale(inlineEdit ? baseSize : draft.baseSize, inlineEdit ? typeRatio : draft.typeRatio)
 
   return (
     <BrandIdentitySection
@@ -160,11 +166,12 @@ export function TypographySection({
               min={14}
               max={20}
               step={1}
-              value={[draft.baseSize]}
-              onValueChange={([baseSize]) => updateDraft({ baseSize })}
+              value={[inlineEdit ? baseSize : draft.baseSize]}
+              onValueChange={([value]) => inlineEdit ? setBaseSize(value) : updateDraft({ baseSize: value })}
+              onValueCommit={inlineEdit ? ([baseSize]) => updateDraft({ baseSize }) : undefined}
             />
             <span className="text-right font-mono text-xs">
-              {draft.baseSize}px
+              {inlineEdit ? baseSize : draft.baseSize}px
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-[5rem_1fr_4rem] sm:items-center">
@@ -175,13 +182,12 @@ export function TypographySection({
               min={1.125}
               max={1.5}
               step={0.025}
-              value={[draft.typeRatio]}
-              onValueChange={([typeRatio]) =>
-                updateDraft({ typeRatio: Number(typeRatio.toFixed(3)) })
-              }
+              value={[inlineEdit ? typeRatio : draft.typeRatio]}
+              onValueChange={([value]) => inlineEdit ? setTypeRatio(value) : updateDraft({ typeRatio: Number(value.toFixed(3)) })}
+              onValueCommit={inlineEdit ? ([value]) => updateDraft({ typeRatio: Number(value.toFixed(3)) }) : undefined}
             />
             <span className="text-right font-mono text-xs">
-              {draft.typeRatio}
+              {inlineEdit ? typeRatio : draft.typeRatio}
             </span>
           </div>
         </div>

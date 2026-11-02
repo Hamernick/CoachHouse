@@ -1,4 +1,7 @@
 import { z } from "zod"
+import { formOtherAnswerSchema, isFormOtherAnswer, validateOtherAnswer } from "./form-other-answer"
+import { formGridAnswerSchema } from "./form-grid-schema"
+import { validateGridAnswer } from "./form-grid-answers"
 import type {
   FormSnapshot,
   FormSnapshotQuestion,
@@ -12,6 +15,8 @@ export const FORM_ANSWER_LIMITS = {
   totalCharacters: 50_000,
 } as const
 const answerValueSchema = z.union([
+  formOtherAnswerSchema,
+  formGridAnswerSchema,
   z.string().max(FORM_ANSWER_LIMITS.paragraph),
   z.number().finite(),
   z.array(z.string().max(64)).max(50),
@@ -59,7 +64,11 @@ function validateValue(
   question: FormSnapshotQuestion,
   value: FormAnswer["value"]
 ): string | null {
+  if (isFormOtherAnswer(value)) return validateOtherAnswer(question, value)
   switch (question.type) {
+    case "multiple_choice_grid":
+    case "checkbox_grid":
+      return validateGridAnswer(question, value)
     case "text":
     case "paragraph":
       return typeof value !== "string"
@@ -73,10 +82,24 @@ function validateValue(
         z.email().safeParse(value.trim()).success
         ? null
         : "Enter a valid email address."
+    case "linear_scale":
+    case "rating":
+      return typeof value === "number" && Number.isInteger(value) && value >= question.min && value <= question.max
+        ? null : `Choose a whole number from ${question.min} to ${question.max}.`
     case "number":
       return typeof value === "number" && Number.isFinite(value)
         ? null
         : "Enter a number."
+    case "date":
+      return typeof value === "string" &&
+        !value.startsWith("0000-") && z.iso.date().safeParse(value).success
+        ? null
+        : "Enter a valid date."
+    case "time":
+      return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)
+        ? null
+        : "Enter a valid time."
+    case "dropdown":
     case "single_choice":
       return typeof value === "string" &&
         question.options.some((option) => option.id === value)
@@ -114,7 +137,7 @@ export function validateFormAnswers(
         ? answer.value.length
         : Array.isArray(answer.value)
           ? answer.value.join("").length
-          : 0),
+          : typeof answer.value === "object" ? JSON.stringify(answer.value).length : 0),
     0
   )
   if (total > FORM_ANSWER_LIMITS.totalCharacters)
@@ -162,11 +185,11 @@ export function validateFormAnswers(
     if (!answer) continue
     const error = validateValue(question, answer.value)
     if (error) issues.push({ questionId: question.id, message: error })
-    else
+    else if (!(typeof answer.value === "object" && !Array.isArray(answer.value) && !Object.keys(answer.value).length))
       normalized.push({
         ...answer,
         value:
-          typeof answer.value === "string" ? answer.value.trim() : answer.value,
+          typeof answer.value === "string" ? answer.value.trim() : isFormOtherAnswer(answer.value) ? { ...answer.value, otherText: answer.value.otherText.trim() } : answer.value,
       })
   }
   return issues.length

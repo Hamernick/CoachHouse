@@ -212,3 +212,38 @@ describe("opportunity application preparation",()=>{
   expect(()=>applicationSectionId('foreign')).toThrow()
  })
 })
+
+import { searchOpportunityFundingSources } from "@/features/workspace-finance/funding-source-actions"
+import { readOpportunitySources } from "@/features/workspace-finance/lib/opportunity-sources"
+describe("embedded funding source search", () => {
+ it("checks organization, permission and input before any provider request", async () => {
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"x"})).toHaveProperty("error")
+  expect(mock.actor).not.toHaveBeenCalled()
+  expect(await searchOpportunityFundingSources({organizationId:ID(99),keyword:"community"})).toHaveProperty("error")
+  mock.manage.mockResolvedValue(false)
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toHaveProperty("error")
+  expect(mock.discover).not.toHaveBeenCalled()
+ })
+ it("reuses bounded discovery and returns a persistent named source without saving matches", async () => {
+  const result=await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:" community "})
+  expect(mock.discover).toHaveBeenCalledExactlyOnceWith({keyword:"community",limit:3})
+  expect(mock.rpc).not.toHaveBeenCalled();expect(mock.board).not.toHaveBeenCalled()
+  if(!("options" in result))throw new Error("Expected source results")
+  expect(result.options[0].source).toEqual({kind:"link",url:notice().originalUrl,title:notice().title})
+  expect(readOpportunitySources(JSON.parse(JSON.stringify(result.options.map(item=>item.source))))).toEqual(result.options.map(item=>item.source))
+ })
+ it("distinguishes unavailable providers from empty results", async () => {
+  mock.discover.mockResolvedValueOnce({notices:[],unavailable:1})
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toHaveProperty("error")
+  mock.discover.mockResolvedValueOnce({notices:[],unavailable:0})
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toEqual({options:[]})
+ })
+ it("bounds per-actor search bursts and releases the limit after a minute", async () => {
+  mock.actor.mockResolvedValue({user:{id:ID(99)},activeOrg:{orgId:WORKSPACE,role:"owner"},supabase:{}})
+  for(let i=0;i<10;i++)expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toHaveProperty("options")
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toEqual({error:"Search limit reached. Try again shortly."})
+  expect(mock.discover).toHaveBeenCalledTimes(10)
+  vi.advanceTimersByTime(60001)
+  expect(await searchOpportunityFundingSources({organizationId:WORKSPACE,keyword:"community"})).toHaveProperty("options")
+ })
+})

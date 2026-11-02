@@ -19,7 +19,7 @@ const inputSchema = z.object({
   sources: opportunitySourcesSchema.optional(),
   report: opportunityReportSchema.optional(),
   updatedAt: z.iso.datetime({ offset: true }).optional(),
-}).strict()
+}).strict().refine(input => !input.report?.timeline || input.deadline === input.report.timeline.to, "The deadline must match the timeline end date.")
 
 type OpportunityWrite = {
   id: string; organizationId: string; title: string; source: string; deadline: string; sources?: OpportunitySource[]; report?: OpportunityReport; updatedAt?: string
@@ -68,7 +68,7 @@ async function persistOpportunity(input: OpportunityWrite, editing: boolean): Pr
       .select("*").eq("id", id).eq("org_id", activeOrg.orgId).eq("external_provider", "manual").maybeSingle()
     if (readError || !data || !["new", "saved", "applied", "awarded", "not_awarded"].includes(data.status)) return { error: "Unable to confirm this opportunity. Try again." }
     const opportunity: WorkspaceFinanceOpportunityInput = {
-      origin: "manual", updatedAt: data.updated_at, report: readOpportunityReport(data.report),
+      origin: "manual", feedPosition: data.feed_position, updatedAt: data.updated_at, report: readOpportunityReport(data.report),
       id: data.id, title: data.title, source: data.source_label, dueAt: data.due_at,
       discoveredAt: data.discovered_at, status: data.status as WorkspaceFinanceOpportunityInput["status"],
       sources: readOpportunitySources(data.sources),

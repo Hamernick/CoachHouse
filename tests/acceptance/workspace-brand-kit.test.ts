@@ -11,9 +11,28 @@ import {
   resolveBrandManifest,
   resolveBrandPalette,
 } from "@/features/workspace-brand-kit/lib/brand-kit-export"
+import { acknowledgeOrgProfileSave, applyOrgProfileUpdates } from "@/components/organization/org-profile-card/hooks/use-org-profile-editor-state-helpers"
+import { resolveWorkspaceBrandIdentity, updateWorkspaceBrandIdentity } from "@/features/workspace-brand-kit/lib/brand-identity-profile"
 import { createZipArchive } from "@/lib/files/simple-zip"
 
 describe("workspace-brand-kit", () => {
+  it("uses the acknowledged revision for the next inline save and retains other brand content", () => {
+    const original = { name: "Example", tagline: "Original", brandVoiceTone: "Warm" }
+    const identity = resolveWorkspaceBrandIdentity(original)
+    identity.draft.purpose = "Keep this purpose"
+    const profile = { ...original, brandIdentity: identity }
+    const first = updateWorkspaceBrandIdentity(profile, { tagline: "Updated" })
+    const saved = acknowledgeOrgProfileSave(applyOrgProfileUpdates(profile, first), {
+      brandIdentity: { ...first.brandIdentity!, revision: "2026-10-25T21:00:00.000Z" },
+    })
+    const next = updateWorkspaceBrandIdentity(saved, { introduction: "A new introduction" })
+    expect(next.brandIdentity?.revision).toBe("2026-10-25T21:00:00.000Z")
+    expect(next.brandIdentity?.draft.tagline).toBe("Updated")
+    expect(next.brandIdentity?.draft.purpose).toBe("Keep this purpose")
+    expect(saved.brandVoiceTone).toBe("Warm")
+    expect(profile.tagline).toBe("Original")
+  })
+
   it("derives readiness from the saved profile basics", () => {
     const inProgress = resolveBrandKitReadiness({
       name: "Coach House",
@@ -193,7 +212,7 @@ describe("workspace-brand-kit", () => {
     )
     expect(editMode).not.toContain("<BrandKitSection")
     expect(brandKitTab).toContain("<WorkspaceBrandKitProfileEditor")
-    expect(brandKitTab).toContain("readOnly={!editMode}")
+    expect(brandKitTab).toContain("readOnly={!canEdit} inlineEdit")
     expect(profileEditor).toContain("BrandIdentityPalette")
     expect(profileEditor).toContain("BrandIdentityMarks")
     expect(profileEditor).toContain("WorkspaceBrandKitProfileVoice")

@@ -1,4 +1,6 @@
+import { ResearchOutputCoverage } from "./research-output-coverage"
 import type { ResearchResult } from "../research-types"
+import { ResearchSources } from "./research-sources"
 
 export type ResearchPlanContext = { title: string; members: { id: string; title: string }[] }
 
@@ -11,6 +13,7 @@ export function ResearchReview({ result, plan }: { result: ResearchResult; plan?
     return item?.kind === "reference" && item.referenceId ? title(item.referenceId) : item?.title ?? key
   }
   return <div className="space-y-2">
+    <ResearchOutputCoverage result={result} />
     <p className="text-sm">{result.summary}</p>
     {plan && <p className="text-xs text-muted-foreground">Existing content and completion stay unchanged. Items not mentioned stay in {plan.title}.</p>}
     {result.questions.length > 0 && <ul className="list-disc space-y-1 pl-4 text-sm">{result.questions.map(question => <li key={question}>{question}</li>)}</ul>}
@@ -22,6 +25,6 @@ export function ResearchReview({ result, plan }: { result: ResearchResult; plan?
       {result.decisions?.find(decision => decision.itemKey === item.key)?.outcomes.map(outcome => <p key={outcome.key} className="text-xs text-muted-foreground"><span className="font-medium">{outcome.label}</span>: {outcome.next.length ? outcome.next.map(key => itemTitle(key)).join(", ") : "No further action proposed"}</p>)}
     </li>)}</ul>
     {removed.length > 0 && <div className="space-y-1 text-xs text-muted-foreground"><p>Remove from plan; keep in workspace:</p><ul aria-label="Research membership removals">{removed.map(reference => <li key={reference}>{title(reference)}</li>)}</ul></div>}
-    <ul className="flex flex-wrap gap-1">{result.sources.map(source => <li key={source.id}><a href={source.href} target={source.kind === "web" ? "_blank" : undefined} rel="noreferrer" className="inline-block max-w-60 truncate rounded-full bg-muted px-2 py-1 text-xs underline">{source.title}</a></li>)}</ul>
+    <ResearchSources sources={result.sources} />
   </div>
 }

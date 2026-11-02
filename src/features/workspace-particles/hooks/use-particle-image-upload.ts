@@ -19,6 +19,8 @@ import {
   pendingParticleUploads,
   type ParticleUploadOperation,
 } from "../lib/particle-upload-operations"
+import { prepareParticlePlacementReveal, particlePlacementMeasurements } from "../lib/particle-placement-viewport"
+import { particleCreationPosition } from "../lib/particle-creation-placement"
 import type { ParticlePosition } from "../types"
 import type { useParticleSession } from "./use-particle-session"
 
@@ -84,6 +86,7 @@ export function useParticleImageUpload(input: Input) {
       running.current = true
       setPending(true)
       setMessage("Uploading files…")
+      const reveal = prepareParticlePlacementReveal(current.flow)
       const toastId = toast.loading("Uploading files…")
       const report = (text: string) => {
         setMessage(text)
@@ -109,17 +112,7 @@ export function useParticleImageUpload(input: Input) {
           report("This image placeholder is no longer available.")
           return false
         }
-        const canvas = document
-          .querySelector("[data-workspace-canvas-flow-frame]")
-          ?.getBoundingClientRect()
-        const origin =
-          position ??
-          (canvas && current.flow.current
-            ? current.flow.current.screenToFlowPosition({
-                x: canvas.left + canvas.width / 2 - 200,
-                y: canvas.top + 80,
-              })
-            : { x: 100, y: 100 })
+        const origin = position ?? { x: 100, y: 100 }
         const operations: ParticleUploadOperation[] = []
         for (const [index, file] of files.entries()) {
           const image = await uploadParticleFile(workspaceId, file)
@@ -129,19 +122,18 @@ export function useParticleImageUpload(input: Input) {
             operations.push(
               fillImagePlaceholder(target, image, imageFileTitle(file.name))
             )
-          } else
-            operations.push({
-              kind: "put_particle",
-              expectedRevision: null,
-              particle: createFileParticle(
-                workspaceId,
-                imageFileTitle(file.name),
-                image,
-                { x: origin.x + index * 32, y: origin.y + index * 32 },
-                crypto.randomUUID(),
-                new Date().toISOString()
-              ),
-            })
+          } else {
+            const particle = createFileParticle(workspaceId, imageFileTitle(file.name), image,
+              { x: origin.x + index * 32, y: origin.y + index * 32 }, crypto.randomUUID(), new Date().toISOString())
+            if (!position) {
+              const graph = latest.current.session.getCurrentGraph()
+              if (!graph) throw new Error("Workspace is unavailable.")
+              const scene = { ...graph, particles: [...graph.particles, ...operations.map(operation => operation.particle)] }
+              particle.position = particleCreationPosition(scene, particle, undefined, particlePlacementMeasurements(current.flow.current))
+              particle.positionMode = "managed"
+            }
+            operations.push({ kind: "put_particle", expectedRevision: null, particle })
+          }
           prepared.current = { workspaceId, operations: [...operations] }
           setCanRetry(true)
         }
@@ -158,6 +150,7 @@ export function useParticleImageUpload(input: Input) {
         }
         const saved = await next.session.commit(operations)
         if (saved) {
+          if (!position && !target && operations[0]) reveal(operations[0].particle)
           prepared.current = null
           setCanRetry(false)
           setMessage(null)

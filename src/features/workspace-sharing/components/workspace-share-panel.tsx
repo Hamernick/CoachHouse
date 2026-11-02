@@ -1,5 +1,6 @@
 "use client"
 
+import { OrganizationFormResponseBrowser } from "@/features/organization-forms/client"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, useReducedMotion } from "motion/react"
@@ -24,6 +25,7 @@ import { usePageEditor } from "../hooks/use-page-editor"
 import type { PageEditorData } from "../lib/page-editor"
 import type { WorkspacePage } from "../types"
 import { SharePageHeader, SHARE_HEADER_BUTTON } from "./share-page-header"
+import { PageAccessManager } from "./page-access-manager"
 import { SharePageMembers } from "./share-page-members"
 
 const Preview = dynamic(() => import("./public-workspace-page").then((module) => module.PublicWorkspacePage), {
@@ -31,9 +33,9 @@ const Preview = dynamic(() => import("./public-workspace-page").then((module) =>
 })
 const MENU_ITEM = "min-h-9 [@media(pointer:coarse)]:min-h-11"
 
-export function WorkspaceSharePanel({ workspaceId, particleId, initialParticleIds, onBack, onDirtyChange }: {
+export function WorkspaceSharePanel({ workspaceId, canvasId = null, particleId, initialParticleIds, onBack, onDirtyChange }: {
   workspaceId: string; particleId: string; onBack: () => void; onDirtyChange: (dirty: boolean) => void
-  initialParticleIds?: string[]
+  initialParticleIds?: string[]; canvasId?: string | null
 }) {
   const [data, setData] = useState<PageEditorData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,13 +48,13 @@ export function WorkspaceSharePanel({ workspaceId, particleId, initialParticleId
     let active = true
     setError(null)
     setData(null)
-    void loadWorkspacePageEditorAction({ workspaceId, particleId, ...(initialParticleIds?.length ? { initialParticleIds } : {}), ...(request.pageId ? { pageId: request.pageId } : {}) })
+    void loadWorkspacePageEditorAction({ workspaceId, canvasId, particleId, ...(initialParticleIds?.length ? { initialParticleIds } : {}), ...(request.pageId ? { pageId: request.pageId } : {}) })
       .then((result) => { if (active) { if (result.ok) setData(result.value); else setError(result.error) } })
       .catch(() => { if (active) setError("Unable to load Share. Try again.") })
     return () => { active = false }
-  }, [workspaceId, particleId, initialParticleIds, request])
+  }, [workspaceId, canvasId, particleId, initialParticleIds, request])
   const back = () => { onDirtyChange(false); onBack() }
-  if (data) return <SharePageEditor key={`${data.workspaceId}:${data.page?.id ?? data.suggestedPageId}:${data.page?.revision ?? 0}`}
+  if (data) return <SharePageEditor key={`${data.workspaceId}:${data.canvasId ?? "default"}:${data.page?.id ?? data.suggestedPageId}:${data.page?.revision ?? 0}`}
     data={data} particleId={particleId} onDirtyChange={onDirtyChange} onBack={back} onSaved={recordSaved}
     onChoose={(id) => {
       onDirtyChange(false)
@@ -70,9 +72,17 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
   data: PageEditorData; particleId: string; onBack: () => void; onDirtyChange: (dirty: boolean) => void; onChoose: (id: string) => void
   onSaved?: (page: WorkspacePage) => void
 }) {
-  const editor = usePageEditor({ data, particleId, onDirtyChange, onSaved })
-  const { state, dirty, locked } = editor
+  const [pageDirty, setPageDirty] = useState(false)
+  const [responseLocked, setResponseLocked] = useState(false)
+  const [accessLocked, setAccessLocked] = useState(false)
+  const editor = usePageEditor({ data, particleId, onDirtyChange: setPageDirty, onSaved })
+  const { state, dirty } = editor
+  const locked = editor.locked || accessLocked || responseLocked
+  useEffect(() => { onDirtyChange(pageDirty || accessLocked || responseLocked) }, [pageDirty, accessLocked, responseLocked, onDirtyChange])
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
   const [switchTo, setSwitchTo] = useState<string | null>(null)
+  const [responsesOpen, setResponsesOpen] = useState(false)
+  const [peopleOpen, setPeopleOpen] = useState(false)
   const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const errorRegion = useRef<HTMLDivElement>(null)
   const region = useRef<HTMLElement>(null)
@@ -80,7 +90,7 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
   const reduce = useReducedMotion()
   useEffect(() => { region.current?.focus({ preventScroll: true }) }, [])
   useEffect(() => { if (state.notice) region.current?.focus({ preventScroll: true }) }, [state.notice])
-  useWorkspaceEditorStatus({ label: "Shared page", dirty, pending: state.pending || state.uncertain, error: Boolean(state.error) })
+  useWorkspaceEditorStatus({ label: "Shared page", dirty, pending: state.pending || state.uncertain || accessLocked || responseLocked, error: Boolean(state.error) })
   useEffect(() => {
     if (!state.error) return
     const field = state.field ? region.current?.querySelector<HTMLElement>('[aria-invalid="true"]') : null
@@ -100,6 +110,7 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
     <SharePageHeader dirty={dirty} locked={locked} onBack={onBack} actions={<>
       {state.preview ? <>
         <Button type="button" variant="ghost" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={editor.edit}>Edit</Button>
+        <Button type="button" variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked} onClick={() => void editor.write("share_with_guests")}>Share privately</Button>
         <Button type="button" className={SHARE_HEADER_BUTTON} disabled={locked || !data.publishingEnabled} onClick={() => void editor.write("publish")}>{editor.activeAction === "publish" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}{currentPage?.visibility === "public" ? "Update" : "Publish"}</Button>
       </> : <>
         <Button type="submit" form={id} variant="outline" className={SHARE_HEADER_BUTTON} disabled={locked}>{editor.activeAction === "review" && <LoaderIcon data-icon="inline-start" className="animate-spin motion-reduce:animate-none" aria-hidden />}Preview</Button>
@@ -121,13 +132,20 @@ export function SharePageEditor({ data, particleId, onBack, onDirtyChange, onCho
         <Badge variant="outline" className="shrink-0 rounded-full">{currentPage?.visibility === "public" ? "Public" : "Private"}</Badge>
       </div>
       {!data.publishingEnabled && <p className="text-muted-foreground text-xs">Public sharing is unavailable. You can save a private draft.</p>}
+      {currentPage?.guestSharingReady && <><Button type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked || dirty} aria-expanded={peopleOpen} aria-controls={`${id}-people`} onClick={() => setPeopleOpen(!peopleOpen)}>People</Button>
+        {peopleOpen && <div id={`${id}-people`}><PageAccessManager key={currentPage.id} pageId={currentPage.id} onLockChange={setAccessLocked} /></div>}</>}
       {publicPath && <a href={publicPath} target="_blank" rel="noopener noreferrer" className="focus-ring text-muted-foreground inline-flex min-h-7 w-fit items-center rounded-md text-xs underline underline-offset-4 [@media(pointer:coarse)]:min-h-11">Open public page</a>}
       {copyNotice && <p className="text-muted-foreground text-xs" role="status">{copyNotice}</p>}
+      {currentPage && <>
+        <Button type="button" variant="outline" className="min-h-11 w-fit rounded-xl" disabled={locked} aria-expanded={responsesOpen} onClick={() => setResponsesOpen(!responsesOpen)}>Responses</Button>
+        {responsesOpen && <OrganizationFormResponseBrowser key={currentPage.id} pageId={currentPage.id} onLockChange={setResponseLocked} />}
+      </>}
+      {state.preview?.snapshot.items.some((item) => item.content.kind === "form") && <p className="text-muted-foreground text-xs">Sharing enables these forms to receive private responses in Coach House. Only the primary form manager can publish. Form collaborators can review responses according to their access. Page access does not grant response access.</p>}
       {state.error && <Alert ref={errorRegion} tabIndex={-1} variant="destructive" id={`${id}-error`} className="focus-ring rounded-2xl"><AlertDescription>{state.error}<Button type="button" variant="outline" size="sm" className="mt-2 w-fit rounded-full" disabled={state.pending} onClick={() => state.uncertain ? void editor.retry() : choose(currentPage?.id ?? "new")}>{state.uncertain ? "Retry save" : "Reload saved page"}</Button></AlertDescription></Alert>}
       <p className="sr-only" role="status" aria-live="polite">{state.pending ? "Saving or preparing preview…" : state.notice ?? ""}</p>
     </div>
     <motion.div key={state.preview ? "preview" : "edit"} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduce ? 0 : 0.15 }} className="min-w-0">
-      {state.preview ? <Preview snapshot={state.preview.snapshot} embedded /> : <form id={id} className="flex min-w-0 flex-col gap-4 px-3 pb-4" onSubmit={(event) => { event.preventDefault(); void editor.review() }} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); void editor.review() } }}>
+      {state.preview ? <Preview snapshot={state.preview.snapshot} imagePreviews={state.preview.imagePreviews} documentPreviews={state.preview.documentPreviews} embedded /> : <form id={id} className="flex min-w-0 flex-col gap-4 px-3 pb-4" onSubmit={(event) => { event.preventDefault(); void editor.review() }} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key === "Enter") { event.preventDefault(); void editor.review() } }}>
         <FieldGroup>
           <Field data-invalid={state.field === "title"}><FieldLabel htmlFor={`${id}-title`} className="sr-only">Page title</FieldLabel><Input id={`${id}-title`} name="page-title" placeholder="Name this page…" value={state.draft.title} disabled={locked} aria-invalid={state.field === "title"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, title: event.target.value })} /></Field>
           <Field data-invalid={state.field === "description"}><FieldLabel htmlFor={`${id}-description`} className="sr-only">Description</FieldLabel><Textarea id={`${id}-description`} name="page-description" className="min-h-28" placeholder="Add an introduction…" value={state.draft.description} disabled={locked} aria-invalid={state.field === "description"} aria-describedby={state.error ? `${id}-error` : undefined} onChange={(event) => editor.update({ ...state.draft, description: event.target.value })} /></Field>

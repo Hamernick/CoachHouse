@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
   }
 
   const profile = (orgRow?.profile ?? {}) as Record<string, unknown>
-  const raw = Array.isArray(profile.org_people) ? profile.org_people : []
+  const raw = Array.isArray(profile.org_people) ? profile.org_people.filter(isActiveContact) : []
   const people = raw
     .filter((entry): entry is Record<string, unknown> => isRecord(entry))
     .map(

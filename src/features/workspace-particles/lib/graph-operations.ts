@@ -1,4 +1,5 @@
 import { getParticleNotes } from "./particle-notes"
+import { resolvePlanCommand } from "./particle-plan-command"
 import { isWorkspaceToolId } from "./workspace-tool-contract"
 import type {
   Particle,
@@ -175,7 +176,13 @@ export function applyPreparedParticleBatch(
       before.width !== after.width
     )
   }
-  for (const operation of batch.operations) {
+  for (const input of batch.operations) {
+    let operation = input
+    if (input.kind === "change_plan") {
+      const resolved = resolvePlanCommand(input, [...particles.values()])
+      if (!resolved.ok) return resolved
+      operation = { kind: "put_particle", particle: resolved.value, expectedRevision: input.expectedRevision }
+    }
     switch (operation.kind) {
       case "put_particle": {
         let item = operation.particle
@@ -217,7 +224,7 @@ export function applyPreparedParticleBatch(
           item = { ...item, data: { ...item.data, planning: { ...item.data.planning,
             plans: item.data.planning.plans.map(plan => {
               const old = previous.find(value => value.id === plan.id)
-              const unchanged = old && old.title === plan.title && JSON.stringify(old.particleIds) === JSON.stringify(plan.particleIds) && JSON.stringify(old.links) === JSON.stringify(plan.links) && JSON.stringify(old.sources) === JSON.stringify(plan.sources) && old.summary === plan.summary && old.researchRunId === plan.researchRunId
+              const unchanged = old && old.title === plan.title && JSON.stringify(old.particleIds) === JSON.stringify(plan.particleIds) && JSON.stringify(old.optionalParticleIds) === JSON.stringify(plan.optionalParticleIds) && JSON.stringify(old.assignments) === JSON.stringify(plan.assignments) && JSON.stringify(old.links) === JSON.stringify(plan.links) && JSON.stringify(old.sources) === JSON.stringify(plan.sources) && old.summary === plan.summary && old.researchRunId === plan.researchRunId
               return { ...plan, revision: unchanged ? old.revision : revision }
             }),
           } } }

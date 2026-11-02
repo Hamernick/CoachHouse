@@ -1,5 +1,9 @@
 "use client"
 
+import type { MembershipResponsibility } from "../lib/particle-membership-responsibility"
+import type { ParticleResponsibility } from "../lib/particle-responsibility"
+import { ParticleAssignmentRail } from "./particle-assignment-rail"
+import { particleAssignmentHeight } from "../lib/particle-assignment-geometry"
 import { particleInspectionProps } from "./particle-surface"
 
 import { WorkspaceConnectionHandle } from "@/components/workspace/workspace-connection-handle"
@@ -16,10 +20,21 @@ import { getParticleHandles } from "../lib/particle-registry"
 import type { Particle } from "../types"
 import type { ParticleCardAction } from "../lib/particle-card-actions"
 import { ParticleResizeControl } from "./particle-resize-control"
+import { ParticleInspectionActions } from "./particle-inspection-actions"
 import { ParticleCard } from "./particle-card"
 import { ParticleMenuProvider } from "./particle-menu-overlay"
 
 export type ParticleNodeData = {
+  objectiveProgress?: import("../lib/particle-progress").ObjectiveProgress
+  memberships?: MembershipResponsibility[]
+  assignmentContext?: string
+  assignment?: { saveMembership?: (id: string, scope: MembershipResponsibility, value: ParticleResponsibility) => Promise<boolean>; save: (particle: Particle) => Promise<boolean>; onDirtyChange: (id: string, dirty: boolean) => void }
+  /** Personal animation reservation; never part of the persisted Particle. */
+  inspectionTransition?: { width: number; height: number }
+  expanded?: boolean
+  onExpand?: (id: string) => boolean
+  onCollapse?: () => void
+  exiting?: boolean
   onUploadImage?: (id: string, files: File[]) => Promise<boolean>
   resize?: {
     begin: (id: string, size: { width: number; height: number }) => boolean
@@ -58,17 +73,27 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
   "id" | "data" | "selected"
 >) {
   const { particle } = data
+  const railHeight = particleAssignmentHeight(particle, Boolean(data.memberships))
   const [menuOpen, setMenuOpen] = useState(false)
   const menuState = useMemo(() => ({ open: menuOpen, setOpen: setMenuOpen }), [menuOpen])
   const updateInternals = useUpdateNodeInternals()
   const handles = getParticleHandles(particle)
+  // React Flow observes card dimensions. Only changed handle IDs/order need
+  // explicit measurement; position saves must not remeasure every card.
+  const handleSignature = handles.outputs.join("|")
   useEffect(() => {
     updateInternals(id)
-  }, [id, particle, updateInternals])
+  }, [id, handleSignature, railHeight, updateInternals])
+  useEffect(() => {
+    if (data.expanded) document.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"] [data-particle-collapse]`)?.focus({ preventScroll: true })
+  }, [data.expanded, id])
   return (
-    <ParticleMenuProvider value={menuState}><div
+    <ParticleMenuProvider value={menuState}><div className="h-full" inert={data.exiting} aria-hidden={data.exiting || undefined}><div
+      style={railHeight ? { height: `calc(100% - ${railHeight}px)` } : undefined}
 
-      className="group/particle-node workspace-card-drag-handle relative h-full cursor-grab active:cursor-grabbing motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+      className="group/particle-node workspace-card-drag-handle relative h-full cursor-grab active:cursor-grabbing motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+      inert={data.exiting}
+      aria-hidden={data.exiting || undefined}
       onMouseDownCapture={protectWorkspaceControlDrag}
       onTouchStartCapture={protectWorkspaceControlDrag}
       onContextMenu={(event) => {
@@ -77,12 +102,20 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
         event.stopPropagation()
         setMenuOpen(true)
       }}
-      data-particle-size={particle.size}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && data.expanded && !event.defaultPrevented && !(event.target instanceof Element && event.target.closest('[role="menu"], [role="dialog"], input, textarea, select'))) {
+          event.preventDefault()
+          event.stopPropagation()
+          data.onCollapse?.()
+        }
+      }}
+      data-particle-expanded={data.expanded || undefined}
+      data-particle-size={particle.size ?? "medium"}
       {...particleInspectionProps(particle)}
 
     >
-      <ParticleCard data={data} selected={selected} />
-      {selected && <ParticleResizeControl id={id} data={data} />}
+      <ParticleCard data={data.expanded ? { ...data, editable: false } : data} selected={selected} headerAction={data.onExpand && <ParticleInspectionActions data={data} />} />
+      {selected && !data.expanded && <ParticleResizeControl id={id} data={data} />}
       {PARTICLE_HANDLE_SIDES.map((side) => (
         <WorkspaceConnectionHandle
           key={`in-${side}`}
@@ -125,6 +158,6 @@ const ParticleNodeContent = memo(function ParticleNodeContent({
           />
         ))
       )}
-    </div></ParticleMenuProvider>
+    </div>{railHeight > 0 && <ParticleAssignmentRail data={data} />}</div></ParticleMenuProvider>
   )
 })

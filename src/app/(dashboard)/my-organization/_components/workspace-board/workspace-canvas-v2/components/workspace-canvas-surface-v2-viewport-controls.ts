@@ -1,5 +1,6 @@
 "use client"
 
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useCallback, type MutableRefObject } from "react"
 import type { ReactFlowInstance } from "@xyflow/react"
 
@@ -33,6 +34,7 @@ export function useWorkspaceCanvasViewportControls({
   visibleNodeIds: string[]
 }) {
   const handleZoomIn = useCallback(() => {
+    if (flowInstanceRef.current) beginWorkspaceCameraIntent(flowInstanceRef.current)
     void flowInstanceRef.current?.zoomIn({
       duration: resolveWorkspaceCanvasCameraDuration(
         WORKSPACE_CANVAS_V2_ZOOM_PUNCH_MS
@@ -41,6 +43,7 @@ export function useWorkspaceCanvasViewportControls({
   }, [flowInstanceRef])
 
   const handleZoomOut = useCallback(() => {
+    if (flowInstanceRef.current) beginWorkspaceCameraIntent(flowInstanceRef.current)
     void flowInstanceRef.current?.zoomOut({
       duration: resolveWorkspaceCanvasCameraDuration(
         WORKSPACE_CANVAS_V2_ZOOM_PUNCH_MS

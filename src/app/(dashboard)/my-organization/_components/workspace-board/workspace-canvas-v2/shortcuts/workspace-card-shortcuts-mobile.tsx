@@ -24,7 +24,7 @@ export function WorkspaceCardShortcutsMobile({
 }) {
   const [open, setOpen] = useState(false)
   const triggerClassName =
-    "h-11 w-11 rounded-2xl border border-neutral-300/70 bg-white/78 shadow-lg backdrop-blur-xl dark:border-neutral-700/70 dark:bg-neutral-950/82"
+    "canvas-glass h-11 w-11 rounded-2xl border"
 
   return (
     <div className="pointer-events-auto md:hidden">
@@ -55,7 +55,7 @@ export function WorkspaceCardShortcutsMobile({
               <PanelLeftOpenIcon className="h-5 w-5" aria-hidden />
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="border-border/70 bg-background/98 px-0 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+          <DrawerContent className="canvas-glass px-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <DrawerHeader className="px-4 pb-2 text-left">
               <DrawerTitle>Workspace cards</DrawerTitle>
               <DrawerDescription>

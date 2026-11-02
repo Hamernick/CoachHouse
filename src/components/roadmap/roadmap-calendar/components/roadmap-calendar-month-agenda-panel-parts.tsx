@@ -28,6 +28,7 @@ import {
   type RoadmapCalendarEvent,
   type RoadmapCalendarEventInput,
 } from "@/lib/roadmap/calendar"
+import { opportunityCalendarPresentation } from "@/features/workspace-finance/client"
 import { cn } from "@/lib/utils"
 
 import { ROLE_OPTIONS } from "../constants"
@@ -144,16 +145,19 @@ export const RoadmapCalendarAddEventMenu = memo(
 
 export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
   event,
+  selectedDate,
   canManageCalendar,
   formatTimeRange,
   onEditEvent,
 }: {
   event: RoadmapCalendarEvent
+  selectedDate?: Date
   canManageCalendar: boolean
   formatTimeRange: (event: RoadmapCalendarEvent) => string
   onEditEvent: (event: RoadmapCalendarEvent) => void
 }) {
-  const meta = ROADMAP_CALENDAR_EVENT_TYPE_META[event.eventType]
+  const opportunity = opportunityCalendarPresentation(event, selectedDate)
+  const meta = opportunity?.label === "Window" ? { dotClassName: "bg-sky-400", badgeClassName: "bg-sky-500/12 text-sky-700 dark:text-sky-300" } : ROADMAP_CALENDAR_EVENT_TYPE_META[opportunity?.isDeadline ? "deadline" : event.eventType]
   const roleLabels = event.assignedRoles
     .map((role) => ROLE_LABEL_BY_ID[role])
     .filter((label): label is string => Boolean(label))
@@ -175,7 +179,7 @@ export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
         </span>
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-muted-foreground/70 shrink-0 text-xs tabular-nums">
-            {event.allDay ? "all day" : formatTimeRange(event)}
+            {opportunity ? opportunity.detail : event.allDay ? "all day" : formatTimeRange(event)}
           </span>
           <Badge
             variant="secondary"
@@ -184,7 +188,7 @@ export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
               meta.badgeClassName
             )}
           >
-            {getRoadmapCalendarEventTypeLabel(event.eventType)}
+            {opportunity?.label ?? getRoadmapCalendarEventTypeLabel(event.eventType)}
           </Badge>
           {event.recurrence ? (
             <span className="text-muted-foreground min-w-0 truncate text-xs">
@@ -219,7 +223,8 @@ export const RoadmapCalendarAgendaRow = memo(function RoadmapCalendarAgendaRow({
       variant="ghost"
       className="hover:bg-muted/35 h-auto w-full justify-start rounded-xl px-1 py-2 whitespace-normal"
       onClick={() => onEditEvent(event)}
-      aria-label={event.source ? `Open ${event.title} on canvas` : `Edit ${event.title}`}
+      title={opportunity?.description}
+      aria-label={event.source?.kind === "workspace_opportunity" ? `Open ${event.title} opportunity` : event.source ? `Open ${event.title} on canvas` : `Edit ${event.title}`}
     >
       {content}
     </Button>

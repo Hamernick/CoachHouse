@@ -10,19 +10,20 @@ import EyeIcon from "lucide-react/dist/esm/icons/eye"
 import { Empty } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import {
-  Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
   FORM_QUESTION_LABELS,
   createFormQuestion,
+  duplicateFormQuestion,
   createFormSnapshot,
   publishedFormDefinitionSchema,
 } from "../lib"
 import type { FormDefinition, FormQuestion } from "../types"
 import { OrganizationFormQuestionEditor } from "./organization-form-question-editor"
 import { OrganizationFormPreview } from "./organization-form-preview"
+import { FormQuestionList, SortableFormQuestion } from "./organization-form-question-list"
 import styles from "./organization-form-builder.module.css"
 
 /** Controlled draft editor. Its host owns Save, concurrency and authorization. */
@@ -128,14 +129,19 @@ export function OrganizationFormBuilder({
         ) : definition.questions.length === 0 ? (
           <Empty title="No questions yet" description="Add your first question to get started." className={styles.empty} />
         ) : (
-          <div className={styles.rows}>
+          <FormQuestionList definition={definition} disabled={disabled} onChange={onChange}>
             {definition.questions.map((question, index) => (
-              <Collapsible
+              <SortableFormQuestion
+                question={question}
+                index={index}
+                disabled={disabled}
                 key={question.id}
                 open={expanded === question.id}
                 onOpenChange={(open) => setExpanded(open ? question.id : null)}
-                className={styles.row}
               >
+                {(handle) => <>
+                <div className={styles.questionHeader}>
+                {handle}
                 <CollapsibleTrigger asChild>
                   <Button
                     type="button"
@@ -155,6 +161,7 @@ export function OrganizationFormBuilder({
                     <ChevronDownIcon className="transition-transform duration-150 motion-reduce:transition-none" style={{ transform: expanded === question.id ? "rotate(180deg)" : undefined }} aria-hidden />
                   </Button>
                 </CollapsibleTrigger>
+                </div>
                 <CollapsibleContent>
                   <motion.div
                     initial={reducedMotion ? false : { opacity: 0, y: -3 }}
@@ -174,6 +181,13 @@ export function OrganizationFormBuilder({
                       autoFocus={newQuestion === question.id}
                       onChange={update}
                       onDefinitionChange={onChange}
+                      onDuplicate={() => {
+                        if (disabled || definition.questions.length >= 50) return
+                        const newId = crypto.randomUUID()
+                        onChange(duplicateFormQuestion(definition, question.id, newId))
+                        setExpanded(newId)
+                        setNewQuestion(newId)
+                      }}
                       onRemove={() => {
                         onChange({
                           ...definition,
@@ -186,9 +200,10 @@ export function OrganizationFormBuilder({
                     />
                   </motion.div>
                 </CollapsibleContent>
-              </Collapsible>
+                </>}
+              </SortableFormQuestion>
             ))}
-          </div>
+          </FormQuestionList>
         )}
       </div>
     </section>

@@ -27,6 +27,7 @@ type ResizablePanelGroupProps = Omit<
 }
 
 type ResizablePanelProps = Omit<HTMLAttributes<HTMLDivElement>, "onResize"> & {
+  panelRef?: ResizablePrimitive.PanelProps["panelRef"]
   collapsedSize?: number | string
   collapsible?: boolean
   defaultSize?: number | string

@@ -3,38 +3,34 @@ import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import { readAiRun } from "@/features/ai-credits"
 import { researchPlanOperations, type ParticleBatch } from "@/features/workspace-particles"
-import { researchResultSchema, type KnowledgeKind } from "../research-types"
+import { researchResultSchema, newObjectiveTargetSchema } from "../research-types"
 import { loadResearchContext } from "./research-context"
 import { researchRunSchema } from "./research-run"
-import { knowledgeLoader } from "./knowledge-records"
+import { assertResearchProvenance, assertResearchSourcesAccessible } from "./research-result-access"
 
-/** Only identifiers enter from the browser; proposal content comes from the ledger. */
+import { applyResearchDraft, researchDraftSchema } from "../lib/research-draft"
+
+/** The ledger owns evidence/target; typed preview edits cannot supply canonical IDs or authority. */
 export async function prepareResearchApplication(input: unknown) {
-  const request = z.strictObject({ runId: z.uuid(), objectiveId: z.uuid(), organizationId: z.uuid() }).parse(input)
-  const context = await loadResearchContext({ revision: 0, organizationId: request.organizationId, objectiveId: request.objectiveId }, false)
+  const request = z.union([
+    z.strictObject({ runId: z.uuid(), draft: researchDraftSchema.optional(), objectiveId: z.uuid(), organizationId: z.uuid(), target: z.never().optional() }),
+    z.strictObject({ runId: z.uuid(), draft: researchDraftSchema.optional(), organizationId: z.uuid(), objectiveId: z.never().optional(), target: newObjectiveTargetSchema }),
+  ]).parse(input)
+  if (request.target && request.target.organizationId !== request.organizationId) throw new Error("Workspace unavailable.")
+  const context = await loadResearchContext(request.target ?? { revision: 0, organizationId: request.organizationId, objectiveId: request.objectiveId! }, false)
   const run = researchRunSchema.parse(await readAiRun(request.runId, request.organizationId, context.user.id))
   if (run.id !== request.runId || run.status !== "succeeded" || !run.proposal ||
-      run.target.organizationId !== request.organizationId || run.target.objectiveId !== request.objectiveId ||
+      run.target.organizationId !== request.organizationId || run.target.mode !== request.target?.mode || run.target.objectiveId !== request.objectiveId ||
       run.target.userId !== context.user.id || run.target.canvasId !== context.canvasId)
     throw new Error("This research is unavailable for this objective.")
   const result = researchResultSchema.parse(JSON.parse(run.proposal))
-  if (result.runId !== run.id || result.target.organizationId !== run.target.organizationId ||
-      result.target.objectiveId !== run.target.objectiveId || result.target.revision !== run.target.revision ||
-      result.target.plan?.id !== run.target.plan?.id || result.target.plan?.revision !== run.target.plan?.revision)
-    throw new Error("Research provenance does not match its saved run.")
-  const operations = researchPlanOperations(context.graph, result, context.user.id, new Date().toISOString(), randomUUID)
-  if (!operations.length) return { context, batch: null, runId: run.id }
-  const load = knowledgeLoader(context)
-  const kinds: Record<string, KnowledgeKind> = { organization: "organization", person: "person", document: "document", file: "document", particle: "particle", calendar: "calendar", opportunity: "opportunity" }
-  const particleSources = result.sources.some(source => source.kind === "workspace" && source.id.startsWith("particle:"))
-    ? new Map((await load("particle", "")).map(source => [source.id, source])) : new Map()
-  // Recheck actor-visible evidence and versions before entering the canonical writer.
-  for (const source of result.sources.filter(value => value.kind === "workspace")) {
-    const kind = kinds[source.id.split(":")[0]]
-    const current = kind === "particle" ? particleSources.get(source.id) : kind ? (await load(kind, source.title)).find(value => value.id === source.id) : undefined
-    if (!current || current.revision !== source.revision)
-      throw new Error("A research source changed or is no longer accessible. Research again before adding this proposal.")
-  }
+  assertResearchProvenance(result, run.id, run.target)
+  const operations = researchPlanOperations(context.graph, applyResearchDraft(result, request.draft), context.user.id, new Date().toISOString(), randomUUID)
+  const objectiveId = operations.flatMap(operation => operation.kind === "put_particle" && operation.particle.type === "objective" ? [operation.particle.id] : [])[0]
+    ?? context.graph.particles.find(p => p.type === "objective" && [...(p.data.planning?.plans ?? []), ...(p.data.planning?.proposals ?? [])].some(plan => plan.researchRunId === run.id))?.id
+  if (!objectiveId) throw new Error("Research objective unavailable.")
+  if (!operations.length) return { context, batch: null, runId: run.id, objectiveId }
+  await assertResearchSourcesAccessible(context, result)
   const batch: ParticleBatch = { id: randomUUID(), workspaceId: request.organizationId, baseRevision: context.graph.revision, requireExactRevision: true, operations }
-  return { context, batch, runId: run.id }
+  return { context, batch, runId: run.id, objectiveId }
 }

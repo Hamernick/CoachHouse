@@ -1,11 +1,24 @@
 import "server-only"
-import { researchInstructions, researchSkills } from "../lib/research-skills"
+import { getParticleCapabilityCatalog } from "@/features/workspace-particles"
+import { researchSkills } from "../lib/research-skills"
 import type { ResearchRequest } from "../research-types"
 import type { ResearchContext } from "./research-context"
 
-/** The selected plan is complete or rejected, never silently summarized away. */
-export function researchPrompt(context: ResearchContext, request: Pick<ResearchRequest, "prompt" | "skill" | "target">) {
-  const selected = request.target.plan
+const coverage = (total: number, limit: number) => ({ shown: Math.min(total, limit), total, omitted: Math.max(0, total - limit) })
+
+/** The selected plan is complete or rejected; other context is an explicit bounded overview. */
+export function researchContextProjection(context: ResearchContext, target = context.target) {
+  if (target.mode === "new_objective") return {
+    mode: "new_objective", canvasId: target.canvasId,
+    existingObjectives: context.graph.particles.filter(item => item.type === "objective").slice(0, 8)
+      .map(item => ({ id: `particle:${item.id}`, title: item.title, revision: item.revision })),
+    objectiveCoverage: coverage(context.graph.particles.filter(item => item.type === "objective").length, 8),
+    note: "Propose a new objective and its first plan. Nothing has been created. Use workspace tools for relevant details; do not duplicate existing work.",
+  }
+  if (!context.objective) throw new Error("Objective unavailable.")
+  const plans = context.objective.data.planning?.plans ?? []
+  const pending = context.objective.data.planning?.proposals.filter(proposal => proposal.status === "pending") ?? []
+  const selected = target.plan
   const plan = selected ? context.objective.data.planning?.plans.find(value => value.id === selected.id) : undefined
   if (selected && (!plan || plan.revision !== selected.revision)) throw new Error("This plan changed. Reopen research from the current plan.")
   const particles = new Map(context.graph.particles.map(particle => [particle.id, particle]))
@@ -17,15 +30,20 @@ export function researchPrompt(context: ResearchContext, request: Pick<ResearchR
         ...(particle.type === "decision" ? { outcomes: particle.data.outcomes, selectedOutcome: particle.data.selectedOutcome } : {}) }
     }),
   } : undefined
-  return JSON.stringify({ task: request.prompt, objective: { title: context.objective.title, description: context.objective.description,
-    ...(selectedPlan ? { selectedPlan } : { plans: context.objective.data.planning?.plans.slice(0, 4).map(value => ({ title: value.title, particleIds: value.particleIds.slice(0, 8) })) }),
-    pendingProposals: context.objective.data.planning?.proposals.filter(proposal => proposal.status === "pending").map(proposal => proposal.title).slice(0, 4),
-  }, skill: researchSkills[request.skill] })
+  return { title: context.objective.title, description: context.objective.description,
+    ...(selectedPlan ? { selectedPlan } : { plans: plans.slice(0, 4).map(value => ({ id: value.id, revision: value.revision, title: value.title, particleIds: value.particleIds.slice(0, 8), memberCoverage: coverage(value.particleIds.length, 8) })), planCoverage: coverage(plans.length, 4) }),
+    pendingProposals: pending.slice(0, 4).map(proposal => proposal.title),
+    pendingProposalCoverage: coverage(pending.length, 4),
+  }
 }
 
-export function assertResearchContextFits(context: ResearchContext, request: Pick<ResearchRequest, "prompt" | "skill" | "target">, maximumBytes: number) {
-  const content = researchPrompt(context, request)
-  if (Buffer.byteLength(JSON.stringify([{ role: "user", content }]) + researchInstructions) > maximumBytes)
-    throw new Error("This plan is too large for one research run. Split it into smaller plans before researching.")
-  return content
+export function researchPrompt(context: ResearchContext, request: Pick<ResearchRequest, "prompt" | "skill" | "target">) {
+  // Adapt the existing registry; registration alone never enables a new AI writer.
+  const catalog = getParticleCapabilityCatalog()
+  const plan = catalog.entries.find(entry => entry.id === "plan" && entry.action === "change_plan")
+  const note = catalog.entries.find(entry => entry.id === "workspace_note" && entry.action === "edit_note")
+  if (!plan || !note) throw new Error("Planning outputs unavailable.")
+  const outputs = { version: catalog.version, binding: "plan_proposal", capabilities: [plan.id, note.id],
+    unavailable: ["form_creation", "data_table_creation", "publishing", "sending", "calendar_booking"], maxItems: 12 }
+  return JSON.stringify({ outputs, task: request.prompt, objective: researchContextProjection(context, request.target), skill: researchSkills[request.skill] })
 }

@@ -1,4 +1,5 @@
 "use client"
+import { ParticleProgressFields } from "./particle-progress-fields"
 
 import { useId } from "react"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
@@ -14,8 +15,10 @@ export function ParticleWorkFields({
   draft,
   editable,
   setDraft,
+  canEditObjectiveProgress = false,
 }: {
   draft: Particle
+  canEditObjectiveProgress?: boolean
   editable: boolean
   setDraft: (particle: Particle) => void
 }) {
@@ -23,6 +26,8 @@ export function ParticleWorkFields({
   return (
     <>
       {draft.type === "objective" ? (
+        <>
+        <ParticleProgressFields particle={draft} disabled={!editable || !canEditObjectiveProgress} onChange={setDraft} />
         <FieldGroup className="grid-cols-2">
           {(["current", "target"] as const).map((field) => (
             <Field key={field}>
@@ -68,6 +73,7 @@ export function ParticleWorkFields({
             />
           </Field>
         </FieldGroup>
+        </>
       ) : null}
       {draft.type === "workflow" || (draft.type === "activity" && (!draft.data.widget || draft.data.steps.length > 0)) ? (
         <FieldSet>

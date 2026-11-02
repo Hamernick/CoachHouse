@@ -18,10 +18,11 @@ import {
   type AppShellAccountMenuAction,
 } from "@/components/app-shell/account-menu-actions-context"
 import { WorkspaceReactFlowErrorBootstrap } from "@/components/workspace/workspace-reactflow-error-bootstrap"
+import { WorkspaceLoadingIndicator } from "@/components/workspace/workspace-page-loading"
 import {
-  useParticleFlow,
   useParticleCalendarTarget,
   ParticleGeometryObserver,
+  ParticlePlanningGuides,
 } from "@/features/workspace-particles/client"
 import { WorkspaceCardShortcutRail } from "../shortcuts/workspace-card-shortcut-rail"
 import { WorkspaceCanvasErrorBoundary } from "../runtime/workspace-canvas-error-boundary"
@@ -32,7 +33,7 @@ import {
 import { WorkspaceCanvasEdgeContextMenu } from "./workspace-canvas-edge-context-menu"
 import { WorkspaceCanvasSurfaceV2ViewportControls } from "./workspace-canvas-surface-v2-viewport-controls-panel"
 import { useWorkspaceCanvasSurfaceGestureGuards } from "./workspace-canvas-surface-v2-gesture-effect"
-import { WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
+import { useWorkspaceParticleFlow, WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
 import { ObjectivesIsland, ObjectivePlanNode, ObjectivePlanViewport, useObjectiveCanvas, guardObjectivePlanInteractions } from "@/features/workspace-objectives/client"
 import { WorkspaceParticleDock } from "./workspace-particle-dock"
 import { WorkspaceCanvasSurfaceV2MobileShortcutOverlay } from "./workspace-canvas-surface-v2-mobile-shortcut-overlay"
@@ -75,6 +76,30 @@ function useWorkspaceTutorialRestartAccountMenuAction({
         : null,
     [onTutorialRestart, showTutorialRestart]
   )
+}
+
+function WorkspaceCanvasEmptyState({ visible, message }: {
+  visible: boolean
+  message: WorkspaceCanvasSurfaceV2ViewProps["emptyStateMessage"]
+}) {
+  if (!visible || !message) return null
+  return (
+    <div className="pointer-events-none absolute inset-0 grid place-items-center px-6">
+      <p className="canvas-glass text-muted-foreground rounded-md border px-3 py-2 text-center text-xs">{message}</p>
+    </div>
+  )
+}
+
+function useCanvasReadiness(initializeFlow: WorkspaceCanvasSurfaceV2ViewProps["onInit"]) {
+  const [canvasReady, setCanvasReady] = useState(false)
+  const handleCanvasInit = useCallback<WorkspaceCanvasSurfaceV2ViewProps["onInit"]>(
+    (instance) => {
+      initializeFlow(instance)
+      setCanvasReady(true)
+    },
+    [initializeFlow]
+  )
+  return { canvasReady, handleCanvasInit }
 }
 
 export function WorkspaceCanvasSurfaceV2View({
@@ -137,18 +162,11 @@ export function WorkspaceCanvasSurfaceV2View({
   onDisconnectToTarget,
   onDisconnectAll,
 }: WorkspaceCanvasSurfaceV2ViewProps) {
-  const visibleToolKey = nodes
-    .filter((node) => !node.hidden)
-    .map((node) => node.id)
-    .join("\0")
-  const visibleToolIds = useMemo(
-    () => (visibleToolKey ? visibleToolKey.split("\0") : []),
-    [visibleToolKey]
-  )
-  const particles = useParticleFlow({
+  const particles = useWorkspaceParticleFlow({
+    userId: workspaceDataDrawerViewerId,
     workspaceId: uiPreferencesScope.orgId,
     session: particleSession,
-    visibleToolIds,
+    nodes,
     canEdit: allowEditing && !tutorialActive,
   })
   const particleConnections = useWorkspaceParticleConnectionLayer(
@@ -185,8 +203,7 @@ export function WorkspaceCanvasSurfaceV2View({
   const edgeTypes = useMemo(() => WORKSPACE_CANVAS_V2_EDGE_TYPES, [])
   const selectionGestures = resolveWorkspaceCanvasSelection(tutorialActive)
   const nodesSelectable = !tutorialActive
-  const selectNodesOnDrag =
-    !tutorialActive && (allowEditing || peopleCanvasInteractionEnabled)
+  const selectNodesOnDrag = !tutorialActive && (allowEditing || peopleCanvasInteractionEnabled)
   const tutorialRestartAccountMenuAction =
     useWorkspaceTutorialRestartAccountMenuAction({
       showTutorialRestart,
@@ -269,7 +286,7 @@ export function WorkspaceCanvasSurfaceV2View({
     [library.nodes, particles.nodes, objectiveCanvas.nodes]
   )
   const flowEdges = useMemo(
-    () => [...edges, ...particles.edges, ...objectiveCanvas.edges],
+    () => [...edges, ...particles.edges, ...objectiveCanvas.edges].map(edge => ({ ...edge, ariaLabel: edge.ariaLabel ?? (typeof edge.label === "string" ? edge.label : undefined), label: undefined })),
     [edges, particles.edges, objectiveCanvas.edges]
   )
   const flowHandlers = useWorkspaceParticleFlowHandlers(particles, {
@@ -280,6 +297,7 @@ export function WorkspaceCanvasSurfaceV2View({
     onSelectionDragStop,
     onInit,
   })
+  const { canvasReady, handleCanvasInit } = useCanvasReadiness(flowHandlers.onInit)
 
   useRegisterAppShellAccountMenuAction(tutorialRestartAccountMenuAction)
 
@@ -291,8 +309,11 @@ export function WorkspaceCanvasSurfaceV2View({
         ref={setSurfaceContainer}
         className="workspace-layout-surface group/workspace-canvas-surface relative min-h-[min(820px,calc(100svh-9.5rem))] w-full max-w-full min-w-0 flex-1 overflow-hidden bg-zinc-50 dark:bg-zinc-800"
         data-layout-animating={layoutAnimating ? "true" : undefined}
+        data-canvas-ready={canvasReady}
+        aria-busy={!canvasReady}
       >
         <WorkspaceParticleCanvasProviders
+          people={workspaceDataDrawerPeople}
           workspaceId={uiPreferencesScope.orgId}
           canPlaceParticles={
             allowEditing && !tutorialActive && particles.editable
@@ -328,7 +349,7 @@ export function WorkspaceCanvasSurfaceV2View({
             }
           />
           {!tutorialActive && !presentationMode && (
-            <div className="pointer-events-none absolute inset-x-2 top-14 z-10 has-[[data-opportunity-sources-drop]]:z-30 flex justify-center xl:top-2">
+            <div className="pointer-events-none absolute inset-x-0 top-2 bottom-[var(--workspace-planning-bottom,136px)] z-10 has-[[data-opportunity-sources-drop]]:z-30">
               <ObjectivesIsland particles={particles.controls} finance={workspaceDataDrawerFinance} scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} />
             </div>
           )}
@@ -367,6 +388,7 @@ export function WorkspaceCanvasSurfaceV2View({
                     panActivationKeyCode="Space"
                     selectNodesOnDrag={selectNodesOnDrag}
                     {...flowHandlers}
+                    onInit={handleCanvasInit}
                     onMoveStart={onMoveStart}
                     onMoveEnd={onMoveEnd}
                     {...guardObjectivePlanInteractions({ ...flowHandlers, onNodeDoubleClick, ...particleConnections.handlers })}
@@ -397,6 +419,7 @@ export function WorkspaceCanvasSurfaceV2View({
                           : "rgba(148, 163, 184, 0.64)"
                       }
                     />
+                    <ParticlePlanningGuides graph={particles.graph} />
                     <ObjectivePlanViewport focusKey={objectiveCanvas.focusKey} />
                     <ParticleGeometryObserver
                       onChange={particles.layout.geometryChanged}
@@ -406,16 +429,11 @@ export function WorkspaceCanvasSurfaceV2View({
               </WorkspaceReactFlowErrorBootstrap>
             </ReactFlowProvider>
           </div>
-          {nodes.length === 0 &&
-          particles.nodes.length === 0 &&
-          objectiveCanvas.nodes.length === 0 &&
-          emptyStateMessage ? (
-            <div className="pointer-events-none absolute inset-0 grid place-items-center px-6">
-              <p className="border-border/70 bg-card/80 text-muted-foreground rounded-md border px-3 py-2 text-center text-xs shadow-sm backdrop-blur-sm">
-                {emptyStateMessage}
-              </p>
-            </div>
-          ) : null}
+          {!canvasReady && <WorkspaceLoadingIndicator />}
+          <WorkspaceCanvasEmptyState
+            visible={canvasReady && nodes.length === 0 && particles.nodes.length === 0 && objectiveCanvas.nodes.length === 0}
+            message={emptyStateMessage}
+          />
           {particleConnections.menu}
           {edgeContextMenuState ? (
             <WorkspaceCanvasEdgeContextMenu

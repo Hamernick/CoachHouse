@@ -2,6 +2,7 @@ import type { Json } from "../json"
 
 export type OrganizationFinanceOpportunitiesTable = {
   Row: {
+    feed_position?: number
     id: string
     org_id: string
     title: string
@@ -19,6 +20,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     updated_at: string
   }
   Insert: {
+    feed_position?: number
     id?: string
     org_id: string
     title: string
@@ -36,6 +38,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     updated_at?: string
   }
   Update: {
+    feed_position?: number
     id?: string
     org_id?: string
     title?: string

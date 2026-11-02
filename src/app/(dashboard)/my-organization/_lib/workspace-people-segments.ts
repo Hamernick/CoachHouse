@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { OrgPerson } from "@/actions/people"
@@ -86,7 +87,7 @@ export function buildWorkspacePeopleData({
   tags: OrganizationPeopleTag[]
 }) {
   const people = (
-    Array.isArray(profile.org_people) ? profile.org_people : []
+    Array.isArray(profile.org_people) ? profile.org_people.filter(isActiveContact) : []
   ) as OrgPerson[]
   const tagLabelsByPerson = new Map<string, string[]>()
   for (const tag of tags) {

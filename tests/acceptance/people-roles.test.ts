@@ -74,6 +74,30 @@ beforeEach(() => {
 })
 
 describe("organization People roles", () => {
+  it("edits a phone and preserves it when older callers omit the field", async () => {
+    await upsertPersonAction({
+      id: "person-1",
+      name: "Morgan",
+      category: "volunteers",
+      phone: " +1 312 555 0100 ",
+    })
+    await upsertPersonAction({
+      id: "person-1",
+      name: "Morgan updated",
+      category: "volunteers",
+    })
+    expect(profile.org_people[0].phone).toBe("+1 312 555 0100")
+  })
+  it("rejects oversized phone data before writing", async () => {
+    expect(
+      await upsertPersonAction({
+        name: "Morgan",
+        category: "volunteers",
+        phone: "1".repeat(65),
+      })
+    ).toHaveProperty("error")
+    expect(mocks.mutate).not.toHaveBeenCalled()
+  })
   it("creates and assigns a role without changing grouping or other contact fields", async () => {
     expect(
       await updatePersonCategoryAction(

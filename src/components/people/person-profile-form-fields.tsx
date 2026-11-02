@@ -22,9 +22,7 @@ import { Label } from "@/components/ui/label"
 import { PersonRolePicker } from "@/features/people-roles/client"
 import { type OrgPerson } from "@/actions/people"
 import { ManagerSelect } from "@/components/people/manager-select"
-import {
-  PERSON_CATEGORY_META,
-} from "@/lib/people/categories"
+import { PERSON_CATEGORY_META } from "@/lib/people/categories"
 import {
   getPersonSocialLinkError,
   PERSON_SOCIAL_PLATFORMS,
@@ -40,6 +38,8 @@ type PersonProfileFormFieldsProps = {
   name: string
   title: string
   email: string
+  phone?: string
+  onPhoneChange?: (value: string) => void
   socialLinks: PersonSocialLinks
   extendedSocialLinksEnabled?: boolean
   customRole: string | null
@@ -76,6 +76,8 @@ export function PersonProfileFormFields({
   name,
   title,
   email,
+  phone = "",
+  onPhoneChange,
   socialLinks,
   extendedSocialLinksEnabled = false,
   category,
@@ -186,8 +188,15 @@ export function PersonProfileFormFields({
           <Field orientation="responsive">
             <FieldLabel>Relationship</FieldLabel>
             <FieldControl>
-              <PersonRolePicker value={{ category, customRole }} disabled={readOnly} className="w-full"
-                onChange={(role) => { onCategoryChange(role.category); onCustomRoleChange(role.customRole ?? null) }} />
+              <PersonRolePicker
+                value={{ category, customRole }}
+                disabled={readOnly}
+                className="w-full"
+                onChange={(role) => {
+                  onCategoryChange(role.category)
+                  onCustomRoleChange(role.customRole ?? null)
+                }}
+              />
               <FieldDescription className="mt-2">
                 This controls where they appear across People and lists.
               </FieldDescription>
@@ -261,6 +270,23 @@ export function PersonProfileFormFields({
               </FieldDescription>
             </FieldControl>
           </Field>
+          {onPhoneChange && (
+            <Field orientation="responsive">
+              <FieldLabel htmlFor={`${formId}-phone`}>Phone</FieldLabel>
+              <FieldControl>
+                <Input
+                  id={`${formId}-phone`}
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(event) => onPhoneChange(event.target.value)}
+                  maxLength={64}
+                  readOnly={readOnly}
+                />
+              </FieldControl>
+            </Field>
+          )}
         </FieldGroup>
       </section>
 

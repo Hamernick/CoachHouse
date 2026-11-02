@@ -6,6 +6,7 @@ import {
   WORKSPACE_HEADER_BUTTON,
 } from "@/components/workspace/workspace-window-header-slots"
 import { useRef, useState } from "react"
+import UploadIcon from "lucide-react/dist/esm/icons/upload"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 import FolderPlusIcon from "lucide-react/dist/esm/icons/folder-plus"
 import UserPlusIcon from "lucide-react/dist/esm/icons/user-plus"
@@ -24,14 +25,16 @@ import {
 export function WorkspacePeopleAddMenu({
   people,
   onCreateSegment,
+  onImportContacts,
 }: {
   people: OrgPerson[]
   onCreateSegment: () => void
+  onImportContacts?: () => void
 }) {
   const inWindowHeader = useWorkspaceWindowHeader()
   const [contactOpen, setContactOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const actionRef = useRef<"segment" | "contact" | null>(null)
+  const actionRef = useRef<"segment" | "contact" | "import" | null>(null)
 
   return (
     <>
@@ -60,7 +63,10 @@ export function WorkspacePeopleAddMenu({
             // Let the destination own focus after the menu has closed.
             event.preventDefault()
             if (action === "contact") setContactOpen(true)
-            else {
+            else if (action === "import") {
+              triggerRef.current?.focus()
+              onImportContacts?.()
+            } else {
               triggerRef.current?.focus()
               onCreateSegment()
             }
@@ -82,6 +88,16 @@ export function WorkspacePeopleAddMenu({
             <UserPlusIcon aria-hidden />
             Add contact
           </DropdownMenuItem>
+          {onImportContacts && (
+            <DropdownMenuItem
+              onSelect={() => {
+                actionRef.current = "import"
+              }}
+            >
+              <UploadIcon aria-hidden />
+              Import contacts…
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <CreatePersonDialog

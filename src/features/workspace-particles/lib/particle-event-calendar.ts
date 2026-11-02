@@ -1,10 +1,12 @@
 import type { RoadmapCalendarEvent } from "@/lib/roadmap/calendar"
 import type { ParticleGraph } from "../types"
 
+type ParticleCalendarEvent = RoadmapCalendarEvent & { source: Extract<NonNullable<RoadmapCalendarEvent["source"]>, { kind: "workspace_particle" }> }
+
 /** The calendar is a read model of saved Events, never a second event store.
  * Hidden canvas cards remain scheduled. Undated Events remain drafts. */
-export function workspaceParticleCalendarEvents(graph: ParticleGraph): RoadmapCalendarEvent[] {
-  return graph.particles.flatMap((particle): RoadmapCalendarEvent[] => {
+export function workspaceParticleCalendarEvents(graph: ParticleGraph): ParticleCalendarEvent[] {
+  return graph.particles.flatMap((particle): ParticleCalendarEvent[] => {
     const event = particle.type === "activity" ? particle.data.widget : undefined
     if (event?.kind !== "event" || !event.startsAt || (particle.type === "activity" && particle.data.source?.kind === "calendar_event")) return []
     const description = [

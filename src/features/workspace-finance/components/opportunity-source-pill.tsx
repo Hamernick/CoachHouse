@@ -25,7 +25,7 @@ export function OpportunitySourcePill({ source, option, organizationId, onRemove
   const url = source.kind === "link" ? source.url : undefined
   const file = useOpportunityFilePreview(open, organizationId, source.kind === "file" ? source.id : null)
   const href = file.url ?? url ?? option?.href
-  const title = option?.title ?? (source.kind === "text" ? source.label : url ? new URL(url).hostname.replace(/^www\./, "") : "Unavailable source")
+  const title = option?.title ?? (source.kind === "link" ? source.title : undefined) ?? (source.kind === "text" ? source.label : url ? new URL(url).hostname.replace(/^www\./, "") : "Unavailable source")
   const category = option?.category ?? (url ? "Link" : "Source")
   const stay = () => { if (timer.current) clearTimeout(timer.current) }
   const leave = () => { stay(); if (!pinned.current) timer.current = setTimeout(() => setOpen(false), 180) }

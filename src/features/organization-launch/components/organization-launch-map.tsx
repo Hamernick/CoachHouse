@@ -1,84 +1,93 @@
 "use client"
 
-import Image from "next/image"
-import LoaderCircleIcon from "lucide-react/dist/esm/icons/loader-circle"
-import StatusIndicator from "@/components/8starlabs-ui/status-indicator"
-import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { useTheme } from "next-themes"
+import MapPinIcon from "lucide-react/dist/esm/icons/map-pin"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useLaunchViewerLocation } from "../hooks/use-launch-viewer-location"
+import { normalizePublicMapTheme } from "@/lib/public-map/public-map-theme"
+import { cn } from "@/lib/utils"
+import { useLaunchStreetMap } from "../hooks/use-launch-street-map"
 import type { LaunchGlobeLocation } from "../lib/globe-location"
-import type { mountLaunchGlobe } from "./organization-launch-globe-runtime"
-import fallback from "./organization-launch-globe-fallback.svg"
+import "mapbox-gl/dist/mapbox-gl.css"
 
-type GlobeProps = {
+type MapProps = {
   location?: LaunchGlobeLocation | null
   onAddLocation?: () => void
   locationLabel?: string
-  actionLabel?: string
-  pending?: boolean
-  error?: string | null
-  viewerLocation?: boolean
+  organizationName?: string | null
+  photoUrl?: string | null
+  online?: boolean
 }
 
-export function OrganizationLaunchMap({ location = null, onAddLocation, locationLabel, useViewerLocation = false }: GlobeProps & { useViewerLocation?: boolean }) {
-  if (useViewerLocation) return <ViewerLocationGlobe />
-  return <LaunchGlobePreview key={`${location?.latitude}:${location?.longitude}`} location={location} onAddLocation={onAddLocation} locationLabel={locationLabel} />
-}
-
-function ViewerLocationGlobe() {
-  const { location, pending, error, locate } = useLaunchViewerLocation()
-  return <LaunchGlobePreview key={`${location?.latitude}:${location?.longitude}`} location={location} locationLabel="Your location · Only you" onAddLocation={locate} actionLabel="Use my location" pending={pending} error={error} viewerLocation />
-}
-
-function LaunchGlobePreview({ location = null, onAddLocation, locationLabel, actionLabel = "Add location", pending = false, error, viewerLocation = false }: GlobeProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const runtimeRef = useRef<ReturnType<typeof mountLaunchGlobe> | null>(null)
-  const selectedLocationRef = useRef(location)
-  const [status, setStatus] = useState<"loading" | "ready" | "unavailable">("loading")
-  useEffect(() => {
-    let cancelled = false
-    const container = containerRef.current
-    if (!container) return
-    void import("./organization-launch-globe-runtime").then(({ mountLaunchGlobe }) => {
-      if (cancelled) return
-      runtimeRef.current = mountLaunchGlobe(container, () => setStatus("unavailable"), selectedLocationRef.current)
-      setStatus("ready")
-    }).catch(() => {
-      if (!cancelled) setStatus("unavailable")
-    })
-    return () => { cancelled = true; runtimeRef.current?.dispose(); runtimeRef.current = null }
-  }, [])
+export function OrganizationLaunchMap(props: MapProps) {
+  const { resolvedTheme } = useTheme()
+  const theme = normalizePublicMapTheme(resolvedTheme)
+  const reducedMotion = Boolean(useReducedMotion())
   return (
-    <div className="relative mx-2 mb-2 aspect-video overflow-hidden rounded-xl bg-[#050505]" data-organization-launch-map="true">
-      <Image src={fallback} alt="" fill unoptimized aria-hidden="true" className={`object-cover ${status === "loading" ? "opacity-40" : ""}`} />
-      <div
-        ref={containerRef}
-        data-vaul-no-drag=""
-        role="img"
-        aria-busy={status === "loading"}
-        aria-label={status === "ready" ? location ? `Globe centered on ${locationLabel || "your organization’s saved location"}` : "Globe. Drag or use arrow keys to rotate." : status === "loading" ? "Loading map" : "Map unavailable"}
-        tabIndex={status === "ready" && !location ? 0 : undefined}
-        className={`nodrag nopan focus-ring absolute inset-0 touch-pan-y rounded-xl ${location ? "" : "cursor-grab active:cursor-grabbing"}`}
-      />
-      {status === "loading" ? (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <span role="status" className="inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-[11px] leading-4 text-white/90">
-            <LoaderCircleIcon aria-hidden="true" className="size-3.5 motion-safe:animate-spin" />
-            Loading map…
-          </span>
-        </div>
-      ) : null}
-      {location && status === "ready" ? (
-        <div aria-hidden="true" data-launch-location-marker="true" className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <StatusIndicator state="active" size="md" className="gap-0" />
-        </div>
-      ) : null}
-      {location ? <div className="pointer-events-none absolute top-2 right-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 text-[11px] text-white/85">
-        <StatusIndicator state="active" size="sm" className="shrink-0 gap-0" />
-        <span className="truncate">{locationLabel || "Org location"}</span>
-      </div> : onAddLocation ? <Button type="button" variant="ghost" size="sm" data-vaul-no-drag="" onClick={onAddLocation} disabled={pending} aria-busy={pending} className="nodrag nopan absolute top-1 right-1 min-h-11 rounded-full px-3 text-[11px] bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white dark:hover:bg-zinc-800">{pending ? "Finding you…" : actionLabel}</Button> : null}
-      {error ? <p role="status" className="absolute right-2 bottom-2 left-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs text-white">{error}</p> : null}
-      {status === "unavailable" ? <p role="status" className="absolute bottom-2 left-3 text-[10px] text-white/70">{location ? `${viewerLocation ? "Location found" : "Location saved"} · map unavailable` : "Map unavailable"}</p> : null}
+    <div className="relative mx-2 mb-2 aspect-video overflow-hidden rounded-2xl bg-muted" data-organization-launch-map="true">
+      <AnimatePresence initial={false} mode="wait">
+        <motion.div key={`${props.location?.latitude}:${props.location?.longitude}:${theme}`} className="absolute inset-0"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.18 }}>
+          <OrganizationLocationPreview {...props} theme={theme} reducedMotion={reducedMotion} />
+        </motion.div>
+      </AnimatePresence>
     </div>
+  )
+}
+
+function OrganizationLocationPreview({ location = null, onAddLocation, locationLabel, organizationName, photoUrl, online = false, theme, reducedMotion }: MapProps & {
+  theme: "light" | "dark"
+  reducedMotion: boolean
+}) {
+  const { container, status, retry } = useLaunchStreetMap(location, theme, reducedMotion)
+  const name = organizationName?.trim() || "Your organization"
+  const initials = organizationName?.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join("")
+  const ready = Boolean(location) && status === "ready"
+  const subtitle = online ? "Online organization" : locationLabel || (location ? "Saved location" : "Add your organization’s location")
+  return (
+    <>
+      <div ref={container} data-vaul-no-drag="" role="region" aria-label={location ? `Map showing ${name}’s saved location` : `${name} location`}
+        aria-busy={Boolean(location) && status === "loading"}
+        className={cn("nodrag nopan absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none", ready ? "opacity-100" : "opacity-0")} />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/0 to-transparent" />
+      <AnimatePresence>
+        {ready ? <motion.div key="photo-marker" data-launch-location-marker="true" aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full"
+          initial={{ opacity: 0, y: reducedMotion ? 0 : -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.9 }}
+          transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 240, damping: 22 }}>
+          <div className="flex flex-col items-center drop-shadow-lg">
+            <Avatar className="size-16 border-[3px] border-background bg-background shadow-sm">
+              <AvatarImage src={photoUrl || undefined} alt="" className="object-cover" />
+              <AvatarFallback className="text-lg font-semibold">{initials || <MapPinIcon className="size-6" />}</AvatarFallback>
+            </Avatar>
+            <span className="-mt-0.5 h-3 w-1 rounded-b-full bg-background" />
+            <span className="absolute -bottom-1 size-2 rounded-full bg-primary ring-4 ring-primary/15" />
+          </div>
+        </motion.div> : null}
+      </AnimatePresence>
+      {!location ? <div className="pointer-events-none absolute inset-x-0 top-[18%] flex justify-center" aria-hidden="true">
+        <Avatar className="size-14 border-2 border-background">
+          <AvatarImage src={photoUrl || undefined} alt="" className="object-cover" />
+          <AvatarFallback>{initials || <MapPinIcon className="size-5" />}</AvatarFallback>
+        </Avatar>
+      </div> : null}
+      <div className="pointer-events-none absolute right-12 bottom-7 left-4 flex flex-col gap-0.5">
+        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <AnimatePresence>
+        {location && status === "loading" ? <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.2 }} className="pointer-events-none absolute inset-0 grid place-items-center">
+          <span role="status" className="rounded-full bg-background/90 px-3 py-2 text-xs text-muted-foreground motion-safe:animate-pulse">Loading map…</span>
+        </motion.div> : null}
+      </AnimatePresence>
+      {location && status === "unavailable" ? <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2 rounded-xl bg-background/90 px-3 py-2">
+        <p role="status" className="text-xs text-muted-foreground">Location saved · map unavailable</p>
+        <Button type="button" variant="ghost" size="sm" onClick={retry} className="nodrag nopan">Retry</Button>
+      </div> : null}
+      {!location && onAddLocation ? <Button type="button" variant="secondary" size="sm" data-vaul-no-drag="" onClick={onAddLocation}
+        className="nodrag nopan absolute top-3 right-3 rounded-full">{online ? "Edit location" : "Add location"}</Button> : null}
+    </>
   )
 }

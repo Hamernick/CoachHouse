@@ -5,7 +5,7 @@ import { resolveAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { canManageWorkspaceFinance } from "@/lib/workspace/workspace-finance-access"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { readOpportunityReport, readOpportunitySources, type WorkspaceFinanceOpportunityInput } from "@/features/workspace-finance/server"
-import { loadOpportunitySourceOptions } from "@/features/workspace-finance/server"
+import { mapOrganizationFinanceOpportunity, loadOpportunitySourceOptions } from "@/features/workspace-finance/server"
 
 const reference = z.object({ organizationId: z.uuid(), id: z.uuid() }).strict()
 export async function getWorkspaceOpportunity(input: { organizationId: string; id: string }) {
@@ -32,4 +32,18 @@ export async function deleteWorkspaceOpportunity(input: { organizationId: string
     for (const path of ["/workspace", "/my-organization", "/organization/workspace"]) revalidatePath(path)
     return { ok: true } as const
   } catch { return { error: "Unable to delete this opportunity." } }
+}
+
+export async function getArchivedWorkspaceOpportunities(organizationId: string) {
+  if (!z.uuid().safeParse(organizationId).success) return { error: "Invalid organization." } as const
+  try {
+    const { activeOrg, supabase } = await resolveAuthenticatedAppContext()
+    if (activeOrg.orgId !== organizationId) return { error: "Your organization changed. Reopen Opportunities." } as const
+    // Read through the actor's RLS client, never the service role.
+    const { data, error } = await supabase.from("organization_finance_opportunities")
+      .select("*").eq("org_id", activeOrg.orgId).eq("status", "dismissed")
+      .order("updated_at", { ascending: false }).limit(100)
+    if (error) return { error: "Archived opportunities couldn’t be loaded." } as const
+    return { opportunities: (data ?? []).map(mapOrganizationFinanceOpportunity).filter(item => item !== null) }
+  } catch { return { error: "Archived opportunities couldn’t be loaded." } as const }
 }

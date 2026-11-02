@@ -4,6 +4,8 @@ import { execFileSync, spawnSync, spawn } from "node:child_process"
 import { accessSync, constants, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { testResearchDraftRace } from "./workspace-research-draft-races.mjs"
+import { testProviderExposureRaces } from "./workspace-ai-provider-exposure-races.mjs"
 
 const root = process.cwd()
 const postgresDirectory = process.env.POSTGRES_BINDIR?.trim() || resolvePgBin()
@@ -88,8 +90,18 @@ try {
   runSql("supabase/migrations/20261024010000_workspace_particle_research.sql")
   runSql("supabase/migrations/20261024020000_workspace_ai_refill_setup.sql")
   runSql("supabase/migrations/20261024021000_workspace_ai_refill_execution.sql")
+  runSql("supabase/migrations/20261030180000_workspace_research_history.sql")
+  runSql("supabase/migrations/20261030190000_workspace_new_objective_research.sql")
+  runSql("supabase/migrations/20261031190000_workspace_ai_provider_exposure.sql")
+  runSql("supabase/migrations/20261031200000_workspace_research_drafts.sql")
+  // Synthetic test-only ceiling. Production requires explicit operator configuration.
+  run("psql", ["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"],
+    { input: "update public.ai_credit_policy set org_daily_provider_microdollars=10000000;" })
   runSql("supabase/tests/workspace-ai.assertions.sql")
   runSql("supabase/tests/workspace-research.assertions.sql")
+  runSql("supabase/tests/workspace-research-history.assertions.sql")
+  runSql("supabase/tests/workspace-research-drafts.assertions.sql")
+  runSql("supabase/tests/workspace-new-objective-research.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
     update public.ai_credit_policy set daily_provider_microdollars=10000000;
@@ -201,7 +213,11 @@ try {
     select public.assert_ai(not public.start_ai_credit_refill_charge(id),'late balance restoration prevents automatic charge') from public.ai_credit_refill_attempts where state='queued';
     select public.assert_ai((select count(*)=0 from public.ai_credit_refill_attempts where state='queued'),'restored balance releases pending refill');`})
 
-  console.log("[workspace-ai] Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
+  runSql("supabase/tests/workspace-ai-provider-exposure.assertions.sql")
+  await testResearchDraftRace({run, args, postgresDirectory})
+  await testProviderExposureRaces({run, args, postgresDirectory})
+
+  console.log("[workspace-ai] Provider exposure, failed/canceled costs, UTC rollover and organization/platform races; Owner/member limits, stale edits, replay, UTC periods and capped concurrency; purchases, plan/application, accounting, cancellation and recovery passed.")
 } finally {
   if (started) {
     spawnSync(join(postgresDirectory, "pg_ctl"), [

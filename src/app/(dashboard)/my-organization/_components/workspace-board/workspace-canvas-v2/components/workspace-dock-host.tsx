@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentProps, CSSProperties, ReactNode } from "react"
+import { useLayoutEffect, type ComponentProps, type CSSProperties, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Drawer, DrawerContent } from "@/components/ui/drawer"
 
@@ -33,6 +33,17 @@ export function WorkspaceDockHost({
   }
   legacyTrigger: ReactNode
 }) {
+  useLayoutEffect(() => {
+    if (!container || !floating) return
+    const surface = container.closest<HTMLElement>(".workspace-layout-surface") ?? container
+    const previous = surface.style.getPropertyValue("--workspace-planning-bottom")
+    // Leave room for the measured composer, touch-sized tabs and their gaps.
+    surface.style.setProperty("--workspace-planning-bottom", `${composerHeight + 78}px`)
+    return () => {
+      if (previous) surface.style.setProperty("--workspace-planning-bottom", previous)
+      else surface.style.removeProperty("--workspace-planning-bottom")
+    }
+  }, [container, floating, composerHeight])
   if (!container) return null
   const requestProps = {
     "data-workspace-canvas-overlay-drawer": "true",

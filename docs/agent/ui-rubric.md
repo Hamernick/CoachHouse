@@ -84,12 +84,15 @@ Use this as the canonical UI implementation/review checklist.
 
 ## Layout
 
-- SHOULD: Prefer optical alignment over strict geometry when needed.
+- MUST: Review optical balance for UI-visible changes using [Optical Alignment](../design.md#optical-alignment). Apply corrections only where visual inspection justifies them.
+- NEVER: Apply universal icon nudges or shrink hit targets to achieve optical balance. Keep context-specific corrections in the shared component/variant.
 - MUST: Align deliberately to grid/baseline/edges.
 - SHOULD: Balance icon/text lockups (weight/size/spacing/color).
 - MUST: Verify on mobile, laptop, and ultra-wide (simulate ultra-wide at 50% zoom).
 - MUST: Respect safe areas (`env(safe-area-inset-*)`).
 - MUST: Eliminate unwanted scrollbars/overflow.
+- MUST: Follow [Scroll Fades](../design.md#scroll-fades): fade only overflowing edges, clear reached boundaries and keyboard focus, and reuse measured shared primitives.
+- NEVER: Hide first/last items with permanent two-ended scroll fades or hide vertical scrollbars solely for decoration.
 - SHOULD: Prefer flex/grid over JS measurement for layout.
 
 ## Content And Accessibility
@@ -148,6 +151,8 @@ Use this as the canonical UI implementation/review checklist.
 
 - SHOULD: Prefer layered shadows (ambient + direct).
 - SHOULD: Use semi-transparent borders plus shadows for edge crispness.
+- SHOULD: Give photos, previews and avatar surfaces a subtle inset edge using [Image Outlines](../design.md#image-outlines); reuse shared framing and honor its transparent-artwork exceptions.
+- NEVER: Use decorative image outlines as focus indicators or apply blanket outlines to every image.
 - SHOULD: Nested radii are concentric (child <= parent).
 - SHOULD: Keep hue consistency between bg/border/shadow/text.
 - MUST: Charts use color-blind-safe palettes.

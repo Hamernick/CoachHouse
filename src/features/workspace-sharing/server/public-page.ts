@@ -30,10 +30,8 @@ export const loadPublicWorkspacePage = cache(async (organizationSlug: string, li
   if (data === null) return null
   const result = published.safeParse(data)
   if (!result.success || result.data.snapshot.brand.organizationSlug !== organizationSlug) return null
-  // DTO asset shapes are reserved for future explicit public grants. No upload
-  // bytes or guessed storage paths can be exposed by a malformed stored row.
+  // Asset requests independently check current image/document grants.
   if (result.data.snapshot.items.some(({ content }) =>
-    content.kind === "image" || content.kind === "document"
-    || (content.kind === "drive_link" && canonicalDrivePublicLink(content.href) !== content.href))) return null
+    (content.kind === "drive_link" && canonicalDrivePublicLink(content.href) !== content.href))) return null
   return result.data
 })

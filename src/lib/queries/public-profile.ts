@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { unstable_cache } from "next/cache"
 
 import {
@@ -124,7 +125,7 @@ function readPublicOrganizationPeople(
   image: string | null
 }> {
   const people = Array.isArray(profile?.org_people)
-    ? (profile.org_people as PublicOrganizationPersonSource[])
+    ? (profile.org_people as PublicOrganizationPersonSource[]).filter(isActiveContact)
     : []
 
   return people.flatMap((person, index) => {

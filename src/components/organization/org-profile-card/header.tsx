@@ -90,7 +90,7 @@ export function OrgProfileHeader({
 
   return (
     <div className={cn(
-      "bg-background relative flex flex-col items-center gap-4 text-center",
+      "relative flex flex-col items-center gap-4 text-center",
       visibilityControl ? "pt-2" : "pt-6"
     )}>
       {visibilityControl}

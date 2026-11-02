@@ -1,6 +1,7 @@
 import "server-only"
 
 import { z } from "zod"
+import { allWorkspaceStates } from "@/features/workspace-management"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
 import { workspacePageSchema } from "../lib"
@@ -11,8 +12,9 @@ type PageRow = Database["public"]["Tables"]["organization_workspace_pages"]["Row
 
 export function decodeWorkspacePage(row: PageRow) {
   return workspacePageSchema.parse({
-    id: row.id, orgId: row.org_id, linkId: row.link_id, revision: row.revision,
+    id: row.id, orgId: row.org_id, canvasId: row.canvas_id ?? null, linkId: row.link_id, revision: row.revision,
     draft: { title: row.title, description: row.description, particleIds: row.particle_ids },
+    guestSharingReady: Boolean(row.guest_snapshot),
     visibility: row.visibility, publishedSnapshot: row.published_snapshot,
     publishedAt: row.published_at, createdAt: row.created_at, updatedAt: row.updated_at,
   })
@@ -38,7 +40,7 @@ export async function loadSavedPage(actor: PageActor, pageId: string) {
   return data
 }
 
-export async function loadSavedPageSources(actor: PageActor) {
+export async function loadSavedPageSources(actor: PageActor, canvasId: string | null = null) {
   const [organization, board] = await Promise.all([
     actor.supabase.from("organizations").select("profile, public_slug, updated_at")
       .eq("user_id", actor.orgId).abortSignal(AbortSignal.timeout(15_000)).maybeSingle(),
@@ -47,15 +49,20 @@ export async function loadSavedPageSources(actor: PageActor) {
   ])
   if (organization.error || board.error || !organization.data || !board.data)
     throw new WorkspaceSharingError("unavailable", "Unable to load saved workspace content. Try again.")
-  const state = board.data.state
-  const graph: Json | undefined = state && typeof state === "object" && !Array.isArray(state)
-    ? state.particleGraph : undefined
+  let canvases: ReturnType<typeof allWorkspaceStates>
+  try { canvases = allWorkspaceStates(board.data.state) }
+  catch { throw new WorkspaceSharingError("invalid", "Unable to read saved workspaces. Reopen Share.") }
+  const matches = canvases.filter((canvas) => canvas.id === canvasId)
+  if (matches.length !== 1) throw new WorkspaceSharingError("conflict", "This workspace is unavailable. Reopen Share from the current workspace.")
+  const graph = matches[0].state.particleGraph as Json | undefined
   if (!graph) throw new WorkspaceSharingError("invalid", "Save a Particle to the board before sharing.")
   return { ...organization.data, graph }
 }
 
 /** Parse only the expected database result; do not expose operation receipts. */
 export const committedPageRowSchema = z.object({
+  guest_snapshot: z.json().nullable().optional(),
+  canvas_id: z.uuid().nullable().default(null),
   id: z.uuid(), org_id: z.uuid(), link_id: z.uuid(), title: z.string(), description: z.string(),
   particle_ids: z.array(z.uuid()), revision: z.number(), visibility: z.enum(["private", "public"]),
   published_snapshot: z.json().nullable(), published_at: z.string().nullable(),

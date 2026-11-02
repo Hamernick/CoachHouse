@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, type MutableRefObject } from "react"
+import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
+import { useEffect, useRef, type MutableRefObject } from "react"
 import { getNodesBounds, getViewportForBounds, type Node, type ReactFlowInstance } from "@xyflow/react"
 import {
   resolveWorkspaceCanvasCameraDuration,
@@ -14,6 +15,7 @@ export function focusWorkspaceCanvasPeople(
   nodes: Node[],
   viewportSize: WorkspaceCanvasFocusViewportSize | null
 ) {
+  beginWorkspaceCameraIntent(flowInstance)
   const measuredNodes = nodes.map((node) => ({
     ...node,
     width: node.width ?? WORKSPACE_CANVAS_PERSON_NODE_SIZE.width,
@@ -48,14 +50,18 @@ export function useWorkspaceCanvasPersonFitRequest({
   fitRequest: WorkspaceCanvasPersonFitRequest
   onFitRequestHandled: () => void
 }) {
+  const supersededRequest = useRef<number | null>(null)
   useEffect(() => {
+    if (fitRequest?.requestKey === supersededRequest.current) return
     if (!fitRequest || !isFlowReady) return
     const flowInstance = flowInstanceRef.current
     if (!flowInstance) return
 
+    const cameraIsCurrent = beginWorkspaceCameraIntent(flowInstance)
     let frame = 0
     let attempts = 0
     const focusWhenReady = () => {
+      if (!cameraIsCurrent()) return
       const nodeIdSet = new Set(fitRequest.nodeIds)
       const nodesToFit = flowInstance
         .getNodes()
@@ -78,7 +84,10 @@ export function useWorkspaceCanvasPersonFitRequest({
     }
     frame = window.requestAnimationFrame(focusWhenReady)
 
-    return () => window.cancelAnimationFrame(frame)
+    return () => {
+      if (!cameraIsCurrent()) supersededRequest.current = fitRequest.requestKey
+      window.cancelAnimationFrame(frame)
+    }
   }, [
     fitRequest,
     flowInstanceRef,

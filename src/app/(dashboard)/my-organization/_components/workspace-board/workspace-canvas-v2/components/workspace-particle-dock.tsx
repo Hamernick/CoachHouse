@@ -37,13 +37,13 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
       particleSelectionKey={particles.selectionRequest}
       particleInspectorTitle={particles.inspectorView === "share" ? "Share page" : particles.selected?.title}
       particleInspectorMaxWidth={
-        particles.inspectorView === "share" ? 720 : particles.selected
+        particles.inspectorView === "share" || particles.inspectorView === "preview" ? 720 : particles.selected
           ? particleInspectorMaxWidth(particles.selected)
           : undefined
       }
       particleInspector={
         particles.selected ? (
-          <WorkspaceParticleInspectorSlot session={particles} />
+          <WorkspaceParticleInspectorSlot session={particles} workspaceCanvasId={props.uiPreferencesScope.workspaceCanvasId} />
         ) : null
       }
       onCloseParticleInspector={particles.closeGuard.request}
@@ -56,7 +56,7 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
       }
       particleComposer={
         !tutorialActive ? (
-          <WorkspaceParticleComposerSlot session={particles} sourceScope={{userId:props.viewerId,organizationId:props.uiPreferencesScope.orgId}} organizationName={props.organizationEditorData.initialProfile.name ?? undefined} />
+          <WorkspaceParticleComposerSlot workspaceCanvasId={props.uiPreferencesScope.workspaceCanvasId} session={particles} sourceScope={{userId:props.viewerId,organizationId:props.uiPreferencesScope.orgId}} organizationName={props.organizationEditorData.initialProfile.name ?? undefined} />
         ) : null
       }
     />

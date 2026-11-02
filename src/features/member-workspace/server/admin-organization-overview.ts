@@ -1,3 +1,4 @@
+import { isActiveContact } from "@/lib/people/contact-schema"
 import { resolveOrganizationCardImage } from "../lib/organization-card-image"
 import { addDays } from "date-fns"
 
@@ -180,7 +181,7 @@ function buildOrganizationMembers({
 }) {
   const profile = toRecord(organization.profile)
   const orgPeople = Array.isArray(profile.org_people)
-    ? (profile.org_people as Array<Record<string, unknown>>)
+    ? (profile.org_people as Array<Record<string, unknown>>).filter(isActiveContact)
     : []
 
   if (memberships.length === 0 && orgPeople.length > 0) {

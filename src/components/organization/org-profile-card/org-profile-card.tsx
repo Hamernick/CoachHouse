@@ -92,7 +92,7 @@ export function OrgProfileEditor({
 
   return (
     <div ref={editorRootRef} className="[&_[data-slot=input]]:shadow-none [&_[data-slot=textarea]]:shadow-none [&_[data-slot=select-trigger]]:shadow-none">
-      <OrgProfileHeaderActions
+      {tab !== "brand-kit" && <OrgProfileHeaderActions
         publicLink={publicLink}
         editMode={editMode}
         canEdit={canEdit}
@@ -101,7 +101,7 @@ export function OrgProfileEditor({
         onEnterEdit={() => canEdit && setEditMode(true)}
         onCancelEdit={handleCancelEdit}
         onSave={handleSave}
-      />
+      />}
       <Tabs
         value={tab}
         onValueChange={(value) => { if (!brandBusy) handleTabChange(value) }}
@@ -178,7 +178,7 @@ export function OrgProfileEditor({
               <BrandKitTab
                 company={company}
                 errors={errors}
-                editMode={editMode}
+                canEdit={canEdit}
                 onBusyChange={setBrandBusy}
                 onUpdate={handleCompanyUpdate}
                 onDirty={markDirty}

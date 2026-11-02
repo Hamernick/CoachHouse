@@ -1,3 +1,18 @@
+import { createElement, type SetStateAction } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import type { ReactFlowInstance } from "@xyflow/react"
+import { useParticleLayout } from "@/features/workspace-particles/hooks/use-particle-layout"
+import type { ParticleSession } from "@/features/workspace-particles/hooks/use-particle-session"
+import type { ParticleNodeData } from "@/features/workspace-particles/components/particle-node"
+import type { ParticleBatch } from "@/features/workspace-particles/types"
+import { particleMeasurementKey } from "@/features/workspace-particles/lib/graph-layout"
+
+const playback = vi.hoisted(() => ({ update: (_: number) => {}, complete: () => {}, stop: vi.fn() }))
+vi.mock("motion/react", () => ({ animate: (_from: number, _to: number, options: { onUpdate: (n: number) => void; onComplete: () => void }) => {
+  playback.update = options.onUpdate
+  playback.complete = options.onComplete
+  return { stop: playback.stop }
+} }))
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Position, type InternalNode, type Node } from "@xyflow/react"
 import { captureParticleScene } from "@/features/workspace-particles/lib/layout-measurements"
@@ -474,6 +489,17 @@ describe("React Flow measurement boundary", () => {
     flow.internals[0].measured = {}
     expect(captureParticleScene(input, flow)).toMatchObject({ ok: false })
   })
+  it("waits for inspection dimensions and active resize to settle before capturing layout", () => {
+    const input = graph()
+    const flow = measuredFlow(input)
+    flow.nodes[0].data.inspectionTransition = { width: 560, height: 400 }
+    expect(captureParticleScene(input, flow)).toMatchObject({ ok: false, code: "unavailable" })
+    delete flow.nodes[0].data.inspectionTransition
+    flow.nodes[0].resizing = true
+    expect(captureParticleScene(input, flow)).toMatchObject({ ok: false })
+    flow.nodes[0].resizing = false
+    expect(captureParticleScene(input, flow)).toMatchObject({ ok: true })
+  })
   it("rejects dragging, missing cards and unmeasured handles", () => {
     const input = graph()
     const flow = measuredFlow(input)
@@ -592,4 +618,114 @@ it("keeps existing tool resource references out of movable ELK records", async (
     input.particles.map((item) => item.id).sort()
   )
   expect(result.value.routes).toEqual([])
+})
+
+
+describe("saved layout playback ownership", () => {
+  async function start({ reduced = false, staleReceipt = false } = {}) {
+    vi.useFakeTimers()
+    playback.stop.mockClear()
+    vi.stubGlobal("Worker", TestLayoutWorker)
+    vi.stubGlobal("window", { matchMedia: () => ({ matches: reduced }) })
+    let current = graph([particle(1), { ...particle(2), locked: true, position: { x: 900, y: 900 } }])
+    const measured = measuredFlow(current)
+    let nodes = measured.nodes.map(node => ({ ...node, selected: node.id === ID(1), data: { particle: current.particles.find(p => p.id === node.id)! } })) as Node<ParticleNodeData>[]
+    const canvas = { ...measured, getNodes: () => nodes } as unknown as ReactFlowInstance
+    const flow = { current: canvas }
+    const queued: SetStateAction<Node<ParticleNodeData>[]>[] = []
+    let defer = false
+    const setNodes = (update: SetStateAction<Node<ParticleNodeData>[]>) => {
+      if (defer) queued.push(update)
+      else nodes = typeof update === "function" ? update(nodes) : update
+    }
+    const commitBatch = vi.fn(async (batch: ParticleBatch) => {
+      const result = await applyParticleBatch(current, batch, NOW)
+      if (!result.ok) throw new Error(result.error)
+      current = result.value.graph
+      if (staleReceipt) current = { ...current, revision: current.revision + 1 }
+      return result.value
+    })
+    let layout!: ReturnType<typeof useParticleLayout>
+    function Harness() {
+      layout = useParticleLayout({ session: { graph: current, editable: true, getCurrentGraph: () => current, commitBatch } as unknown as ParticleSession, flow, flush: async () => true, dirty: { current: false }, setNodes })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    const finished = layout.run(true, [ID(1)])
+    await vi.advanceTimersByTimeAsync(100)
+    const scene = captureParticleScene(current, canvas)
+    if (!scene.ok) throw new Error(scene.error)
+    TestLayoutWorker.instances[0].onmessage?.({ data: { ok: true, value: {
+      workspaceId: current.workspaceId, revision: current.revision,
+      measurementKey: particleMeasurementKey(scene.value.measurements),
+      nodes: [{ id: ID(1), x: 500, y: 300, width: 280, height: 180 }], routes: [],
+    } } })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(commitBatch).toHaveBeenCalledOnce()
+    await commitBatch.mock.results[0].value
+    return {
+      finished, layout, flow, commitBatch, nodes: () => nodes, graph: () => current,
+      defer: () => { defer = true },
+      flush: () => { for (const update of queued) nodes = typeof update === "function" ? update(nodes) : update },
+      collaborator: () => {
+        current = { ...current, revision: current.revision + 1, particles: current.particles.map(p => p.id === ID(1) ? { ...p, revision: p.revision + 1, position: { x: 123, y: 456 } } : p) }
+        nodes = nodes.map(node => node.id === ID(1) ? { ...node, position: { x: 123, y: 456 } } : node)
+      },
+    }
+  }
+
+  it.each([false, true])("finishes confirmed layout with reduced motion=%s and leaves locked obstacles unchanged", async reduced => {
+    const state = await start({ reduced })
+    if (!reduced) { playback.update(0.5); playback.complete() }
+    await state.finished
+    expect(state.nodes()[0].position).toEqual({ x: 500, y: 300 })
+    expect(state.nodes()[1].position).toEqual({ x: 900, y: 900 })
+    expect(state.graph().particles[0].position).toEqual({ x: 500, y: 300 })
+    expect(state.commitBatch).toHaveBeenCalledOnce()
+  })
+
+  it("stops after a newer collaborator snapshot without rolling back or resaving", async () => {
+    const state = await start()
+    playback.update(0.3)
+    state.collaborator()
+    playback.update(0.6)
+    await state.finished
+    playback.update(1)
+    expect(playback.stop).toHaveBeenCalledOnce()
+    expect(state.nodes()[0].position).toEqual({ x: 123, y: 456 })
+    expect(state.graph().particles[0].position).toEqual({ x: 123, y: 456 })
+    expect(state.commitBatch).toHaveBeenCalledOnce()
+  })
+
+  it("rechecks a queued React updater against newer data", async () => {
+    const state = await start()
+    state.defer()
+    playback.update(0.5)
+    state.collaborator()
+    state.flush()
+    playback.complete()
+    await state.finished
+    expect(state.nodes()[0].position).toEqual({ x: 123, y: 456 })
+  })
+
+  it.each(["canvas", "drag", "resize", "cancel"])("stops playback for %s without undoing the confirmed save", async kind => {
+    const state = await start()
+    const before = state.nodes()[0].position
+    if (kind === "canvas") state.flow.current = { ...state.flow.current }
+    if (kind === "drag") state.nodes()[0].dragging = true
+    if (kind === "resize") state.nodes()[0].resizing = true
+    if (kind === "cancel") state.layout.cancel()
+    playback.update(0.8)
+    await state.finished
+    expect(state.nodes()[0].position).toEqual(before)
+    expect(state.graph().particles[0].position).toEqual({ x: 500, y: 300 })
+    expect(state.commitBatch).toHaveBeenCalledOnce()
+  })
+
+  it("does not start playback from an already superseded save receipt", async () => {
+    const state = await start({ staleReceipt: true })
+    await state.finished
+    expect(state.nodes()[0].position).not.toEqual({ x: 500, y: 300 })
+    expect(state.commitBatch).toHaveBeenCalledOnce()
+  })
 })

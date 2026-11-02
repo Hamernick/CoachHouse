@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
+import { readWorkspaceOpportunityCalendar } from "@/server/workspace-opportunity-calendar"
 import { readWorkspaceParticleCalendar } from "@/server/workspace-particle-calendar"
 import { particleCalendarEventsInRange } from "@/features/workspace-particles"
 import {
@@ -78,7 +79,8 @@ export async function listRoadmapCalendarEvents({
   let workspaceEvents: RoadmapCalendarEvent[] = []
   if (calendarType === "internal") {
     try {
-      workspaceEvents = particleCalendarEventsInRange(await readWorkspaceParticleCalendar(supabase, orgId), from, to)
+      const [particles, opportunities] = await Promise.all([readWorkspaceParticleCalendar(supabase, orgId), readWorkspaceOpportunityCalendar(supabase, orgId, from, to)])
+      workspaceEvents = [...particleCalendarEventsInRange(particles, from, to), ...opportunities]
     } catch {
       return { error: "Unable to load workspace events. Try again." }
     }
@@ -166,6 +168,7 @@ export async function updateRoadmapCalendarEvent({
   eventId: string
   updates: RoadmapCalendarEventUpdate
 }): Promise<CalendarWriteResult> {
+  if (eventId.startsWith("opportunity:")) return { error: "Edit this opportunity from its report." }
   if (eventId.startsWith("particle:"))
     return { error: "Edit this Event in its workspace Particle." }
   const supabase = await createSupabaseServerClient()
@@ -275,6 +278,7 @@ export async function deleteRoadmapCalendarEvent({
   calendarType: RoadmapCalendarType
   eventId: string
 }): Promise<CalendarDeleteResult> {
+  if (eventId.startsWith("opportunity:")) return { error: "Edit this opportunity from its report." }
   if (eventId.startsWith("particle:"))
     return { error: "Delete this Event from its workspace Particle." }
   const supabase = await createSupabaseServerClient()

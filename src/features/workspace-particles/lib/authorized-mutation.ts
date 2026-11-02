@@ -1,3 +1,4 @@
+import { DEFAULT_PROGRESS, summarizePlanWork } from "./particle-progress"
 import { particlePlanningPermissionError, type PlanningActor } from "./particle-plan-authority"
 import type { Json } from "@/lib/supabase"
 import type {
@@ -10,6 +11,7 @@ import {
   applyPreparedParticleBatch,
 } from "./graph-operations"
 import { readParticleGraph } from "./graph-validation"
+import { particleCommitSchema } from "./particle-capability-contract"
 
 export class ParticleMutationError extends Error {
   constructor(
@@ -90,8 +92,17 @@ export async function prepareAuthorizedParticleMutation({
         }
         const error = particlePlanningPermissionError(graph.value, result.value.graph, planningActor, now)
         if (error) throw new ParticleMutationError("scope", error)
+        for (const item of result.value.graph.particles) {
+          if (item.type !== "objective") continue
+          const previous = graph.value.particles.find(value => value.id === item.id)
+          if (item.status === "done" && previous?.status !== "done" && planningActor) {
+            item.data.outcomeConfirmation = { version: 1, at: now, actorId: planningActor.userId,
+              progress: item.data.progress ?? DEFAULT_PROGRESS, outcome: { title: item.title, ...(item.description !== undefined ? { description: item.description } : {}) },
+              workIds: summarizePlanWork(item.data.planning?.plans ?? [], result.value.graph.particles).ids }
+          } else if (item.status !== "done" && previous?.status !== item.status) delete item.data.outcomeConfirmation
+        }
       }
-      return result.value
+      return particleCommitSchema.parse(result.value)
     },
   }
 }

@@ -244,7 +244,7 @@ export function useParticleSession({
       title: string,
       position: ParticlePosition,
       prepared?: Particle,
-      options: { inspect?: boolean; optimistic?: boolean } = {}
+      options: { inspect?: boolean; optimistic?: boolean; positionMode?: Particle["positionMode"] } = {}
     ) => {
       const snapshot = current.current
       if (!snapshot.ok) return false
@@ -286,7 +286,7 @@ export function useParticleSession({
             now: new Date().toISOString(),
           })),
         position,
-        positionMode: "manual" as const,
+        positionMode: options.positionMode ?? "manual",
       }
       const operations: ParticleOperation[] = [
         { kind: "put_particle", particle, expectedRevision: null },

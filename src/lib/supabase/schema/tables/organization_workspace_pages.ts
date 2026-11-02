@@ -4,12 +4,14 @@ export type OrganizationWorkspacePagesTable = {
   Row: {
     id: string
     org_id: string
+    canvas_id: string | null
     link_id: string
     title: string
     description: string
     particle_ids: string[]
     revision: number
     visibility: "private" | "public"
+    guest_snapshot?: Json | null
     published_snapshot: Json | null
     published_at: string | null
     created_at: string
@@ -21,12 +23,14 @@ export type OrganizationWorkspacePagesTable = {
   Insert: {
     id?: string
     org_id: string
+    canvas_id?: string | null
     link_id?: string
     title?: string
     description?: string
     particle_ids: string[]
     revision?: number
     visibility?: "private" | "public"
+    guest_snapshot?: Json | null
     published_snapshot?: Json | null
     published_at?: string | null
     created_at?: string

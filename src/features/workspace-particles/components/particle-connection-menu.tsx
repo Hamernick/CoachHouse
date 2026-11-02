@@ -58,7 +58,7 @@ export function ParticleConnectionMenu({
         align="start"
         side="bottom"
         collisionPadding={12}
-        className="nodrag nopan nowheel w-80 max-w-[calc(100vw-24px)] rounded-2xl p-2 shadow-none motion-reduce:animate-none"
+        className="canvas-glass nodrag nopan nowheel w-80 max-w-[calc(100vw-24px)] rounded-2xl p-2 shadow-none motion-reduce:animate-none"
         aria-label="Disconnect a connection"
         onCloseAutoFocus={(event) => {
           event.preventDefault()

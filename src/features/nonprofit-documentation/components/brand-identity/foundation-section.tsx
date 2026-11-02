@@ -4,9 +4,8 @@ import Image from "next/image"
 import artwork from "../../assets/heroes/tools-brand-identity.webp"
 import { brandFontStack } from "../../lib/brand-fonts"
 
-import { Input } from "@/components/ui/input"
+import { BrandTextField } from "./brand-text-field"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 
 import type { BrandIdentityDraft } from "../../types"
 import { BrandIdentitySection } from "./brand-identity-section"
@@ -14,13 +13,16 @@ import { BrandIdentitySection } from "./brand-identity-section"
 export function FoundationSection({
   draft,
   updateDraft,
+  inlineEdit = false, disabled = false,
   audienceMaxLength,
   taglineMaxLength,
 }: {
+  inlineEdit?: boolean
+  disabled?: boolean
   audienceMaxLength?: number
   taglineMaxLength?: number
   draft: BrandIdentityDraft
-  updateDraft: (value: Partial<BrandIdentityDraft>) => void
+  updateDraft: (value: Partial<BrandIdentityDraft>) => void | Promise<void>
 }) {
   return (
     <BrandIdentitySection
@@ -55,48 +57,49 @@ export function FoundationSection({
       </div>
       <div className="grid gap-5">
         <Field label="Organization name" htmlFor="brand-organization-name">
-          <Input
+          <BrandTextField
             id="brand-organization-name"
             maxLength={120}
             value={draft.organizationName}
-            onChange={(event) =>
-              updateDraft({ organizationName: event.target.value })
-            }
+            label="Organization name" inlineEdit={inlineEdit} disabled={disabled}
+            onSave={(value) => updateDraft({ organizationName: value })}
           />
         </Field>
         <Field label="Tagline" htmlFor="brand-tagline">
-          <Input
+          <BrandTextField
             id="brand-tagline"
             maxLength={taglineMaxLength}
             value={draft.tagline}
-            onChange={(event) => updateDraft({ tagline: event.target.value })}
+            label="Tagline" inlineEdit={inlineEdit} disabled={disabled}
+            onSave={(value) => updateDraft({ tagline: value })}
           />
         </Field>
         <Field label="Introduction" htmlFor="brand-introduction" wide>
-          <Textarea
+          <BrandTextField
             id="brand-introduction"
             rows={4}
             value={draft.introduction}
-            onChange={(event) =>
-              updateDraft({ introduction: event.target.value })
-            }
+            label="Introduction" inlineEdit={inlineEdit} disabled={disabled} multiline maxLength={5000}
+            onSave={(value) => updateDraft({ introduction: value })}
           />
         </Field>
         <Field label="Purpose" htmlFor="brand-purpose">
-          <Textarea
+          <BrandTextField
             id="brand-purpose"
             rows={4}
             value={draft.purpose}
-            onChange={(event) => updateDraft({ purpose: event.target.value })}
+            label="Purpose" inlineEdit={inlineEdit} disabled={disabled} multiline maxLength={5000}
+            onSave={(value) => updateDraft({ purpose: value })}
           />
         </Field>
         <Field label="Primary audience" htmlFor="brand-audience">
-          <Textarea
+          <BrandTextField
             id="brand-audience"
             maxLength={audienceMaxLength}
             rows={4}
             value={draft.audience}
-            onChange={(event) => updateDraft({ audience: event.target.value })}
+            label="Primary audience" inlineEdit={inlineEdit} disabled={disabled} multiline
+            onSave={(value) => updateDraft({ audience: value })}
           />
         </Field>
         <fieldset
@@ -106,19 +109,20 @@ export function FoundationSection({
           <legend className="text-sm font-medium">Actionables</legend>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">
             {draft.actionables.map((action, index) => (
-              <Input
+              <BrandTextField
+                inlineEdit={inlineEdit} disabled={disabled} maxLength={120}
+                label={`Actionable ${index + 1}`}
                 key={index}
                 id={`brand-actionable-${index + 1}`}
-                aria-label={`Actionable ${index + 1}`}
                 className="shadow-none max-sm:min-h-11"
                 value={action}
                 placeholder="Donate, Volunteer, Join…"
-                onChange={(event) => {
+                onSave={(value) => {
                   const actionables: BrandIdentityDraft["actionables"] = [
                     ...draft.actionables,
                   ]
-                  actionables[index] = event.target.value
-                  updateDraft({ actionables })
+                  actionables[index] = value
+                  return updateDraft({ actionables })
                 }}
 
               />

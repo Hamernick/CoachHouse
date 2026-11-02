@@ -1,4 +1,6 @@
+export { ParticleFocusedPreview } from "./components/particle-focused-preview"
 export * from "./lib"
+export { planCommand } from "./lib/particle-plan-command"
 export { useNoteDocuments } from "./hooks/use-note-documents"
 export { ParticleNoteDocumentDialog } from "./components/particle-note-document-dialog"
 export { ModuleNotesFields } from "./components/particle-module-notes-editor"
@@ -77,3 +79,16 @@ export { particlePlanBranchStates, particlePlanBranchLabel, particlePlanOutcomeR
 export type { PlanBranchState } from "./lib/particle-plan-branches"
 
 export type { ResearchTransport } from "./hooks/use-particle-research"
+
+export { particleCreationPosition, newlyAttachedParticles } from "./lib/particle-creation-placement"
+export { ParticlePlanningGuides } from "./components/particle-planning-guides"
+export { revealParticlePlacement, prepareParticlePlacementReveal, particlePlacementMeasurements } from "./lib/particle-placement-viewport"
+
+export { ParticleResponsibilityPeople } from "./components/particle-responsibility-fields"
+
+export { ParticleResponsibilitySelector } from "./components/particle-responsibility-fields"
+export { EMPTY_RESPONSIBILITY, type ParticleResponsibility } from "./lib/particle-responsibility"
+
+export { summarizeObjectiveProgress, summarizePlanWork, isParticleWork } from "./lib/particle-progress"
+
+export { useParticleProgressClock } from "./hooks/use-particle-progress-clock"

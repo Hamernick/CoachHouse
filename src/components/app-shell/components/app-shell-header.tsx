@@ -114,7 +114,7 @@ export function AppShellHeader({
               className="flex flex-wrap items-center gap-1 empty:hidden md:flex-nowrap"
             />
             <div id="site-header-actions-search" className="flex items-center empty:hidden" />
-            {hasUser && !isMobile && !onboardingLocked ? (
+            {hasUser && !onboardingLocked ? (
               <AppShellCalendarAction />
             ) : null}
             {hasUser && !isCompactMobileHeader ? <NotificationsMenu key={notificationIdentity} /> : null}

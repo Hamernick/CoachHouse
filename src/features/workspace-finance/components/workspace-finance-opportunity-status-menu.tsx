@@ -21,7 +21,8 @@ import type {
   WorkspaceFinanceOpportunityWorkflowStatus,
 } from "../types"
 
-const statusLabels: Record<WorkspaceFinanceOpportunityStatus, string> = {
+const statusLabels: Record<WorkspaceFinanceOpportunityWorkflowStatus, string> = {
+  dismissed: "Archived",
   new: "New",
   saved: "Saved",
   applied: "Applied",
@@ -45,7 +46,7 @@ export function WorkspaceFinanceOpportunityStatusMenu({
 }: {
   opportunityId: string
   opportunityTitle: string
-  status: WorkspaceFinanceOpportunityStatus
+  status: WorkspaceFinanceOpportunityWorkflowStatus
   onStatusChange: (status: WorkspaceFinanceOpportunityWorkflowStatus) => void
 }) {
   const [pending, startTransition] = useTransition()

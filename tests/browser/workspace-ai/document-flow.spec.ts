@@ -267,3 +267,14 @@ test("a hidden retained window cannot supply context and reopening recovers its 
   await expect(page.getByRole("button",{name:"Apply to editor",exact:true})).toBeVisible()
   expect((await (await request.get("/__fixture/state")).json()).generations).toBe(1)
 })
+
+
+test("explicit document assistance keeps its target when objective planning is available", async ({ page, request }) => {
+  await page.goto("/?planner")
+  await expect(page.getByRole("textbox", { name: "Plan an objective or search Particles" })).toBeVisible()
+  await generate(page)
+  await expect(page.getByRole("form", { name: "Plan a new objective" })).toHaveCount(0)
+  const state = await (await request.get("/__fixture/state")).json()
+  expect(state.generations).toBe(1)
+  expect(state.saves).toBe(0)
+})

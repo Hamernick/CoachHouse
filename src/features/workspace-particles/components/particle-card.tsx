@@ -86,6 +86,8 @@ function ParticleCardContent({
         {editorFields}
         {!(form && editorFields) && <Preview
           particle={particle}
+          objectiveProgress={data.objectiveProgress}
+          expanded={data.expanded}
           editable={editable}
           onEdit={onEdit}
           onOpen={open}

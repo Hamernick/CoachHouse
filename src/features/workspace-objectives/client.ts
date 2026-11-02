@@ -5,3 +5,5 @@ export { ObjectivePlanNode, type ObjectivePlanProjection } from "./components/ob
 export { useObjectiveCanvas, isObjectivePlanNode } from "./hooks/use-objective-canvas"
 export { ObjectivePlanViewport } from "./components/objective-plan-viewport"
 export { guardObjectivePlanInteractions } from "./lib/plan-flow-guards"
+
+export { useObjectivePlanningAccess } from "./hooks/use-objective-planning-access"

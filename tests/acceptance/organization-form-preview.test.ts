@@ -281,3 +281,54 @@ describe("local form preview", () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 })
+
+
+describe("dropdown and timezone-free form answers", () => {
+  const fields: FormDefinition = { questions: [
+    { id: ID(970), type: "dropdown", label: "Location", required: true, options: ["North", "South"] },
+    { id: ID(971), type: "date", label: "Day", required: true },
+    { id: ID(972), type: "time", label: "Time", required: true },
+  ] }
+  const published = createFormVersion({ ...versionInput, definition: fields })
+  const answers = [
+    { questionId: ID(970), value: "option-2" },
+    { questionId: ID(971), value: "2028-02-29" },
+    { questionId: ID(972), value: "02:30" },
+  ]
+  it("preserves stable choice identity and local calendar/time values through version and submission serialization", () => {
+    const reloaded = formVersionSchema.parse(JSON.parse(JSON.stringify(published)))
+    const result = validateFormSubmission(reloaded, {
+      id: ID(973), formId: published.formId, versionId: published.id, answers,
+    })
+    expect(result).toMatchObject({ ok: true, submission: { answers } })
+    expect(normalizeFormAnswerInputs(reloaded.definition, answers)).toEqual(answers)
+    expect(validateFormAnswers(reloaded.definition, answers.map(answer =>
+      answer.questionId === ID(971) ? { ...answer, value: "2026-03-08" } : answer
+    )).ok).toBe(true) // Local time is valid even when a zone's DST skips it.
+  })
+  it.each([
+    [970, "South"], [970, ["option-1"]], [970, "option-3"], [970, "__empty__"],
+    [971, "2027-02-29"], [971, "2028-02-30"], [971, "1900-02-29"],
+    [971, "0000-01-01"], [971, "2026-4-3"], [971, "2026-04-31"],
+    [971, "2026-03-08T00:00:00Z"], [971, 20260308],
+    [972, "24:00"], [972, "12:60"], [972, "2:30"],
+    [972, "02:30Z"], [972, "02:30-05:00"], [972, "02:30:00"], [972, 230],
+  ])("rejects malformed or reinterpreted field %s value %j", (id, value) => {
+    expect(validateFormAnswers(published.definition, answers.map(answer =>
+      answer.questionId === ID(id) ? { ...answer, value } : answer
+    )).ok).toBe(false)
+  })
+  it("reports required controls and permits clearing optional values", () => {
+    expect(validateFormAnswers(published.definition, []).ok).toBe(false)
+    const optional = createFormSnapshot({ questions: fields.questions.map(question => ({ ...question, required: false })) })
+    expect(validateFormAnswers(optional, answers.map(answer => ({ ...answer, value: "" })))).toEqual({ ok: true, answers: [] })
+  })
+  it("renders a labelled dropdown and native date/time pickers without submitting the editor", () => {
+    const html = renderToStaticMarkup(createElement(OrganizationFormPreview, { snapshot: published.definition }))
+    expect(html).toContain('role="combobox"')
+    expect(html).toContain('type="date"')
+    expect(html).toContain('type="time"')
+    expect(html).not.toContain('type="submit"')
+    expect(html).not.toContain('<form')
+  })
+})

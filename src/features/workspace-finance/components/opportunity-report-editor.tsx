@@ -2,7 +2,7 @@
 import { useRef, useState } from "react"
 import { MoreHorizontal, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { OpportunityTextField } from "./opportunity-text-field"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { createOpportunityReportBlock, opportunityReportComponents, type OpportunityReport, type OpportunityReportBlock } from "../lib/opportunity-report"
 import { OpportunityFactRow } from "./opportunity-fact-row"
@@ -37,10 +37,10 @@ export function OpportunityReportEditor({ value, onChange, addControlId, ...sour
         onChange({ ...value, blocks: value.blocks.filter(item => item.id !== block.id) })
       }}>Remove component</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
     return <section key={block.id} aria-label={`${opportunityReportComponents[block.kind]} component`} className="group/report-section space-y-2 py-4 first:pt-0 last:pb-0">
-    {block.kind !== "image" && <div className="flex items-center gap-2"><Textarea id={`report-heading-${block.id}`} rows={1} value={block.title} placeholder={opportunityReportComponents[block.kind]} aria-label={`${opportunityReportComponents[block.kind]} heading`} maxLength={80} className="min-h-9 resize-none border-0 bg-transparent px-1 py-1.5 font-medium shadow-none dark:bg-transparent" onChange={event => update({ ...block, title: event.target.value })} />
+    {block.kind !== "image" && <div className="flex items-center gap-2"><OpportunityTextField id={`report-heading-${block.id}`} rows={1} value={block.title} placeholder={opportunityReportComponents[block.kind]} aria-label={`${opportunityReportComponents[block.kind]} heading`} maxLength={80} className="min-h-9 resize-none border-0 bg-transparent px-1 py-1.5 font-medium shadow-none dark:bg-transparent" onChange={event => update({ ...block, title: event.target.value })} />
       {menu}
     </div>}
-    {block.kind === "text" && <Textarea value={block.text} placeholder="Write here…" aria-label="Report text" maxLength={6000} rows={3} className="min-h-20 resize-none border-0 bg-transparent px-1 py-1 leading-relaxed shadow-none dark:bg-transparent" onChange={event => update({ ...block, text: event.target.value })} />}
+    {block.kind === "text" && <OpportunityTextField value={block.text} placeholder="Write here…" aria-label="Report text" maxLength={6000} rows={3} className="min-h-20 resize-none border-0 bg-transparent px-1 py-1 leading-relaxed shadow-none dark:bg-transparent" onChange={event => update({ ...block, text: event.target.value })} />}
     {block.kind === "facts" && <div className="space-y-2">{block.items.map((item, row) => <OpportunityFactRow key={item.id} item={item} row={row} disabled={sources.disabled} onChange={next => update({ ...block, items: block.items.map(value => value.id === item.id ? next : value) })} onRemove={() => update({ ...block, items: block.items.filter(value => value.id !== item.id) })} />)}<Button type="button" variant="ghost" size="sm" disabled={block.items.length >= 12} onClick={() => update({ ...block, items: [...block.items, { id: crypto.randomUUID(), label: "", value: "" }] })}><Plus className="size-3.5" />Add fact</Button></div>}
     {block.kind === "sources" && <OpportunityReportSourceEditor {...sources} value={block.sources} onChange={next => update({ ...block, sources: next })} />}
     {block.kind === "image" && <OpportunityReportImageEditor {...sources} block={block} onChange={update} menu={menu} editing={imageEditing?.id === block.id ? imageEditing.field : null} onClose={() => setImageEditing(null)} />}
@@ -49,7 +49,7 @@ export function OpportunityReportEditor({ value, onChange, addControlId, ...sour
 
 export function OpportunityReportAddMenu({ id, value, onChange, disabled }: { id: string; value: OpportunityReport; onChange: (value: OpportunityReport) => void; disabled: boolean }) {
   const focusId = useRef<string | null>(null)
-  return <DropdownMenu><DropdownMenuTrigger asChild><Button id={id} type="button" variant="ghost" size="sm" className="min-h-9 rounded-lg [@media(pointer:coarse)]:min-h-11" aria-label="Add component" disabled={disabled || value.blocks.length >= 12}><Plus className="size-4" aria-hidden="true" />Add</Button></DropdownMenuTrigger><DropdownMenuContent align="start" side="top" className="rounded-xl" onCloseAutoFocus={event => {
+  return <DropdownMenu><DropdownMenuTrigger asChild><Button id={id} type="button" variant="ghost" size="sm" className="h-7 min-h-7 rounded-md px-2 text-xs [@media(pointer:coarse)]:min-h-11" aria-label="Add component" disabled={disabled || value.blocks.length >= 12}><Plus className="size-4" aria-hidden="true" />Add</Button></DropdownMenuTrigger><DropdownMenuContent align="center" side="top" className="rounded-xl" onCloseAutoFocus={event => {
     if (!focusId.current) return
     event.preventDefault()
     const heading = document.getElementById(`report-heading-${focusId.current}`)

@@ -1,22 +1,23 @@
 "use client"
 import { useRef, useState } from "react"
-import { Archive, Ellipsis, LayoutDashboard, Pencil, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, Ellipsis, LayoutDashboard, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 
-export function WorkspaceOpportunityMenu({ title, pending, onEdit, onAdd, onArchive, onDelete }: {
+export function WorkspaceOpportunityMenu({ title, pending, archived = false, onEdit, onAdd, onArchive, onDelete }: {
+  archived?: boolean
   title: string; pending: boolean; onEdit: () => void; onAdd?: () => Promise<void>; onArchive: () => void; onDelete: () => Promise<boolean>
 }) {
   const [confirm, setConfirm] = useState(false)
   const editAfterClose = useRef(false)
   return <>
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button type="button" size="icon" variant="secondary" disabled={pending} className="h-9 w-10 shrink-0 rounded-lg shadow-none [@media(pointer:coarse)]:size-11" aria-label={`Options for ${title}`}><Ellipsis className="size-4" aria-hidden="true" /></Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button type="button" size="icon" variant="ghost" disabled={pending} className="size-7 shrink-0 rounded-md text-muted-foreground shadow-none hover:bg-foreground/5 hover:text-foreground dark:hover:bg-foreground/10 data-[state=open]:bg-foreground/5 data-[state=open]:text-foreground dark:data-[state=open]:bg-foreground/10 [@media(pointer:coarse)]:size-11" aria-label={`Options for ${title}`}><Ellipsis className="size-4" aria-hidden="true" /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48 rounded-xl p-1.5" onCloseAutoFocus={event => { if (editAfterClose.current) { event.preventDefault(); editAfterClose.current = false; onEdit() } }}>
-        <DropdownMenuItem onSelect={() => { editAfterClose.current = true }}><Pencil aria-hidden="true" />Edit</DropdownMenuItem>
-        <DropdownMenuItem disabled={!onAdd} onSelect={() => void onAdd?.()}><LayoutDashboard aria-hidden="true" />Add to workspace</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onArchive}><Archive aria-hidden="true" />Archive</DropdownMenuItem>
+        <DropdownMenuItem disabled={archived} onSelect={() => { editAfterClose.current = true }}><Pencil aria-hidden="true" />Edit</DropdownMenuItem>
+        <DropdownMenuItem disabled={archived || !onAdd} onSelect={() => void onAdd?.()}><LayoutDashboard aria-hidden="true" />Add to workspace</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onArchive}>{archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}{archived ? "Restore" : "Archive"}</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={() => setConfirm(true)}><Trash2 aria-hidden="true" />Delete</DropdownMenuItem>
       </DropdownMenuContent>

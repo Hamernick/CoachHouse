@@ -55,3 +55,13 @@
   margin-left: auto;
   gap: 0.25rem;
 }
+
+@keyframes inspection-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :global([data-particle-expanded="true"]) > .frame > .body {
+    animation: inspection-reveal 160ms ease-out;
+  }
+}

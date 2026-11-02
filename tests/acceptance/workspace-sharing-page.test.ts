@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createElement } from "react"
+import { createElement, Fragment } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { PublicWorkspacePage, PublicWorkspacePageLoading } from "@/features/workspace-sharing/components/public-workspace-page"
 import { workspacePageMetadata } from "@/features/workspace-sharing/server/public-page-metadata"
@@ -25,6 +25,15 @@ describe("branded public page", () => {
     expect(html).not.toContain("min-h-svh")
     expect(html).toContain('aria-label="Shared Particles"')
     expect(html).toContain("Southside Community Table")
+  })
+  it("keeps repeated embedded previews named without duplicate IDs or page-level headings", () => {
+    const html = renderToStaticMarkup(createElement(Fragment, null,
+      createElement(PublicWorkspacePage, { snapshot: snapshot(), embedded: true }),
+      createElement(PublicWorkspacePage, { snapshot: snapshot(), embedded: true })))
+    expect(html).not.toContain("<h1")
+    expect(html).not.toContain('id="particle-')
+    expect(html).toContain('aria-label="Welcome"')
+    expect(html).toContain("<h4>Join us</h4>")
   })
   it("puts the brand first and preserves published membership order in one column", () => {
     const html = renderToStaticMarkup(createElement(PublicWorkspacePage, { snapshot: snapshot() }))
@@ -61,7 +70,7 @@ describe("branded public page", () => {
     expect(html).not.toContain("position:absolute")
     expect(html).not.toContain("scale(")
   })
-  it("labels UTC event times and omits empty location/date fields", () => {
+  it("labels stable UTC event times before hydration", () => {
     const page = snapshot()
     page.items = [{ id: ID(3), title: "Dinner", content: { kind: "event", startsAt: "2026-10-20T20:00:00Z", location: "Library" } }]
     const html = renderToStaticMarkup(createElement(PublicWorkspacePage, { snapshot: page }))

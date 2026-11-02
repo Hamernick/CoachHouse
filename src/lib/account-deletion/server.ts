@@ -24,10 +24,6 @@ export const WORKSPACE_AUTHOR_TABLES = [
 
 type AdminClient = SupabaseClient<Database, "public">
 
-type DeleteUserError = {
-  message?: string
-}
-
 type SubscriptionForPreflight = {
   status: string | null
   metadata: Json | null
@@ -43,11 +39,18 @@ export function resolveSupabaseErrorMessage(
     : "Unable to delete account."
 }
 
-export function isLikelyForeignKeyDeleteError(
-  error: DeleteUserError | null | undefined,
-) {
-  const message = error?.message?.toLowerCase() ?? ""
-  return message.includes("foreign key") || message.includes("violates")
+export const ORGANIZATION_CLOSURE_REQUIRED =
+  "Your organization must be closed separately before this login can be deleted."
+
+// Recheck at dispatch: a previously loaded dialog is not deletion authority.
+// The organizations owner FK supplies the concurrent-write boundary.
+export async function hasOwnedOrganization(admin: AdminClient, userId: string) {
+  const { count, error } = await admin
+    .from("organizations")
+    .select("user_id", { count: "exact", head: true })
+    .eq("user_id", userId)
+  if (error || typeof count !== "number") throw new Error("Unable to check organization ownership.")
+  return count > 0
 }
 
 function asRecord(value: Json | null | undefined) {
@@ -167,7 +170,7 @@ function buildCleanupPreview({
       id: "owned-organizations",
       label: "Owned organizations",
       count: ownedOrganizations,
-      disposition: "deleted",
+      disposition: "retained",
     },
     {
       id: "joined-organizations",
@@ -269,14 +272,11 @@ export async function getAccountDeletionPreflight({
     },
   )
   addNotice(
-    warnings,
+    blockingIssues,
     ownedOrganizations > 0 && {
-      id: "owned-organizations",
-      title: "Owned organization data will be deleted",
-      description:
-        ownedOrganizationMembers > 0
-          ? "This account owns an organization with other members. Deleting it removes that workspace for everyone."
-          : "This account owns an organization workspace. Deleting the account removes that workspace.",
+      id: "organization-closure-required",
+      title: "Close your organization separately",
+      description: ORGANIZATION_CLOSURE_REQUIRED,
     },
   )
   addNotice(
@@ -326,20 +326,6 @@ export async function getAccountDeletionPreflight({
     cleanupPreview: buildCleanupPreview(counts),
     warnings,
     blockingIssues,
-  }
-}
-
-export async function deleteOwnedOrganizationForAccountDeletion(
-  admin: AdminClient,
-  userId: string,
-) {
-  const { error: ownedOrgDeleteError } = await admin
-    .from("organizations")
-    .delete()
-    .eq("user_id", userId)
-
-  if (ownedOrgDeleteError) {
-    throw new Error(resolveSupabaseErrorMessage(ownedOrgDeleteError))
   }
 }
 

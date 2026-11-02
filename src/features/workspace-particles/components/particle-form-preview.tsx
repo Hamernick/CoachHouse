@@ -4,9 +4,9 @@ import { Empty } from "@/components/ui/empty"
 import { FORM_QUESTION_LABELS, type FormDefinition } from "@/features/organization-forms"
 import { useParticleSurface } from "./particle-surface"
 
-export function ParticleFormPreview({ definition }: { definition: FormDefinition }) {
+export function ParticleFormPreview({ definition, expanded = false }: { definition: FormDefinition; expanded?: boolean }) {
   const surface = useParticleSurface()
-  const questions = definition.questions.slice(0, 3)
+  const questions = expanded ? definition.questions : definition.questions.slice(0, 3)
   return (
     <div {...surface()} className="flex min-w-0 flex-col gap-3">
       {questions.length === 0 ? (
@@ -29,7 +29,7 @@ export function ParticleFormPreview({ definition }: { definition: FormDefinition
           ))}
         </ol>
       )}
-      {definition.questions.length > 3 && <p className="text-muted-foreground text-xs">+{definition.questions.length - 3} more questions</p>}
+      {!expanded && definition.questions.length > 3 && <p className="text-muted-foreground text-xs">+{definition.questions.length - 3} more questions</p>}
     </div>
   )
 }

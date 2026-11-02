@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useMemo } from "react"
 import Layers from "lucide-react/dist/esm/icons/layers"
 
 import {
@@ -35,7 +35,7 @@ import {
   shouldWorkspaceAcceleratorTutorialBlockClassSelection,
 } from "./workspace-accelerator-card-tutorial-guards"
 import { WorkspaceAcceleratorTutorialGuardTooltip } from "./workspace-accelerator-tutorial-guard-tooltip"
-import { resolveWorkspaceAcceleratorHeaderPickerScrollDistance } from "./workspace-accelerator-header-picker-overflow"
+import { HoverRevealText } from "@/components/ui/hover-reveal-text"
 import { useWorkspaceAcceleratorTutorialGuard } from "./use-workspace-accelerator-tutorial-guard"
 
 const WORKSPACE_ACCELERATOR_TUTORIAL_PICKER_TRIGGER_CLASSNAME = cn(
@@ -51,64 +51,6 @@ const WORKSPACE_ACCELERATOR_RAIL_PICKER_TRIGGER_CLASSNAME =
 const WORKSPACE_ACCELERATOR_BADGE_PICKER_TRIGGER_CLASSNAME =
   WORKSPACE_COMPACT_PICKER_CLASSNAME
 
-function WorkspaceAcceleratorHeaderPickerLabel({ label }: { label: string }) {
-  const viewportRef = useRef<HTMLSpanElement | null>(null)
-  const contentRef = useRef<HTMLSpanElement | null>(null)
-  const [isHovered, setIsHovered] = useState(false)
-  const [scrollDistance, setScrollDistance] = useState(0)
-
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current
-    const content = contentRef.current
-    if (!viewport || !content) return
-
-    const measure = () => {
-      const nextScrollDistance =
-        resolveWorkspaceAcceleratorHeaderPickerScrollDistance({
-          contentWidth: content.scrollWidth,
-          viewportWidth: viewport.clientWidth,
-        })
-      setScrollDistance(nextScrollDistance)
-    }
-
-    measure()
-
-    if (typeof ResizeObserver === "undefined") return
-
-    const observer = new ResizeObserver(measure)
-    observer.observe(viewport)
-    observer.observe(content)
-
-    return () => observer.disconnect()
-  }, [label])
-
-  return (
-    <span
-      ref={viewportRef}
-      className="relative min-w-0 flex-1 overflow-hidden"
-      data-slot="class-picker-label"
-      onPointerEnter={(event) => setIsHovered(event.pointerType === "mouse")}
-      onPointerLeave={() => setIsHovered(false)}
-    >
-      <span
-        ref={contentRef}
-        className={cn(
-          "block min-w-full text-left whitespace-nowrap",
-          scrollDistance > 0 && isHovered
-            ? "w-max transition-transform duration-1000 ease-out motion-reduce:transition-none"
-            : "w-full truncate"
-        )}
-        style={
-          scrollDistance > 0 && isHovered
-            ? { transform: `translateX(-${scrollDistance}px)` }
-            : undefined
-        }
-      >
-        {label}
-      </span>
-    </span>
-  )
-}
 
 export function WorkspaceAcceleratorHeaderPicker({
   lessonGroupOptions,
@@ -214,7 +156,7 @@ export function WorkspaceAcceleratorHeaderPicker({
             aria-hidden
           />
         </span>
-        <WorkspaceAcceleratorHeaderPickerLabel
+        <HoverRevealText slot="class-picker-label"
           label={selectedLessonGroupLabel}
         />
       </SelectTrigger>

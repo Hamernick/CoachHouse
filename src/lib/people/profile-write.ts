@@ -1,3 +1,4 @@
+import type { PeopleImportBatch } from "./import-history"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { Database } from "@/lib/supabase"
@@ -73,7 +74,14 @@ export async function commitPeopleProfileMutation<T>({
 
 type OrganizationPeopleMutation<TPerson, TValue> =
   | { ok: true; changed: false; value: TValue }
-  | { ok: true; changed: true; people: TPerson[]; peopleRoles?: string[]; value: TValue }
+  | {
+      ok: true
+      changed: true
+      people: TPerson[]
+      peopleRoles?: string[]
+      peopleImportHistory?: PeopleImportBatch[]
+      value: TValue
+    }
   | { error: string }
 
 function isUniqueViolation(error: { code?: string } | null) {
@@ -121,7 +129,14 @@ export async function mutateOrganizationPeopleProfile<TPerson, TValue>({
       return {
         ok: true,
         changed: true,
-        nextProfile: { ...profile, org_people: result.people, ...(result.peopleRoles ? { people_roles: result.peopleRoles } : {}) },
+        nextProfile: {
+          ...profile,
+          org_people: result.people,
+          ...(result.peopleRoles ? { people_roles: result.peopleRoles } : {}),
+          ...(result.peopleImportHistory
+            ? { people_import_history: result.peopleImportHistory }
+            : {}),
+        },
         value: result.value,
       }
     },

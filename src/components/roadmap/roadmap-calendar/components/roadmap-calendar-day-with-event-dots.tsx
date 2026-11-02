@@ -39,6 +39,7 @@ export function RoadmapCalendarDayWithEventDots({
       <span className="absolute inset-x-0 top-2 text-center !text-sm leading-none">
         {children}
       </span>
+      {modifiers?.opportunityWindow && <span data-opportunity-window-bar aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-sky-400/60" />}
       {visibleDots.length > 0 || modifiers?.google_calendar ? (
         <span
           className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1"

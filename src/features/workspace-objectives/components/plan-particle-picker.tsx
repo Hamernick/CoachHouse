@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import styles from "./particle-objectives.module.css"
 import { Plus, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -20,7 +21,7 @@ export function PlanParticlePicker({ particles, excluded, pending, onAdd, onCrea
     finally { setBusy(false) }
   }
   return <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild><Button variant="ghost" size="sm" className="w-fit rounded-full" disabled={pending}><Plus aria-hidden />{label}</Button></PopoverTrigger>
+    <PopoverTrigger asChild><Button variant="ghost" size="sm" className={`${styles.addButton} w-full min-w-0 justify-start rounded-md font-normal`} disabled={pending}><Plus aria-hidden className="size-[18px] shrink-0" /><span className="truncate">{label}</span></Button></PopoverTrigger>
     <PopoverContent align="start" className="w-[min(360px,calc(100vw-32px))] overflow-hidden rounded-2xl p-1 shadow-none" onEscapeKeyDown={event => event.stopPropagation()}>
       <Command aria-label="Add a particle to this plan" aria-busy={busy} className="rounded-xl">
         <CommandInput value={query} onValueChange={setQuery} placeholder="Search or create…" />

@@ -502,3 +502,84 @@ describe("authenticated Particle action boundary", () => {
     expect(mocks.persist).not.toHaveBeenCalled()
   })
 })
+
+
+describe("Particle responsibility through the authorized writer", () => {
+  const responsibility = { version: 1 as const, ownerId: ID(701), contributorIds: [ID(702)] }
+  const assigned = () => {
+    const value = particleSchema.parse({ ...particle(1, "objective"), responsibility })
+    if (value.type !== "objective") throw Error("Expected objective")
+    return value
+  }
+  const put = (item: Particle, revision: number | null = 0) => batch(755, [{ kind: "put_particle", particle: item, expectedRevision: revision }])
+  it("saves only authorized People references and preserves unrelated work", async () => {
+    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [{ id: ID(701) }, { id: ID(702) }] } }, error: null })
+    const result = await applyWorkspaceParticleBatchAction(put(assigned()))
+    expect(result).toMatchObject({ ok: true, value: { graph: { revision: 1 } } })
+    if (!result.ok) throw Error(result.error)
+    expect(JSON.parse(JSON.stringify(result.value.graph)).particles[0].responsibility).toEqual(responsibility)
+    expect(result.value.graph.particles[1]).toEqual(graph().particles[1])
+    expect(mocks.eq).toHaveBeenCalledWith("user_id", WORKSPACE)
+    expect(mocks.profile).toHaveBeenCalledTimes(1)
+    expect(mocks.from.mock.calls.every(([table]) => table === "organizations")).toBe(true)
+  })
+  it("rejects edits without workspace permission before checking people", async () => {
+    mocks.canEdit.mockResolvedValue(false)
+    expect(await applyWorkspaceParticleBatchAction(put(assigned()))).toMatchObject({ ok: false, code: "scope" })
+    expect(mocks.profile).not.toHaveBeenCalled()
+    expect(mocks.persist).not.toHaveBeenCalled()
+  })
+  it.each([null, { org_people: [{ id: ID(701) }] }])("rejects inaccessible or foreign contributors", async profile => {
+    mocks.profile.mockResolvedValue({ data: { profile }, error: null })
+    expect(await applyWorkspaceParticleBatchAction(put(assigned()))).toMatchObject({ ok: false, code: "scope" })
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+  it("retains unchanged unavailable references but revalidates changed roles", async () => {
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (value: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([assigned()])); return { ok: true } })
+    expect(await applyWorkspaceParticleBatchAction(put({ ...assigned(), title: "Updated" }))).toMatchObject({ ok: true })
+    expect(mocks.profile).not.toHaveBeenCalled()
+    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [] } }, error: null })
+    const promoted = { ...assigned(), responsibility: { ...responsibility, ownerId: ID(702), contributorIds: [] } }
+    expect(await applyWorkspaceParticleBatchAction(put(promoted))).toMatchObject({ ok: false, code: "scope" })
+    expect(await applyWorkspaceParticleBatchAction(put({ ...assigned(), responsibility: { version: 1, ownerId: null, contributorIds: [] } }))).toMatchObject({ ok: true })
+  })
+  it("rejects stale assignment edits before checking sources", async () => {
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (value: Json) => Promise<Json> }) => { await args.updateParticleGraph({ ...graph([{ ...particle(1, "objective"), revision: 1 }]), revision: 1 }); return { ok: true } })
+    expect(await applyWorkspaceParticleBatchAction(put(assigned()))).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.profile).not.toHaveBeenCalled()
+  })
+  it("keeps old records readable and rejects duplicate people or source-owned responsibility", () => {
+    expect(particleSchema.safeParse(particle(2)).success).toBe(true)
+    expect(particleSchema.safeParse({ ...particle(1, "objective"), responsibility: { ...responsibility, contributorIds: [ID(701)] } }).success).toBe(false)
+    expect(particleSchema.safeParse({ ...particle(1, "objective"), responsibility: { ...responsibility, contributorIds: [ID(702), ID(702)] } }).success).toBe(false)
+    expect(particleSchema.safeParse({ ...particle(2, "people"), responsibility }).success).toBe(false)
+    expect(particleSchema.safeParse({ ...particle(2), responsibility }).success).toBe(false)
+    const sourced = particle(2, "objective")
+    if (sourced.type !== "objective") throw Error("Expected objective")
+    expect(particleSchema.safeParse({ ...sourced, data: { ...sourced.data, source: { kind: "objective", id: ID(1) } }, responsibility }).success).toBe(false)
+  })
+})
+
+
+describe("membership assignment source permissions", () => {
+  const responsibility = { version: 1 as const, ownerId: ID(701), contributorIds: [] }
+  const objective = (assignedPlan: number) => {
+    const item = particle(1, "objective")
+    if (item.type !== "objective") throw Error("Expected objective")
+    return { ...item, data: { ...item.data, planning: { proposals: [], plans: [1, 2].map(index => ({ id: ID(820 + index), revision: 0, title: `Plan ${index}`, particleIds: [ID(2)], ...(assignedPlan === index ? { assignments: [{ particleId: ID(2), responsibility }] } : {}) })) } } }
+  }
+  it("rechecks contact access when assigning the same person in another plan", async () => {
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (input: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([objective(1), particle(2)])); return { ok: true } })
+    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [] } }, error: null })
+    const input = batch(824, [{ kind: "put_particle", particle: objective(2), expectedRevision: 0 }])
+    expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: false, code: "scope" })
+    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [{ id: ID(701) }] } }, error: null })
+    expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: true })
+  })
+  it("allows unchanged unavailable memberships to move and be removed", async () => {
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (input: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([objective(1), particle(2)])); return { ok: true } })
+    expect(await applyWorkspaceParticleBatchAction(batch(825, [{ kind: "put_particle", particle: { ...objective(1), position: { x: 50, y: 60 } }, expectedRevision: 0 }]))).toMatchObject({ ok: true })
+    expect(await applyWorkspaceParticleBatchAction(batch(826, [{ kind: "put_particle", particle: objective(0), expectedRevision: 0 }]))).toMatchObject({ ok: true })
+    expect(mocks.profile).not.toHaveBeenCalled()
+  })
+})

@@ -7,10 +7,16 @@ import { buildDefaultBoardState } from "@/app/(dashboard)/my-organization/_compo
 import { mergeNewerPersistedWorkspaceNodeState } from "@/app/(dashboard)/my-organization/_lib/workspace-board-state-persistence"
 import {
   commitWorkspaceBoardState,
+  workspaceBoardWriteError,
   WORKSPACE_BOARD_WRITE_CONFLICT_ERROR,
 } from "@/app/(dashboard)/my-organization/_lib/workspace-board-state-write"
 
 describe("workspace board write concurrency", () => {
+  it("explains form source denials without exposing arbitrary database text", () => {
+    expect(workspaceBoardWriteError({ code: "42501", message: "Form source manager required" })).toContain("Only this form's manager")
+    expect(workspaceBoardWriteError({ code: "22023", message: "Conflicting form identity" })).toContain("conflicting copies")
+    expect(workspaceBoardWriteError({ code: "42501", message: "private database detail" })).toBe("Unable to save workspace layout.")
+  })
   it("awaits calendar authorization and never writes an unauthorized graph", async () => {
     const write = vi.fn(async () => ({ status: "written" as const }))
     const defaults = buildDefaultBoardState()

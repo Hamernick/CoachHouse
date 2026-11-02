@@ -9,7 +9,7 @@ Google S2 URLs below are favicon-cache sources for the named provider domains, n
 | techsoup | 16 × 16 | 334 | https://www.google.com/s2/favicons?domain=techsoup.org&sz=128 |
 | microsoft | 128 × 128 | 96 | https://www.google.com/s2/favicons?domain=microsoft.com&sz=128 |
 | canva | 128 × 128 | 12662 | https://www.google.com/s2/favicons?domain=canva.com&sz=128 |
-| grants-gov | 64 × 64 | 556 | https://www.google.com/s2/favicons?domain=grants.gov&sz=128 |
+| grants-gov (shared: `src/lib/assets/grants-gov.webp`) | 64 × 64 | 556 | https://www.google.com/s2/favicons?domain=grants.gov&sz=128 |
 | candid | 48 × 48 | 900 | https://www.google.com/s2/favicons?domain=candid.org&sz=128 |
 | idealist | 128 × 128 | 17322 | https://www.google.com/s2/favicons?domain=idealist.org&sz=128 |
 | boardsource | 128 × 128 | 1726 | https://www.google.com/s2/favicons?domain=boardsource.org&sz=128 |

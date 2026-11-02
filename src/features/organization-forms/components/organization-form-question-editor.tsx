@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import ArrowUpIcon from "lucide-react/dist/esm/icons/arrow-up"
 import ArrowDownIcon from "lucide-react/dist/esm/icons/arrow-down"
+import CopyIcon from "lucide-react/dist/esm/icons/copy"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import {
   changeFormQuestionType,
@@ -24,6 +25,8 @@ import {
   moveFormQuestion,
 } from "../lib"
 import type { FormDefinition, FormQuestion } from "../types"
+import { OrganizationFormGridEditor } from "./organization-form-grid-editor"
+import { OrganizationFormScaleEditor } from "./organization-form-scale-editor"
 import styles from "./organization-form-builder.module.css"
 
 export function OrganizationFormQuestionEditor({
@@ -36,6 +39,7 @@ export function OrganizationFormQuestionEditor({
   onChange,
   onDefinitionChange,
   onRemove,
+  onDuplicate,
 }: {
   question: FormQuestion
   index: number
@@ -46,6 +50,7 @@ export function OrganizationFormQuestionEditor({
   onChange: (value: FormQuestion) => void
   onDefinitionChange: (value: FormDefinition) => void
   onRemove: () => void
+  onDuplicate: () => void
 }) {
   return (
     <FieldGroup className={styles.questionFields}>
@@ -103,6 +108,8 @@ export function OrganizationFormQuestionEditor({
           />
         </Field>
       </div>
+      {(question.type === "linear_scale" || question.type === "rating") && <OrganizationFormScaleEditor question={question} id={id} disabled={disabled} onChange={onChange} />}
+      {"rows" in question && <OrganizationFormGridEditor question={question} id={id} disabled={disabled} onChange={onChange} />}
       {"options" in question && (
         <Field>
           <FieldLabel htmlFor={`${id}-options`}>Options</FieldLabel>
@@ -118,7 +125,19 @@ export function OrganizationFormQuestionEditor({
           />
         </Field>
       )}
+      {(question.type === "single_choice" || question.type === "multiple_choice") && (
+        <Field orientation="horizontal" className={styles.required}>
+          <FieldLabel htmlFor={`${id}-other`}>Allow Other</FieldLabel>
+          <Switch id={`${id}-other`} disabled={disabled} checked={question.allowOther ?? false}
+            onCheckedChange={(allowOther) => onChange({ ...question, allowOther })} />
+        </Field>
+      )}
       <div className={styles.actions}>
+        <Button type="button" size="icon" variant="ghost" className={styles.iconAction}
+          aria-label={`Duplicate question ${index + 1}`}
+          disabled={disabled || definition.questions.length >= 50} onClick={onDuplicate}>
+          <CopyIcon aria-hidden />
+        </Button>
         <Button
           type="button"
           size="icon"

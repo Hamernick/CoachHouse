@@ -6,11 +6,12 @@ import { readKnowledgeFile } from "@/features/workspace-ai/server/knowledge-file
 import { createKnowledgeTools } from "@/features/workspace-ai/server/knowledge-tools"
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
 import type { KnowledgeRecord } from "@/features/workspace-ai/research-types"
-import { ID, WORKSPACE } from "./fixtures/particle-fixtures"
+import { ID, WORKSPACE, graph, particle } from "./fixtures/particle-fixtures"
 
-const mock=vi.hoisted(()=>({access:vi.fn(),row:vi.fn(),download:vi.fn(),load:vi.fn()}))
+const mock=vi.hoisted(()=>({access:vi.fn(),row:vi.fn(),download:vi.fn(),load:vi.fn(),context:vi.fn()}))
 vi.mock("@/lib/organization/document-storage-access",()=>({resolveOrganizationDocumentStorageAccess:mock.access}))
 vi.mock("@/features/workspace-ai/server/knowledge-records",async importOriginal=>({...await importOriginal<typeof import("@/features/workspace-ai/server/knowledge-records")>(),knowledgeLoader:()=>mock.load}))
+vi.mock("@/features/workspace-ai/server/research-context",()=>({loadResearchContext:mock.context}))
 const xml=(text:string)=>`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${text}</w:t></w:r></w:p><w:p><w:r><w:t>Second paragraph.</w:t></w:r></w:p></w:body></w:document>`
 const archive=(text="Private proposal &amp; budget")=>createZipArchive([{name:"word/document.xml",data:xml(text)}])
 function compressedArchive(text:string,claimedSize?:number) {
@@ -23,10 +24,10 @@ function compressedArchive(text:string,claimedSize?:number) {
 }
 const record:KnowledgeRecord={id:`file:${ID(10)}`,kind:"document",title:"Private proposal",content:"File metadata only",href:"/workspace",revision:"2026-10-25T12:00:00Z",contentAvailable:false}
 const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),single:mock.row}
-const context={target:{organizationId:WORKSPACE},graph:{particles:[]},supabase:{from:vi.fn(()=>query),storage:{from:vi.fn(()=>({download:mock.download}))}}} as unknown as ResearchContext
+const context={user:{id:ID(90)},canvasId:null,objective:particle(1,"objective"),target:{organizationId:WORKSPACE,objectiveId:ID(1),revision:0},graph:graph(),supabase:{from:vi.fn(()=>query),storage:{from:vi.fn(()=>({download:mock.download}))}}} as unknown as ResearchContext
 const file=(data:Buffer,mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")=>({id:ID(10),name:record.title,mime_type:mime,size_bytes:data.length,storage_path:`${WORKSPACE}/library/proposal.docx`,updated_at:record.revision})
 beforeEach(()=>{
- vi.clearAllMocks();mock.access.mockResolvedValue({hasStorageAccess:true})
+ vi.clearAllMocks();mock.context.mockResolvedValue(context);mock.access.mockResolvedValue({hasStorageAccess:true})
  const data=archive();mock.row.mockResolvedValue({data:file(data),error:null});mock.download.mockResolvedValue({data:new Blob([new Uint8Array(data)]),error:null})
  mock.load.mockResolvedValue([record])
 })
@@ -99,4 +100,29 @@ describe("authorized research file reads",()=>{
   mock.download.mockResolvedValue({data:new Blob(["larger"]),error:null})
   await expect(readKnowledgeFile(context,record)).rejects.toThrow(/unavailable/)
  })
+})
+
+
+it("reuses unchanged extraction but rechecks file access and metadata on every cache hit",async()=>{
+ const cache=new Map<string,KnowledgeRecord>()
+ const first=await readKnowledgeFile(context,record,cache)
+ expect(await readKnowledgeFile(context,record,cache)).toEqual(first)
+ expect(mock.download).toHaveBeenCalledTimes(1)
+ expect(mock.access).toHaveBeenCalledTimes(3)
+ expect(mock.row).toHaveBeenCalledTimes(3)
+ mock.access.mockResolvedValueOnce({hasStorageAccess:false})
+ await expect(readKnowledgeFile(context,record,cache)).rejects.toThrow(/access/)
+ mock.row.mockResolvedValueOnce({data:{...file(archive()),updated_at:"new"},error:null})
+ await expect(readKnowledgeFile(context,record,cache)).rejects.toThrow(/changed/)
+ expect(mock.download).toHaveBeenCalledTimes(1)
+})
+it("revalidates actual file evidence without another download and rejects later revocation",async()=>{
+ const tools=createKnowledgeTools(context)
+ await tools.execute("search_workspace",{query:"proposal",kinds:["document"]})
+ await tools.execute("read_workspace",{ids:[record.id]})
+ expect(await tools.revalidate()).toBe(true)
+ expect(mock.download).toHaveBeenCalledTimes(1)
+ mock.access.mockResolvedValue({hasStorageAccess:false})
+ expect(await tools.revalidate()).toBe(false)
+ expect(mock.download).toHaveBeenCalledTimes(1)
 })

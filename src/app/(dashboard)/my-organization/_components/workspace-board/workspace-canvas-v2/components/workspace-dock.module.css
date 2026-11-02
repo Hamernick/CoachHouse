@@ -14,6 +14,7 @@
 }
 
 .composerShell {
+  z-index: 2;
   position: absolute;
   bottom: 8px;
   left: 0;
@@ -35,6 +36,7 @@
 }
 
 .topNavigation {
+  z-index: 2;
   position: absolute;
   /* Composer already includes 8px of top padding; leave a 6px visible gap. */
   bottom: var(--workspace-navigation-bottom);
@@ -42,9 +44,9 @@
   transform: translateX(-50%);
   max-width: calc(100% - 24px);
   pointer-events: auto;
-  border: 1px solid var(--border);
+  border-width: 1px;
+  border-style: solid;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--muted) 88%, var(--card));
   padding: 4px;
 }
 .topTabList {
@@ -93,16 +95,17 @@
 
 .contentWindow {
   position: absolute;
+  z-index: 1;
+  top: 8px;
   left: 0;
   right: 0;
   margin-inline: auto;
-  bottom: calc(var(--workspace-navigation-bottom) + var(--workspace-navigation-height) + 8px);
+  bottom: auto;
   pointer-events: auto;
-  border: 1px solid var(--border);
+  border-width: 1px;
+  border-style: solid;
   border-radius: 20px;
-  background: var(--background);
   color: var(--foreground);
-  box-shadow: none;
 }
 
 .organizationSidebar {
@@ -111,6 +114,22 @@
   left: 8px;
   right: auto;
   margin-inline: 0;
+}
+
+/* The retained morph shell must paint behind the restored organization button. */
+.organizationSidebar[aria-hidden="true"] {
+  z-index: 0;
+}
+
+/* Keep the full-canvas surface behind navigation, with its scrollable content
+   ending above the measured composer and tabs so every control stays reachable. */
+.contentWindow[data-workspace-window-maximized="true"] {
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-inline: 0;
+  border: 0;
+  padding-bottom: calc(var(--workspace-navigation-bottom) + var(--workspace-navigation-height) + 8px);
 }
 
 @container workspace-dock (max-width: 700px) {
