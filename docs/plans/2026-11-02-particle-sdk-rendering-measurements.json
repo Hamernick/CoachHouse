@@ -1,0 +1,64 @@
+{
+  "kind": "local-synthetic-production-bundle",
+  "artifacts": "identical twelve notes; original fallback/editor vs selected renderer",
+  "styling": "Both variants include current application globals, scoped SDK foundation, and actual component CSS. System font fallback; excludes Next font loading. Earlier unstyled fixture measurements are historical, not a directly comparable baseline.",
+  "bundles": {
+    "baseline": {
+      "bytes": 1511906,
+      "gzipBytes": 327093,
+      "jsonRenderModules": 0
+    },
+    "selected": {
+      "bytes": 1603566,
+      "gzipBytes": 356030,
+      "jsonRenderModules": 4
+    }
+  },
+  "delta": {
+    "bytes": 91660,
+    "gzipBytes": 28937
+  },
+  "firstContentfulPaintMs": {
+    "baseline": {
+      "samples": 10,
+      "min": 216,
+      "median": 224,
+      "p95": 256
+    },
+    "selected": {
+      "samples": 10,
+      "min": 248,
+      "median": 256,
+      "p95": 276
+    }
+  },
+  "firstCommitMs": {
+    "baseline": {
+      "samples": 10,
+      "min": 36.700000047683716,
+      "median": 39.60000002384186,
+      "p95": 45.10000002384186
+    },
+    "selected": {
+      "samples": 10,
+      "min": 43.199999928474426,
+      "median": 46.5,
+      "p95": 53.800000071525574
+    }
+  },
+  "updateCommitMs": {
+    "baseline": {
+      "samples": 50,
+      "min": 4,
+      "median": 6.299999952316284,
+      "p95": 11
+    },
+    "selected": {
+      "samples": 50,
+      "min": 5.700000047683716,
+      "median": 7.200000047683716,
+      "p95": 13.399999976158142
+    }
+  },
+  "limitations": "First contentful paint contains the actual fixed artifact; commit metrics start at entry execution. Server actions are fail-closed fixture stubs. Excludes real sources, Next production route and model spend. No demonstrated runtime savings claim. Ten paired local navigation samples; fifty updates per variant."
+}

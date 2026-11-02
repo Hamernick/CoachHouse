@@ -21,7 +21,9 @@ describe.skipIf(!enabled)("local same-artifact json-render qualification", () =>
     for (const variant of ["baseline", "selected"] as const) {
       const modules = new Set<string>()
       await build({ configFile: false, root: process.cwd(), logLevel: "warn", resolve: { alias: { "@": path.resolve("src") } }, esbuild: { jsx: "automatic", jsxDev: false },
-        define: { "process.env.NODE_ENV": JSON.stringify("production"), "process.env.NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION": JSON.stringify(variant === "selected" ? "1" : "0") },
+        // Next normally replaces its browser-only routing constants. This
+        // isolated build supplies no runtime environment or provider secrets.
+        define: { "process.env": "{}", "process.env.NODE_ENV": JSON.stringify("production"), "process.env.NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION": JSON.stringify(variant === "selected" ? "1" : "0") },
         build: { outDir: path.join(directory, variant), emptyOutDir: false, copyPublicDir: false, minify: "esbuild", lib: { entry: path.resolve("tests/acceptance/fixtures/workspace-research-presentation-benchmark.tsx"), formats: ["iife"], name: "PresentationBenchmark", fileName: () => "fixture.js" } },
         plugins: [{ name: "actual-legacy-review-baseline", enforce: "pre", transform(code, id) {
           // Model Next's server-action boundary in both isolated bundles. Any
