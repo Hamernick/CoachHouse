@@ -316,6 +316,8 @@
       "tests/acceptance/organization-closure-read-only-database.test.ts",
       "tests/acceptance/organization-closure-refund-execution-database.test.ts",
       "tests/acceptance/organization-closure-refund-review-database.test.ts",
+      "tests/acceptance/organization-closure-research-cleanup-database.test.ts",
+      "tests/acceptance/organization-closure-response-cleanup-database.test.ts",
       "tests/acceptance/organization-closure-restore-database.test.ts",
       "tests/acceptance/organization-closure-storage-mutations-database.test.ts",
       "tests/acceptance/organization-document-collaboration.test.ts",

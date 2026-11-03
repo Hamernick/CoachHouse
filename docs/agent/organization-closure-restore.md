@@ -446,6 +446,20 @@ Historical/pre-installation histories, missing later grants and missing source
 records require reconciliation across all eight domains. Direct public Storage
 URLs and already delivered bytes remain C3 retention/retirement obligations.
 
+### Domains3–5 local reconciliation rehearsal
+
+The November2 synthetic rehearsal used a current authority source changed after a
+pinned backup, then reconciled exact scoped rows in a separate offline target.
+Eight publication/calendar/admission retirements preserved independent current
+consent, genuinely later same-identity consent, other organizations, shared Auth,
+owner bindings, responses, AI and files. Missing current disposition stayed
+unresolved. All five disposable databases ended offline with zero sessions and
+prepared transactions. This is local manual-mechanics proof, not actual hosted or
+historical authority qualification. Do not reuse synthetic IDs or decisions on real
+data. The exact private operator steps and evidence are in
+`.tmp/ch-c1-reconciliation-20261103/README.md`; receipt
+`/tmp/ch-c1-local-reconciliation-proof.json` is pinned in the authoritative plan.
+
 ## C2 hosted qualification inputs and exact failure drill
 
 Local SQLite evidence remains reusable. It does not establish source-and-host
@@ -520,3 +534,31 @@ The resulting receipt explicitly lists the six frozen non-exact reconciliation
 domains above. Keep the database offline and verify zero sessions after operator
 exit. This is local restoration mechanics, not hosted admission, complete current
 authority reconciliation, personal-data erasure or permission to reopen.
+
+
+## Private expired-closure source cleanup (C3)
+
+Migrations300000 and310000 add source-specific operator commands only:
+`purge_expired_organization_form_responses` and
+`purge_expired_organization_research_drafts`. Each takes the exact organization,
+closure request, expected revision and operation UUID. Actual session/current
+superuser identity, READ COMMITTED/origin triggers, organization-first locking and
+the unchanged720-hour deadline are mandatory. API roles have no EXECUTE or receipt
+table privileges. Hosted equivalents of these operator privileges remain
+unqualified; these are not production execution instructions.
+
+Each command handles at most50 source rows and commits an immutable exact retry
+receipt. Retry an uncertain result with the identical identities; a new operation
+advances the next batch. Failure rolls back the batch. Counts/remaining flags refer
+only to that source, never whole-organization erasure. Native response cleanup
+requires intact capture/lineage/capacity and preserves the existing answer-free
+deletions. Replay accepts those deletions during closing only when their actual
+capture time is at/after the captured fixed deadline. Earlier events still fail.
+Research cleanup retains AI runs, effects and all accounting; restored drafts stay
+inaccessible under pinned closure replay/quarantine until private repurge.
+
+The current checkpoint pins combined migration and concurrency/replay evidence.
+Do not infer independent durability, historical/current authority, hosted
+retention, physical Storage deletion, early deletion or user-facing activation.
+Other controlled stores remain required C3 work. Keep closure controls and the
+transition RPC unavailable until their full shutdown/recovery boundaries qualify.
