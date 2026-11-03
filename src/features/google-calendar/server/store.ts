@@ -64,23 +64,15 @@ export async function requireActiveLease(row: Connection) {
 }
 export async function canExportOrganization(userId: string, orgId: string) {
   const admin = createSupabaseAdminClient()
-  if (userId === orgId)
-    return Boolean(
-      checked(
-        await admin
-          .from("organizations")
-          .select("user_id")
-          .eq("user_id", orgId)
-          .maybeSingle()
-      )
-    )
-  const member = checked(
-    await admin
-      .from("organization_memberships")
-      .select("role")
-      .eq("org_id", orgId)
-      .eq("member_id", userId)
-      .maybeSingle()
+  const admit = admin.rpc.bind(admin) as unknown as (
+    name: "authorize_organization_calendar_export",
+    args: { p_actor_id: string; p_org_id: string },
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+  const { data, error } = await admit(
+    "authorize_organization_calendar_export",
+    { p_actor_id: userId, p_org_id: orgId },
   )
-  return Boolean(member && ["admin", "staff", "board"].includes(member.role))
+  // A missing migration, concurrent shutdown or revoked membership cannot
+  // admit a provider request through the service client's RLS bypass.
+  return !error && data === true
 }

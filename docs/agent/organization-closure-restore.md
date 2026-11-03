@@ -608,3 +608,36 @@ history while quarantined, then rerun the same exact expired-closure source stag
 Local full-schema proof verifies replay, rollback, concurrency and preserved other
 organizations. This stage does not retire core documents, projects, AI parent
 content or physical objects and does not signal whole-organization completion.
+
+
+### Private core, operating and project content retirement
+
+Stages350000/360000/370000 retire known core/history/session content, operating
+payloads and project/task/program content plus direct copies. Each requires the
+actual private operator, exact current expired closure and immutable operation
+identity. Pending effects, unknown ownership and cross-organization references
+remain explicit refusals. Preserve financial/signing facts and replay identities;
+physical bindings stay with their separate byte owner. Run core cleanup before
+retrying library files blocked solely by those retired references. Actual
+source-stage receipts and scoped proof live in the authoritative checkpoint.
+
+Calendar390000 separately fences export admission and canonical selection, then
+withdraws only matching organization export pointers/leases on closure. Cancel
+never restores them. Personal credentials/caches and destination effect evidence
+remain; an already admitted provider request is not proven canceled. Reconcile
+actual provider effects before retiring destination evidence or qualifying
+shutdown. Only the export-admission RPC is granted to service_role, never the
+closure transition. Historical no-privileges test dumps do not prove deployed
+ACLs; use an ACL-correct predecessor and verify the canonical transition revoke.
+
+
+### Private settled AI content retirement
+
+Run310000 recovery-draft cleanup before380000 parent-content cleanup. Only
+terminal, measured, settled runs qualify; the real accounting-policy row must
+exist and lock successfully. Pending provider/refill effects and unqualified
+manual evidence block. Raw run/result/application content retires while true
+numeric usage/pricing, ledger/settlement and effect identities remain. Exact late
+retries compare retained hashes and return no deleted content; permanent fences
+prevent resurrection. This stage does not settle unknown costs, authorize paid
+runs or qualify provider-side retention.
