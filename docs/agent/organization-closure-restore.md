@@ -562,3 +562,49 @@ Do not infer independent durability, historical/current authority, hosted
 retention, physical Storage deletion, early deletion or user-facing activation.
 Other controlled stores remain required C3 work. Keep closure controls and the
 transition RPC unavailable until their full shutdown/recovery boundaries qualify.
+
+
+### Private library-file and copied-byte cleanup
+
+Migration320000 adds exact expired-closure document reserve/finish entrypoints over
+the existing file-purge owner. Active and trashed otherwise-qualified library
+files use the fixed closure deadline; no second trash-age delay is imposed.
+Canonical paths are rederived before promoting any old reservation. Current,
+historical, staged and original bytes must all be absent before finalization;
+partial/ambiguous effects retain history and the same operation for retry.
+Ordinary APIs retain their authority/trash checks. Unknown legacy/core/shared
+ownership or public buckets remain blocked.
+
+The source-specific [local operator](organization-document-closure-cleanup.py)
+refuses original/remote endpoints, uses private environment credentials, disables
+HTTP proxies/redirects and pins actual libpq loopback routing. Actual local
+postgres nonsuperuser refusal and supabase_admin success are verified. Managed
+hosting may not expose that identity; no hosted worker authority is established.
+The nil-UUID actor sentinel is explicitly operator cleanup, with actual database
+session identity retained privately; it is not an owner/user action.
+
+Reviewed image/document copies are separately owned in workspace-page-assets,
+with no source-file FK. Original deletion preserves their grants/bytes. Existing
+closure withdraws closing-organization grants and captures suppression; the
+existing orphan worker then removes eligible old ungranted copies. Actual
+Next/Storage/backend-byte proof passes locally without a new330000 migration.
+Hosted scheduling, backup/PITR/public-object/log retention and full organization
+cleanup remain separate. Current exact receipts and installed-clone/owned-stack
+scope are in the authoritative checkpoint; do not infer full erasure.
+
+
+### Private workspace/form/page content retirement
+
+Migration340000 requires the native-response stage first and refuses live
+publication/grants. It removes complete root/named workspace boards and owned
+data tables/views, empties page snapshots/form-version content and scrubs
+content-bearing data-view receipts. Minimal form/page/version IDs, existing UUID
+particle membership, hash-only operations and response suppression/tombstones
+remain for replay. Private immutable transaction-bound receipts admit only exact
+projections; ordinary API execution and forged markers remain denied.
+
+After restoring a preclosure backup, apply the independently pinned suppression
+history while quarantined, then rerun the same exact expired-closure source stage.
+Local full-schema proof verifies replay, rollback, concurrency and preserved other
+organizations. This stage does not retire core documents, projects, AI parent
+content or physical objects and does not signal whole-organization completion.

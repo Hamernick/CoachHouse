@@ -320,6 +320,7 @@
       "tests/acceptance/organization-closure-response-cleanup-database.test.ts",
       "tests/acceptance/organization-closure-restore-database.test.ts",
       "tests/acceptance/organization-closure-storage-mutations-database.test.ts",
+      "tests/acceptance/organization-closure-workspace-content-cleanup-database.test.ts",
       "tests/acceptance/organization-document-collaboration.test.ts",
       "tests/acceptance/organization-form-business-conflicts-database.test.ts",
       "tests/acceptance/organization-form-intake-database.test.ts",
