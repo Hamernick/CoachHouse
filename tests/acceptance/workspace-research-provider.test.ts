@@ -497,6 +497,7 @@ describe("one bounded plan repair",()=>{
     const value=await run({request:{...request,target:selected},context:current})
     expect(value.result?.removeReferences).toEqual([])
     expect(mocks.create.mock.calls[1][0].input.at(-1)).toEqual({role:"developer",content:researchRepairInstruction("plan")})
+    expect(mocks.create.mock.calls[1][0].input.at(-1).content).toContain("Objectives are context/evidence only, never referenceId values or plan members/dependencies")
     expect(current.graph).toEqual(before)
   })
 
@@ -615,7 +616,41 @@ describe("new objective generation", () => {
     expect(value.result?.items).toHaveLength(1)
     expect(current.graph).toEqual(before)
     expect(mocks.create).toHaveBeenCalledTimes(1)
-    expect(JSON.parse(mocks.create.mock.calls[0][0].input[0].content).objective.mode).toBe("new_objective")
+    const submitted=mocks.create.mock.calls[0][0],projection=JSON.parse(submitted.input[0].content).objective
+    expect(projection.mode).toBe("new_objective")
+    expect(projection.existingObjectives).toContainEqual(expect.objectContaining({id:`particle:${ID(1)}`}))
+    expect(projection.note).toContain("never referenceId values or plan members/dependencies")
+    expect(submitted.instructions).toContain("Never put an objective ID in referenceId")
+    expect(submitted.instructions).toContain("Cite objective evidence returned by authorized tools through evidenceIds")
+  })
+  it("rejects an existing objective as a new plan member without removing it or changing accepted work",async()=>{
+    const target={mode:"new_objective" as const,organizationId:WORKSPACE,canvasId:null,revision:0}
+    const current={...context,target,objective:undefined,graph:graph()},before=structuredClone(current.graph)
+    const id=`particle:${ID(1)}`
+    const evidence=knowledgeDisclosure({id,kind:"particle",title:"Existing objective",href:"/workspace",revision:"0",content:"Existing objective context",contentAvailable:true},"search",480).evidence
+    mocks.sources.set(id,{id,title:"Existing objective",href:"/workspace",revision:"0",checkedAt:evidence.checkedAt,kind:"workspace",evidence})
+    const generated={...draft,items:[{...draft.items[0],kind:"reference",referenceId:id,evidenceIds:[id]}]}
+    mocks.create.mockResolvedValueOnce(stream("objective-member",[{...message,phase:"final_answer",content:[{type:"output_text",text:JSON.stringify(generated),annotations:[]}]}]))
+    const log=vi.spyOn(logger,"warn").mockImplementation(()=>undefined)
+    try {
+      const value=await runResearchProvider({request:{...request,target,skill:"planning"},context:current,config:{...config,maxRounds:1},onResponse:vi.fn(),isCanceled:async()=>false})
+      expect(value.result).toBeNull();expect(value.usage.input).toBe(100);expect(mocks.create).toHaveBeenCalledTimes(1)
+      expect(current.graph).toEqual(before)
+      expect(log).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"objective-member",round:1,category:"validation",reason:"plan"})
+    } finally {log.mockRestore()}
+  })
+  it("accepts authorized objective evidence on a supported note without making the objective a member",async()=>{
+    const target={mode:"new_objective" as const,organizationId:WORKSPACE,canvasId:null,revision:0}
+    const current={...context,target,objective:undefined,graph:graph()},before=structuredClone(current.graph)
+    const id=`particle:${ID(1)}`
+    const evidence=knowledgeDisclosure({id,kind:"particle",title:"Existing objective",href:"/workspace",revision:"0",content:"Existing objective context",contentAvailable:true},"search",480).evidence
+    const source={id,title:"Existing objective",href:"/workspace",revision:"0",checkedAt:evidence.checkedAt,kind:"workspace",evidence}
+    mocks.sources.set(id,source)
+    const generated={...draft,items:[{...draft.items[0],kind:"note",referenceId:null,evidenceIds:[id]}]}
+    mocks.create.mockResolvedValueOnce(stream("objective-evidence",[{...message,phase:"final_answer",content:[{type:"output_text",text:JSON.stringify(generated),annotations:[]}]}]))
+    const value=await runResearchProvider({request:{...request,target,skill:"planning"},context:current,config:{...config,maxRounds:1},onResponse:vi.fn(),isCanceled:async()=>false})
+    expect(value.result?.items).toEqual(generated.items);expect(value.result?.sources).toEqual([source])
+    expect(current.graph).toEqual(before);expect(mocks.create).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -678,6 +713,60 @@ describe("remaining reservation before every model dispatch", () => {
   })
 })
 
+describe("private answer message phases",()=>{
+ const candidate={...draft,items:[{...draft.items[0],evidenceIds:[]}]}
+ const answer={...message,content:[{type:"output_text",text:JSON.stringify(candidate),annotations:[]}]}
+ const run=(onPartial?:()=>void)=>runResearchProvider({request,config:{...config,maxRounds:1},context,onResponse:vi.fn(),isCanceled:async()=>false,onPartial})
+ it("validates only the final answer and previews it after commentary",async()=>{
+  const commentary={...message,id:"commentary",phase:"commentary",content:[{type:"output_text",text:"I will compare these options.",annotations:[]}]}
+  const final={...answer,id:"final",phase:"final_answer"},onPartial=vi.fn()
+  mocks.create.mockResolvedValueOnce((async function*(){
+   yield {type:"response.created",response:{id:"phased"}}
+   yield {type:"response.output_item.added",output_index:1,sequence_number:1,item:{...commentary,status:"in_progress",content:[]}}
+   yield {type:"response.output_text.delta",item_id:"commentary",output_index:1,content_index:0,sequence_number:2,delta:"I will compare these options."}
+   expect(onPartial).not.toHaveBeenCalled()
+   yield {type:"response.output_item.added",output_index:10,sequence_number:3,item:{...final,status:"in_progress",content:[]}}
+   yield {type:"response.output_text.delta",item_id:"final",output_index:10,content_index:0,sequence_number:4,delta:JSON.stringify(candidate)}
+   expect(onPartial).toHaveBeenCalledExactlyOnceWith({key:candidate.items[0].key,title:candidate.items[0].title,kind:candidate.items[0].kind,description:candidate.items[0].description})
+   yield {type:"response.completed",response:{id:"phased",status:"completed",output:[commentary,final],usage:{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:10}}}}
+  })())
+  const result=await run(onPartial)
+  expect(result.result?.title).toBe(candidate.title);expect(result.usage.input).toBe(100)
+  expect(onPartial.mock.calls.at(-1)).toEqual([null]);expect(mocks.create).toHaveBeenCalledTimes(1)
+ })
+ it.each([undefined,null])("supports a single legacy message with phase %s",async phase=>{
+  mocks.create.mockResolvedValueOnce(stream("legacy",[{...answer,phase}]))
+  expect((await run()).result?.title).toBe(candidate.title)
+ })
+ it.each([
+  {name:"commentary only",messages:[{...answer,phase:"commentary"}]},
+  {name:"unknown phase",messages:[{...answer,phase:"unrecognized"}]},
+  {name:"multiple final answers",messages:[{...answer,phase:"final_answer"},{...answer,id:"second",phase:"final_answer"}]},
+  {name:"mixed legacy and final answers",messages:[answer,{...answer,id:"second",phase:"final_answer"}]},
+  {name:"multiple legacy answers",messages:[answer,{...answer,id:"second"}]},
+  {name:"incomplete final message",messages:[{...answer,phase:"final_answer",status:"incomplete"}]},
+ ])("rejects $name without a retry or accepted result",async({messages})=>{
+  mocks.create.mockResolvedValueOnce(stream("invalid-phase",messages))
+  const result=await run()
+  expect(result.result).toBeNull();expect(result.usage.input).toBe(100);expect(mocks.create).toHaveBeenCalledTimes(1)
+ })
+ it("preserves refusal handling even when another message has a valid final answer",async()=>{
+  mocks.create.mockResolvedValueOnce(stream("refused-phase",[{...message,phase:"commentary",content:[{type:"refusal",refusal:"Cannot assist"}]},{...answer,phase:"final_answer"}]))
+  expect((await run()).result).toBeNull();expect(mocks.create).toHaveBeenCalledTimes(1)
+ })
+ it.each(["orphan","commentary","unknown"])("never previews %s deltas",async phase=>{
+  const onPartial=vi.fn()
+  mocks.create.mockResolvedValueOnce((async function*(){
+   yield {type:"response.created",response:{id:"no-preview"}}
+   if(phase!=="orphan")yield {type:"response.output_item.added",output_index:0,sequence_number:1,item:{...answer,phase,status:"in_progress",content:[]}}
+   yield {type:"response.output_text.delta",item_id:"msg",output_index:0,content_index:0,sequence_number:2,delta:JSON.stringify(candidate)}
+   expect(onPartial).not.toHaveBeenCalled()
+   yield {type:"response.completed",response:{id:"no-preview",status:"completed",output:[{...answer,phase:"final_answer"}],usage:{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:10}}}}
+  })())
+  await run(onPartial);expect(onPartial).not.toHaveBeenCalled()
+ })
+})
+
 describe("actual provider item deltas",()=>{
  const item={...draft.items[0],evidenceIds:[],dependsOn:["later"]}
  const value={...draft,items:[item,{...item,key:"later",dependsOn:[]}]}
@@ -687,6 +776,7 @@ describe("actual provider item deltas",()=>{
   const onPartial=vi.fn(),isCanceled=vi.fn().mockResolvedValue(false)
   mocks.create.mockResolvedValueOnce((async function*(){
    yield {type:"response.created",response:{id:"partial"}}
+   yield {type:"response.output_item.added",output_index:0,sequence_number:0,item:{...message,status:"in_progress",content:[]}}
    if(outcome==="changed source")mocks.revalidate.mockResolvedValue(false)
    if(outcome==="canceled")isCanceled.mockResolvedValue(true)
    const text=outcome==="unavailable evidence"?prefix.replace('"evidenceIds":[]','"evidenceIds":["unknown"]'):prefix
@@ -716,6 +806,7 @@ describe("partial disclosure failure isolation",()=>{
   const value={...draft,items:[{...draft.items[0],evidenceIds:[]}]}
   mocks.create.mockResolvedValueOnce((async function*(){
    yield {type:"response.created",response:{id:"display-failed"}}
+   yield {type:"response.output_item.added",output_index:0,sequence_number:0,item:{...message,status:"in_progress",content:[]}}
    yield {type:"response.output_text.delta",item_id:"msg",output_index:0,content_index:0,sequence_number:1,delta:JSON.stringify(value)}
    yield {type:"response.completed",response:{id:"display-failed",status:"completed",output:[{...message,content:[{type:"output_text",text:JSON.stringify(value),annotations:[]}]}],usage:{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:10}}}}
   })())
@@ -728,6 +819,7 @@ describe("partial disclosure failure isolation",()=>{
   const value={...draft,items:[first,second]},onPartial=vi.fn()
   mocks.create.mockResolvedValueOnce((async function*(){
    yield {type:"response.created",response:{id:"revoked"}}
+   yield {type:"response.output_item.added",output_index:0,sequence_number:0,item:{...message,status:"in_progress",content:[]}}
    yield {type:"response.output_text.delta",item_id:"msg",output_index:0,content_index:0,sequence_number:1,delta:'{"items":['+JSON.stringify(first)+','}
    expect(onPartial).toHaveBeenCalledTimes(1)
    mocks.revalidate.mockResolvedValue(false)

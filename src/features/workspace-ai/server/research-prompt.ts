@@ -15,7 +15,7 @@ export function researchContextProjection(context: ResearchContext, target = con
     existingObjectives: context.graph.particles.filter(item => item.type === "objective").slice(0, 8)
       .map(item => ({ id: `particle:${item.id}`, title: item.title, revision: item.revision })),
     objectiveCoverage: coverage(context.graph.particles.filter(item => item.type === "objective").length, 8),
-    note: "Propose a new objective and its first plan. Nothing has been created. Use workspace tools for relevant details; do not duplicate existing work.",
+    note: "Propose a new objective and its first plan. Nothing has been created. existingObjectives are context only, never referenceId values or plan members/dependencies. Use workspace tools for relevant objective evidence and reusable non-objective members; cite returned objective evidence only through evidenceIds on supported items. Do not duplicate existing work.",
   }
   if (!context.objective) throw new Error("Objective unavailable.")
   const plans = context.objective.data.planning?.plans ?? []

@@ -22,6 +22,7 @@ import { researchProviderRequest, researchRequestFits } from "./research-provide
 import { createResearchItemProgress } from "./research-item-progress"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
 import { researchFormatDiagnostic } from "./research-format-diagnostics"
+import { createResearchAnswerPhaseGate, researchAnswerText } from "./research-answer-text"
 
 export async function runResearchProvider(input: {
   request: ResearchRequest; context: ResearchContext; config: ReturnType<typeof researchConfig>;
@@ -90,12 +91,15 @@ export async function runResearchProvider(input: {
     input.onPhase?.(repairUsed ? "repairing" : "planning")
     const stream=await client.responses.create(params,{signal:deadline,headers:{"X-Client-Request-Id":`${input.request.id}:${round}`}})
     let terminal:OpenAI.Responses.Response|null=null
+    const answerPhase = createResearchAnswerPhaseGate()
     const partial=!isPublic && input.onPartial ? createResearchItemProgress({publish:input.onPartial,revalidate,isCanceled,evidence,allowedDataView:source=>source.kind==="projects"||Boolean(input.context.dataViewSources?.some(value=>value.viewId===source.sourceViewId&&value.source.kind===source.kind&&value.canCreate))}) : null
     try {
     for await(const event of stream) {
       if(event.type==="response.created") {responseId=event.response.id;await input.onResponse(responseId)}
       deadline.throwIfAborted()
-      if(event.type==="response.output_text.delta") await partial?.push(event)
+      if(event.type==="response.output_item.added") answerPhase.observe(event)
+      if(answerPhase.invalid) partial?.clear()
+      if(event.type==="response.output_text.delta" && answerPhase.allows(event)) await partial?.push(event)
       if(event.type==="response.completed"||event.type==="response.incomplete"||event.type==="response.failed") terminal=event.response
     }
     } finally { partial?.clear() }
@@ -149,7 +153,7 @@ export async function runResearchProvider(input: {
       let repairIssue:ResearchRepairIssue|null="format"
       let format:"json"|"schema"="json"
       try {
-        const text=terminal.output.flatMap(item=>item.type==="message"?item.content.flatMap(part=>part.type==="output_text"?[part.text]:[]):[]).join("")
+        const text=researchAnswerText(terminal.output)
         const parsed=JSON.parse(text)
         format="schema"
         const draft=researchProviderOutputSchema().parse(parsed)

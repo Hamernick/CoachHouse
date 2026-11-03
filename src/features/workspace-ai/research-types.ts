@@ -1,5 +1,6 @@
 import { researchPublicBriefSchema } from "./lib/research-public-brief"
 import { z } from "zod"
+import { knowledgeEvidenceSchema, researchSourceSchema } from "@/lib/workspace/research-source-schema"
 import { knowledgePersonFieldSchema, knowledgePersonFieldsSchema, type KnowledgePersonData, type KnowledgePersonField } from "./lib/knowledge-person-fields"
 import type { KnowledgeAvailability } from "./lib/knowledge-availability"
 import { formDefinitionSchema } from "@/features/organization-forms"
@@ -23,18 +24,8 @@ export const knowledgeSearchSchema = z.strictObject({ query: z.string().trim().m
 export const knowledgeReadSchema = z.strictObject({ ids: z.array(z.string().min(1).max(200)).min(1).max(4), personFields: knowledgePersonFieldsSchema.nullable().optional() })
 // The model-facing strict tool declares every property; older callers may omit it safely.
 export const knowledgeProviderReadSchema = knowledgeReadSchema.extend({ personFields: knowledgePersonFieldsSchema.nullable() })
-export const knowledgeEvidenceSchema = z.strictObject({
-  version: z.literal(1),
-  coverage: z.enum(["metadata_only", "excerpt", "complete", "unavailable"]),
-  scope: z.enum(["record", "text", "document_body", "selected_plan"]),
-  checkedAt: z.iso.datetime(),
-  readAt: z.iso.datetime().nullable(),
-  // JavaScript string length: UTF-16 code units, not bytes or tokens.
-  characters: z.number().int().nonnegative().max(20000),
-  contactFields: knowledgePersonFieldsSchema.optional(),
-})
+export { knowledgeEvidenceSchema, researchSourceSchema } from "@/lib/workspace/research-source-schema"
 export type KnowledgeEvidence = z.infer<typeof knowledgeEvidenceSchema>
-export const researchSourceSchema = z.strictObject({ id: z.string().max(200), title: z.string().max(240), href: z.string().max(2000).refine(value => /^\/(?!\/)/.test(value) || /^https?:\/\//.test(value), "Invalid source link"), revision: z.string().nullable(), checkedAt: z.iso.datetime(), kind: z.enum(["workspace", "web"]), evidence: knowledgeEvidenceSchema.optional(), file: z.strictObject({size:z.number().int().positive().max(15728640),format:z.enum(["pdf","md","docx","doc","csv","txt","image"])}).optional() })
 const researchKey = z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/)
 const removeReferencesSchema = z.array(z.string().regex(/^particle:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)).max(40)
 const researchDecisionsSchema = z.array(z.strictObject({

@@ -556,7 +556,7 @@ describe("quoted model and durable research receipt",()=>{
   expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
   expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
  })
- it.each(["research-v16-linked-sheet-views","research-v17-concrete-private-drafts"])("requires a fresh quote for prior contract %s even when model, bounds and charge are unchanged",async previousContract=>{
+ it.each(["research-v16-linked-sheet-views","research-v17-concrete-private-drafts","research-v18-bounded-private-requests"])("requires a fresh quote for prior contract %s even when model, bounds and charge are unchanged",async previousContract=>{
   const {researchConfig}=await vi.importActual<typeof import("@/features/workspace-ai/server/research-config")>("@/features/workspace-ai/server/research-config")
   vi.stubEnv("WORKSPACE_AI_ENABLED","true");vi.stubEnv("OPENAI_API_KEY","fixture-only")
   vi.stubEnv("WORKSPACE_AI_FORM_OUTPUTS","0");vi.stubEnv("WORKSPACE_AI_DATA_VIEW_OUTPUTS","0")
