@@ -292,6 +292,7 @@
       "tests/acceptance/organization-closure-access-activity-database.test.ts",
       "tests/acceptance/organization-closure-ai-billing-database.test.ts",
       "tests/acceptance/organization-closure-ai-database.test.ts",
+      "tests/acceptance/organization-closure-asset-cleanup-database.test.ts",
       "tests/acceptance/organization-closure-brand-kits-database.test.ts",
       "tests/acceptance/organization-closure-calendar-database.test.ts",
       "tests/acceptance/organization-closure-calendar-reads-database.test.ts",

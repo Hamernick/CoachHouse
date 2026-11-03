@@ -48,9 +48,14 @@ def local_endpoint(value, port, database=False):
 def operator(database, function, args):
     # UUID/integer arguments are validated before SQL construction. Database
     # credentials stay in the inherited private environment, never argv/output.
-    values = ",".join([f"'{args.organization}'::uuid", f"'{args.file}'::uuid",
+    source_id = getattr(args, "storage_object", None) or args.file
+    values = ",".join([f"'{args.organization}'::uuid", f"'{source_id}'::uuid",
                        f"'{args.closure_request}'::uuid", str(args.closure_revision),
                        f"'{args.operation}'::uuid"])
+    if getattr(args, "storage_object", None):
+        # The origin is the already-validated fixed owned local endpoint, not a
+        # caller-supplied SQL fragment or authority inferred from a public URL.
+        values += ", 'http://127.0.0.1:55321'::text"
     # libpq PGHOSTADDR/PGSERVICE can otherwise override a validated URL host.
     # Pin the resolved address and carry only the explicitly supplied password.
     process_env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
@@ -100,21 +105,30 @@ def run(args):
     key = os.environ.get("COACH_HOUSE_CLOSURE_STORAGE_SERVICE_KEY")
     if not key:
         raise CleanupError("Private owned-stack Storage key is required in the environment")
-    receipt = operator(database, "reserve_expired_closure_document_purge", args)
-    if (not isinstance(receipt, dict) or set(receipt) != {"fileId", "paths", "complete"}
-            or receipt["fileId"] != args.file or not isinstance(receipt["complete"], bool)
+    object_mode = bool(getattr(args, "storage_object", None))
+    source_id = args.storage_object if object_mode else args.file
+    identity_key = "objectId" if object_mode else "fileId"
+    receipt_keys = {identity_key, "paths", "complete"} | ({"bucket"} if object_mode else set())
+    owner = "asset" if object_mode else "document"
+    scope = "organization_storage_asset" if object_mode else "organization_document_file"
+    receipt = operator(database, f"reserve_expired_closure_{owner}_purge", args)
+    if (not isinstance(receipt, dict) or set(receipt) != receipt_keys
+            or receipt[identity_key] != source_id or not isinstance(receipt["complete"], bool)
             or not isinstance(receipt["paths"], list) or not 1 <= len(receipt["paths"]) <= 151
-            or any(not isinstance(path, str) or not path.startswith(args.organization + "/library/")
+            or any(not isinstance(path, str) or not path.startswith(args.organization + ("/" if object_mode else "/library/"))
                    or ".." in path.split("/") for path in receipt["paths"])
             or len(set(receipt["paths"])) != len(receipt["paths"])):
         raise CleanupError("Unrecognized frozen path receipt; no Storage deletion attempted")
+    bucket = receipt["bucket"] if object_mode else "org-documents"
+    if bucket not in {"org-documents", "org-media", "program-media", "roadmap-media"} or (object_mode and len(receipt["paths"]) != 1):
+        raise CleanupError("Unrecognized exact asset bucket; no Storage deletion attempted")
     if receipt["complete"]:
-        return {"scope": "organization_document_file", "complete": True,
+        return {"scope": scope, "complete": True,
                 "replayed": True, "storageRequested": False, "releaseQualified": False}
     # Disable ambient proxies and redirects: even a bad local response must not
     # forward the service credential to an unapproved remote endpoint.
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-    status, _ = storage_request(opener, storage, key, "DELETE", "/storage/v1/object/org-documents",
+    status, _ = storage_request(opener, storage, key, "DELETE", "/storage/v1/object/" + bucket,
                                 {"prefixes": receipt["paths"]})
     if status != 200:
         raise CleanupError("Storage removal was not confirmed; frozen reservation retained")
@@ -123,7 +137,7 @@ def run(args):
     # HTTP absence is access evidence, not a claim about retained provider backups.
     for path in receipt["paths"]:
         status, payload = storage_request(opener, storage, key, "GET",
-                                           "/storage/v1/object/authenticated/org-documents/" + urllib.parse.quote(path, safe="/"))
+                                           "/storage/v1/object/authenticated/" + bucket + "/" + urllib.parse.quote(path, safe="/"))
         if status == 404:
             continue
         if status == 400:
@@ -134,9 +148,9 @@ def run(args):
             if str(error.get("statusCode")) == "404" and error.get("error") in ("not_found", "Not found"):
                 continue
         raise CleanupError("Storage absence was not confirmed; frozen reservation retained")
-    if operator(database, "finish_expired_closure_document_purge", args) is not True:
+    if operator(database, f"finish_expired_closure_{owner}_purge", args) is not True:
         raise CleanupError("Canonical cleanup completion was not confirmed")
-    return {"scope": "organization_document_file", "complete": True, "replayed": False,
+    return {"scope": scope, "complete": True, "replayed": False,
             "storageRequested": True, "storageApiAbsenceConfirmed": True,
             "pathCount": len(receipt["paths"]), "releaseQualified": False}
 
@@ -146,7 +160,10 @@ def main():
     parser.add_argument("--database-url", required=True)
     parser.add_argument("--storage-url", required=True)
     parser.add_argument("--organization", type=identifier, required=True)
-    parser.add_argument("--file", type=identifier, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--file", type=identifier)
+    source.add_argument("--storage-object", type=identifier,
+                        help="Exact400 modern media/tracked-document/policy object mode")
     parser.add_argument("--closure-request", type=identifier, required=True)
     parser.add_argument("--closure-revision", type=int, required=True)
     parser.add_argument("--operation", type=identifier, required=True)

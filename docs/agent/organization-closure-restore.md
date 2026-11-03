@@ -641,3 +641,26 @@ numeric usage/pricing, ledger/settlement and effect identities remain. Exact lat
 retries compare retained hashes and return no deleted content; permanent fences
 prevent resurrection. This stage does not settle unknown costs, authorize paid
 runs or qualify provider-side retention.
+
+
+### Modern object, Drive-reference and profile cleanup
+
+400000 extends the existing local operator with exact `--storage-object` mode for
+proven modern media/tracked-document/policy objects and reuses320000 for qualified
+core-library paths. Preserve actual financial/shared/foreign-domain bindings.
+Frozen object identity and same-path writer locks precede Storage deletion;
+canonical binding/quota removal follows independently confirmed absence. Existing
+file mode remains supported. Current native/Storage/backend/public-URL proof and
+exact owned-stack installation chain are pinned in the authoritative checkpoint.
+
+410000 retires organization Drive references/intents and direct source-tagged
+activity payloads, never user-global credentials or provider files. Intent
+creation/consumption is independently closure-fenced; already consumed provider
+exchanges require reconciliation.420000 removes known profile metadata/derived
+coordinates, preserving unresolved physical/malformed/unknown values. Unknown-key
+diagnostics are bounded digests, not copies of user-controlled key text.
+
+Ordinary project attachments and historical file/document activity copies remain
+with450. Private lifecycle reporting430 and captured early-deletion eligibility440
+are separate pending integration; existing source receipts do not attest whole
+organization completion or authorize owner controls.
