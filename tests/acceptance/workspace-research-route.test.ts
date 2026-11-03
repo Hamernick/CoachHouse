@@ -556,6 +556,19 @@ describe("quoted model and durable research receipt",()=>{
   expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
   expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
  })
+ it("requires a fresh quote for concrete drafts even when model, bounds and charge are unchanged",async()=>{
+  const {researchConfig}=await vi.importActual<typeof import("@/features/workspace-ai/server/research-config")>("@/features/workspace-ai/server/research-config")
+  vi.stubEnv("WORKSPACE_AI_ENABLED","true");vi.stubEnv("OPENAI_API_KEY","fixture-only")
+  vi.stubEnv("WORKSPACE_AI_FORM_OUTPUTS","0");vi.stubEnv("WORKSPACE_AI_DATA_VIEW_OUTPUTS","0")
+  const tariff={version:"operator-unchanged",model:"fixture-model",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,microdollarsPerCredit:2000}
+  vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify(tariff))
+  const current=researchConfig()
+  const previous=`private-${createHash("sha256").update(JSON.stringify({tariff,contract:"research-v16-linked-sheet-views",forms:false,views:false,bounds:{maxRounds:3,maxOutputTokens:3000,maxInputBytes:20000}})).digest("hex").slice(0,40)}`
+  mocks.config.mockReturnValue(current)
+  const response=await handleWorkspaceResearch(request({...input,tariffVersion:previous,maximumCredits:current.maxCredits}))
+  expect(await response.json()).toMatchObject({failure:{code:"pricing_changed"},reserved:false})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
  it("reads the saved model and approved maximum with the settled charge, never today's quote",async()=>{
   mocks.read.mockResolvedValue({id:ID(2),status:"failed",target:{...target,kind:"particle_research"},proposal:null,charged_credits:0,cancel_requested_at:null,tariff:{version:"saved-version",model:"saved-model",privateExtra:"must-not-leak"},max_credits:12})
   const receipt=await readResearchRun(ID(2),target)

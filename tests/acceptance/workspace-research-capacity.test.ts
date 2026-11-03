@@ -57,7 +57,7 @@ describe("offline generation capacity qualification", () => {
     const fits = bytes(params) <= config.maxInputBytes
     report({ specimen: specimen.name, requestBytes: bytes(params), inputBytes: bytes(input),
       envelopeBytes: bytes(params) - bytes(input), remainingBytes: config.maxInputBytes - bytes(params), admitted: fits })
-    expect(config.maxInputBytes).toBe(20000); expect(config.maxOutputTokens).toBe(1500)
+    expect(config.maxInputBytes).toBe(20000); expect(config.maxOutputTokens).toBe(3000)
     expect(fits).toBe(specimen.admitted)
     expect(researchRequestFits(params, config.maxInputBytes)).toBe(fits)
     if (fits) expect(() => assertInitialResearchRequestFits(context, request, config)).not.toThrow()

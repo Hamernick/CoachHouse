@@ -39,7 +39,7 @@ export function researchContextProjection(context: ResearchContext, target = con
   }
 }
 
-export function researchPrompt(context: ResearchContext, request: Pick<ResearchRequest, "prompt" | "skill" | "target">) {
+export function researchPrompt(context: ResearchContext, request: Pick<ResearchRequest, "prompt" | "skill" | "target" | "publicResearch">) {
   // Adapt the existing registry; registration alone never enables a new AI writer.
   const catalog = getParticleCapabilityCatalog()
   const plan = catalog.entries.find(entry => entry.id === "plan" && entry.action === "change_plan")
@@ -52,5 +52,8 @@ export function researchPrompt(context: ResearchContext, request: Pick<ResearchR
     ...(forms ? { additionalCapabilities: ["workspace_form"], formMode: "new_private_draft", maxFormQuestions: 50 } : {}),
     ...(dataViews ? { dataViewCapability: "project_data_view", dataViewSource: "projects", dataViewMode: "default_view_of_existing_source", availableSavedViews:(context.dataViewSources??[]).map(source=>({sourceViewId:source.viewId,kind:source.source.kind,title:source.sourceTitle,name:source.name})) } : {}),
     unavailable: [...(forms ? [] : ["form_creation"]), "data_table_creation", ...(dataViews ? [] : ["data_view_creation"]), "publishing", "sending", "calendar_booking"], maxItems: 12 }
-  return JSON.stringify({ outputs, task: request.prompt, objective: researchContextProjection(context, request.target), skill: researchSkills[request.skill] })
+  const skill = request.skill === "planning" && !request.publicResearch
+    ? `${researchSkills.planning} Write usable starter content directly in each proposed note's description, with brief headings, draft wording or a fill-in template tailored to the task. Do not stop at instructions such as "Draft a brief" or "Prepare a template". Fill only facts supplied by the user or authorized evidence; label missing details [unknown] and ask focused questions. For example: "Purpose: [draft purpose from the request]. Participants: [unknown]. Current obstacle: [unknown]. Next decision: [decision supported by the request]." Distinguish proposed wording from verified facts. Do not invent owners, dates, budgets, results or approvals. Keep it concise and useful; avoid repeating procedural caveats in every item.`
+    : researchSkills[request.skill]
+  return JSON.stringify({ outputs, task: request.prompt, objective: researchContextProjection(context, request.target), skill })
 }

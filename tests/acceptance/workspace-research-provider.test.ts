@@ -6,6 +6,9 @@ import { knowledgeDisclosure } from "@/features/workspace-ai/server/knowledge-ev
 import { researchConfig } from "@/features/workspace-ai/server/research-config"
 import { runResearchProvider } from "@/features/workspace-ai/server/research-provider"
 import { researchRepairInstruction } from "@/features/workspace-ai/lib/research-repair"
+import { researchPrompt } from "@/features/workspace-ai/server/research-prompt"
+import { researchSkills } from "@/features/workspace-ai/lib/research-skills"
+import { logger } from "@/lib/logger"
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
 import { ID,WORKSPACE,particle,graph } from "./fixtures/particle-fixtures"
 const target={organizationId:WORKSPACE,objectiveId:ID(1),revision:0}
@@ -95,6 +98,67 @@ describe("bounded research provider",()=>{
   })
 })
 
+describe("source-free provider failure diagnostics",()=>{
+  beforeEach(()=>{vi.spyOn(logger,"warn").mockImplementation(()=>undefined)})
+  afterEach(()=>vi.restoreAllMocks())
+  const run=(overrides:Partial<Parameters<typeof runResearchProvider>[0]>={})=>runResearchProvider({request,config:{...config,maxRounds:1},context,onResponse:vi.fn(),isCanceled:async()=>false,...overrides})
+  const output=(text:string)=>[{...message,content:[{type:"output_text",text,annotations:[]}]}]
+
+  it.each([
+    {status:"incomplete",detail:"max_output_tokens",reason:"max_output_tokens"},
+    {status:"incomplete",detail:"content_filter",reason:"content_filter"},
+    {status:"incomplete",detail:"PRIVATE provider detail",reason:"provider_incomplete"},
+    {status:"failed",detail:"PRIVATE provider detail",reason:"provider_failed"},
+  ])("classifies $status/$reason without logging provider content or retrying",async({status,detail,reason})=>{
+    mocks.create.mockResolvedValueOnce((async function*(){
+      yield {type:"response.created",response:{id:"r-private"}}
+      yield {type:`response.${status}`,response:{id:"r-private",status,incomplete_details:{reason:detail},error:{message:"PRIVATE provider error"},output:output("PRIVATE generated output"),usage:{input_tokens:100,output_tokens:1500,input_tokens_details:{cached_tokens:0}}}}
+    })())
+    const value=await run({request:{...request,prompt:"PRIVATE user prompt"}})
+    expect(value.result).toBeNull();expect(value.usage.output).toBe(1500)
+    expect(mocks.create).toHaveBeenCalledTimes(1)
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r-private",round:1,category:"provider",reason})
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("PRIVATE")
+  })
+
+  it("diagnoses final-round format failure without a fourth dispatch",async()=>{
+    const call={type:"function_call",id:"f1",call_id:"c1",name:"search_workspace",arguments:'{"query":"partners","kinds":["person"]}'}
+    mocks.create.mockResolvedValueOnce(stream("r1",[call])).mockResolvedValueOnce(stream("r2",[call])).mockResolvedValueOnce(stream("r3",output("PRIVATE malformed JSON")))
+    const value=await run({config})
+    expect(value.result).toBeNull();expect(value.usage.input).toBe(300)
+    expect(mocks.create).toHaveBeenCalledTimes(3)
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r3",round:3,category:"validation",reason:"format"})
+  })
+
+  it("distinguishes invalid relationships without logging rejected source IDs",async()=>{
+    mocks.create.mockResolvedValueOnce(stream("r1",output(JSON.stringify(draft))))
+    expect((await run()).result).toBeNull()
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r1",round:1,category:"validation",reason:"relationships"})
+  })
+
+  it("distinguishes an invalid plan without changing accepted work",async()=>{
+    const objective=particle(1,"objective"),member=particle(2),outside=particle(3)
+    if(objective.type!=="objective")throw Error()
+    objective.data.planning={plans:[{id:ID(50),revision:0,title:"Plan",particleIds:[member.id]}],proposals:[]}
+    const selected={...target,plan:{id:ID(50),revision:0}}
+    const current={...context,objective,graph:graph([objective,member,outside]),target:selected}
+    const before=structuredClone(current.graph)
+    mocks.sources.set(`particle:${outside.id}`,{id:`particle:${outside.id}`,title:"PRIVATE source title",href:"/workspace",revision:"0",kind:"workspace",checkedAt:"2026-10-10T02:00:00.000Z"})
+    mocks.create.mockResolvedValueOnce(stream("r1",output(JSON.stringify({...draft,items:[],removeReferences:[`particle:${outside.id}`]}))))
+    expect((await run({request:{...request,target:selected},context:current})).result).toBeNull()
+    expect(current.graph).toEqual(before)
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r1",round:1,category:"validation",reason:"plan"})
+  })
+
+  it("preserves measured settlement when diagnostics fail",async()=>{
+    vi.mocked(logger.warn).mockImplementation(()=>{throw new Error("PRIVATE logger failure")})
+    mocks.create.mockResolvedValueOnce(stream("r1",[],"incomplete"))
+    const value=await run()
+    expect(value.result).toBeNull();expect(value.usage).toEqual({input:100,cachedInput:10,output:20,webSearchCalls:0})
+    expect(mocks.create).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe("revision provider binding",()=>{
  it("binds exact existing decision outcomes and rejects model edits to them",async()=>{
   const objective=particle(1,"objective"),decision=particle(2,"decision")
@@ -151,11 +215,51 @@ it("quotes workspace-only research without requiring or charging unavailable sea
   vi.stubEnv("WORKSPACE_AI_RESEARCH_TOOL_PRICES",undefined)
   const quote=researchConfig()
   expect(quote.maxSearchCalls).toBe(0)
-  expect(quote.maxCost).toBe(1) // ceil((60,000 + 4,500) / 1,000,000)
+  expect(quote.maxCost).toBe(1) // ceil((60,000 + 9,000) / 1,000,000)
   expect(quote.maxCredits).toBe(1)
   expect(quote.tariff.version).toMatch(/^private-[a-f0-9]{40}$/)
   vi.stubEnv("WORKSPACE_AI_RESEARCH_TOOL_PRICES",'{"webSearchMicrodollarsPerCall":100000}')
   expect(researchConfig()).toEqual(quote)
+})
+
+describe("private structured-output capacity",()=>{
+  const rate={version:"qualification",model:"gpt-6.1-sol",inputMicrodollarsPerMillion:2000000,cachedMicrodollarsPerMillion:100000,outputMicrodollarsPerMillion:10000000,microdollarsPerCredit:2000}
+  beforeEach(()=>{
+    vi.stubEnv("WORKSPACE_AI_ENABLED","true");vi.stubEnv("OPENAI_API_KEY","fixture-only")
+    vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify(rate))
+  })
+  it("reserves all three 3000-token private outputs within unchanged hard limits",async()=>{
+    const bounded=researchConfig()
+    expect(bounded).toMatchObject({maxRounds:3,maxOutputTokens:3000,maxInputBytes:20000,maxCost:210000,maxCredits:105,maxSearchCalls:0})
+    const call={type:"function_call",id:"f1",call_id:"c1",name:"search_workspace",arguments:'{"query":"partners","kinds":["person"]}'}
+    const final={...draft,items:[{...draft.items[0],evidenceIds:[]}]}
+    const output=[[call],[call],[{...message,content:[{type:"output_text",text:JSON.stringify(final),annotations:[]}]}]]
+    for(const [index,items] of output.entries())mocks.create.mockResolvedValueOnce((async function*(){
+      yield {type:"response.created",response:{id:`r${index}`}}
+      yield {type:"response.completed",response:{id:`r${index}`,status:"completed",output:items,usage:{input_tokens:20000,output_tokens:3000,input_tokens_details:{cached_tokens:0}}}}
+    })())
+    const result=await runResearchProvider({request,config:bounded,context,onResponse:vi.fn(),isCanceled:async()=>false})
+    expect(result.result?.title).toBe(final.title)
+    expect(result.usage).toEqual({input:60000,output:9000,cachedInput:0,webSearchCalls:0})
+    expect(mocks.create).toHaveBeenCalledTimes(3)
+    expect(mocks.create.mock.calls.every(([params])=>params.max_output_tokens===3000)).toBe(true)
+  })
+  it("keeps every public-research round at 1500 tokens",()=>{
+    vi.stubEnv("WORKSPACE_AI_PUBLIC_RESEARCH_ENABLED","1")
+    vi.stubEnv("WORKSPACE_AI_PUBLIC_RESEARCH_MICRODOLLARS_PER_CALL","10000")
+    vi.stubEnv("WORKSPACE_AI_PUBLIC_RESEARCH_INPUT_TOKEN_BOUND","20000")
+    const bounded=researchConfig({version:1,destination:"openai_web_search",brief:"Public community workshop resources",approved:true})
+    expect(bounded).toMatchObject({maxRounds:3,maxOutputTokens:1500,maxCost:175000,maxCredits:88,maxSearchCalls:1})
+    expect(researchConfig().maxOutputTokens).toBe(3000)
+  })
+  it.each([
+    {outputMicrodollarsPerMillion:15000000},
+    {microdollarsPerCredit:1600},
+  ])("retains independent dollar and credit admission ceilings: %j",overrides=>{
+    vi.stubEnv("WORKSPACE_AI_RATE_CARD",JSON.stringify({...rate,...overrides}))
+    expect(()=>researchConfig()).toThrow("Research pricing exceeds the configured run limit.")
+    expect(mocks.create).not.toHaveBeenCalled()
+  })
 })
 
 it("stops before provider disclosure when source authorization fails",async()=>{
@@ -566,6 +670,24 @@ describe("partial disclosure failure isolation",()=>{
 describe("declared generation output scope", () => {
   const output = (value: unknown) => [{ ...message, content: [{ type: "output_text", text: JSON.stringify(value), annotations: [] }] }]
   const run = () => runResearchProvider({ request, config: { ...config, maxRounds: 1 }, context, onResponse: vi.fn(), isCanceled: async () => false })
+  it("sends concrete private drafting guidance through the actual request and retains editable unknowns", async () => {
+    const description="Purpose: Improve community program delivery. Participants: [unknown]. Current obstacle: [unknown]. Next decision: Select the program to improve."
+    const candidate={...draft,items:[{...draft.items[0],kind:"note",description,evidenceIds:[]}],questions:["Which program should this address?"]}
+    mocks.create.mockResolvedValueOnce(stream("draft-content",output(candidate)))
+    const value=await runResearchProvider({request:{...request,skill:"planning"},config:{...config,maxRounds:1},context,onResponse:vi.fn(),isCanceled:async()=>false})
+    expect(value.result?.items[0].description).toBe(description)
+    expect(value.result?.questions).toEqual(candidate.questions)
+    const params=mocks.create.mock.calls[0][0],submitted=JSON.parse(params.input[0].content)
+    expect(submitted.skill).toContain("Write usable starter content directly")
+    expect(submitted.skill).toContain("label missing details [unknown]")
+    expect(submitted.task).toBe(request.prompt)
+    expect(submitted.outputs).toMatchObject({binding:"plan_proposal",capabilities:["plan","workspace_note"]})
+    expect(params.instructions).toContain("Never mark a proposed task complete")
+    expect(params.tools).toEqual([])
+    const publicResearch={version:1 as const,destination:"openai_web_search" as const,brief:"Public community resources",approved:true as const}
+    expect(JSON.parse(researchPrompt(context,{...request,skill:"planning",publicResearch})).skill).toBe(researchSkills.planning)
+    expect(JSON.parse(researchPrompt(context,request)).skill).toBe(researchSkills.research)
+  })
   it("retains unfulfilled outputs beside a usable plan and exposes only bound capabilities", async () => {
     const unfulfilled = ["Working application form", "Editable response table"]
     mocks.create.mockResolvedValueOnce(stream("scope", output({ ...draft, unfulfilled, items: [{ ...draft.items[0], kind: "note", evidenceIds: [] }] })))

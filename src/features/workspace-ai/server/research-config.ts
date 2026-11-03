@@ -18,12 +18,13 @@ export function researchConfig(publicBrief?: ResearchPublicBrief) {
   const inputBound = enabled ? z.coerce.number().int().min(20000).max(2000000).safeParse(process.env.WORKSPACE_AI_PUBLIC_RESEARCH_INPUT_TOKEN_BOUND) : null
   const publicResearchAvailable = Boolean(searchPrice?.success && inputBound?.success)
   if (publicBrief && (!publicResearchAvailable || !researchPublicBriefSchema.safeParse(publicBrief).success)) throw new Error("Public research is unavailable.")
+  // Private structured plans need room to finish; public processing keeps its existing bound.
+  const maxSearchCalls=publicBrief ? 1 : 0, maxRounds=3, maxOutputTokens=publicBrief ? 1500 : 3000, maxInputBytes=20000
   // The user approves this model and tariff, not merely an operator's version label.
-  const privateVersion=`private-${createHash("sha256").update(JSON.stringify({tariff:base.tariff,contract:RESEARCH_CONTRACT_VERSION,forms:researchFormOutputsEnabled(),views:researchDataViewOutputsEnabled()})).digest("hex").slice(0,40)}`
+  const privateVersion=`private-${createHash("sha256").update(JSON.stringify({tariff:base.tariff,contract:RESEARCH_CONTRACT_VERSION,forms:researchFormOutputsEnabled(),views:researchDataViewOutputsEnabled(),bounds:{maxRounds,maxOutputTokens,maxInputBytes}})).digest("hex").slice(0,40)}`
   // Bind all effective prices/bounds without exceeding the existing 80-char quote schema.
   const publicVersion=`public-${createHash("sha256").update(JSON.stringify({base:base.tariff,privateVersion,price:searchPrice?.success?searchPrice.data:null,input:inputBound?.success?inputBound.data:null})).digest("hex").slice(0,40)}`
   const tariff = {...base.tariff,...(publicBrief && searchPrice?.success ? {webSearchMicrodollarsPerCall:searchPrice.data} : {}),version:publicBrief?publicVersion:privateVersion}
-  const maxSearchCalls=publicBrief ? 1 : 0, maxRounds=3, maxOutputTokens=1500, maxInputBytes=20000
   const publicInputTokenBound=publicBrief && inputBound?.success ? inputBound.data : undefined
   const price=priceAiUsage({input:publicInputTokenBound ? (maxRounds-1)*maxInputBytes+publicInputTokenBound : maxRounds*maxInputBytes,cachedInput:0,output:maxRounds*maxOutputTokens,webSearchCalls:maxSearchCalls},tariff)
   if(price.credits>125 || price.microdollars>250000) throw new Error("Research pricing exceeds the configured run limit.")

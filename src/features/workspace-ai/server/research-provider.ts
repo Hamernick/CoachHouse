@@ -4,6 +4,7 @@ import { researchPublicBriefSchema } from "../lib/research-public-brief"
 import { validateKnowledgeToolResult, unavailableKnowledgeToolResult } from "../lib/knowledge-tool-contract"
 import OpenAI from "openai"
 import { randomUUID } from "node:crypto"
+import { logger } from "@/lib/logger"
 import { researchPlanOperations } from "@/features/workspace-particles"
 import type { ResponseInputItem } from "openai/resources/responses/responses"
 import { priceAiUsage, type AiUsage } from "@/features/ai-credits"
@@ -53,6 +54,11 @@ export async function runResearchProvider(input: {
   const publicSources: ResearchSource[] = []
   const evidence = (ids: readonly string[]) => [...knowledge.evidence(ids), ...publicSources]
   let responseId:string|null=null, toolCalls=0, repairUsed=false
+  const diagnose = (round: number, category: "provider" | "validation", reason: ResearchRepairIssue | "evidence_metadata" | "max_output_tokens" | "content_filter" | "provider_incomplete" | "provider_failed") => {
+    // Fixed categories only: provider prose, source content and exceptions are private.
+    // Diagnostics must not interrupt measured usage settlement.
+    try { logger.warn("workspace_research_provider_failure", {runId:input.request.id,responseId,round:round+1,category,reason}) } catch { /* Logging is best effort. */ }
+  }
   for(let round=0;round<config.maxRounds;round++) {
     if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
     if(!await revalidate()) return {canceled:false,usage,responseId,result:null}
@@ -99,7 +105,13 @@ export async function runResearchProvider(input: {
     }
     if((!isPublic && searches.length) || searches.length>1)
       throw new Error("Unexpected external research activity. Check run status.")
-    if(terminal.status!=="completed") return {canceled:false,usage,responseId,result:null}
+    if(terminal.status!=="completed") {
+      const reason=terminal.incomplete_details?.reason
+      diagnose(round,"provider",terminal.status==="incomplete"
+        ? reason==="max_output_tokens" || reason==="content_filter" ? reason : "provider_incomplete"
+        : "provider_failed")
+      return {canceled:false,usage,responseId,result:null}
+    }
     if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
     // Refusals are terminal, even if accompanied by text or a requested tool.
     if(terminal.output.some(item=>item.type==="message" && item.content.some(part=>part.type==="refusal")))
@@ -140,7 +152,10 @@ export async function runResearchProvider(input: {
         // Server evidence metadata failures cannot be repaired by a model.
         repairIssue=null
         result=researchResultSchema.parse({...candidate,dependencies:knowledge.dependencies()})
-      } catch { /* Invalid output is never billable to the member. */ }
+      } catch {
+        // Invalid output remains unbillable to the member; retain only its stage.
+        diagnose(round,"validation",repairIssue ?? "evidence_metadata")
+      }
       if(!result && repairIssue && !repairUsed && round+1<config.maxRounds) {
         // Repair uses the same dispatch budget and deadline as normal rounds.
         repairUsed=true
