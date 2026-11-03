@@ -747,6 +747,7 @@
       "tests/acceptance/workspace-research-progress.test.ts",
       "tests/acceptance/workspace-research-provider.test.ts",
       "tests/acceptance/workspace-research-public-brief.test.ts",
+      "tests/acceptance/workspace-research-request-compaction.test.ts",
       "tests/acceptance/workspace-research-revisions.test.ts",
       "tests/acceptance/workspace-research-route.test.ts",
       "tests/acceptance/workspace-research-tool-contract.test.ts",

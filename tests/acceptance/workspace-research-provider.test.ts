@@ -98,6 +98,25 @@ describe("bounded research provider",()=>{
     const value=await runResearchProvider({request,config:{...config,maxInputBytes:20},context,onResponse:vi.fn(),isCanceled:async()=>false})
     expect(value.result).toBeNull();expect(mocks.create).not.toHaveBeenCalled()
   })
+
+  it("finishes within three bounded requests when authorized searches repeat evidence",async()=>{
+    const source={id:"person:known",title:"Known partner",href:"/workspace",revision:"1",checkedAt:"2026-10-30T12:00:00Z",kind:"workspace"}
+    mocks.execute.mockImplementation(async()=>{mocks.sources.set(source.id,source);return toolResult("Private evidence ".repeat(30),8)})
+    const requests:unknown[]=[]
+    mocks.create.mockImplementation(async(params)=>{
+      requests.push(structuredClone(params))
+      const index=requests.length
+      return index<3 ? stream(`r${index}`,[{type:"function_call",id:`f${index}`,call_id:`c${index}`,name:"search_workspace",arguments:JSON.stringify({query:index===1?"partners":"delivery",kinds:["person"]})}])
+        : stream("r3",[{...message,content:[{type:"output_text",text:JSON.stringify({...draft,items:[{...draft.items[0],evidenceIds:[source.id]}]}),annotations:[]}]}])
+    })
+    const value=await runResearchProvider({request,config,context,onResponse:vi.fn(),isCanceled:async()=>false})
+    expect(value.result?.sources).toEqual([source])
+    expect(value.usage).toEqual({input:300,cachedInput:30,output:60,webSearchCalls:0})
+    expect(requests).toHaveLength(3);expect(mocks.execute).toHaveBeenCalledTimes(2)
+    for(const params of requests) expect(Buffer.byteLength(JSON.stringify(params))).toBeLessThanOrEqual(20000)
+    expect(requests[2]).toMatchObject({tools:[],max_output_tokens:1500,store:false})
+    expect(JSON.stringify(requests[2])).toContain("sameAs")
+  })
 })
 
 describe("source-free provider failure diagnostics",()=>{
@@ -105,6 +124,39 @@ describe("source-free provider failure diagnostics",()=>{
   afterEach(()=>vi.restoreAllMocks())
   const run=(overrides:Partial<Parameters<typeof runResearchProvider>[0]>={})=>runResearchProvider({request,config:{...config,maxRounds:1},context,onResponse:vi.fn(),isCanceled:async()=>false,...overrides})
   const output=(text:string)=>[{...message,content:[{type:"output_text",text,annotations:[]}]}]
+
+  it("identifies request capacity rejection without leaking request content",async()=>{
+    const value=await run({request:{...request,prompt:"PRIVATE user prompt"},config:{...config,maxInputBytes:20}})
+    expect(value.result).toBeNull();expect(value.usage.input).toBe(0)
+    expect(mocks.create).not.toHaveBeenCalled()
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{
+      runId:request.id,responseId:null,round:1,category:"admission",reason:"request_size",requestBytes:expect.any(Number),maximumBytes:20,
+    })
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("PRIVATE")
+  })
+
+  it("distinguishes freshness rejection after measured tool usage",async()=>{
+    const call={type:"function_call",id:"f1",call_id:"c1",name:"search_workspace",arguments:'{"query":"PRIVATE partners","kinds":["person"]}'}
+    mocks.create.mockResolvedValueOnce(stream("r1",[call]))
+    mocks.revalidate.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    const value=await run({config})
+    expect(value.result).toBeNull();expect(value.usage.input).toBe(100)
+    expect(mocks.create).toHaveBeenCalledTimes(1)
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{
+      runId:request.id,responseId:"r1",round:2,category:"admission",reason:"source_freshness",
+    })
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("PRIVATE")
+  })
+
+  it("distinguishes reservation rejection and tolerates a broken diagnostic sink",async()=>{
+    vi.mocked(logger.warn).mockImplementation(()=>{throw Error("PRIVATE log failure")})
+    const value=await run({config:{...config,maxCost:0}})
+    expect(value.result).toBeNull();expect(value.usage.input).toBe(0)
+    expect(mocks.create).not.toHaveBeenCalled()
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{
+      runId:request.id,responseId:null,round:1,category:"admission",reason:"reservation_limit",
+    })
+  })
 
   it.each([
     {status:"incomplete",detail:"max_output_tokens",reason:"max_output_tokens"},

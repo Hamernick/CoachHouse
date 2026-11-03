@@ -55,14 +55,17 @@ export async function runResearchProvider(input: {
   const publicSources: ResearchSource[] = []
   const evidence = (ids: readonly string[]) => [...knowledge.evidence(ids), ...publicSources]
   let responseId:string|null=null, toolCalls=0, repairUsed=false
-  const diagnose = (round: number, category: "provider" | "validation", reason: ResearchRepairIssue | "evidence_metadata" | "max_output_tokens" | "content_filter" | "provider_incomplete" | "provider_failed", detail?: ReturnType<typeof researchFormatDiagnostic>) => {
+  const diagnose = (round: number, category: "provider" | "validation" | "admission", reason: ResearchRepairIssue | "evidence_metadata" | "max_output_tokens" | "content_filter" | "provider_incomplete" | "provider_failed" | "source_freshness" | "request_size" | "reservation_limit", detail?: ReturnType<typeof researchFormatDiagnostic> | { requestBytes: number; maximumBytes: number }) => {
     // Fixed categories only: provider prose, source content and exceptions are private.
     // Diagnostics must not interrupt measured usage settlement.
     try { logger.warn("workspace_research_provider_failure", {runId:input.request.id,responseId,round:round+1,category,reason,...detail}) } catch { /* Logging is best effort. */ }
   }
   for(let round=0;round<config.maxRounds;round++) {
     if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
-    if(!await revalidate()) return {canceled:false,usage,responseId,result:null}
+    if(!await revalidate()) {
+      diagnose(round,"admission","source_freshness")
+      return {canceled:false,usage,responseId,result:null}
+    }
     if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
     // Final round completes the proposal instead of starting another custom-tool loop.
     // Public search is a distinct first request. Later private-context calls
@@ -73,13 +76,17 @@ export async function runResearchProvider(input: {
     // Bound the whole serialized request, including schemas and returned tool
     // content. The reservation uses one input token per allowed byte; this is
     // a conservative local estimate, not a provider tokenizer qualification.
-    if(!researchRequestFits(params,config.maxInputBytes))
+    if(!researchRequestFits(params,config.maxInputBytes)) {
+      diagnose(round,"admission","request_size",{requestBytes:Buffer.byteLength(JSON.stringify(params)),maximumBytes:config.maxInputBytes})
       return {canceled:false,usage,responseId,result:null}
+    }
     // Every paid dispatch shares the original reservation. Only observed cache
     // usage is discounted; the next call reserves its full input/output limits.
     const estimate=priceAiUsage({...usage,input:usage.input+(isPublic ? config.publicInputTokenBound! : config.maxInputBytes),output:usage.output+config.maxOutputTokens,webSearchCalls:(usage.webSearchCalls ?? 0)+(isPublic ? 1 : 0)},config.tariff)
-    if(estimate.microdollars>config.maxCost || estimate.credits>config.maxCredits)
+    if(estimate.microdollars>config.maxCost || estimate.credits>config.maxCredits) {
+      diagnose(round,"admission","reservation_limit")
       return {canceled:false,usage,responseId,result:null}
+    }
     input.onPhase?.(repairUsed ? "repairing" : "planning")
     const stream=await client.responses.create(params,{signal:deadline,headers:{"X-Client-Request-Id":`${input.request.id}:${round}`}})
     let terminal:OpenAI.Responses.Response|null=null
@@ -133,7 +140,10 @@ export async function runResearchProvider(input: {
       return {canceled:false,usage,responseId,result:null}
     if(!calls.length) {
       input.onPhase?.("validating")
-      if(!await revalidate()) return {canceled:false,usage,responseId,result:null}
+      if(!await revalidate()) {
+        diagnose(round,"admission","source_freshness")
+        return {canceled:false,usage,responseId,result:null}
+      }
       if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
       let result=null
       let repairIssue:ResearchRepairIssue|null="format"
