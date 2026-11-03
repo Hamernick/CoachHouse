@@ -300,3 +300,7 @@ Validation at this working revision:
 - Browser receipts/scripts live privately under `~/.local/share/coach-house/dashboard-recovery-20261102/`. No customer content or credentials are included in tracked screenshots/tests.
 
 No schema/migration/authorization/billing/data edits. Invitation integrity (Release B), explicit unavailable-state isolation (Release C), authenticated deployed-candidate/open-tab acceptance and affected-user confirmation remain separate. Local evidence is not hosted quality, review or deployment proof. Next: Graphify maintenance, normal pre-push, PR and required current-head release gates; preserve records and the additive migration during any app rollback.
+
+### Release A PR handoff
+
+[PR367](https://github.com/Hamernick/CoachHouse/pull/367) is open. Application/test source commit `1690255f5f4960012eed77cdfd81cf82dc4a5489` was pushed and independently matched to the remote branch. Normal pre-push supply-chain/large-file/changed-file lint passed in6.03s.59focused cases and browser/type evidence above apply unchanged. Required current-head hosted quality and one code-owner approval remain; branch protection was read back directly and is not bypassed. No merge, deployment or production mutation by this patch. Preview sessions87266(Next3161) and20673(recovery3162) remain available. Graph maintenance receipt follows locally in ignored graphify-out; graph completion is tracked separately from release acceptance.
