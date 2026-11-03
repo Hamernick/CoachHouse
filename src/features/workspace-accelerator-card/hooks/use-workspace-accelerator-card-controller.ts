@@ -22,6 +22,23 @@ function areOrderedStringListsEqual(left: string[], right: string[]) {
   return left.every((value, index) => value === right[index])
 }
 
+function readProgressCache(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeProgressCache(key: string, value: string | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, value)
+  } catch {
+    // This optional cache must not interrupt server-acknowledged progress.
+  }
+}
+
 export function useWorkspaceAcceleratorCardController(
   input: WorkspaceAcceleratorCardInput
 ) {
@@ -95,7 +112,7 @@ export function useWorkspaceAcceleratorCardController(
     }
     hydratedStorageKeyRef.current = storageKey
 
-    const raw = window.localStorage.getItem(
+    const raw = readProgressCache(
       `workspace-accelerator-card:${storageKey}`
     )
     if (!raw) return
@@ -108,7 +125,7 @@ export function useWorkspaceAcceleratorCardController(
     })
 
     if (onStepComplete) return // Live progress comes from acknowledged learner records.
-    const rawCompleted = window.localStorage.getItem(
+    const rawCompleted = readProgressCache(
       `workspace-accelerator-card-complete:${storageKey}`
     )
     if (!rawCompleted) return
@@ -278,7 +295,7 @@ export function useWorkspaceAcceleratorCardController(
 
   useEffect(() => {
     if (!storageKey || steps.length === 0) return
-    window.localStorage.setItem(
+    writeProgressCache(
       `workspace-accelerator-card:${storageKey}`,
       String(currentIndex)
     )
@@ -287,12 +304,12 @@ export function useWorkspaceAcceleratorCardController(
   useEffect(() => {
     if (!storageKey) return
     if (completedStepIds.length === 0) {
-      window.localStorage.removeItem(
-        `workspace-accelerator-card-complete:${storageKey}`
+      writeProgressCache(
+        `workspace-accelerator-card-complete:${storageKey}`, null
       )
       return
     }
-    window.localStorage.setItem(
+    writeProgressCache(
       `workspace-accelerator-card-complete:${storageKey}`,
       JSON.stringify(completedStepIds)
     )
