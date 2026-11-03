@@ -397,6 +397,23 @@ describe("Shared camera intent", () => {
 
 
 describe("Explicit viewport controls", () => {
+  it("recenters visible Particles and legacy cards without replaying a previous card focus", () => {
+    vi.stubGlobal("window", { matchMedia: () => ({ matches: true }) })
+    const nodes = [{ id: "organization-overview", position: { x: 0, y: 0 }, width: 552, height: 300 },
+      { id: "saved-plan", position: { x: 1400, y: 700 }, width: 400, height: 244 },
+      { id: "hidden-plan", hidden: true, position: { x: 4000, y: 700 }, width: 400, height: 244 }]
+    const fitBounds = vi.fn()
+    const canvas = { getNodes: () => nodes, fitBounds }
+    let controls: ReturnType<typeof useWorkspaceCanvasViewportControls> | undefined
+    function Harness() {
+      controls = useWorkspaceCanvasViewportControls({ flowInstanceRef: { current: canvas as unknown as ReactFlowInstance }, tutorialActive: false,
+        tutorialSceneFitRequest: null, tutorialCompletionExitRequest: null, focusCardRequest: { cardId: "organization-overview", requestKey: 1 }, visibleNodeIds: ["organization-overview"] })
+      return null
+    }
+    renderToStaticMarkup(createElement(Harness))
+    controls!.handleRecenterView()
+    expect(fitBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 1800, height: 944 }, expect.objectContaining({ duration: 0 }))
+  })
   it.each(["handleZoomIn", "handleZoomOut"] as const)("%s supersedes queued camera work", action => {
     const canvas = { zoomIn: vi.fn(async () => true), zoomOut: vi.fn(async () => true) }
     const pending = beginWorkspaceCameraIntent(canvas)

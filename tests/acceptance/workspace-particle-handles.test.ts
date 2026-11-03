@@ -11,6 +11,40 @@ import {
 import { particleHandleId } from "@/features/workspace-particles/lib/particle-handle-ids"
 import { buildParticleLink } from "@/features/workspace-particles/lib/connection-editing"
 import { ID, graph, particle } from "./fixtures/particle-fixtures"
+import fs from "node:fs"
+import path from "node:path"
+import ts from "typescript"
+
+it("keeps the layout worker's transitive runtime imports free of UI and CSS", () => {
+  const root = process.cwd()
+  const options = ts.parseJsonConfigFileContent(ts.readConfigFile(path.join(root, "tsconfig.json"), ts.sys.readFile).config, ts.sys, root).options
+  const queue = [path.join(root, "src/features/workspace-particles/lib/particle-layout.worker.ts")]
+  const seen = new Set<string>(), violations: string[] = []
+  while (queue.length) {
+    const file = queue.pop()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    const source = fs.readFileSync(file, "utf8")
+    if (file.endsWith(".tsx") || /^\s*["']use client["']/m.test(source)) violations.push(path.relative(root, file))
+    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+    const parsed = ts.createSourceFile(file, compiled, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS)
+    const visit = (node: ts.Node) => {
+      const specifier = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier
+        : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : undefined
+      if (specifier && ts.isStringLiteral(specifier)) {
+        const name = specifier.text
+        if (/\.(css|scss|sass)$/.test(name) || /^(react|react-dom|next|@openai\/apps-sdk-ui)(\/|$)/.test(name))
+          violations.push(`${path.relative(root, file)} -> ${name}`)
+        const resolved = ts.resolveModuleName(name, file, options, ts.sys).resolvedModule?.resolvedFileName
+        if (resolved?.startsWith(path.join(root, "src") + path.sep)) queue.push(resolved)
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(parsed)
+  }
+  expect(seen.size).toBeGreaterThan(10)
+  expect(violations).toEqual([])
+})
 
 function measured(
   id: string,

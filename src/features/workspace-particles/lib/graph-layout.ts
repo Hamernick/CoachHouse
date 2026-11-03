@@ -6,7 +6,7 @@ import type {
   ParticlePosition,
   ParticleResult,
 } from "../types"
-import { getParticleHandles } from "./particle-registry"
+import { getParticleHandles } from "./particle-handles"
 import { isParticleHierarchyEdge, readParticleGraph } from "./graph-validation"
 import { particleIdSchema } from "./particle-schema"
 import {

@@ -4,6 +4,7 @@ import { particlePlanProposalSchema } from "./particle-plan-schema"
 import { bindResearch, researchViewBinding } from "@/features/workspace-ai"
 import { validateParticleGraph } from "./graph-validation"
 import type { ResearchResult } from "@/features/workspace-ai/client"
+import { particleCreationPosition } from "./particle-creation-placement"
 
 /** One revision-checked pending proposal; accepted work stays untouched until owner review. */
 export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult,actorId:string,now:string,uuid:()=>string):ParticleOperation[] {
@@ -15,7 +16,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     if (graph.revision !== result.target.revision) throw new Error("Workspace changed. Research again before adding this proposal.")
     const objective = createParticle("objective", { id: uuid(), workspaceId: graph.workspaceId, title: result.title, now })
     objective.description = result.summary
-    objective.position = { x: 0, y: graph.particles.length ? Math.max(...graph.particles.map(p => p.position.y)) + 320 : 0 }
+    objective.position = particleCreationPosition(graph, objective)
     objective.positionMode = "managed"
     // In-memory validation only. The canonical writer commits this objective and
     // every proposed member together; admission/generation never save a placeholder.
@@ -40,7 +41,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     new Map(graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[])))
   if(!result.items.length && !removed.size) throw new Error("Answer the research questions before adding a plan.")
   const byKey=new Map<string,string>(), created:Particle[]=[], revealed:Particle[]=[], seen=new Set<string>()
-  for(const [index,item] of result.items.entries()) {
+  for(const item of result.items) {
     const existing=item.referenceId?.startsWith("particle:")?graph.particles.find(p=>`particle:${p.id}`===item.referenceId):undefined
     if(item.referenceId?.startsWith("particle:") && !existing) throw new Error("Research references an unavailable workspace item.")
     if(existing) {
@@ -53,7 +54,6 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     const particle=createParticle(person?"people":item.kind==="decision"?"decision":"activity",{id,workspaceId:graph.workspaceId,title:item.title,now})
     const sources=result.sources.filter(source=>item.evidenceIds.includes(source.id)||source.id===item.referenceId)
     particle.description=[item.description,...sources.map(source=>`${source.title}: ${source.href}`)].join("\n\n").slice(0,10000)
-    particle.position={x:objective.position.x+380,y:objective.position.y+index*280}
     particle.positionMode="managed"
     if(particle.type === "decision") {
       const decision = result.decisions?.find(value=>value.itemKey===item.key)
@@ -91,6 +91,18 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     authorId:actorId,createdAt:now,status:"pending",researchRunId:result.runId,summary:result.summary,
     sources:combinedSources})
   const updated={...objective,data:{...objective.data,planning:{plans:objective.data.planning?.plans??[],proposals:[...(objective.data.planning?.proposals??[]),proposal]}}}
+  // Persist a collision-free fallback before browser measurement/ELK. Existing
+  // and referenced cards remain fixed, including manual and locked positions.
+  let scene = { ...graph, particles: graph.particles.map(item => item.id === updated.id ? updated : revealed.find(value => value.id === item.id) ?? item) }
+  const unplaced = new Set(created.map(item => item.id))
+  while (unplaced.size) {
+    const next = created.find(item => unplaced.has(item.id) &&
+      !proposal.links?.some(link => link.target === item.id && unplaced.has(link.source)))
+    if (!next) throw new Error("Research dependencies cannot be placed safely.")
+    next.position = particleCreationPosition(scene, next, { objective: updated, plan: proposal })
+    scene = { ...scene, particles: [...scene.particles, next] }
+    unplaced.delete(next.id)
+  }
   const error=validateParticleGraph({...graph,particles:[...graph.particles.map(particle=>particle.id===objective.id?updated:particle),...created]})
   if(error) throw new Error(error)
   return [...revealed.map(particle=>({kind:"put_particle" as const,particle,expectedRevision:particle.revision})),...created.map(particle=>({kind:"put_particle" as const,particle,expectedRevision:null})),{kind:"put_particle",particle:updated,expectedRevision:objective.revision}]

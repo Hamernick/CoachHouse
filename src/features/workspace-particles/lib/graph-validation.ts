@@ -11,7 +11,7 @@ import {
   workspaceToolSourceHandleSchema,
   workspaceToolTargetHandleSchema,
 } from "./workspace-tool-contract"
-import { getParticleHandles } from "./particle-registry"
+import { getParticleHandles } from "./particle-handles"
 
 export function emptyParticleGraph(workspaceId: string): ParticleGraph {
   return particleGraphSchema.parse({

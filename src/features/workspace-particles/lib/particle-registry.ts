@@ -7,6 +7,7 @@ import { z } from "zod"
 import { planCapability, workspaceNoteCapability, workspaceFormCapability, particleCommitSchema, type ParticleCapability, type ParticleSourceBinding } from "./particle-capability-contract"
 import type { Particle, ParticleType } from "../types"
 import { particleDataSchemas, particleSchema } from "./particle-schema"
+export { getParticleHandles } from "./particle-handles"
 import { projectDataViewCapability, existingDataViewCapability } from "./particle-output-capabilities"
 
 type Definition<K extends ParticleType> = {
@@ -172,17 +173,6 @@ export function createParticle(
     createdAt: input.now,
     updatedAt: input.now,
   })
-}
-export function getParticleHandles(particle: Particle) {
-  return {
-    inputs: ["in"],
-    outputs: [
-      "out",
-      ...(particle.type === "decision"
-        ? particle.data.outcomes.map((outcome) => `outcome:${outcome.id}`)
-        : []),
-    ],
-  }
 }
 export function getParticleProgress(particle: Particle) {
   const items =

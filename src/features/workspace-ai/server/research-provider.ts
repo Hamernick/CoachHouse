@@ -21,6 +21,7 @@ import { researchRepairInstruction, type ResearchRepairIssue } from "../lib/rese
 import { researchProviderRequest, researchRequestFits } from "./research-provider-request"
 import { createResearchItemProgress } from "./research-item-progress"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
+import { researchFormatDiagnostic } from "./research-format-diagnostics"
 
 export async function runResearchProvider(input: {
   request: ResearchRequest; context: ResearchContext; config: ReturnType<typeof researchConfig>;
@@ -54,10 +55,10 @@ export async function runResearchProvider(input: {
   const publicSources: ResearchSource[] = []
   const evidence = (ids: readonly string[]) => [...knowledge.evidence(ids), ...publicSources]
   let responseId:string|null=null, toolCalls=0, repairUsed=false
-  const diagnose = (round: number, category: "provider" | "validation", reason: ResearchRepairIssue | "evidence_metadata" | "max_output_tokens" | "content_filter" | "provider_incomplete" | "provider_failed") => {
+  const diagnose = (round: number, category: "provider" | "validation", reason: ResearchRepairIssue | "evidence_metadata" | "max_output_tokens" | "content_filter" | "provider_incomplete" | "provider_failed", detail?: ReturnType<typeof researchFormatDiagnostic>) => {
     // Fixed categories only: provider prose, source content and exceptions are private.
     // Diagnostics must not interrupt measured usage settlement.
-    try { logger.warn("workspace_research_provider_failure", {runId:input.request.id,responseId,round:round+1,category,reason}) } catch { /* Logging is best effort. */ }
+    try { logger.warn("workspace_research_provider_failure", {runId:input.request.id,responseId,round:round+1,category,reason,...detail}) } catch { /* Logging is best effort. */ }
   }
   for(let round=0;round<config.maxRounds;round++) {
     if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
@@ -136,9 +137,12 @@ export async function runResearchProvider(input: {
       if(await isCanceled()) return {canceled:true,usage,responseId,result:null}
       let result=null
       let repairIssue:ResearchRepairIssue|null="format"
+      let format:"json"|"schema"="json"
       try {
         const text=terminal.output.flatMap(item=>item.type==="message"?item.content.flatMap(part=>part.type==="output_text"?[part.text]:[]):[]).join("")
-        const draft=researchProviderOutputSchema().parse(JSON.parse(text))
+        const parsed=JSON.parse(text)
+        format="schema"
+        const draft=researchProviderOutputSchema().parse(parsed)
         const ids=[...draft.removeReferences,...draft.items.flatMap(item=>[...item.evidenceIds,...(item.referenceId?[item.referenceId]:[])])]
         const decisions=new Map(input.context.graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[]))
         repairIssue="relationships"
@@ -152,9 +156,9 @@ export async function runResearchProvider(input: {
         // Server evidence metadata failures cannot be repaired by a model.
         repairIssue=null
         result=researchResultSchema.parse({...candidate,dependencies:knowledge.dependencies()})
-      } catch {
-        // Invalid output remains unbillable to the member; retain only its stage.
-        diagnose(round,"validation",repairIssue ?? "evidence_metadata")
+      } catch(error) {
+        // Invalid output remains unbillable; format details contain no source data.
+        diagnose(round,"validation",repairIssue ?? "evidence_metadata",repairIssue==="format"?researchFormatDiagnostic(error,format):undefined)
       }
       if(!result && repairIssue && !repairUsed && round+1<config.maxRounds) {
         // Repair uses the same dispatch budget and deadline as normal rounds.

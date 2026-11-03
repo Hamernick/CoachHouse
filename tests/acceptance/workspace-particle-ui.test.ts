@@ -912,6 +912,7 @@ describe("live layout controls and routed connections", () => {
       message: null,
       routes: [],
       run: vi.fn(async () => {}),
+      queueAfterSave: vi.fn(),
       cancel: vi.fn(),
       geometryChanged: vi.fn(),
       undoLayout: vi.fn(async () => {}),

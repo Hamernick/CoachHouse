@@ -2,7 +2,7 @@
 
 import { beginWorkspaceCameraIntent } from "@/lib/workspace-canvas/camera-intent"
 import { useCallback, type MutableRefObject } from "react"
-import type { ReactFlowInstance } from "@xyflow/react"
+import { getNodesBounds, type ReactFlowInstance } from "@xyflow/react"
 
 import {
   WORKSPACE_CANVAS_V2_CARD_FOCUS_OPTIONS,
@@ -54,8 +54,20 @@ export function useWorkspaceCanvasViewportControls({
   const handleRecenterView = useCallback(() => {
     const flowInstance = flowInstanceRef.current
     if (!flowInstance) return
+    if (!tutorialActive) {
+      const nodes = flowInstance.getNodes().filter(node => !node.hidden)
+      if (!nodes.length) return
+      // fitView omits virtualized, not-yet-measured nodes. Particle nodes already
+      // declare their dimensions; include those bounds before they scroll in.
+      beginWorkspaceCameraIntent(flowInstance)
+      void flowInstance.fitBounds(getNodesBounds(nodes), {
+        ...WORKSPACE_CANVAS_V2_LAYOUT_FIT_OPTIONS,
+        duration: resolveWorkspaceCanvasCameraDuration(WORKSPACE_CANVAS_V2_LAYOUT_FIT_OPTIONS.duration),
+      })
+      return
+    }
     const command = resolveWorkspaceCanvasViewportCommand({
-      tutorialSceneFitRequest: tutorialActive ? tutorialSceneFitRequest : null,
+      tutorialSceneFitRequest,
       tutorialCompletionExitRequest,
       focusCardRequest,
       visibleNodeIds,

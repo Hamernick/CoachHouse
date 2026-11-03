@@ -23,6 +23,7 @@ import { particleLayoutBatch, type ParticleLayout } from "../lib/graph-layout"
 import { particleSceneKey } from "../lib/layout-scene"
 import { runParticleWorker } from "../lib/layout-worker-client"
 import type { useParticleSession } from "./use-particle-session"
+import type { ParticleGraph } from "../types"
 
 type Phase = "idle" | "measuring" | "calculating" | "saving" | "animating"
 type Session = ReturnType<typeof useParticleSession>
@@ -60,12 +61,29 @@ export function useParticleLayout({
   )
   const active = useRef<AbortController | null>(null)
   const saving = useRef(false)
+  const queued = useRef<{
+    workspaceId: string; revision: number; ids: readonly string[];
+    canvas: ReactFlowInstance; commitBatch: Session["commitBatch"];
+  } | null>(null)
+  const [, queueChanged] = useReducer((value: number) => value + 1, 0)
   const latest = useRef({ session, flow, flush, dirty, setNodes })
   latest.current = { session, flow, flush, dirty, setNodes }
   const cancel = useCallback(() => {
+    queued.current = null
     if (!saving.current) active.current?.abort()
   }, [])
-  useEffect(() => () => active.current?.abort(), [session.graph?.workspaceId])
+  useEffect(() => () => {
+    queued.current = null
+    active.current?.abort()
+  }, [session.graph?.workspaceId, session.commitBatch])
+  const queueAfterSave = useCallback((saved: Pick<ParticleGraph, "workspaceId" | "revision">, ids: readonly string[]) => {
+    const input = latest.current
+    // This callback belongs to the save's canvas, even if its promise finishes
+    // after navigation. The transport identity changes on a canvas switch.
+    if (!ids.length || !input.flow.current || input.session.commitBatch !== session.commitBatch || input.session.getCurrentGraph()?.workspaceId !== saved.workspaceId) return
+    queued.current = { workspaceId: saved.workspaceId, revision: saved.revision, ids: [...ids], canvas: input.flow.current, commitBatch: session.commitBatch }
+    queueChanged()
+  }, [session.commitBatch])
 
   // Routing follows persisted/manual geometry; it never invokes ELK or moves cards.
   useEffect(() => {
@@ -305,6 +323,27 @@ export function useParticleLayout({
     }
   }, [])
 
+  // A save receipt arrives before React commits pending=false and projects the
+  // new nodes. Check after each render; the existing run owns measurement and
+  // freshness checks once both persisted and rendered records are available.
+  useEffect(() => {
+    const request = queued.current
+    if (!request) return
+    const input = latest.current, graph = input.session.graph
+    if (!graph || graph.workspaceId !== request.workspaceId || input.flow.current !== request.canvas || input.session.commitBatch !== request.commitBatch) {
+      queued.current = null
+      return
+    }
+    if (graph.revision < request.revision) return
+    if (request.ids.some(id => !graph.particles.some(particle => particle.id === id))) {
+      queued.current = null
+      return
+    }
+    if (!input.session.editable || active.current || request.ids.some(id => !request.canvas.getNodes().some(node => node.id === id))) return
+    queued.current = null
+    void run(false, request.ids)
+  })
+
   return useMemo(
     () => ({
       measureAll: phase !== "idle",
@@ -313,9 +352,10 @@ export function useParticleLayout({
       message,
       routes,
       run,
+      queueAfterSave,
       cancel,
       geometryChanged,
     }),
-    [phase, message, routes, run, cancel, geometryChanged]
+    [phase, message, routes, run, queueAfterSave, cancel, geometryChanged]
   )
 }

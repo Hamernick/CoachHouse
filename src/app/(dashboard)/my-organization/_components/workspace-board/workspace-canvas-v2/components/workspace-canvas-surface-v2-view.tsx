@@ -23,6 +23,7 @@ import {
   useParticleCalendarTarget,
   ParticleGeometryObserver,
   ParticlePlanningGuides,
+  ParticleLayoutActions,
 } from "@/features/workspace-particles/client"
 import { WorkspaceCardShortcutRail } from "../shortcuts/workspace-card-shortcut-rail"
 import { WorkspaceCanvasErrorBoundary } from "../runtime/workspace-canvas-error-boundary"
@@ -361,11 +362,14 @@ export function WorkspaceCanvasSurfaceV2View({
             onZoomOut={onZoomOut}
             onZoomIn={onZoomIn}
             onRecenterView={onRecenterView}
+            layoutActions={allowEditing && !tutorialActive && !presentationMode ? (
+              <ParticleLayoutActions layout={particles.layout} disabled={!particles.controls.editable} />
+            ) : undefined}
           />
           <div
             ref={setFlowFrameContainer}
             data-workspace-canvas-flow-frame="true"
-            className="absolute inset-0 max-w-full min-w-0 overflow-hidden"
+            className="absolute inset-0 z-0 max-w-full min-w-0 overflow-hidden"
           >
             <ReactFlowProvider>
               <WorkspaceReactFlowErrorBootstrap onError={onError}>

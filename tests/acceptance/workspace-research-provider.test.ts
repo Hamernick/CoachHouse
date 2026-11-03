@@ -9,6 +9,8 @@ import { researchRepairInstruction } from "@/features/workspace-ai/lib/research-
 import { researchPrompt } from "@/features/workspace-ai/server/research-prompt"
 import { researchSkills } from "@/features/workspace-ai/lib/research-skills"
 import { logger } from "@/lib/logger"
+import { z } from "zod"
+import { researchFormatDiagnostic } from "@/features/workspace-ai/server/research-format-diagnostics"
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
 import { ID,WORKSPACE,particle,graph } from "./fixtures/particle-fixtures"
 const target={organizationId:WORKSPACE,objectiveId:ID(1),revision:0}
@@ -127,7 +129,28 @@ describe("source-free provider failure diagnostics",()=>{
     const value=await run({config})
     expect(value.result).toBeNull();expect(value.usage.input).toBe(300)
     expect(mocks.create).toHaveBeenCalledTimes(3)
-    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r3",round:3,category:"validation",reason:"format"})
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{runId:request.id,responseId:"r3",round:3,category:"validation",reason:"format",format:"json"})
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("PRIVATE")
+  })
+
+  it("identifies schema rejection without logging model values, unknown keys or exception messages",async()=>{
+    mocks.create.mockResolvedValueOnce(stream("r1",output(JSON.stringify({...draft,items:[{...draft.items[0],kind:"PRIVATE invented kind",description:"PRIVATE ".repeat(300),"PRIVATE field":"PRIVATE value"}]}))))
+    const value=await run()
+    expect(value.result).toBeNull();expect(value.usage).toEqual({input:100,cachedInput:10,output:20,webSearchCalls:0})
+    expect(mocks.create).toHaveBeenCalledTimes(1)
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith("workspace_research_provider_failure",{
+      runId:request.id,responseId:"r1",round:1,category:"validation",reason:"format",format:"schema",
+      issues:expect.arrayContaining([{code:"too_big",path:["items","[]","description"]},{code:"invalid_value",path:["items","[]","kind"]},{code:"unrecognized_keys",path:["items","[]"]}]),
+    })
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain("PRIVATE")
+  })
+
+  it("bounds diagnostics and replaces model-selected path segments",()=>{
+    const error=new z.ZodError(Array.from({length:20},()=>({code:"custom",path:["items",123,"form","PRIVATE record key","PRIVATE nested key",1,"PRIVATE overflow"],message:"PRIVATE validation message"})))
+    const diagnostic=researchFormatDiagnostic(error,"schema")
+    expect(diagnostic).toEqual({format:"schema",issues:Array.from({length:6},()=>({code:"custom",path:["items","[]","form","[field]","[field]","[]"]}))})
+    expect(JSON.stringify(diagnostic)).not.toContain("PRIVATE")
+    expect(researchFormatDiagnostic(new Error("PRIVATE runtime failure"),"schema")).toEqual({format:"schema"})
   })
 
   it("distinguishes invalid relationships without logging rejected source IDs",async()=>{
