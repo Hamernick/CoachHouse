@@ -1,5 +1,7 @@
 # Organization closure: isolated restore replay
 
+**Deferred from current MVP — explicit user decision, November3.** This is archived follow-up guidance, not an active continuation task or current release blocker. Preserve its code/evidence; do not provision independent storage, run hosted restore drills or resolve recovery-only operator privileges unless explicitly reopened. Organization closure remains unavailable. Normal live authorization/revocation and AI run/save recovery remain required. [Current scope decision](../plans/2026-10-27-particle-system-execution-spec.md#mvp-scope-decision--recovery-deferred-november-3).
+
 This operator-only procedure qualifies one local recovery mechanic: replay a
 supported closing snapshot through existing shutdown triggers while the restored
 database cannot accept new connections. It does **not** authorize reopening,
