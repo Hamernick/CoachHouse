@@ -25,6 +25,16 @@ Next: run hosted required checks on the final revision, obtain required independ
 
 Rollback: revert application code while retaining the additive column and captured progress. Do not drop customer step data. After all new clients are retired, the two new RPCs can be revoked/dropped separately; existing code does not depend on them. Never reset notes/submissions/status as rollback.
 
+## Live incident and migration recovery
+
+After the prior handoff, PR366 was merged externally at 22:53:50 UTC (`9f9afc2f9e7e1546e045c9f20f2446f6d393cdc5`); the intended coachhouse deployment reports success at 22:56:20 UTC. The required database migration had not been applied. The new dashboard query selected absent `module_progress.step_progress` and failed closed, producing the dashboard error boundary. Production page-health records show the affected owner repeatedly encountering `/workspace` errors after deployment, with digest `2247880048`; this client digest alone does not expose the underlying server exception. No evidence links video playback or granting edit access to the schema failure.
+
+Recovery verified by November3 at 00:38 UTC (November2 local). The user explicitly directed applying the migration. Applied the exact merged `20261102220000_durable_learning_progress.sql` to the existing production project in one transaction, with 5-second lock / 30-second statement timeouts, a guarded migration-history insert, and PostgREST schema reload. Existing progress fields were fingerprinted under the table lock and asserted unchanged before commit. Independent readback confirms: column and both invoker/RLS functions present, authenticated execution allowed, anonymous execution denied, migration version recorded, all 200 existing progress records unchanged, and submission count still107. The direct PostgREST column query with the public key and limit0 succeeds; this proves API schema availability, not authenticated dashboard recovery.
+
+Private receipts: `before-required-migration.json`, `migration-application-receipt.json`, `required-migration-readback.json`, `postgrest-schema-readback.json`, and exact `applied-required-migration.sql` in the existing private evidence directory. No customer-history backfill, notes edit, assignment edit, role/access change or account impersonation. Ask the affected users to refresh and confirm dashboard access. The original approximately27% remains unverified and is not restored by inventing history.
+
+This section supersedes earlier pre-deployment status below. No application hotfix was needed to apply the already merged migration. The missing-schema incident is repaired at the database/API level; live acceptance remains pending.
+
 ## Verified findings
 
 - Exact Auth email/name resolves to the ordinary member who owns the affected organization. There are three completed module-progress records from October21 and no assignment-submission rows for this identity. Current reads do not establish whether older submissions ever existed.
@@ -196,3 +206,97 @@ Run SQL/RLS/concurrency cases in a disposable database, then focused browser cas
 6. If the release fails, revert the application while retaining populated new columns and private recovery evidence. Do not drop the new field or undo historical data by overwriting newer customer work; any data rollback requires an exact scoped comparison.
 
 The three fixes are complete only with working UI/save/reload behavior, appropriate local and hosted evidence, and separately recorded production acceptance. Until then, report the exact outstanding gate.
+
+
+## Platform edge-case audit — November 2 follow-up
+
+User requested a wider bug hunt after migration recovery. Scope: original `01-production-stability.md`, stage 1 diagnosis across dashboard, Accelerator storage/progress, organization invitations, document saves, auth/recovery, billing/webhooks and route aliases. Fetched main `9f9afc2f9e7e1546e045c9f20f2446f6d393cdc5`; `git diff HEAD origin/main --stat` is empty at investigation head `f856359a`. Reused this isolated lane for inspection and ignored reproductions; no application changes, production writes, new release slice or SHIP changes.
+
+### Confirmed findings
+
+| Priority | Trigger and observed behavior | Evidence | Narrow repair |
+| --- | --- | --- | --- |
+| P1 | Accelerator mounts with browser storage blocked or full: unguarded storage effects throw and reach the React error boundary. Storage is optional because acknowledged learning records are server-owned. | Actual `useWorkspaceAcceleratorCardController` bundled into Chromium: normal storage renders; throwing localStorage getter and quota-exceeded setItem each render the error boundary. Source: controller lines 98, 281–297. | Make optional position/cache reads and writes failure-tolerant; retain server acknowledgement requirements and do not discard recovery drafts. Verify blocked reads, quota errors and ordinary reload. |
+| P2 | Dashboard error screen offers Organization as its fallback, but `/organization` redirects to `/workspace`. Persistent workspace failure returns the user to the same failing route. | `src/app/(dashboard)/error.tsx:39`, `organization/page.tsx:12`; real alias behavior passes in `workspace-route-aliases.test.ts`. Progress read failures also reject the workspace-wide Promise.all. | Offer an independently loadable recovery destination; isolate failed Accelerator loading within its surface with retry and saves disabled until a valid read. Never substitute zero progress. |
+| P2 | An unconsumed invite can overwrite an existing member's newer role. Membership upsert and marking the invite accepted are separate operations; a partial acceptance or another invitation path can leave the older invite available. | Actual acceptance action, mocked transport: current staff membership plus pending member invite returns success and writes member. `invites-acceptance.ts:84–106`. Production snapshot: one live unconsumed invite, zero targeting an existing member, zero role mismatches. | Atomically consume a valid invite and add membership without overwriting an existing role; cover retries, changed/revoked invite and partial-failure cases. Review equivalent access-request acceptance path. |
+
+These reproduce mechanisms, not evidence that blocked storage or stale invites caused the reported incident. No customer role/data repair was performed.
+
+### Verification and limits
+
+- Existing focused suites: 25 files, 333 cases; 331 pass, two failures at `document-controller-polling.test.ts:104`.
+- Those two failures are stale test fixtures: mock editor lacks `doc.eq`/`schema.nodeFromJSON`, and mock session lacks `section_content`. The current acknowledgement guard correctly fails closed. An isolated fixture-only control supplies those acknowledgement members; all six polling tests pass without changing application code. This control is not a real-editor end-to-end test.
+- Additional invite reproduction and the fixture control: 28 cases pass, including reused cases; do not add these to the 333 distinct existing-case count.
+- Chromium storage audit: normal control passes, both injected storage failures reproduce the crash. Used the webapp-testing skill for native Python Playwright execution against bundled actual hook code with synthetic data; no authenticated customer browser use.
+- Production migration history has 285 versions; every migration version in current main is present. This is version parity, not proof of every historical SQL body or every provider contract.
+- Read-only page-health query at approximately November 3 01:24 UTC: no recorded events after the recovery. Latest stored incident events remain November 2 23:31 UTC. Absence of telemetry is not affected-user acceptance.
+- Other November 2 telemetry leads: one chunk-load failure, one React #310 error, one public-profile React #418 error, two ResizeObserver errors and one generic load rejection. No reproductions or exact causes established; do not combine these with the confirmed findings or infer outage counts from event counts.
+- Authenticated production journeys, email delivery, real Stripe checkout, provider integrations and full platform/browser coverage were not exercised. Required hosted quality/review/release gates remain separate.
+
+Private receipts remain under `~/.local/share/coach-house/production-investigation-20261102/`: `audit-schema-inventory.json`, `audit-health-recent.json`, `audit-invite-exposure.json`, `audit-storage-bundle.cjs`, `audit-storage.py`, `audit-storage-results.json`. Ignored `test-results/platform-audit/` contains the fixture control, invite reproduction and explicit Vitest config. Node22 focused runs are recorded above; original tests and application source remain unchanged.
+
+Next repair order: storage crash protection and dashboard recovery, then transactional invite acceptance; correct the two stale polling fixtures without weakening acknowledgement checks. This audit is local documentation/evidence only, with no new PR or deployment. Affected-user authenticated refresh confirmation and separately reviewed historical progress recovery remain open.
+
+
+## Urgent patch plan and disruption review — November 2
+
+User requested a concrete fix/ship plan, then asked for a zero-disruption check. This is a plan and source-level risk review, not implementation or release acceptance. Zero production risk cannot be guaranteed. Current audited source remains main `9f9afc2f`; re-fetch before implementation. Preserve this lane's uncommitted incident/audit documentation and create the implementation lane from current main; do not reset the dirty root or overwrite other workstreams. Original01 stage1/4 scoped repair; SHIP40 ownership state remains unchanged.
+
+### Release A — smallest urgent application patch
+
+1. In `src/features/workspace-accelerator-card/hooks/use-workspace-accelerator-card-controller.ts`, guard every optional browser-storage read/write/removal, including access to `window.localStorage` itself. Keep existing key names, formats, organization/account scope, step identifiers and server acknowledgement rules. A failed cache write must not block navigation or turn a successful server save into failure. Do not clear storage, migrate draft keys or alter notes/assignment persistence.
+2. In `src/app/(dashboard)/error.tsx`, retain Retry and replace the `/organization` loop with an accurately labelled support/recovery destination. Use existing `/status` (outside the dashboard route group) with a full document navigation, and verify its root/header dependencies under an injected workspace failure. The page explicitly says automated status reporting is unavailable; do not label it live health or make a new status system. Preserve existing shared accessible controls; no automatic logout or forced reload while users are working.
+3. Correct only missing acknowledgement members in `tests/acceptance/document-controller-polling.test.ts`. Match the actual editor/session contract; retain negative mismatch assertions so the fix cannot weaken false-save protection.
+4. Extend existing behavior tests with normal storage, blocked getter/read, quota-exceeded write, failed removal and malformed data. Reuse the actual-hook Chromium reproduction for before/after evidence. Check server-acknowledged progress survives reload, a rejected save cannot advance, duplicate clicks share one request, and changing organization during a pending response cannot update the new context.
+5. Exercise the actual dashboard error UI and its destination with workspace failure injected. Check mobile and desktop keyboard behavior, successful Retry after recovery, and unaffected successful dashboard loading. Use synthetic accounts/data; production customer identities are not test fixtures.
+
+Release A changes no database schema, membership role, billing contract, progress calculation, saved notes or assignment format. It leaves broader workspace failure isolation for Release C below. Changes should be one small PR with focused Node22 lint/types/tests, normal pre-push and required current-head hosted quality/review. Review only affected visual baselines if the recovery control intentionally changes them; never weaken thresholds.
+
+### Release B — invitation integrity, separate migration and PR
+
+1. Replace the separate membership upsert/invite-consumption writes in `organization-access/invites-acceptance.ts` with an atomic database operation. Cover the equivalent acceptance path in `organization-access/requests.ts`; otherwise users can reach the same overwrite through in-app requests.
+2. In the transaction, lock/revalidate the current invite or request; verify authenticated recipient, confirmation requirements, organization, permitted role, expiration and active state. Insert membership only if absent. Existing membership role and created_at remain authoritative; return the actual current role. Retries must not recreate a revoked member from a consumed invitation. Keep explicit owner role-management actions separate.
+3. Coordinate acceptance with existing revoke/update operations using conditional state transitions/locking. Two acceptances, revoke-versus-accept and role-change-versus-accept need deterministic outcomes. Current valid onboarding, active-organization selection, directory entries and notifications must still work after commit; do not send duplicate mail as part of testing.
+4. Add an additive migration with narrowly scoped grants and explicit server authorization. Run real disposable-PostgreSQL/RLS tests for wrong recipient, expired/invalid/revoked invite, duplicate acceptance, existing higher/lower role, concurrent accept/revoke, and injected failure between membership and consumption. Verify both committed together or neither did.
+5. Prove old deployed application compatibility before applying the migration. Old application callers must continue functioning during rollout; new app deployment waits for independent live function/signature/grant readback. Do not assume migration history alone proves readiness. No bulk membership repair or invite replay is included.
+
+The audit's production snapshot found no current mismatched pending invite/member, so Release B must not delay Release A. No claim that all races or historical memberships are unaffected is supported by that snapshot.
+
+### Release C — isolate Accelerator loading failures
+
+This is a bounded resilience follow-up, not a prerequisite for Release A. Current workspace composition uses progress for metrics, module partitioning, timeline construction and board hydration. Returning empty groups/zero totals would flow through `hydrateWorkspaceSeedAcceleratorState`, replace active/completed display state and could contaminate subsequent board persistence.
+
+Introduce an explicit unavailable state through the existing workspace seed/card boundary. Preserve the last saved board state; do not synthesize zero progress or mount editable lesson controls until a valid read succeeds. Keep independent workspace tools available, show a scoped retry, and prove that any unrelated board save during the outage preserves accelerator state exactly. Tests must cover failed first load, failed refresh after prior success, recovery, support/member scope and concurrent board edits. Do not combine this state-contract change with the emergency storage guard.
+
+### Release checklist and rollback
+
+- Before each PR: record exact source revision, failing-before/passing-after evidence and scoped checks. Reuse the 333-case audit as baseline only where files/contracts remain unchanged; run affected dependent cases after changes. Complete hosted quality and branch-protection/review requirements remain mandatory.
+- Validate old open tabs plus a newly loaded tab across the candidate deployment, using controlled test accounts with synthetic drafts. No forced sign-out, cache purge or auto-refresh. A deployment can still affect an in-flight server action; verify recoverable errors retain drafts and do not falsely acknowledge saves.
+- Before production promotion: pin the known-good deployed revision as rollback target. Release A has no migration; verify its required existing progress schema/RPCs read-only. For Release B, apply the reviewed additive migration first, then independently read back schema, signatures, grants and representative unchanged membership records before deploying its callers.
+- After promotion: verify the intended production project/revision, authenticated owner and invited-member dashboard access, successful progress save/reload, notes retention and recovery navigation with a controlled account. Monitor route errors and failed-save signals; a quiet telemetry stream alone is not acceptance. Obtain affected users' refresh confirmation without editing their records or sending messages unless instructed.
+- Roll back the application on new access failures, crashes or save regressions. Preserve all customer data and additive schema. For Release B, rolling back app code restores the previous invitation weakness; stop and assess invite acceptance safely rather than deleting memberships, replaying invitations or dropping schema. Any data repair requires exact reviewed affected records.
+- Release completion means required checks/review plus deployment verification and specified live acceptance. Until the patch exists and these checks run, mark disruption risk as assessed, not eliminated, and deployment readiness as unproven.
+
+Current status: plan saved; no patch implementation, database mutation, new PR, deployment or user-disruption guarantee. Existing migration recovery remains intact. Recommended order: Release A immediately after its gates, Release B next, Release C after its explicit state/persistence proof.
+
+
+## Release A implementation — November 2
+
+Active branch `fix/dashboard-storage-recovery-20261102`, worktree `/Users/calebhamernick/Development/coach-house-platform-dashboard-recovery-20261102`, base main `9f9afc2f`. Earlier investigation checkout and its local incident evidence remain preserved. This section owns the active implementation handoff; earlier audit/plan descriptions are historical states.
+
+Implemented only Release A:
+
+- Optional Accelerator position/completion-cache operations now tolerate blocked storage access, read errors, quota exhaustion and failed removal. Keys, formats, learner/org scoping, server acknowledgement, step/whole-module completion and notes/assignment drafts retain their contracts.
+- The dashboard error screen retains Retry and uses a full-document link to the existing public `/status` support page. This exits the failed dashboard route tree. Both controls have minimum44px height, shared Button styles, native semantics and focus behavior consistent with `docs/design.md`. The scoped anchor lint exception documents why this recovery action intentionally uses full navigation.
+- Polling tests now use actual ProseMirror document/schema equality plus the session's section_content. Added document/version/content mismatch cases; unsaved state stays protected. No document-controller application code changed.
+
+Validation at this working revision:
+
+- `pnpm exec vitest run tests/acceptance/workspace-accelerator-storage.test.ts tests/acceptance/document-controller-polling.test.ts tests/acceptance/accelerator-progress-persistence.test.ts tests/acceptance/durable-learning-progress.test.ts tests/acceptance/public-status-page.test.ts tests/acceptance/workspace-route-aliases.test.ts tests/acceptance/organization-document-write-safety.test.ts tests/acceptance/organization-document-collaboration.test.ts`:59cases pass.
+- Changed-file ESLint, TypeScript `pnpm exec tsc --noEmit`, `pnpm check:structure`, `pnpm check:workspace-storage`, manifest update and diff hygiene pass. Initial fresh-checkout type run preceded Next's generated image declarations; rerun after normal Next generation passes, without app/config/type changes. Structure emits existing near-budget warnings.
+- Actual React-hook Chromium run:11save/recovery scenarios pass, including failed saves, reload retention, conflict choices, duplicate step requests and scope switches. Before/after optional-storage harness: blocked getter and full quota previously crashed; all three patched cases (including normal control) render successfully.
+- Actual DashboardError component + shared app CSS, injected render failure: keyboard Retry recovers; keyboard Get help performs document navigation to the real local Next `/status`, HTTP200, with workspace requests deliberately blocked. Mobile390px, desktop1440px, wide2560px and mobile dark mode pass touch-target/overflow checks. [Mobile](../review/dashboard-recovery-mobile.png), [dark](../review/dashboard-recovery-mobile-dark.png), [desktop](../review/dashboard-recovery-desktop.png), [wide](../review/dashboard-recovery-wide.png). These are macOS review captures, not Linux visual baselines. No existing dashboard-error visual baseline was identified or replaced; required hosted visual checks remain.
+- Preview `http://localhost:3162` serves the actual recovery component with synthetic failure; Retry clears it, Get help navigates to real Next `http://localhost:3161/status`. Local Next uses synthetic non-production Supabase settings; no customer authentication or provider writes. Session87266 owns Next; preview session is recorded in the private execution receipt.
+- Browser receipts/scripts live privately under `~/.local/share/coach-house/dashboard-recovery-20261102/`. No customer content or credentials are included in tracked screenshots/tests.
+
+No schema/migration/authorization/billing/data edits. Invitation integrity (Release B), explicit unavailable-state isolation (Release C), authenticated deployed-candidate/open-tab acceptance and affected-user confirmation remain separate. Local evidence is not hosted quality, review or deployment proof. Next: Graphify maintenance, normal pre-push, PR and required current-head release gates; preserve records and the additive migration during any app rollback.

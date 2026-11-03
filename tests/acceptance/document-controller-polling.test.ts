@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Editor } from "@tiptap/core"
+import { Schema } from "@tiptap/pm/model"
 import type { DocumentSyncResult, DocumentTransport } from "@/features/organization-document-collaboration/types"
 
 // Execute the controller's real callbacks/effects with persistent hook slots.
@@ -41,10 +42,14 @@ import { useOrganizationDocumentCollaborationController } from "@/features/organ
 
 let page: EventTarget & { visibilityState: string }
 const scope = { organizationId: "org", sectionId: "origin" }
+const schema = new Schema({ nodes: {
+  doc: { content: "paragraph+" }, paragraph: { content: "text*" }, text: {},
+} })
+const savedDocument = schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Saved")])])
 const loaded = (canEdit = true, session = true) => ({
   userId: "user", capabilities: { canEdit }, participants: [],
   section: { content: "Saved", budgetRows: [], lastUpdated: "revision" },
-  session: session ? { generation: "generation", version: 0, steps: [], document: { type: "doc" } } : null,
+  session: session ? { generation: "generation", version: 0, steps: [], document: savedDocument.toJSON(), section_content: "Saved" } : null,
 }) as unknown as DocumentSyncResult
 
 async function setup(canEdit = true, session = true) {
@@ -61,7 +66,7 @@ async function setup(canEdit = true, session = true) {
   let controller = TestController()
   const chain = { setContent: vi.fn().mockReturnThis(), setMeta: vi.fn().mockReturnThis(), run: vi.fn() }
   const editor = { isDestroyed: false, chain: () => chain, registerPlugin: vi.fn(),
-    state: { doc: { descendants: vi.fn() }, selection: { anchor: 0, head: 0 }, tr: { setMeta: vi.fn() } },
+    state: { doc: savedDocument, schema, selection: { anchor: 0, head: 0 }, tr: { setMeta: vi.fn() } },
     view: { dispatch: vi.fn() }, getHTML: () => "Local copy", on: vi.fn(), off: vi.fn(),
   } as unknown as Editor
   await controller.onReady(editor)
@@ -81,6 +86,18 @@ afterEach(() => {
 })
 
 describe("document controller polling regressions", () => {
+  it.each(["document", "section_content", "version"] as const)("retains unsaved state when acknowledgement %s differs", async field => {
+    const { controller, sync, render } = await setup()
+    const result = loaded() as Exclude<DocumentSyncResult, { error: string }>
+    if (field === "document") result.session!.document = schema.node("doc", null, [schema.node("paragraph")]).toJSON()
+    if (field === "section_content") result.session!.section_content = "Other content"
+    if (field === "version") result.session!.version = 1
+    sync.mockResolvedValue(result)
+    expect(await controller.sync()).toBe(false)
+    expect(controller.dirty.current).toBe(true)
+    expect(render().status).toBe("Not saved")
+  })
+
   it.each([false, true])("uses one retry deadline across pending saves and focus (transport throws=%s)", async throws => {
     const { controller, sync } = await setup()
     editorMocks.pending = true; controller.dirty.current = true

@@ -4,7 +4,6 @@ import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { reportPageHealthError } from "@/components/providers/page-health-reporter"
-import Link from "next/link"
 
 export default function DashboardError({
   error,
@@ -30,13 +29,14 @@ export default function DashboardError({
             We hit a snag loading your dashboard
           </h1>
           <p className="text-muted-foreground mt-2 text-sm text-balance">
-            Try again in a moment or head back to Organization.
+            Try again in a moment or visit our support page for help.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button onClick={() => reset()}>Retry</Button>
-          <Button asChild variant="outline">
-            <Link href="/organization">Organization</Link>
+          <Button className="min-h-11" onClick={() => reset()}>Retry</Button>
+          <Button asChild variant="outline" className="min-h-11">
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Leave the failed dashboard tree with a full document navigation. */}
+            <a href="/status">Get help</a>
           </Button>
         </div>
       </div>
