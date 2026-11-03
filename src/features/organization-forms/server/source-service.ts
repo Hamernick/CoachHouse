@@ -10,7 +10,7 @@ export async function runFormSource(actorId: string | null, command: FormSourceC
     .rpc("organization_form_source_command", { p_actor_id: actorId, p_command: command })
   if (error) {
     if (error.code === "42501") throw new FormIntakeError(403, "Form editing is unavailable. Your draft is preserved.")
-    if (error.code === "40001" || error.code === "23505") throw new FormIntakeError(409, "This form changed. Review the saved form before saving.")
+    if (error.code === "PT409" || error.code === "40001" || error.code === "23505") throw new FormIntakeError(409, "This form changed. Review the saved form before saving.")
     if (error.code === "22023") throw new FormIntakeError(400, "Check this form and try again.")
     throw new FormIntakeError(503, write ? "Unable to confirm. Retry the same request." : "Unable to load the saved form.", write)
   }

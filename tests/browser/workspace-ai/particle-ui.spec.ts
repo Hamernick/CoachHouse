@@ -61,3 +61,32 @@ test("SDK portal follows light/dark theme and keyboard return, fits mobile, and 
   // SDK foundation is scoped: unrelated Tailwind typography/breakpoints stay intact.
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--breakpoint-sm").trim())).toBe("40rem")
 })
+
+
+test("Particle menu and nested status stay above positioned planning content for pointer and keyboard", async ({ page }) => {
+  await page.goto("/?revisions&stacked-menu")
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear() })
+  await page.reload()
+  const options = page.getByRole("button", { name: "Options for Workshop preparation", exact: true })
+  await options.click()
+  const rename = page.getByRole("menuitem", { name: "Rename", exact: true })
+  expect(await rename.evaluate(element => {
+    const bounds = element.getBoundingClientRect()
+    return element.contains(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2))
+  })).toBe(true)
+  await rename.click()
+  await expect(page.getByRole("textbox", { name: "Plan title", exact: true })).toBeFocused()
+  await page.getByRole("textbox", { name: "Plan title", exact: true }).press("Escape")
+  const objectiveOptions = page.getByRole("button", { name: "Options for Community workshop", exact: true })
+  await objectiveOptions.click()
+  await page.getByRole("menuitem", { name: "Status", exact: true }).hover()
+  await page.getByRole("menuitemradio", { name: "In progress", exact: true }).click()
+  await objectiveOptions.focus()
+  await objectiveOptions.press("Enter")
+  await page.getByRole("menuitem", { name: "Status", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  await expect(page.getByRole("menuitemradio", { name: "In progress", exact: true })).toHaveAttribute("aria-checked", "true")
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  await expect(objectiveOptions).toBeFocused()
+})

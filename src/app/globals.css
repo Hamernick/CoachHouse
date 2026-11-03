@@ -7,6 +7,12 @@
 @source "../../node_modules/@openai/apps-sdk-ui/dist/es";
 @particle-ui-foundation;
 
+/* Radix copies the SDK menu's unset z-index inline. Keep Particle menus above
+   the workspace's positioned panels, including nested portaled submenus. */
+[data-radix-popper-content-wrapper]:has(> [role="menu"] > .particle-ui-menu) {
+  z-index: 50 !important;
+}
+
 /* Preserve the SDK's 20px default while allowing enlarged text to reflow. */
 .particle-ui-textarea { --textarea-line-height: 1.25rem; }
 

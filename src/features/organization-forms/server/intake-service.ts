@@ -50,7 +50,7 @@ export async function runFormIntake(actorId: string | null, command: FormIntakeC
     if (error) {
       if (error.code === "P0002") throw new FormIntakeError(410, "This submission was deleted. It cannot be submitted again.")
       if (error.code === "42501") throw new FormIntakeError(403, "This form is no longer available to you.")
-      if (error.code === "40001") throw new FormIntakeError(409, "This response changed. Your edit is still here. Reload before saving again.")
+      if (error.code === "PT409" || error.code === "40001") throw new FormIntakeError(409, "This response changed. Your edit is still here. Reload before saving again.")
       if (error.code === "23505") throw new FormIntakeError(409, "This request was already used with different answers.")
       if (error.code === "22023") throw new FormIntakeError(400, "Check the form and try again.")
       if (error.code === "54000") throw new FormIntakeError(429, "This form is busy. Wait a minute and retry.")

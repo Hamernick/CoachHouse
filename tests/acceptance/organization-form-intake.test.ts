@@ -37,7 +37,7 @@ describe("native form intake boundaries", () => {
     await runFormIntake(id(1), { action: "correct", id: id(91), versionId: id(80), expectedRevision: 2, operationId: id(92), questionId: id(90), value: "Joanne" })
     expect(mocks.rpc.mock.calls[2][1].p_command).toMatchObject({ action: "correct", expectedRevision: 2, operationId: id(92), answers: response.answers })
   })
-  it.each([["42501",403,false],["40001",409,false],["23505",409,false],["54000",429,false],["network",503,true]])("maps %s without leaking provider details", async (code,status,uncertain) => {
+  it.each([["42501",403,false],["40001",409,false],["PT409",409,false],["23505",409,false],["54000",429,false],["network",503,true]])("maps %s without leaking provider details", async (code,status,uncertain) => {
     mocks.rpc.mockResolvedValueOnce({ data: version }).mockResolvedValueOnce({ error: { code, message: "private answer" } })
     await expect(runFormIntake(null, command)).rejects.toMatchObject({ status, uncertain })
   })
@@ -380,7 +380,7 @@ describe("isolated form source authoring", () => {
     mocks.auth.mockResolvedValue({ data: { user: null } })
     expect((await handleFormIntake(request(save))).status).toBe(401); expect(mocks.rpc).not.toHaveBeenCalled()
   })
-  it.each([["42501",403,false],["40001",409,false],["23505",409,false],["22023",400,false],["network",503,true]])("maps source error %s without disclosing database details", async (code,status,uncertain) => {
+  it.each([["42501",403,false],["40001",409,false],["PT409",409,false],["23505",409,false],["22023",400,false],["network",503,true]])("maps source error %s without disclosing database details", async (code,status,uncertain) => {
     mocks.rpc.mockResolvedValue({ error: { code, message: "Private graph" } })
     const result = await handleFormIntake(request(save))
     expect(result.status).toBe(status)

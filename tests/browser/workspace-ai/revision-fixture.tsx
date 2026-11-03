@@ -60,7 +60,7 @@ export function RevisionFixture() {
   const actions=useParticlePlans(scope,controls)
   const objective=graph.particles.find(particle=>particle.type==="objective")
   const newEntry=new URLSearchParams(window.location.search).has("new-objective")
-  return <main className="mx-auto max-w-xl space-y-3 bg-background p-4 text-foreground">
+  return <main className={`mx-auto max-w-xl space-y-3 bg-background p-4 text-foreground ${new URLSearchParams(window.location.search).has("stacked-menu") ? "relative z-10" : ""}`}>
     <p>Fictional revision fixture. Simulated research and browser persistence; no live AI or production connection.</p>
     <div className="flex flex-wrap gap-2"><Button onClick={()=>setOwner(!owner)}>{owner?"Use member role":"Use owner role"}</Button><Button onClick={()=>{
       const latest=current.current.particles.find(particle=>particle.id===objective?.id)
