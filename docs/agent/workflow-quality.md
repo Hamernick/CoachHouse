@@ -119,7 +119,8 @@ On the first turn of every new chat, before changing files:
 
 ## CI/CD And Environment
 
-- Single environment: `prod` (Supabase + Stripe test/live modes).
+- Environments: local development; hosted `coach-house-staging` (`zsgpmivauqfsnrqbrgqb`) with synthetic data; existing production (`vswzhuwjtgzrkxknrmxu`). Staging web hosting is prepared but not yet deployed; see the [current staging checkpoint](../plans/2026-10-27-particle-system-execution-spec.md#hosted-staging-and-phased-release-supplement--november-3).
+- Use explicit target checks and staging-only secrets; never inherit production Preview variables, clone customer data or treat staging qualification as production approval. Promotion requires reviewed versioned migrations, applicable checks and Caleb's release decision. Existing servers/configurations remain isolated.
 - Migrations must be versioned and reversible.
 - `pnpm check:quality` remains available for complete local diagnosis. Run it
   only when explicitly requested or needed to diagnose a specific CI failure.

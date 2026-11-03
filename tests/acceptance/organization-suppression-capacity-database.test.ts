@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 const templateUrl = process.env.ORGANIZATION_SUPPRESSION_CAPACITY_TEST_DATABASE_URL
 const migration = "supabase/migrations/20261103190000_organization_suppression_capacity.sql"
+const liveMigration = "supabase/migrations/20261103470000_organization_suppression_live_capture.sql"
 const env = { ...process.env, PGOPTIONS: "-c statement_timeout=15000 -c coach_house.workspace_sharing_fixture=isolated-test-only -c timezone=UTC" }
 let url: string, directory: string
 const dependencies = ["20261103040000_workspace_page_note_edit_scope.sql", "20261103070000_unpublished_form_collaboration.sql",
@@ -66,7 +67,7 @@ describe.skipIf(!templateUrl).sequential("organization suppression bounded capac
   sql(readFileSync(migration, "utf8"))
  }, 30_000)
  afterAll(() => {
-  if (directory) writeFileSync(join(directory,"proof.json"), JSON.stringify({url,directory,migration,sha256:createHash("sha256").update(readFileSync(migration)).digest("hex"),results},null,2))
+  if (directory) writeFileSync(join(directory,"proof.json"), JSON.stringify({url,directory,migration,sha256:createHash("sha256").update(readFileSync(migration)).digest("hex"),liveMigration,liveSha256:createHash("sha256").update(readFileSync(liveMigration)).digest("hex"),results},null,2))
  })
  it("accepts the final event and rejects overflow without a revocation or receipt", () => {
   const result = sql(`begin;${seed(999)}${revoke()}${revoke()}${reject(revoke(90002,91002).replace(/^select /,"perform "))}${checkState}rollback;`)
@@ -141,5 +142,41 @@ describe.skipIf(!templateUrl).sequential("organization suppression bounded capac
   expect(sql("select count(*) from public.organization_suppression_events",target.toString())).toBe("1001")
   expect(sql("select to_regprocedure('public.assert_organization_suppression_capacity()') is null and to_regprocedure('public.read_organization_suppression_events_before_capacity()') is null",target.toString())).toBe("t")
   results.push("oversized upgrade refused without history loss")
+ })
+
+ describe("MVP live capture after recovery export deferral", () => {
+  beforeAll(() => { sql(readFileSync(liveMigration,"utf8")) })
+  it("commits live revocation beyond 1000 events, preserves exact retry, and refuses oversized export", () => {
+   const result=sql(`begin;${seed(1001)}${revoke()}${revoke()}
+    ${reject("perform public.read_organization_suppression_events();")}${checkState}rollback;`)
+   expect(JSON.parse(result.split("\n").at(-1)!)).toMatchObject({count:1002,highWater:1002,revoked:true,receipts:1})
+   results.push("live revocation above1000 preserved with exact retry; exporter refuses")
+  })
+  it("does not use serialized export bytes to reject a live revocation", () => {
+   const result=sql(`begin;
+    alter function public.organization_suppression_event_json(public.organization_suppression_events) rename to fixture_original_event_json;
+    create function public.organization_suppression_event_json(e public.organization_suppression_events) returns jsonb language sql set search_path='' as $$
+     select public.fixture_original_event_json(e)||jsonb_build_object('fixturePadding',repeat('x',1048576));$$;
+    ${revoke()}${reject("perform public.read_organization_suppression_events();")}${checkState}rollback;`)
+   expect(JSON.parse(result.split("\n").at(-1)!)).toMatchObject({count:1,highWater:1,revoked:true,receipts:1})
+   results.push("live revocation survives oversized serialized history; exporter refuses bytes")
+  })
+  it("retains integrity rollback, immutable events, trigger shape and private ACLs", () => {
+   sql(`begin;update public.organization_suppression_capture_state set high_water=1;
+    ${reject(revoke().replace(/^select /,"perform "),"40001")}
+    ${checkState}rollback;`)
+   expect(JSON.parse(sql(checkState))).toMatchObject({count:0,highWater:0,revoked:false,receipts:0})
+   sql(`begin;${seed(1)}${reject("delete from public.organization_suppression_events;","42501")}
+    ${reject("truncate public.organization_suppression_events;","42501")}rollback;`)
+   for(const role of ["anon","authenticated","service_role"])
+    expect(sql(`select has_function_privilege('${role}','public.assert_organization_suppression_capacity()','execute')
+     or has_function_privilege('${role}','public.guard_organization_suppression_capacity()','execute')
+     or has_function_privilege('${role}','public.read_organization_suppression_events()','execute')
+     or has_table_privilege('${role}','public.organization_suppression_events','insert,update,delete,truncate')`)).toBe("f")
+   expect(sql(`select count(*) from pg_trigger where tgrelid='public.organization_suppression_events'::regclass
+    and tgname='organization_suppression_capacity' and tgfoid='public.guard_organization_suppression_capacity()'::regprocedure
+    and tgenabled='O' and tgtype::integer=4 and tgqual is null and tgnargs=0`)).toBe("1")
+   results.push("integrity rollback, immutability, statement trigger and private ACLs retained")
+  })
  })
 })

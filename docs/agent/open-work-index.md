@@ -1,5 +1,7 @@
 # Open Work Index
 
+**November3 staging/AI milestone:**401migrations installed on isolated hosted staging; actual AI proposal generated, recovered, applied and reopened.3provider calls/$0.022376;9of12approved attempts remain. Hosted web deployment is prepared pending exact approval; cached Storage revocation limitation and remaining C4–C7 gates are explicit. Owners use email-assisted organization deletion during MVP; self-service closure stays deferred. [Current checkpoint](../plans/2026-10-27-particle-system-execution-spec.md#hosted-staging-and-phased-release-supplement--november-3).
+
 **November3 MVP scope decision:** C1/C2 independent historical-restore/deletion-revocation infrastructure is explicitly deferred, not a current MVP blocker. Dependent C3 closure activation stays unavailable. Continue provisioned staging wiring and C5 AI qualification, then applicable C4/C6 acceptance and C7 handoff. Preserve live authorization/revocation and all existing evidence. [Authoritative scope decision](../plans/2026-10-27-particle-system-execution-spec.md#mvp-scope-decision--recovery-deferred-november-3).
 
 

@@ -31,6 +31,16 @@ describe("workspace provider boundary", () => {
   it("keeps document generation in text mode", async () => {
     await streamDocumentDraft(input())
     expect(mocks.create.mock.calls[0][0]).not.toHaveProperty("text")
+    expect(mocks.create.mock.calls[0][0]).not.toHaveProperty("prompt_cache_options")
+  })
+  it("disables implicit cache writes for the approved model in document and structured drafts", async () => {
+    const request = { ...input(), model: "gpt-6.1-sol" }
+    await streamDocumentDraft(request)
+    await streamWorkspaceDraft({ ...request, instructions: "Plan", textFormat: zodTextFormat(generatedPlanShape, "workspace_plan") })
+    for (const [params] of mocks.create.mock.calls) {
+      expect(params).toMatchObject({ service_tier: "default", prompt_cache_options: { mode: "explicit" } })
+      expect(JSON.stringify(params)).not.toContain("prompt_cache_breakpoint")
+    }
   })
   it("awaits preview authorization before consuming the next private delta", async () => {
     const order:string[]=[]

@@ -15,13 +15,18 @@ import { ResearchRecoveryError } from "./research-recovery"
 import { researchDataViewInstructions } from "../lib/research-data-view-instructions"
 
 type Config = ReturnType<typeof researchConfig>
+type ResearchProviderRequest = OpenAI.Responses.ResponseCreateParamsStreaming & {
+  prompt_cache_options?: { mode: "explicit" }
+}
 
 /** One request shape for admission and dispatch; schemas count toward input capacity. */
-export function researchProviderRequest(config: Config, messages: ResponseInputItem[], round = 0, repairUsed = false): OpenAI.Responses.ResponseCreateParamsStreaming {
+export function researchProviderRequest(config: Config, messages: ResponseInputItem[], round = 0, repairUsed = false): ResearchProviderRequest {
   const tools: Tool[] = !repairUsed && round < config.maxRounds - 1 ? knowledgeToolDescriptors.map(tool => ({
     type: "function", name: tool.name, description: tool.description, parameters: z.toJSONSchema(tool.providerInputSchema), strict: true,
   })) : []
-  return {model:config.tariff.model,store:false,stream:true,
+  return {model:config.tariff.model,store:false,stream:true,service_tier:"default",
+    // Explicit mode without breakpoints avoids unpriced cache writes on this model.
+    ...(config.tariff.model === "gpt-6.1-sol" ? {prompt_cache_options:{mode:"explicit" as const}} : {}),
     instructions:researchDataViewInstructions(researchFormOutputsEnabled() ? researchFormInstructions : researchInstructions, researchDataViewOutputsEnabled()),input:messages,tools,
     max_output_tokens:config.maxOutputTokens,include:["reasoning.encrypted_content"],
     text:{format:zodTextFormat(researchProviderOutputSchema(),"workspace_research")},

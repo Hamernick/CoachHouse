@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import OpenAI from "openai"
 import { getParticleCapabilities, researchPlanOperations } from "@/features/workspace-particles"
 import { generatedResearchSchema, providerResearchSchema, researchResultSchema } from "@/features/workspace-ai/research-types"
 import { applyResearchDraft, createResearchDraft } from "@/features/workspace-ai/lib/research-draft"
@@ -20,6 +21,29 @@ const report = (value: unknown) => process.stdout.write(`${JSON.stringify(value)
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value), "utf8")
 
 describe("offline generation capacity qualification", () => {
+  it("preserves Standard/no-cache settings through SDK serialization for initial, continuation and repair requests", async () => {
+    const config = researchConfig()
+    config.tariff.model = "gpt-6.1-sol"
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response("data: [DONE]\n\n", {
+      headers: { "content-type": "text/event-stream" },
+    }))
+    const client = new OpenAI({ apiKey: "offline-fixture-only", fetch, maxRetries: 0 })
+    for (const [round, repair] of [[0, false], [1, false], [2, true]] as const) {
+      const params = researchProviderRequest(config, [{ role: "user", content: "Synthetic plan" }], round, repair)
+      const stream = await client.responses.create(params)
+      for await (const event of stream) void event
+      const body = fetch.mock.calls.at(-1)?.[1]?.body
+      expect(typeof body).toBe("string")
+      expect(JSON.parse(body as string)).toMatchObject({ model: "gpt-6.1-sol", service_tier: "default", store: false,
+        prompt_cache_options: { mode: "explicit" } })
+      expect(body).not.toContain("prompt_cache_breakpoint")
+      expect(Buffer.byteLength(body as string)).toBe(bytes(params))
+    }
+    expect(fetch).toHaveBeenCalledTimes(3)
+    config.tariff.model = "fixture"
+    expect(researchProviderRequest(config, [])).not.toHaveProperty("prompt_cache_options")
+  })
+
   it.each([
     { name: "sparse objective", members: 0, dense: false, multilingual: false, admitted: true },
     { name: "selected twelve members", members: 12, dense: false, multilingual: false, admitted: true },

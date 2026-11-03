@@ -21,6 +21,8 @@ export async function streamWorkspaceDraft(input: DraftInput & { instructions: s
   const stream = await client.responses.create({
     model: input.model, instructions: input.instructions, input: input.context,
     max_output_tokens: input.maxOutputTokens, stream: true, store: false, service_tier: "default",
+    // No breakpoints: keep this model's cache-write premiums outside the uncached tariff.
+    ...(input.model === "gpt-6.1-sol" ? { prompt_cache_options: { mode: "explicit" as const } } : {}),
     ...(input.textFormat ? { text: { format: input.textFormat } } : {}),
   }, { signal: input.signal, headers: { "X-Client-Request-Id": input.requestId } })
   let text = ""
