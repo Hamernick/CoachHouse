@@ -1,5 +1,6 @@
 import type { createDocumentReplica } from "./document-replica"
 import type { DocumentRecoveryStore } from "./recovery-storage"
+import * as Y from "yjs"
 
 export type RecoveryWriteState = "pending" | "writing" | "ready" | "blocked" | "locked"
 /** Event-driven local durability. Explicit close/Save must await flush; a
@@ -39,7 +40,13 @@ export function createDocumentRecoveryJournal({ replica, store, onState }: {
     // Native edits, prepared receipt identity and acknowledgements each advance
     // the journal version. Network commits await this durability barrier.
     let recovery: ReturnType<typeof replica.captureRecovery>
-    try { recovery = replica.captureRecovery() }
+    try {
+      recovery = replica.captureRecovery()
+      // A generation can be replaced by Restore while this outbox is offline.
+      // Keep a bounded complete native snapshot for explicit export only;
+      // current-generation replay still uses the original batch/tail identity.
+      if (recovery.batch || recovery.tail) recovery.snapshot = Y.encodeStateAsUpdate(replica.document)
+    }
     catch (error) { blocked = true; report("blocked", error); throw error }
     report("writing")
     flight = Promise.resolve().then(() => store.save(recovery)).then(() => {

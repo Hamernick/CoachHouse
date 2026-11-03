@@ -20,7 +20,7 @@ export async function executePageAccess(input: unknown) {
   })
   if (error) {
     if (error.code === "42501") throw new WorkspaceSharingError("scope", "This page or invitation is unavailable for this account.")
-    if (error.code === "40001") throw new WorkspaceSharingError("conflict", "This page changed. Reload before saving.")
+    if (error.code === "PT409" || error.code === "40001") throw new WorkspaceSharingError("conflict", "This page changed. Reload before saving.")
     if (error.code === "22023" || error.code === "23505") throw new WorkspaceSharingError("invalid", "This request cannot be applied. Reload the page.")
     throw new WorkspaceSharingError("unavailable", "Unable to confirm. Retry the same request.", true)
   }

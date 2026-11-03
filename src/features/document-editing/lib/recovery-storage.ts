@@ -8,7 +8,7 @@ const OUTBOX = "outboxes"
 const KEYS = "account-keys"
 const storedSchema = recoveryScopeSchema.extend({
   iv: z.instanceof(Uint8Array).refine(value => value.byteLength === 12),
-  ciphertext: z.instanceof(ArrayBuffer).refine(value => value.byteLength <= 6 * 1024 * 1024),
+  ciphertext: z.instanceof(ArrayBuffer).refine(value => value.byteLength <= 9 * 1024 * 1024),
   updatedAt: z.iso.datetime(),
 }).strict()
 type StoredRecovery = z.infer<typeof storedSchema>
@@ -19,12 +19,14 @@ export interface DocumentRecoveryStore {
 function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     let blocked = false
-    const request = indexedDB.open(DATABASE, 1)
+    const request = indexedDB.open(DATABASE, 2)
     request.onupgradeneeded = () => {
       const database = request.result
-      database.createObjectStore(KEYS, { keyPath: "actorId" })
-      const outbox = database.createObjectStore(OUTBOX, { keyPath: ["actorId", "sessionId"] })
-      outbox.createIndex("document", ["actorId", "organizationId", "fileId", "generation"])
+      if (!database.objectStoreNames.contains(KEYS)) database.createObjectStore(KEYS, { keyPath: "actorId" })
+      const outbox = database.objectStoreNames.contains(OUTBOX)
+        ? request.transaction!.objectStore(OUTBOX) : database.createObjectStore(OUTBOX, { keyPath: ["actorId", "sessionId"] })
+      if (!outbox.indexNames.contains("document")) outbox.createIndex("document", ["actorId", "organizationId", "fileId", "generation"])
+      if (!outbox.indexNames.contains("file")) outbox.createIndex("file", ["actorId", "organizationId", "fileId"])
     }
     request.onerror = () => reject(request.error)
     request.onblocked = () => { blocked = true; reject(new Error("Close older document sessions before upgrading draft recovery.")) }
@@ -93,6 +95,26 @@ export async function openDocumentRecoveryStore({ client, scope: input }: {
     const documentKey = [scope.actorId, scope.organizationId, scope.fileId, scope.generation]
     return {
       close,
+      async listOtherGenerations() {
+        assertUnlocked()
+        const rows = await transact<unknown[]>(opened, OUTBOX, "readonly", (transaction, result) => {
+          const request = transaction.objectStore(OUTBOX).index("file").getAll(IDBKeyRange.only([scope.actorId, scope.organizationId, scope.fileId]), 41)
+          request.onsuccess = () => result(request.result)
+        })
+        assertUnlocked()
+        if (rows.length > 40) throw new Error("Too many retained drafts. Recover existing drafts before opening another.")
+        const recovered = []
+        for (const row of rows) {
+          const entry = storedSchema.parse(row)
+          if (entry.actorId !== scope.actorId || entry.organizationId !== scope.organizationId || entry.fileId !== scope.fileId)
+            throw new Error("This recovery record belongs to another file or account.")
+          if (entry.generation === scope.generation) continue
+          const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(entry.iv).buffer, additionalData: additionalData(entry) }, key, entry.ciphertext)
+          assertUnlocked()
+          recovered.push({ sessionId: entry.sessionId, updatedAt: entry.updatedAt, recovery: decodeDocumentRecovery(new Uint8Array(plaintext)) })
+        }
+        return recovered.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      },
       async list() {
         assertUnlocked()
         const rows = await transact<unknown[]>(opened, OUTBOX, "readonly", (transaction, result) => {
@@ -126,11 +148,12 @@ export async function openDocumentRecoveryStore({ client, scope: input }: {
         await transact<void>(opened, OUTBOX, "readwrite", transaction => {
           const store = transaction.objectStore(OUTBOX)
           const count = store.index("document").count(IDBKeyRange.only(documentKey))
+          const fileCount = store.index("file").count(IDBKeyRange.only([scope.actorId, scope.organizationId, scope.fileId]))
           count.onsuccess = () => {
             const existing = store.get([scope.actorId, scope.sessionId])
             existing.onsuccess = () => {
               const previous = existing.result ? storedSchema.safeParse(existing.result) : null
-              if ((count.result >= 20 && !existing.result) || (previous && (!previous.success ||
+              if (((count.result >= 20 || fileCount.result >= 40) && !existing.result) || (previous && (!previous.success ||
                 previous.data.organizationId !== scope.organizationId || previous.data.fileId !== scope.fileId ||
                 previous.data.generation !== scope.generation || previous.data.baseRevision !== scope.baseRevision))) transaction.abort()
               else store.put(entry)

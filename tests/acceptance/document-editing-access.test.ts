@@ -9,10 +9,10 @@ vi.mock("@/features/document-editing/lib/room-client", () => ({ readDocumentRoom
 const ORG = "00000000-0000-4000-8000-000000000001"
 const FILE = "00000000-0000-4000-8000-000000000002"
 const source = { provider: "coach_house" as const, organizationId: ORG, fileId: FILE }
-let client: { auth: { getUser: ReturnType<typeof vi.fn> } }
+let client: { auth: { getUser: ReturnType<typeof vi.fn> }; rpc: ReturnType<typeof vi.fn> }
 beforeEach(() => {
   vi.clearAllMocks()
-  client = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: ORG } }, error: null })) } }
+  client = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: ORG } }, error: null })) }, rpc: vi.fn(async () => ({ data: false, error: null })) }
   mocks.client.mockResolvedValue(client)
   mocks.access.mockResolvedValue({ orgId: ORG, supabase: client, role: "admin" })
   mocks.read.mockResolvedValue({ content: "Full source" })
@@ -27,7 +27,7 @@ describe("read-only shared window discovery", () => {
     const coachClient = { scoped: true }
     mocks.read.mockResolvedValue(snapshot); mocks.room.mockResolvedValue(room)
     mocks.access.mockResolvedValue({ orgId: ORG, supabase: coachClient, role: "admin" })
-    expect(await loadDocumentWindowView({ source })).toEqual({ viewerId: ORG, snapshot, shared: { state: "ready", room } })
+    expect(await loadDocumentWindowView({ source })).toEqual({ viewerId: ORG, editable: false, snapshot, shared: { state: "ready", room } })
     expect(mocks.read).toHaveBeenCalledWith(coachClient, source)
     expect(mocks.room).toHaveBeenCalledWith(client, source)
     expect(client.auth.getUser).toHaveBeenCalledOnce()
@@ -35,8 +35,20 @@ describe("read-only shared window discovery", () => {
 
   it("preserves complete saved source without bootstrapping a missing shared room", async () => {
     mocks.read.mockResolvedValue(snapshot)
-    expect(await loadDocumentWindowView({ source })).toEqual({ viewerId: ORG, snapshot, shared: { state: "absent" } })
+    expect(await loadDocumentWindowView({ source })).toEqual({ viewerId: ORG, editable: false, snapshot, shared: { state: "absent" } })
     expect(mocks.read).toHaveBeenCalledOnce(); expect(mocks.room).toHaveBeenCalledOnce()
+  })
+
+  it("enables only current direct editing rights and faithfully supported Markdown", async () => {
+    mocks.read.mockResolvedValue(snapshot)
+    client.rpc.mockResolvedValue({ data: true, error: null })
+    expect((await loadDocumentWindowView({ source })).editable).toBe(true)
+    expect(client.rpc).toHaveBeenCalledWith("can_edit_uploaded_document", { p_file_id: FILE })
+    mocks.read.mockResolvedValue({ ...snapshot, content: "<script>unsupported</script>" })
+    expect((await loadDocumentWindowView({ source })).editable).toBe(false)
+    mocks.read.mockResolvedValue(snapshot)
+    client.rpc.mockResolvedValue({ data: true, error: { code: "42501" } })
+    expect((await loadDocumentWindowView({ source })).editable).toBe(false)
   })
 
   it("labels direct-RLS errors and stale room metadata as saved-file fallback", async () => {

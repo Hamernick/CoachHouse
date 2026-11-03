@@ -3,6 +3,9 @@ import { IDBFactory, IDBKeyRange } from "fake-indexeddb"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 import * as Y from "yjs"
+import { prosemirrorJSONToYDoc } from "@tiptap/y-tiptap"
+import { markdownDocumentSchema } from "@/features/document-editing/lib/markdown-adapter"
+import { documentRecoveryExport } from "@/features/document-editing/lib/recovery-export"
 import { createDocumentReplica } from "@/features/document-editing/lib/document-replica"
 import { openDocumentRecoveryStore } from "@/features/document-editing/lib/recovery-storage"
 import { createDocumentRecoveryJournal } from "@/features/document-editing/lib/recovery-journal"
@@ -127,5 +130,63 @@ describe("local journal durability barriers",()=>{
     f.edit();const closing=journal.close();await settle();f.edit("during close");finish()
     await expect(closing).rejects.toThrow("changed while closing");expect(close).not.toHaveBeenCalled()
     await journal.close();expect(close).toHaveBeenCalledOnce();f.dispose()
+  })
+})
+
+
+describe("previous-generation recovery export", () => {
+  it("upgrades encrypted v1 records without changing their AAD, bytes, or actor/file scope", async () => {
+    const f = replicaFixture(); f.edit("Legacy ")
+    const recovery = f.replica.captureRecovery()
+    const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"])
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: new TextEncoder().encode(JSON.stringify(scope)) }, key, encodeDocumentRecovery(recovery))
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("coach-house-document-recovery", 1)
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore("account-keys", { keyPath: "actorId" })
+        request.result.createObjectStore("outboxes", { keyPath: ["actorId", "sessionId"] }).createIndex("document", ["actorId", "organizationId", "fileId", "generation"])
+      }
+      request.onerror = () => reject(request.error); request.onsuccess = () => resolve(request.result)
+    })
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(["account-keys", "outboxes"], "readwrite")
+      transaction.objectStore("account-keys").put({ actorId: scope.actorId, key })
+      transaction.objectStore("outboxes").put({ ...scope, iv, ciphertext, updatedAt: "2026-10-14T00:00:00Z" })
+      transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error)
+    }); database.close()
+    const auth = authFixture()
+    const store = await openDocumentRecoveryStore({ client: auth.client, scope: { ...scope, generation: id(7), sessionId: id(8), baseRevision: "restored" } })
+    expect(await store.list()).toEqual([])
+    const older = await store.listOtherGenerations()
+    expect(older).toHaveLength(1)
+    expect(older[0].recovery).toEqual(recovery)
+    expect(documentRecoveryExport(older[0].recovery).name).toBe("document-recovery-data.json")
+    const otherFile = await openDocumentRecoveryStore({ client: authFixture().client, scope: { ...scope, fileId: id(9) } })
+    expect(await otherFile.listOtherGenerations()).toEqual([]); otherFile.close()
+    const otherActor = await openDocumentRecoveryStore({ client: authFixture(id(9)).client, scope: { ...scope, actorId: id(9) } })
+    expect(await otherActor.listOtherGenerations()).toEqual([]); otherActor.close()
+    auth.logout(); await expect(store.listOtherGenerations()).rejects.toThrow("locked"); f.dispose()
+  })
+
+  it("exports the complete native snapshot as Markdown without replaying it into another generation", () => {
+    const document = prosemirrorJSONToYDoc(markdownDocumentSchema(), { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Complete offline draft" }] }] }, "content")
+    const snapshot = Y.encodeStateAsUpdate(document); document.destroy()
+    const recovered = decodeDocumentRecovery(encodeDocumentRecovery({ batch: null, tail: null, snapshot }))
+    expect(documentRecoveryExport(recovered)).toMatchObject({ name: "recovered-document.md", content: "Complete offline draft" })
+    const f = replicaFixture(); const current = createDocumentReplica(f.initial, recovered)
+    expect(current.document.getText("content").toString()).toBe("Seed")
+    current.dispose(); f.dispose()
+  })
+
+  it("retains three bounded native blobs above the former two-blob encrypted limit", async () => {
+    const native = new Y.Doc(); native.getText("content").insert(0, "x".repeat(1_600_000))
+    const update = Y.encodeStateAsUpdate(native); native.destroy()
+    const store = await openDocumentRecoveryStore({ client: authFixture().client, scope })
+    await store.save({ batch: { id: id(6), update }, tail: update, snapshot: update })
+    const [record] = await store.list()
+    expect(Buffer.from(record.recovery.snapshot!).equals(Buffer.from(update))).toBe(true)
+    await expect(store.save({ batch: null, tail: update, snapshot: new Uint8Array(2 * 1024 * 1024 + 1) })).rejects.toThrow()
+    store.close()
   })
 })

@@ -1,4 +1,32 @@
 import { test, expect } from "@playwright/test"
+
+test("invitation acceptance waits for the initial authority read and submits once", async ({ page }) => {
+  await page.goto("/?sharing")
+  await page.getByRole("button", { name: "Preview", exact: true }).click()
+  await page.getByRole("button", { name: "Share privately", exact: true }).click()
+  await page.getByRole("button", { name: "People", exact: true }).click()
+  await page.getByRole("textbox", { name: "Email", exact: true }).fill("person7@example.org")
+  await page.getByRole("combobox", { name: "Access", exact: true }).selectOption("edit")
+  await page.getByRole("button", { name: "Create invitation" }).click()
+  await expect(page.getByRole("list", { name: "Page invitations" })).toContainText("person7@example.org")
+  const { pageId, invitationId } = await page.evaluate(() => ({
+    pageId: JSON.parse(localStorage.getItem("sharing-canvas-fixture")!).pages[0].id,
+    invitationId: JSON.parse(localStorage.getItem("sharing-guests-fixture")!).invites[0].id,
+  }))
+  await page.goto(`/?guest=${pageId}&person=7&invite=${invitationId}&hold-guest-read`)
+  const accept = page.getByRole("button", { name: "Accept invitation", exact: true })
+  await expect(accept).toBeDisabled()
+  await expect(page.getByText("Loading shared page…", { exact: true })).toBeVisible()
+  await page.evaluate(() => window.dispatchEvent(new Event("release-guest-read")))
+  await expect(page.getByRole("alert")).toContainText("unavailable")
+  await expect(accept).toBeEnabled()
+  await accept.click()
+  await expect(page.getByRole("textbox", { name: "Title", exact: true })).toBeVisible()
+  const accepts = await page.evaluate(() => JSON.parse(localStorage.getItem("sharing-guests-fixture")!).calls
+    .filter((command: { action: string }) => command.action === "accept"))
+  expect(accepts).toHaveLength(1)
+})
+
 test("review a private page, invite an editor, save once, then revoke", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto("/?sharing")

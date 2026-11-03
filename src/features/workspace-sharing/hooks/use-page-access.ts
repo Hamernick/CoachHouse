@@ -8,7 +8,9 @@ import type { PageAccessCommand, PageAccessData } from "../lib/page-access"
 export function usePageAccess(pageId: string) {
   const [data, setData] = useState<PageAccessData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  // The first authority read starts in an effect. Lock the initial render too,
+  // so an early Accept click cannot be discarded by that read's busy guard.
+  const [pending, setPending] = useState(true)
   const [signIn, setSignIn] = useState(false)
   const [readVersion, setReadVersion] = useState(0)
   const [editVersion, setEditVersion] = useState(0)

@@ -30,8 +30,8 @@ export function createDocumentWindowOwner({ source, client, load }: {
     if (!closed) loaded = result
     return result
   } })
-  let state: DocumentReadState & { session: DocumentEditorSession | null; sharedUnavailable: boolean } = {
-    ...reader.getSnapshot(), session: null, sharedUnavailable: false,
+  let state: DocumentReadState & { session: DocumentEditorSession | null; sharedUnavailable: boolean; editable: boolean } = {
+    ...reader.getSnapshot(), session: null, sharedUnavailable: false, editable: false,
   }
 
   function releaseSession() {
@@ -65,7 +65,7 @@ export function createDocumentWindowOwner({ source, client, load }: {
     else if (!sharedReady && (sharedState?.status === "blocked" || sharedState?.status === "offline")) fallback = true
     const sharedUnavailable = next.status === "ready" && (loaded?.shared.state === "unavailable" || fallback)
     if (state.status === next.status && state.snapshot === next.snapshot && state.session === session && state.sharedUnavailable === sharedUnavailable) return
-    state = { ...next, session, sharedUnavailable }
+    state = { ...next, session, sharedUnavailable, editable: next.status === "ready" && loaded?.editable === true }
     for (const listener of listeners) listener()
   }
   const detach = reader.subscribe(update)
@@ -75,7 +75,7 @@ export function createDocumentWindowOwner({ source, client, load }: {
     releaseSession()
     loaded = null
     reader.close()
-    state = { ...reader.getSnapshot(), session: null, sharedUnavailable: false }
+    state = { ...reader.getSnapshot(), session: null, sharedUnavailable: false, editable: false }
     detach()
     listeners.clear()
   }

@@ -61,7 +61,7 @@ export function ParticleInspector(props: Parameters<typeof ParticleMetadataInspe
     return <NotesEditor initialNote={initialNote} organizationId={props.particle.workspaceId} editable={props.editable} onClose={props.onClose} onDirtyChange={props.onDirtyChange} />
   }
   const source = particleFileEditingSource(props.particle)
-  if (source) return <DocumentFileWindow key={`${source.organizationId}:${source.fileId}`} source={source} label={props.particle.title} onClose={props.onClose} />
+  if (source) return <DocumentFileWindow key={`${source.organizationId}:${source.fileId}`} source={source} label={props.particle.title} onClose={props.onClose} onDirtyChange={props.onDirtyChange} />
   return <ParticleMetadataInspector {...props} />
 }
 

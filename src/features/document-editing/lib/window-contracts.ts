@@ -5,6 +5,7 @@ import { roomSchema } from "./room-contracts"
 /** Read-only capability. No bootstrap, recovery replay or write authority. */
 export const documentWindowSchema = z.object({
   viewerId: z.uuid(),
+  editable: z.boolean().optional(),
   snapshot: documentSnapshotSchema,
   shared: z.discriminatedUnion("state", [
     z.object({ state: z.literal("absent") }).strict(),

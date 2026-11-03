@@ -3,7 +3,7 @@ import { z } from "zod"
 import type { Database } from "@/lib/supabase"
 import type { DocumentSource } from "../types"
 import type { DocumentRoom } from "./room-contracts"
-import { roomSchema } from "./room-contracts"
+import { roomSchema, ROOM_UPDATE_BYTES } from "./room-contracts"
 import { documentSourceSchema } from "./contracts"
 import type { DocumentRoomTransport } from "./room-sync"
 import { readCanonicalReceipt } from "./canonical-read"
@@ -30,8 +30,14 @@ export function createSupabaseDocumentTransport({ client, source, room, actorId,
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "document_collaboration_updates", filter: `room_id=eq.${room.id}` }, payload => {
           if (closed) return
           const value = payload.new
+          // Realtime emits bytea as bare hex; PostgREST reads include "\x".
+          // Normalize only that bounded wire representation. The session still
+          // validates row identity, sequence, byte limits and the native update.
+          const bytes = value.payload
+          const native = typeof bytes === "string" && bytes.length <= ROOM_UPDATE_BYTES * 2 && /^(?:[0-9a-f]{2})+$/i.test(bytes)
+            ? `\\x${bytes}` : bytes
           handlers.update({ room_id: value.room_id, generation: value.generation, sequence: value.sequence,
-            batch_id: value.batch_id, actor_id: value.actor_id, payload: value.payload })
+            batch_id: value.batch_id, actor_id: value.actor_id, payload: native })
         })
       if(watchVersions) channel.on("postgres_changes",{event:"INSERT",schema:"public",table:"document_file_versions",filter:`file_id=eq.${source.fileId}`},payload=>{
         if(closed || queued || payload.new.file_id!==source.fileId || payload.new.org_id!==source.organizationId || !payload.new.request_id)return

@@ -50,10 +50,9 @@ describe("organization document files", () => {
     expect(route).toContain('payload?.action === "trash"')
     expect(route).toContain('payload?.action === "restore"')
     expect(route).toContain("Move the file to Recently Deleted first.")
-    expect(route).toContain("await purgeExpiredFiles(supabase, orgId)")
-    expect(route.indexOf(".remove([current.storage_path])")).toBeLessThan(
-      route.lastIndexOf('.from("organization_document_files")')
-    )
+    expect(route).toContain("await purgeExpiredFiles(supabase, orgId,")
+    expect(route).toContain("await permanentlyPurgeDocument(orgId, fileId,")
+    expect(route).not.toContain(".remove([current.storage_path])")
 
   })
 })

@@ -1,6 +1,7 @@
 import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
 import { requireOrganizationDocumentStorage, resolveOrganizationDocumentStorageAccess } from "@/lib/organization/document-storage-access"
 import { purgeExpiredFiles } from "./file-cleanup"
+import { permanentlyPurgeDocument } from "@/features/document-editing/server"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { randomUUID } from "node:crypto"
 
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 503 })
     }
     if (canEditOrganization(role) && storageAccess.hasStorageAccess) {
-      await purgeExpiredFiles(supabase, orgId)
+      await purgeExpiredFiles(supabase, orgId, { actorId: user.id, support: "supportAccess" in access && access.supportAccess === true })
     }
 
     const [
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 403 })
     }
 
-    await purgeExpiredFiles(supabase, orgId)
+    await purgeExpiredFiles(supabase, orgId, { actorId: user.id, support: "supportAccess" in access && access.supportAccess === true })
 
     const folder = coreSectionId ? `core/${coreSectionId}/` : ""
     const objectName = `${orgId}/library/${folder}${randomUUID()}-${sanitizeFilename(file.name)}`
@@ -435,39 +436,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 403 })
     }
 
-    const { data: current, error: fileError } = await loadFile(
-      supabase,
-      orgId,
-      fileId
-    )
-    if (fileError) {
-      return NextResponse.json({ error: fileError.message }, { status: 500 })
-    }
-    if (!current) {
-      return NextResponse.json({ error: "File not found." }, { status: 404 })
-    }
-    if (!current.deleted_at) {
-      return NextResponse.json(
-        { error: "Move the file to Recently Deleted first." },
-        { status: 409 }
-      )
-    }
-
-    const { error: storageError } = await supabase.storage
-      .from(BUCKET)
-      .remove([current.storage_path])
-    if (storageError) {
-      return NextResponse.json({ error: storageError.message }, { status: 500 })
-    }
-
-    const { error: deleteError } = await supabase
-      .from("organization_document_files")
-      .delete()
-      .eq("id", current.id)
-      .eq("org_id", orgId)
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 })
-    }
+    // The reservation also recovers a completed deletion whose reply was lost.
+    // SQL enforces “Move the file to Recently Deleted first.” under its lock.
+    const purged = await permanentlyPurgeDocument(orgId, fileId, {
+      actorId: user.id, support: "supportAccess" in access && access.supportAccess === true,
+    })
+    if (!purged.ok) return NextResponse.json({ error: purged.error }, { status: purged.status })
 
     return NextResponse.json({ ok: true }, { status: 200 })
   } catch (routeError: unknown) {

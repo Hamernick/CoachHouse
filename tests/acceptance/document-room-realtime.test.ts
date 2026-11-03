@@ -3,6 +3,7 @@ import * as Y from "yjs"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 import { createSupabaseDocumentTransport } from "@/features/document-editing/lib/room-realtime"
+import { roomUpdateSchema, decodeRoomBinary } from "@/features/document-editing/lib/room-contracts"
 
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,"0")}`
 const document=new Y.Doc();document.getText("content").insert(0,"Seed")
@@ -25,6 +26,20 @@ function fixture({file={updated_at:room.base_updated_at,deleted_at:null as strin
   return{client,transport,channel,from,rpc,unsubscribe,removeChannel,event:(value:Parameters<typeof event>[0])=>event(value),status:(value:string)=>status(value),account:(actor:string|null)=>account("TOKEN_REFRESHED",actor?{user:{id:actor}}:null)}
 }
 describe("authenticated Supabase document transport",()=>{
+  it("accepts real Realtime bare-hex bytea without weakening native validation",()=>{
+    const f=fixture(),handlers={update:vi.fn(),connected:vi.fn(),offline:vi.fn(),locked:vi.fn()}
+    const stop=f.transport.subscribe(handlers)
+    const row={room_id:room.id,generation:room.generation,sequence:1,batch_id:id(7),actor_id:id(6),payload:checkpoint.slice(2),created_at:"ignored"}
+    f.event({new:row})
+    const parsed=roomUpdateSchema.parse(handlers.update.mock.calls[0][0])
+    expect(parsed.payload).toBe(checkpoint)
+    expect(decodeRoomBinary(parsed.payload).byteLength).toBeGreaterThan(0)
+    for(const payload of ["f","zz","00".repeat(128*1024+1)]) {
+      f.event({new:{...row,payload}})
+      expect(roomUpdateSchema.safeParse(handlers.update.mock.calls.at(-1)![0]).success).toBe(false)
+    }
+    stop()
+  })
   it("subscribes to only one room's committed INSERTs and strips unrelated row fields",()=>{
     const f=fixture(),handlers={update:vi.fn(),connected:vi.fn(),offline:vi.fn(),locked:vi.fn()}
     const stop=f.transport.subscribe(handlers)

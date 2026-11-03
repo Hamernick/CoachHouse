@@ -29,7 +29,7 @@ export async function runPageNoteCommand(actorId:string,input:PageNoteCommand){
   const result=await rpc("workspace_page_note_command",{p_actor_id:actorId,p_page_id:pageId,p_command:body,p_hash:publicationHash(body),p_expected_graph:expected??null,p_next_graph:next??null})
   if(result.error){const code=result.error.code
    if(code==="42501")throw new WorkspaceSharingError("scope","This selected note is unavailable or its editing access changed.")
-   if(["40001","55P03"].includes(code))throw new WorkspaceSharingError("conflict","The note or shared page changed. Reload the saved source before trying again.")
+   if(["PT409","40001","55P03"].includes(code))throw new WorkspaceSharingError("conflict","The note or shared page changed. Reload the saved source before trying again.")
    if(["22023","23505"].includes(code))throw new WorkspaceSharingError("invalid","This note request cannot be applied. Review its fields.")
    throw new WorkspaceSharingError("unavailable","Unable to confirm this note request. Retry the same request.",true)
   }

@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
   organization: vi.fn(),
   notification: vi.fn(),
   deadline: vi.fn(),
+  purge: vi.fn(),
+}))
+vi.mock("@/features/document-editing/server", () => ({
+  permanentlyPurgeDocument: mocks.purge,
+  reconcileAbandonedDocumentStages: vi.fn(),
 }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.deadline }) }))
 vi.mock("@/lib/supabase/route", () => ({
@@ -54,6 +59,7 @@ function setup(
     storageError?: string
   } = {}
 ) {
+  mocks.purge.mockResolvedValue(!options.deletedAt ? { ok: false, status: 409, error: "Move the file to Recently Deleted first." } : options.storageError ? { ok: false, status: 503, error: "Retry cleanup" } : { ok: true })
   const current = {
     ...row,
     storage_path: options.storagePath ?? row.storage_path,
@@ -334,7 +340,7 @@ describe("organization document file routes", () => {
       deletedAt: "2026-09-04T12:00:00Z",
       storageError: "Storage unavailable",
     })
-    expect((await DELETE(actionRequest("DELETE"))).status).toBe(500)
+    expect((await DELETE(actionRequest("DELETE"))).status).toBe(503)
     expect(calls.deletion).not.toHaveBeenCalled()
   })
 })

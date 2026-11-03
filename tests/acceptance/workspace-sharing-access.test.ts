@@ -34,7 +34,7 @@ describe("page guest server boundary", () => {
     expect(mocks.rpc.mock.calls[0]).toEqual(mocks.rpc.mock.calls[1])
     expect(mocks.rpc.mock.calls[0][1].p_command.email).toBe("person@example.org")
   })
-  it.each([["42501", "scope", false], ["40001", "conflict", false], ["57014", "unavailable", true]])("maps %s without pretending a timed-out write failed", async (code, kind, uncertain) => {
+  it.each([["42501", "scope", false], ["PT409", "conflict", false], ["40001", "conflict", false], ["57014", "unavailable", true]])("maps %s without pretending a timed-out write failed", async (code, kind, uncertain) => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code } })
     await expect(executePageAccess({ action: "read", pageId: id(10) })).rejects.toMatchObject({ code: kind, uncertain })
   })

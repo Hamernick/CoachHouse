@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { usePageEditor } from "@/features/workspace-sharing/hooks/use-page-editor"
 import { SharePageEditor } from "@/features/workspace-sharing/components/workspace-share-panel"
+import { GuestWorkspacePage } from "@/features/workspace-sharing/components/guest-workspace-page"
 import { pageChoice, type PageEditorData } from "@/features/workspace-sharing/lib/page-editor"
 import { movePageMember } from "@/features/workspace-sharing/lib/page-membership"
 import { useParticleSelection } from "@/features/workspace-particles/hooks/use-particle-selection"
@@ -47,6 +48,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe("Share editor confirmed-state and retry behavior", () => {
+  it("keeps invitation acceptance disabled before the initial authority effect runs", () => {
+    const markup = renderToStaticMarkup(createElement(GuestWorkspacePage, { pageId: ID(10), invitationId: ID(11) }))
+    const accept = markup.match(/<button\b[^>]*>[\s\S]*?<\/button>/g)?.find((button) => button.includes("Accept invitation"))
+    expect(accept).toBeDefined()
+    expect(accept).toMatch(/\bdisabled(?:="")?(?:\s|>)/)
+    expect(markup).toContain("Loading shared page")
+  })
   it("starts a new page with the selected cards in order", () => {
     const input = data(); input.initialParticleIds = [ID(2), ID(1)]
     const { editor } = harness(input)

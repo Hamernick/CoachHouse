@@ -7,6 +7,7 @@ import { readLocalDocument } from "./read-local-document"
 import { readDocumentRoom } from "../lib/room-client"
 import { documentWindowSchema, type DocumentWindowView } from "../lib/window-contracts"
 import type { DocumentEditingInput } from "../types"
+import { createMarkdownAdapter } from "../lib/markdown-adapter"
 
 /** Explicit open only. No polling, upload, subscription or save side effects. */
 export async function loadDocumentEditing(input: DocumentEditingInput) {
@@ -37,7 +38,23 @@ export async function loadDocumentWindowView(input: DocumentEditingInput): Promi
       shared = { state: "unavailable" }
     }
   }
-  return documentWindowSchema.parse({ viewerId, snapshot, shared })
+  const permission = snapshot.source.provider === "coach_house"
+    ? await sessionClient.rpc("can_edit_uploaded_document", { p_file_id: snapshot.source.fileId }) : null
+  let editable = !permission?.error && permission?.data === true
+  if (editable) {
+    try {
+      const adapter = createMarkdownAdapter()
+      const document = adapter.parse(snapshot.content)
+      const pending = [document]
+      let nodes = 0
+      while (pending.length) {
+        if (++nodes > 5000) throw new Error("Rich editor capacity exceeded.")
+        pending.push(...(pending.pop()?.content ?? []))
+      }
+      adapter.serialize(document)
+    } catch { editable = false }
+  }
+  return documentWindowSchema.parse({ viewerId, snapshot, shared, editable })
 }
 
 async function loadAuthorizedFileView(input: DocumentEditingInput) {

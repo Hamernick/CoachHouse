@@ -12,6 +12,8 @@ export async function workspacePageAccessAction(input: unknown) {
   if (person === "anonymous") return { ok: true as const, signInRequired: true as const }
   const store = read(); store.calls.push(command)
   localStorage.setItem(key, JSON.stringify(store))
+  if (params.has("hold-guest-read") && command.action === "read")
+    await new Promise<void>((resolve) => window.addEventListener("release-guest-read", () => resolve(), { once: true }))
   const pages = JSON.parse(localStorage.getItem("sharing-canvas-fixture") ?? '{"pages":[]}')
   const page = pages.pages.find((item: { id: string }) => item.id === command.pageId)
   const grant = store.invites.find(item => item.email === `person${person}@example.org` && item.accepted && !item.revoked)
