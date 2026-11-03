@@ -312,6 +312,7 @@
       "tests/acceptance/organization-closure-people-database.test.ts",
       "tests/acceptance/organization-closure-private-reads-database.test.ts",
       "tests/acceptance/organization-closure-project-content-cleanup-database.test.ts",
+      "tests/acceptance/organization-closure-project-file-cleanup-database.test.ts",
       "tests/acceptance/organization-closure-project-overviews-database.test.ts",
       "tests/acceptance/organization-closure-project-tasks-database.test.ts",
       "tests/acceptance/organization-closure-public-profile-reads-database.test.ts",

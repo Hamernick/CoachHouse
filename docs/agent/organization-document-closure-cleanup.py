@@ -120,7 +120,7 @@ def run(args):
             or len(set(receipt["paths"])) != len(receipt["paths"])):
         raise CleanupError("Unrecognized frozen path receipt; no Storage deletion attempted")
     bucket = receipt["bucket"] if object_mode else "org-documents"
-    if bucket not in {"org-documents", "org-media", "program-media", "roadmap-media"} or (object_mode and len(receipt["paths"]) != 1):
+    if bucket not in {"org-documents", "org-media", "program-media", "roadmap-media", "project-assets"} or (object_mode and len(receipt["paths"]) != 1):
         raise CleanupError("Unrecognized exact asset bucket; no Storage deletion attempted")
     if receipt["complete"]:
         return {"scope": scope, "complete": True,

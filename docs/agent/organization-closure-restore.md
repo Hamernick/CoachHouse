@@ -660,7 +660,47 @@ exchanges require reconciliation.420000 removes known profile metadata/derived
 coordinates, preserving unresolved physical/malformed/unknown values. Unknown-key
 diagnostics are bounded digests, not copies of user-controlled key text.
 
-Ordinary project attachments and historical file/document activity copies remain
-with450. Private lifecycle reporting430 and captured early-deletion eligibility440
-are separate pending integration; existing source receipts do not attest whole
-organization completion or authorize owner controls.
+450000 extends the same physical operator to exact modern project-assets paths,
+canonical project/asset IDs and real FK/JSON/path reference fences. Fiscal,
+signing, shared and unresolved legacy sources remain protected. External-link
+bindings retire without provider HTTP. Historical file/document title and
+metadata copies retire only after the relevant canonical source permits it.
+The authoritative checkpoint pins actual Storage/API/backend absence, exact retry
+and independent-copy/other-organization preservation evidence.
+
+### Private cleanup lifecycle and project-file integration
+
+430000 provides private claim/run/finish/status functions. A claim pins the actual
+operator, current request/revision and a fixed five-minute lease; it never extends
+the lifecycle deadline.460000 integrates450000 as the tenth fixed SQL source and
+includes project-assets and unretired activity payloads in canonical remaining
+counts. Per-source savepoints retain successful progress when another source
+fails. Fixed failure codes exclude raw errors; finished results and exact retries
+are immutable. A new attempt advances additional bounded batches after repair.
+
+Run physical deletion through the existing exact source reservation/operator
+before reporting its outcome. Ambiguous Storage results remain failed and retain
+the reservation for explicit retry. `batch_complete` describes one invocation,
+not source exhaustion. Current canonical remaining counts, unresolved ownership
+and external qualification stay visible; an empty SQL pass cannot report whole
+organization completion. All lifecycle/early-intent/cleanup RPCs remain private.
+
+### Captured earlier deletion
+
+440000 records an immutable current request/revision, confirmation identity and
+versioned owner-consequences attestation. This is a private operator rehearsal,
+not a hosted owner consent channel. It ends new authorized reads/export/link
+issuance without changing the original720-hour deadline or revision; cancellation
+cannot restore access. Mandatory capture/capacity/advisory hooks and strict event
+shape validation apply. Old-backup replay uses the captured confirmation time,
+never the restore clock, and remains quarantined. READ ONLY access and confirmation
+serialize through the existing advisory boundary. Already issued URLs and admitted
+HTTP cannot be recalled by this flag; physical/CDN/provider retirement is separate.
+
+The next dependent implementation requires a selected independent retention
+destination, acknowledged append/readback transport and collector-outage admission
+policy, followed by hosted recovery qualification. Owner request/export/cancel/
+status/early-delete interaction remains unavailable until required shutdown and
+recovery boundaries qualify. Actual retained-store horizons, unknown/shared
+ownership, financial disposition and provider effects are not resolved by these
+local source receipts.

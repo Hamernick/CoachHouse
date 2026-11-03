@@ -76,7 +76,8 @@ def validate(snapshot, expected_source_id):
                           "form_primary_manager_revoked": {"primaryManager"},
                           "workspace_page_invitation_revoked": {"pageInvitation"},
                           "workspace_page_note_scope_revoked": {"pageNoteScope"},
-                          "workspace_page_access_revoked": {"pageAccess"}}
+                          "workspace_page_access_revoked": {"pageAccess"},
+                          "closure_early_delete_confirmed": {"earlyDeletion"}}
         require(isinstance(kind, str) and kind in payload_fields, "Unsupported event kind")
         require(set(event) == fields | payload_fields[kind], "Unexpected event fields")
         integer(event["sequence"])
@@ -93,6 +94,16 @@ def validate(snapshot, expected_source_id):
             uuid(request["requestId"])
             require(request["requestId"] == event["operationId"], "Closure operation mismatch")
             require(timestamp(request["exportUntil"]) - timestamp(request["requestedAt"]) == timedelta(hours=720), "Invalid original deadline")
+        elif kind == "closure_early_delete_confirmed":
+            confirmation = event["earlyDeletion"]
+            require(isinstance(confirmation, dict) and set(confirmation) == {
+                "closureRequestId", "ownerId", "consequencesVersion", "confirmedAt",
+            }, "Invalid early deletion confirmation")
+            uuid(confirmation["closureRequestId"])
+            uuid(confirmation["ownerId"])
+            require(confirmation["ownerId"] == event["organizationId"], "Early deletion owner mismatch")
+            require(confirmation["consequencesVersion"] == "organization-early-deletion-v1", "Unknown early deletion consequences")
+            require(timestamp(confirmation["confirmedAt"]) == occurred, "Early deletion capture time mismatch")
         elif kind == "response_deleted":
             response = event["response"]
             require(isinstance(response, dict) and set(response) == {"formId", "versionId", "responseId", "submittedAt"}, "Invalid deletion event")
