@@ -69,7 +69,7 @@ export function WorkspaceParticleComposerSlot({ session,sourceScope,organization
         const previous = new Set(graph.particles.map(item => item.id))
         const saved = await session.applyResearch(result.runId, result.target, draft)
         const added = saved?.graph.particles.filter(item => !previous.has(item.id)).map(item => item.id) ?? []
-        if (saved && added.length) session.layout.queueAfterSave(saved.graph, added)
+        if (saved && added.length) await session.layout.queueAfterSave(saved.graph, added)
         return Boolean(saved)
       }}>{planner => <WorkspaceAiComposer sourceScope={sourceScope} organizationName={organizationName}>{assistant => <ParticleComposer
       assistant={assistant}

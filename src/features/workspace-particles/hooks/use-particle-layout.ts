@@ -64,25 +64,38 @@ export function useParticleLayout({
   const queued = useRef<{
     workspaceId: string; revision: number; ids: readonly string[];
     canvas: ReactFlowInstance; commitBatch: Session["commitBatch"];
+    complete: () => void;
   } | null>(null)
+  const activeQueuedCompletion = useRef<(() => void) | null>(null)
   const [, queueChanged] = useReducer((value: number) => value + 1, 0)
   const latest = useRef({ session, flow, flush, dirty, setNodes })
   latest.current = { session, flow, flush, dirty, setNodes }
   const cancel = useCallback(() => {
+    queued.current?.complete()
     queued.current = null
+    activeQueuedCompletion.current?.()
     if (!saving.current) active.current?.abort()
   }, [])
   useEffect(() => () => {
+    queued.current?.complete()
     queued.current = null
+    activeQueuedCompletion.current?.()
     active.current?.abort()
   }, [session.graph?.workspaceId, session.commitBatch])
   const queueAfterSave = useCallback((saved: Pick<ParticleGraph, "workspaceId" | "revision">, ids: readonly string[]) => {
     const input = latest.current
     // This callback belongs to the save's canvas, even if its promise finishes
     // after navigation. The transport identity changes on a canvas switch.
-    if (!ids.length || !input.flow.current || input.session.commitBatch !== session.commitBatch || input.session.getCurrentGraph()?.workspaceId !== saved.workspaceId) return
-    queued.current = { workspaceId: saved.workspaceId, revision: saved.revision, ids: [...ids], canvas: input.flow.current, commitBatch: session.commitBatch }
+    if (!ids.length || !input.flow.current || input.session.commitBatch !== session.commitBatch || input.session.getCurrentGraph()?.workspaceId !== saved.workspaceId) return Promise.resolve()
+    queued.current?.complete()
+    let complete!: () => void
+    const completed = new Promise<void>(resolve => { complete = resolve })
+    queued.current = { workspaceId: saved.workspaceId, revision: saved.revision, ids: [...ids], canvas: input.flow.current, commitBatch: session.commitBatch, complete }
     queueChanged()
+    // The canonical proposal is already saved. Callers wait for this optional
+    // arrangement to settle before dismissing the save UI; cancellation/failure
+    // never converts the successful proposal write into a failed save.
+    return completed
   }, [session.commitBatch])
 
   // Routing follows persisted/manual geometry; it never invokes ELK or moves cards.
@@ -331,17 +344,23 @@ export function useParticleLayout({
     if (!request) return
     const input = latest.current, graph = input.session.graph
     if (!graph || graph.workspaceId !== request.workspaceId || input.flow.current !== request.canvas || input.session.commitBatch !== request.commitBatch) {
+      request.complete()
       queued.current = null
       return
     }
     if (graph.revision < request.revision) return
     if (request.ids.some(id => !graph.particles.some(particle => particle.id === id))) {
+      request.complete()
       queued.current = null
       return
     }
     if (!input.session.editable || active.current || request.ids.some(id => !request.canvas.getNodes().some(node => node.id === id))) return
     queued.current = null
-    void run(false, request.ids)
+    activeQueuedCompletion.current = request.complete
+    void run(false, request.ids).finally(() => {
+      request.complete()
+      if (activeQueuedCompletion.current === request.complete) activeQueuedCompletion.current = null
+    })
   })
 
   return useMemo(
