@@ -4,10 +4,11 @@ Canonical index for implementation history and session continuation.
 
 ## Current log
 
-- [2026-09](runlog/2026-09.md)
+- [2026-11](runlog/2026-11.md)
 
 ## Archive
 
+- [2026-09](runlog/2026-09.md)
 - [2026-08](runlog/2026-08.md)
 - [Legacy history through 2026-07-14](runlog/archive/legacy-through-2026-07-14.md)
 
