@@ -11,7 +11,7 @@ For explicitly assigned P01–P10 MVP work, the [current PRD ownership contract]
 
 - Source of truth: this file + linked `docs/agent/**` documents.
 - Original workstream plans: before selecting or implementing work, read `/Users/calebhamernick/Desktop/Coach House Codex Workstreams/WORKSTREAMS.md`, then the relevant numbered `.md` packet in full (original requests, stages, decisions and checkpoint). Read its `SHIP.md` for current runner/claim location, including when this checkout predates SHIP. Missing files are a blocker: recover the originals; never substitute a reconstructed plan or infer unfinished work from checkboxes.
-- Continuation protocol: follow the [Agent protocol](docs/RUNLOG.md#agent-protocol), including the current monthly entries and `docs/agent/open-work-index.md`, before the worktree checkpoint and lane selection. `docs/agent/HANDOFF.md` is deprecated and not authoritative.
+- Continuation protocol: after this file, read `docs/RUNLOG.md`, then the latest dated entries in its linked current monthly log, then `docs/agent/open-work-index.md`, following the [Agent protocol](docs/RUNLOG.md#agent-protocol) before the worktree checkpoint and lane selection. `docs/agent/HANDOFF.md` is deprecated and not authoritative.
 - New-chat branch checkpoint: before writing files in the first turn of every chat, follow the mandatory worktree report and branch-choice protocol in `docs/agent/workflow-quality.md` unless the user's prompt already chose the branch strategy.
 - Implement changes in `src/**`, `app/**`, `migrations/**`, or `docs/**`.
 - Keep PRs small. Required CI merge checks include: `pnpm lint`, `pnpm test:snapshots`, `pnpm test:acceptance`, `pnpm test:rls`.

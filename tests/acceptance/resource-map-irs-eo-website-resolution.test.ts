@@ -318,6 +318,10 @@ describe("IRS EO provider website resolution", () => {
       const evidence = join(directory, "evidence.jsonl")
       const report = join(directory, "report.json")
       const url = "https://neighborhoodpantry.example.org/"
+      const snapshot = {
+        ...fetchedSnapshot(url, "Neighborhood Pantry"),
+        checkedAt: new Date().toISOString(),
+      }
       writeFileSync(
         input,
         [
@@ -348,9 +352,9 @@ describe("IRS EO provider website resolution", () => {
         cache,
         `${JSON.stringify({
           url,
-          fetchedAt: "2026-08-31T12:00:00.000Z",
+          fetchedAt: snapshot.checkedAt,
           resolverVersion: IRS_EO_WEBSITE_RESOLUTION_VERSION,
-          snapshot: fetchedSnapshot(url, "Neighborhood Pantry"),
+          snapshot,
         })}\n`
       )
 

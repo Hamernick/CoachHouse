@@ -299,7 +299,7 @@ describe("IRS EO service-page evidence", () => {
       const output = join(directory, "output.jsonl")
       const evidence = join(directory, "evidence.jsonl")
       const report = join(directory, "report.json")
-      const snapshot = pageSnapshot(url)
+      const snapshot = { ...pageSnapshot(url), checkedAt: new Date().toISOString() }
       writeFileSync(input, `${JSON.stringify(researchResult(url))}\n`)
       writeFileSync(
         websiteCache,

@@ -47,7 +47,7 @@ describe("RUNLOG continuation contract", () => {
     expect(workflowContract).toContain("use a named existing branch/worktree")
     expect(workflowContract).toContain("create a clean isolated")
     expect(workflowContract).toContain(
-      "Do not create or switch branches, move existing changes, or write task files until the user chooses."
+      "do not create or switch branches, move existing changes, or write task files until the user chooses."
     )
   })
 
