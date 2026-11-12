@@ -30,6 +30,10 @@ export function fixtureServer(): Plugin {
         const chunks: Buffer[] = []
         for await (const chunk of req) chunks.push(Buffer.from(chunk))
         const body = JSON.parse(Buffer.concat(chunks).toString() || "{}")
+        // Default authorization simulator; revocation scenarios override this endpoint.
+        if (path === "/__fixture/composer-context-check") { json(body.references); return }
+        if (path === "/__fixture/conversation-prepare") { json({ target: body.target }); return }
+        if (path === "/__fixture/conversation") { json({ entries: [], ...(body.rootId ? { turns: [] } : {}) }); return }
         const sameScope = (target: AiDocumentTarget) => target?.userId === scope.userId && target?.organizationId === scope.organizationId
         if (path === "/__fixture/research-draft") {
           const old = privateDrafts.get(body.id) ?? { revision: 0, draft: null, attempted: false }

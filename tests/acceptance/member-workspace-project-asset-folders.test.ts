@@ -5,10 +5,11 @@ import { applyFolderMutation, readProjectAssetFolders, organizationFolderFiles, 
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { ProjectAssetFolderGrid } from "@/features/member-workspace/components/projects/project-asset-folder-grid"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), admin: vi.fn(), documents: vi.fn() }))
+const mocks = vi.hoisted(() => ({ actor: vi.fn(), admin: vi.fn(), documents: vi.fn(), audience: vi.fn() }))
 vi.mock("@/features/member-workspace/server/member-workspace-actor-context", () => ({ resolveMemberWorkspaceActorContext: mocks.actor }))
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
 vi.mock("@/features/member-workspace/server/organization-documents", () => ({ loadOrganizationDocuments: mocks.documents }))
+vi.mock("@/lib/organization/document-file-audience", () => ({ filterDocumentFileAudience: mocks.audience }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { loadProjectAssetFolders, mutateProjectAssetFolder } from "@/features/member-workspace/server/project-asset-folder-actions"
 
@@ -26,17 +27,20 @@ function query(data: unknown) {
   }
 }
 let read: ReturnType<typeof query>
-let write: ReturnType<typeof query>
+const write = vi.fn()
+const folderRead = vi.fn()
 let assets: ReturnType<typeof query>
 let documents: ReturnType<typeof query>
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.audience.mockReset().mockImplementation(async rows => rows)
   read = query(project)
-  write = query({ id: projectId })
+  folderRead.mockReset().mockResolvedValue({ data: folders, error: null })
+  write.mockReset().mockImplementation(async (_name, args) => ({ data: applyFolderMutation(folders, args.p_change, args.p_new_id), error: null }))
   assets = query([{ id: fileId, name: "Budget.pdf" }])
   documents = query([{ id: fileId, name: "Policy attachment.pdf" }])
-  mocks.actor.mockResolvedValue({ userId: "editor", activeOrg: { orgId: "org-a" }, isAdmin: false, canEdit: true, hasMemberWorkspaceAccess: true, supabase: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }), from: (table: string) => table === "organization_projects" ? read : table === "organization_project_assets" ? assets : documents } })
-  mocks.admin.mockReturnValue({ from: () => write })
+  mocks.actor.mockResolvedValue({ userId: "editor", activeOrg: { orgId: "org-a" }, isAdmin: false, canEdit: true, hasMemberWorkspaceAccess: true, supabase: { rpc: vi.fn().mockImplementation((name, args) => name === "read_project_asset_folders" ? folderRead(args) : Promise.resolve({ data: null, error: null })), from: (table: string) => table === "organization_projects" ? read : table === "organization_project_assets" ? assets : documents } })
+  mocks.admin.mockReturnValue({ rpc: (name: string, args: unknown) => name === "read_project_asset_folders_for_actor" ? folderRead(args) : write(name, args) })
   mocks.documents.mockResolvedValue({
     sections: resolveRoadmapSections({}),
     policies: [{ id: "policy-1", title: "Safeguarding", summary: "", status: "complete", categories: [], programId: null, personIds: [], document: null, updatedAt: null }],
@@ -47,6 +51,15 @@ beforeEach(() => {
 })
 
 describe("project file folders", () => {
+  it("omits restricted source names even from the elevated folder library", async () => {
+    mocks.audience.mockResolvedValue([])
+    const result = await loadProjectAssetFolders(projectId)
+    expect(result).not.toHaveProperty("error")
+    if (!result.files) throw new Error("Expected library")
+    expect(result.files.some(file => file.key.startsWith("organization:"))).toBe(false)
+    expect(mocks.audience).toHaveBeenCalledWith([{ id: fileId, name: "Policy attachment.pdf" }], "editor")
+  })
+
   it("rejects untrusted action scope values before resolving an actor", async () => {
     expect(await loadProjectAssetFolders(projectId, "invalid" as never)).toEqual({ error: "Choose a valid project view." })
     expect(mocks.actor).not.toHaveBeenCalled()
@@ -64,7 +77,7 @@ describe("project file folders", () => {
 
   it("allows a fiscal reviewer to read only project files without host documents or writes", async () => {
     const actor = await mocks.actor()
-    actor.supabase.rpc.mockResolvedValue({ data: true, error: null })
+    actor.supabase.rpc.mockImplementation((name: string, args: unknown) => name === "read_project_asset_folders" ? folderRead(args) : Promise.resolve({ data: true, error: null }))
     mocks.actor.mockResolvedValue({ ...actor, activeOrg: { orgId: "another-org" }, isAdmin: true })
     const result = await loadProjectAssetFolders(projectId)
     expect(result).toHaveProperty("canEdit", false)
@@ -75,7 +88,8 @@ describe("project file folders", () => {
     expect(mocks.documents).not.toHaveBeenCalled()
     expect(documents.select).not.toHaveBeenCalled()
     expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Host folder" })).toHaveProperty("error")
-    expect(mocks.admin).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
+    expect(folderRead).toHaveBeenCalledWith({ p_project_id: projectId, p_actor_id: "editor" })
   })
   it.each([{ data: false, error: null }, { data: null, error: { code: "unavailable" } }, { data: undefined, error: null }])("denies fiscal file reads on failed or revoked authorization", async (scope) => {
     const actor = await mocks.actor()
@@ -101,15 +115,18 @@ describe("project file folders", () => {
       expect(await mutateProjectAssetFolder(projectId, { type: "move", fileKey: key, folderId })).toHaveProperty("error", expect.stringContaining("Organization documents"))
     }
     expect(mocks.documents).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("creates persisted folders while preserving unrelated project settings", async () => {
     const result = await mutateProjectAssetFolder(projectId, { type: "create", name: "  Finance  " })
     expect(result).toHaveProperty("state.folders", [folders.folders[0], { id: expect.any(String), name: "Finance" }])
-    expect(write.update).toHaveBeenCalledWith({ updated_by: "editor", option_settings: { ...project.option_settings, assetFolders: expect.objectContaining({ folders: expect.arrayContaining([{ id: expect.any(String), name: "Finance" }]) }) } })
-    expect(write.eq).toHaveBeenCalledWith("id", projectId)
-    expect(write.eq).toHaveBeenCalledWith("org_id", "org-a")
-    expect(write.eq).toHaveBeenCalledWith("updated_at", project.updated_at)
+    expect(write).toHaveBeenCalledWith("mutate_project_asset_folder", {
+      p_project_id: projectId, p_org_id: "org-a", p_actor_id: "editor",
+      p_expected_updated_at: project.updated_at, p_change: { type: "create", name: "Finance" },
+      p_new_id: expect.any(String),
+    })
+    expect(read.update).not.toHaveBeenCalled()
   })
   it("loads saved folders and only this project's and organization's files", async () => {
     const result = await loadProjectAssetFolders(projectId)
@@ -128,13 +145,22 @@ describe("project file folders", () => {
       mocks.actor.mockResolvedValue({ ...actor, ...change })
       expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Folder" })).toHaveProperty("error")
     }
+    expect(write).not.toHaveBeenCalled()
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("rejects coaches outside their assigned organization scope", async () => {
     mocks.actor.mockResolvedValue({ ...await mocks.actor(), canAccessOrganizations: true, organizationCoachScope: { mode: "assigned", organizationIds: new Set(), canAccessUnassigned: false } })
     expect(await loadProjectAssetFolders(projectId)).toHaveProperty("error")
     expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Folder" })).toHaveProperty("error")
+    expect(write).not.toHaveBeenCalled()
     expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("filters elevated folder reads with the server-verified actor", async () => {
+    mocks.actor.mockResolvedValue({ ...await mocks.actor(), isAdmin: true, userId: "verified-staff" })
+    folderRead.mockResolvedValue({ data: { folders: [], placements: [] }, error: null })
+    expect(await loadProjectAssetFolders(projectId)).toHaveProperty("state.folders", [])
+    expect(folderRead).toHaveBeenCalledWith({ p_project_id: projectId, p_actor_id: "verified-staff" })
+    expect(write).not.toHaveBeenCalled()
   })
   it("allows viewers to read folders without edit controls", async () => {
     mocks.actor.mockResolvedValue({ ...await mocks.actor(), canEdit: false })
@@ -145,6 +171,7 @@ describe("project file folders", () => {
     expect(await mutateProjectAssetFolder(projectId, { type: "move", fileKey, folderId })).toHaveProperty("error")
     expect(assets.eq).toHaveBeenCalledWith("project_id", projectId)
     expect(assets.eq).toHaveBeenCalledWith("org_id", "org-a")
+    expect(write).not.toHaveBeenCalled()
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("scopes uploaded organization file moves and excludes core/deleted files", async () => {
@@ -155,19 +182,41 @@ describe("project file folders", () => {
     expect(documents.is).toHaveBeenCalledWith("deleted_at", null)
   })
   it("rejects stale saves and write failures", async () => {
-    write.maybeSingle.mockResolvedValueOnce({ data: null, error: null }).mockResolvedValueOnce({ data: null, error: { message: "failed" } })
+    write.mockResolvedValueOnce({ data: null, error: { code: "40001" } }).mockResolvedValueOnce({ data: null, error: { message: "failed" } })
     expect(await mutateProjectAssetFolder(projectId, { type: "rename", folderId, name: "Updated" })).toHaveProperty("error", expect.stringContaining("changed"))
     expect(await mutateProjectAssetFolder(projectId, { type: "rename", folderId, name: "Updated" })).toHaveProperty("error", expect.stringContaining("Unable"))
   })
   it("rejects duplicate names, blank names and invalid IDs without writing", async () => {
     for (const name of ["board documents", "  "]) expect(await mutateProjectAssetFolder(projectId, { type: "create", name })).toHaveProperty("error")
     expect(await mutateProjectAssetFolder("invalid", { type: "create", name: "Valid" })).toHaveProperty("error")
-    expect(mocks.admin).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
   })
   it("does not overwrite unreadable folder metadata", async () => {
-    read.maybeSingle.mockResolvedValue({ data: { ...project, option_settings: { assetFolders: "invalid" } }, error: null })
+    folderRead.mockResolvedValue({ data: "invalid", error: null })
     expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Folder" })).toHaveProperty("error", expect.stringContaining("could not be read"))
-    expect(mocks.admin).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
+  })
+  it("fails closed when normalized storage cannot be read", async () => {
+    folderRead.mockResolvedValue({ data: null, error: { message: "Unavailable" } })
+    expect(await loadProjectAssetFolders(projectId)).toHaveProperty("error")
+    expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Folder" })).toHaveProperty("error")
+    expect(write).not.toHaveBeenCalled()
+  })
+  it("uses current normalized rows instead of stale project option folders", async () => {
+    folderRead.mockResolvedValue({ data: { folders: [], placements: [] }, error: null })
+    expect(await loadProjectAssetFolders(projectId)).toHaveProperty("state", { folders: [], placements: [] })
+    expect(await mutateProjectAssetFolder(projectId, { type: "rename", folderId, name: "Hidden" })).toHaveProperty("error")
+    expect(write).not.toHaveBeenCalled()
+  })
+  it.each([
+    { folders: [folders.folders[0], folders.folders[0]], placements: [] },
+    { folders: [], placements: [{ fileKey, folderId }] },
+    { ...folders, placements: [{ fileKey, folderId }, { fileKey, folderId }] },
+    { ...folders, unknownFutureField: true },
+  ])("refuses ambiguous saved state without dropping data", async (state) => {
+    folderRead.mockResolvedValue({ data: state, error: null })
+    expect(await mutateProjectAssetFolder(projectId, { type: "create", name: "Folder" })).toHaveProperty("error")
+    expect(write).not.toHaveBeenCalled()
   })
   it("moves files, renames folders and returns files to root on folder removal", () => {
     const moved = applyFolderMutation(folders, { type: "move", fileKey, folderId }, "unused")
@@ -213,14 +262,17 @@ describe("project file folders", () => {
       const document = items.find((item) => item.source === source)!
       expect(await mutateProjectAssetFolder(projectId, { type: "move", fileKey: document.key, folderId })).toHaveProperty("state.placements", [{ fileKey: document.key, folderId }])
     }
-    for (const [payload] of write.update.mock.calls) {
-      expect(Object.keys(payload).sort()).toEqual(["option_settings", "updated_by"])
+    for (const [name, payload] of write.mock.calls) {
+      expect(name).toBe("mutate_project_asset_folder")
+      expect(payload.p_change.type).toBe("move")
+      expect(payload).not.toHaveProperty("option_settings")
     }
   })
   it("rejects unavailable or out-of-scope core documents", async () => {
     expect(await mutateProjectAssetFolder(projectId, { type: "move", fileKey: "core:foreign-section", folderId })).toHaveProperty("error")
     mocks.documents.mockResolvedValue({ error: "Forbidden" })
     expect(await mutateProjectAssetFolder(projectId, { type: "move", fileKey: "policy:policy-1", folderId })).toHaveProperty("error")
+    expect(write).not.toHaveBeenCalled()
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("keeps signed-document content read-only while allowing folder placement", async () => {

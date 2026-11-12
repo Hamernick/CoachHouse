@@ -1,4 +1,6 @@
-import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
+import { filterDocumentFileAudience } from "@/lib/organization/document-file-audience"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { PRIVATE_FILE_HEADERS, privateFileContentUrl, privateStorageResponse } from "@/lib/organization/private-storage-response"
 import { requireOrganizationDocumentStorage, resolveOrganizationDocumentStorageAccess } from "@/lib/organization/document-storage-access"
 import { purgeExpiredFiles } from "./file-cleanup"
 import { permanentlyPurgeDocument } from "@/features/document-editing/server"
@@ -20,7 +22,6 @@ import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 import { fileResponse, loadFile, sanitizeFilename, type FileRow } from "./file-record"
 
 const BUCKET = "org-documents"
-const SIGNED_URL_TTL_SECONDS = 60 * 15
 
 export async function GET(request: NextRequest) {
   const response = NextResponse.next()
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     error,
   } = await supabase.auth.getUser()
 
-  if (error || !user) {
+  if (error || !user || (request.nextUrl.searchParams.has("expectedUserId") && request.nextUrl.searchParams.get("expectedUserId") !== user.id)) {
     return NextResponse.json(
       { error: error?.message ?? "Unauthorized" },
       { status: 401 }
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const fileId = request.nextUrl.searchParams.get("id")?.trim()
 
     if (fileId) {
-      const { data, error: fileError } = await loadFile(supabase, orgId, fileId)
+      const { data, error: fileError } = await loadFile(supabase, orgId, fileId, user.id)
 
       if (fileError) {
         return NextResponse.json({ error: fileError.message }, { status: 500 })
@@ -68,24 +69,25 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const { data: signed, error: signedError } = await createPrivateOrganizationLink({
-        orgId, ttl: SIGNED_URL_TTL_SECONDS,
-        sign: seconds => supabase.storage.from(BUCKET).createSignedUrl(data.storage_path, seconds,
-          request.nextUrl.searchParams.get("download") === "true" ? { download: data.name || true } : undefined),
+      if (request.nextUrl.searchParams.get("content") !== "1") {
+        const url = privateFileContentUrl("/api/account/organization-document-files", {
+          organizationId: orgId, id: fileId,
+          ...(request.nextUrl.searchParams.get("download") === "true" ? { download: "true" } : {}),
+        })
+        return NextResponse.json({ url }, { headers: PRIVATE_FILE_HEADERS })
+      }
+      return privateStorageResponse({
+        request, orgId, name: data.name, mime: data.mime_type, maxBytes: MAX_BYTES,
+        download: request.nextUrl.searchParams.get("download") === "true",
+        sign: seconds => createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from(BUCKET).createSignedUrl(data.storage_path, seconds),
         revalidate: async () => {
-          const current = await loadFile(supabase, orgId, fileId)
-          return !current.error && Boolean(current.data && !current.data.deleted_at && current.data.storage_path === data.storage_path)
+          const currentAccess = await resolveOrganizationDocumentAccess(supabase, user.id, orgId)
+          if ("error" in currentAccess) return false
+          const current = await loadFile(currentAccess.supabase, orgId, fileId, user.id)
+          return !current.error && Boolean(current.data && !current.data.deleted_at &&
+            current.data.storage_path === data.storage_path && current.data.updated_at === data.updated_at)
         },
       })
-
-      if (signedError || !signed?.signedUrl) {
-        return NextResponse.json(
-          { error: signedError?.message ?? "Unable to open file." },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ url: signed.signedUrl }, { status: 200 })
     }
 
     const storageAccess = await resolveOrganizationDocumentStorageAccess({ supabase, orgId })
@@ -111,9 +113,9 @@ export async function GET(request: NextRequest) {
         .returns<FileRow[]>(),
       supabase
         .from("organization_document_files")
-        .select("size_bytes")
+        .select("id,size_bytes")
         .eq("org_id", orgId)
-        .returns<Array<{ size_bytes: number }>>(),
+        .returns<Array<{ id: string; size_bytes: number }>>(),
     ])
 
     if (filesError || usageError) {
@@ -131,16 +133,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         hasStorageAccess: storageAccess.hasStorageAccess,
-        files: (files ?? []).map(fileResponse),
+        files: (await filterDocumentFileAudience(files ?? [], user.id)).map(fileResponse),
         quota: {
-          usedBytes: (usage ?? []).reduce(
+          usedBytes: (await filterDocumentFileAudience(usage ?? [], user.id)).reduce(
             (total, file) => total + file.size_bytes,
             0
           ),
           limitBytes: storageAccess.hasStorageAccess ? QUOTA_BYTES : 0,
         },
       },
-      { status: 200 }
+      { status: 200, headers: PRIVATE_FILE_HEADERS }
     )
   } catch (routeError: unknown) {
     return NextResponse.json(
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
     error,
   } = await supabase.auth.getUser()
 
-  if (error || !user) {
+  if (error || !user || (request.nextUrl.searchParams.has("expectedUserId") && request.nextUrl.searchParams.get("expectedUserId") !== user.id)) {
     return NextResponse.json(
       { error: error?.message ?? "Unauthorized" },
       { status: 401 }
@@ -314,7 +316,7 @@ export async function PATCH(request: NextRequest) {
     error,
   } = await supabase.auth.getUser()
 
-  if (error || !user) {
+  if (error || !user || (request.nextUrl.searchParams.has("expectedUserId") && request.nextUrl.searchParams.get("expectedUserId") !== user.id)) {
     return NextResponse.json(
       { error: error?.message ?? "Unauthorized" },
       { status: 401 }
@@ -352,7 +354,8 @@ export async function PATCH(request: NextRequest) {
     const { data: current, error: fileError } = await loadFile(
       supabase,
       orgId,
-      fileId
+      fileId,
+      user.id
     )
     if (fileError) {
       return NextResponse.json({ error: fileError.message }, { status: 500 })
@@ -379,7 +382,7 @@ export async function PATCH(request: NextRequest) {
     if (updateError || !data) {
       return NextResponse.json(
         { error: updateError?.message ?? "Unable to update file." },
-        { status: 500 }
+        { status: updateError?.code === "42501" ? 403 : ["40001", "PT409"].includes(updateError?.code ?? "") ? 409 : 500 }
       )
     }
 
@@ -405,7 +408,7 @@ export async function DELETE(request: NextRequest) {
     error,
   } = await supabase.auth.getUser()
 
-  if (error || !user) {
+  if (error || !user || (request.nextUrl.searchParams.has("expectedUserId") && request.nextUrl.searchParams.get("expectedUserId") !== user.id)) {
     return NextResponse.json(
       { error: error?.message ?? "Unauthorized" },
       { status: 401 }

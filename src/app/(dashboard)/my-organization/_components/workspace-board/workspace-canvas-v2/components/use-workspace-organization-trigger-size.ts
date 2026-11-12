@@ -7,15 +7,17 @@ import { useLayoutEffect, useState, type RefObject } from "react"
 export function useWorkspaceOrganizationTriggerSize(
   triggerRef?: RefObject<HTMLButtonElement | null>
 ) {
-  const [size, setSize] = useState({ width: 208, height: 42 })
+  const [size, setSize] = useState({ width: 208, height: 42, unified: false })
   useLayoutEffect(() => {
-    const trigger = triggerRef?.current
-    if (!trigger) return
+    const button = triggerRef?.current
+    if (!button) return
+    const trigger = button.closest<HTMLElement>("[data-workspace-sidebar-home]")?.querySelector<HTMLElement>("[data-planning-sidebar]") ?? button
+    const unified = trigger !== button
     const measure = () => {
       const { width, height } = trigger.getBoundingClientRect()
       if (width <= 0 || height <= 0) return
-      setSize((previous) => previous.width === width && previous.height === height
-        ? previous : { width, height })
+      setSize((previous) => previous.width === width && previous.height === height && previous.unified === unified
+        ? previous : { width, height, unified })
     }
     measure()
     const observer = new ResizeObserver(measure)

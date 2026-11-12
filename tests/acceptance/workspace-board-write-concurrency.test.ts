@@ -13,8 +13,10 @@ import {
 
 describe("workspace board write concurrency", () => {
   it("explains form source denials without exposing arbitrary database text", () => {
-    expect(workspaceBoardWriteError({ code: "42501", message: "Form source manager required" })).toContain("Only this form's manager")
+    expect(workspaceBoardWriteError({ code: "42501", message: "Form source manager required" })).toContain("form Edit access to change it, or primary manager access to remove it")
     expect(workspaceBoardWriteError({ code: "22023", message: "Conflicting form identity" })).toContain("conflicting copies")
+    expect(workspaceBoardWriteError({ code: "42501", message: "Board source access required." })).toBe("This content is unavailable. Refresh and try again.")
+    expect(workspaceBoardWriteError({ code: "40001", message: "Board source permission is changing; retry." })).toBe("Workspace permissions changed. Refresh and try again.")
     expect(workspaceBoardWriteError({ code: "42501", message: "private database detail" })).toBe("Unable to save workspace layout.")
   })
   it("awaits calendar authorization and never writes an unauthorized graph", async () => {
@@ -147,8 +149,11 @@ describe("workspace board write concurrency", () => {
     )
     expect(actionSource).not.toContain(".upsert(boardUpsertPayload")
     expect(actionSource).toContain("ignoreDuplicates: true")
-    expect(writerSource).toContain('.eq("updated_at", revision)')
+    expect(writerSource).toContain('supabase.rpc("commit_workspace_board"')
+    expect(writerSource).toContain("p_expected_revision: snapshot.revision")
+    expect(writerSource).toContain("p_expected_state: snapshot.exists ? snapshot.stored ?? null : null")
+    expect(actionSource.match(/createSupabaseAdminClient\(\{ actorId: user.id, requestTimeoutMs: 10000 \}\)/g)).toHaveLength(2)
     expect(writerSource).toContain("MAX_WORKSPACE_BOARD_WRITE_ATTEMPTS = 4")
-    expect(writerSource).toContain("isUniqueViolation(error)")
+    expect(writerSource).not.toContain("insertWithActor")
   })
 })

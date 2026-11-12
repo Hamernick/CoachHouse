@@ -1,4 +1,5 @@
 import "server-only"
+import { filterDocumentActivityAudience } from "@/lib/organization/document-activity-audience"
 import { requirePlatformCapability } from "@/lib/admin/auth"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { loadOrganizationCoachActorScope } from "@/lib/admin/organization-coach-scope"
@@ -79,7 +80,7 @@ export async function loadCoachDashboard(
           .limit(10),
         db
           .from("organization_project_activity_events")
-          .select("occurred_at", { count: "exact" })
+          .select("id,occurred_at")
           .eq("actor_id", actor.userId)
           .in("org_id", ids)
           .gte("occurred_at", since.toISOString())
@@ -91,6 +92,13 @@ export async function loadCoachDashboard(
   if (projects?.error) issues.push("Projects could not be loaded.")
   if (events?.error || personal?.error)
     issues.push("Activity history is unavailable.")
+  const visibleActivity = await Promise.allSettled([
+    filterDocumentActivityAudience(events?.data ?? [], actor.userId),
+    filterDocumentActivityAudience(personal?.data ?? [], actor.userId),
+  ])
+  if (visibleActivity.some(result => result.status === "rejected")) issues.push("Activity history is unavailable.")
+  const visibleEvents = visibleActivity[0].status === "fulfilled" ? visibleActivity[0].value : []
+  const visiblePersonal = visibleActivity[1].status === "fulfilled" ? visibleActivity[1].value : []
   const names = new Map(
     (orgs?.data ?? []).map((row) => {
       const profile = row.profile as Record<string, unknown> | null
@@ -144,7 +152,7 @@ export async function loadCoachDashboard(
       projectId: task.projectId,
     })),
     taskCount: personalTasks ? tasks.length : null,
-    activity: (events?.data ?? []).map((row) => ({
+    activity: visibleEvents.map((row) => ({
       id: row.id,
       title: row.title,
       organization: names.get(row.org_id) ?? "Organization",
@@ -154,8 +162,8 @@ export async function loadCoachDashboard(
         ? `/${row.project?.project_kind === "organization_admin" ? "organizations" : "projects"}/${row.project_id}`
         : `/organizations?coach=${coachFilter}&search=${encodeURIComponent(names.get(row.org_id) ?? "")}`,
     })),
-    personalActivity: (personal?.data ?? []).map((row) => row.occurred_at),
-    activityTruncated: (personal?.count ?? 0) > (personal?.data?.length ?? 0),
+    personalActivity: visiblePersonal.map((row) => row.occurred_at),
+    activityTruncated: (personal?.data?.length ?? 0) === 2000,
     issues,
     loadedAt: now.toISOString(),
   }

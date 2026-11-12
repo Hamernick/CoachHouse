@@ -1,6 +1,7 @@
 "use server"
 
 import "server-only"
+import { readTableAnalysisSnapshot as readAnalysis } from "./server/table-analysis"
 import { readComposableDataViewSource as readSource, readExistingDataViewCreation as readExistingCreation } from "./server/existing-source"
 
 import { createLinkedSheetView as createSheet } from "./server/sheet-composition"
@@ -24,4 +25,8 @@ export async function readExistingDataViewCreation(input:unknown,binding?:unknow
 
 export async function createLinkedSheetView(input:unknown,binding:unknown) {
   return createSheet(input,binding)
+}
+
+export async function readTableAnalysisSnapshot(organizationId: string, viewId: string, actorId: string, signal?: AbortSignal) {
+  return readAnalysis(organizationId, viewId, actorId, signal)
 }

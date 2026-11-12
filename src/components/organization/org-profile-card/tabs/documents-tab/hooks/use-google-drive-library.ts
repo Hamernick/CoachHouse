@@ -1,6 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
+
+import { z } from "zod"
+import { documentLibraryUrl, useDocumentLibraryRead, type DocumentLibraryScope } from "./use-document-library-read"
 
 import {
   GoogleDrivePickerError,
@@ -44,45 +47,36 @@ function driveErrorMessage(code?: string) {
   return "Google Drive could not be reached. Try again."
 }
 
+const documentsSchema = z.object({ ok: z.literal(true), documents: z.array(z.object({
+  id: z.string(), name: z.string(), mimeType: z.string(), webViewLink: z.string(), modifiedAt: z.string().nullable(),
+  status: z.enum(["available", "trashed", "inaccessible", "needs_reconnect"]),
+})) })
+const connectionSchema = z.object({ ok: z.literal(true), connection: z.object({ connected: z.boolean() }) })
+async function readLibrary(signal: AbortSignal, scope: DocumentLibraryScope) {
+  const [connection, documents] = await Promise.all([
+    fetch(documentLibraryUrl("/api/integrations/google-drive/connection", scope), { cache: "no-store", signal }),
+    fetch(documentLibraryUrl("/api/integrations/google-drive/documents", scope), { cache: "no-store", signal }),
+  ])
+  if (!connection.ok || !documents.ok) throw new Error("Documents unavailable.")
+  return { connected: connectionSchema.parse(await connection.json()).connection.connected, documents: documentsSchema.parse(await documents.json()).documents }
+}
+
 export function useGoogleDriveLibrary({
-  enabled,
-  inWorkspace = false,
-}: { enabled: boolean; inWorkspace?: boolean }) {
-  const [documents, setDocuments] = useState<DriveLibraryDocument[]>([])
-  const [connected, setConnected] = useState(false)
-  const [loading, setLoading] = useState(true)
+  enabled, scope, inWorkspace = false,
+}: { enabled: boolean; scope: DocumentLibraryScope; inWorkspace?: boolean }) {
+  const library = useDocumentLibraryRead(scope, readLibrary)
+  const { refresh, captureUpdate } = library
+  const documents = library.data?.documents ?? []
+  const connected = library.data?.connected ?? false
   const [pending, setPending] = useState(false)
-
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [connectionResponse, documentsResponse] = await Promise.all([
-        fetch("/api/integrations/google-drive/connection", {
-          cache: "no-store",
-        }),
-        fetch("/api/integrations/google-drive/documents", {
-          cache: "no-store",
-        }),
-      ])
-      const connectionResult = await readDriveResponse(connectionResponse)
-      const documentsResult = await readDriveResponse(documentsResponse)
-      setConnected(Boolean(connectionResult?.connection?.connected))
-      setDocuments(documentsResult?.documents ?? [])
-    } catch {
-      setConnected(false)
-      setDocuments([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
+  const endpoint = documentLibraryUrl("/api/integrations/google-drive/documents", scope)
+  const connectEndpoint = documentLibraryUrl("/api/integrations/google-drive/connect", scope)
+  const { organizationId, userId } = scope
+  const detachEndpoint = useCallback((id: string) => documentLibraryUrl(`/api/integrations/google-drive/documents/${encodeURIComponent(id)}`, { organizationId, userId }), [organizationId, userId])
 
   const attachSelectedFiles = useCallback(
     async (fileIds: string[]) => {
-      const response = await fetch("/api/integrations/google-drive/documents", {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ fileIds }),
@@ -98,7 +92,7 @@ export function useGoogleDriveLibrary({
       )
       await refresh()
     },
-    [refresh]
+    [refresh, endpoint]
   )
 
   const openPicker = useCallback(async () => {
@@ -114,7 +108,7 @@ export function useGoogleDriveLibrary({
         await openPicker()
         return
       }
-      const response = await fetch("/api/integrations/google-drive/connect", {
+      const response = await fetch(connectEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -137,12 +131,13 @@ export function useGoogleDriveLibrary({
     } finally {
       setPending(false)
     }
-  }, [connected, enabled, inWorkspace, openPicker, pending])
+  }, [connected, enabled, inWorkspace, openPicker, pending, connectEndpoint])
 
   const detachDocument = useCallback(
     async (documentId: string, options: DocumentActionOptions = {}) => {
+      const update = captureUpdate()
       const response = await fetch(
-        `/api/integrations/google-drive/documents/${encodeURIComponent(documentId)}`,
+        detachEndpoint(documentId),
         { method: "DELETE" }
       )
       const result = await readDriveResponse(response)
@@ -152,12 +147,10 @@ export function useGoogleDriveLibrary({
           throw new Error(driveErrorMessage(result?.code))
         return
       }
-      setDocuments((current) =>
-        current.filter((document) => document.id !== documentId)
-      )
+      update(current => ({ ...current, documents: current.documents.filter(document => document.id !== documentId) }))
       toast.success("Google Drive file removed")
     },
-    []
+    [captureUpdate, detachEndpoint]
   )
 
   return {
@@ -165,7 +158,8 @@ export function useGoogleDriveLibrary({
     connectOrPick,
     detachDocument,
     documents,
-    loading,
+    loading: library.loading,
+    error: library.error,
     pending,
     refresh,
   }

@@ -1,10 +1,11 @@
-import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
+import { filterPublicDocumentSections } from "@/lib/organization/public-document-audience"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 
 import { PublicRoadmapPresentation } from "@/components/roadmap/public-roadmap-presentation"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
-import { ROADMAP_SECTION_IDS, resolveRoadmapSections } from "@/lib/roadmap"
+import { ROADMAP_SECTION_IDS } from "@/lib/roadmap"
+import { resolvePublicRoadmapSections } from "@/lib/roadmap/sections"
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { RoadmapAnalyticsTracker } from "@/components/roadmap/public-roadmap-tracker"
 import { publicSharingEnabled } from "@/lib/feature-flags"
@@ -35,12 +36,14 @@ export default async function PublicRoadmapPage({
       ein: string | null
     }>()
 
-  if (!orgRow || !(await currentlyPublicOrganizationIds([orgRow.user_id], "roadmap")).has(orgRow.user_id)) {
+  if (!orgRow) {
     return notFound()
   }
 
   const profile = (orgRow.profile ?? {}) as Record<string, unknown>
-  const sections = resolveRoadmapSections(profile).filter((section) => {
+  const publishedSections = await filterPublicDocumentSections(resolvePublicRoadmapSections(profile), orgRow.user_id)
+  if (publishedSections === null) return notFound()
+  const sections = publishedSections.filter((section) => {
     if (section.content.trim().length > 0) return true
     if (section.imageUrl) return true
     const title = section.title.trim()

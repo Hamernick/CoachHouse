@@ -57,6 +57,7 @@ export function normalizeWorkspaceObjectiveStatusUpdateInput(
 ): WorkspaceObjectiveStatusUpdateInput {
   return {
     objectiveId: normalizedText(input.objectiveId),
+    expectedUpdatedAt: normalizedText(input.expectedUpdatedAt),
     status: normalizeObjectiveStatus(input.status),
   }
 }

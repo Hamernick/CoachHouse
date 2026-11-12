@@ -79,7 +79,7 @@ export async function listRoadmapCalendarEvents({
   let workspaceEvents: RoadmapCalendarEvent[] = []
   if (calendarType === "internal") {
     try {
-      const [particles, opportunities] = await Promise.all([readWorkspaceParticleCalendar(supabase, orgId), readWorkspaceOpportunityCalendar(supabase, orgId, from, to)])
+      const [particles, opportunities] = await Promise.all([readWorkspaceParticleCalendar(supabase, orgId, user.id), readWorkspaceOpportunityCalendar(supabase, orgId, from, to)])
       workspaceEvents = [...particleCalendarEventsInRange(particles, from, to), ...opportunities]
     } catch {
       return { error: "Unable to load workspace events. Try again." }

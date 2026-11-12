@@ -2,6 +2,7 @@
 
 import { useMemo, type ReactNode } from "react"
 
+import { WorkspaceChatSidebarSlot } from "@/features/workspace-ai/client"
 import { CoachSchedulingCard } from "@/components/coaching/coach-scheduling-card"
 import { CoachSchedulingSidebarItem } from "@/components/coaching/coach-scheduling-sidebar-item"
 import { NavDocuments } from "@/components/nav-documents"
@@ -198,6 +199,7 @@ export function SidebarBody({
         {onboardingLocked ? null : (
           <NavMain items={mainNavItems} className="py-0" />
         )}
+        {!onboardingLocked && <WorkspaceChatSidebarSlot />}
         {shouldShowAccelerator && showClasses ? (
           <ClassesSection
             classes={classes}

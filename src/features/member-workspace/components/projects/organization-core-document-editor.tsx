@@ -1,7 +1,10 @@
 "use client"
 
+import { useCoreDocumentAccess } from "@/features/document-editing/client"
+import { useCanvasDocumentSource } from "@/components/workspace/workspace-canvas-source-context"
+
 import { organizationDocumentCollaborationEnabled } from "@/lib/feature-flags"
-import { OrganizationDocumentCollaborationPanel, useDocumentCapabilities } from "@/features/organization-document-collaboration/client"
+import { OrganizationDocumentCollaborationPanel } from "@/features/organization-document-collaboration/client"
 import { useEffect, useState } from "react"
 import { saveRoadmapSectionAction } from "@/actions/roadmap"
 import { RichTextEditor } from "@/components/rich-text-editor"
@@ -17,21 +20,22 @@ import {
 import type { RoadmapSection } from "@/lib/roadmap"
 import { toast } from "@/lib/toast"
 
-export function OrganizationCoreDocumentEditor({
-  section,
-  organizationId,
-  userId,
-  onClose,
-  onSaved,
-}: {
+type CoreEditorProps = {
   section: RoadmapSection
   organizationId: string
   userId: string
   onClose: () => void
   onSaved: () => void
-}) {
-  const access = useDocumentCapabilities(organizationId)
-  const canEdit = Boolean(access.capabilities?.canEdit)
+}
+
+export function OrganizationCoreDocumentEditor(props: CoreEditorProps) {
+  return <CoreDocumentEditorSession key={`${props.userId}:${props.organizationId}:${props.section.id}`} {...props} />
+}
+
+function CoreDocumentEditorSession({ section, organizationId, userId, onClose, onSaved }: CoreEditorProps) {
+  useCanvasDocumentSource("editor", section.id)
+  const access = useCoreDocumentAccess({ organizationId, userId }, [section.id])
+  const canEdit = access.state === "ready" && access.canEdit
   const [livePending, setLivePending] = useState(false)
   const [content, setContent] = useState(section.content)
   const [rows, setRows] = useState(section.budgetRows ?? [])
@@ -83,6 +87,11 @@ export function OrganizationCoreDocumentEditor({
       setSaving(false)
     }
   }
+  if (access.state !== "ready") return <Dialog open onOpenChange={open => { if (!open) close() }}>
+    <DialogContent><DialogHeader><DialogTitle>Document</DialogTitle><DialogDescription>{access.state === "checking" ? "Checking access…" : "Document unavailable. Close and reopen to check access."}</DialogDescription></DialogHeader>
+      <Button variant="outline" onClick={close}>Close document</Button>
+    </DialogContent>
+  </Dialog>
   if (organizationDocumentCollaborationEnabled) {
     const closeLive = () => {
       if (!livePending || window.confirm("Some changes may not be saved. Keep this editor open to finish syncing, or close anyway?")) { onSaved(); onClose() }
@@ -92,7 +101,6 @@ export function OrganizationCoreDocumentEditor({
         <DialogHeader className="shrink-0"><DialogTitle>{section.title}</DialogTitle>
           <DialogDescription>Changes save automatically and appear for everyone editing this document.</DialogDescription>
         </DialogHeader>
-        {access.error ? <div role="alert" className="text-sm"><p>{access.error}</p><Button variant="outline" size="sm" onClick={access.retry}>Retry access check</Button></div> : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <OrganizationDocumentCollaborationPanel key={`${organizationId}:${section.id}`} section={section}
             organizationId={organizationId} userId={userId} canEdit={canEdit} onPendingChange={setLivePending} />
@@ -115,7 +123,6 @@ export function OrganizationCoreDocumentEditor({
             Edit this organization’s core document.
           </DialogDescription>
         </DialogHeader>
-        {access.error ? <div role="alert" className="text-sm"><p>{access.error}</p><Button variant="outline" size="sm" onClick={access.retry}>Retry access check</Button></div> : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <RichTextEditor
             value={content}

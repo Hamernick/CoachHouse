@@ -1,12 +1,17 @@
 import { createHash } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ context:vi.fn(), config:vi.fn(), reserve:vi.fn(), claim:vi.fn(), settle:vi.fn(), correlate:vi.fn(), reconcile:vi.fn(), read:vi.fn(), provider:vi.fn(), load:vi.fn(),file:vi.fn(),history:vi.fn(),account:vi.fn() }))
+const mocks = vi.hoisted(() => ({ embedding:vi.fn(),canvas:vi.fn(), context:vi.fn(), config:vi.fn(), reserve:vi.fn(), claim:vi.fn(), settle:vi.fn(), correlate:vi.fn(), reconcile:vi.fn(), read:vi.fn(), provider:vi.fn(), load:vi.fn(),file:vi.fn(),history:vi.fn(),account:vi.fn(),chat:vi.fn() }))
+vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:()=>({rpc:(name:string,args:unknown)=>name==="read_workspace_canvas_projection"?mocks.canvas(args):mocks.chat(name,args)})}))
 vi.mock("@/features/workspace-ai/server/knowledge-file",()=>({readKnowledgeFile:mocks.file}))
-vi.mock("@/features/workspace-ai/server/knowledge-records",()=>({knowledgeLoader:()=>mocks.load}))
+vi.mock("@/features/workspace-ai/server/knowledge-records",async original=>({...await original<typeof import("@/features/workspace-ai/server/knowledge-records")>(),knowledgeLoader:()=>mocks.load}))
 vi.mock("@/features/workspace-ai/server/research-context",()=>({loadResearchContext:mocks.context}))
 vi.mock("@/features/workspace-ai/server/research-config",()=>({researchConfig:mocks.config}))
 vi.mock("@/features/workspace-ai/server/research-provider",()=>({runResearchProvider:mocks.provider}))
 vi.mock("@/features/ai-credits",async()=>({aiCreditBalance:(await import("@/features/ai-credits/lib")).aiCreditBalance,priceAiUsage:(await import("@/features/ai-credits/lib")).priceAiUsage,AiAdmissionDenied:(await import("@/features/ai-credits/server/admission-error")).AiAdmissionDenied,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,correlateAiResearchResponse:mocks.correlate,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read,cancelAiRun:vi.fn(),readAiAccount:mocks.account,listAiResearchRuns:mocks.history}))
+vi.mock("@/features/workspace-ai/server/document-embedding-config",async original=>({
+ ...await original<typeof import("@/features/workspace-ai/server/document-embedding-config")>(), configuredDocumentEmbedding:mocks.embedding,
+}))
+import { embeddingDisclosureFixture } from "./fixtures/document-embedding-fixtures"
 import { AiAdmissionDenied } from "@/features/ai-credits/server/admission-error"
 import { knowledgeFingerprint, researchContextFingerprint } from "@/features/workspace-ai/server/research-dependencies"
 import type { ResearchContext } from "@/features/workspace-ai/server/research-context"
@@ -16,6 +21,7 @@ import { researchProviderRequest } from "@/features/workspace-ai/server/research
 import { researchPrompt } from "@/features/workspace-ai/server/research-prompt"
 import { researchInstructions } from "@/features/workspace-ai/lib/research-skills"
 import { researchRecovery } from "@/features/workspace-ai/lib/research-recovery"
+import { assertResearchSourcesAccessible } from "@/features/workspace-ai/server/research-result-access"
 import { researchSnapshotSchema } from "@/features/workspace-ai/lib/research-snapshot"
 import { handleWorkspaceResearch, readResearchRun } from "@/features/workspace-ai/server/research-run"
 import { ID, WORKSPACE, graph, particle } from "./fixtures/particle-fixtures"
@@ -24,6 +30,8 @@ const input={id:ID(2),target,prompt:"Develop this objective",skill:"planning" as
 const request=(value:unknown=input,origin="http://localhost:3008")=>new Request("http://localhost:3008/api/workspace-ai/research",{method:"POST",headers:{origin,"Content-Type":"application/json"},body:JSON.stringify(value)})
 beforeEach(()=>{
  vi.resetAllMocks()
+ mocks.canvas.mockResolvedValue({data:{state:{}},error:null})
+ mocks.chat.mockResolvedValue({data:{deleted:false},error:null})
  vi.unstubAllEnvs()
  mocks.load.mockResolvedValue([])
  mocks.account.mockResolvedValue({enabled:true,paymentReview:false,lots:[]})
@@ -328,6 +336,17 @@ describe("saved research disclosure", () => {
   expect(await getWorkspaceResearch(ID(2),{...target,objectiveId:ID(99)})).toEqual({error:researchRecovery.scope_mismatch.message,failure:{code:"scope_mismatch"}})
   expect(mocks.load).not.toHaveBeenCalled()
  })
+ it("keeps readable history after unrelated context changes while refusing stale proposal application",async()=>{
+  const value=saved()
+  mocks.load.mockResolvedValue([record])
+  const changed={...initial,objective:{...initial.objective!,title:"Unrelated new plan title"}}
+  await expect(assertResearchSourcesAccessible(changed,value,"history")).resolves.toBeUndefined()
+  await expect(assertResearchSourcesAccessible(changed,value)).rejects.toMatchObject({code:"sources_changed"})
+  mocks.load.mockResolvedValue([])
+  await expect(assertResearchSourcesAccessible(changed,value,"history")).rejects.toMatchObject({code:"sources_changed"})
+  mocks.load.mockRejectedValue(new Error("Reader offline"))
+  await expect(assertResearchSourcesAccessible(changed,value,"history")).rejects.toMatchObject({code:"verification_unavailable"})
+ })
  it("does not reuse access from a prior reopen",async()=>{
   setRun();mocks.load.mockResolvedValue([record])
   await readResearchRun(ID(2),target)
@@ -399,14 +418,15 @@ describe("saved research disclosure", () => {
 
 describe("previous research discovery",()=>{
  beforeEach(()=>{
-  mocks.context.mockResolvedValue({user:{id:ID(90)},activeOrg:{orgId:WORKSPACE},canvasId:"canvas-a",objective:particle(1,"objective")})
+  mocks.context.mockResolvedValue({user:{id:ID(90)},activeOrg:{orgId:WORKSPACE},target,canvasId:ID(60),objective:particle(1,"objective")})
+  mocks.canvas.mockResolvedValue({data:{state:{workspaceCatalog:{version:1,defaultName:"Main",entries:[{id:ID(60),name:"Board",state:{},createdAt:"2026-11-07T00:00:00Z",updatedAt:"2026-11-07T00:00:00Z"}]}}}})
   mocks.history.mockResolvedValue([{id:ID(2),status:"succeeded",created_at:"2026-10-30T10:00:00+00:00"}])
  })
  it("uses verified actor/canvas/objective scope and returns only bounded metadata",async()=>{
   const selection={...target,plan:{id:ID(50),revision:2}}
   expect(await listWorkspaceResearch(selection)).toEqual({runs:[{id:ID(2),status:"succeeded",created_at:"2026-10-30T10:00:00+00:00"}]})
   expect(mocks.context).toHaveBeenCalledWith(selection,false)
-  expect(mocks.history).toHaveBeenCalledWith({organizationId:WORKSPACE,actorId:ID(90),objectiveId:ID(1),canvasId:"canvas-a",planId:ID(50)})
+  expect(mocks.history).toHaveBeenCalledWith({organizationId:WORKSPACE,actorId:ID(90),objectiveId:ID(1),canvasId:ID(60),planId:ID(50)})
   expect(mocks.provider).not.toHaveBeenCalled();expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.read).not.toHaveBeenCalled()
  })
  it("keeps new-plan history separate from selected-plan history",async()=>{
@@ -441,7 +461,7 @@ describe("new objective request and recovery", () => {
   setup()
   const response=await handleWorkspaceResearch(request({...input,target:newTarget}))
   expect(response.status).toBe(200)
-  expect(mocks.reserve).toHaveBeenCalledWith(expect.objectContaining({task:"research",actorId:ID(90),target:{...newTarget,kind:"particle_research",userId:ID(90)}}))
+  expect(mocks.reserve).toHaveBeenCalledWith(expect.objectContaining({task:"research",actorId:ID(90),target:{...newTarget,kind:"particle_research",userId:ID(90),conversation:{id:input.id,parentId:null,turn:1,draftRevision:0}}}))
   expect(mocks.provider).toHaveBeenCalledTimes(1)
  })
  it("rejects a fake placeholder ID before any reservation",async()=>{
@@ -467,6 +487,8 @@ describe("new objective request and recovery", () => {
   mocks.read.mockResolvedValue({id:ID(2),status:"succeeded",target:{...newTarget,kind:"particle_research",userId:ID(90)},proposal:"private saved output",charged_credits:2,cancel_requested_at:null})
   expect(await readResearchRun(ID(2),newTarget)).toEqual({version:1,id:ID(2),status:"succeeded",credits:2,result:null,appliedObjectiveId:ID(99),resultRevision:1,applicability:"already_applied"})
   expect(mocks.provider).not.toHaveBeenCalled();expect(mocks.reserve).not.toHaveBeenCalled()
+  mocks.canvas.mockResolvedValue({data:{state:{workspaceCatalog:{version:1,defaultName:"Workspace",defaultDeleted:true,entries:[]}}},error:null})
+  await expect(readResearchRun(ID(2),newTarget)).rejects.toMatchObject({code:"verification_unavailable"})
  })
 })
 
@@ -577,5 +599,143 @@ describe("quoted model and durable research receipt",()=>{
  })
  it("keeps legacy missing receipt details unknown",async()=>{
   expect(await readResearchRun(ID(2),target)).not.toHaveProperty("processing")
+ })
+})
+
+
+describe("explicit composer context admission",()=>{
+ it("does not reserve after the request is canceled during context preparation",async()=>{
+  const controller=new AbortController();controller.abort()
+  const canceled=new Request(request(),{signal:controller.signal})
+  await handleWorkspaceResearch(canceled)
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("rejects unavailable context before reserving or calling a provider",async()=>{
+  const response=await handleWorkspaceResearch(request({...input,context:[{id:"document:missing",revision:"1"}]}))
+  expect(await response.json()).toMatchObject({reserved:false,failure:{code:"sources_changed"}})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("binds selected references into idempotency and passes verified text to the provider",async()=>{
+  const document={id:"document:mission",kind:"document",title:"Mission",content:"Neighborhood garden evidence",revision:"1",href:"/workspace",contentAvailable:true}
+  mocks.load.mockResolvedValue([document]);mocks.file.mockResolvedValue(document)
+  await handleWorkspaceResearch(request())
+  const first=mocks.reserve.mock.calls[0][0].hash
+  await handleWorkspaceResearch(request({...input,context:[{id:document.id,revision:"1"}]}))
+  expect(mocks.reserve.mock.calls[1][0].hash).not.toBe(first)
+  expect(mocks.provider.mock.calls[1][0].preparedContext.records[0].content).toBe(document.content)
+ })
+})
+
+
+describe("canvas chat SDK transport admission", () => {
+ it.each(["new", "replay", "denied"])("retains the existing admission and settlement path: %s", async mode => {
+  vi.stubEnv("WORKSPACE_AI_PROGRESS_STREAM", "1")
+  const chatTarget = { mode: "new_objective", organizationId: WORKSPACE, canvasId: null, revision: 0 }
+  mocks.context.mockResolvedValue({ user: { id: ID(90) }, canvasId: null, graph: graph(), target: chatTarget })
+  mocks.read.mockResolvedValue({ id: ID(2), status: "failed", target: { ...chatTarget, kind: "particle_research", userId: ID(90) }, proposal: null, charged_credits: 0, cancel_requested_at: null })
+  if (mode === "replay") mocks.reserve.mockResolvedValue({ created: false })
+  if (mode === "denied") mocks.reserve.mockRejectedValue(new AiAdmissionDenied("credits_unavailable", "private"))
+  const req = request({ ...input, target: chatTarget })
+  req.headers.set("x-coach-house-chat", "1")
+  const response = await handleWorkspaceResearch(req)
+  const wire = await response.text()
+  if (mode === "new") {
+   expect(response.headers.get("x-vercel-ai-ui-message-stream")).toBe("v1")
+   expect(wire).toContain('"type":"data-research"')
+   expect(wire).toContain('"run.terminal"')
+   expect(mocks.provider).toHaveBeenCalledTimes(1)
+   expect(mocks.settle).toHaveBeenCalledTimes(1)
+  } else {
+   expect(response.headers.get("content-type")).toContain("application/json")
+   expect(mocks.provider).not.toHaveBeenCalled()
+   expect(mocks.settle).not.toHaveBeenCalled()
+  }
+  expect(mocks.reserve).toHaveBeenCalledTimes(1)
+ })
+})
+
+it.each(["deleted", "lookup failed"])("withholds a conversation run after chat lifecycle check: %s", async state => {
+ const newTarget={mode:"new_objective" as const,organizationId:WORKSPACE,canvasId:null,revision:0}
+ mocks.context.mockResolvedValue({user:{id:ID(90)},canvasId:null,graph:graph(),target:newTarget})
+ mocks.read.mockResolvedValue({id:ID(2),status:"failed",target:{...newTarget,kind:"particle_research",userId:ID(90),conversation:{id:ID(2),parentId:null,turn:1,draftRevision:0}},proposal:null,charged_credits:0,cancel_requested_at:null})
+ mocks.chat.mockResolvedValue(state==="deleted"?{data:{deleted:true},error:null}:{data:null,error:{code:"42501"}})
+ await expect(readResearchRun(ID(2),newTarget)).rejects.toMatchObject({code:"verification_unavailable"})
+ expect(mocks.chat).toHaveBeenCalledWith("manage_workspace_research_conversation",expect.objectContaining({p_actor_id:ID(90),p_root_id:ID(2),p_operation:"read"}))
+})
+
+it.each(["answer", "clarify"] as const)("settles %s as paid success and replays the same read-only result", async responseKind => {
+ const target = { mode: "new_objective" as const, organizationId: WORKSPACE, canvasId: null, revision: 0 }
+ const context = { user: { id: ID(90) }, canvasId: null, graph: graph(), target } as ResearchContext
+ mocks.context.mockResolvedValue(context)
+ const reply: ResearchResult = { target, runId: input.id, responseKind, answerEvidenceIds: [], title: "Pilot question", summary: "How many volunteers?", items: [], questions: [], decisions: [], removeReferences: [], sources: [], dependencies: { version: 1, contextFingerprint: researchContextFingerprint(context), records: [] } }
+ mocks.provider.mockResolvedValue({ canceled: false, result: reply, responseId: "reply", usage: { input: 100, cachedInput: 10, output: 20 } })
+ mocks.read.mockResolvedValue({ id: input.id, status: "succeeded", target: { ...target, kind: "particle_research", userId: ID(90), conversation: { id: input.id, parentId: null, turn: 1, draftRevision: 0 } }, proposal: JSON.stringify(reply), charged_credits: 1, cancel_requested_at: null })
+ const response = await handleWorkspaceResearch(request({ ...input, target }))
+ expect(response.status).toBe(200)
+ expect((await response.json()).run).toMatchObject({ status: "succeeded", applicability: "read_only", credits: 1, result: { responseKind } })
+ expect(mocks.settle).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ status: "succeeded", usage: { input: 100, cachedInput: 10, output: 20 }, proposal: JSON.stringify(reply) }))
+ mocks.reserve.mockResolvedValue({ created: false })
+ expect((await (await handleWorkspaceResearch(request({ ...input, target }))).json()).run.applicability).toBe("read_only")
+ expect(mocks.provider).toHaveBeenCalledTimes(1)
+ expect(mocks.settle).toHaveBeenCalledTimes(1)
+})
+
+it.each(["failed", "running", "canceled"])("withholds a %s run receipt after canvas revocation", async status => {
+ const raw = await mocks.read()
+ mocks.read.mockResolvedValue({ ...raw, status })
+ mocks.canvas.mockResolvedValue({ data: { state: { workspaceCatalog: { version: 1, defaultName: "Workspace", defaultDeleted: true, entries: [] } } } })
+ await expect(readResearchRun(ID(2),target)).rejects.toMatchObject({code:"verification_unavailable"})
+ expect(mocks.provider).not.toHaveBeenCalled()
+})
+it("withholds research discovery when the final canvas check fails", async () => {
+ const context = await mocks.context()
+ mocks.context.mockResolvedValue({ ...context, activeOrg: { orgId: WORKSPACE } })
+ mocks.history.mockResolvedValue([])
+ mocks.canvas.mockRejectedValue(new Error("Private database detail"))
+ expect(await listWorkspaceResearch(target)).toEqual({ error: "Previous research could not be loaded. Try again." })
+})
+
+
+describe("embedding disclosure through quote, admission and saved receipt",()=>{
+ const pricedBase={tariff:{version:"test",model:"fixture",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,microdollarsPerCredit:2000},maxRounds:3,maxOutputTokens:1500,maxCredits:20,maxCost:40000,maxInputBytes:20000,maxSearchCalls:0}
+ const transport=vi.fn()
+ beforeEach(()=>{mocks.config.mockReturnValue(pricedBase);mocks.embedding.mockReturnValue({policy:embeddingDisclosureFixture,qualifiedSourceIds:new Set(["document:mission"]),transport});transport.mockReset()})
+ it("quotes the qualified terms without transport, reserves those exact terms and preserves selected context",async()=>{
+  const document={id:"document:mission",kind:"document",title:"Mission",content:"Neighborhood garden evidence",revision:"1",href:"/workspace",contentAvailable:true}
+  mocks.load.mockResolvedValue([document]);mocks.file.mockResolvedValue(document)
+  const quote=await quoteWorkspaceResearch(target)
+  expect(quote).toMatchObject({embedding:embeddingDisclosureFixture})
+  expect(transport).not.toHaveBeenCalled();expect(mocks.reserve).not.toHaveBeenCalled()
+  if (!("tariffVersion" in quote)) throw Error("Expected quote")
+  await handleWorkspaceResearch(request({...input,tariffVersion:quote.tariffVersion,embeddingApproval:quote.tariffVersion,maximumCredits:quote.maximumCredits,context:[{id:document.id,revision:"1"}]}))
+  expect(mocks.reserve.mock.calls[0][0].tariff.embedding.processing).toEqual(embeddingDisclosureFixture.processing)
+  expect(mocks.provider.mock.calls[0][0]).toMatchObject({documentEmbedding:{transport},preparedContext:{records:[{content:document.content}]}})
+  expect(mocks.claim.mock.invocationCallOrder[0]).toBeLessThan(mocks.provider.mock.invocationCallOrder[0])
+  const reservation=mocks.reserve.mock.calls[0][0]
+  mocks.read.mockResolvedValue({id:input.id,status:"failed",target:{...target,kind:"particle_research"},proposal:null,charged_credits:0,cancel_requested_at:null,tariff:reservation.tariff,max_credits:reservation.maxCredits})
+  mocks.embedding.mockImplementation(()=>{throw Error("Today's configuration is unavailable")})
+  expect(await readResearchRun(input.id,target)).toMatchObject({credits:0,processing:{embedding:embeddingDisclosureFixture,tariffVersion:quote.tariffVersion}})
+ })
+ it.each(["provider","destination","retention","training","qualification","tokenizerQualification","model","dimensions","maxInputBytes","maxInputTokens","maxCalls","microdollarsPerMillion"])("rejects changed %s before reservation or provider dispatch",async field=>{
+  const quote=await quoteWorkspaceResearch(target)
+  if (!("tariffVersion" in quote)) throw Error("Expected quote")
+  const policy=structuredClone(embeddingDisclosureFixture)
+  if(field in policy.processing) Object.assign(policy.processing,{[field]:"changed"})
+  else Object.assign(policy,{[field]:typeof policy[field as keyof typeof policy]==="number"?Number(policy[field as keyof typeof policy])+1:"another-model"})
+  mocks.embedding.mockReturnValue({policy,qualifiedSourceIds:new Set(),transport})
+  expect(await (await handleWorkspaceResearch(request({...input,tariffVersion:quote.tariffVersion,embeddingApproval:quote.tariffVersion,maximumCredits:quote.maximumCredits}))).json()).toMatchObject({reserved:false,failure:{code:"pricing_changed"}})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled();expect(transport).not.toHaveBeenCalled()
+ })
+ it("requires explicit approval of the embedding terms before reserving",async()=>{
+  const quote=await quoteWorkspaceResearch(target)
+  if (!("tariffVersion" in quote)) throw Error("Expected quote")
+  expect(await (await handleWorkspaceResearch(request({...input,tariffVersion:quote.tariffVersion,maximumCredits:quote.maximumCredits}))).json()).toMatchObject({reserved:false,failure:{code:"pricing_changed"}})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
+ })
+ it("rejects incomplete registration without falling back to undisclosed processing",async()=>{
+  mocks.embedding.mockReturnValue({policy:{...embeddingDisclosureFixture,processing:undefined},qualifiedSourceIds:new Set(),transport})
+  expect(await quoteWorkspaceResearch(target)).toHaveProperty("error")
+  expect(await (await handleWorkspaceResearch(request())).json()).toMatchObject({reserved:false})
+  expect(mocks.reserve).not.toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled()
  })
 })

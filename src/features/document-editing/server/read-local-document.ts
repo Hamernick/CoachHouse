@@ -1,4 +1,7 @@
+import { filterDocumentFileAudience } from "@/lib/organization/document-file-audience"
 import "server-only"
+import { assertPrivateOrganizationReadWindow } from "@/lib/organization/private-storage-link"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 import { createHash } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -14,15 +17,17 @@ const rowSchema = z.object({
 
 export async function readLocalDocument(
   supabase: SupabaseClient<Database>,
-  source: Extract<DocumentSource, { provider: "coach_house" }>
+  source: Extract<DocumentSource, { provider: "coach_house" }>,
+  actorId?: string
 ): Promise<DocumentSnapshot> {
-  return (await readLocalDocumentWithLocation(supabase, source)).snapshot
+  return (await readLocalDocumentWithLocation(supabase, source, actorId)).snapshot
 }
 
 /** Private storage location stays server-side; public snapshots expose no paths. */
 export async function readLocalDocumentWithLocation(
   supabase: SupabaseClient<Database>,
-  source: Extract<DocumentSource, { provider: "coach_house" }>
+  source: Extract<DocumentSource, { provider: "coach_house" }>,
+  actorId?: string
 ) {
   const { data, error } = await supabase.from("organization_document_files")
     .select("name, mime_type, size_bytes, storage_path, updated_at, deleted_at")
@@ -30,13 +35,16 @@ export async function readLocalDocumentWithLocation(
     .is("document_kind", null).abortSignal(AbortSignal.timeout(15000)).maybeSingle()
   if (error) throw new Error("Could not load this document.")
   if (!data) throw new Error("Document not found.")
+  if (actorId && !(await filterDocumentFileAudience([{ id: source.fileId }], actorId)).length)
+    throw new Error("Document not found.")
   const row = rowSchema.parse(data)
   if (row.deleted_at) throw new Error("Restore this document before opening it.")
   if (!row.storage_path.startsWith(`${source.organizationId}/library/`) || row.storage_path.split("/").includes(".."))
     throw new Error("Document not found.")
   if (!/\.(md|markdown)$/i.test(row.name)) throw new Error("This format does not have a complete-content editing adapter yet.")
   if (row.size_bytes > DOCUMENT_EDIT_BYTES) throw new Error("This file exceeds the current editing limit.")
-  const { data: signed, error: signingError } = await supabase.storage.from("org-documents").createSignedUrl(row.storage_path, 60)
+  await assertPrivateOrganizationReadWindow(source.organizationId)
+  const { data: signed, error: signingError } = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from("org-documents").createSignedUrl(row.storage_path, 60)
   if (signingError || !signed?.signedUrl) throw new Error("Could not open this document.")
   const response = await fetch(signed.signedUrl, {
     cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15_000),
@@ -50,6 +58,9 @@ export async function readLocalDocumentWithLocation(
     .abortSignal(AbortSignal.timeout(15000)).maybeSingle()
   if (current.error || !current.data || current.data.deleted_at || current.data.storage_path !== row.storage_path || current.data.updated_at !== row.updated_at)
     throw new Error("This document changed or is no longer available.")
+  if (actorId && !(await filterDocumentFileAudience([{ id: source.fileId }], actorId)).length)
+    throw new Error("This document is no longer available.")
+  await assertPrivateOrganizationReadWindow(source.organizationId)
   return { storagePath: row.storage_path, snapshot: documentSnapshotSchema.parse({
     source, name: row.name, format: "markdown", content, updatedAt: row.updated_at,
     revision: createHash("sha256").update(`${row.storage_path}\0${row.updated_at}\0${content}`).digest("hex"),

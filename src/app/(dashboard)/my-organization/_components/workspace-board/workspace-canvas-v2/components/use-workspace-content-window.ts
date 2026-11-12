@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, type RefObject, type SetStateAction } from "react"
+import { useCallback, useLayoutEffect, useState, type RefObject, type SetStateAction } from "react"
 import type { WorkspaceCanvasDrawerTab } from "./workspace-canvas-overlay-drawer-tabs"
 import { resolveWorkspaceContentWindowGeometry } from "./workspace-content-window-geometry"
 import {
@@ -31,12 +31,32 @@ export function useWorkspaceContentWindow({
   leaveParticle: (onAccepted?: () => void) => boolean
   tabsListRef: RefObject<HTMLDivElement | null>
 }) {
+  const [topInset, setTopInset] = useState(8)
+  useLayoutEffect(() => {
+    if (!enabled) return
+    const navigation = tabsListRef.current?.closest<HTMLElement>("[data-workspace-top-navigation]")
+    const surface = navigation?.closest<HTMLElement>(".workspace-layout-surface")
+    if (!navigation || !surface) return
+    const measure = () => {
+      const bounds = navigation.getBoundingClientRect()
+      // Keep the last visible measurement while fullscreen hides navigation.
+      if (!bounds.height) return
+      const bottom = bounds.bottom - surface.getBoundingClientRect().top
+      setTopInset(Math.max(8, Math.ceil(bottom) + 8))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(navigation)
+    observer.observe(surface)
+    return () => observer.disconnect()
+  }, [enabled, canvasWidth, canvasHeight, activeSnapPoint, tabsListRef])
   const maximized = isWorkspaceDataDrawerFullscreenSnapPoint(activeSnapPoint)
   const geometry = enabled
     ? resolveWorkspaceContentWindowGeometry({
         canvasWidth,
         canvasHeight,
         dockHeight,
+        topInset,
         maximized,
         tab,
       })
@@ -78,8 +98,9 @@ export function useWorkspaceContentWindow({
   }
   return {
     geometry,
+    topInset,
     resolvePreferredGeometry: (preferredWidth: number) => enabled
-      ? resolveWorkspaceContentWindowGeometry({ canvasWidth, canvasHeight, dockHeight, maximized, tab, preferredWidth })
+      ? resolveWorkspaceContentWindowGeometry({ canvasWidth, canvasHeight, dockHeight, topInset, maximized, tab, preferredWidth })
       : null,
     presentation: tab === "organization" ? "sidebar" as const : "window" as const,
     getAnchorRect,

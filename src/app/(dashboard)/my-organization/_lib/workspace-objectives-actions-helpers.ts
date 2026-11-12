@@ -1,3 +1,4 @@
+export { isMissingTableError } from "@/features/workspace-objectives/server/read-errors"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -59,16 +60,6 @@ export type ObjectiveLinkRow = {
   link_kind: string
   created_by: string
   created_at: string
-}
-
-export function isMissingTableError(error: unknown, tableName: string) {
-  if (!error || typeof error !== "object") return false
-  const record = error as Record<string, unknown>
-  if (record.code === "42P01" || record.code === "PGRST205") return true
-  const message = typeof record.message === "string" ? record.message : ""
-  const details = typeof record.details === "string" ? record.details : ""
-  const hint = typeof record.hint === "string" ? record.hint : ""
-  return message.includes(tableName) || details.includes(tableName) || hint.includes(tableName)
 }
 
 export async function resolveWorkspaceObjectiveActorContext() {

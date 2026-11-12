@@ -6,6 +6,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { canManageWorkspaceFinance, canViewWorkspaceFinance } from "@/lib/workspace/workspace-finance-access"
 import { allWorkspaceStates } from "@/features/workspace-management"
 import { readParticleGraph } from "@/features/workspace-particles"
+import { projectParticleGraphAudience } from "@/features/workspace-particles/server"
+import { readWorkspaceBoardForProjection } from "@/lib/organization/particle-board-read"
 import { type Json, type Database } from "@/lib/supabase"
 import { resourceMatchTargetSchema, fundingNeedSchema, fundingReviewInputSchema, officialOpportunityNoticeSchema, opportunityMatchSnapshotSchema, type ResourceMatchTarget, type ResourceOpportunityMatch } from "../matching-types"
 import { matchOpportunity, opportunityValueLabel } from "../lib/opportunity-matching"
@@ -20,18 +22,21 @@ export async function resourceMatchContext(input:unknown, writing:boolean) {
   if(actor.activeOrg.orgId!==target.organizationId) throw new Error("Your organization changed. Reopen opportunities.")
   const access={activeOrg:actor.activeOrg,supabase:actor.supabase,userId:actor.user.id}
   if(!await (writing?canManageWorkspaceFinance:canViewWorkspaceFinance)(access)) throw new Error("Finance access is required to view or manage matches.")
-  const {data,error}=await actor.supabase.from("organization_workspace_boards").select("state").eq("org_id",target.organizationId).abortSignal(AbortSignal.timeout(10000)).maybeSingle()
+  const {data,error}=await readWorkspaceBoardForProjection(actor.supabase,target.organizationId,actor.user.id,AbortSignal.timeout(10000))
   if(error) throw new Error("Workspace unavailable.")
   const resources=allWorkspaceStates(data?.state).flatMap(canvas=>{
     const graph=readParticleGraph(canvas.state.particleGraph,target.organizationId)
-    if(!graph.ok)return []
-    return graph.value.particles.flatMap(resource=>resource.id===target.resourceId&&resource.type==="activity"?[{resource,canvasId:canvas.id}]:[])
+    if(!graph.ok)throw new Error("Workspace unavailable.")
+    return graph.value.particles.flatMap(resource=>resource.id===target.resourceId&&resource.type==="activity"?[{resource,canvasId:canvas.id,graph:graph.value}]:[])
   })
   if(resources.length!==1||resources[0].resource.revision!==target.resourceRevision)throw new Error("Resource changed. Reopen opportunities from the current resource.")
-  return {...actor,...resources[0],target}
+  const selected=resources[0]
+  const visible=await projectParticleGraphAudience(selected.graph,actor.user.id)
+  if(!visible.particles.some(resource=>resource.id===target.resourceId))throw new Error("This resource is unavailable.")
+  return {...actor,resource:selected.resource,canvasId:selected.canvasId,target}
 }
 export async function resourceMatchRpc(ctx:Awaited<ReturnType<typeof resourceMatchContext>>,action:string,payload:Json=[]) {
-  const {data,error}=await createSupabaseAdminClient().rpc("manage_resource_opportunity_matches",{p_action:action,p_org_id:ctx.target.organizationId,p_actor_id:ctx.user.id,p_resource_id:ctx.resource.id,p_revision:ctx.resource.revision,p_canvas_id:ctx.canvasId,p_payload:payload})
+  const {data,error}=await createSupabaseAdminClient({actorId:ctx.user.id,requestTimeoutMs:10000}).rpc("manage_resource_opportunity_matches",{p_action:action,p_org_id:ctx.target.organizationId,p_actor_id:ctx.user.id,p_resource_id:ctx.resource.id,p_revision:ctx.resource.revision,p_canvas_id:ctx.canvasId,p_payload:payload})
   if(error)throw new Error(error.code==="40001"?"This resource or match changed. Refresh before retrying.":"Opportunity matches could not be saved or loaded.")
   const parsed=z.object({matches:z.array(rowSchema).max(50),opportunity:z.unknown().nullable()}).parse(data)
   const matches:ResourceOpportunityMatch[]=parsed.matches.map(row=>{

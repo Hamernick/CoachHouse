@@ -96,6 +96,8 @@ export function WorkspaceDrawerContent({
     request,
     tab === "roadmap" && contentVisible
   )
+  const toolsRequest = useRetainedDrawerRequest("tools", request, tab === "tools" && contentVisible)
+  const plugins = <WorkspaceToolsPanel input={{ stripeConnection: financeInput.stripeConnection ?? { state: "not_configured" } }} />
   return (
     <div
       data-workspace-data-drawer-body="true"
@@ -229,25 +231,13 @@ export function WorkspaceDrawerContent({
           activeTab={tab}
           visible={contentVisible}
           present={contentPresent && !bodyOverride}
-          value="particles"
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
-        >
-          {particleLibrary}
-        </WorkspaceRetainedPanel>
-        <WorkspaceRetainedPanel
-          activeTab={tab}
-          visible={contentVisible}
-          present={contentPresent && !bodyOverride}
           value="tools"
-          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain data-[state=inactive]:hidden"
+          className="mx-auto flex min-h-0 w-full max-w-none min-w-0 flex-1 flex-col overflow-hidden overscroll-contain data-[state=inactive]:hidden"
         >
-          <WorkspaceToolsPanel
-            input={{
-              stripeConnection: financeInput.stripeConnection ?? {
-                state: "not_configured",
-              },
-            }}
-          />
+          {particleLibrary ? particleLibrary({
+            beforeLibrary: plugins,
+            focusRequestId: toolsRequest?.focusKey === "particles" ? toolsRequest.id : undefined,
+          }) : plugins}
         </WorkspaceRetainedPanel>
       </div>
     </div>

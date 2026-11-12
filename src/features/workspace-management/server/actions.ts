@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { canEditOrganization } from "@/lib/organization/active-org"
 import { changeWorkspaceCatalog, summarizeWorkspaces, workspaceCommandSchema } from "../lib"
+import { saveRestrictedWorkspaceCatalog } from "./restricted-catalog"
 
 export async function saveWorkspaceCommand(input: unknown) {
   const parsed = workspaceCommandSchema.safeParse(input)
@@ -19,6 +20,11 @@ export async function saveWorkspaceCommand(input: unknown) {
     if (parsed.data.kind === "delete" && parsed.data.id === null && ready.data < 2) return { error: "Deleting the starting workspace is not available yet. Please try again later." }
     for (let attempt = 0; attempt < 4; attempt++) {
       const read = await supabase.from("organization_workspace_boards").select("state, updated_at").eq("org_id", activeOrg.orgId).maybeSingle()
+      if (read.error?.code === "42501" && ["Board source access required.", "Workspace audience access required."].includes(read.error.message)) {
+        const result = await saveRestrictedWorkspaceCatalog(parsed.data, user.id)
+        revalidatePath("/workspace")
+        return result
+      }
       if (read.error) throw new Error("Unable to load workspaces. Try again.")
       const state = changeWorkspaceCatalog(read.data?.state, parsed.data, new Date().toISOString())
       const write = read.data

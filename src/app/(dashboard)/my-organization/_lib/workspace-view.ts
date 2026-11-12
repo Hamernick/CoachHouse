@@ -1,4 +1,6 @@
+import { readWorkspaceBoardForProjection } from "@/lib/organization/particle-board-read"
 import { notFound, redirect } from "next/navigation"
+import { projectStoredParticleGraphAudience } from "@/features/workspace-particles/server"
 import { selectWorkspaceState, summarizeWorkspaces } from "@/features/workspace-management"
 
 import type { createSupabaseServerClient } from "@/lib/supabase"
@@ -133,11 +135,7 @@ export async function buildWorkspaceViewSeed<
     workspaceObjectivesResult,
     workspaceObjectiveAssigneesResult,
   ] = await Promise.all([
-    supabase
-      .from("organization_workspace_boards")
-      .select("state")
-      .eq("org_id", orgId)
-      .maybeSingle<{ state: unknown }>(),
+    readWorkspaceBoardForProjection(supabase, orgId, viewer.id),
     supabase
       .from("organization_workspace_invites")
       .select(
@@ -295,6 +293,8 @@ export async function buildWorkspaceViewSeed<
     redirect(`/workspace?workspace=${workspaceCatalog[0].id}`)
   }
   const persistedBoardState = readWorkspaceBoardStateValue(workspaceCatalog.length === 0 ? {} : selectWorkspaceState(boardResult.data?.state, workspaceCanvasId))
+  if (persistedBoardState.particleGraph !== undefined) persistedBoardState.particleGraph =
+    await projectStoredParticleGraphAudience(persistedBoardState.particleGraph, orgId, viewer.id)
   const collaborationInvites = readWorkspaceCollaborationInvitesFromRows(workspaceInvitesResult.data)
   const communicationPosts = readWorkspaceCommunicationPostsFromRows(workspaceCommunicationsResult.data)
   const communicationChannelRows = workspaceCommunicationsChannelsResult.data ?? []

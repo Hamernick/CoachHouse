@@ -61,6 +61,20 @@ describe("durable collaboration action", () => {
     expect(JSON.stringify(result)).not.toContain("secret provider text")
     expect(session.version).toBe(0)
   })
+  it("retains edits and stops retrying when access is revoked during commit", async () => {
+    const before = structuredClone(organization)
+    rpc.mockResolvedValueOnce({ data: false, error: { code: "42501" } })
+    expect(await syncOrganizationDocument(input())).toMatchObject({ code: "denied", retryable: false })
+    expect(rpc).toHaveBeenCalledOnce()
+    expect(session.version).toBe(0)
+    expect(organization).toEqual(before)
+    expect(mocks.path).not.toHaveBeenCalled()
+  })
+  it.each([false, true])("passes only server-resolved support context (%s)", async supportAccess => {
+    mocks.context.mockResolvedValue({ user: { id: "actor" }, admin: { from: query, rpc }, supportAccess })
+    await syncOrganizationDocument(input())
+    expect(rpc).toHaveBeenCalledWith("commit_core_document_session", expect.objectContaining({ p_support: supportAccess }))
+  })
   it("returns plain document attributes when opening a new collaboration session", async () => {
     session = { ...session, section_revision: "stale", section_content: "<p>Previous content</p>" }
     const result = await syncOrganizationDocument({ ...input(), generation: undefined, steps: undefined,

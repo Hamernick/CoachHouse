@@ -1,3 +1,5 @@
+import { DefaultChatTransport } from "ai"
+import { researchChatStream } from "@/features/workspace-ai/server/research-chat-stream"
 import { describe, expect, it, vi } from "vitest"
 import { EventEncoder } from "@ag-ui/encoder"
 import { createResearchProgressReceiver, researchProgressSchema, researchProgressWire, type ResearchProgress } from "@/features/workspace-ai/lib/research-progress"
@@ -284,4 +286,38 @@ it("withholds source effect identities from inert previews and retains them exac
  const generated = updates.mock.calls[0][0]
  expect(generated.outputBindings).toBeUndefined()
  expect(generated.items[0].dataView).toEqual({ kind: "projects" })
+})
+
+
+describe("AI SDK chat transport preserves research authority", () => {
+ async function chunks(response: Response) {
+  const transport = new DefaultChatTransport({ fetch: async () => response })
+  const stream = await transport.sendMessages({ trigger: "submit-message", chatId: ID(2), messageId: undefined, messages: [], abortSignal: undefined })
+  const reader = stream.getReader(), values: unknown[] = []
+  for (;;) { const value = await reader.read(); if (value.done) return values; values.push(value.value) }
+ }
+ it("uses the SDK decoder and validates scoped data through saved completion", async () => {
+  const run = { version:1,id:ID(2),credits:2,status:"succeeded",result:preview,resultRevision:1,applicability:"review_required" }
+  const response = researchChatStream(identity, async phase => { phase("reading"); return Response.json({ run }) })
+  expect(response.headers.get("x-vercel-ai-ui-message-stream")).toBe("v1")
+  const receive = createResearchProgressReceiver(expected, "chat")
+  const events = (await chunks(response)).flatMap(chunk => {
+   const value = chunk as { type: string; data?: unknown }
+   return value.type === "data-research" ? [receive(value.data)!] : []
+  })
+  expect(events.map(event => event.kind)).toEqual(["run.started", "phase.changed", "run.snapshot", "run.terminal"])
+  expect(events.find(event => event.kind === "run.snapshot")?.payload).toEqual({ watermark: 3, run })
+ })
+ it.each(["foreign target", "foreign run", "unfinished", "bad response"])("withholds invalid saved chat output: %s", async failure => {
+  const run = { version:1,id: failure === "foreign run" ? ID(99) : ID(2),credits:2,status: failure === "unfinished" ? "running" : "succeeded",result:{...preview, target: failure === "foreign target" ? {...target, revision:99} : target},resultRevision:1,applicability:"review_required" }
+  const wire = await researchChatStream(identity, async () => Response.json({run}, {status: failure === "bad response" ? 409 : 200})).text()
+  expect(wire).not.toContain('"run.snapshot"')
+  expect(wire).not.toContain('"run.terminal"')
+ })
+ it("rejects raw chat events for another actor and sequence gaps", () => {
+  const receive = createResearchProgressReceiver(expected, "chat")
+  expect(() => receive({...event(1),scope:{...identity.scope,userId:ID(99)}})).toThrow()
+  receive(event(1))
+  expect(() => receive(event(3))).toThrow()
+ })
 })

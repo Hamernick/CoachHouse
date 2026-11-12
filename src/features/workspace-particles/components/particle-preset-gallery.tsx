@@ -41,7 +41,7 @@ export function ParticlePresetGallery({
   query: string
   disabled: boolean
   workspaceId: string
-  onSelect: (preset: ParticlePreset) => void
+  onSelect: (preset: ParticlePreset, trigger: HTMLButtonElement) => void
   onAdd?: (particle: Particle) => Promise<boolean>
   existingIds?: readonly string[]
 }) {
@@ -165,10 +165,10 @@ export function ParticlePresetGallery({
                         placement.adding ||
                         (preset.id === "image" && !onAdd)
                       }
-                      onClick={() =>
+                      onClick={(event) =>
                         preset.id === "image"
                           ? void placement.add(preset)
-                          : onSelect(preset)
+                          : onSelect(preset, event.currentTarget)
                       }
 
                       className="hover:bg-accent/10 dark:hover:bg-accent/10 absolute inset-0 h-full w-full rounded-[inherit] bg-transparent"

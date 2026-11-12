@@ -70,5 +70,5 @@ async function loadAuthorizedFileView(input: DocumentEditingInput) {
     throw new Error("You do not have access to this document.")
   if (source.provider !== "coach_house")
     throw new Error("Drive editing requires the provider collaboration adapter. Open the original file in Drive.")
-  return { viewerId: user.id, snapshot: await readLocalDocument(access.supabase, source), sessionClient: supabase }
+  return { viewerId: user.id, snapshot: await readLocalDocument(access.supabase, source, user.id), sessionClient: supabase }
 }

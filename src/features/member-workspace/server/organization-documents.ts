@@ -1,8 +1,12 @@
 "use server"
 
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
+
+import { filterDocumentFileAudience } from "@/lib/organization/document-file-audience"
+
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
-import { resolveRoadmapSections } from "@/lib/roadmap"
+import { projectReadableDocumentProfile } from "@/lib/organization/document-ai-copies"
 import { isDocumentsSectionVisible } from "@/lib/organization/core-document-uploads"
 import { DOCUMENTS } from "@/lib/organization/core-document-definitions"
 import type { DocumentsPolicyEntry } from "@/lib/organization/document-types"
@@ -15,11 +19,7 @@ export async function loadOrganizationDocuments(organizationId: string) {
   const access = await resolveOrganizationDocumentAccess(client, user.id, organizationId)
   if ("error" in access) return { error: "Document access denied." } as const
   const [organization, files, drive] = await Promise.all([
-    access.supabase
-      .from("organizations")
-      .select("profile, public_slug")
-      .eq("user_id", organizationId)
-      .maybeSingle(),
+    readOrganizationProfileForProjection(access.supabase, organizationId, user.id),
     access.supabase
       .from("organization_document_files")
       .select("id, name, document_kind, updated_at")
@@ -38,13 +38,17 @@ export async function loadOrganizationDocuments(organizationId: string) {
       error: "Unable to load organization documents. Try again.",
     } as const
   if (!organization.data) return { error: "Organization not found." } as const
-  const profile = (organization.data.profile ?? {}) as Record<string, unknown>
+  const projection = await projectReadableDocumentProfile(
+    (organization.data.profile ?? {}) as Record<string, unknown>, organizationId, user.id,
+  ).catch(() => null)
+  if (!projection) return { error: "Unable to load organization documents. Try again." } as const
+  const { profile, roadmapSections } = projection
   const documents = (profile.documents ?? {}) as OrgDocuments
   return {
     policies: (Array.isArray(profile.policies)
       ? profile.policies
       : []) as DocumentsPolicyEntry[],
-    sections: resolveRoadmapSections(profile).filter((section) =>
+    sections: roadmapSections.filter((section) =>
       isDocumentsSectionVisible(section.id)
     ),
     uploads: DOCUMENTS.map((definition) => ({
@@ -52,7 +56,7 @@ export async function loadOrganizationDocuments(organizationId: string) {
       title: definition.title,
       document: documents[definition.key] ?? null,
     })),
-    files: files.data ?? [],
+    files: await filterDocumentFileAudience(files.data ?? [], user.id),
     drive: drive.data ?? [],
     userId: user.id,
   }

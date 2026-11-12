@@ -1,3 +1,4 @@
+import { privateFileUrlSchema } from "@/lib/organization/private-file-url"
 import { z } from "zod"
 import { getDocumentEditorHref } from "@/lib/workspace/editor-navigation"
 import { createParticle } from "./particle-registry"
@@ -144,7 +145,7 @@ export async function resolveLibraryImageParticle(
     { signal: AbortSignal.timeout(15000), cache: "no-store" }
   )
   const { url } = z
-    .object({ url: z.url({ protocol: /^https?$/ }) })
+    .object({ url: privateFileUrlSchema })
     .parse(await readImageResponse(response))
   const dimensions = await new Promise<{ width: number; height: number }>(
     (resolve, reject) => {

@@ -86,7 +86,7 @@ export async function saveWorkspaceBoardStateAction(
 
   let persistenceClient = supabase
   try {
-    persistenceClient = createSupabaseAdminClient()
+    persistenceClient = createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 })
   } catch {
     // Local/dev environments may omit service-role credentials.
   }
@@ -143,7 +143,7 @@ export async function saveWorkspaceNodePositionAction(
 
   let persistenceClient = supabase
   try {
-    persistenceClient = createSupabaseAdminClient()
+    persistenceClient = createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 })
   } catch {
     // Local/dev environments may omit service-role credentials.
   }

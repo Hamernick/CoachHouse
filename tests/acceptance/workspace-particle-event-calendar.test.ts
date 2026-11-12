@@ -12,7 +12,8 @@ import { mergeWorkspaceUpcomingEvents } from "@/app/(dashboard)/my-organization/
 import { batch, graph, particle, ID, NOW, WORKSPACE } from "./fixtures/particle-fixtures"
 import { createSupabaseServerClientServerMock } from "./test-utils"
 
-const mocks = vi.hoisted(() => ({ access: vi.fn() }))
+const mocks = vi.hoisted(() => ({ access: vi.fn(), rpc: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }))
 vi.mock("@/actions/roadmap-calendar-helpers", async importOriginal => ({
   ...await importOriginal<typeof import("@/actions/roadmap-calendar-helpers")>(),
   resolveCalendarAccess: mocks.access,
@@ -110,7 +111,7 @@ describe("Event calendar read model", () => {
 })
 
 describe("authorized calendar reads", () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.access.mockResolvedValue({ orgId: WORKSPACE, canManageCalendar: true }) })
+  beforeEach(() => { vi.clearAllMocks(); mocks.rpc.mockResolvedValue({ data: [], error: null }); mocks.access.mockResolvedValue({ orgId: WORKSPACE, canManageCalendar: true }) })
   function client() {
     const boardRead = vi.fn().mockResolvedValue({ data: { state: { particleGraph: graph([event()]) } }, error: null })
     const board = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: boardRead }
@@ -147,7 +148,7 @@ describe("authorized calendar reads", () => {
     f.boardRead.mockResolvedValueOnce({ data: null, error: { message: "Database unavailable" } })
     expect(await listRoadmapCalendarEvents({ calendarType: "internal" })).toHaveProperty("error")
     f.boardRead.mockResolvedValueOnce({ data: { state: { particleGraph: { schemaVersion: 99 } } }, error: null })
-    await expect(readWorkspaceParticleCalendar(f.sdk as never, WORKSPACE)).rejects.toThrow()
+    await expect(readWorkspaceParticleCalendar(f.sdk as never, WORKSPACE, ID(888))).rejects.toThrow()
   })
 
   it("refuses calendar row writes for projected Particle identities", async () => {

@@ -23,6 +23,7 @@ export function normalizeWorkspaceDrawerTab(
 ): WorkspaceDrawerTab | null {
   if (typeof value !== "string") return null
   const normalized = value.trim()
+  if (normalized === "particles") return "tools"
   // Finance stays unavailable until its release is ready.
   if (normalized === WORKSPACE_FINANCE_DRAWER_TAB) return null
   return WORKSPACE_DRAWER_TABS.includes(normalized as WorkspaceDrawerTab)
@@ -51,7 +52,8 @@ export function getWorkspaceDrawerPath({
   group?: string | null
   section?: string | null
 }) {
-  const params = new URLSearchParams({ drawer: tab })
+  const params = new URLSearchParams({ drawer: tab === "particles" ? "tools" : tab })
+  if (tab === "particles") params.set("focus", "particles")
 
   if (focus?.trim()) {
     params.set("focus", focus.trim())

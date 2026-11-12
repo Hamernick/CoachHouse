@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { siStripe } from "simple-icons"
+import { siStripe } from "@/lib/brand-icons"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"

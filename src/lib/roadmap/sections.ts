@@ -1,3 +1,4 @@
+import { resolveCoreDocumentSource } from "./core-document-source"
 import { PUBLIC_ORGANIZATION_PROFILE_SECTION_IDS } from "./public-organization-profile-sections"
 import { resolveLegacyPublicProfileSectionContent } from "./public-profile-publication-state"
 
@@ -138,4 +139,12 @@ export function resolveRoadmapHeroUrl(
   if (typeof heroUrl !== "string") return null
   const trimmed = heroUrl.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+/** Public roadmap and its analytics share the same explicit section audience. */
+export function resolvePublicRoadmapSections(profile: Record<string, unknown> | null | undefined) {
+  return resolveRoadmapSections(profile).filter(section =>
+    section.isPublic && resolveCoreDocumentSource(section) === "editor" &&
+    (!section.publicProfileStatusControlled || section.status === "complete")
+  )
 }

@@ -2,6 +2,7 @@ import type { Json } from "../json"
 
 export type OrganizationFinanceOpportunitiesTable = {
   Row: {
+    source_file_ids?: string[]
     feed_position?: number
     id: string
     org_id: string
@@ -20,6 +21,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     updated_at: string
   }
   Insert: {
+    source_file_ids?: string[]
     feed_position?: number
     id?: string
     org_id: string
@@ -38,6 +40,7 @@ export type OrganizationFinanceOpportunitiesTable = {
     updated_at?: string
   }
   Update: {
+    source_file_ids?: string[]
     feed_position?: number
     id?: string
     org_id?: string

@@ -4,7 +4,9 @@ import { join } from "node:path"
 import { resolveCoreDocumentPublication, prepareCoreDocumentProfileSave } from "@/lib/roadmap/core-document-publication"
 import { ORGANIZATION_CORE_DOCUMENT_SECTION_IDS } from "@/lib/roadmap/organization-core-documents"
 
-import { describe, expect, it } from "vitest"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   resolveOrganizationCoreDocuments,
@@ -317,7 +319,7 @@ describe("Core Documents publication", () => {
   it("uses the new labels, keeps colors, and refreshes the public map", () => {
     const panel = readSource("src/components/roadmap/roadmap-section-panel.tsx")
     const editor = readSource(
-      "src/components/roadmap/roadmap-editor/hooks/use-roadmap-editor-state.ts"
+      "src/components/roadmap/roadmap-editor/hooks/use-roadmap-save.ts"
     )
     const editorShell = readSource(
       "src/components/roadmap/roadmap-editor/components/roadmap-editor-shell.tsx"
@@ -335,8 +337,8 @@ describe("Core Documents publication", () => {
     expect(panel).toContain(
       'status === "in_progress" ? "bg-amber-500" : "bg-border"'
     )
-    expect(editor).toContain("expectedLastUpdated: activeSection.lastUpdated")
-    expect(editor).toContain("content: draft.content")
+    expect(editor).toContain("expectedLastUpdated:draft.lastUpdated")
+    expect(editor).toContain("content:draft.content")
     expect(editorShell).toContain(
       "status={controlsPublicProfile ? activeSection.status : status}"
     )
@@ -362,4 +364,60 @@ describe("Core Documents publication", () => {
     expect(storyEditor).toContain("preserveImages")
     expect(storyEditor).not.toContain("<Textarea")
   })
+})
+
+
+it("public narratives never fall back to an inactive editor body for a Drive source", () => {
+  for (const selection of [{ documentSource: "google_drive" }, { driveSource: { provider: "google_drive", fileId: "123456789012", name: "Drive doc", webViewLink: "https://docs.google.com/document/d/123456789012/edit" } }]) {
+    expect(resolvePublicOrganizationProfileNarratives({ mission: "Private legacy", roadmap: { sections: [{ id: "mission_vision_values", content: "Private editor", status: "complete", publicProfileStatusControlled: true, ...selection }] } }).mission).toBe("")
+  }
+})
+
+it("public roadmap sections require explicit sharing and never expose drafts or inactive editor bodies", async () => {
+  const { resolvePublicRoadmapSections } = await import("@/lib/roadmap/sections")
+  const profile = { roadmap: { sections: [
+    { id: "vision", content: "Private draft", isPublic: true, status: "in_progress", publicProfileStatusControlled: true },
+    { id: "private", title: "Private title", content: "Private body", isPublic: false },
+    { id: "drive", content: "Private inactive body", isPublic: true, documentSource: "google_drive" },
+    { id: "shared", title: "Shared title", content: "Reviewed public body", isPublic: true },
+  ] } }
+  expect(resolvePublicRoadmapSections(profile).map(section => section.id)).toEqual(["shared"])
+  expect(profile.roadmap.sections[1].content).toBe("Private body")
+})
+
+
+const publicReader = vi.hoisted(() => ({ profile: {} as Record<string, unknown>, allowed: true, blocked: [] as string[] }))
+vi.mock("@/lib/feature-flags", () => ({ publicSharingEnabled: true }))
+vi.mock("@/lib/organization/public-document-audience", () => ({ filterPublicDocumentSections: async (sections: { id: string }[]) => publicReader.allowed ? sections.filter(section => !publicReader.blocked.includes(section.id)) : null }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ from: () => ({ select() { return this }, ilike() { return this }, eq() { return this }, maybeSingle: async () => ({ data: { user_id: "public-org", profile: publicReader.profile, is_public_roadmap: true } }) }) }) }))
+vi.mock("@/components/roadmap/public-roadmap-presentation", () => ({ PublicRoadmapPresentation: (props: unknown) => createElement("pre", null, JSON.stringify(props)) }))
+vi.mock("@/components/roadmap/public-roadmap-tracker", () => ({ RoadmapAnalyticsTracker: (props: unknown) => createElement("pre", null, JSON.stringify(props)) }))
+
+it("public roadmap page passes only explicitly shared sections to presentation and analytics", async () => {
+ publicReader.profile = { name: "Public organization", roadmap: { sections: [
+  { id: "private", slug: "private-slug", title: "Private title", content: "Private content", isPublic: false },
+  { id: "shared", slug: "shared-slug", title: "Shared title", content: "Shared content", isPublic: true },
+ ] } }
+ const { default: Page } = await import("@/app/[org]/roadmap/page")
+ const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ org: "public-org" }) }))
+ expect(html).not.toMatch(/Private title|Private content|private-slug/)
+ expect(html).toContain("Shared content")
+ expect(html).toContain("shared-slug")
+})
+
+
+it("public roadmap withholds folder-restricted titles, bodies and analytics slugs while retaining other published sections", async () => {
+ publicReader.blocked = ["restricted"]
+ publicReader.profile = { roadmap: { sections: [
+  { id: "restricted", slug: "restricted-slug", title: "Restricted title", content: "Restricted body", imageUrl: "https://private.example/image", isPublic: true },
+  { id: "shared", slug: "shared-slug", title: "Shared title", content: "Shared body", isPublic: true },
+ ] } }
+ try {
+  const { default: Page } = await import("@/app/[org]/roadmap/page")
+  const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ org: "public-org" }) }))
+  expect(html).not.toMatch(/Restricted|restricted-slug|private.example/)
+  expect(html).toContain("Shared body")
+  expect(html).toContain("shared-slug")
+  expect(JSON.stringify(publicReader.profile)).toContain("Restricted body")
+ } finally { publicReader.blocked = [] }
 })

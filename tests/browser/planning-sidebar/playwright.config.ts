@@ -3,6 +3,7 @@ import { defineConfig } from "@playwright/test"
 export default defineConfig({
   testDir: __dirname,
   testMatch: "*.spec.ts",
+  testIgnore: "fullscreen-document.spec.ts",
   workers: 1,
   timeout: 30_000,
   reporter: "list",

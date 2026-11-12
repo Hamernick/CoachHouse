@@ -11,6 +11,9 @@ export function knowledgeFingerprint(record: KnowledgeRecord) {
   return fingerprint({ id: record.id, kind: record.kind, revision: record.revision,
     title: record.title, content: record.content, href: record.href,
     contentAvailable: record.contentAvailable, contentTruncated: Boolean(record.contentTruncated),
+    ...(record.nativeTextHash ? { nativeTextHash: record.nativeTextHash, nativeTextLength: record.nativeTextLength } : {}),
+    ...(record.pdfText ? { pdfText: record.pdfText } : {}),
+    ...(record.fileText ? { fileText: record.fileText } : {}),
     searchContent: record.searchContent, contentScope: record.contentScope, file: record.file })
 }
 

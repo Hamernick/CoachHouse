@@ -10,13 +10,14 @@ import { CreditAutoRefill } from "./credit-auto-refill"
 import { CreditPurchaseControl } from "./credit-purchase-control"
 import { CreditSpendingLimits } from "./credit-spending-limits"
 import { CreditSubscriptionAllowance } from "./credit-subscription-allowance"
+import { AiUsageOverview } from "./ai-usage-summary"
 import { CreditUsageHistory } from "./credit-usage-history"
 
-type Props = { account?: AiCreditAccount; organizationId?: string; documentContexts?: Array<{ sectionId: string; open: () => void }> }
+type Props = { presentation?: "compact" | "settings"; account?: AiCreditAccount; organizationId?: string; documentContexts?: Array<{ sectionId: string; open: () => void }> }
 export function AiCreditsPanel(props: Props) {
   return <AiCreditsPanelContent key={props.organizationId ?? "local"} {...props} />
 }
-function AiCreditsPanelContent({ account, organizationId, documentContexts }: Props) {
+function AiCreditsPanelContent({ account, organizationId, documentContexts, presentation = "compact" }: Props) {
   const [fresh, setFresh] = useState<{ account: AiCreditAccount; purchases: AiCreditPurchases } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
@@ -49,7 +50,8 @@ function AiCreditsPanelContent({ account, organizationId, documentContexts }: Pr
   const allowance = included.reduce((total, lot) => total + lot.credits, 0)
   const expires = included.map(lot => lot.expiresAt).filter((date): date is string => Boolean(date)).sort()[0]
   return (
-    <div className="flex flex-col gap-3 text-sm">
+    <div className={presentation === "settings" ? "flex flex-col gap-6 text-sm" : "flex flex-col gap-3 text-sm"}>
+      {presentation === "settings" ? <AiUsageOverview account={current} /> : <>
       <p><strong className="tabular-nums">{balance.available.toLocaleString()}</strong> credits available</p>
       <dl className="grid grid-cols-2 gap-2 text-muted-foreground">
         <dt>Included</dt><dd className="text-right tabular-nums">{balance.included.toLocaleString()}{allowance ? ` / ${allowance.toLocaleString()}` : ""}</dd>
@@ -58,6 +60,7 @@ function AiCreditsPanelContent({ account, organizationId, documentContexts }: Pr
         {balance.held ? <><dt>Payment hold</dt><dd className="text-right tabular-nums">{balance.held.toLocaleString()}</dd></> : null}
       </dl>
       {expires ? <p className="text-xs text-muted-foreground">Included credits expire {new Date(expires).toLocaleDateString()}.</p> : null}
+      </>}
       {current.paymentReview ? <p role="status" className="text-xs text-muted-foreground">A credit purchase needs payment review.</p> : null}
       {organizationId && fresh ? <CreditPurchaseControl key={organizationId} organizationId={organizationId} purchases={fresh.purchases} /> : null}
       {organizationId && fresh ? <CreditAutoRefill key={`refill:${organizationId}`} organizationId={organizationId} packs={fresh.purchases.packs} onChanged={() => setRetry(value => value + 1)} /> : null}

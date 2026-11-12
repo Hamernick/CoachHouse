@@ -14,6 +14,7 @@ import {
   type SetStateAction,
 } from "react"
 
+import { WorkspaceChatPlanning } from "./workspace-chat-planning"
 import { WorkspaceDockHost } from "./workspace-dock-host"
 import { cn } from "@/lib/utils"
 
@@ -42,6 +43,7 @@ import { useWorkspaceComposerHeight } from "./use-workspace-composer-height"
 import { WorkspaceDrawerComposer } from "./workspace-drawer-composer"
 import { WorkspaceDrawerTrigger } from "./workspace-canvas-overlay-drawer-trigger"
 import { FLOATING_PANEL_CLASS, drawerClassName } from "./workspace-drawer-shell"
+import { normalizeWorkspaceDrawerTab } from "@/lib/workspace/routes"
 import { useWorkspaceDrawerControls } from "./use-workspace-drawer-controls"
 import { useWorkspaceContentWindow } from "./use-workspace-content-window"
 import { useWorkspaceDrawerNavigation } from "./use-workspace-drawer-navigation"
@@ -66,12 +68,13 @@ export const WorkspaceCanvasOverlayDrawer = memo(
     particleInspectorTitle,
     particleInspectorMaxWidth,
     particleLibrary,
+    planningSidebar,
     particleComposer,
     particleSelectionId,
     particleSelectionKey,
     onCloseParticleInspector,
   }: WorkspaceOverlayDrawerProps) {
-    const { composerRef, composerHeight, composerPeek, chrome } =
+    const { composerRef, composerHeight, composerPeek, chrome, windowDockHeight } =
       useWorkspaceComposerHeight()
     const canvasContainer = useWorkspaceCanvasOverlayDrawerContainer()
     const { height: canvasHeight, width: canvasWidth } =
@@ -88,7 +91,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
         resolveWorkspaceDataDrawerRequestSnapPoint(request)
     )
     const [tab, setTab] = useState<WorkspaceCanvasDrawerTab>(
-      guideState?.tab ?? request?.tab ?? "organization"
+      guideState?.tab ?? normalizeWorkspaceDrawerTab(request?.tab) ?? "organization"
     )
     const handledRequestIdRef = useRef(0)
     const handledAcceleratorRequestIdRef = useRef(0)
@@ -143,8 +146,10 @@ export const WorkspaceCanvasOverlayDrawer = memo(
 
     const { tabIndicator, tabsHeaderRef, tabsListRef } =
       useWorkspaceDataDrawerTabIndicator({ tab, expanded: drawerExpanded })
-    // Reserve the tabs (up to 54px on touch screens) and their 6px gap too.
-    const dockHeight = particleComposer ? composerHeight + 60 : chrome.total + composerHeight
+    // Keep the organization sidebar clearance; regular windows hug navigation.
+    const dockHeight = particleComposer
+      ? (tab === "organization" && !particleInspector ? composerHeight + 60 : windowDockHeight)
+      : chrome.total + composerHeight
     const windowState = useWorkspaceContentWindow({
       enabled: Boolean(particleComposer),
       tab: particleInspector ? undefined : tab,
@@ -182,11 +187,12 @@ export const WorkspaceCanvasOverlayDrawer = memo(
 
       handledRequestIdRef.current = request.id
       if (!leaveParticle()) return
-      setAcceptedRequest(request)
+      const nextTab = normalizeWorkspaceDrawerTab(request.tab) ?? "organization"
+      setAcceptedRequest(request.tab === "particles" ? { ...request, tab: nextTab, focusKey: "particles" } : request)
       setOpen(true)
-      setTab(request.tab)
+      setTab(nextTab)
       patchWorkspaceBoardUiPreferences(uiPreferencesScope, {
-        dataDrawerTab: request.tab,
+        dataDrawerTab: nextTab,
       })
       handleActiveSnapPointChange(
         resolveWorkspaceDataDrawerRequestSnapPoint(request)
@@ -298,6 +304,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
               particleInspectorTitle={particleInspectorTitle}
               particleInspectorMaxWidth={particleInspectorMaxWidth}
               particleLibrary={particleLibrary}
+              planningSidebar={planningSidebar}
               acceleratorHasAccess={acceleratorHasAccess}
               acceleratorInput={acceleratorInput}
               acceleratorPaywallHref={acceleratorPaywallHref}
@@ -332,7 +339,7 @@ export const WorkspaceCanvasOverlayDrawer = memo(
                 activeSnapPoint={activeSnapPoint}
                 onSnapChange={handleActiveSnapPointChange}
               >
-                {particleComposer}
+                <WorkspaceChatPlanning scopeKey={`${viewerId}:${uiPreferencesScope.orgId}:${uiPreferencesScope.workspaceCanvasId ?? "default"}`} planning={planningSidebar}>{particleComposer}</WorkspaceChatPlanning>
               </WorkspaceDrawerComposer>
             ) : null}
           </div>

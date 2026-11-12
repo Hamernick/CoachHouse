@@ -32,10 +32,8 @@ export function WorkspaceToolsPanel({ input }: WorkspaceToolsPanelProps) {
   )
 
   return (
-    <div
-
-      className="mx-auto flex w-full max-w-none flex-col gap-6 px-2 pt-2 pb-4 sm:pb-6"
-    >
+    <section aria-labelledby="workspace-tools-plugins" className="flex min-w-0 flex-col gap-4 px-4 pt-3 pb-5">
+      <h2 id="workspace-tools-plugins" className="text-muted-foreground text-xs font-medium">Plugins</h2>
       {installedTools.length > 0 ? (
         <ToolSection title="Installed">
           {installedTools.map((tool) => (
@@ -51,7 +49,7 @@ export function WorkspaceToolsPanel({ input }: WorkspaceToolsPanelProps) {
       ) : null}
 
       {availableTools.length > 0 ? (
-        <ToolSection title="Available">
+        <div className="grid gap-2">
           {availableTools.map((tool) => (
             <WorkspaceToolRow
               key={tool.id}
@@ -61,10 +59,10 @@ export function WorkspaceToolsPanel({ input }: WorkspaceToolsPanelProps) {
               stripeConnection={stripeConnection}
             />
           ))}
-        </ToolSection>
+        </div>
       ) : null}
 
-    </div>
+    </section>
   )
 }
 
@@ -79,7 +77,7 @@ function ToolSection({
 
   return (
     <section aria-labelledby={headingId}>
-      <h3 id={headingId} className="mb-2 text-sm font-medium">
+      <h3 id={headingId} className="text-muted-foreground mb-2 text-xs font-medium">
         {title}
       </h3>
       <div className="grid gap-2">{children}</div>

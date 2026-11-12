@@ -93,13 +93,6 @@ export function WorkspaceDrawerNavigation({
           Documents
         </WorkspaceDrawerTabTrigger>
         <WorkspaceDrawerTabTrigger
-          value="particles"
-          composerMode={composerMode}
-          onOpen={handleTabOpen}
-        >
-          Particles
-        </WorkspaceDrawerTabTrigger>
-        <WorkspaceDrawerTabTrigger
           value="tools"
           composerMode={composerMode}
           onOpen={handleTabOpen}

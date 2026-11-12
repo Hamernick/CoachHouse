@@ -41,7 +41,7 @@ const core: readonly ParticleType[] = [
   "finance",
 ]
 const presetDefinitions: readonly ParticlePreset[] = [
-  { id: "data_view", label: "Data view", hint: "Save a source-backed table view", type: "activity", fields: [] },
+  { id: "data_view", label: "Table", hint: "Save a source-backed table view", type: "activity", fields: [] },
   { id: "form", label: "Form", hint: "Build a private form draft", type: "activity", fields: [] },
   {
     id: "notes",

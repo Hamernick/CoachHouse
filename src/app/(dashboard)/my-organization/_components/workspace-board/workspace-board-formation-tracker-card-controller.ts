@@ -8,7 +8,6 @@ import {
   createWorkspaceObjectiveAction,
   createWorkspaceObjectiveGroupAction,
   loadWorkspaceObjectivesAction,
-  setWorkspaceObjectiveAssigneesAction,
   setWorkspaceObjectiveGroupArchivedAction,
   setWorkspaceObjectiveStatusAction,
 } from "../../_lib/workspace-objectives-actions"
@@ -66,6 +65,7 @@ export function useWorkspaceBoardFormationTrackerController({
   const [objectivesMode, setObjectivesMode] = useState<"unknown" | "normalized" | "legacy">("unknown")
   const [isSyncingObjectives, startObjectivesSync] = useTransition()
   const didHydrateObjectivesRef = useRef(false)
+  const groupRevisionsRef = useRef(new Map<string, string>())
 
   const acceleratorGroups = useMemo<AcceleratorGroup[]>(
     () => buildAcceleratorGroups(seed),
@@ -106,8 +106,12 @@ export function useWorkspaceBoardFormationTrackerController({
     (tabOverride: WorkspaceTrackerState["tab"]) => {
       startObjectivesSync(async () => {
         const result = await loadWorkspaceObjectivesAction()
-        if (!result.ok) return
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
 
+        groupRevisionsRef.current = new Map(result.data.groups.map((group) => [group.id, group.updatedAt]))
         if (result.data.loadedFrom === "normalized") setObjectivesMode("normalized")
         else setObjectivesMode("legacy")
 
@@ -191,10 +195,16 @@ export function useWorkspaceBoardFormationTrackerController({
       return
     }
 
+    const expectedUpdatedAt = groupRevisionsRef.current.get(categoryId)
+    if (!expectedUpdatedAt) {
+      toast.error("Category changed. Reload and try again.")
+      return
+    }
     startObjectivesSync(async () => {
       const result = await setWorkspaceObjectiveGroupArchivedAction({
         groupId: categoryId,
         archived: !category.archived,
+        expectedUpdatedAt,
       })
       if (!result.ok) {
         toast.error(result.error)
@@ -238,23 +248,14 @@ export function useWorkspaceBoardFormationTrackerController({
       const result = await createWorkspaceObjectiveAction({
         title: nextTitle,
         description: nextDescription,
-        groupId: draftTicketCategoryId,
+        groupId: draftTicketCategoryId === "general" ? null : draftTicketCategoryId,
         priority: draftTicketPriority,
         dueAt: nextDueAt,
+        userIds: draftTicketAssigneeId ? [draftTicketAssigneeId] : [],
       })
       if (!result.ok) {
         toast.error(result.error)
         return
-      }
-
-      if (draftTicketAssigneeId) {
-        const assigneeResult = await setWorkspaceObjectiveAssigneesAction({
-          objectiveId: result.data.id,
-          userIds: [draftTicketAssigneeId],
-        })
-        if (!assigneeResult.ok) {
-          toast.error(assigneeResult.error)
-        }
       }
 
       setDraftTicketTitle("")
@@ -285,6 +286,7 @@ export function useWorkspaceBoardFormationTrackerController({
     startObjectivesSync(async () => {
       const result = await setWorkspaceObjectiveStatusAction({
         objectiveId: ticketId,
+        expectedUpdatedAt: ticket.updatedAt,
         status: mapTrackerStatusToObjectiveStatus(nextTrackerStatus),
       })
 

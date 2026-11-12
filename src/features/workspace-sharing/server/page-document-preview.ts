@@ -1,4 +1,5 @@
 import "server-only"
+import { assertPageCanvasManagement } from "./page-canvas-access"
 
 import { z } from "zod"
 import { loadPageActor, loadSavedPageSources } from "./page-context"
@@ -23,6 +24,7 @@ export async function handlePageDocumentPreview(request: Request) {
     })
     const document = documents.get(input.data.particleId)?.representation
     if (!document || document.sha256 !== input.data.digest) return documentUnavailable()
+    await assertPageCanvasManagement(actor, input.data.canvasId ?? null)
     return documentResponse(document.bytes)
   } catch { return documentUnavailable() }
 }

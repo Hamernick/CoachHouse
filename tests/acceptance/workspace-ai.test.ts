@@ -3,8 +3,12 @@ import { readWorkspaceAiProposal,cancelWorkspaceAi } from "@/features/workspace-
 import { availableAiDocumentEditors,createAiDocumentRegistry,selectedAiDocumentEditor } from "@/features/workspace-ai/lib/document-registry"
 import { handleWorkspaceAiDocument } from "@/features/workspace-ai/server/stream-handler"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), document: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn(),cancel:vi.fn() }))
-vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.document,requireAiActor:mocks.actor }))
+const mocks = vi.hoisted(() => ({ retained: vi.fn(), actor: vi.fn(), source: vi.fn(), document: vi.fn(), reserve: vi.fn(), claim: vi.fn(), settle: vi.fn(), reconcile: vi.fn(), read: vi.fn(), provider: vi.fn(),correlate:vi.fn(),cancel:vi.fn() }))
+vi.mock("@/features/workspace-ai/server/document-context",() => ({ loadAiDocument: mocks.document,loadAiDocumentSource:mocks.source,requireAiActor:mocks.actor }))
+vi.mock("@/features/workspace-ai/server/document-source-access", () => ({ assertAiDocumentSources: async (id: string, target: unknown, selection: boolean, actor?: unknown) => {
+  await mocks.retained(id, target, selection)
+  if (!selection) await mocks.source(target, actor ?? await mocks.actor(target))
+} }))
 vi.mock("@/features/workspace-ai/server/config",() => ({ workspaceAiConfig: () => ({ tariff: {version:"test",model:"fixture"},maxInputBytes:70000,maxOutputTokens:6000,maxCredits:100,maxCost:200000 }) }))
 vi.mock("@/features/workspace-ai/server/provider",() => ({ documentInstructions:"Untrusted document context",streamDocumentDraft:mocks.provider }))
 vi.mock("@/features/ai-credits",() => ({ cancelAiRun:mocks.cancel,correlateAiResponse:mocks.correlate,reserveAiRun:mocks.reserve,claimAiRun:mocks.claim,settleAiRun:mocks.settle,reconcileAiRun:mocks.reconcile,readAiRun:mocks.read }))
@@ -14,6 +18,8 @@ const run={ id:id(3),actor_id:id(2),org_id:id(1),target:{...target,content:"<p>O
 function request(patch = {}) { return new Request("http://localhost:3008/api/workspace/ai/document",{method:"POST",headers:{origin:"http://localhost:3008"},body:JSON.stringify({ id:id(3),target,prompt:"Improve clarity",maximumCredits:100,tariffVersion:"test",...patch })}) }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.retained.mockReset().mockResolvedValue(undefined)
+  mocks.source.mockReset().mockResolvedValue(undefined)
   mocks.document.mockImplementation((...args) => mocks.actor(...args))
   mocks.actor.mockResolvedValue({ userId:id(2),organizationId:id(1),section:{ title:target.title,content:"<p>Original</p>" } })
   mocks.reserve.mockResolvedValue({created:true,run});mocks.claim.mockResolvedValue(true)
@@ -183,5 +189,93 @@ describe("Selected-text AI requests", () => {
     expect(mocks.reserve).not.toHaveBeenCalled()
     mocks.read.mockResolvedValueOnce({ ...run, target: { ...selectedTarget, content: "neighborhood", selection } })
     expect(await readWorkspaceAiProposal(id(3), selectedTarget)).toMatchObject({ selection, original: "neighborhood" })
+  })
+})
+
+
+describe("document proposal source disclosure", () => {
+  it("rechecks the stored document before recovery without blocking cancellation", async () => {
+    mocks.source.mockRejectedValue(new Error("Source unavailable"))
+    await expect(readWorkspaceAiProposal(run.id, target)).rejects.toThrow("Source unavailable")
+    expect(mocks.source).toHaveBeenCalledWith(expect.objectContaining({ sectionId: "need" }), expect.objectContaining({ userId: target.userId }))
+    await cancelWorkspaceAi(run.id, target)
+    expect(mocks.cancel).toHaveBeenCalledWith(run.id, target.organizationId, target.userId)
+  })
+  it("keeps explicitly supplied selections independent of stored documents", async () => {
+    const selectedTarget = { ...target, sectionId: `selection:${id(5)}`, revision: id(5) }
+    mocks.read.mockResolvedValue({ ...run, target: { ...selectedTarget, content: "Passage", selection: { from: 1, to: 8, html: "Passage" } } })
+    mocks.source.mockRejectedValue(new Error("No core source"))
+    await expect(readWorkspaceAiProposal(run.id, selectedTarget)).resolves.toMatchObject({ original: "Passage" })
+    expect(mocks.source).not.toHaveBeenCalled()
+  })
+  it("withholds durable replay after a source switch without spending again", async () => {
+    mocks.reserve.mockResolvedValue({ created: false, run })
+    mocks.source.mockRejectedValue(new Error("Source unavailable"))
+    const response = await handleWorkspaceAiDocument(request())
+    expect(response.status).toBe(400)
+    expect(await response.text()).not.toContain("Revised")
+    expect(mocks.provider).not.toHaveBeenCalled()
+    expect(mocks.reconcile).not.toHaveBeenCalled()
+  })
+  it.each(["source switched", "source lookup failed"])("withholds later previews and final output when %s", async reason => {
+    mocks.read.mockResolvedValue({ ...run, status: "running", cancel_requested_at: null })
+    mocks.source.mockResolvedValueOnce(undefined).mockRejectedValue(new Error(reason))
+    mocks.provider.mockImplementation(async ({ onText }) => {
+      await onText("Visible before switch")
+      await onText("Hidden after switch")
+      await onText("Still hidden")
+      return { text: "Hidden final output", usage: { input: 100, cachedInput: 0, output: 50 }, completed: true }
+    })
+    const response = await (await handleWorkspaceAiDocument(request())).text()
+    expect(response).toContain("Visible before switch")
+    expect(response).not.toMatch(/Hidden|Still hidden|"type":"proposal"/)
+    expect(response).toContain('"type":"error"')
+    expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ usage: { input: 100, cachedInput: 0, output: 50 } }))
+    expect(mocks.provider).toHaveBeenCalledOnce()
+  })
+  it("rechecks final output even when the provider emits no previews", async () => {
+    mocks.provider.mockResolvedValue({ text: "Hidden final", usage: { input: 1, cachedInput: 0, output: 1 }, completed: true })
+    mocks.source.mockRejectedValue(new Error("Source unavailable"))
+    const response = await (await handleWorkspaceAiDocument(request())).text()
+    expect(response).not.toContain("Hidden final")
+    expect(response).toContain('"type":"error"')
+    expect(mocks.settle).toHaveBeenCalledOnce()
+  })
+  it("withholds the original document after an unclaimed run is settled", async () => {
+    mocks.claim.mockResolvedValue(false)
+    mocks.source.mockRejectedValue(new Error("Source unavailable"))
+    const response = await handleWorkspaceAiDocument(request())
+    expect(response.status).toBe(400)
+    expect(await response.text()).not.toContain("Original")
+    expect(mocks.provider).not.toHaveBeenCalled()
+    expect(mocks.settle).toHaveBeenCalledOnce()
+  })
+})
+
+
+describe("retained document sources at disclosure boundaries", () => {
+  it("blocks recovery and replay when retained references cannot be verified", async () => {
+    mocks.retained.mockRejectedValue(new Error("Sources unavailable"))
+    await expect(readWorkspaceAiProposal(run.id, target)).rejects.toThrow("Sources unavailable")
+    mocks.reserve.mockResolvedValue({ created: false, run })
+    expect((await handleWorkspaceAiDocument(request())).status).toBe(400)
+    expect(mocks.provider).not.toHaveBeenCalled()
+    await cancelWorkspaceAi(run.id, target)
+    expect(mocks.cancel).toHaveBeenCalledOnce()
+  })
+  it("does not send an unresolved prior draft to the provider or reserve credits", async () => {
+    mocks.read.mockResolvedValueOnce({ ...run, id: id(4) })
+    mocks.retained.mockRejectedValue(new Error("Sources unavailable"))
+    expect((await handleWorkspaceAiDocument(request({ reviseRunId: id(4) }))).status).toBe(400)
+    expect(mocks.reserve).not.toHaveBeenCalled()
+    expect(mocks.provider).not.toHaveBeenCalled()
+  })
+  it("withholds previews and final output but settles provider usage after a retained-source read failure", async () => {
+    mocks.read.mockResolvedValue({ ...run, status: "running" })
+    mocks.retained.mockRejectedValue(new Error("Sources unavailable"))
+    const response = await (await handleWorkspaceAiDocument(request())).text()
+    expect(response).not.toMatch(/Revised|Original|"type":"text"|"type":"proposal"/)
+    expect(response).toContain('"type":"error"')
+    expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ usage: { input: 6000, cachedInput: 0, output: 1500 } }))
   })
 })

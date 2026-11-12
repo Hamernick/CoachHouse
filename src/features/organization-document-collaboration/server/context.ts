@@ -1,4 +1,6 @@
 import "server-only"
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
 import { organizationDocumentCollaborationEnabled } from "@/lib/feature-flags"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -25,10 +27,17 @@ export async function documentContext(scope: DocumentScope, write = false, trace
     : "Unable to verify document access. Try again.")
   // Elevated core-history/session tables have no client read grants. Confirm
   // the current authenticated organization RLS/export window before using them.
-  const current = await client.from("organizations").select("user_id").eq("user_id", scope.organizationId).maybeSingle()
+  const current = await readOrganizationProfileForProjection(client, scope.organizationId, user.id)
   if (current.error) throw new DocumentOperationError("unavailable", "Unable to verify document access. Try again.")
   if (!current.data) throw new DocumentOperationError("denied", "This document is no longer available.")
   const { access, capabilities } = resolved
   if (write && !capabilities.canEdit) throw new DocumentOperationError("denied", capabilities.reason === "upgrade" ? DOCUMENT_STORAGE_UPGRADE_MESSAGE : "This document is read-only.")
-  return { user, client, capabilities, admin: createSupabaseAdminClient({ actorId: user.id }) as SupabaseClient, role: "staffAccessLevel" in access ? access.staffAccessLevel === "coach" ? "Coach" : "Coach House admin" : access.role }
+  let readable
+  try {
+    readable = await filterAiDocumentCopies([{ id: scope.sectionId }], scope.organizationId, user.id)
+  } catch {
+    throw new DocumentOperationError("unavailable", "Document sources could not be verified. Your local edits are retained; try again.")
+  }
+  if (!readable.length) throw new DocumentOperationError("denied", "This document is no longer available. Your local edits are retained.")
+  return { user, client, capabilities, supportAccess: "supportAccess" in access && access.supportAccess === true, admin: createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 15000 }) as SupabaseClient, role: "staffAccessLevel" in access ? access.staffAccessLevel === "coach" ? "Coach" : "Coach House admin" : access.role }
 }

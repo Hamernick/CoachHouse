@@ -1,6 +1,6 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { siFacebook, siGithub, siTiktok, siX, siYoutube } from "simple-icons"
+import { siFacebook, siGithub, siTiktok, siX, siYoutube } from "@/lib/brand-icons"
 
 const socialBrands = {
   twitter: siX,

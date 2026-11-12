@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ID, NOW, WORKSPACE, graph, particle } from "./fixtures/particle-fixtures"
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), canvases: vi.fn(), board: vi.fn(), editable: vi.fn() }))
+vi.mock("@/lib/organization/particle-ai-origins", () => ({ retainedParticleFiles: async () => new Map(), retainedParticleDocuments: async () => new Map() }))
+const mocks = vi.hoisted(() => ({ actor: vi.fn(), canvases: vi.fn(), board: vi.fn(), editable: vi.fn(), hydrate: vi.fn() }))
 vi.mock("@/lib/auth/request-context", () => ({ resolveAuthenticatedAppContext: mocks.actor }))
 vi.mock("@/lib/organization/active-org", () => ({ canEditOrganization: mocks.editable }))
 vi.mock("@/features/workspace-management", () => ({ allWorkspaceStates: mocks.canvases }))
+vi.mock("@/features/workspace-ai/server/research-data-view-sources", async original => ({ ...await original<typeof import("@/features/workspace-ai/server/research-data-view-sources")>(), withResearchDataViewSources:mocks.hydrate }))
 import { loadResearchContext } from "@/features/workspace-ai/server/research-context"
 import { researchContextFingerprint } from "@/features/workspace-ai/server/research-dependencies"
 import { researchPrompt } from "@/features/workspace-ai/server/research-prompt"
@@ -19,6 +21,7 @@ function selectedGraph() {
 }
 beforeEach(() => {
   vi.resetAllMocks()
+  mocks.hydrate.mockImplementation(async context=>context)
   const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), abortSignal: vi.fn().mockReturnThis(), maybeSingle: mocks.board }
   mocks.actor.mockResolvedValue({ user: { id: ID(90) }, activeOrg: { orgId: WORKSPACE, role: "owner" }, supabase: { from: () => query } })
   mocks.editable.mockReturnValue(true)
@@ -26,6 +29,16 @@ beforeEach(() => {
   mocks.canvases.mockReturnValue([{ id: null, state: { particleGraph: selectedGraph() } }])
 })
 describe("revision research context", () => {
+  it("skips research-only data views for the picker while retaining access checks",async()=>{
+    await loadResearchContext(target,false,{includeDataViewSources:false})
+    expect(mocks.hydrate).not.toHaveBeenCalled()
+    expect(mocks.board).toHaveBeenCalledOnce()
+    await loadResearchContext(target)
+    expect(mocks.hydrate).toHaveBeenCalledOnce()
+    mocks.editable.mockReturnValue(false)
+    await expect(loadResearchContext(target,false,{includeDataViewSources:false})).rejects.toThrow(/editable workspace/)
+  })
+
   it("requires current organization editing access before reading the board", async () => {
     mocks.editable.mockReturnValue(false)
     await expect(loadResearchContext(target)).rejects.toThrow(/editable workspace/)

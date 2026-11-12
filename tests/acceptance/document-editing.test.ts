@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { filterDocumentFileAudience } from "@/lib/organization/document-file-audience"
 import * as Y from "yjs"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
@@ -9,6 +10,10 @@ import { documentCollaborationExtensions } from "@/features/document-editing/lib
 import { contentHash, readVersionContent } from "@/features/document-editing/server/version-reader"
 import { readCompleteBytes, readLocalDocument } from "@/features/document-editing/server/read-local-document"
 import { createLinkPreviewQueue } from "@/lib/editor/link-preview-queue"
+
+const storageMocks = vi.hoisted(() => ({ sign: vi.fn(), audience: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: storageMocks.audience, storage: { from: () => ({ createSignedUrl: storageMocks.sign }) } }) }))
+vi.mock("@/lib/organization/private-storage-link", () => ({ assertPrivateOrganizationReadWindow: vi.fn().mockResolvedValue(undefined) }))
 
 const ORG = "00000000-0000-4000-8000-000000000001"
 const FILE = "00000000-0000-4000-8000-000000000002"
@@ -228,9 +233,23 @@ describe("authorized canonical source reads", () => {
   function client(row = { name: "notes.md", mime_type: "text/markdown", size_bytes: 10, storage_path: `${ORG}/library/source.md`, updated_at: "2026-10-14T00:00:00Z", deleted_at: null as string | null }) {
     const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), abortSignal:vi.fn().mockReturnThis(), maybeSingle: vi.fn(async () => ({ data: row, error: null })) }
     const sign = vi.fn(async () => ({ data: { signedUrl: "https://storage.example.test/private" }, error: null }))
+    storageMocks.sign = sign
     const supabase = { from: vi.fn(() => query), storage: { from: vi.fn(() => ({ createSignedUrl: sign })) } } as unknown as SupabaseClient<Database>
     return { supabase, query, sign }
   }
+  it("denies an elevated file read before signing without a current source grant", async () => {
+    const fixture = client()
+    storageMocks.audience.mockResolvedValue({ data: [], error: null })
+    await expect(readLocalDocument(fixture.supabase, source, ORG)).rejects.toThrow("Document not found")
+    expect(fixture.sign).not.toHaveBeenCalled()
+  })
+  it("discards elevated bytes when a folder grant is revoked in flight", async () => {
+    const fixture = client()
+    storageMocks.audience.mockResolvedValueOnce({ data: [FILE], error: null }).mockResolvedValue({ data: [], error: null })
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Private bytes")))
+    await expect(readLocalDocument(fixture.supabase, source, ORG)).rejects.toThrow("no longer available")
+    expect(storageMocks.audience).toHaveBeenLastCalledWith("filter_document_file_audience", { p_file_ids: [FILE], p_actor_id: ORG })
+  })
   it("loads all content through scoped private storage without enabling writes", async () => {
     const { supabase, query, sign } = client()
     const text = "Full content ".repeat(15000)
@@ -265,14 +284,48 @@ describe("authorized canonical source reads", () => {
 
 
 describe("private historical version bytes", () => {
+  it("discards a historical version revoked while its bytes are in flight", async () => {
+    const version = { org_id: ORG, storage_path: `${ORG}/library/versions/original.md`, size_bytes: 7, content_hash: contentHash("history") }
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), abortSignal: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValueOnce({ data: version, error: null }).mockResolvedValue({ data: null, error: null }) }
+    const client = { from: vi.fn(() => query) } as unknown as SupabaseClient<Database>
+    storageMocks.sign = vi.fn(async () => ({ data: { signedUrl: "https://storage.example/private" }, error: null }))
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("history")))
+    await expect(readVersionContent(client, version)).rejects.toThrow("no longer available")
+    expect(storageMocks.sign).toHaveBeenCalledOnce()
+    expect(query.maybeSingle).toHaveBeenCalledTimes(2)
+  })
   it.each([true, false])("rechecks canonical version authority after downloading bytes: %s", async allowed => {
     const version = { org_id: ORG, storage_path: `${ORG}/library/versions/original.md`, size_bytes: 7, content_hash: contentHash("history") }
     const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), abortSignal: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: allowed ? version : null, error: null }) }
     const client = { from: vi.fn(() => query), storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "https://storage.example/private" }, error: null }) }) } } as unknown as SupabaseClient<Database>
+    storageMocks.sign = vi.fn(async () => ({ data: { signedUrl: "https://storage.example/private" }, error: null }))
     vi.stubGlobal("fetch", vi.fn(async () => new Response("history")))
     if (allowed) expect(await readVersionContent(client, version)).toBe("history")
     else await expect(readVersionContent(client, version)).rejects.toThrow("no longer available")
     expect(query.eq).toHaveBeenCalledWith("org_id", ORG)
     expect(query.eq).toHaveBeenCalledWith("content_hash", version.content_hash)
+    if (!allowed) expect(storageMocks.sign).not.toHaveBeenCalled()
+  })
+})
+
+
+describe("elevated file audience filtering", () => {
+  it("preserves result order while batching exact identifiers", async () => {
+    const rows = Array.from({ length: 501 }, (_, id) => ({ id: String(id), name: `file ${id}` }))
+    storageMocks.audience.mockReset().mockImplementation(async (_rpc, args) => ({ data: args.p_file_ids.filter((id: string) => id !== "2").reverse(), error: null }))
+    expect(await filterDocumentFileAudience(rows, ORG)).toEqual(rows.filter(row => row.id !== "2"))
+    expect(storageMocks.audience).toHaveBeenCalledTimes(2)
+    expect(storageMocks.audience.mock.calls[0][1].p_file_ids).toHaveLength(500)
+  })
+  it("does not return partially authorized batches after an error", async () => {
+    const rows = Array.from({ length: 501 }, (_, id) => ({ id: String(id) }))
+    storageMocks.audience.mockReset().mockResolvedValueOnce({ data: ["0"], error: null }).mockResolvedValue({ data: null, error: { message: "offline" } })
+    await expect(filterDocumentFileAudience(rows, ORG)).rejects.toThrow("could not be verified")
+  })
+  it("rejects malformed and out-of-request authorization replies", async () => {
+    for (const data of [null, {}, ["other-file"]]) {
+      storageMocks.audience.mockResolvedValue({ data, error: null })
+      await expect(filterDocumentFileAudience([{ id: FILE }], ORG)).rejects.toThrow("could not be verified")
+    }
   })
 })

@@ -6,7 +6,7 @@ import { createFileParticle } from "@/features/workspace-particles/lib/particle-
 import { createImageParticle } from "@/features/workspace-particles/lib/particle-image"
 import { graph, ID, NOW, particle, WORKSPACE } from "./fixtures/particle-fixtures"
 
-const mocks = vi.hoisted(() => ({ documents: vi.fn(), images: vi.fn(), upload: vi.fn(), actor: vi.fn(), page: vi.fn(), sources: vi.fn(), rpc: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), flags: { publicSharingEnabled: true } }))
+const mocks = vi.hoisted(() => ({ canvas: vi.fn(), documents: vi.fn(), images: vi.fn(), upload: vi.fn(), actor: vi.fn(), page: vi.fn(), sources: vi.fn(), rpc: vi.fn(), admin: vi.fn(), revalidate: vi.fn(), flags: { publicSharingEnabled: true } }))
 vi.mock("@/features/workspace-sharing/server/page-context", async () => ({
   ...await vi.importActual<typeof import("@/features/workspace-sharing/server/page-context")>("@/features/workspace-sharing/server/page-context"),
   loadPageActor: mocks.actor, loadSavedPage: mocks.page, loadSavedPageSources: mocks.sources,
@@ -19,7 +19,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }))
 const draft = { title: "Gather together", description: "Welcome", particleIds: [ID(2), ID(1)] }
 const identity = { pageId: ID(10), expectedRevision: 0 }
 const command = { ...identity, operationId: ID(11), intent: "publish", draft }
-const sources = () => ({ graph: graph(), profile: { name: "Community table", privateContact: "private@example.com" }, public_slug: "community-table", updated_at: NOW })
+const sources = () => ({ graph: graph(), canonicalGraph: graph(), profile: { name: "Community table", privateContact: "private@example.com" }, public_slug: "community-table", updated_at: NOW })
 const row = (revision = 1) => ({
   id: ID(10), org_id: WORKSPACE, link_id: ID(10), revision, title: draft.title,
   description: draft.description, particle_ids: draft.particleIds, visibility: "private",
@@ -28,6 +28,7 @@ const row = (revision = 1) => ({
 })
 beforeEach(() => {
   vi.resetAllMocks()
+  mocks.canvas.mockReset().mockImplementation(async (_name: string, args: { p_canvas_ids: string[] }) => ({ data: args.p_canvas_ids, error: null }))
   mocks.flags.publicSharingEnabled = true
   mocks.images.mockResolvedValue(new Map())
   mocks.documents.mockResolvedValue(new Map())
@@ -35,7 +36,7 @@ beforeEach(() => {
   mocks.actor.mockResolvedValue({ actorId: WORKSPACE, orgId: WORKSPACE, supabase: {} })
   mocks.page.mockResolvedValue(null)
   mocks.sources.mockResolvedValue(sources())
-  mocks.admin.mockReturnValue({ rpc: mocks.rpc, storage: { from: () => ({ upload: mocks.upload }) } })
+  mocks.admin.mockReturnValue({ rpc: (name: string, args: unknown) => name === "filter_workspace_page_management_canvases" ? mocks.canvas(name, args) : mocks.rpc(name, args), storage: { from: () => ({ upload: mocks.upload }) } })
   mocks.rpc.mockResolvedValue({ data: { page: row(), replayed: false }, error: null })
 })
 async function reviewedCommand() {
@@ -103,6 +104,7 @@ describe("workspace page writer", () => {
     const request = await reviewedCommand()
     const changed = sources()
     changed.graph.particles[0].position.x += 100
+    changed.canonicalGraph = structuredClone(changed.graph)
     mocks.sources.mockResolvedValue(changed)
     expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: true })
     expect(mocks.rpc.mock.calls[0][1].p_expected_graph).toEqual(changed.graph)
@@ -307,3 +309,62 @@ describe("reviewed document publication", () => {
     expect(mocks.upload).toHaveBeenCalledOnce()
   })
 })
+
+
+describe("sharing source audience", () => {
+  it("reviews permitted content but commits the full canonical graph for CAS", async () => {
+    const saved = sources()
+    saved.canonicalGraph.particles.push({ ...particle(99), title: "Restricted sibling" })
+    mocks.sources.mockResolvedValue(saved)
+    const request = await reviewedCommand()
+    const result = await commitWorkspacePageAction(request)
+    expect(result.ok).toBe(true)
+    expect(mocks.rpc.mock.calls[0][1].p_expected_graph).toEqual(saved.canonicalGraph)
+    expect(mocks.rpc.mock.calls[0][1].p_snapshot.items).toHaveLength(2)
+    expect(JSON.stringify(result)).not.toContain("Restricted sibling")
+  })
+  it("withholds preview when selected access is revoked during asset preparation", async () => {
+    const revoked = sources()
+    revoked.graph.particles = []
+    mocks.sources.mockResolvedValueOnce(sources()).mockResolvedValue(revoked)
+    expect(await reviewWorkspacePageAction({ ...identity, draft })).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it("rejects hidden selections before publication and after an earlier review", async () => {
+    const request = await reviewedCommand()
+    const revoked = sources()
+    revoked.graph.particles = []
+    mocks.sources.mockResolvedValue(revoked)
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, code: "conflict" })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    expect(mocks.upload).not.toHaveBeenCalled()
+  })
+  it("does not treat a source denial at commit as success", async () => {
+    const request = await reviewedCommand()
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: "42501", message: "Board source access required." } })
+    expect(await commitWorkspacePageAction(request)).toMatchObject({ ok: false, code: "scope", uncertain: false })
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+})
+
+ describe("private canvas sharing authority", () => {
+  it("blocks all publication intents before loading source content", async () => {
+    mocks.canvas.mockResolvedValue({ data: [], error: null })
+    const result = await commitWorkspacePageAction({ ...command, intent: "save_draft" })
+    expect(result).toMatchObject({ ok: false })
+    expect(mocks.page).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+  it.each([false, true])("withholds a save/replay result after revocation (replayed=%s)", async replayed => {
+    mocks.rpc.mockImplementation(async () => {
+      mocks.canvas.mockResolvedValue({ data: [], error: null })
+      return { data: { page: row(), replayed }, error: null }
+    })
+    const request = await reviewedCommand()
+    const result = await commitWorkspacePageAction(request)
+    expect(result).toMatchObject({ ok: false, code: "scope" })
+    expect(JSON.stringify(result)).not.toContain(draft.title)
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+  })
+ })

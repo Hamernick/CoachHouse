@@ -16,6 +16,10 @@ async function deadline(orgId: string, ttl: number) {
   return { now, until }
 }
 
+export async function assertPrivateOrganizationReadWindow(orgId: string) {
+  await deadline(orgId, 60)
+}
+
 /** The Storage token remains a bearer credential. Bound newly issued links to
  * the fixed export deadline, then discard late signing/revocation responses.
  * Token decoding only rejects unsafe expiry; it never establishes authority. */

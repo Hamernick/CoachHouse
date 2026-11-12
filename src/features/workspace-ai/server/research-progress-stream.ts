@@ -35,7 +35,7 @@ export function researchProgressStream(identity: Omit<ResearchProgressIdentity, 
           if (run.appliedObjectiveId && identity.target.mode !== "new_objective") throw new Error("Unexpected research receipt.")
           if (run.result) {
             if (JSON.stringify(run.result.target) !== JSON.stringify(researchTargetSchema.parse(identity.target))) throw new Error("Research result scope changed.")
-            send({ kind: "result.ready", resultRevision: run.resultRevision, payload: { resultId: run.id, applicability: run.applicability } })
+            if (run.applicability === "review_required") send({ kind: "result.ready", resultRevision: run.resultRevision, payload: { resultId: run.id, applicability: run.applicability } })
           }
           // This is the same authorized saved readback returned by JSON. Keep
           // its exact draft base; unlike previews, it includes source revisions.

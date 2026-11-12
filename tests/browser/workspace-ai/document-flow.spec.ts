@@ -11,7 +11,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 async function generate(page: Page) {
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await expect(page.getByRole("button", { name: /25 credits maximum/ })).toBeVisible()
   await page.getByRole("textbox", { name: "Ask AI about this document" }).fill("Make this mission more concrete.")
   await page.getByRole("button", { name: "Generate document proposal" }).click()
@@ -45,7 +46,8 @@ test("review, revise, apply, privately save and reopen the acknowledged draft", 
   expect(state.section.isPublic).toBe(false)
   await page.reload()
   await expect(page.getByLabel("Mission document", { exact: true })).toContainText("thriving community gardens together")
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await expect(assistance.getByRole("status")).toHaveText("Saved")
   await expect(page.getByRole("button", { name: "Apply to editor", exact: true })).toHaveCount(0)
   state = await (await request.get("/__fixture/state")).json()
@@ -78,7 +80,8 @@ test("a lost save reply recovers the receipt without another canonical write", a
   await page.reload()
   await expect(page.getByLabel("Mission document", { exact: true })).toContainText("welcoming community gardens")
   await expect(page.getByTestId("editor-state")).toHaveText("Saved · Private")
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await expect(page.getByRole("region", { name: "AI document assistance" }).getByRole("status")).toHaveText("Saved")
   expect((await (await request.get("/__fixture/state")).json()).saves).toBe(1)
 })
@@ -105,7 +108,8 @@ test("failed revision retains its input and recovers the earlier draft after rel
   await expect(page.getByRole("button", { name: "Previous draft" })).toBeVisible()
   await expect(composer).toHaveValue("Keep the original focus.")
   await page.reload()
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await page.getByRole("button", { name: "Previous draft" }).click()
   await expect(page.getByRole("region", { name: "AI document assistance" })).toContainText("welcoming community gardens")
   await expect(page.getByRole("button", { name: "Apply to editor", exact: true })).toBeEnabled()
@@ -123,7 +127,8 @@ test("narrow layout and reduced motion keep the composer and review controls usa
 
 test("switching organization during a response removes the previous organization's assistance", async ({ page, request }) => {
   await request.post("/__fixture/control", { data: { delayGeneration: 1000 } })
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await page.getByRole("textbox", { name: "Ask AI about this document" }).fill("Improve this mission.")
   await page.getByRole("button", { name: "Generate document proposal" }).click()
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible()
@@ -137,7 +142,8 @@ test("switching organization during a response removes the previous organization
 
 test("Stop preserves the prompt and reports the reconciled zero charge", async ({ page, request }) => {
   await request.post("/__fixture/control", { data: { delayGeneration: 1000 } })
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   const composer = page.getByRole("textbox", { name: "Ask AI about this document" })
   await composer.fill("Improve this mission.")
   await page.getByRole("button", { name: "Generate document proposal" }).click()
@@ -150,7 +156,8 @@ test("Stop preserves the prompt and reports the reconciled zero charge", async (
 
 test("an interrupted stream must recover its existing run before another generation", async ({ page, request }) => {
   await request.post("/__fixture/control", { data: { omitTerminal: true } })
-  await page.getByRole("button", { name: "AI document assistance", exact: true }).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   const composer = page.getByRole("textbox", { name: "Ask AI about this document" })
   await composer.fill("Improve this mission.")
   await page.getByRole("button", { name: "Generate document proposal" }).click()
@@ -235,7 +242,8 @@ test("explicit context survives another editor mounting and updating, and can sw
 })
 
 test("removed context remains empty and preserves the prompt until explicitly reselected",async({page,request})=>{
-  await page.getByRole("button",{name:"AI document assistance",exact:true}).click()
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
   await expect(page.getByRole("button",{name:/25 credits maximum/})).toBeVisible()
   const prompt=page.getByRole("textbox",{name:"Ask AI about this document"})
   await prompt.fill("Keep this unsent request.")
@@ -277,4 +285,37 @@ test("explicit document assistance keeps its target when objective planning is a
   const state = await (await request.get("/__fixture/state")).json()
   expect(state.generations).toBe(1)
   expect(state.saves).toBe(0)
+})
+
+
+test("composer stays anchored through errors and document context; menu labels align left", async ({ page }) => {
+  const input = page.getByRole("textbox", { name: "Search Particles or enter a command" })
+  const before = await input.boundingBox()
+  const form = input.locator("xpath=ancestor::form")
+  expect((await form.boundingBox())!.height).toBeLessThanOrEqual(46)
+  for (const action of await form.locator("[data-workspace-composer-action]").all()) {
+    const bounds = (await action.boundingBox())!
+    expect(bounds.y + bounds.height / 2).toBeCloseTo(before!.y + before!.height / 2, 0)
+  }
+  await input.fill("One line\nTwo lines\nThree lines")
+  expect((await input.boundingBox())!.height).toBeGreaterThan(before!.height)
+  await input.fill(Array.from({ length: 20 }, () => "More text").join("\n"))
+  expect((await input.boundingBox())!.height).toBeLessThanOrEqual(128)
+  await input.fill("")
+  expect((await input.boundingBox())!.y).toBe(before!.y)
+  await input.fill("invalid command")
+  await input.press("Enter")
+  await expect(page.getByText("Use: create objective", { exact: false })).toBeVisible()
+  expect((await input.boundingBox())!.y).toBe(before!.y)
+  await input.fill("")
+  await page.getByRole("button", { name: "Add Particle", exact: true }).click()
+  const objective = page.getByRole("button", { name: "Objective", exact: true })
+  await expect(objective).toBeVisible()
+  expect(await objective.locator(":scope > span").first().evaluate(node => getComputedStyle(node).justifyContent)).toBe("flex-start")
+  await page.getByRole("button", { name: "Work on a document…", exact: true }).click()
+  const documentInput = page.getByRole("textbox", { name: "Ask AI about this document" })
+  await expect(documentInput).toBeVisible()
+  expect((await documentInput.boundingBox())!.y).toBe(before!.y)
+  await expect(page.getByRole("textbox", { name: "Research request" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "AI document assistance", exact: true })).toHaveCount(0)
 })

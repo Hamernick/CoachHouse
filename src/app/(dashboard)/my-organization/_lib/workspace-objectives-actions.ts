@@ -61,11 +61,17 @@ export async function loadWorkspaceObjectivesAction(): Promise<
       .returns<ObjectiveLinkRow[]>(),
   ])
 
-  const missingObjectivesTables =
-    isMissingTableError(groupsResult.error, "organization_workspace_objective_groups") ||
-    isMissingTableError(objectivesResult.error, "organization_workspace_objectives") ||
-    isMissingTableError(assigneesResult.error, "organization_workspace_objective_assignees") ||
-    isMissingTableError(linksResult.error, "organization_workspace_objective_links")
+  const reads = [
+    [groupsResult.error, "organization_workspace_objective_groups"],
+    [objectivesResult.error, "organization_workspace_objectives"],
+    [assigneesResult.error, "organization_workspace_objective_assignees"],
+    [linksResult.error, "organization_workspace_objective_links"],
+  ] as const
+  // A missing table never overrides another read's access or transport failure.
+  if (reads.some(([error, table]) => error && !isMissingTableError(error, table))) {
+    return asWorkspaceObjectiveActionError("Unable to load objectives.")
+  }
+  const missingObjectivesTables = reads.some(([error, table]) => isMissingTableError(error, table))
 
   if (missingObjectivesTables) {
     const boardResult = await supabase
@@ -88,10 +94,6 @@ export async function loadWorkspaceObjectivesAction(): Promise<
     }
   }
 
-  if (groupsResult.error || objectivesResult.error || assigneesResult.error || linksResult.error) {
-    return asWorkspaceObjectiveActionError("Unable to load objectives.")
-  }
-
   const objectiveRows = objectivesResult.data ?? []
   if (objectiveRows.length === 0) {
     const boardResult = await supabase
@@ -100,15 +102,14 @@ export async function loadWorkspaceObjectivesAction(): Promise<
       .eq("org_id", activeOrg.orgId)
       .maybeSingle<{ state: unknown }>()
 
-    if (!boardResult.error) {
-      const fallback = mapLegacyTrackerStateToObjectiveCollection({
-        orgId: activeOrg.orgId,
-        actorId: userId,
-        state: boardResult.data?.state,
-      })
-      if (fallback.loadedFrom === "legacy_tracker") {
-        return { ok: true, data: fallback }
-      }
+    if (boardResult.error) return asWorkspaceObjectiveActionError("Unable to load objectives.")
+    const fallback = mapLegacyTrackerStateToObjectiveCollection({
+      orgId: activeOrg.orgId,
+      actorId: userId,
+      state: boardResult.data?.state,
+    })
+    if (fallback.loadedFrom === "legacy_tracker") {
+      return { ok: true, data: fallback }
     }
   }
 
@@ -143,20 +144,16 @@ export async function createWorkspaceObjectiveGroupAction({
     return asWorkspaceObjectiveActionError("Category title is required.")
   }
 
-  const { data, error } = await actor.supabase
-    .from("organization_workspace_objective_groups")
-    .insert({
-      org_id: actor.activeOrg.orgId,
-      title: normalizedTitle,
-      kind: "custom",
-      source_type: "none",
-      created_by: actor.userId,
-    })
-    .select(WORKSPACE_OBJECTIVE_GROUP_ROW_SELECT)
-    .maybeSingle<ObjectiveGroupRow>()
+  const { data, error } = await actor.supabase.rpc("write_workspace_objective_group", {
+    p_org_id: actor.activeOrg.orgId,
+    p_group_id: null,
+    p_expected_updated_at: null,
+    p_title: normalizedTitle,
+    p_archived: null,
+  }).returns<ObjectiveGroupRow>()
 
   if (error || !data) {
-    return asWorkspaceObjectiveActionError("Unable to create category.")
+    return asWorkspaceObjectiveActionError("Unable to confirm category creation. Reload before trying again.")
   }
 
   return {
@@ -168,9 +165,11 @@ export async function createWorkspaceObjectiveGroupAction({
 export async function setWorkspaceObjectiveGroupArchivedAction({
   groupId,
   archived,
+  expectedUpdatedAt,
 }: {
   groupId: string
   archived: boolean
+  expectedUpdatedAt: string
 }): Promise<WorkspaceObjectiveActionResult<{ groupId: string; archived: boolean }>> {
   const actor = await resolveWorkspaceObjectiveActorContext()
   if (!actor.ok) return asWorkspaceObjectiveActionError(actor.error)
@@ -182,23 +181,28 @@ export async function setWorkspaceObjectiveGroupArchivedAction({
   const normalizedGroupId = groupId.trim()
   if (!normalizedGroupId) return asWorkspaceObjectiveActionError("Category ID is required.")
 
-  const { error } = await actor.supabase
-    .from("organization_workspace_objective_groups")
-    .update({
-      archived_at: archived ? new Date().toISOString() : null,
-    })
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("id", normalizedGroupId)
+  if (!expectedUpdatedAt || Number.isNaN(Date.parse(expectedUpdatedAt))) {
+    return asWorkspaceObjectiveActionError("Category changed. Reload and try again.")
+  }
+  const { data, error } = await actor.supabase.rpc("write_workspace_objective_group", {
+    p_org_id: actor.activeOrg.orgId,
+    p_group_id: normalizedGroupId,
+    p_expected_updated_at: expectedUpdatedAt,
+    p_title: null,
+    p_archived: archived,
+  }).returns<ObjectiveGroupRow>()
 
-  if (error) {
-    return asWorkspaceObjectiveActionError("Unable to update category archive state.")
+  if (error || !data || data.id !== normalizedGroupId) {
+    return asWorkspaceObjectiveActionError(error?.code === "40001"
+      ? "Category changed. Reload and try again."
+      : "Unable to confirm category update. Reload and try again.")
   }
 
   return {
     ok: true,
     data: {
       groupId: normalizedGroupId,
-      archived,
+      archived: data.archived_at !== null,
     },
   }
 }
@@ -218,26 +222,16 @@ export async function createWorkspaceObjectiveAction(
     return asWorkspaceObjectiveActionError("Objective title is required.")
   }
 
-  const { data, error } = await actor.supabase
-    .from("organization_workspace_objectives")
-    .insert({
-      org_id: actor.activeOrg.orgId,
-      group_id: normalized.groupId ?? null,
-      title: normalized.title,
-      description: normalized.description ?? null,
-      priority: normalized.priority ?? "normal",
-      due_at: normalized.dueAt ?? null,
-      status: "todo",
-      kind: "custom",
-      source_type: "custom",
-      created_by: actor.userId,
-      updated_by: actor.userId,
-    })
-    .select(WORKSPACE_OBJECTIVE_ROW_SELECT)
-    .maybeSingle<ObjectiveRow>()
+  const { data, error } = await actor.supabase.rpc("write_workspace_objective", {
+    p_mode: "create", p_org_id: actor.activeOrg.orgId, p_objective_id: null,
+    p_expected_updated_at: null, p_title: normalized.title,
+    p_description: normalized.description ?? null, p_priority: normalized.priority ?? "normal",
+    p_due_at: normalized.dueAt ?? null, p_group_id: normalized.groupId ?? null,
+    p_status: null, p_user_ids: input.userIds ?? null,
+  }).returns<ObjectiveRow>()
 
-  if (error || !data) {
-    return asWorkspaceObjectiveActionError("Unable to create objective.")
+  if (error || !data || data.org_id !== actor.activeOrg.orgId) {
+    return asWorkspaceObjectiveActionError("Unable to confirm objective creation. Reload before trying again.")
   }
 
   return {
@@ -275,57 +269,25 @@ export async function setWorkspaceObjectiveAssigneesAction({
 
   const objectiveResult = await actor.supabase
     .from("organization_workspace_objectives")
-    .select("id")
+    .select("updated_at")
     .eq("org_id", actor.activeOrg.orgId)
     .eq("id", normalizedObjectiveId)
-    .maybeSingle<{ id: string }>()
+    .maybeSingle<{ updated_at: string }>()
 
   if (objectiveResult.error || !objectiveResult.data) {
     return asWorkspaceObjectiveActionError("Unable to find objective.")
   }
 
-  const membershipsResult = await actor.supabase
-    .from("organization_memberships")
-    .select("member_id")
-    .eq("org_id", actor.activeOrg.orgId)
-    .returns<Array<{ member_id: string }>>()
-
-  if (membershipsResult.error) {
-    return asWorkspaceObjectiveActionError("Unable to load workspace members.")
-  }
-
-  const assignableUserIds = new Set<string>([
-    actor.activeOrg.orgId,
-    ...(membershipsResult.data ?? []).map((membership) => membership.member_id),
-  ])
-  const nextUserIds = uniqueUserIds.filter((userId) => assignableUserIds.has(userId))
-
-  const { error: clearError } = await actor.supabase
-    .from("organization_workspace_objective_assignees")
-    .delete()
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("objective_id", normalizedObjectiveId)
-
-  if (clearError) {
-    return asWorkspaceObjectiveActionError("Unable to reset objective assignees.")
-  }
-
-  if (nextUserIds.length > 0) {
-    const { error: insertError } = await actor.supabase
-      .from("organization_workspace_objective_assignees")
-      .insert(
-        nextUserIds.map((userId) => ({
-          objective_id: normalizedObjectiveId,
-          org_id: actor.activeOrg.orgId,
-          user_id: userId,
-          role: "assignee" as const,
-          created_by: actor.userId,
-        })),
-      )
-
-    if (insertError) {
-      return asWorkspaceObjectiveActionError("Unable to assign objective.")
-    }
+  const { data: nextUserIds, error } = await actor.supabase.rpc("replace_workspace_objective_assignees", {
+    p_org_id: actor.activeOrg.orgId,
+    p_objective_id: normalizedObjectiveId,
+    p_expected_updated_at: objectiveResult.data.updated_at,
+    p_user_ids: uniqueUserIds,
+  })
+  if (error || !nextUserIds) {
+    return asWorkspaceObjectiveActionError(error?.code === "40001"
+      ? "Assignments changed. Reload and try again."
+      : "Unable to confirm assignments. Reload and try again.")
   }
 
   return {
@@ -339,6 +301,8 @@ export async function setWorkspaceObjectiveAssigneesAction({
 
 export async function setWorkspaceObjectiveDetailsAction({
   objectiveId,
+  expectedUpdatedAt,
+  userIds,
   title,
   description,
   priority,
@@ -346,6 +310,8 @@ export async function setWorkspaceObjectiveDetailsAction({
   groupId,
 }: {
   objectiveId: string
+  expectedUpdatedAt: string
+  userIds?: string[]
   title: string
   description: string | null
   priority: "low" | "normal" | "high" | "critical"
@@ -368,29 +334,28 @@ export async function setWorkspaceObjectiveDetailsAction({
     return asWorkspaceObjectiveActionError("Objective title is required.")
   }
 
+  if (!expectedUpdatedAt || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+    return asWorkspaceObjectiveActionError("Objective changed. Reload and try again.")
+  }
+
   const normalizedDescription = description?.trim() ? description.trim() : null
   const normalizedDueAt = dueAt?.trim() ? dueAt : null
   const normalizedGroupId = groupId?.trim() ? groupId.trim() : null
   const normalizedPriority =
     priority === "low" || priority === "high" || priority === "critical" ? priority : "normal"
 
-  const { data, error } = await actor.supabase
-    .from("organization_workspace_objectives")
-    .update({
-      title: normalizedTitle,
-      description: normalizedDescription,
-      priority: normalizedPriority,
-      due_at: normalizedDueAt,
-      group_id: normalizedGroupId,
-      updated_by: actor.userId,
-    })
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("id", normalizedObjectiveId)
-    .select(WORKSPACE_OBJECTIVE_ROW_SELECT)
-    .maybeSingle<ObjectiveRow>()
+  const { data, error } = await actor.supabase.rpc("write_workspace_objective", {
+    p_mode: "details", p_org_id: actor.activeOrg.orgId, p_objective_id: normalizedObjectiveId,
+    p_expected_updated_at: expectedUpdatedAt, p_title: normalizedTitle,
+    p_description: normalizedDescription, p_priority: normalizedPriority,
+    p_due_at: normalizedDueAt, p_group_id: normalizedGroupId,
+    p_status: null, p_user_ids: userIds ?? null,
+  }).returns<ObjectiveRow>()
 
-  if (error || !data) {
-    return asWorkspaceObjectiveActionError("Unable to update objective.")
+  if (error || !data || data.id !== normalizedObjectiveId || data.org_id !== actor.activeOrg.orgId) {
+    return asWorkspaceObjectiveActionError(error?.code === "40001"
+      ? "Objective changed. Reload and try again."
+      : "Unable to confirm objective update. Reload and try again.")
   }
 
   return {
@@ -414,21 +379,20 @@ export async function setWorkspaceObjectiveStatusAction(
     return asWorkspaceObjectiveActionError("Objective ID is required.")
   }
 
-  const completedAt = normalized.status === "done" ? new Date().toISOString() : null
-  const { data, error } = await actor.supabase
-    .from("organization_workspace_objectives")
-    .update({
-      status: normalized.status,
-      completed_at: completedAt,
-      updated_by: actor.userId,
-    })
-    .eq("org_id", actor.activeOrg.orgId)
-    .eq("id", normalized.objectiveId)
-    .select(WORKSPACE_OBJECTIVE_ROW_SELECT)
-    .maybeSingle<ObjectiveRow>()
+  if (!normalized.expectedUpdatedAt || !Number.isFinite(Date.parse(normalized.expectedUpdatedAt))) {
+    return asWorkspaceObjectiveActionError("Objective changed. Reload and try again.")
+  }
+  const { data, error } = await actor.supabase.rpc("write_workspace_objective", {
+    p_mode: "status", p_org_id: actor.activeOrg.orgId, p_objective_id: normalized.objectiveId,
+    p_expected_updated_at: normalized.expectedUpdatedAt, p_title: null,
+    p_description: null, p_priority: null, p_due_at: null, p_group_id: null,
+    p_status: normalized.status, p_user_ids: null,
+  }).returns<ObjectiveRow>()
 
-  if (error || !data) {
-    return asWorkspaceObjectiveActionError("Unable to update objective status.")
+  if (error || !data || data.id !== normalized.objectiveId || data.org_id !== actor.activeOrg.orgId) {
+    return asWorkspaceObjectiveActionError(error?.code === "40001"
+      ? "Objective changed. Reload and try again."
+      : "Unable to confirm objective update. Reload and try again.")
   }
 
   return {

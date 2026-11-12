@@ -1,5 +1,7 @@
 "use server"
 
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
+import { commitRoadmapProfile, commitRoadmapPublication } from "@/lib/organization/roadmap-profile-commit"
 import { canRemoveCoreDocumentImage } from "@/server/organization/core-document-asset-retention"
 import { revalidatePath, revalidateTag } from "next/cache"
 
@@ -10,7 +12,7 @@ import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-a
 import { getSelectedGoogleDriveFile } from "@/features/google-drive"
 import { readAiDocumentApplication,commitAiDocumentApplication } from "@/features/workspace-ai/server"
 import type { AiDocumentApplication } from "@/features/workspace-ai/client"
-import { normalizeCoreDocumentDriveSource } from "@/lib/roadmap/core-document-source"
+import { normalizeCoreDocumentDriveSource, resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
 
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -97,6 +99,15 @@ function revalidatePublicOrganizationProfile(sectionId: string | null) {
   revalidateTag("public-profiles", { expire: 0 })
   revalidatePath("/map")
   revalidatePath("/resources")
+}
+
+async function documentSourceError(sectionId: string, organizationId: string, actorId: string) {
+  try {
+    const readable = await filterAiDocumentCopies([{ id: sectionId }], organizationId, actorId)
+    return readable.length ? null : "Document access changed. Reopen the document before saving."
+  } catch {
+    return "Document sources could not be verified. Try again."
+  }
 }
 
 export async function saveRoadmapSectionAction({
@@ -189,6 +200,12 @@ export async function saveRoadmapSectionAction({
       null)
     : null
 
+  // Check before replay/conflict responses: these include the saved body.
+  if (previousSection) {
+    const error = await documentSourceError(previousSection.id, orgId, user.id)
+    if (error) return { error }
+  }
+
   // Stable-ID creation must never overwrite an edited document on replay.
   if (createOnly) {
     if (!normalizedSectionId || !expectedOrganizationId || !expectedUserId ||
@@ -199,7 +216,7 @@ export async function saveRoadmapSectionAction({
 
   let aiApplication: AiDocumentApplication | undefined
   if (aiRunId) {
-    if (!previousSection || previousSection.driveSource || driveFileId !== undefined ||
+    if (!previousSection || resolveCoreDocumentSource(previousSection) !== "editor" || driveFileId !== undefined ||
       !expectedOrganizationId || !expectedUserId || expectedLastUpdated === undefined)
       return { error: "Reopen this core document before saving an AI draft." }
     try {
@@ -314,25 +331,13 @@ export async function saveRoadmapSectionAction({
       if (committed.replayed) return { error:"This proposal was already saved. Retry to recover the saved version." }
       aiApplication=committed.application
     } catch (cause) { return { error:cause instanceof Error ? cause.message : "Unable to save this AI draft." } }
-  } else if (orgRow) {
-    const { data: updatedRow, error: updateError } = await supabase
-      .from("organizations")
-      .update({ profile: nextProfile as Json })
-      .eq("user_id", orgId)
-      .eq("updated_at", orgRow.updated_at)
-      .select("user_id")
-      .maybeSingle<{ user_id: string }>()
-
-    if (updateError) return { error: updateError.message }
-    if (!updatedRow) {
-      return readSaveConflict()
-    }
   } else {
-    const { error: insertError } = await supabase.from("organizations").insert({
-      user_id: orgId,
-      profile: nextProfile as Json,
-    })
-    if (insertError) return { error: insertError.message }
+    const committed = await commitRoadmapProfile({ organizationId: orgId, actorId: user.id,
+      expectedUpdatedAt: orgRow?.updated_at ?? null, profile: nextProfile,
+      supportAccess: "supportAccess" in access && access.supportAccess === true,
+      requireStorage: !driveOnly })
+    if ("error" in committed) return committed
+    if ("conflict" in committed) return readSaveConflict()
   }
 
   if (cleanupPath && await canRemoveCoreDocumentImage(orgId, previousSection?.imageUrl)) {
@@ -416,6 +421,10 @@ export async function deleteRoadmapSectionAction(
         (section) => section.id === targetId
       ) ?? null)
     : null
+  if (previousSection) {
+    const error = await documentSourceError(previousSection.id, orgId, user.id)
+    if (error) return { error }
+  }
   const { nextProfile, removed, error } = removeRoadmapSection(
     currentProfile,
     sectionId
@@ -431,20 +440,11 @@ export async function deleteRoadmapSectionAction(
 
   if (!orgRow) return { error: "Organization not found." }
 
-  const { data: updatedRow, error: updateError } = await supabase
-    .from("organizations")
-    .update({ profile: nextProfile as Json })
-    .eq("user_id", orgId)
-    .eq("updated_at", orgRow.updated_at)
-    .select("user_id")
-    .maybeSingle<{ user_id: string }>()
-
-  if (updateError) return { error: updateError.message }
-  if (!updatedRow) {
-    return {
-      error: "This organization was updated elsewhere. Reload before deleting.",
-    }
-  }
+  const committed = await commitRoadmapProfile({ organizationId: orgId, actorId: user.id,
+    expectedUpdatedAt: orgRow.updated_at, profile: nextProfile,
+    supportAccess: "supportAccess" in access && access.supportAccess === true })
+  if ("error" in committed) return committed
+  if ("conflict" in committed) return { error: "This organization was updated elsewhere. Reload before deleting." }
 
   const cleanupPath = resolveOrgMediaCleanupPath({
     previousUrl: previousSection?.imageUrl ?? null,
@@ -473,6 +473,7 @@ export async function setRoadmapPublicAction(
   if (!publicSharingEnabled) {
     return { error: "Public sharing is disabled until launch." }
   }
+  if (typeof nextPublic !== "boolean") return { error: "Invalid sharing setting." }
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -488,7 +489,7 @@ export async function setRoadmapPublicAction(
     return { error: "Unauthorized" }
   }
 
-  const { orgId, role } = await resolveActiveOrganization(supabase, user.id)
+  const { orgId, role, supportAccess } = await resolveActiveOrganization(supabase, user.id)
   if (!canEditOrganization(role)) return { error: "Forbidden" }
   const documentAccess = await requireOrganizationDocumentStorage({ supabase, orgId })
   if ("error" in documentAccess) return { error: documentAccess.error }
@@ -515,16 +516,14 @@ export async function setRoadmapPublicAction(
 
   const { data: orgRow, error } = await supabase
     .from("organizations")
-    .upsert({
-      user_id: orgId,
-      is_public_roadmap: nextPublic,
-    })
-    .select("public_slug")
-    .maybeSingle<{ public_slug: string | null }>()
+    .select("public_slug, updated_at")
+    .eq("user_id", orgId)
+    .maybeSingle<{ public_slug: string | null; updated_at: string }>()
 
-  if (error) {
-    return { error: error.message }
-  }
+  if (error || !orgRow?.updated_at) return { error: "Unable to load this roadmap. Reload before changing sharing." }
+  const committed = await commitRoadmapPublication({ organizationId: orgId, actorId: user.id,
+    expectedUpdatedAt: orgRow.updated_at, isPublic: nextPublic, supportAccess: Boolean(supportAccess) })
+  if ("error" in committed) return committed
 
   revalidateRoadmapWorkspacePaths({
     publicSlug: orgRow?.public_slug,
@@ -608,28 +607,11 @@ export async function setRoadmapHeroImageAction(
     userId: orgId,
   })
 
-  if (orgRow) {
-    const { data: updatedRow, error: updateError } = await supabase
-      .from("organizations")
-      .update({ profile: nextProfile as Json })
-      .eq("user_id", orgId)
-      .eq("updated_at", orgRow.updated_at)
-      .select("user_id")
-      .maybeSingle<{ user_id: string }>()
-
-    if (updateError) return { error: updateError.message }
-    if (!updatedRow) {
-      return {
-        error: "This organization was updated elsewhere. Reload before saving.",
-      }
-    }
-  } else {
-    const { error: insertError } = await supabase.from("organizations").insert({
-      user_id: orgId,
-      profile: nextProfile as Json,
-    })
-    if (insertError) return { error: insertError.message }
-  }
+  const committed = await commitRoadmapProfile({ organizationId: orgId, actorId: user.id,
+    expectedUpdatedAt: orgRow?.updated_at ?? null, profile: nextProfile,
+    supportAccess: "supportAccess" in access && access.supportAccess === true })
+  if ("error" in committed) return committed
+  if ("conflict" in committed) return { error: "This organization was updated elsewhere. Reload before saving." }
 
   if (cleanupPath) {
     await supabase.storage.from(ORG_MEDIA_BUCKET).remove([cleanupPath])

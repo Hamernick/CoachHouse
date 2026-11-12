@@ -39,6 +39,8 @@ describe("workspace routes", () => {
     expect(normalizeWorkspaceDrawerTab(" accelerator ")).toBe("accelerator")
     expect(normalizeWorkspaceDrawerTab("finance")).toBeNull()
     expect(normalizeWorkspaceDrawerTab("tools")).toBe("tools")
+    expect(normalizeWorkspaceDrawerTab(" particles ")).toBe("tools")
+    expect(getWorkspaceDrawerPath({ tab: "particles" })).toBe("/workspace?drawer=tools&focus=particles")
     expect(normalizeWorkspaceDrawerTab(null)).toBeNull()
   })
 

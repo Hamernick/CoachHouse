@@ -243,7 +243,7 @@ describe("Notes Documents route", () => {
     expect(response.status).toBe(200)
     expect(response.headers.get("Cache-Control")).toBe("private, no-store")
     expect(mocks.access).not.toHaveBeenCalled()
-    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE)
+    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, ID(50), undefined, "")
     expect((await response.json()).notes).toHaveLength(1)
   })
   it("checks other organization access and always reads personal notes as the signed-in user", async () => {
@@ -252,7 +252,7 @@ describe("Notes Documents route", () => {
     mocks.access.mockResolvedValue({ orgId: ID(60), supabase: scoped })
     const response = await GET(request(`?organizationId=${ID(60)}`))
     expect(response.status).toBe(200)
-    expect(mocks.read).toHaveBeenCalledWith(scoped, ID(60))
+    expect(mocks.read).toHaveBeenCalledWith(scoped, ID(60), ID(50), undefined, "")
     expect(mocks.modules).toHaveBeenCalledWith({
       supabase: session,
       userId: ID(50),
@@ -262,6 +262,20 @@ describe("Notes Documents route", () => {
     mocks.read.mockClear()
     expect((await GET(request(`?organizationId=${ID(60)}`))).status).toBe(403)
     expect(mocks.read).not.toHaveBeenCalled()
+  })
+  it("binds library and detail reads to the expected actor before loading sources", async () => {
+    const { GET } = await import("@/app/api/account/workspace-notes/route")
+    for (const query of [
+      `?organizationId=${WORKSPACE}&expectedUserId=${ID(99)}`,
+      `?organizationId=${WORKSPACE}&expectedUserId=${ID(99)}&id=${ID(1)}`,
+      `?organizationId=${WORKSPACE}&expectedUserId=`,
+    ]) expect((await GET(request(query))).status).toBe(403)
+    expect(mocks.active).not.toHaveBeenCalled()
+    expect(mocks.access).not.toHaveBeenCalled()
+    expect(mocks.read).not.toHaveBeenCalled()
+    expect(mocks.modules).not.toHaveBeenCalled()
+    expect((await GET(request(`?organizationId=${WORKSPACE}&expectedUserId=${ID(50)}`))).status).toBe(200)
+    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, ID(50), undefined, "")
   })
   it("delegates revision-checked edits to the existing authorized graph writer", async () => {
     const { POST } = await import("@/app/api/account/workspace-notes/route")
@@ -302,7 +316,7 @@ describe("Notes Documents route", () => {
     const response = await POST(new NextRequest(request().url, { method: "POST", body: JSON.stringify(update) }))
     expect(response.status).toBe(200)
     expect(mocks.apply).toHaveBeenCalledWith(update, ID(70))
-    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, note().id)
+    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, ID(50), note().id)
   })
   it("rejects creations and personal note text from the shared graph edit endpoint", async () => {
     const { POST } = await import("@/app/api/account/workspace-notes/route")
@@ -541,7 +555,7 @@ describe("Notes editor API boundaries", () => {
       { moduleId: ID(4), moduleTitle: "Other", content: "Unrelated", updatedAt: NOW },
     ])
     const response = await GET(new NextRequest("http://localhost/api/account/workspace-notes?q=needle&limit=30"))
-    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, undefined, "needle")
+    expect(mocks.read).toHaveBeenCalledWith(session, WORKSPACE, ID(50), undefined, "needle")
     expect(await response.json()).toMatchObject({ notes: [{ title: "Title", summary: "Second line", source: { moduleId: ID(3) } }], nextCursor: null })
   })
   it("rejects malformed pagination instead of silently skipping notes", async () => {

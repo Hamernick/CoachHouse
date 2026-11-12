@@ -9,6 +9,8 @@ import type { WorkspaceOrganizationEditorData } from "../../workspace-board-type
 import type { WorkspacePeopleCanvasActions } from "./workspace-canvas-people-dnd"
 import type { WorkspaceDataDrawerRequest } from "./workspace-canvas-overlay-drawer-tabs"
 
+import type { WorkspaceParticleLibraryContent } from "./workspace-drawer-content-types"
+
 export type WorkspaceOverlayDrawerProps = {
   people: OrgPersonWithImage[]
   placedPersonIds: ReadonlySet<string>
@@ -27,7 +29,8 @@ export type WorkspaceOverlayDrawerProps = {
   particleInspector?: ReactNode
   particleInspectorTitle?: string
   particleInspectorMaxWidth?: number
-  particleLibrary?: ReactNode
+  planningSidebar?: ReactNode
+  particleLibrary?: WorkspaceParticleLibraryContent
   particleComposer?: ReactNode
   particleSelectionId?: string | null
   particleSelectionKey?: number

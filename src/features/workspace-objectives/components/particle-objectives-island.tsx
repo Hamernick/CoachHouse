@@ -1,6 +1,7 @@
 "use client"
 
 import { ParticleButton as Button } from "@/components/ui/particle-ui"
+import { usePlanningComposer } from "@/components/workspace/planning-composer-context"
 import { memo, useRef, useState } from "react"
 import { useOpportunityCanvasActions } from "../hooks/use-opportunity-canvas-actions"
 
@@ -31,11 +32,16 @@ export function ParticleObjectivesIsland({
   scope,
   controls,
   finance,
+  embedded = false,
+  columns = false,
 }: {
   scope: ObjectiveScope
   controls: PlanningControls
   finance?: WorkspaceFinanceInput
+  embedded?: boolean
+  columns?: boolean
 }) {
+  const composer = usePlanningComposer()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const objectiveForm = useRef<HTMLFormElement>(null)
@@ -75,18 +81,17 @@ export function ParticleObjectivesIsland({
     if (operations.length)
       void controls.commit(operations, { optimistic: true })
   }
-  const openObjectives = (value: boolean) => { setOpen(value); if (value) setOpportunitiesOpen(false) }
+  const openObjectives = (value: boolean) => { setOpen(value); if (value && !columns) setOpportunitiesOpen(false) }
   const openOpportunities = (value: boolean) => {
     setOpportunitiesOpen(value)
-    if (value) { setOpen(false); setMatchingResourceId(selectedResource?.id ?? null) }
+    if (value) { if (!columns) setOpen(false); setMatchingResourceId(selectedResource?.id ?? null) }
   }
-  return (
-    <div className={`nodrag nopan nowheel ${styles.feedPositions}`}>
-      <div className={styles.objectivesPosition}>
-      <PlanningSidebarSurface>
+  const feeds = (
+    <>
       <PlanningFeedSection label="Objectives" count={objectives.length} open={open} onOpenChange={openObjectives}
         action={controls.canEdit && !controls.error && <Button color="secondary" uniform variant="ghost" size="lg" className={styles.addButton}
-          aria-label="Create objective" disabled={controls.pending} onClick={() => {
+          aria-label="Create objective" disabled={controls.pending || composer?.pending} onClick={() => {
+            if (composer) { openObjectives(true); composer.choose({ kind: "objective", maxLength: 240, submit: actions.createObjective }); return }
             openObjectives(true)
             requestAnimationFrame(() => objectiveForm.current?.querySelector("input")?.focus({ preventScroll: true }))
           }}><Plus aria-hidden /></Button>}>
@@ -134,7 +139,7 @@ export function ParticleObjectivesIsland({
               )}
             </div>
           </ScrollFadeEffect>
-          {controls.canEdit && !controls.error && (
+          {!composer && controls.canEdit && !controls.error && (
             <div className={styles.footer}>
               <form ref={objectiveForm}
                 onSubmit={async (event) => {
@@ -184,8 +189,11 @@ export function ParticleObjectivesIsland({
           </ScrollFadeEffect>
         <div ref={setOpportunityFooter} className={styles.footer} />
       </PlanningFeedSection>
-      </PlanningSidebarSurface>
-      </div>
+    </>
+  )
+  return embedded ? feeds : (
+    <div className={`nodrag nopan nowheel ${styles.feedPositions}`}>
+      <div className={styles.objectivesPosition}><PlanningSidebarSurface>{feeds}</PlanningSidebarSurface></div>
     </div>
   )
 }

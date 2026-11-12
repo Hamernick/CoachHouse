@@ -10,6 +10,8 @@ import { graph, ID, NOW, WORKSPACE } from "./fixtures/particle-fixtures"
 const mocks = vi.hoisted(() => ({ actor: vi.fn(), rows: vi.fn(), download: vi.fn() }))
 vi.mock("@/features/workspace-sharing/server/page-context", () => ({ loadPageActor: mocks.actor }))
 const supabase = createClient<Database>("https://fixture.invalid", "fixture")
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ storage: supabase.storage }) }))
+vi.mock("@/lib/organization/private-storage-link", () => ({ assertPrivateOrganizationReadWindow: vi.fn().mockResolvedValue(undefined) }))
 const actor = { supabase, actorId: WORKSPACE, orgId: WORKSPACE }
 const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(),
   is: vi.fn().mockReturnThis(), abortSignal: mocks.rows }

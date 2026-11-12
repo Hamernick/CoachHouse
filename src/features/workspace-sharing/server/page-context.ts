@@ -1,6 +1,9 @@
 import "server-only"
 
 import { z } from "zod"
+import { assertPageCanvasManagement } from "./page-canvas-access"
+import { projectStoredParticleGraphAudience } from "@/features/workspace-particles/server"
+import { readWorkspaceBoardForProjection } from "@/lib/organization/particle-board-read"
 import { allWorkspaceStates } from "@/features/workspace-management"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
@@ -41,11 +44,11 @@ export async function loadSavedPage(actor: PageActor, pageId: string) {
 }
 
 export async function loadSavedPageSources(actor: PageActor, canvasId: string | null = null) {
+  await assertPageCanvasManagement(actor, canvasId)
   const [organization, board] = await Promise.all([
     actor.supabase.from("organizations").select("profile, public_slug, updated_at")
       .eq("user_id", actor.orgId).abortSignal(AbortSignal.timeout(15_000)).maybeSingle(),
-    actor.supabase.from("organization_workspace_boards").select("state")
-      .eq("org_id", actor.orgId).abortSignal(AbortSignal.timeout(15_000)).maybeSingle(),
+    readWorkspaceBoardForProjection(actor.supabase, actor.orgId, actor.actorId, AbortSignal.timeout(15_000)),
   ])
   if (organization.error || board.error || !organization.data || !board.data)
     throw new WorkspaceSharingError("unavailable", "Unable to load saved workspace content. Try again.")
@@ -56,7 +59,10 @@ export async function loadSavedPageSources(actor: PageActor, canvasId: string | 
   if (matches.length !== 1) throw new WorkspaceSharingError("conflict", "This workspace is unavailable. Reopen Share from the current workspace.")
   const graph = matches[0].state.particleGraph as Json | undefined
   if (!graph) throw new WorkspaceSharingError("invalid", "Save a Particle to the board before sharing.")
-  return { ...organization.data, graph }
+  // Canonical state stays server-only for CAS. Every preview/resolver consumes
+  // the audience projection, never the elevated read directly.
+  const visible = await projectStoredParticleGraphAudience(graph, actor.orgId, actor.actorId)
+  return { ...organization.data, graph: visible, canonicalGraph: graph }
 }
 
 /** Parse only the expected database result; do not expose operation receipts. */

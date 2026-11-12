@@ -1,13 +1,14 @@
-import { currentlyPublicOrganizationIds } from "@/lib/organization/public-read-admission"
+import { filterPublicOrganizationProfiles } from "@/lib/organization/public-document-audience"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { env } from "@/lib/env"
 import { unstable_cache } from "next/cache"
-import { projectPublicMapOrganizations, type PublicMapProgramRow, type PublicMapOrganization } from "@/lib/public-map/organization-projection"
+import { projectPublicMapOrganizations, type PublicMapOrganizationRow, type PublicMapProgramRow, type PublicMapOrganization } from "@/lib/public-map/organization-projection"
 export type { PublicMapProgramPreview, PublicMapActivityLinkSource, PublicMapOrganization } from "@/lib/public-map/organization-projection"
 
-async function fetchPublicMapOrganizationsUncached(): Promise<
-  PublicMapOrganization[]
-> {
+type PublicMapInputs = { organizations: PublicMapOrganizationRow[]; programs: PublicMapProgramRow[] }
+
+// Server-only cache of inputs. Never cache or return an admitted projection here.
+async function fetchPublicMapOrganizationsUncached(): Promise<PublicMapInputs> {
   const supabase = createSupabaseAdminClient()
   const { data: orgRows, error: orgError } = await supabase
     .from("organizations")
@@ -33,7 +34,7 @@ async function fetchPublicMapOrganizationsUncached(): Promise<
   }
 
   if (!orgRows || orgRows.length === 0) {
-    return []
+    return { organizations: [], programs: [] }
   }
 
   const orgIds = orgRows.map((row) => row.user_id)
@@ -47,13 +48,13 @@ async function fetchPublicMapOrganizationsUncached(): Promise<
     .order("created_at", { ascending: false })
     .returns<PublicMapProgramRow[]>()
 
-  return projectPublicMapOrganizations(orgRows, programRows ?? [])
+  return { organizations: orgRows, programs: programRows ?? [] }
 }
 
 const fetchPublicMapOrganizationsCached = unstable_cache(
-  async (): Promise<PublicMapOrganization[]> =>
+  async (): Promise<PublicMapInputs> =>
     fetchPublicMapOrganizationsUncached(),
-  ["public-map-organizations-v9"],
+  ["public-map-organization-inputs-v10"],
   { revalidate: 300, tags: ["public-map-organizations"] }
 )
 
@@ -64,7 +65,7 @@ export async function fetchPublicMapOrganizations(): Promise<
     return []
   }
 
-  const organizations = await fetchPublicMapOrganizationsCached()
-  const allowed = await currentlyPublicOrganizationIds(organizations.map((row) => row.id))
-  return organizations.filter((row) => allowed.has(row.id))
+  const inputs = await fetchPublicMapOrganizationsCached()
+  const organizations = await filterPublicOrganizationProfiles(inputs.organizations)
+  return projectPublicMapOrganizations(organizations, inputs.programs)
 }

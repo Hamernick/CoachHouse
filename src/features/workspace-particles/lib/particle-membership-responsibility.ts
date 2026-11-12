@@ -27,7 +27,7 @@ export function particleMembershipResponsibilities(graph: ParticleGraph | null, 
       const reference = { workspaceId: objective.workspaceId, objectiveId: objective.id, planId, ...(proposalId ? { proposalId } : {}) }
       for (const id of plan.particleIds) {
         const context: MembershipResponsibility = { ...reference, key: membershipResponsibilityKey(reference),
-          label: `${objective.title} / ${plan.title}${proposalId ? " · Proposed" : ""}`,
+          label: `${objective.title === plan.title ? plan.title : `${objective.title} / ${plan.title}`}${proposalId ? " · Proposed" : ""}`,
           revision: objective.revision, value: plan.assignments?.find(item => item.particleId === id)?.responsibility ?? EMPTY_RESPONSIBILITY,
           editable: editable && !objective.locked && !objective.data.source }
         result.set(id, [...(result.get(id) ?? []), context])

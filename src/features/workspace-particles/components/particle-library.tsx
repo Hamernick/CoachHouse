@@ -1,8 +1,8 @@
 "use client"
 
-import { ParticleButton as Button, ParticleAlert, ParticleEmptyMessage } from "@/components/ui/particle-ui"
+import { ParticleButton as Button, ParticleInput as Input, ParticleAlert, ParticleEmptyMessage } from "@/components/ui/particle-ui"
 
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
 
 import { ParticlePresetEditor } from "./particle-preset-editor"
 import { ParticlePresetGallery } from "./particle-preset-gallery"
@@ -27,6 +27,7 @@ import type { Particle, ParticleType } from "../types"
 
 export function ParticleLibrary({
   particles,
+  includeSavedParticles = true,
   tools = [],
   onPlace,
   editable,
@@ -39,7 +40,13 @@ export function ParticleLibrary({
   onAddPreset,
   images,
   connectedParticleIds = [],
+  beforeLibrary,
+  focusRequestId,
+  backLabel,
 }: {
+  beforeLibrary?: ReactNode
+  focusRequestId?: number
+  backLabel?: string
   connectedParticleIds?: readonly string[]
   workspaceId?: string
   externalQuery?: string
@@ -51,6 +58,7 @@ export function ParticleLibrary({
     pending: boolean
     message: string | null
   }
+  includeSavedParticles?: boolean
   particles: readonly Particle[] | null
   tools?: readonly ParticleLibraryTool[]
   onPlace?: (id: string, visible: boolean) => void
@@ -61,11 +69,40 @@ export function ParticleLibrary({
   onCreate: (type: ParticleType, title: string) => Promise<boolean>
   onRetry: () => void
 }) {
-  const query = externalQuery ?? ""
+  const [search, setSearch] = useState({ external: externalQuery, value: externalQuery ?? "" })
+  if (search.external !== externalQuery) setSearch({ external: externalQuery, value: externalQuery ?? "" })
+  const query = search.external === externalQuery ? search.value : externalQuery ?? ""
+  const viewport = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const scrollTop = useRef(0)
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const wasEditing = useRef(false)
+  const handledFocus = useRef<number | undefined>(undefined)
   const [preset, setPreset] = useState<ParticlePreset | null>(null)
   const editingPreset = Boolean(preset && workspaceId && onAddPreset)
+  useLayoutEffect(() => {
+    if (editingPreset) { wasEditing.current = true; return }
+    if (wasEditing.current) {
+      wasEditing.current = false
+      if (viewport.current) viewport.current.scrollTop = scrollTop.current
+      returnFocus.current?.focus({ preventScroll: true })
+    }
+    if (focusRequestId !== undefined && handledFocus.current !== focusRequestId) {
+      handledFocus.current = focusRequestId
+      searchInput.current?.focus({ preventScroll: true })
+      // Scroll only this view; never move the anchored dock or page.
+      if (viewport.current && searchInput.current) {
+        viewport.current.scrollTop += searchInput.current.getBoundingClientRect().top - viewport.current.getBoundingClientRect().top - 12
+      }
+    }
+  }, [editingPreset, focusRequestId])
+  const selectPreset = (next: ParticlePreset, trigger: HTMLButtonElement) => {
+    scrollTop.current = viewport.current?.scrollTop ?? 0
+    returnFocus.current = trigger
+    setPreset(next)
+  }
   const hasActivityPreset = Boolean(workspaceId && onAddPreset && filterParticlePresets(query).some(item => item.id === "activity"))
-  const records = particles
+  const records = particles && includeSavedParticles
     ? filterParticleLibrary(particles, query).filter((particle) => particle.canvasHidden && !(hasActivityPreset && !connectedParticleIds.includes(particle.id) && isEmptyActivityLibraryDuplicate(particle)))
     : []
   const matchingTools = filterParticleLibraryTools(tools, query).filter(
@@ -112,11 +149,12 @@ export function ParticleLibrary({
     />
   )
   return (
-    <>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       {preset && workspaceId && onAddPreset ? (
       <ParticlePresetEditor
         key={`${workspaceId}:${preset.id}`}
         preset={preset}
+        backLabel={backLabel}
         workspaceId={workspaceId}
         disabled={!editable}
         pending={pending}
@@ -126,13 +164,17 @@ export function ParticleLibrary({
         onAdd={onAddPreset}
       />
       ) : null}
+    <div ref={viewport} hidden={editingPreset} inert={editingPreset} className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${editingPreset ? "hidden" : ""}`}>
+      {beforeLibrary}
     <section
-      className={`nodrag nopan nowheel min-h-0 flex-col gap-3 px-4 pt-1 pb-4 ${editingPreset ? "hidden" : "flex"}`}
-      inert={editingPreset}
+      className="nodrag nopan nowheel flex min-h-0 flex-col gap-3 px-4 pt-1 pb-4"
       aria-label="Particles"
       aria-busy={pending}
 
     >
+      {beforeLibrary ? <h2 className="text-muted-foreground text-xs font-medium">Particles</h2> : null}
+      <Input ref={searchInput} size="md" pill aria-label="Search Particles" placeholder="Search Particles…" value={query}
+        onChange={event => setSearch({ external: externalQuery, value: event.target.value })} />
       {!canEdit ? (
         <p className="text-muted-foreground text-xs">View only</p>
       ) : null}
@@ -150,7 +192,7 @@ export function ParticleLibrary({
           workspaceId={workspaceId}
           query={query}
           disabled={!editable}
-          onSelect={setPreset}
+          onSelect={selectPreset}
           onAdd={onAddPreset}
           existingIds={particles?.map((particle) => particle.id)}
         >
@@ -188,6 +230,7 @@ export function ParticleLibrary({
         </ParticleEmptyMessage>
       ) : null}
     </section>
-    </>
+    </div>
+    </div>
   )
 }

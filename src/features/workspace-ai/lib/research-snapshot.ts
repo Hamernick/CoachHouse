@@ -1,3 +1,4 @@
+import { isResearchReply, validateResearchResponse } from "./research-response"
 import { z } from "zod"
 import { researchHistorySchema, researchResultSchema } from "../research-types"
 import { researchProcessingSchema } from "./research-processing"
@@ -15,8 +16,11 @@ export const researchSnapshotSchema = z.strictObject({
   // A run has one immutable saved result. Preview revision zero is never durable;
   // edits belong to a separate draft/proposal, not a new generation revision.
   resultRevision: z.literal(1).nullable(),
-  applicability: z.enum(["unavailable", "review_required", "already_applied"]),
+  applicability: z.enum(["unavailable", "review_required", "already_applied", "read_only"]),
 }).superRefine((snapshot, context) => {
+  if (snapshot.result) {
+    try { validateResearchResponse(snapshot.result) } catch { context.addIssue({ code: "custom", message: "Invalid response disposition." }) }
+  }
   const receipt = snapshot.appliedObjectiveId !== undefined
   const result = snapshot.result !== null
   if (snapshot.status === "succeeded" ? result === receipt : result || receipt)
@@ -24,6 +28,6 @@ export const researchSnapshotSchema = z.strictObject({
   if (snapshot.result && snapshot.result.runId !== snapshot.id)
     context.addIssue({ code: "custom", message: "Research result identity changed." })
   if (snapshot.resultRevision !== (snapshot.status === "succeeded" ? 1 : null) ||
-    snapshot.applicability !== (receipt ? "already_applied" : result ? "review_required" : "unavailable"))
+    snapshot.applicability !== (receipt ? "already_applied" : result ? isResearchReply(snapshot.result) ? "read_only" : "review_required" : "unavailable"))
     context.addIssue({ code: "custom", message: "Inconsistent research revision or applicability." })
 })

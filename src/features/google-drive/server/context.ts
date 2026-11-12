@@ -15,7 +15,11 @@ export async function requireGoogleDriveContext(
   const supabase = createSupabaseRouteHandlerClient(request, response)
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) throw new GoogleDriveError("unauthorized", 401)
+  const expectedUserId = request.nextUrl.searchParams.get("expectedUserId")
+  if (expectedUserId !== null && expectedUserId !== user.id) throw new GoogleDriveError("unauthorized", 401)
   const organization = await resolveActiveOrganization(supabase, user.id)
+  const expectedOrgId = request.nextUrl.searchParams.get("organizationId")
+  if (expectedOrgId !== null && expectedOrgId !== organization.orgId) throw new GoogleDriveError("forbidden", 403)
   if (organization.supportAccess) throw new GoogleDriveError("forbidden", 403)
   if (requireEdit && !canEditOrganization(organization.role)) {
     throw new GoogleDriveError("forbidden", 403)

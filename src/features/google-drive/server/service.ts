@@ -355,26 +355,30 @@ export async function listGoogleDriveDocuments(
 export async function getGoogleDriveDocumentThumbnail(input: {
   documentId: string
   orgId: string
+  actorId: string
 }) {
   if (!/^[0-9a-f-]{36}$/i.test(input.documentId))
     throw new GoogleDriveError("invalid", 400)
-  const admin = createSupabaseAdminClient()
-  const { data: document, error: documentError } = await admin
+  const admin = createSupabaseAdminClient({ actorId: input.actorId, requestTimeoutMs: 10000 })
+  const readAttachment = () => admin
     .from("organization_external_documents")
     .select("provider_file_id,connection_id,status")
     .eq("id", input.documentId)
     .eq("org_id", input.orgId)
     .eq("provider", "google_drive")
-    .maybeSingle()
+    .abortSignal(AbortSignal.timeout(10000)).maybeSingle()
+  const { data: document, error: documentError } = await readAttachment()
   if (documentError) throw new GoogleDriveError("provider_unavailable", 503)
   if (!document || document.status !== "available" || !document.connection_id) {
     throw new GoogleDriveError("file_not_authorized", 403)
   }
-  const { data: ownerConnection, error: connectionError } = await admin
+  const connectionId = document.connection_id
+  const readOwner = () => admin
     .from("google_drive_connections")
     .select("id,user_id,status")
-    .eq("id", document.connection_id)
-    .maybeSingle()
+    .eq("id", connectionId)
+    .abortSignal(AbortSignal.timeout(10000)).maybeSingle()
+  const { data: ownerConnection, error: connectionError } = await readOwner()
   if (connectionError) throw new GoogleDriveError("provider_unavailable", 503)
   if (!ownerConnection || ownerConnection.status !== "connected")
     throw new GoogleDriveError("google_revoked", 409)
@@ -384,7 +388,15 @@ export async function getGoogleDriveDocumentThumbnail(input: {
   )
   if (connection.id !== document.connection_id)
     throw new GoogleDriveError("file_not_authorized", 403)
-  return downloadGoogleDriveThumbnail(accessToken, document.provider_file_id)
+  const thumbnail = await downloadGoogleDriveThumbnail(accessToken, document.provider_file_id)
+  const [current, owner] = await Promise.all([readAttachment(), readOwner()])
+  if (current.error || owner.error) throw new GoogleDriveError("provider_unavailable", 503)
+  if (!current.data || current.data.status !== "available"
+    || current.data.provider_file_id !== document.provider_file_id
+    || current.data.connection_id !== document.connection_id
+    || !owner.data || owner.data.status !== "connected" || owner.data.user_id !== ownerConnection.user_id)
+    throw new GoogleDriveError("file_not_authorized", 403)
+  return thumbnail
 }
 
 export async function detachGoogleDriveDocument(
@@ -497,7 +509,8 @@ export async function getGoogleDriveFileContent(input: {
 }
 
 // Interactive linked reads always use the current viewer's own connection.
-export async function readGoogleSheetRange(userId: string, range: import("../sheets").GoogleSheetRange) {
+export async function readGoogleSheetRange(userId: string, range: import("../sheets").GoogleSheetRange, typed = false, signal?: AbortSignal) {
+  signal?.throwIfAborted()
   const { readGoogleSheetGrid } = await import("./sheets-read")
   const { googleSheetRangeSchema } = await import("../sheets")
   range = googleSheetRangeSchema.parse(range)
@@ -505,12 +518,14 @@ export async function readGoogleSheetRange(userId: string, range: import("../she
   const { accessToken, connection } = await getAccessToken(admin, userId)
   const file = await getGoogleDriveFile(accessToken, range.spreadsheetId)
   if (file.status !== "available" || file.mimeType !== "application/vnd.google-apps.spreadsheet") throw new GoogleDriveError("file_not_authorized", 403)
-  const grid = await readGoogleSheetGrid(accessToken, range)
+  const grid = await readGoogleSheetGrid(accessToken, range, typed, signal)
   const recheckedFile = await getGoogleDriveFile(accessToken, range.spreadsheetId)
   if (recheckedFile.status !== "available" || recheckedFile.mimeType !== "application/vnd.google-apps.spreadsheet") throw new GoogleDriveError("file_not_authorized", 403)
+  if (typed && (!file.version || file.version !== recheckedFile.version || file.modifiedAt !== recheckedFile.modifiedAt)) throw new GoogleDriveError("provider_unavailable", 503)
+  signal?.throwIfAborted()
   const current = await getConnection(admin, userId)
-  if (current.id !== connection.id || current.google_subject !== connection.google_subject || current.refresh_token_ciphertext !== connection.refresh_token_ciphertext) throw new GoogleDriveError("google_revoked", 409)
-  return { ...grid, email: connection.google_email,
+  if (current.id !== connection.id || current.google_subject !== connection.google_subject || current.connected_at !== connection.connected_at || current.refresh_token_ciphertext !== connection.refresh_token_ciphertext) throw new GoogleDriveError("google_revoked", 409)
+  return { ...grid, email: connection.google_email, ...(typed ? {providerVersion:file.version} : {}),
     // Stable across routine token rotation; explicit reconnect/account replacement changes it.
     executionIdentity: createHash("sha256").update(`google-sheet-viewer:${connection.id}:${connection.google_subject}:${new Date(connection.connected_at).getTime()}`).digest("hex") }
 }

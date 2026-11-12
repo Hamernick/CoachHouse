@@ -1,4 +1,4 @@
-import { siGoogledrive } from "simple-icons"
+import { siGoogledrive } from "@/lib/brand-icons"
 
 export function GoogleDriveMark() {
   return (

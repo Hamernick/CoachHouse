@@ -1,5 +1,6 @@
 "use client"
 
+import { privateFileUrlSchema } from "@/lib/organization/private-file-url"
 import { useEffect, useRef, useState } from "react"
 import { useInView } from "motion/react"
 import { z } from "zod"
@@ -51,7 +52,7 @@ export function useParticleFileUrl(
           return
         }
         const result = z
-          .object({ url: z.url({ protocol: /^https?$/ }) })
+          .object({ url: privateFileUrlSchema })
           .parse(body)
         if (current) setUrl(result.url)
       })

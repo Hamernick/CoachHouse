@@ -1,6 +1,7 @@
 "use client"
 
 import { memo } from "react"
+import { ObjectivesIsland } from "@/features/workspace-objectives/client"
 import {
   ParticleDiscardDialog,
   particleInspectorMaxWidth,
@@ -19,6 +20,7 @@ type Props = WorkspaceOverlayDrawerProps & {
   particles: ReturnType<typeof useParticleFlow>["controls"]
   tools: ParticleLibraryTool[]
   tutorialActive: boolean
+  showPlanning?: boolean
 }
 
 // Position-only canvas changes must not rerender retained editors or previews.
@@ -26,6 +28,7 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
   particles,
   tools,
   tutorialActive,
+  showPlanning = true,
   ...props
 }: Props) {
   return (
@@ -33,6 +36,8 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
     <ParticleDiscardDialog guard={particles.closeGuard} />
     <WorkspaceCanvasOverlayDrawer
       {...props}
+      planningSidebar={!tutorialActive && showPlanning ? <ObjectivesIsland embedded columns particles={particles} finance={props.financeInput}
+        scope={{ userId: props.viewerId, organizationId: props.uiPreferencesScope.orgId }} /> : undefined}
       particleSelectionId={particles.selectedId}
       particleSelectionKey={particles.selectionRequest}
       particleInspectorTitle={particles.inspectorView === "share" ? "Share page" : particles.selected?.title}
@@ -47,13 +52,14 @@ export const WorkspaceParticleDock = memo(function WorkspaceParticleDock({
         ) : null
       }
       onCloseParticleInspector={particles.closeGuard.request}
-      particleLibrary={
+      particleLibrary={(libraryProps) => (
         <WorkspaceParticleLibrarySlot
+          {...libraryProps}
           session={particles}
           tools={tools}
           canEdit={props.canEdit}
         />
-      }
+      )}
       particleComposer={
         !tutorialActive ? (
           <WorkspaceParticleComposerSlot workspaceCanvasId={props.uiPreferencesScope.workspaceCanvasId} session={particles} sourceScope={{userId:props.viewerId,organizationId:props.uiPreferencesScope.orgId}} organizationName={props.organizationEditorData.initialProfile.name ?? undefined} />

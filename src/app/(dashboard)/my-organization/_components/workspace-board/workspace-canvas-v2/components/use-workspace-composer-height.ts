@@ -12,7 +12,7 @@ import {
 export function useWorkspaceComposerHeight() {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const [height, setHeight] = useState(58)
-  const [chrome, setChrome] = useState({ header: 8, total: 10 })
+  const [chrome, setChrome] = useState({ header: 8, total: 10, navigation: 42 })
   useLayoutEffect(() => {
     if (!element) return
     const measure = () => {
@@ -21,10 +21,11 @@ export function useWorkspaceComposerHeight() {
       const header =
         parseFloat(style.getPropertyValue("--workspace-dock-padding-top")) ||
         8
+      const navigation = parseFloat(style.getPropertyValue("--workspace-navigation-height")) || 42
       setChrome((current) =>
-        current.header === header && current.total === header + 2
+        current.header === header && current.total === header + 2 && current.navigation === navigation
           ? current
-          : { header, total: header + 2 }
+          : { header, total: header + 2, navigation }
       )
     }
     measure()
@@ -51,6 +52,8 @@ export function useWorkspaceComposerHeight() {
     chrome,
     composerRef: setElement,
     composerHeight: height,
+    // Navigation is measured above the window; only the composer remains below.
+    windowDockHeight: height + 2,
     composerPeek,
     composerSnaps,
   }

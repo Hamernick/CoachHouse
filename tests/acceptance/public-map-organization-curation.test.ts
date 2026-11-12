@@ -17,7 +17,7 @@ describe("public map organization curation", () => {
     expect(organizationAction).toContain(
       'revalidateTag("public-map-organizations", { expire: 0 })'
     )
-    expect(publicMapQuery).toContain('["public-map-organizations-v9"]')
+    expect(publicMapQuery).toContain('["public-map-organization-inputs-v10"]')
   })
 
   it("uses an admin-gated unpublish action instead of deleting org data", () => {

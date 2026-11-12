@@ -117,10 +117,10 @@
   .segmentHighlight { display: none; }
 }
 
-:is(.sidebar, .feedPositions) :global([data-opportunity-status="new"] [data-opportunity-state-label]) { color: var(--planning-review); }
-:is(.sidebar, .feedPositions) :global([data-opportunity-status="saved"] [data-opportunity-state-label]),
-:is(.sidebar, .feedPositions) :global([data-opportunity-status="applied"] [data-opportunity-state-label]) { color: var(--planning-active); }
-:is(.sidebar, .feedPositions) :global([data-opportunity-status="awarded"] [data-opportunity-state-label]) { color: var(--planning-complete); }
+:is(.sidebar, .feedPositions, .compactSidebar) :global([data-opportunity-status="new"] [data-opportunity-state-label]) { color: var(--planning-review); }
+:is(.sidebar, .feedPositions, .compactSidebar) :global([data-opportunity-status="saved"] [data-opportunity-state-label]),
+:is(.sidebar, .feedPositions, .compactSidebar) :global([data-opportunity-status="applied"] [data-opportunity-state-label]) { color: var(--planning-active); }
+:is(.sidebar, .feedPositions, .compactSidebar) :global([data-opportunity-status="awarded"] [data-opportunity-state-label]) { color: var(--planning-complete); }
 
 @keyframes planning-feed-enter {
   from { opacity: 0; transform: translateY(4px); }
@@ -148,6 +148,8 @@
 /* Compact canvas overlay: both headings stay available; only the body scrolls. */
 .compactSidebar {
   --planning-panel-text: color-mix(in srgb, var(--foreground) 80%, var(--popover));
+  width: 208px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   max-height: 100%;
@@ -156,14 +158,15 @@
   padding: 6px 2px;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--muted) 95%, var(--foreground));
+  background: light-dark(#fff, color-mix(in srgb, var(--muted) 95%, var(--foreground)));
   color: var(--planning-panel-text);
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 5%);
+  box-shadow: none;
   pointer-events: auto;
 }
+.compactSidebar:has(.feedSection[data-open="true"]) { width: 100%; }
 .feedSection { display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; }
 .feedSection + .feedSection { border-top: 1px solid var(--border); }
 .feedSection[data-open="false"] { flex-shrink: 0; }
@@ -192,4 +195,66 @@
 .compactSidebar :global([data-sidebar-opportunity="true"] [data-opportunity-site-icon]),
 .compactSidebar :global([data-sidebar-opportunity="true"] [data-opportunity-thumbnail]) {
   width: 32px; height: 32px; border-radius: 8px;
+}
+
+/* Chat-width planning preview: independently scrolling columns below the input. */
+.columns, .columns:has(.feedSection[data-open="true"]) {
+  display: block;
+  width: 100%;
+  padding: 2px;
+}
+.columnsPanels > .feedSection { max-height: min(30dvh, 240px); overflow: hidden; }
+.columnsPanels > .feedSection + .feedSection { border-top: 0; border-left: 1px solid var(--border); }
+.columns .feedDisclosure { flex: 1; }
+.columns .feedHeading { min-width: 0; }
+.columns .feedTrigger { font-size: 12px; padding-inline: 6px; gap: 4px; }
+.columns .feedTrigger > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.columns .scroller { scrollbar-gutter: stable; padding-inline-end: 8px; }
+
+.columnsTabs { display: flex; min-width: 0; flex-direction: column; gap: 0; }
+.columnsPanels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
+/* Keep compact tabs unchanged; place Opportunities first only side by side. */
+.columnsPanels[data-compact="false"] > .feedSection:first-child { order: 1; }
+.columnsPanels[data-compact="true"] { grid-template-columns: minmax(0, 1fr); }
+.columnsPanels > [data-planning-tab-hidden="true"] { display: none; }
+.columnsPanels[data-compact="true"] > .feedSection { border-left: 0; max-height: max(72px, calc(min(30dvh, 240px) - 40px)); }
+.columnsPanels[data-compact="true"] .feedHeading { justify-content: flex-end; }
+.columnsPanels[data-compact="true"] .feedHeading:empty { display: none; }
+.planningTabs {
+  display: flex; width: 100%; height: 38px; min-width: 0; gap: 4px;
+  padding: 3px; border-radius: 999px; background: transparent;
+}
+.planningTabs[hidden] { display: none; }
+.planningTab {
+  flex: 1; min-width: 0; height: 32px; padding: 0 10px;
+  border: 0; border-radius: 999px; font-size: 12px; font-weight: 400;
+  color: var(--foreground); background: transparent !important; box-shadow: none !important;
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+}
+.planningTab[data-state="active"], .planningTab:hover { background: color-mix(in srgb, var(--foreground) 10%, var(--muted)) !important; }
+.planningTab::after { display: none; }
+@media (pointer: coarse) { .planningTabs { height: 48px; } .planningTab { height: 44px; } .columnsPanels[data-compact="true"] > .feedSection { max-height: max(72px, calc(min(30dvh, 240px) - 50px)); } }
+@media (prefers-reduced-motion: reduce) { .planningTab { transition: none; } }
+
+/* Headings stay unframed in both states; only expanded feed content has a surface. */
+.columns, .columns:has(.feedSection[data-open="true"]) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+.columnsPanels { gap: 8px; }
+.columnsPanels > .feedSection + .feedSection { border-left: 0; }
+.columns .feedHeading { gap: 2px; padding: 2px; border-radius: 18px; }
+.columns .feedSection[data-open="true"] > .feedDisclosure {
+  border: 1px solid var(--border);
+  background: light-dark(#fff, color-mix(in srgb, var(--muted) 95%, var(--foreground)));
+  border-radius: 18px;
+}
+.columns .feedSection[data-open="true"] > .feedDisclosure { padding: 4px; }
+.columns .feedTrigger:hover { background: color-mix(in srgb, var(--foreground) 10%, var(--muted)); }
+.columns .planningTabs {
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  background: light-dark(#fff, color-mix(in srgb, var(--muted) 95%, var(--foreground)));
 }

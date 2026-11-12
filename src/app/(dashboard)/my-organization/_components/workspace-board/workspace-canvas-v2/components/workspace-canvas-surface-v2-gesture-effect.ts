@@ -16,6 +16,12 @@ export function useWorkspaceCanvasSurfaceGestureGuards({
     const surface = surfaceContainer
     if (!surface) return
 
+    const handleMouseDown = (event: MouseEvent) => {
+      if (!event.shiftKey || event.button !== 0 || !(event.target instanceof Element)) return
+      if (!event.target.closest(".react-flow") || event.target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="textbox"]')) return
+      // React Flow owns Shift-selection; avoid extending an old page-text anchor.
+      event.preventDefault()
+    }
     const handleWheel = (event: WheelEvent) => {
       if (shouldPreventWorkspaceCanvasWheelZoom(event.ctrlKey)) {
         event.preventDefault()
@@ -31,6 +37,7 @@ export function useWorkspaceCanvasSurfaceGestureGuards({
     }
     const listenerOptions = { passive: false, capture: true } as const
 
+    surface.addEventListener("mousedown", handleMouseDown, true)
     surface.addEventListener("wheel", handleWheel, listenerOptions)
     surface.addEventListener("touchmove", handleTouchMove, listenerOptions)
     surface.addEventListener(
@@ -46,6 +53,7 @@ export function useWorkspaceCanvasSurfaceGestureGuards({
     surface.addEventListener("gestureend", handleGestureEvent, listenerOptions)
 
     return () => {
+      surface.removeEventListener("mousedown", handleMouseDown, true)
       surface.removeEventListener("wheel", handleWheel, listenerOptions)
       surface.removeEventListener("touchmove", handleTouchMove, listenerOptions)
       surface.removeEventListener(

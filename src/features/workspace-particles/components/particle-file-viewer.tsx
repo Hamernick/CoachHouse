@@ -42,15 +42,11 @@ export function ParticleFileViewer({
   const [container, setContainer] = useState<HTMLElement | null>(null)
   const surface = useParticleSurface()
   useLayoutEffect(() => {
-    if (open)
-      setContainer(
-        origin.current?.closest<HTMLElement>(
-          "[data-workspace-canvas-flow-frame]"
-        ) ??
-          document.querySelector<HTMLElement>(
-            "[data-workspace-canvas-flow-frame]"
-          )
-      )
+    if (!open) return
+    const frame = origin.current?.closest<HTMLElement>("[data-workspace-canvas-flow-frame]")
+      ?? document.querySelector<HTMLElement>("[data-workspace-canvas-flow-frame]")
+    // Fullscreen must escape the flow frame's z-0 context, like the dock.
+    setContainer(frame?.closest<HTMLElement>(".workspace-layout-surface") ?? frame)
   }, [open, origin])
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

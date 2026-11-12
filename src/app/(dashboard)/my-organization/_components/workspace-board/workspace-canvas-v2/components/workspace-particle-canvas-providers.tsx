@@ -1,13 +1,12 @@
 "use client"
 
 import { useMemo, type ComponentProps } from "react"
-import { useParticleFlow, ParticleLibraryDragProvider, ParticleResponsibilityPeople } from "@/features/workspace-particles/client"
+import { useParticleFlow, ParticleLibraryDragProvider, ParticleTeamProvider } from "@/features/workspace-particles/client"
 import { useObjectivePlanningAccess } from "@/features/workspace-objectives/client"
 import { WorkspaceCanvasOverlayDrawerContainerProvider } from "./workspace-canvas-overlay-drawer-container"
 
 export function WorkspaceParticleCanvasProviders({
   children,
-  people,
   container,
   onPlaceParticle,
   workspaceId,
@@ -15,7 +14,6 @@ export function WorkspaceParticleCanvasProviders({
   ...props
 }: ComponentProps<typeof WorkspaceCanvasOverlayDrawerContainerProvider> & {
   onPlaceParticle: ComponentProps<typeof ParticleLibraryDragProvider>["onPlace"]
-  people: readonly { id: string; name: string }[]
   workspaceId: string
   canPlaceParticles: boolean
 }) {
@@ -30,7 +28,7 @@ export function WorkspaceParticleCanvasProviders({
         container={container}
         {...props}
       >
-        <ParticleResponsibilityPeople value={people}>{children}</ParticleResponsibilityPeople>
+        <ParticleTeamProvider workspaceId={workspaceId}>{children}</ParticleTeamProvider>
       </WorkspaceCanvasOverlayDrawerContainerProvider>
     </ParticleLibraryDragProvider>
   )

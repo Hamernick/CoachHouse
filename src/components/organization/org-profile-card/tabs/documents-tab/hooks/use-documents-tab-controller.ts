@@ -1,3 +1,4 @@
+import type { ProfileDocumentLibrary } from "./use-profile-document-library"
 import type { DocumentsTabProps } from "../types"
 import { useDocumentsIndex } from "./use-documents-index"
 import { useDocumentsBannerState } from "./use-documents-banner-state"
@@ -8,26 +9,20 @@ import { useDocumentsTabState } from "./use-documents-tab-state"
 type UseDocumentsTabControllerArgs = Pick<
   DocumentsTabProps,
   | "userId"
-  | "documents"
-  | "policyEntries"
   | "policyProgramOptions"
   | "policyPeopleOptions"
   | "roadmapSections"
->
+> & { library: ProfileDocumentLibrary }
 
 export function useDocumentsTabController({
   userId,
-  documents,
-  policyEntries,
+  library,
   policyProgramOptions,
   policyPeopleOptions,
   roadmapSections,
 }: UseDocumentsTabControllerArgs) {
   const { documentsState, setDocumentsState, policiesState, setPoliciesState } =
-    useDocumentsTabState({
-      documents,
-      policyEntries,
-    })
+    useDocumentsTabState({ library })
 
   const {
     clearPendingPolicyDocument,
@@ -106,6 +101,10 @@ export function useDocumentsTabController({
     resetPolicyDocumentMutations,
   })
 
+  const refreshAfter = <Args extends unknown[]>(action: (...args: Args) => Promise<void>) => async (...args: Args) => {
+    try { await action(...args) } finally { library.refresh() }
+  }
+
   return {
     activeFilters,
     categoryOptions,
@@ -119,14 +118,14 @@ export function useDocumentsTabController({
     downloadingPolicyDocumentId,
     downloadPolicyDocument,
     filteredRows,
-    handleDelete,
+    handleDelete: refreshAfter(handleDelete),
     handleDownload,
-    handleDeletePolicy,
+    handleDeletePolicy: refreshAfter(handleDeletePolicy),
     handlePolicyDialogOpenChange,
-    handleSavePolicy,
+    handleSavePolicy: refreshAfter(handleSavePolicy),
     handleSortColumnChange,
     handleSortDirectionChange,
-    handleUpload,
+    handleUpload: refreshAfter(handleUpload),
     handleView,
     hasRoadmapDocuments,
     isBannerVisible,
@@ -140,7 +139,7 @@ export function useDocumentsTabController({
     policyDraft,
     policySavePending,
     removePolicyCategory,
-    removePolicyDocumentFile,
+    removePolicyDocumentFile: refreshAfter(removePolicyDocumentFile),
     searchQuery,
     selectPolicyDocument,
     setPolicyDraft,

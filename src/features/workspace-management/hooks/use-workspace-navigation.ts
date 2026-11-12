@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { hasWorkspaceUnsavedChanges, isCurrentWorkspace } from "../lib/navigation"
+import { hasWorkspaceUnsavedChanges, isCurrentWorkspace, preserveCanvasChatNavigation } from "../lib/navigation"
 
 export function useWorkspaceNavigation() {
   const router = useRouter()
   const [destination, setDestination] = useState<string | null>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const commit = useCallback((href: string) => {
-    if (isCurrentWorkspace(href, window.location.href)) router.refresh()
-    else router.push(href, { scroll: false })
+    const destination = preserveCanvasChatNavigation(href, window.location.href)
+    if (isCurrentWorkspace(destination, window.location.href)) router.refresh()
+    else router.push(destination, { scroll: false })
   }, [router])
   const navigate = useCallback((href: string) => {
     if (hasWorkspaceUnsavedChanges(window)) {

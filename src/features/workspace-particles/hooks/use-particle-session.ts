@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCanvasParticleSources } from "@/components/workspace/workspace-canvas-source-context"
 import { toast } from "@/lib/toast"
 import { notifyNotesChanged } from "@/lib/modules/notes-events"
 import { getParticleNotes } from "../lib/particle-notes"
@@ -52,6 +53,8 @@ export function useParticleSession({
   const sourceRevision = initial.ok ? initial.value.revision : null
   useParticleCalendarInvalidation(result.ok ? result.value : null)
   const [optimistic, setOptimistic] = useState<ParticleGraph | null>(null)
+  const graph = optimistic?.workspaceId === workspaceId ? optimistic : result.ok ? result.value : null
+  useCanvasParticleSources(graph)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -336,12 +339,7 @@ export function useParticleSession({
   const getCurrentGraph = useCallback(() => (current.current.ok ? current.current.value : null), [])
   return useMemo(
     () => ({
-      graph:
-        optimistic?.workspaceId === workspaceId
-          ? optimistic
-          : result.ok
-            ? result.value
-            : null,
+      graph,
       error: result.ok ? error : result.error,
       pending,
       saved,
@@ -362,8 +360,7 @@ export function useParticleSession({
     }),
     [
       result,
-      optimistic,
-      workspaceId,
+      graph,
       error,
       pending,
       saved,

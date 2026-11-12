@@ -1,0 +1,63 @@
+set request.jwt.claim.role='service_role';
+begin;
+create function pg_temp.check_core(ok boolean,message text) returns void language plpgsql as $$
+begin if ok is distinct from true then raise exception 'Assertion failed: %',message;end if;end $$;
+create function pg_temp.deny_core(command text,expected text default '42501') returns void language plpgsql as $$
+begin begin execute command;exception when others then if sqlstate=expected then return;end if;raise;end;raise exception 'Unexpected success: %',command;end $$;
+select pg_temp.check_core(not has_function_privilege('authenticated','commit_core_document_session(uuid,text,timestamptz,uuid,integer,jsonb,jsonb,boolean)','execute'),'no client commit');
+select pg_temp.check_core(not has_function_privilege('service_role','commit_core_document_session_before_authority(uuid,text,timestamptz,uuid,integer,jsonb,jsonb)','execute'),'no inner bypass');
+set local request.headers='{}';
+select pg_temp.deny_core('select fixture_core_commit()');
+set local request.headers='{"x-coach-house-actor-id":"90b6c688-889c-467f-9edd-166f28bf0819"}';
+set local request.jwt.claim.role='authenticated';
+select pg_temp.deny_core('select fixture_core_commit()');
+set local request.jwt.claim.role='service_role';
+create temporary table core_before as select profile,updated_at from organizations where user_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2';
+select pg_temp.check_core(not fixture_core_commit(false,'profile'),'stale profile rejected');
+select pg_temp.check_core(fixture_core_commit(),'staff bootstrap');
+select pg_temp.check_core(fixture_core_commit(),'staff subsequent save');
+select pg_temp.check_core(not fixture_core_commit(false,'generation'),'generation conflict');
+select pg_temp.check_core(not fixture_core_commit(false,'version'),'version conflict');
+select pg_temp.check_core((select version=1 from organization_core_document_sessions where section_id='authority_fixture'),'one version per save');
+select pg_temp.check_core((select o.profile-'core_authority_fixture'=b.profile from organizations o,core_before b where o.user_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2'),'unrelated profile preserved');
+-- Session failure must roll back its profile projection too.
+create function pg_temp.reject_core() returns trigger language plpgsql as $$begin raise exception 'fixture failure' using errcode='P0001';end$$;
+create trigger fixture_core_failure before update on organization_core_document_sessions for each row execute function pg_temp.reject_core();
+select pg_temp.deny_core('select fixture_core_commit()','P0001');
+select pg_temp.check_core((select profile->>'core_authority_fixture'='1' from organizations where user_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2'),'atomic failed session');
+drop trigger fixture_core_failure on organization_core_document_sessions;
+update organization_memberships set role='owner' where org_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2' and member_id='90b6c688-889c-467f-9edd-166f28bf0819';
+select pg_temp.check_core(fixture_core_commit(),'owner membership preserved');
+update organization_memberships set role='member' where org_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2' and member_id='90b6c688-889c-467f-9edd-166f28bf0819';
+select pg_temp.deny_core('select fixture_core_commit()');
+set local request.headers='{"x-coach-house-actor-id":"e972bc07-fbf5-4fc8-a416-7f00910a71e2"}';
+select pg_temp.check_core(fixture_core_commit(),'canonical owner retained');
+-- Current paid storage is still required outside explicit support.
+update subscriptions set status='canceled' where user_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2';
+select pg_temp.deny_core('select fixture_core_commit()');
+set local request.headers='{"x-coach-house-actor-id":"90b6c688-889c-467f-9edd-166f28bf0819"}';
+select pg_temp.deny_core('select fixture_core_commit(true)');
+insert into platform_staff_members(user_id,access_level) values('90b6c688-889c-467f-9edd-166f28bf0819','coach') on conflict(user_id) do update set access_level='coach';
+insert into workspace_support_grants(user_id) values('90b6c688-889c-467f-9edd-166f28bf0819') on conflict(user_id) do update set revoked_at=null;
+select pg_temp.check_core(fixture_core_commit(true),'verified support without subscription');
+update workspace_support_grants set revoked_at=now() where user_id='90b6c688-889c-467f-9edd-166f28bf0819';
+select pg_temp.deny_core('select fixture_core_commit(true)');
+update workspace_support_grants set revoked_at=null where user_id='90b6c688-889c-467f-9edd-166f28bf0819';
+update auth.users set banned_until=now()+interval '1 hour' where id='90b6c688-889c-467f-9edd-166f28bf0819';
+select pg_temp.deny_core('select fixture_core_commit(true)');
+update auth.users set banned_until=null where id='90b6c688-889c-467f-9edd-166f28bf0819';
+-- Coach scope has its own current authority; read-only membership wins.
+update subscriptions set status='active' where user_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2';
+select pg_temp.deny_core('select fixture_core_commit()');
+delete from organization_memberships where org_id='e972bc07-fbf5-4fc8-a416-7f00910a71e2' and member_id='90b6c688-889c-467f-9edd-166f28bf0819';
+update organization_coach_scope_settings set assigned_only_enabled=false,activated_at=null,activated_by=null where id=true;
+select pg_temp.check_core(fixture_core_commit(),'unrestricted coach');
+update organization_coach_scope_settings set assigned_only_enabled=true,activated_at=now(),activated_by='e972bc07-fbf5-4fc8-a416-7f00910a71e2' where id=true;
+select pg_temp.deny_core('select fixture_core_commit()');
+insert into organization_coach_assignments(organization_id,coach_user_id) values('e972bc07-fbf5-4fc8-a416-7f00910a71e2','90b6c688-889c-467f-9edd-166f28bf0819');
+select pg_temp.check_core(fixture_core_commit(),'assigned coach');
+rollback;
+begin isolation level repeatable read;
+set local request.headers='{"x-coach-house-actor-id":"e972bc07-fbf5-4fc8-a416-7f00910a71e2"}';
+do $$begin begin perform fixture_core_commit();raise exception 'stronger isolation allowed';exception when serialization_failure then null;end;end$$;
+rollback;

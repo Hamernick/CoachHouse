@@ -5,10 +5,11 @@ import { join } from "node:path"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { createSupabaseAdminClientMock, resolveRoadmapSectionsMock } =
+const { createSupabaseAdminClientMock, resolvePublicRoadmapSectionsMock, publicAudienceMock } =
   vi.hoisted(() => ({
     createSupabaseAdminClientMock: vi.fn(),
-    resolveRoadmapSectionsMock: vi.fn(() => [{ slug: "community-goals" }]),
+    publicAudienceMock: vi.fn(),
+    resolvePublicRoadmapSectionsMock: vi.fn(() => [{ slug: "community-goals" }]),
   }))
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -16,8 +17,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 }))
 
 vi.mock("@/lib/roadmap/sections", () => ({
-  resolveRoadmapSections: resolveRoadmapSectionsMock,
+  resolvePublicRoadmapSections: resolvePublicRoadmapSectionsMock,
 }))
+
+vi.mock("@/lib/organization/public-document-audience", () => ({ filterPublicDocumentSections: publicAudienceMock }))
 
 import { POST } from "@/app/api/public/roadmap-event/route"
 
@@ -65,7 +68,8 @@ function adminClient(
 describe("public roadmap analytics route", () => {
   beforeEach(() => {
     createSupabaseAdminClientMock.mockReset()
-    resolveRoadmapSectionsMock.mockClear()
+    resolvePublicRoadmapSectionsMock.mockClear()
+    publicAudienceMock.mockReset().mockImplementation(async sections => sections)
   })
 
   it("rejects forged event types before creating an admin client", async () => {
@@ -116,6 +120,21 @@ describe("public roadmap analytics route", () => {
     )
 
     expect(response.status).toBe(400)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it.each([null, []])("does not record an event after public audience revocation (%j)", async sections => {
+    const { rpc } = adminClient()
+    publicAudienceMock.mockResolvedValue(sections)
+    const response = await POST(request({ eventType: "view", orgSlug: "coach-house", sectionId: "community-goals" }))
+    expect(response.status).toBe(sections === null ? 404 : 400)
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("does not record events when audience verification fails", async () => {
+    const { rpc } = adminClient()
+    publicAudienceMock.mockRejectedValue(new Error("unavailable"))
+    expect((await POST(request({ eventType: "view", orgSlug: "coach-house" }))).status).toBe(503)
     expect(rpc).not.toHaveBeenCalled()
   })
 

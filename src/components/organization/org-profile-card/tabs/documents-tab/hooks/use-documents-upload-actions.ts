@@ -34,11 +34,7 @@ export function useDocumentsUploadActions({
     setUploadingKind(definition.kind)
     const toastId = toast.loading("Uploading document…")
     try {
-      const nextDoc = await uploadOrgDocument(definition.kind, file)
-      setDocumentsState((current) => ({
-        ...current,
-        [definition.key]: nextDoc,
-      }))
+      await uploadOrgDocument(definition.kind, file)
       toast.success("Document saved", { id: toastId })
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Upload failed", {

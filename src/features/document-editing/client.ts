@@ -17,3 +17,5 @@ export type { DocumentEditorSession, DocumentEditorSessionState } from "./lib/ed
 
 export { createDocumentCanonicalWriter } from "./lib/canonical-writer"
 export type { DocumentCanonicalWriter, DocumentCanonicalWriteState, DocumentSaveResult } from "./lib/canonical-writer"
+
+export { useCoreDocumentAccess } from "./hooks/use-core-document-access"

@@ -1,4 +1,5 @@
-import { particleResponsiblePeople, particleResponsibilityScopes } from "../lib/particle-responsibility"
+import { readParticleAssignees } from "./particle-assignees"
+import { particleResponsibilityScopes } from "../lib/particle-responsibility"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
 import type { Particle, ParticleGraph } from "../types"
@@ -27,9 +28,7 @@ function contentReferences(particle: Particle): ParticleSourceReference[] {
   return widget.source ? [widget.source] : []
 }
 
-function references(particle: Particle): ParticleSourceReference[] {
-  return [...contentReferences(particle), ...particleResponsiblePeople(particle).map(id => ({ kind: "person" as const, id }))]
-}
+const references = contentReferences
 
 /** Validate new/replaced/re-added source references with the actor's RLS client.
  * Existing broken references remain movable/removable. No provider calls, byte
@@ -40,8 +39,10 @@ export async function assertParticleSourceReferenceAccess({
   supabase,
   previous,
   next,
+  assigneeClient = supabase,
 }: {
   supabase: SupabaseClient<Database>
+  assigneeClient?: SupabaseClient<Database>
   previous: ParticleGraph
   next: ParticleGraph
 }) {
@@ -53,6 +54,7 @@ export async function assertParticleSourceReferenceAccess({
   const previousById = new Map(
     previous.particles.map((particle) => [particle.id, particle])
   )
+  const newAssignees = new Set<string>()
   const pending = new Map<string, ParticleSourceReference>()
   for (const particle of next.particles) {
     const before = previousById.get(particle.id)
@@ -71,14 +73,19 @@ export async function assertParticleSourceReferenceAccess({
         ...value.contributorIds.filter(id => !prior?.contributorIds.includes(id)),
       ]
       for (const id of changedRoles) {
-        const source = { kind: "person" as const, id }
-        pending.set(JSON.stringify(source), source)
+        newAssignees.add(id)
       }
     }
     for (const source of references(particle)) {
       const key = JSON.stringify(source)
       if (!retained.has(key)) pending.set(key, source)
     }
+  }
+  if (newAssignees.size) {
+    const team = await readParticleAssignees(assigneeClient, next.workspaceId)
+    const allowed = new Set(team.flatMap(person => [person.id, ...(person.aliases ?? [])]))
+    if ([...newAssignees].some(id => !allowed.has(id)))
+      throw new ParticleMutationError("scope", "Choose a current team member or pending team invitation.")
   }
   const sources = [...pending.values()]
   await assertProfileParticleSourceAccess(

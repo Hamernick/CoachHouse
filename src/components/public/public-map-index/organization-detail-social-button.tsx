@@ -1,4 +1,4 @@
-import { siFacebook, siInstagram, siX } from "simple-icons"
+import { siFacebook, siInstagram, siX } from "@/lib/brand-icons"
 
 import { Button } from "@/components/ui/button"
 

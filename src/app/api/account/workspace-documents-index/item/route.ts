@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import { listUserModuleNotesIndex } from "@/lib/modules/notes-index"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
@@ -73,7 +75,8 @@ export async function GET(request: NextRequest) {
           (entry) => entry.id === sectionKey || entry.slug === sectionKey,
         ) ?? null
 
-      if (!section) {
+      if (!section || resolveCoreDocumentSource(section) !== "editor" ||
+        !(await filterAiDocumentCopies([section], orgId, user.id)).length) {
         return NextResponse.json({ error: "Roadmap item not found." }, { status: 404 })
       }
 

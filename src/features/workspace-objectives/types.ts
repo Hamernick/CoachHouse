@@ -92,6 +92,7 @@ export type WorkspaceObjectiveCollection = {
 }
 
 export type WorkspaceObjectiveCreateInput = {
+  userIds?: string[]
   title: string
   description?: string | null
   groupId?: string | null
@@ -100,6 +101,7 @@ export type WorkspaceObjectiveCreateInput = {
 }
 
 export type WorkspaceObjectiveStatusUpdateInput = {
+  expectedUpdatedAt: string
   objectiveId: string
   status: WorkspaceObjectiveStatus
 }

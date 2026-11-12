@@ -198,8 +198,9 @@ export function WorkspaceBoardTeamAccessHeaderActionContent({
             realtimeState === "degraded" && "bg-amber-500"
           )}
         />
-        <span className="hidden min-w-0 truncate sm:inline">
-          {realtimeLabel}
+        <span className="hidden min-w-0 sm:inline-grid">
+          <span aria-hidden className="invisible col-start-1 row-start-1">Realtime degraded</span>
+          <span className="col-start-1 row-start-1 truncate">{realtimeLabel}</span>
         </span>
       </span>
     </Button>

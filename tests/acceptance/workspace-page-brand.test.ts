@@ -20,7 +20,7 @@ vi.mock("@/lib/feature-flags", () => ({ publicSharingEnabled: true }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 const draft = { title: "Reviewed page", description: "", particleIds: [ID(1)] }
 const request = { pageId: ID(10), expectedRevision: 0, draft }
-const sources = (brandPrimary: unknown = "#3b82f6") => ({ graph: graph(), profile: { name: "Community table", brandPrimary, logoUrl: "https://private.example/logo.svg", brandIdentity: { secret: "private kit" } }, public_slug: "community-table", updated_at: NOW })
+const sources = (brandPrimary: unknown = "#3b82f6") => ({ graph: graph(), canonicalGraph: graph(), profile: { name: "Community table", brandPrimary, logoUrl: "https://private.example/logo.svg", brandIdentity: { secret: "private kit" } }, public_slug: "community-table", updated_at: NOW })
 beforeEach(() => { vi.resetAllMocks(); mocks.actor.mockResolvedValue({ actorId: WORKSPACE, orgId: WORKSPACE, supabase: {} }); mocks.page.mockResolvedValue(null); mocks.sources.mockResolvedValue(sources()); mocks.images.mockResolvedValue(new Map()); mocks.upload.mockResolvedValue({ error: null }) })
 async function review() { const result = await reviewWorkspacePageAction(request); if (!result.ok) throw new Error(result.error); return result.value }
 describe("reviewed organization profile branding", () => {

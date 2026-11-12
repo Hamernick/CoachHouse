@@ -79,7 +79,7 @@ function resolveInitialWorkspaceDataDrawerRequest(
   }
 
   if (initialDrawerTab === "tools") {
-    return { tab: "tools" }
+    return { tab: "tools", focusKey: organizationEditorData.initialFocus }
   }
 
   return null

@@ -1,4 +1,9 @@
-import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
+import { reconcileLegacyDocumentCleanup } from "@/lib/organization/legacy-document-cleanup"
+import { reconcileLegacyDocumentUploadStages, uploadLegacyDocumentStage, type LegacyDocumentUploadStage } from "@/lib/organization/legacy-document-upload-stage"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { randomUUID } from "node:crypto"
+import { readableLegacyDocumentBindings } from "@/lib/organization/legacy-document-bindings"
+import { PRIVATE_FILE_HEADERS, privateFileContentUrl, privateStorageResponse } from "@/lib/organization/private-storage-response"
 import { loadProfile, updateDocumentsProfile } from "./document-profile"
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
 import {
@@ -15,10 +20,6 @@ import { canEditOrganization } from "@/lib/organization/active-org"
 import { mutateOrganizationProfile } from "@/lib/organization/profile-mutation"
 import {
   notifyTrackedDocumentUpload,
-  removeTrackedDocumentFile,
-  renameTrackedDocumentFile,
-  replaceTrackedDocumentFile,
-  restoreTrackedDocumentFile,
   isTrackedDocumentPath,
   sanitizeTrackedDocumentFilename,
 } from "./document-file-tracking"
@@ -78,25 +79,30 @@ export async function GET(request: NextRequest) {
     if (!isTrackedDocumentPath(doc.path, orgId, key)) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
+    const binding = (await readableLegacyDocumentBindings([{ kind: key, path: doc.path }], orgId, user.id)).get(key)
+    if (!binding) return NextResponse.json({ error: "Document not found" }, { status: 404, headers: PRIVATE_FILE_HEADERS })
 
-    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
-      orgId, ttl: 60 * 15,
-      sign: seconds => supabase.storage.from(BUCKET).createSignedUrl(doc.path as string, seconds,
-        downloadRequested ? { download: typeof doc.name === "string" && doc.name.length > 0 ? doc.name : true } : undefined),
+    if (searchParams.get("content") !== "1") {
+      const url = privateFileContentUrl("/api/account/org-documents", {
+        organizationId: orgId, kind: searchParams.get("kind")!, ...(downloadRequested ? { download: "1" } : {}),
+      })
+      return NextResponse.json({ url }, { headers: PRIVATE_FILE_HEADERS })
+    }
+    return privateStorageResponse({
+      request, orgId, name: typeof doc.name === "string" ? doc.name : "document.pdf",
+      mime: typeof doc.mime === "string" ? doc.mime : "application/pdf", maxBytes: 15 * 1024 * 1024,
+      download: downloadRequested,
+      sign: seconds => createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from(BUCKET).createSignedUrl(doc.path as string, seconds),
       revalidate: async () => {
-        const current = await loadProfile(supabase, orgId)
+        const currentAccess = await resolveOrganizationDocumentAccess(supabase, user.id, orgId)
+        if ("error" in currentAccess) return false
+        const current = await loadProfile(currentAccess.supabase, orgId)
         const documents = isRecord(current.documents) ? current.documents : {}
-        return isRecord(documents[key]) && documents[key].path === doc.path
+        if (!isRecord(documents[key]) || documents[key].path !== doc.path || documents[key].updatedAt !== doc.updatedAt) return false
+        const currentBinding = (await readableLegacyDocumentBindings([{ kind: key, path: doc.path as string }], orgId, user.id)).get(key)
+        return currentBinding?.id === binding.id
       },
     })
-    if (signedError || !signed?.signedUrl) {
-      return NextResponse.json(
-        { error: signedError?.message ?? "Unable to access document" },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ url: signed.signedUrl }, { status: 200 })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to load document" },
@@ -106,6 +112,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
+  let stage: LegacyDocumentUploadStage | undefined
   const response = NextResponse.next()
   let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
@@ -156,42 +164,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 403 })
     }
 
+    await reconcileLegacyDocumentCleanup({ orgId, documentKind: null, actorId: user.id, attemptedPaths, support: "supportAccess" in access && access.supportAccess === true })
+
     const safeName = sanitizeTrackedDocumentFilename(file.name)
-    const objectName = `${orgId}/${key}/${Date.now()}-${safeName}`
+    const objectName = `${orgId}/${key}/${randomUUID()}-${safeName}`
     const buf = Buffer.from(await file.arrayBuffer())
-
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(objectName, buf, { contentType: file.type })
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
-
-    const { error: quotaError, previousFile } =
-      await replaceTrackedDocumentFile({
-        supabase,
-        orgId,
-        documentKind: key,
-        storagePath: objectName,
-        name: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        userId: user.id,
-      })
-    if (quotaError) {
-      await supabase.storage.from(BUCKET).remove([objectName])
-      const quotaExceeded = quotaError.message.includes(
-        "Organization document storage quota exceeded"
-      )
-      return NextResponse.json(
-        {
-          error: quotaExceeded
-            ? "This upload exceeds the organization’s 5 GB document storage limit."
-            : quotaError.message,
-        },
-        { status: quotaExceeded ? 413 : 500 }
-      )
-    }
+    stage = { orgId, documentKind: key, actorId: user.id, path: objectName, support: "supportAccess" in access && access.supportAccess === true }
+    await uploadLegacyDocumentStage(stage, buf, file.type)
 
     const doc: DocumentMeta = {
       name: file.name,
@@ -223,32 +202,14 @@ export async function POST(request: NextRequest) {
     })
 
     if ("error" in mutation) {
-      await restoreTrackedDocumentFile({
-        supabase,
-        orgId,
-        documentKind: key,
-        previousFile,
-      })
-      await supabase.storage.from(BUCKET).remove([objectName])
+      const quotaExceeded = mutation.error.includes("Organization document storage quota exceeded")
       return NextResponse.json(
-        { error: mutation.error },
-        { status: mutation.status }
+        { error: quotaExceeded ? "This upload exceeds the organization’s 5 GB document storage limit." : mutation.error },
+        { status: quotaExceeded ? 413 : mutation.status }
       )
     }
 
-    const { existingPath } = mutation.value
-    if (
-      existingPath &&
-      existingPath !== objectName &&
-      isTrackedDocumentPath(existingPath, orgId, key)
-    ) {
-      const { error: cleanupError } = await supabase.storage
-        .from(BUCKET)
-        .remove([existingPath])
-      if (cleanupError) {
-        console.warn("Failed to remove replaced organization document")
-      }
-    }
+    await reconcileLegacyDocumentCleanup({ orgId, documentKind: key, actorId: user.id, attemptedPaths, support: "supportAccess" in access && access.supportAccess === true })
 
     await notifyTrackedDocumentUpload({
       supabase,
@@ -257,16 +218,20 @@ export async function POST(request: NextRequest) {
       filename: file.name,
     })
 
-    return NextResponse.json({ document: doc }, { status: 200 })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
+    const quotaExceeded = err instanceof Error && err.message.includes("Organization document storage quota exceeded")
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Upload failed" },
-      { status: 500 }
+      { error: quotaExceeded ? "This upload exceeds the organization’s 5 GB document storage limit." : err instanceof Error ? err.message : "Upload failed" },
+      { status: quotaExceeded ? 413 : 500 }
     )
+  } finally {
+    if (stage) await reconcileLegacyDocumentUploadStages({ ...stage, attemptedPaths })
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
   const response = NextResponse.next()
   let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
@@ -316,6 +281,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 403 })
     }
 
+    await reconcileLegacyDocumentCleanup({ orgId, documentKind: null, actorId: user.id, attemptedPaths, support: "supportAccess" in access && access.supportAccess === true })
+
     const mutation = await mutateOrganizationProfile({
       supabase,
       orgId,
@@ -355,14 +322,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    await renameTrackedDocumentFile({
-      supabase,
-      orgId,
-      documentKind: key,
-      name: nextName,
-    })
-
-    return NextResponse.json({ document: mutation.value }, { status: 200 })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Update failed" },
@@ -372,6 +332,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
   const response = NextResponse.next()
   let supabase = createSupabaseRouteHandlerClient(request, response)
   const {
@@ -412,6 +373,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: storageAccess.error }, { status: 403 })
     }
 
+    await reconcileLegacyDocumentCleanup({ orgId, documentKind: null, actorId: user.id, attemptedPaths, support: "supportAccess" in access && access.supportAccess === true })
+
     const mutation = await mutateOrganizationProfile({
       supabase,
       orgId,
@@ -440,29 +403,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const { path } = mutation.value
-    if (path && isTrackedDocumentPath(path, orgId, key)) {
-      const { error: cleanupError } = await supabase.storage
-        .from(BUCKET)
-        .remove([path])
-      if (cleanupError) {
-        console.warn("Failed to remove deleted organization document")
-      } else {
-        await removeTrackedDocumentFile({
-          supabase,
-          orgId,
-          documentKind: key,
-        })
-      }
-    } else {
-      await removeTrackedDocumentFile({
-        supabase,
-        orgId,
-        documentKind: key,
-      })
-    }
+    await reconcileLegacyDocumentCleanup({ orgId, documentKind: key, actorId: user.id, attemptedPaths, support: "supportAccess" in access && access.supportAccess === true })
 
-    return NextResponse.json({ ok: true }, { status: 200 })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Delete failed" },

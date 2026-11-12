@@ -1,3 +1,4 @@
+import { isResearchReply } from "./research-response"
 import { z } from "zod"
 import { formDefinitionSchema } from "@/features/organization-forms"
 import type { ResearchResult } from "../research-types"
@@ -35,10 +36,12 @@ export const researchRecoveryDraftSchema = researchDraftSchema.options[3].extend
 })
 export type ResearchDraft = z.infer<typeof researchDraftSchema>
 export function createResearchDraft(result: ResearchResult): Extract<ResearchDraft, { version: 4 }> {
+  if (isResearchReply(result)) throw new Error("Chat replies have no editable plan draft.")
   return { version: 4, decisions: structuredClone((result.decisions ?? []).filter(decision => result.items.some(item => item.key === decision.itemKey && item.kind === "decision"))), title: result.title, summary: result.summary, addedItems: [], removedKeys: [],
     items: result.items.filter(item => item.kind !== "reference").map(({ key, title, description, dependsOn, form }) => ({ key, title, description, dependsOn: [...dependsOn], ...(form ? { form: structuredClone(form) } : {}) })) }
 }
 export function applyResearchDraft(result: ResearchResult, input?: ResearchDraft): ResearchResult {
+  if (isResearchReply(result)) throw new Error("Chat replies have no editable plan draft.")
   if (!input) return result
   return materializeResearchDraft(result, researchDraftSchema.parse(input))
 }
@@ -51,6 +54,7 @@ export function validateResearchRecoveryDraft(result: ResearchResult, input: unk
 }
 
 function materializeResearchDraft(result: ResearchResult, draft: ResearchDraft, allowIncompleteLabels = false): ResearchResult {
+  if (isResearchReply(result)) throw new Error("Chat replies have no editable plan draft.")
   const keys = new Set(draft.items.map(item => item.key))
   const editable = result.items.filter(item => item.kind !== "reference")
   if (keys.size !== draft.items.length || keys.size !== editable.length || editable.some(item => !keys.has(item.key)))
@@ -73,7 +77,7 @@ function materializeResearchDraft(result: ResearchResult, draft: ResearchDraft, 
       throw new Error("Added items must have distinct preview keys.")
     const count = result.items.length - removed.size + added.length
     if (count > 12) throw new Error("Keep at most twelve items in this preview.")
-    if (!count && !result.removeReferences?.length) throw new Error("Keep at least one item in this preview.")
+    if (!count && !result.removeReferences?.length && !result.target.plan) throw new Error("Keep at least one item in this preview.")
   }
   const edited = { ...result, decisions, title: draft.title, summary: draft.summary,
     items: [...result.items.filter(item => !removed.has(item.key)).map(item => {

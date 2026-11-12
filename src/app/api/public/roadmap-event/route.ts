@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
-import { resolveRoadmapSections } from "@/lib/roadmap/sections"
+import { resolvePublicRoadmapSections } from "@/lib/roadmap/sections"
+import { filterPublicDocumentSections } from "@/lib/organization/public-document-audience"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 const MAX_BODY_BYTES = 4_096
@@ -138,10 +139,16 @@ export async function POST(request: Request) {
     )
   }
 
+  let sections
+  try {
+    sections = await filterPublicDocumentSections(resolvePublicRoadmapSections(publicProfile(orgRow.profile)), orgRow.user_id)
+  } catch {
+    return NextResponse.json({ error: "Unable to verify roadmap access" }, { status: 503 })
+  }
+  if (sections === null) return NextResponse.json({ error: "Organization not found" }, { status: 404 })
+
   if (payload.sectionId) {
-    const validSection = resolveRoadmapSections(
-      publicProfile(orgRow.profile)
-    ).some((section) => section.slug === payload.sectionId)
+    const validSection = sections.some((section) => section.slug === payload.sectionId)
     if (!validSection) {
       return NextResponse.json(
         { error: "Invalid roadmap section" },

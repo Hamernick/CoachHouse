@@ -1,3 +1,6 @@
+import "server-only"
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
 import { z } from "zod"
 import { DOCUMENTS } from "@/lib/organization/core-document-definitions"
 import { resolveRoadmapSections } from "@/lib/roadmap/sections"
@@ -11,7 +14,7 @@ const profileSchema = z.object({
   policies: z.array(z.unknown()).optional(),
 }).passthrough()
 const personSchema = z.object({ id: z.uuid(), name: z.string(), title: z.string().nullish() })
-export function opportunityProfileSources(value: unknown): OpportunitySourceOption[] {
+export async function opportunityProfileSources(value: unknown, orgId: string, actorId: string): Promise<OpportunitySourceOption[]> {
   const parsed = profileSchema.safeParse(value)
   if (!parsed.success) return []
   const profile = parsed.data
@@ -23,9 +26,12 @@ export function opportunityProfileSources(value: unknown): OpportunitySourceOpti
     const file = z.object({ path: z.string().min(1) }).safeParse(profile.documents?.[definition.key])
     return file.success ? [{ source: { kind: "document" as const, id: `upload:${definition.kind}` }, title: definition.title, category: "Document", description: definition.description, href: getWorkspaceDrawerPath({ tab: "documents", focus: definition.kind }) }] : []
   })
-  const core: OpportunitySourceOption[] = resolveRoadmapSections(profile).filter(section => section.content.trim() || section.driveSource).map(section => ({
+  const sections = resolveRoadmapSections(profile)
+  const editors = await filterAiDocumentCopies(sections.filter(section => resolveCoreDocumentSource(section) === "editor" && section.content.trim()), orgId, actorId)
+  const readable = new Set(editors.map(section => section.id))
+  const core: OpportunitySourceOption[] = sections.filter(section => resolveCoreDocumentSource(section) === "editor" ? readable.has(section.id) : section.driveSource).map(section => ({
     source: { kind: "document", id: `roadmap:${section.id}` }, title: section.title, category: "Document",
-    description: section.content.replace(/<[^>]*>/g, " ").slice(0, 500), href: getDocumentEditorHref(section.slug),
+    description: resolveCoreDocumentSource(section) === "editor" ? section.content.replace(/<[^>]*>/g, " ").slice(0, 500) : undefined, href: getDocumentEditorHref(section.slug),
   }))
   const policies: OpportunitySourceOption[] = (profile.policies ?? []).flatMap(raw => {
     const policy = z.object({ id: z.string(), title: z.string(), summary: z.string().optional(), document: z.object({ path: z.string().min(1) }) }).safeParse(raw)

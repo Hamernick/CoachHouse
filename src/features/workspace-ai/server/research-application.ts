@@ -1,4 +1,6 @@
 import "server-only"
+import { isResearchReply } from "../lib/research-response"
+import { researchPlacementSchema } from "../lib/research-placement"
 import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import { readAiRun } from "@/features/ai-credits"
@@ -18,7 +20,7 @@ import { inspectResearchDataViewEffects } from "./research-data-view-effects"
 export async function loadResearchApplication(input: unknown) {
   const request = z.union([
     z.strictObject({ runId: z.uuid(), draft: researchDraftSchema.optional(), objectiveId: z.uuid(), organizationId: z.uuid(), target: z.never().optional() }),
-    z.strictObject({ runId: z.uuid(), draft: researchDraftSchema.optional(), organizationId: z.uuid(), objectiveId: z.never().optional(), target: newObjectiveTargetSchema }),
+    z.strictObject({ runId: z.uuid(), draft: researchDraftSchema.optional(), organizationId: z.uuid(), objectiveId: z.never().optional(), target: newObjectiveTargetSchema, placement: researchPlacementSchema.optional() }),
   ]).parse(input)
   if (request.target && request.target.organizationId !== request.organizationId) throw new Error("Workspace unavailable.")
   const context = await loadResearchContext(request.target ?? { revision: 0, organizationId: request.organizationId, objectiveId: request.objectiveId! }, false)
@@ -28,6 +30,7 @@ export async function loadResearchApplication(input: unknown) {
       run.target.userId !== context.user.id || run.target.canvasId !== context.canvasId)
     throw new Error("This research is unavailable for this objective.")
   const result = researchResultSchema.parse(JSON.parse(run.proposal))
+  if (isResearchReply(result)) throw new Error("Chat replies cannot be added to the board.")
   assertResearchProvenance(result, run.id, run.target)
   return { request, context, run, result }
 }
@@ -35,11 +38,12 @@ export async function loadResearchApplication(input: unknown) {
 export async function prepareResearchApplication(input: unknown, { prepareSources = false } = {}) {
   const { request, context, run, result } = await loadResearchApplication(input)
   const edited = applyResearchDraft(result, request.draft)
-  const operations = researchPlanOperations(context.graph, edited, context.user.id, new Date().toISOString(), randomUUID)
+  const operations = researchPlanOperations(context.graph, edited, context.user.id, new Date().toISOString(), randomUUID, "placement" in request ? request.placement : undefined)
   const objectiveId = operations.flatMap(operation => operation.kind === "put_particle" && operation.particle.type === "objective" ? [operation.particle.id] : [])[0]
     ?? context.graph.particles.find(p => p.type === "objective" && [...(p.data.planning?.plans ?? []), ...(p.data.planning?.proposals ?? [])].some(plan => plan.researchRunId === run.id))?.id
   if (!objectiveId) throw new Error("Research objective unavailable.")
   if (!operations.length) return { context, batch: null, runId: run.id, objectiveId, sourceResult: edited }
+  if (run.target.conversation) await requireResearchOutputDraft(result, context.user.id, request.draft)
   const dataViews = edited.items.some(item => item.kind === "data_view")
   assertResearchCapabilities(undefined, edited.items.some(item => item.kind === "form"), dataViews, edited.items.some(item=>item.kind==="data_view"&&item.dataView?.kind!=="projects"))
   assertResearchOutputAvailability(edited.items)

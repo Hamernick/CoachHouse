@@ -1,5 +1,7 @@
 "use client"
 
+import { useCanvasDocumentSource } from "@/components/workspace/workspace-canvas-source-context"
+
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import CopyIcon from "lucide-react/dist/esm/icons/copy"
 import XIcon from "lucide-react/dist/esm/icons/x"
@@ -17,10 +19,14 @@ import { DocumentEditingPanel } from "./document-editing-panel"
 import { DocumentSharedEditor } from "./document-shared-editor"
 import { createWritableDocumentOwner } from "../lib/writable-owner"
 import { DocumentWritableWindow } from "./document-writable-window"
+import { useFileWindowAccess } from "../hooks/use-file-window-access"
 
-export function DocumentFileWindow({source,label,onClose,onDirtyChange}: {
-  source:DocumentSource;label:string;onClose:()=>void;onDirtyChange?:(dirty:boolean)=>void
-}) {
+type Props = { source:DocumentSource;label:string;onClose:()=>void;onDirtyChange?:(dirty:boolean)=>void }
+export function DocumentFileWindow(props: Props) {
+  return <DocumentFileWindowSession key={JSON.stringify(props.source)} {...props}/>
+}
+function DocumentFileWindowSession({source,label,onClose,onDirtyChange}: Props) {
+  useCanvasDocumentSource("file", source.provider === "coach_house" ? source.fileId : null)
   const active=useWorkspaceWindowHeaderActive()
   const inWindow=useWorkspaceWindowHeader()
   const identity=JSON.stringify(source)
@@ -28,15 +34,22 @@ export function DocumentFileWindow({source,label,onClose,onDirtyChange}: {
   const state=useSyncExternalStore(reader.subscribe,reader.getSnapshot,reader.getSnapshot)
   const writable=useMemo(()=>createWritableDocumentOwner(documentSourceSchema.parse(JSON.parse(identity)),createSupabaseBrowserClient()),[identity])
   const editing=useSyncExternalStore(writable.subscribe,writable.getSnapshot,writable.getSnapshot)
+  const access=useFileWindowAccess(source.organizationId,reader,writable,active)
+  const available=active&&access==="ready"
   const writing=editing.status!=="idle"&&editing.status!=="error"
   const [message,setMessage]=useState("")
   const [downloading,setDownloading]=useState(false)
   const download=useRef<AbortController|null>(null)
   useEffect(()=>{const release=reader.retain();return()=>{release();download.current?.abort()}},[reader])
-  useEffect(()=>{reader.setActive(active);if(active)void reader.open()},[active,reader])
-  useEffect(()=>{if(state.status==="locked")download.current?.abort()},[state.status])
-  useEffect(()=>{writable.setActive(active);reader.setActive(active&&!writing)},[active,writing,writable,reader])
+  useEffect(()=>{reader.setActive(available);if(available)void reader.open()},[available,reader])
+  useEffect(()=>{if(state.status==="locked"||!available)download.current?.abort()},[state.status,available])
+  useEffect(()=>{writable.setActive(available);reader.setActive(available&&!writing)},[available,writing,writable,reader])
   useEffect(()=>writable.retain(),[writable])
+  if (!available) return <section aria-label="Document" className="nodrag nopan nowheel min-h-0">
+    <p role="status" className="text-muted-foreground p-3 text-sm">{access==="locked" ? "Document unavailable. Close and reopen to check access." : "Checking access…"}</p>
+    {access==="locked" ? <Button variant="ghost" size="sm" onClick={()=>{void writable.close().then(onClose).catch(()=>setMessage("Could not preserve the draft. Keep this document open and retry."))}}>Close document</Button> : null}
+    {access==="locked" && message ? <p role="status" className="p-3 text-sm">{message}</p> : null}
+  </section>
   return (
     <section aria-label={`${label} document`} className="nodrag nopan nowheel flex min-h-0 flex-col">
       {!inWindow ? <h2 className="px-3 pt-3 text-sm font-medium">{label}</h2> : null}

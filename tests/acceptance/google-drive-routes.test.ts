@@ -63,7 +63,7 @@ describe("Google Drive route contracts", () => {
       "@/app/api/integrations/google-drive/documents/[documentId]/preview/route"
     )
     const request = new NextRequest(
-      "https://coachhouse.app/api/integrations/google-drive/documents/doc-1/preview?organizationId=other-org"
+      "https://coachhouse.app/api/integrations/google-drive/documents/doc-1/preview?organizationId=org-1"
     )
     const response = await GET(request, {
       params: Promise.resolve({ documentId: "doc-1" }),
@@ -77,8 +77,15 @@ describe("Google Drive route contracts", () => {
     expect(response.headers.get("x-request-id")).toBeTruthy()
     expect(mocks.requireGoogleDriveContext).toHaveBeenCalledWith(request, expect.anything())
     expect(mocks.getGoogleDriveDocumentThumbnail).toHaveBeenCalledExactlyOnceWith({
-      documentId: "doc-1", orgId: "org-1",
+      documentId: "doc-1", orgId: "org-1", actorId: "user-1",
     })
+  })
+
+  it("rejects a preview retained from another organization before reading bytes", async () => {
+    const { GET } = await import("@/app/api/integrations/google-drive/documents/[documentId]/preview/route")
+    const response = await GET(new NextRequest("https://coachhouse.app/preview?organizationId=other-org"), { params: Promise.resolve({ documentId: "doc-1" }) })
+    expect(response.status).toBe(403)
+    expect(mocks.getGoogleDriveDocumentThumbnail).not.toHaveBeenCalled()
   })
 
   it.each([["unauthorized", 401], ["forbidden", 403]] as const)(

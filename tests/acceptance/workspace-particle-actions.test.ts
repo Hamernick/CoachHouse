@@ -24,9 +24,12 @@ import { buildRoadmapRows } from "@/components/organization/org-profile-card/tab
 
 const mocks = vi.hoisted(() => ({
   actor: vi.fn(),
+  teamAuth: vi.fn(),
+  activeTeamOrg: vi.fn(),
   canEdit: vi.fn(),
   persist: vi.fn(),
   admin: vi.fn(),
+  rpc: vi.fn(),
   revalidate: vi.fn(),
   read: vi.fn(),
   calendarAccess: vi.fn(),
@@ -34,6 +37,9 @@ const mocks = vi.hoisted(() => ({
   drive: vi.fn(),
   profile: vi.fn(),
   modules: vi.fn(),
+  team: vi.fn(),
+  invites: vi.fn(),
+  teamProfiles: vi.fn(),
   from: vi.fn(),
   eq: vi.fn(),
   is: vi.fn(),
@@ -50,6 +56,8 @@ vi.mock(
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: mocks.admin,
 }))
+vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.teamAuth } }) }))
+vi.mock("@/lib/organization/active-org", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/organization/active-org")>(), resolveActiveOrganization: mocks.activeTeamOrg }))
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }))
 vi.mock("@/actions/roadmap-calendar-helpers", () => ({ resolveCalendarAccess: mocks.calendarAccess }))
 import {
@@ -62,6 +70,8 @@ const request = batch(100, [
 ])
 beforeEach(() => {
   vi.resetAllMocks()
+  mocks.teamAuth.mockResolvedValue({ data: { user: { id: ID(888) } }, error: null })
+  mocks.activeTeamOrg.mockResolvedValue({ orgId: WORKSPACE, role: "staff" })
   const query = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -70,8 +80,11 @@ beforeEach(() => {
   mocks.from.mockImplementation((table: string) => table === "organization_workspace_boards" ? query : {
     select: vi.fn().mockReturnThis(), eq: mocks.eq.mockReturnThis(),
     is: mocks.is.mockReturnThis(), in: mocks.in.mockReturnThis(),
-    maybeSingle: mocks.profile,
+    maybeSingle: mocks.profile, order: vi.fn().mockReturnThis(), range: vi.fn().mockReturnThis(), not: vi.fn().mockReturnThis(),
     abortSignal: table === "organizations" ? vi.fn().mockReturnThis()
+      : table === "organization_memberships" ? mocks.team
+      : table === "organization_invites" ? mocks.invites
+      : table === "profiles" ? mocks.teamProfiles
       : table === "modules" ? mocks.modules
       : table === "organization_document_files" ? mocks.files : mocks.drive,
   })
@@ -82,7 +95,19 @@ beforeEach(() => {
   })
   mocks.canEdit.mockResolvedValue(true)
   mocks.calendarAccess.mockResolvedValue({ orgId: WORKSPACE, canManageCalendar: true })
-  mocks.admin.mockReturnValue({})
+  // These source-reference fixtures have no retained AI origins or restricted
+  // folders. Supply the audience RPC transport; source existence is tested below.
+  mocks.rpc.mockImplementation(async (name: string, args: { p_file_ids?: string[] }) => {
+    if (name === "read_workspace_particle_ai_documents" || name === "read_workspace_particle_ai_files") return { data: [], error: null }
+    if (name === "read_workspace_canvas_projection") return { data: { state: {} }, error: null }
+    if (name === "filter_document_file_audience") return { data: args.p_file_ids, error: null }
+    if (name === "read_workspace_ai_document_copy_sources") return { data: { blockedSectionIds: [], complete: false }, error: null }
+    throw new Error(`Unexpected RPC: ${name}`)
+  })
+  mocks.admin.mockReturnValue({ from: mocks.from, rpc: mocks.rpc })
+  mocks.team.mockResolvedValue({ data: [], error: null })
+  mocks.invites.mockResolvedValue({ data: [], error: null })
+  mocks.teamProfiles.mockResolvedValue({ data: [], error: null })
   mocks.read.mockResolvedValue({
     data: { state: { particleGraph: graph() } },
     error: null,
@@ -227,7 +252,8 @@ describe("profile and note placement sources", () => {
     mocks.profile.mockResolvedValue({ data: { profile }, error: null })
     expect(await applyWorkspaceParticleBatchAction(put(linked(source)))).toMatchObject({ ok: true })
     expect(mocks.eq).toHaveBeenCalledWith("user_id", WORKSPACE)
-    expect(mocks.profile).toHaveBeenCalledTimes(1)
+    // Editor references also recheck saved-copy access before and after commit.
+    expect(mocks.profile).toHaveBeenCalledTimes(source.kind === "roadmap" ? 3 : 1)
     expect(mocks.from).toHaveBeenCalledWith("organizations")
   })
   it.each([
@@ -512,16 +538,39 @@ describe("Particle responsibility through the authorized writer", () => {
     return value
   }
   const put = (item: Particle, revision: number | null = 0) => batch(755, [{ kind: "put_particle", particle: item, expectedRevision: revision }])
-  it("saves only authorized People references and preserves unrelated work", async () => {
-    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [{ id: ID(701) }, { id: ID(702) }] } }, error: null })
+  it("saves only authorized team references and preserves unrelated work", async () => {
+    mocks.team.mockResolvedValue({ data: [{ member_id: ID(701), member_email: "alex@example.org" }, { member_id: ID(702), member_email: "sam@example.org" }], error: null })
     const result = await applyWorkspaceParticleBatchAction(put(assigned()))
     expect(result).toMatchObject({ ok: true, value: { graph: { revision: 1 } } })
     if (!result.ok) throw Error(result.error)
     expect(JSON.parse(JSON.stringify(result.value.graph)).particles[0].responsibility).toEqual(responsibility)
     expect(result.value.graph.particles[1]).toEqual(graph().particles[1])
-    expect(mocks.eq).toHaveBeenCalledWith("user_id", WORKSPACE)
-    expect(mocks.profile).toHaveBeenCalledTimes(1)
-    expect(mocks.from.mock.calls.every(([table]) => table === "organizations")).toBe(true)
+    expect(mocks.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
+    expect(mocks.team).toHaveBeenCalledTimes(1)
+    expect(mocks.profile).not.toHaveBeenCalled()
+  })
+  it.each(["activity", "calendar", "people", "decision", "metric", "workflow", "finance"] as const)("saves and validates team assignments on %s particles", async type => {
+    const item = particle(2, type)
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (value: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([particle(1, "objective"), item])); return { ok: true } })
+    const changed = { ...item, responsibility }
+    expect(await applyWorkspaceParticleBatchAction(put(changed))).toMatchObject({ ok: false, code: "scope" })
+    mocks.team.mockResolvedValue({ data: [{ member_id: ID(701), member_email: "alex@example.org" }, { member_id: ID(702), member_email: "sam@example.org" }], error: null })
+    const result = await applyWorkspaceParticleBatchAction(put(changed))
+    expect(result).toMatchObject({ ok: true })
+    if (!result.ok) throw Error(result.error)
+    expect(result.value.graph.particles.find(p => p.id === item.id)?.responsibility).toEqual(responsibility)
+    expect(result.value.graph.particles[0]).toEqual(particle(1, "objective"))
+  })
+  it("assigns an existing document without changing or reloading its source", async () => {
+    const document = createLibraryDocumentParticle(WORKSPACE, { name: "Review.pdf", mimeType: "application/pdf", fileId: ID(801), size: 1234 }, ID(2), NOW)
+    mocks.persist.mockImplementation(async (args: { updateParticleGraph: (value: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([document])); return { ok: true } })
+    mocks.team.mockResolvedValue({ data: [{ member_id: ID(701), member_email: "alex@example.org" }, { member_id: ID(702), member_email: "sam@example.org" }], error: null })
+    const result = await applyWorkspaceParticleBatchAction(put({ ...document, responsibility }))
+    expect(result).toMatchObject({ ok: true })
+    if (!result.ok) throw Error(result.error)
+    expect(result.value.graph.particles[0].data).toEqual(document.data)
+    expect(result.value.graph.particles[0].responsibility).toEqual(responsibility)
+    expect(mocks.from).not.toHaveBeenCalledWith("workspace_files")
   })
   it("rejects edits without workspace permission before checking people", async () => {
     mocks.canEdit.mockResolvedValue(false)
@@ -548,15 +597,15 @@ describe("Particle responsibility through the authorized writer", () => {
     expect(await applyWorkspaceParticleBatchAction(put(assigned()))).toMatchObject({ ok: false, code: "conflict" })
     expect(mocks.profile).not.toHaveBeenCalled()
   })
-  it("keeps old records readable and rejects duplicate people or source-owned responsibility", () => {
+  it("keeps old records readable and rejects duplicate people while allowing canvas assignments on linked records", () => {
     expect(particleSchema.safeParse(particle(2)).success).toBe(true)
     expect(particleSchema.safeParse({ ...particle(1, "objective"), responsibility: { ...responsibility, contributorIds: [ID(701)] } }).success).toBe(false)
     expect(particleSchema.safeParse({ ...particle(1, "objective"), responsibility: { ...responsibility, contributorIds: [ID(702), ID(702)] } }).success).toBe(false)
-    expect(particleSchema.safeParse({ ...particle(2, "people"), responsibility }).success).toBe(false)
-    expect(particleSchema.safeParse({ ...particle(2), responsibility }).success).toBe(false)
+    expect(particleSchema.safeParse({ ...particle(2, "people"), responsibility }).success).toBe(true)
+    expect(particleSchema.safeParse({ ...particle(2), responsibility }).success).toBe(true)
     const sourced = particle(2, "objective")
     if (sourced.type !== "objective") throw Error("Expected objective")
-    expect(particleSchema.safeParse({ ...sourced, data: { ...sourced.data, source: { kind: "objective", id: ID(1) } }, responsibility }).success).toBe(false)
+    expect(particleSchema.safeParse({ ...sourced, data: { ...sourced.data, source: { kind: "objective", id: ID(1) } }, responsibility }).success).toBe(true)
   })
 })
 
@@ -568,12 +617,12 @@ describe("membership assignment source permissions", () => {
     if (item.type !== "objective") throw Error("Expected objective")
     return { ...item, data: { ...item.data, planning: { proposals: [], plans: [1, 2].map(index => ({ id: ID(820 + index), revision: 0, title: `Plan ${index}`, particleIds: [ID(2)], ...(assignedPlan === index ? { assignments: [{ particleId: ID(2), responsibility }] } : {}) })) } } }
   }
-  it("rechecks contact access when assigning the same person in another plan", async () => {
+  it("rechecks team access when assigning the same person in another plan", async () => {
     mocks.persist.mockImplementation(async (args: { updateParticleGraph: (input: Json) => Promise<Json> }) => { await args.updateParticleGraph(graph([objective(1), particle(2)])); return { ok: true } })
     mocks.profile.mockResolvedValue({ data: { profile: { org_people: [] } }, error: null })
     const input = batch(824, [{ kind: "put_particle", particle: objective(2), expectedRevision: 0 }])
     expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: false, code: "scope" })
-    mocks.profile.mockResolvedValue({ data: { profile: { org_people: [{ id: ID(701) }] } }, error: null })
+    mocks.team.mockResolvedValue({ data: [{ member_id: ID(701), member_email: "alex@example.org" }], error: null })
     expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: true })
   })
   it("allows unchanged unavailable memberships to move and be removed", async () => {
@@ -581,5 +630,76 @@ describe("membership assignment source permissions", () => {
     expect(await applyWorkspaceParticleBatchAction(batch(825, [{ kind: "put_particle", particle: { ...objective(1), position: { x: 50, y: 60 } }, expectedRevision: 0 }]))).toMatchObject({ ok: true })
     expect(await applyWorkspaceParticleBatchAction(batch(826, [{ kind: "put_particle", particle: objective(0), expectedRevision: 0 }]))).toMatchObject({ ok: true })
     expect(mocks.profile).not.toHaveBeenCalled()
+  })
+})
+
+// Team roster drives both the picker and changed-assignment validation.
+import { readParticleAssignees } from "@/features/workspace-particles/server/particle-assignees"
+describe("assignment team roster", () => {
+  const read = () => readParticleAssignees({ from: mocks.from } as unknown as Parameters<typeof readParticleAssignees>[0], WORKSPACE, Date.parse(NOW))
+  it("includes the owner, every membership role and valid invites without contact or token payloads", async () => {
+    mocks.team.mockResolvedValue({ data: [{ member_id: ID(701), member_email: "board@example.org" }], error: null })
+    mocks.teamProfiles.mockResolvedValue({ data: [{ id: WORKSPACE, full_name: "Owner", email: "owner@example.org" }, { id: ID(701), full_name: "Board Member", email: "board@example.org", avatar_url: "https://example.org/board.webp" }], error: null })
+    mocks.invites.mockResolvedValue({ data: [
+      { id: ID(702), email: "invited@example.org", accepted_at: null, expires_at: "2099-01-01T00:00:00Z" },
+      { id: ID(703), email: "expired@example.org", accepted_at: null, expires_at: "2000-01-01T00:00:00Z" },
+      { id: ID(704), email: "board@example.org", accepted_at: NOW, expires_at: "2000-01-01T00:00:00Z" },
+      { id: ID(705), email: "removed@example.org", accepted_at: NOW, expires_at: "2099-01-01T00:00:00Z" },
+    ], error: null })
+    const team = await read()
+    expect(team).toEqual([
+      { id: ID(701), name: "Board Member", email: "board@example.org", avatarUrl: "https://example.org/board.webp", aliases: [ID(704)] },
+      { id: ID(702), name: "invited@example.org", email: "invited@example.org", invited: true },
+      { id: WORKSPACE, name: "Owner", email: "owner@example.org" },
+    ])
+    expect(mocks.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
+    expect(mocks.from).not.toHaveBeenCalledWith("organizations")
+    for (const result of mocks.from.mock.results) {
+      const query = result.value
+      expect(query.select.mock.calls.flat().join(" ")).not.toMatch(/token|profile\b/)
+    }
+  })
+  it("loads past the database page limit and deduplicates pending invitations", async () => {
+    mocks.team.mockResolvedValueOnce({ data: Array.from({ length: 1000 }, (_, index) => ({ member_id: ID(1000 + index), member_email: `member${index}@example.org` })), error: null })
+      .mockResolvedValueOnce({ data: [{ member_id: ID(2001), member_email: "last@example.org" }], error: null })
+    mocks.invites.mockResolvedValue({ data: [ID(3010), ID(3011)].map(id => ({ id, email: "pending@example.org", accepted_at: null, expires_at: "2099-01-01T00:00:00Z" })), error: null })
+    const team = await read()
+    expect(team).toHaveLength(1003)
+    expect(team.some(person => person.id === ID(2001))).toBe(true)
+    expect(team.find(person => person.id === ID(3010))?.aliases).toEqual([ID(3011)])
+    expect(mocks.team).toHaveBeenCalledTimes(2)
+  })
+  it("fails explicitly instead of presenting partial or empty results", async () => {
+    mocks.team.mockResolvedValue({ data: null, error: { message: "offline" } })
+    await expect(read()).rejects.toThrow("Unable to load team members")
+    mocks.team.mockResolvedValue({ data: [], error: null })
+    mocks.invites.mockResolvedValue({ data: null, error: { message: "offline" } })
+    await expect(read()).rejects.toThrow("Unable to load team invitations")
+  })
+  it("rejects expired or revoked invitations at save time", async () => {
+    const item = particleSchema.parse({ ...particle(1, "objective"), responsibility: { version: 1, ownerId: ID(702), contributorIds: [] } })
+    const input = batch(910, [{ kind: "put_particle", particle: item, expectedRevision: 0 }])
+    mocks.invites.mockResolvedValue({ data: [{ id: ID(702), email: "pending@example.org", accepted_at: null, expires_at: "2099-01-01T00:00:00Z" }], error: null })
+    expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: true })
+    mocks.invites.mockResolvedValue({ data: [], error: null })
+    expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: false, code: "scope" })
+    mocks.invites.mockResolvedValue({ data: [{ id: ID(702), email: "pending@example.org", accepted_at: null, expires_at: "2000-01-01T00:00:00Z" }], error: null })
+    expect(await applyWorkspaceParticleBatchAction(input)).toMatchObject({ ok: false, code: "scope" })
+  })
+})
+
+import { loadParticleAssigneesAction } from "@/features/workspace-particles/assignee-actions"
+describe("team picker read authorization", () => {
+  it("rejects signed-out and switched organizations before elevated reads", async () => {
+    mocks.teamAuth.mockResolvedValueOnce({ data: { user: null }, error: null })
+    await expect(loadParticleAssigneesAction(WORKSPACE)).rejects.toThrow("Sign in")
+    expect(mocks.admin).not.toHaveBeenCalled()
+    await expect(loadParticleAssigneesAction(ID(997))).rejects.toThrow("Organization changed")
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it("scopes the team read to the authenticated active organization", async () => {
+    await expect(loadParticleAssigneesAction(WORKSPACE)).resolves.toEqual([{ id: WORKSPACE, name: "Organization owner" }])
+    expect(mocks.admin).toHaveBeenCalledWith({ actorId: ID(888) })
+    expect(mocks.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
   })
 })

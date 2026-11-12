@@ -9,7 +9,6 @@ import { fetchAcceleratorProgressSummary } from "@/lib/accelerator/progress"
 import { fetchLearningEntitlements } from "@/lib/accelerator/entitlements"
 import { resolvePricingPlanTier } from "@/lib/billing/plan-tier"
 import { getWorkspaceAcceleratorPaywallPath } from "@/lib/workspace/routes"
-import { supabaseErrorToError } from "@/lib/supabase/errors"
 import { buildWorkspaceAcceleratorCardSteps } from "@/features/workspace-accelerator-card"
 import { completeOnboardingAction } from "../../onboarding/actions"
 import { buildMyOrganizationCalendarView } from "./calendar"
@@ -33,8 +32,7 @@ import {
   hydrateWorkspaceSeedAcceleratorState,
   partitionRoadmapModules,
 } from "./my-organization-page-content-helpers"
-import { isMissingWorkspaceBoardsTableError } from "./workspace-view-helpers"
-import { readWorkspaceBoardStateValue } from "./workspace-state"
+import { readWorkspaceAcceleratorBoardState } from "./workspace-accelerator-state-read"
 import type { MyOrganizationSearchParams } from "./types"
 import { buildWorkspaceOrganizationEditorData } from "./workspace-organization-editor-data"
 import { loadMyOrganizationProfileContext } from "./my-organization-page-profile"
@@ -151,7 +149,7 @@ export default async function MyOrganizationPage({
           isAdmin,
         }),
         loadOrganizationPeopleTaxonomy({ orgId, supabase }),
-        loadWorkspaceProfileContext({ supabase, orgId }),
+        loadWorkspaceProfileContext({ supabase, orgId, actorId: user.id }),
       ]),
     { thresholdMs: 1_000 }
   )
@@ -247,20 +245,7 @@ export default async function MyOrganizationPage({
     if (!hasWorkspaceAcceleratorAccess) {
       redirect(getWorkspaceAcceleratorPaywallPath())
     }
-    const boardResult = await supabase
-      .from("organization_workspace_boards")
-      .select("state")
-      .eq("org_id", orgId)
-      .maybeSingle<{ state: unknown }>()
-    if (
-      boardResult.error &&
-      !isMissingWorkspaceBoardsTableError(boardResult.error)
-    ) {
-      throw supabaseErrorToError(
-        boardResult.error,
-        "Unable to load workspace board state."
-      )
-    }
+    const acceleratorBoardState = await readWorkspaceAcceleratorBoardState(supabase, orgId, user.id)
     const acceleratorSeed = buildAcceleratorWorkspaceSeed({
       orgId,
       viewer,
@@ -289,7 +274,7 @@ export default async function MyOrganizationPage({
       calendarView,
       needsInitialOnboarding,
       onboardingDefaults,
-      boardState: readWorkspaceBoardStateValue(boardResult.data?.state),
+      boardState: acceleratorBoardState,
     })
 
     return (

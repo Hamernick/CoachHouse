@@ -1,4 +1,6 @@
 import "server-only"
+import { createDocumentEmbedding, type DocumentEmbeddingConfig, type DocumentEmbeddingTransport } from "./document-embedding"
+import { createDocumentRetrieval, type DocumentRetrievalOptions } from "./document-retrieval"
 import { researchPublicRequest, publicResearchEvidence } from "./research-public-request"
 import { researchPublicBriefSchema } from "../lib/research-public-brief"
 import { validateKnowledgeToolResult, unavailableKnowledgeToolResult } from "../lib/knowledge-tool-contract"
@@ -8,24 +10,26 @@ import { logger } from "@/lib/logger"
 import { researchPlanOperations } from "@/features/workspace-particles"
 import type { ResponseInputItem } from "openai/resources/responses/responses"
 import { priceAiUsage, type AiUsage } from "@/features/ai-credits"
-import { researchResultSchema, type ResearchRequest, type ResearchSource } from "../research-types"
+import { generatedResearchSchema, researchResultSchema, type ResearchRequest, type ResearchSource } from "../research-types"
 import { bindResearch } from "../lib/research-contract"
 import { assertResearchOutputAvailability, researchProviderOutputSchema } from "./research-output-config"
 import { createResearchOutputBindings } from "../lib/research-data-view"
-import type { researchConfig } from "./research-config"
 import type { ResearchContext } from "./research-context"
-import { createKnowledgeTools } from "./knowledge-tools"
+import { prepareComposerContext } from "./composer-context"
 import { researchPrompt } from "./research-prompt"
 import type { ResearchPhase } from "../lib/research-progress"
 import { researchRepairInstruction, type ResearchRepairIssue } from "../lib/research-repair"
-import { researchProviderRequest, researchRequestFits } from "./research-provider-request"
+import { researchProviderRequest, researchRequestFits, hasResearchTableSources } from "./research-provider-request"
 import { createResearchItemProgress } from "./research-item-progress"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
 import { researchFormatDiagnostic } from "./research-format-diagnostics"
 import { createResearchAnswerPhaseGate, researchAnswerText } from "./research-answer-text"
+import { supportsConversationReplies } from "../lib/research-response"
 
 export async function runResearchProvider(input: {
-  request: ResearchRequest; context: ResearchContext; config: ReturnType<typeof researchConfig>;
+  preparedContext?: Omit<Awaited<ReturnType<typeof prepareComposerContext>>, "records"> & { records: readonly unknown[] };
+  request: ResearchRequest; context: ResearchContext; config: DocumentEmbeddingConfig;
+  documentEmbedding?: { qualifiedSourceIds: ReadonlySet<string>; qualifiedScope?: DocumentRetrievalOptions["qualifiedScope"]; transport: DocumentEmbeddingTransport };
   onResponse:(id:string)=>Promise<void>; isCanceled:()=>Promise<boolean>;
   onPhase?:(phase:ResearchPhase)=>void;
   onPartial?:(item:ResearchItemPreview|null)=>void;
@@ -36,10 +40,22 @@ export async function runResearchProvider(input: {
   }
   const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY,maxRetries:0,timeout:90000})
   const deadline=AbortSignal.timeout(90000)
-  const knowledge=createKnowledgeTools(input.context,deadline), config=input.config
+  const usage:AiUsage={input:0,cachedInput:0,output:0,webSearchCalls:0}
+  if (Boolean(input.config.embedding) !== Boolean(input.documentEmbedding))
+    throw new Error("Embedding context must be prepared inside the admitted run.")
+  const embeddings = input.documentEmbedding ? createDocumentEmbedding({ runId:input.request.id,config:input.config,usage,signal:deadline,
+    isCanceled:input.isCanceled,transport:input.documentEmbedding.transport }) : undefined
+  const retrieval = embeddings && input.documentEmbedding && input.config.embedding
+    ? createDocumentRetrieval(input.context,{...input.config.embedding,qualifiedSourceIds:input.documentEmbedding.qualifiedSourceIds,qualifiedScope:input.documentEmbedding.qualifiedScope,processingIdentity:embeddings.processingIdentity,embed:embeddings.embed}) : undefined
+  // Attach to the already-authorized tools after claim, preserving selected
+  // records, Memory checks, conversation transcript and inherited dependencies.
+  if (retrieval && input.preparedContext) input.preparedContext.tools.attachDocumentRetrieval(retrieval)
+  const prepared = input.preparedContext ?? await prepareComposerContext(input.context,input.request.context,deadline,retrieval)
+  const knowledge=prepared.tools, config=input.config
   // Readers may finish late or convert aborts into unavailable-source results.
   // Fence each asynchronous stage before starting more work or returning a proposal.
   const isCanceled = async () => {
+    embeddings?.assertHealthy()
     deadline.throwIfAborted()
     const canceled = await input.isCanceled()
     deadline.throwIfAborted()
@@ -51,8 +67,7 @@ export async function runResearchProvider(input: {
     deadline.throwIfAborted()
     return current
   }
-  const messages:ResponseInputItem[]=[{role:"user",content:researchPrompt(input.context,input.request)}]
-  const usage:AiUsage={input:0,cachedInput:0,output:0,webSearchCalls:0}
+  const messages:ResponseInputItem[]=[{role:"user",content:researchPrompt(input.context,input.request,prepared.records)}]
   const publicSources: ResearchSource[] = []
   const evidence = (ids: readonly string[]) => [...knowledge.evidence(ids), ...publicSources]
   let responseId:string|null=null, toolCalls=0, repairUsed=false
@@ -72,7 +87,7 @@ export async function runResearchProvider(input: {
     // Public search is a distinct first request. Later private-context calls
     // never receive an external tool, regardless of pricing configuration.
     const isPublic = round === 0 && Boolean(input.request.publicResearch)
-    const params=isPublic ? researchPublicRequest(input.request.publicResearch!,config.tariff.model,config.maxOutputTokens) : researchProviderRequest(config,messages,round,repairUsed)
+    const params=isPublic ? researchPublicRequest(input.request.publicResearch!,config.tariff.model,config.maxOutputTokens) : researchProviderRequest(config,messages,round,repairUsed,supportsConversationReplies(input.request),hasResearchTableSources(input.context,[...prepared.records,...knowledge.sources.values()]))
     const available=params.tools ?? []
     // Bound the whole serialized request, including schemas and returned tool
     // content. The reservation uses one input token per allowed byte; this is
@@ -156,11 +171,11 @@ export async function runResearchProvider(input: {
         const text=researchAnswerText(terminal.output)
         const parsed=JSON.parse(text)
         format="schema"
-        const draft=researchProviderOutputSchema().parse(parsed)
-        const ids=[...draft.removeReferences,...draft.items.flatMap(item=>[...item.evidenceIds,...(item.referenceId?[item.referenceId]:[])])]
+        const draft=generatedResearchSchema.parse(researchProviderOutputSchema(supportsConversationReplies(input.request)).parse(parsed))
+        const ids=[...((draft.answerEvidenceIds ?? [])),...draft.removeReferences,...draft.items.flatMap(item=>[...item.evidenceIds,...(item.referenceId?[item.referenceId]:[])])]
         const decisions=new Map(input.context.graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[]))
         repairIssue="relationships"
-        const bound=bindResearch(text,evidence(ids),input.request.target,input.request.id,decisions)
+        const bound=bindResearch(JSON.stringify(draft),evidence(ids),input.request.target,input.request.id,decisions)
         const candidate={...bound,...(bound.items.some(item=>item.kind==="data_view")?{outputBindings:createResearchOutputBindings(bound.items,randomUUID,input.context.dataViewSources)}:{})}
         assertResearchOutputAvailability(candidate.items)
         // Validate the full merged plan before a change proposal can be billed as successful.

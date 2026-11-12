@@ -1,3 +1,4 @@
+import { filterDocumentFileAudience } from "@/lib/organization/document-file-audience"
 import type { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 import { getCoreDocumentSectionId } from "@/lib/organization/core-document-uploads"
 
@@ -34,7 +35,8 @@ export function fileResponse(file: FileRow) {
 export async function loadFile(
   supabase: ReturnType<typeof createSupabaseRouteHandlerClient>,
   orgId: string,
-  fileId: string
+  fileId: string,
+  actorId?: string
 ) {
   const result = await supabase
     .from("organization_document_files")
@@ -52,5 +54,7 @@ export async function loadFile(
   ) {
     return { ...result, data: null }
   }
+  if (result.data && actorId && !(await filterDocumentFileAudience([result.data], actorId)).length)
+    return { ...result, data: null }
   return result
 }

@@ -1,5 +1,5 @@
 import { particleProgressConfigSchema, particleOutcomeConfirmationSchema } from "./particle-progress"
-import { particleResponsibilitySchema, supportsParticleResponsibility } from "./particle-responsibility"
+import { particleResponsibilitySchema } from "./particle-responsibility"
 import { particlePlanningSchema } from "./particle-plan-schema"
 import { PARTICLE_SIZE_NAMES, PARTICLE_SIZE_SUPPORT } from "./particle-size"
 import { particleWidgetSchema } from "./particle-widget-schema"
@@ -171,6 +171,7 @@ const base = {
   positionMode: z.enum(["managed", "manual"]),
   locked: z.boolean(),
   canvasHidden: z.boolean().optional(),
+  responsibility: particleResponsibilitySchema.optional(),
   revision: particleRevisionSchema,
   width: z.number().finite().min(240).max(960).optional(),
   size: z.enum(PARTICLE_SIZE_NAMES).optional(),
@@ -181,7 +182,6 @@ export const particleSchema = z.discriminatedUnion("type", [
   z.strictObject({
     ...base,
     type: z.literal("objective"),
-    responsibility: particleResponsibilitySchema.optional(),
     size: z.enum(PARTICLE_SIZE_SUPPORT.objective.supportedSizes).optional(),
     data: particleDataSchemas.objective,
   }),
@@ -227,7 +227,7 @@ export const particleSchema = z.discriminatedUnion("type", [
     size: z.enum(PARTICLE_SIZE_SUPPORT.finance.supportedSizes).optional(),
     data: particleDataSchemas.finance,
   }),
-]).refine(particle => particle.type !== "objective" || !particle.responsibility || supportsParticleResponsibility(particle), "Edit responsibility at its source.")
+])
 export const particleConnectionSchema = z.strictObject({
   id: particleIdSchema,
   source: z.union([particleIdSchema, workspaceToolIdSchema]),

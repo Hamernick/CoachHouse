@@ -1,5 +1,5 @@
 import { createParticle, particleRegistry } from "./particle-registry"
-import type { Particle, ParticleGraph, ParticleOperation } from "../types"
+import type { Particle, ParticleGraph, ParticleOperation, ParticlePosition } from "../types"
 import { particlePlanProposalSchema } from "./particle-plan-schema"
 import { bindResearch, researchViewBinding } from "@/features/workspace-ai"
 import { validateParticleGraph } from "./graph-validation"
@@ -7,7 +7,8 @@ import type { ResearchResult } from "@/features/workspace-ai/client"
 import { particleCreationPosition } from "./particle-creation-placement"
 
 /** One revision-checked pending proposal; accepted work stays untouched until owner review. */
-export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult,actorId:string,now:string,uuid:()=>string):ParticleOperation[] {
+export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult,actorId:string,now:string,uuid:()=>string, placement?: ParticlePosition):ParticleOperation[] {
+  if (result.responseKind === "answer" || result.responseKind === "clarify") throw new Error("Chat replies cannot create board operations.")
   if (result.target.mode === "new_objective") {
     if (graph.workspaceId !== result.target.organizationId) throw new Error("Workspace unavailable.")
     // The durable origin survives expired graph receipts and reviewed proposals.
@@ -16,8 +17,8 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
     if (graph.revision !== result.target.revision) throw new Error("Workspace changed. Research again before adding this proposal.")
     const objective = createParticle("objective", { id: uuid(), workspaceId: graph.workspaceId, title: result.title, now })
     objective.description = result.summary
-    objective.position = particleCreationPosition(graph, objective)
-    objective.positionMode = "managed"
+    objective.position = particleCreationPosition(graph, objective, undefined, [], placement)
+    objective.positionMode = placement ? "manual" : "managed"
     // In-memory validation only. The canonical writer commits this objective and
     // every proposed member together; admission/generation never save a placeholder.
     const operations = researchPlanOperations({ ...graph, particles: [...graph.particles, objective] },
@@ -39,7 +40,7 @@ export function researchPlanOperations(graph:ParticleGraph,result:ResearchResult
   const {sources,target,runId,dependencies:_dependencies,outputBindings:_outputBindings,...generated}=result
   bindResearch(JSON.stringify({...generated,decisions:result.decisions??[],removeReferences:result.removeReferences??[]}),sources,target,runId,
     new Map(graph.particles.flatMap(particle=>particle.type==="decision"?[[`particle:${particle.id}`,particle.data.outcomes] as const]:[])))
-  if(!result.items.length && !removed.size) throw new Error("Answer the research questions before adding a plan.")
+  if(!result.items.length && !removed.size && !plan) throw new Error("Answer the research questions before adding a plan.")
   const byKey=new Map<string,string>(), created:Particle[]=[], revealed:Particle[]=[], seen=new Set<string>()
   for(const item of result.items) {
     const existing=item.referenceId?.startsWith("particle:")?graph.particles.find(p=>`particle:${p.id}`===item.referenceId):undefined

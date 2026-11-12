@@ -14,6 +14,8 @@ import type {
   WorkspaceDataDrawerTabIndicator,
 } from "./workspace-canvas-overlay-drawer-tabs"
 
+export type WorkspaceParticleLibraryContent = (props: { beforeLibrary: ReactNode; focusRequestId?: number }) => ReactNode
+
 export type WorkspaceDrawerTabsProps = {
   acceleratorHasAccess: boolean
   acceleratorInput: WorkspaceAcceleratorCardInput
@@ -43,7 +45,8 @@ export type WorkspaceDrawerTabsProps = {
   bodyOverride?: ReactNode
   particleInspectorTitle?: string
   particleInspectorMaxWidth?: number
-  particleLibrary?: ReactNode
+  planningSidebar?: ReactNode
+  particleLibrary?: WorkspaceParticleLibraryContent
   windowState?: WorkspaceContentWindowState
   composerMode?: boolean
 }

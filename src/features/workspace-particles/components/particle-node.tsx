@@ -28,7 +28,7 @@ export type ParticleNodeData = {
   objectiveProgress?: import("../lib/particle-progress").ObjectiveProgress
   memberships?: MembershipResponsibility[]
   assignmentContext?: string
-  assignment?: { saveMembership?: (id: string, scope: MembershipResponsibility, value: ParticleResponsibility) => Promise<boolean>; save: (particle: Particle) => Promise<boolean>; onDirtyChange: (id: string, dirty: boolean) => void }
+  assignment?: { retry?: (id: string, scope: MembershipResponsibility | undefined, value: ParticleResponsibility) => Promise<boolean>; saveMembership?: (id: string, scope: MembershipResponsibility, value: ParticleResponsibility) => Promise<boolean>; save: (particle: Particle) => Promise<boolean>; onDirtyChange: (id: string, dirty: boolean) => void }
   /** Personal animation reservation; never part of the persisted Particle. */
   inspectionTransition?: { width: number; height: number }
   expanded?: boolean

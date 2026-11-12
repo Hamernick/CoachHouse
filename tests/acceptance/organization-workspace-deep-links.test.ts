@@ -78,6 +78,7 @@ describe("organization workspace deep links", () => {
     await addActiveOrganizationResults({
       supabase: supabase as never,
       orgId: "org-1",
+      actorId: "reader-1",
       tokens: ["coach"],
       pushResult: (result) => results.push(result),
     })
@@ -124,3 +125,5 @@ describe("organization workspace deep links", () => {
     expect(results[0]?.image).toBe("https://example.com/logo.svg")
   })
 })
+
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: async () => ({ data: { blockedSectionIds: [], complete: false }, error: null }) }) }))

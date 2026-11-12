@@ -1,3 +1,4 @@
+import { embeddingDisclosureFixture } from "./fixtures/document-embedding-fixtures"
 import path from "node:path"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -108,9 +109,9 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
  let server:ViteDevServer,browser:Browser,origin:string
  beforeAll(async()=>{
   server=await createServer({configFile:false,root:process.cwd(),cacheDir:"/tmp/ch-p3-research-vite-cache",optimizeDeps:{entries:["tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"]},resolve:{alias:{"@":path.resolve("src")}},esbuild:{jsx:"automatic"},define:{"process.env":"{}"},server:{host:"127.0.0.1",port:0,watch:null},plugins:[{name:"public-brief-actions",enforce:"pre",transform(code,module){
-   if(module.endsWith("/workspace-ai/research-actions.ts")) return `export async function quoteWorkspaceResearch(target,publicBrief){return {maximumCredits:publicBrief?6:1,tariffVersion:publicBrief?'reviewed-public':'private',publicResearchAvailable:true,provider:'OpenAI',model:'fixture-quoted-model',availableCredits:42}}; export async function getWorkspaceResearch(){return (await fetch('/fixture-research-read')).json()};export async function stopWorkspaceResearch(){return {ok:true}};export async function listWorkspaceResearch(){return {runs:[]}};export async function searchWorkspaceKnowledge(){throw Error('Source calls forbidden')}`
+   if(module.endsWith("/workspace-ai/research-actions.ts")) return `export async function quoteWorkspaceResearch(target,publicBrief){return {...(location.search.includes("embedding")?{embedding:${JSON.stringify(embeddingDisclosureFixture)}}:{}),maximumCredits:publicBrief?6:1,tariffVersion:publicBrief?'reviewed-public':'private',publicResearchAvailable:!location.search.includes('embedded'),provider:'OpenAI',model:'fixture-quoted-model',availableCredits:42}}; export async function getWorkspaceResearch(){return (await fetch('/fixture-research-read')).json()};export async function stopWorkspaceResearch(){return {ok:true}};export async function listWorkspaceResearch(){return {runs:[]}};export async function searchWorkspaceKnowledge(){throw Error('Source calls forbidden')}`
    if(/^\s*["']use server["']/.test(code)) return [...code.matchAll(/export async function (\w+)/g)].map(match=>`export async function ${match[1]}(){throw Error('Source effects forbidden')}`).join("\n")
-  },configureServer(instance){instance.middlewares.use((request,response,next)=>{if(request.url!=="/")return next();response.setHeader("Content-Type","text/html");response.end('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"></script></body></html>')})}}]})
+  },configureServer(instance){instance.middlewares.use((request,response,next)=>{if(request.url?.split("?")[0]!=="/")return next();response.setHeader("Content-Type","text/html");response.end('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/tests/acceptance/fixtures/workspace-research-public-brief-browser.tsx"></script></body></html>')})}}]})
   await server.listen();origin=`http://127.0.0.1:${(server.httpServer!.address() as AddressInfo).port}`;browser=await chromium.launch({headless:true})
   // Compile this isolated actual-component fixture during setup, before timing interactions.
   const bootstrap=await browser.newPage()
@@ -131,24 +132,89 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
   await page.goto(origin,{waitUntil:"domcontentloaded"})
   await page.getByLabel("Research request",{exact:true}).fill("Private planning instruction")
   const start=page.getByRole("button",{name:"Research",exact:true})
-  await page.getByText("Up to 1 credits for workspace research.").waitFor()
+  await page.getByText("Up to 1 credits").waitFor()
   await page.getByRole("button",{name:"Add public research",exact:true}).click()
   expect(await start.isDisabled()).toBe(true)
-  await page.getByText("Only this brief goes to OpenAI web search.",{exact:false}).waitFor()
+  await page.getByText("Only this approved brief is sent to OpenAI web search.",{exact:false}).waitFor()
   await page.getByLabel("Public research brief",{exact:true}).fill("Public community garden examples")
   expect(await start.isDisabled()).toBe(true);expect(submitted).toEqual([])
   await page.getByRole("button",{name:"Approve brief for search",exact:true}).click()
-  await page.getByText("Up to 6 credits for workspace and approved public research.").waitFor()
+  await page.getByText("Up to 6 credits · includes public research").waitFor()
   expect(await start.isEnabled()).toBe(true)
   await page.getByLabel("Public research brief",{exact:true}).fill("Revised exact public garden brief")
   expect(await start.isDisabled()).toBe(true)
   const approve=page.getByRole("button",{name:"Approve brief for search",exact:true});await approve.focus();await page.keyboard.press("Enter")
-  await page.getByText("Up to 6 credits for workspace and approved public research.").waitFor()
+  await page.getByText("Up to 6 credits · includes public research").waitFor()
   await start.click();await page.getByText("Synthetic admission stopped").waitFor()
   expect(submitted).toHaveLength(1);expect(submitted[0]).toMatchObject({prompt:"Private planning instruction",tariffVersion:"reviewed-public",maximumCredits:6,publicResearch:{version:1,destination:"openai_web_search",approved:true,brief:"Revised exact public garden brief"}})
   expect(submitted[0]).not.toHaveProperty("publicResearchAvailable")
   expect(errors).toEqual([]);expect(external).toEqual([]);await page.close()
  },15000)
+ it("discloses embedding terms before approval and recovers the saved terms at narrow width",async()=>{
+  const page=await browser.newPage({viewport:{width:360,height:900}}),errors:string[]=[],submitted:Record<string,unknown>[]=[]
+  page.setDefaultTimeout(5000);page.on("pageerror",error=>errors.push(error.message))
+  await page.route("**/*",async route=>{
+   const url=new URL(route.request().url());if(url.origin!==origin)return route.abort()
+   if(url.pathname==="/api/workspace-ai/research"){
+    const body=route.request().postDataJSON();submitted.push(body)
+    return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({run:{version:1,id:body.id,status:"failed",credits:0,result:null,resultRevision:null,applicability:"unavailable",
+     processing:{provider:"OpenAI",model:"saved-answer-model",tariffVersion:body.tariffVersion,maximumCredits:body.maximumCredits,
+      embedding:{...embeddingDisclosureFixture,model:"historical-embedding-model",processing:{...embeddingDisclosureFixture.processing,retention:"Historical retention terms"}}}}})})
+   }
+   return route.continue()
+  })
+  try {
+   await page.goto(origin+"/?embedding",{waitUntil:"domcontentloaded"})
+   const disclosure=page.getByLabel("Document search processing")
+   await disclosure.getByText("Document search sends permitted document excerpts",{exact:false}).waitFor()
+   expect(await disclosure.textContent()).toContain("no background indexing")
+   const details=disclosure.locator("summary");await details.focus();await page.keyboard.press("Enter")
+   await disclosure.getByText("Destination: In-process test transport").waitFor()
+   await disclosure.getByText("Retention: Synthetic fixture only; no remote retention").waitFor()
+   expect(await disclosure.textContent()).toContain("100 UTF-8 bytes per call and 200 input tokens per run")
+   expect(await disclosure.textContent()).toContain("$0.10 per million input tokens")
+   expect(submitted).toHaveLength(0)
+   expect(await page.getByRole("button",{name:"Research",exact:true}).isDisabled()).toBe(true)
+   await page.getByRole("button",{name:"Approve document processing",exact:true}).click()
+   await page.getByRole("button",{name:"Add public research",exact:true}).click()
+   await page.getByLabel("Public research brief",{exact:true}).fill("Public examples")
+   await page.getByRole("button",{name:"Approve brief for search",exact:true}).click()
+   await page.getByRole("button",{name:"Approve document processing",exact:true}).waitFor()
+   expect(await page.getByRole("button",{name:"Research",exact:true}).isDisabled()).toBe(true)
+   await page.getByRole("button",{name:"Approve document processing",exact:true}).click()
+   await page.getByLabel("Research request",{exact:true}).fill("Use permitted documents")
+   await page.getByRole("button",{name:"Research",exact:true}).click()
+   const receipt=page.getByRole("region",{name:"Research run receipt"})
+   await receipt.getByText("0 credits charged.",{exact:true}).click()
+   await receipt.getByText("Document search sends permitted document excerpts",{exact:false}).waitFor()
+   await receipt.getByText("Document processing details",{exact:true}).click()
+   await receipt.getByText("Retention: Historical retention terms").waitFor()
+   expect(await receipt.textContent()).toContain("historical-embedding-model")
+   expect(await receipt.textContent()).not.toContain("Synthetic fixture only")
+   expect(submitted).toHaveLength(1);expect(submitted[0]).toMatchObject({tariffVersion:"reviewed-public",embeddingApproval:"reviewed-public",maximumCredits:6})
+   expect(submitted[0]).not.toHaveProperty("embedding")
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+   expect(errors).toEqual([])
+  } finally {await page.close()}
+ },20000)
+ it.each([false,true])("holds automatic submission until the exact embedding quote is approved (embedded=%s)",async embedded=>{
+  const page=await browser.newPage(),submitted:Record<string,unknown>[]=[]
+  page.setDefaultTimeout(5000)
+  await page.route("**/*",async route=>{
+   const url=new URL(route.request().url());if(url.origin!==origin)return route.abort()
+   if(url.pathname==="/api/workspace-ai/research") {submitted.push(route.request().postDataJSON());return route.fulfill({status:400,contentType:"application/json",body:JSON.stringify({error:"Controlled admission stopped",reserved:false})})}
+   return route.continue()
+  })
+  try {
+   await page.goto(origin+"/?embedding&autostart"+(embedded?"&embedded":""),{waitUntil:"domcontentloaded"})
+   const approve=page.getByRole("button",{name:"Approve document processing",exact:true})
+   await approve.waitFor();expect(submitted).toHaveLength(0)
+   expect(await page.getByRole("button",{name:embedded?"Send fixture chat":"Research",exact:true}).isDisabled()).toBe(true)
+   await approve.focus();await page.keyboard.press("Enter")
+   await page.getByText("Controlled admission stopped",{exact:true}).waitFor()
+   expect(submitted).toHaveLength(1);expect(submitted[0]).toMatchObject({embeddingApproval:"private",tariffVersion:"private",prompt:"Use permitted documents"})
+  } finally {await page.close()}
+ },20000)
  it.each(["light","dark"] as const)("shows exact saved charges and keeps keyboard recovery at320px in %s",async colorScheme=>{
   const page=await browser.newPage({viewport:{width:320,height:900},isMobile:true,hasTouch:true,colorScheme,reducedMotion:"reduce"})
   page.setDefaultTimeout(5000)
@@ -167,6 +233,7 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
   })
   try{
    await page.goto(origin,{waitUntil:"domcontentloaded"})
+   await page.getByText("Pricing details",{exact:true}).click()
    await page.getByText("OpenAI · fixture-quoted-model",{exact:true}).waitFor()
    await page.getByText("Available at quote: 42 credits.",{exact:true}).waitFor()
    await page.addStyleTag({content:"html{font-size:200%}"})
@@ -184,10 +251,12 @@ describe.skipIf(process.env.PARTICLE_PUBLIC_BRIEF_BROWSER!=="1")("actual session
    const start=page.getByRole("button",{name:"Research",exact:true});await start.focus();await page.keyboard.press("Enter")
    const receipt=page.getByRole("region",{name:"Research run receipt"})
    await receipt.getByText("Credit charge not yet confirmed.",{exact:false}).waitFor()
+   expect(await receipt.getByText("OpenAI · fixture-saved-model",{exact:true}).isVisible()).toBe(false)
+   await receipt.locator("summary").focus();await page.keyboard.press("Enter")
    await receipt.getByText("OpenAI · fixture-saved-model",{exact:true}).waitFor()
    expect(await receipt.textContent()).not.toContain("fixture-quoted-model")
    const check=page.getByRole("button",{name:"Check status",exact:true});await check.focus();await page.keyboard.press("Enter")
-   await receipt.getByText("0 credits charged. Maximum approved: 1 credits.",{exact:true}).waitFor()
+   await receipt.getByText("0 credits charged.",{exact:true}).waitFor()
    expect(requests).toHaveLength(1);expect(requests[0]).toMatchObject({skill:"planning",maximumCredits:1,tariffVersion:"private"});expect(reads).toBe(1)
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
    expect(errors).toEqual([]);expect(external).toEqual([])

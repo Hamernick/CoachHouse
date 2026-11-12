@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from "vitest"
+import { graph, ID, particle, WORKSPACE } from "./fixtures/particle-fixtures"
+
+const audience = vi.hoisted(() => ({ rpc: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: audience.rpc }) }))
 
 import { buildWorkspaceViewSeed } from "@/app/(dashboard)/my-organization/_lib/workspace-view"
 
@@ -106,6 +110,26 @@ function buildSupabaseStub({
 }
 
 describe("workspace view seed", () => {
+  it("withholds restricted file titles from initial page props without changing stored state", async () => {
+    const document = particle(1)
+    if (document.type !== "activity") throw new Error("fixture")
+    document.title = "Private source title"
+    document.data.widget = { kind: "document", fileId: ID(10), name: "Secret.txt", size: 4, format: "txt" }
+    const canonical = { particleGraph: graph([document, particle(2)]) }
+    audience.rpc.mockResolvedValue({ data: [], error: null })
+    const seed = await buildWorkspaceViewSeed({
+      supabase: buildSupabaseStub({ boardState: canonical }) as never,
+      orgId: WORKSPACE, role: "staff", canEdit: true, hasAcceleratorAccess: false, presentationMode: false,
+      viewer: { id: ID(90), email: "actor@example.com", fullName: "Actor", avatarUrl: null },
+      organizationTitle: "Organization", organizationSubtitle: "", fundingGoalCents: 0, raisedCents: 0,
+      programsCount: 0, peopleCount: 0, teammateCount: 0, organizationProfileComplete: false, workspaceDocumentCount: 0,
+      initialProfile: {}, roadmapSections: [], formationSummary: {}, acceleratorTimeline: [], calendar: {},
+    })
+    expect(seed.boardState.particleGraph).toMatchObject({ particles: [expect.objectContaining({ id: ID(2) })] })
+    expect(JSON.stringify(seed)).not.toContain("Private source title")
+    expect(canonical.particleGraph.particles).toHaveLength(2)
+    expect(audience.rpc).toHaveBeenCalledWith("filter_document_file_audience", { p_actor_id: ID(90), p_file_ids: [ID(10)] })
+  })
   it("falls back to the default board state and no invites when legacy workspace tables are missing", async () => {
     const supabase = buildSupabaseStub({
       boardError: {

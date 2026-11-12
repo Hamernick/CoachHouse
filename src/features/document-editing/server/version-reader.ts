@@ -1,4 +1,6 @@
 import "server-only"
+import { assertPrivateOrganizationReadWindow } from "@/lib/organization/private-storage-link"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 import { createHash } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -41,7 +43,12 @@ export async function readVersionedCanonical(client: SupabaseClient<Database>, s
 export async function readVersionContent(client: SupabaseClient<Database>, version: Pick<DocumentVersion,"storage_path" | "org_id" | "size_bytes" | "content_hash">) {
   if(!version.storage_path.startsWith(`${version.org_id}/library/`) || version.storage_path.split("/").includes(".."))
     throw new DocumentRoomError("access","This version is outside the document library.")
-  const signed=await client.storage.from("org-documents").createSignedUrl(version.storage_path,60)
+  const accessible = await client.from("document_file_versions").select("storage_path,content_hash")
+    .eq("org_id",version.org_id).eq("storage_path",version.storage_path).eq("content_hash",version.content_hash)
+    .limit(1).abortSignal(AbortSignal.timeout(15000)).maybeSingle()
+  if(accessible.error || !accessible.data) throw new DocumentRoomError("access","This version is no longer available.")
+  await assertPrivateOrganizationReadWindow(version.org_id)
+  const signed=await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from("org-documents").createSignedUrl(version.storage_path,60)
   if(signed.error || !signed.data?.signedUrl) throw new DocumentRoomError("unavailable","Could not open this version.")
   const response=await fetch(signed.data.signedUrl,{cache:"no-store",redirect:"error",signal:AbortSignal.timeout(15000)})
   if(!response.ok) throw new DocumentRoomError("unavailable","Could not download this version.")
@@ -53,5 +60,6 @@ export async function readVersionContent(client: SupabaseClient<Database>, versi
     .eq("org_id",version.org_id).eq("storage_path",version.storage_path).eq("content_hash",version.content_hash)
     .limit(1).abortSignal(AbortSignal.timeout(15000)).maybeSingle()
   if(current.error || !current.data) throw new DocumentRoomError("access","This version is no longer available.")
+  await assertPrivateOrganizationReadWindow(version.org_id)
   return content
 }

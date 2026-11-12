@@ -1,5 +1,17 @@
+vi.mock("@/lib/organization/document-file-audience",()=>({filterDocumentFileAudience:async (rows:unknown[])=>rows}))
 import {beforeEach,describe,it,expect,vi} from "vitest"
-const mocks=vi.hoisted(()=>({load:vi.fn(),file:vi.fn(),context:vi.fn(),access:vi.fn()}))
+vi.mock("@/lib/organization/particle-ai-origins", () => ({ retainedParticleFiles: async () => new Map(), retainedParticleDocuments: async () => new Map() }))
+// These reader fixtures have no restricted saved copies. Preserve the real
+// projection and provide its service-only transport, not production credentials.
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({
+ rpc: async (name: string, args: { p_file_ids: string[]; p_section_ids: string[] }) => {
+  if (name === "filter_workspace_ai_sources") return { data: { fileIds: args.p_file_ids, sectionIds: args.p_section_ids }, error: null }
+  if (name !== "read_workspace_ai_document_copy_sources") throw new Error(`Unexpected RPC ${name}`)
+  return { data: { blockedSectionIds: [], complete: false }, error: null }
+ },
+}) }))
+vi.mock("openai",()=>({default:class { responses={create:mocks.provider} }}))
+const mocks=vi.hoisted(()=>({load:vi.fn(),file:vi.fn(),context:vi.fn(),access:vi.fn(),provider:vi.fn()}))
 vi.mock("@/features/workspace-ai/server/knowledge-records",async importOriginal=>({...await importOriginal<typeof import("@/features/workspace-ai/server/knowledge-records")>(),knowledgeLoader:()=>mocks.load}))
 vi.mock("@/features/workspace-ai/server/knowledge-file",()=>({readKnowledgeFile:mocks.file}))
 vi.mock("@/features/workspace-ai/server/research-context",()=>({loadResearchContext:mocks.context}))
@@ -104,7 +116,7 @@ describe("direct authorized workspace reads",()=>{
 
  it("uses the actual organization, canvas and document entitlement boundaries",async()=>{
   const {knowledgeLoader,readKnowledgeRecord}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
-  const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),single:vi.fn().mockResolvedValue({data:{profile:{name:"Our organization",org_people:[{id:ID(80),name:"Our contact"}]},updated_at:"current"},error:null})}
+  const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:{profile:{name:"Our organization",org_people:[{id:ID(80),name:"Our contact"}]},updated_at:"current"},error:null})}
   const current={...context,supabase:{from:()=>query}} as unknown as ResearchContext
   const load=knowledgeLoader(current)
   for(const [id,kind] of [[`organization:${WORKSPACE}`,"organization"],[`person:${ID(80)}`,"person"],[`particle:${ID(1)}`,"particle"]] as [string,KnowledgeKind][]) {
@@ -185,7 +197,7 @@ it("rechecks selected-plan members even if the model never explicitly reads them
 it("looks up discovered file, event and opportunity IDs directly inside the organization",async()=>{
  const {knowledgeLoader}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
  for(const [kind,prefix,table] of [["document","file","organization_document_files"],["calendar","calendar","roadmap_calendar_internal_events"],["opportunity","opportunity","organization_finance_opportunities"]] as const) {
-  const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),neq:vi.fn().mockReturnThis(),ilike:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),limit:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),then:vi.fn((resolve: (value:unknown)=>unknown)=>resolve({data:[],error:null})),single:vi.fn().mockResolvedValue({data:{profile:{},updated_at:"current"},error:null})}
+  const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),neq:vi.fn().mockReturnThis(),ilike:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),limit:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),then:vi.fn((resolve: (value:unknown)=>unknown)=>resolve({data:[],error:null})),maybeSingle:vi.fn().mockResolvedValue({data:{profile:{},updated_at:"current"},error:null})}
   const from=vi.fn(()=>query),current={...context,supabase:{from}} as unknown as ResearchContext
   await knowledgeLoader(current)(kind,"",`${prefix}:${ID(80)}`)
   expect(from).toHaveBeenCalledWith(table)
@@ -200,7 +212,7 @@ it("looks up discovered file, event and opportunity IDs directly inside the orga
 it("coalesces profile reads inside one check, but uses a fresh profile for the next check",async()=>{
  const {knowledgeLoader}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
  const single=vi.fn().mockResolvedValue({data:{profile:{name:"Organization"},updated_at:"first"},error:null})
- const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),single}
+ const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),maybeSingle:single}
  const current={...context,supabase:{from:()=>query}} as unknown as ResearchContext
  const load=knowledgeLoader(current)
  await Promise.all([load("organization",""),load("person","")])
@@ -212,7 +224,7 @@ it("coalesces profile reads inside one check, but uses a fresh profile for the n
 
 it("keeps contact search to names and roles, then reads selected contact details",async()=>{
  const {knowledgeLoader}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
- const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),single:vi.fn().mockResolvedValue({data:{profile:{org_people:[{id:ID(80),name:"Jordan",title:"Marketing director",email:"private@example.org",phone:"555-0100",notes:"Confidential background"}]},updated_at:"current"},error:null})}
+ const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:{profile:{org_people:[{id:ID(80),name:"Jordan",title:"Marketing director",email:"private@example.org",phone:"555-0100",notes:"Confidential background"}]},updated_at:"current"},error:null})}
  const current={...context,supabase:{from:()=>query}} as unknown as ResearchContext
  const records=await knowledgeLoader(current)("person","marketing")
  mocks.load.mockResolvedValue(records)
@@ -260,7 +272,7 @@ describe("server-owned research dependency capture",()=>{
   expect(manifest.contextFingerprint).toMatch(/^[a-f0-9]{64}$/)
  })
  it("retains extracted file fingerprints after later metadata searches",async()=>{
-  const file={...record,id:"file:known",kind:"document" as const,contentAvailable:false}
+  const file={...record,id:`file:${ID(70)}`,kind:"document" as const,contentAvailable:false}
   const detail={...file,content:"Private extracted body",contentAvailable:true}
   mocks.load.mockResolvedValue([file]);mocks.file.mockResolvedValue(detail)
   const tools=createKnowledgeTools(context)
@@ -280,4 +292,154 @@ describe("server-owned research dependency capture",()=>{
   expect(await tools.revalidate()).toBe(false)
   expect(mocks.load).not.toHaveBeenCalled()
  })
+})
+
+
+describe("native document ranges and board-readiness coverage", () => {
+ const native = (content: string, patch: Partial<KnowledgeRecord> = {}): KnowledgeRecord => ({
+  id: "document:board-records", kind: "document", title: "Synthetic board records", href: "/workspace",
+  revision: "2026-11-11", content, contentAvailable: true, ...patch,
+ })
+ const readRange = (id: string, start: number, end: number) => ({ ids: [id], documentRanges: [{ id, start, end }] })
+ it("reads late dated evidence and separate governance sections without claiming whole-document review", async () => {
+  const mission = "Mission: youth education. Strategy: expand tutoring. Governance: quorum is three."
+  const dated = "2026-11-12 proposed agenda: consider expansion; not approved minutes. October actuals absent."
+  const document = native(mission.padEnd(12000, " ") + dated)
+  mocks.load.mockResolvedValue([document])
+  const tools = createKnowledgeTools(context)
+  const early = await tools.execute("read_workspace", readRange(document.id, 0, mission.length))
+  const late = await tools.execute("read_workspace", readRange(document.id, 12000, 12000 + dated.length))
+  expect(early).toMatchObject({ results: [{ content: mission, evidence: { coverage: "excerpt" } }] })
+  expect(late).toMatchObject({ results: [{ content: dated, revision: document.revision,
+   evidence: { location: { kind: "reader_text", start: 12000, end: document.content.length },
+    textCoverage: { complete: false, totalCharacters: document.content.length } } }] })
+  expect(tools.sources.get(document.id)?.evidence).toMatchObject({ coverage: "excerpt", characters: mission.length + dated.length,
+   textCoverage: { complete: false, ranges: [{ start: 0, end: mission.length }, { start: 12000, end: document.content.length }] } })
+  expect(tools.dependencies().records).toEqual([{ id: document.id, kind: "document",
+   fingerprint: knowledgeFingerprint(document), detailFingerprint: knowledgeFingerprint(document) }])
+  expect(await tools.revalidate()).toBe(true)
+ })
+ it("merges overlaps without double counting and marks complete only after every gap is read", async () => {
+  const document = native("x".repeat(9000)); mocks.load.mockResolvedValue([document])
+  const tools = createKnowledgeTools(context)
+  for (const [start,end] of [[0,3000],[6000,9000],[2000,4000],[2000,4000]]) await tools.execute("read_workspace", readRange(document.id,start,end))
+  expect(tools.sources.get(document.id)?.evidence).toMatchObject({ characters: 7000, coverage: "excerpt", textCoverage: { complete: false } })
+  await tools.execute("search_workspace", { query: "Synthetic", kinds: ["document"] })
+  expect(tools.sources.get(document.id)?.evidence?.characters).toBe(7000)
+  await tools.execute("read_workspace",readRange(document.id,4000,6000))
+  expect(tools.sources.get(document.id)?.evidence).toMatchObject({ characters: 9000, coverage: "complete",
+   textCoverage: { complete: true, ranges: [{ start: 0, end: 9000 }] } })
+  expect(tools.sources.get(document.id)?.evidence).not.toHaveProperty("location")
+ })
+ it("keeps multiple requested sources inside the shared text budget and preserves normalized Unicode offsets", async () => {
+  const documents = [native("a".repeat(7000)+"😀".repeat(1000)), native("b".repeat(9000),{id:"document:governance"})]
+  mocks.load.mockResolvedValue(documents)
+  const value = await createKnowledgeTools(context).execute("read_workspace", {
+   ids: documents.map(item=>item.id), documentRanges: documents.map(item=>({id:item.id,start:7000,end:9000})),
+  }, 3000)
+  expect(value).toMatchObject({ results: documents.map(item=>({ id:item.id, content:item.content.slice(7000,8500),
+   evidence:{characters:1500,location:{start:7000,end:8500},textCoverage:{complete:false}} })) })
+ })
+ it.each([25000,null])("reports the reader ceiling and never claims complete for total %s", async total => {
+  const document = native("x".repeat(20000),{contentTruncated:true,...(total === null ? {} : {nativeTextLength:total})})
+  mocks.load.mockResolvedValue([document]); const tools=createKnowledgeTools(context)
+  for (let start=0;start<20000;start+=5000) await tools.execute("read_workspace",readRange(document.id,start,start+5000))
+  expect(tools.sources.get(document.id)?.evidence).toMatchObject({characters:20000,coverage:"excerpt",
+   textCoverage:{totalCharacters:total,availableCharacters:20000,complete:false,ranges:[{start:0,end:20000}]}})
+ })
+ it("reads beyond 20,000 with exact accumulated coverage and unchanged per-call budgets",async()=>{
+  const document=native("x".repeat(120000),{nativeTextLength:240000,contentTruncated:true})
+  mocks.load.mockResolvedValue([document]);const tools=createKnowledgeTools(context)
+  for(const start of [60000,66000,72000,78000]){
+   const result=await tools.execute("read_workspace",readRange(document.id,start,start+6000))
+   expect(result).toMatchObject({results:[{content:"x".repeat(6000),evidence:{location:{start,end:start+6000}}}]})
+  }
+  expect(tools.sources.get(document.id)?.evidence).toMatchObject({characters:24000,coverage:"excerpt",textCoverage:{
+   totalCharacters:240000,availableCharacters:120000,complete:false,ranges:[{start:60000,end:84000}]}})
+ })
+ it("returns explicit exhausted coverage rather than an empty successful read", async () => {
+  const document=native("short");mocks.load.mockResolvedValue([document])
+  expect(await createKnowledgeTools(context).execute("read_workspace",readRange(document.id,10,20))).toMatchObject({results:[{
+   contentAvailable:false,status:"exhausted_budget",evidence:{coverage:"unavailable",characters:0,textCoverage:{complete:false,ranges:[],availableCharacters:5}},
+  }]})
+ })
+ it.each(["changed","revoked"])("withholds a later range and invalidates dependencies when the source is %s",async failure=>{
+  const document=native("x".repeat(10000));mocks.load.mockResolvedValue([document]);const tools=createKnowledgeTools(context)
+  await tools.execute("read_workspace",readRange(document.id,0,100))
+  mocks.load.mockResolvedValue(failure==="changed"?[{...document,revision:"new",content:"private changed evidence"}]:[])
+  const result=await tools.execute("read_workspace",readRange(document.id,9000,9100))
+  expect(result).toMatchObject({results:[{id:document.id,status:failure==="changed"?"changed":"unavailable"}]})
+  expect(JSON.stringify(result)).not.toContain("private changed evidence")
+  expect(await tools.revalidate()).toBe(false)
+ })
+ it("checks native content past the reader ceiling in retained dependency fingerprints",async()=>{
+  const {knowledgeLoader}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
+  const {resolveRoadmapSections}=await import("@/lib/roadmap/sections")
+  const sections=resolveRoadmapSections({})
+  expect(sections.length).toBeGreaterThan(0)
+  const section=sections[0]
+  const load=async (suffix:string,prefix="a".repeat(220000))=>{
+   const profile={roadmap:{sections:[{...section,content:"<p>"+prefix+suffix+"</p>"}]}}
+   const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:{profile,updated_at:"same"},error:null})}
+   return knowledgeLoader({...context,supabase:{from:()=>query}} as unknown as ResearchContext)("document","",`document:${section.id}`)
+  }
+  const first=await load("old"), next=await load("new")
+  expect(first).toHaveLength(1);expect(next).toHaveLength(1)
+  expect(first[0].content).toHaveLength(200000)
+  expect(first[0].nativeTextLength).toBe(220003)
+  expect(first[0].content).toBe(next[0].content)
+  expect(knowledgeFingerprint(first[0])).not.toBe(knowledgeFingerprint(next[0]))
+  const unicode=await load("😀ending","a".repeat(199999))
+  expect(unicode[0].content).toHaveLength(199999)
+  expect(unicode[0].nativeTextLength).toBe(200007)
+  expect(unicode[0].contentTruncated).toBe(true)
+  const {knowledgeDisclosure}=await import("@/features/workspace-ai/server/knowledge-evidence")
+  expect(knowledgeDisclosure(unicode[0],"read",6000,{start:199999,end:200000})).toMatchObject({
+   status:"exhausted_budget",evidence:{textCoverage:{availableCharacters:199999,totalCharacters:200007,complete:false}}})
+ })
+})
+
+
+it("completes a controlled board-readiness range-to-answer turn through the actual tool and evidence owners", async () => {
+ const {runResearchProvider}=await import("@/features/workspace-ai/server/research-provider")
+ const mission="Mission: youth education. Governance: quorum three."
+ const dated="November 12 agenda proposes expansion; no vote recorded. October actuals are missing."
+ const document:KnowledgeRecord={id:"document:board",kind:"document",title:"Synthetic board packet",href:"/workspace",revision:"2026-11-11",content:mission.padEnd(12000," ")+dated,contentAvailable:true}
+ mocks.load.mockResolvedValue([document]);const tools=createKnowledgeTools(context)
+ const response=(id:string,output:unknown[]) => (async function*(){yield {type:"response.completed",response:{id,status:"completed",output,usage:{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:0}}}}})()
+ const call=(round:number,start:number,end:number)=>response(`r${round}`,[{type:"function_call",id:`t${round}`,call_id:`c${round}`,name:"read_workspace",arguments:JSON.stringify({ids:[document.id],personFields:null,documentRanges:[{id:document.id,start,end}]})}])
+ mocks.provider.mockImplementationOnce(()=>call(1,0,mission.length)).mockImplementationOnce(()=>call(2,12000,document.content.length))
+ const summary="Expansion is proposed, not approved. Quorum is three. October actuals and full packet review remain missing."
+ mocks.provider.mockImplementationOnce(()=>response("answer",[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify({responseKind:"answer",answerEvidenceIds:[document.id],title:"Board readiness",summary,questions:[],unfulfilled:["October actuals","Unread packet sections"],decisions:[],removeReferences:[],items:[]})}]}]))
+ const result=await runResearchProvider({context,preparedContext:{tools,records:[]},request:{id:ID(91),parentRunId:ID(92),target:context.target,prompt:"Assess readiness for the November 12 board meeting",skill:"planning",tariffVersion:"fixture",maximumCredits:20},
+  config:{tariff:{version:"fixture",model:"fixture",inputMicrodollarsPerMillion:1,cachedMicrodollarsPerMillion:0,outputMicrodollarsPerMillion:1,microdollarsPerCredit:2000},maxSearchCalls:0,maxRounds:3,maxOutputTokens:1500,maxInputBytes:20000,maxCredits:20,maxCost:40000},onResponse:async()=>{},isCanceled:async()=>false})
+ expect(mocks.provider).toHaveBeenCalledTimes(3)
+ expect(result.result).toMatchObject({responseKind:"answer",summary,unfulfilled:["October actuals","Unread packet sections"],sources:[{id:document.id,revision:document.revision,evidence:{coverage:"excerpt",textCoverage:{complete:false,ranges:[{start:0,end:mission.length},{start:12000,end:document.content.length}]}}}]})
+ expect(JSON.stringify(mocks.provider.mock.calls[2][0].input)).toContain(dated)
+ expect(result.result?.dependencies?.records[0].fingerprint).toBe(knowledgeFingerprint(document))
+ for(const [params] of mocks.provider.mock.calls) expect(Buffer.byteLength(JSON.stringify(params))).toBeLessThanOrEqual(20000)
+ expect(result.usage).toMatchObject({input:300,output:60,webSearchCalls:0})
+ expect(result.usage.embeddingInput).toBeUndefined()
+})
+
+it("pages canonical uploaded metadata with stable server-only keysets and unchanged access filters",async()=>{
+ const {knowledgeLoader}=await vi.importActual<typeof import("@/features/workspace-ai/server/knowledge-records")>("@/features/workspace-ai/server/knowledge-records")
+ const rows=Array.from({length:20},(_,i)=>({id:ID(100+i),name:`Packet ${i}`,mime_type:"text/plain",size_bytes:20,updated_at:"2026-11-11T12:00:00.000Z"}))
+ const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),ilike:vi.fn().mockReturnThis(),or:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),limit:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),then:vi.fn((resolve:(value:unknown)=>unknown)=>resolve({data:rows,error:null})),maybeSingle:vi.fn().mockResolvedValue({data:{profile:{},updated_at:"current"},error:null})}
+ const from=vi.fn(()=>query),current={...context,supabase:{from}} as unknown as ResearchContext,next=vi.fn()
+ const after={id:ID(99),updatedAt:"2026-11-12T12:00:00.000Z"}
+ const result=await knowledgeLoader(current)("document","governance",undefined,{after,next})
+ expect(result).toHaveLength(20)
+ expect(query.eq).toHaveBeenCalledWith("org_id",WORKSPACE)
+ expect(query.is).toHaveBeenCalledWith("deleted_at",null);expect(query.is).toHaveBeenCalledWith("document_kind",null)
+ expect(query.order.mock.calls).toEqual([["updated_at",{ascending:false}],["id",{ascending:false}]])
+ expect(query.limit).toHaveBeenCalledWith(20)
+ expect(query.or).toHaveBeenCalledWith(`updated_at.lt.${after.updatedAt},and(updated_at.eq.${after.updatedAt},id.lt.${after.id})`)
+ expect(next).toHaveBeenCalledWith({id:rows[19].id,updatedAt:rows[19].updated_at})
+ expect(JSON.stringify(result)).not.toMatch(/storage_path|after|nextPage/)
+ await expect(knowledgeLoader(current)("document","",undefined,{after:{...after,id:"x),org_id.neq.any"},next})).rejects.toThrow()
+ await expect(knowledgeLoader(current)("document","",undefined,{after:{...after,updatedAt:"now),org_id.neq.any"},next})).rejects.toThrow()
+ rows.pop();next.mockClear()
+ await knowledgeLoader(current)("document","",undefined,{next})
+ expect(next).toHaveBeenCalledWith(null)
 })

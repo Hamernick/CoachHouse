@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { NextRequest } from "next/server"
 
 const mocks = vi.hoisted(() => ({
@@ -9,12 +9,14 @@ const mocks = vi.hoisted(() => ({
   notification: vi.fn(),
   deadline: vi.fn(),
   purge: vi.fn(),
+  audience: vi.fn(),
 }))
 vi.mock("@/features/document-editing/server", () => ({
   permanentlyPurgeDocument: mocks.purge,
   reconcileAbandonedDocumentStages: vi.fn(),
 }))
-vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.deadline }) }))
+vi.mock("@/lib/organization/document-file-audience", () => ({ filterDocumentFileAudience: mocks.audience }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.deadline, storage: mocks.client().storage }) }))
 vi.mock("@/lib/supabase/route", () => ({
   createSupabaseRouteHandlerClient: mocks.client,
 }))
@@ -55,10 +57,13 @@ function setup(
     storagePath?: string
     authenticated?: boolean
     deletedAt?: string | null
+    updateError?: { code: string; message: string }
     insertError?: string
     storageError?: string
+    userId?: string
   } = {}
 ) {
+  mocks.audience.mockImplementation(async rows => rows)
   mocks.purge.mockResolvedValue(!options.deletedAt ? { ok: false, status: 409, error: "Move the file to Recently Deleted first." } : options.storageError ? { ok: false, status: 503, error: "Retry cleanup" } : { ok: true })
   const current = {
     ...row,
@@ -83,7 +88,9 @@ function setup(
     const result = () => ({
       data: current,
       error:
-        action === "insert" && options.insertError
+        action === "update" && options.updateError
+          ? options.updateError
+          : action === "insert" && options.insertError
           ? { message: options.insertError }
           : null,
     })
@@ -113,7 +120,8 @@ function setup(
       }),
       update: vi.fn((values: Partial<typeof current>) => {
         update(values)
-        Object.assign(current, values)
+        action = "update"
+        if (!options.updateError) Object.assign(current, values)
         return query
       }),
       delete: vi.fn(() => {
@@ -129,7 +137,7 @@ function setup(
     auth: {
       getUser: vi.fn().mockResolvedValue({
         data: {
-          user: options.authenticated === false ? null : { id: "user-1" },
+          user: options.authenticated === false ? null : { id: options.userId ?? "user-1" },
         },
         error: null,
       }),
@@ -140,7 +148,7 @@ function setup(
       from: vi.fn(() => ({ upload, remove, createSignedUrl: signed })),
     },
   })
-  return { upload, remove, signed, eq, deletion, update }
+  return { upload, remove, signed, eq, deletion, update, current }
 }
 
 function uploadRequest(
@@ -169,6 +177,64 @@ function actionRequest(method: string, action?: string) {
 }
 
 describe("organization document file routes", () => {
+  it.each([["GET", GET], ["POST", POST], ["PATCH", PATCH], ["DELETE", DELETE]] as const)("rejects changed actors before %s storage access or mutation", async (method, handler) => {
+    const calls = setup({ userId: "current-user" })
+    const response = await handler(new NextRequest("http://localhost/api/account/organization-document-files?expectedUserId=other-user", { method }))
+    expect(response.status).toBe(401)
+    expect(mocks.organization).not.toHaveBeenCalled()
+    expect(mocks.audience).not.toHaveBeenCalled()
+    expect(calls.signed).not.toHaveBeenCalled()
+    expect(calls.upload).not.toHaveBeenCalled()
+    expect(mocks.purge).not.toHaveBeenCalled()
+  })
+  afterEach(() => vi.unstubAllGlobals())
+  it("does not sign a source denied by its folder audience", async () => {
+    const calls = setup({ userId: "org-1" })
+    mocks.audience.mockResolvedValue([])
+    expect((await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1&content=1"))).status).toBe(404)
+    expect(calls.signed).not.toHaveBeenCalled()
+  })
+  it("withholds bytes when the source audience changes during download", async () => {
+    setup({ userId: "org-1" })
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      mocks.audience.mockResolvedValue([])
+      return new Response("bin")
+    }))
+    const response = await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1&content=1"))
+    expect(response.status).toBe(404)
+    expect(await response.text()).not.toBe("bin")
+  })
+  it("omits inaccessible files and their byte totals from library responses", async () => {
+    setup({ userId: "org-1" })
+    mocks.audience.mockResolvedValue([])
+    const response = await GET(new NextRequest("http://localhost/api/account/organization-document-files"))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ files: [], quota: { usedBytes: 0 } })
+    expect(response.headers.get("cache-control")).toContain("no-store")
+  })
+  it("delivers file bytes through the authenticated content address", async () => {
+    const calls = setup({ userId: "org-1" })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("bin", { headers: { "Content-Length": "3" } })))
+    const response = await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1&content=1"))
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe("bin")
+    expect(response.headers.get("cache-control")).toContain("no-store")
+    expect(calls.signed).toHaveBeenCalledOnce()
+    expect(response.headers.has("location")).toBe(false)
+  })
+  it("denies anonymous content requests before accessing Storage", async () => {
+    const calls = setup({ authenticated: false })
+    expect((await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1&content=1"))).status).toBe(401)
+    expect(calls.signed).not.toHaveBeenCalled()
+  })
+  it("withholds a file trashed while the upstream response is arriving", async () => {
+    const calls = setup({ userId: "org-1" })
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => {
+      calls.current.deleted_at = new Date().toISOString()
+      return new Response("bin")
+    }))
+    expect((await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1&content=1"))).status).toBe(404)
+  })
   it("does not sign a file path belonging to another organization", async () => {
     const { signed } = setup({ storagePath: "other-org/library/private.pdf" })
     const result = await GET(
@@ -197,7 +263,8 @@ describe("organization document file routes", () => {
     expect(await listing.json()).toMatchObject({ hasStorageAccess: false, quota: { limitBytes: 0 } })
     const download = await GET(new NextRequest("http://localhost/api/account/organization-document-files?id=file-1"))
     expect(download.status).toBe(200)
-    expect(calls.signed).toHaveBeenCalledOnce()
+    expect(calls.signed).not.toHaveBeenCalled()
+    expect(await download.json()).toEqual({ url: "/api/account/organization-document-files?organizationId=org-1&id=file-1&content=1" })
     expect((await POST(uploadRequest())).status).toBe(403)
     expect((await PATCH(actionRequest("PATCH", "trash"))).status).toBe(403)
     expect((await DELETE(actionRequest("DELETE"))).status).toBe(403)
@@ -227,6 +294,12 @@ describe("organization document file routes", () => {
       expect.any(Buffer),
       { contentType: "application/octet-stream" }
     )
+  })
+  it.each([['42501', 403], ['40001', 409], ['PT409', 409]])('reports folder write denial %s without a server error', async (code, status) => {
+    setup({ updateError: { code: String(code), message: 'Document permission changed.' } })
+    const response = await PATCH(actionRequest('PATCH', 'trash'))
+    expect(response.status).toBe(status)
+    expect(await response.json()).toEqual({ error: 'Document permission changed.' })
   })
   it("keeps a core upload attached through listing, trash, and restore", async () => {
     const calls = setup()

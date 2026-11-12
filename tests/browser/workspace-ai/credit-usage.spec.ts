@@ -52,3 +52,28 @@ test("failed usage reads recover without losing the selected filter", async ({ p
   await page.getByRole("button", { name: "Retry", exact: true }).click()
   await expect(page.getByRole("list", { name: "AI usage records" }).getByRole("listitem")).toHaveCount(12)
 })
+
+
+test("usage sits beside the input, appears on hover and stays usable through its popover", async ({ page }) => {
+  await page.goto("/?usage-dock")
+  const input = page.getByRole("textbox", { name: "Search Particles or enter a command" })
+  const usage = page.getByRole("button", { name: /^AI usage:/ })
+  await page.mouse.move(20, 20)
+  await expect(usage.locator("..")).toHaveCSS("opacity", "0")
+  await input.hover()
+  await expect(usage.locator("..")).toHaveCSS("opacity", "1")
+  const bar = (await input.locator("xpath=ancestor::form").boundingBox())!
+  const icon = (await usage.boundingBox())!
+  expect(icon.x + icon.width).toBeLessThan(bar.x)
+  expect(icon.y + icon.height / 2).toBeCloseTo(bar.y + bar.height / 2, 0)
+  await usage.hover()
+  await expect(usage.locator("..")).toHaveCSS("opacity", "1")
+  await usage.click()
+  await expect(page.getByRole("dialog", { name: "AI usage", exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Manage usage", exact: true }).click()
+  await expect(page.getByTestId("usage-manage-request")).toHaveText("1")
+  await page.mouse.move(20, 20)
+  await usage.focus()
+  await expect(usage).toBeFocused()
+  await expect(usage.locator("..")).toHaveCSS("opacity", "1")
+})

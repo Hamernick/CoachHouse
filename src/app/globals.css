@@ -13,6 +13,20 @@
   z-index: 50 !important;
 }
 
+/* Particle portals use the same flat, left-aligned chrome as canvas menus.
+   Keep the SDK's border/hairline and keyboard focus treatment. */
+[data-radix-popper-content-wrapper]:has(.particle-ui-menu) > [role="menu"],
+.particle-ui-popover {
+  --shadow: 0 0 #0000;
+  text-align: left;
+}
+
+/* SDK buttons center an inner span; honor the alignment chosen by callers. */
+.particle-ui[data-color][data-size].justify-start > span:first-child {
+  justify-content: flex-start;
+  text-align: left;
+}
+
 /* Preserve the SDK's 20px default while allowing enlarged text to reflow. */
 .particle-ui-textarea { --textarea-line-height: 1.25rem; }
 
@@ -525,6 +539,11 @@ html body:has([data-public-home-landing]) {
 .org-flow {
   width: 100%;
   height: 100%;
+}
+
+/* Canvas headers omit the decorative type slot; shared library previews retain it. */
+.workspace-flow .react-flow__node [data-particle-header-icon] {
+  display: none;
 }
 
 .workspace-flow .react-flow__pane {
@@ -1055,8 +1074,8 @@ html:has([data-public-home-flat-surfaces]) body *::after {
 /* Shared floating-dock material for workspace overlay shells. Apply once per
    surface, not to nested controls; solid fallback keeps content readable. */
 :root {
-  --canvas-overlay-solid: light-dark(#f5f5f5, #171717);
-  --canvas-overlay-tint: light-dark(rgb(245 245 245 / 0.72), rgb(23 23 23 / 0.86));
+  --canvas-overlay-solid: light-dark(#fff, #171717);
+  --canvas-overlay-tint: light-dark(#fff, rgb(23 23 23 / 0.86));
   --canvas-overlay-border: light-dark(rgb(212 212 212 / 0.65), rgb(64 64 64 / 0.7));
 }
 .canvas-glass {
@@ -1070,6 +1089,13 @@ html:has([data-public-home-flat-surfaces]) body *::after {
     -webkit-backdrop-filter: blur(24px);
     backdrop-filter: blur(24px);
   }
+}
+/* Shared opaque material for the persistent canvas controls. */
+.canvas-glass.canvas-planning-material {
+  --canvas-planning-background: color-mix(in srgb, var(--muted) 95%, var(--foreground));
+  --canvas-overlay-solid: light-dark(#fff, var(--canvas-planning-background));
+  --canvas-overlay-tint: light-dark(#fff, var(--canvas-planning-background));
+  --canvas-overlay-border: light-dark(rgb(212 212 212 / 0.65), var(--border));
 }
 .workspace-loading-surface {
   background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);

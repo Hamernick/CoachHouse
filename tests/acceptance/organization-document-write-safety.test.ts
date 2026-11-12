@@ -44,7 +44,7 @@ describe("organization document write safety", () => {
       publicDocumentRoute,
     ]) {
       const post = handler(source, "POST")
-      const upload = post.indexOf(".upload(")
+      const upload = post.indexOf(source === publicDocumentRoute ? ".upload(" : "uploadLegacyDocumentStage(")
       const mutation = post.indexOf("mutateOrganizationProfile")
       const beforeMutation = post.slice(upload, mutation)
       const priorObjectRemovals = ["existingPath", "previousPath"]
@@ -62,11 +62,12 @@ describe("organization document write safety", () => {
     }
   })
 
-  it("rolls back staged uploads when the profile mutation fails", () => {
-    expect(handler(documentRoute, "POST")).toContain(".remove([objectName])")
-    expect(handler(policyDocumentRoute, "POST")).toContain(
-      ".remove([objectName])"
-    )
+  it("durably reconciles private stages on every exit without direct ambiguous deletion", () => {
+    for (const source of [documentRoute, policyDocumentRoute]) {
+      expect(handler(source, "POST")).toContain("finally {")
+      expect(handler(source, "POST")).toContain("reconcileLegacyDocumentUploadStages({ ...stage, attemptedPaths })")
+      expect(handler(source, "POST")).not.toContain(".remove([objectName])")
+    }
     expect(handler(publicDocumentRoute, "POST")).toContain(
       ".remove([objectName])"
     )
@@ -80,9 +81,8 @@ describe("organization document write safety", () => {
       publicDocumentRoute,
     ]) {
       const remove = handler(source, "DELETE")
-      expect(remove.indexOf("mutateOrganizationProfile")).toBeLessThan(
-        remove.indexOf(".remove(")
-      )
+      const cleanup = source === publicDocumentRoute ? remove.indexOf(".remove(") : remove.lastIndexOf("reconcileLegacyDocumentCleanup(")
+      expect(remove.indexOf("mutateOrganizationProfile")).toBeLessThan(cleanup)
     }
   })
 })

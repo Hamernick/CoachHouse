@@ -65,6 +65,7 @@ export function ParticleHeader({
       <span
         {...surface()}
         className="flex size-5 shrink-0 items-center justify-center"
+        data-particle-header-icon="true"
         aria-hidden
       >
         {icon}

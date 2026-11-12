@@ -32,6 +32,7 @@ import {
 } from "./documents-library-items"
 
 type DocumentsLibraryCardProps = {
+  organizationId?: string
   actions?: ReactNode
   item: LibraryItem
   viewMode: "grid" | "list"
@@ -54,6 +55,7 @@ type DocumentsLibraryCardProps = {
 }
 
 export function DocumentsLibraryCard({
+  organizationId,
   actions,
   item,
   viewMode,
@@ -161,7 +163,7 @@ export function DocumentsLibraryCard({
           viewMode === "list" && "order-first flex-none [&_svg]:size-5"
         )}
       >
-        <DocumentThumbnail item={item} compact={viewMode === "list"} />
+        <DocumentThumbnail organizationId={organizationId} item={item} compact={viewMode === "list"} />
       </div>
       {cardDate ? (
         <div

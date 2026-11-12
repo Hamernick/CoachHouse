@@ -1,3 +1,5 @@
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
 import { resolveDocumentCapabilities } from "@/lib/organization/document-capabilities"
 import { FeatureUpgradeNotice } from "@/components/paywall/feature-upgrade-notice"
 
@@ -44,20 +46,15 @@ export async function StrategicRoadmapEditorPage({
   if ("error" in access) throw new Error("Unable to verify document access.")
   const canEdit = access.capabilities.canEdit
 
-  const { data: orgRow } = await supabase
-    .from("organizations")
-    .select("profile, public_slug")
-    .eq("user_id", orgId)
-    .maybeSingle<{
-      profile: Record<string, unknown> | null
-      public_slug: string | null
-    }>()
+  const { data: orgRow, error: organizationError } = await readOrganizationProfileForProjection(supabase, orgId, user.id)
+  if (organizationError) throw supabaseErrorToError(organizationError, "Unable to load organization documents.")
 
   const htmlCleanup = cleanupOrgProfileHtml(orgRow?.profile ?? {})
   const profile = cleanupRoadmapTestSections(htmlCleanup.nextProfile).nextProfile
 
   const roadmapHomework = await resolveRoadmapHomework(orgId, supabase)
-  const roadmapSections = resolveRoadmapSections(profile).map((section) => {
+  const readableSections = await filterAiDocumentCopies(resolveRoadmapSections(profile), orgId, user.id)
+  const roadmapSections = readableSections.map((section) => {
     const withHomework = {
       ...section,
       homework: roadmapHomework[section.id] ?? null,

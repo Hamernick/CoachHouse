@@ -5,9 +5,11 @@ export type AiRateCard = {
   cachedMicrodollarsPerMillion: number
   outputMicrodollarsPerMillion: number
   webSearchMicrodollarsPerCall?: number
+  embeddingMicrodollarsPerMillion?: number
+  embedding?: { model: string; dimensions: number; maxInputBytes: number; maxInputTokens: number; maxCalls: number; processing?: { provider: string; destination: string; retention: string; training: string; qualification: string; tokenizerQualification: string; tokenBound: "utf8_bytes"; costPolicy: "on_demand_shared_run" } }
   microdollarsPerCredit: number
 }
-export type AiUsage = { input: number; cachedInput: number; output: number; webSearchCalls?: number }
+export type AiUsage = { input: number; cachedInput: number; output: number; webSearchCalls?: number; embeddingInput?: number }
 export type AiCreditAccount = {
   enabled: boolean
   paymentReview?: boolean

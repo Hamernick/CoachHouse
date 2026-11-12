@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import sharp from "sharp"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { MAX_PERSON_PHOTO_DATA_URL_LENGTH } from "@/lib/people/profile-photo"
 import {
   updatePersonCategoryAction,
   upsertPersonAction,
@@ -204,5 +207,54 @@ describe("organization People roles", () => {
     expect(personMatchesRole(person, "custom:Partner")).toBe(false)
     expect(personMatchesRole(person, "volunteers")).toBe(true)
     expect(personMatchesRole(person, "all")).toBe(true)
+  })
+})
+
+
+describe("People profile photos", () => {
+  async function photo() {
+    const bytes = await sharp({ create: { width: 800, height: 600, channels: 4, background: "#369" } }).png().toBuffer()
+    return `data:image/png;base64,${bytes.toString("base64")}`
+  }
+  function storage(error: object | null = null) {
+    const upload = vi.fn(async () => ({ error }))
+    const remove = vi.fn(async () => ({ error: null }))
+    vi.mocked(createSupabaseAdminClient).mockReturnValue({ storage: { from: vi.fn(() => ({ upload, remove })) } } as never)
+    return { upload, remove }
+  }
+  it("stores a bounded photo and saves only its reference, retaining other contact fields", async () => {
+    const { upload } = storage()
+    const result = await upsertPersonAction({ id: "person-1", name: "Morgan", category: "volunteers", image: await photo() })
+    expect(result).toEqual({ ok: true, id: "person-1" })
+    const [path, bytes, options] = upload.mock.calls[0] as unknown as [string, Buffer, object]
+    expect(path).toMatch(/^users\/org-1\/[a-f0-9-]+\.webp$/)
+    expect(options).toEqual({ contentType: "image/webp", upsert: false })
+    expect(await sharp(bytes).metadata()).toMatchObject({ format: "webp", width: 512, height: 384 })
+    expect(profile.org_people[0]).toMatchObject({ image: path, tags: ["tag-a"] })
+    expect(profile.org_people[0].image!.length).toBeLessThan(4096)
+  })
+  it("rejects oversized, invalid and unauthorized photos without changing the contact", async () => {
+    const { upload } = storage()
+    const saved = JSON.stringify(profile)
+    expect(await upsertPersonAction({ name: "Morgan", category: "staff", image: "data:image/png;base64," + "A".repeat(MAX_PERSON_PHOTO_DATA_URL_LENGTH) })).toHaveProperty("error")
+    expect(await upsertPersonAction({ name: "Morgan", category: "staff", image: "data:image/png;base64,bm90LWFuLWltYWdl" })).toHaveProperty("error")
+    mocks.canEdit.mockReturnValue(false)
+    expect(await upsertPersonAction({ name: "Morgan", category: "staff", image: await photo() })).toEqual({ error: "Forbidden" })
+    expect(upload).not.toHaveBeenCalled()
+    expect(mocks.mutate).not.toHaveBeenCalled()
+    expect(JSON.stringify(profile)).toBe(saved)
+  })
+  it("preserves the existing photo when upload or the revision-guarded save fails", async () => {
+    profile.org_people[0].image = "users/org-1/original.webp"
+    const saved = JSON.stringify(profile)
+    const failed = storage({ message: "Upload failed" })
+    expect(await upsertPersonAction({ id: "person-1", name: "Morgan", category: "staff", image: await photo() })).toHaveProperty("error")
+    expect(failed.remove).not.toHaveBeenCalled()
+    expect(JSON.stringify(profile)).toBe(saved)
+    const uploaded = storage()
+    expect(await upsertPersonAction({ id: "person-1", expectedRevision: 99, name: "Morgan", category: "staff", image: await photo() })).toHaveProperty("error")
+    expect(uploaded.upload).toHaveBeenCalledOnce()
+    expect(uploaded.remove).not.toHaveBeenCalled()
+    expect(JSON.stringify(profile)).toBe(saved)
   })
 })

@@ -144,11 +144,11 @@ export function DocumentsLibraryGrid({
   onPermanentlyDeleteUploadedFile,
   onReset,
 }: DocumentsLibraryGridProps) {
-  const [coreChoice, setCoreChoice] = useState<LibraryItem | null>(null)
-  const [selectedNote, setSelectedNote] = useState<NoteDocument | null>(null)
+  const [coreChoiceId, setCoreChoice] = useState<string | null>(null)
+  const [selectedNoteId, setSelectedNote] = useState<string | null>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetRef = useRef<LibraryItem | null>(null)
-  const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
+  const [previewItemId, setPreviewItem] = useState<string | null>(null)
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null)
   const items = useMemo(() => {
     return buildLibraryItems(
@@ -183,6 +183,9 @@ export function DocumentsLibraryGrid({
     uploadedFiles,
     notes,
   ])
+  const coreChoice = items.find(item => item.id === coreChoiceId) ?? null
+  const previewItem = items.find(item => item.id === previewItemId) ?? null
+  const selectedNote = items.find(item => item.id === selectedNoteId)?.note ?? null
   const selection = useDocumentsLibrarySelection({
     items,
     canEdit,
@@ -218,7 +221,7 @@ export function DocumentsLibraryGrid({
 
   function openItem(item: LibraryItem, trigger: HTMLButtonElement) {
     if (item.note) {
-      setSelectedNote(item.note)
+      setSelectedNote(item.id)
       return
     }
     if (item.coreDriveSource) {
@@ -230,7 +233,7 @@ export function DocumentsLibraryGrid({
       return
     }
     if (item.row?.source === "roadmap" && isEmptyDocumentSlot(item)) {
-      setCoreChoice(item)
+      setCoreChoice(item.id)
       return
     }
     if (isEmptyDocumentSlot(item)) {
@@ -250,7 +253,7 @@ export function DocumentsLibraryGrid({
       (item.fileType === "pdf" || item.fileType === "image")
     ) {
       previewTriggerRef.current = trigger
-      setPreviewItem(item)
+      setPreviewItem(item.id)
       return
     }
     if (item.href) {
@@ -313,7 +316,7 @@ export function DocumentsLibraryGrid({
       <CoreChoiceDialog
         item={coreChoice}
         source={coreSource}
-        canWrite={hasStorageAccess}
+        canWrite={hasStorageAccess && canEdit && editMode}
         onClose={() => setCoreChoice(null)}
       />
       <input
@@ -325,13 +328,14 @@ export function DocumentsLibraryGrid({
         disabled={!canUpload}
         onChange={(event) => {
           const file = event.currentTarget.files?.[0]
-          const target = uploadTargetRef.current
+          const target = items.find(item => item.id === uploadTargetRef.current?.id)
           event.currentTarget.value = ""
           if (file && target) uploadToItem(target, file)
         }}
       />
       {previewItem ? (
         <DocumentPreviewDialog
+          organizationId={organizationId}
           item={previewItem}
           returnFocusRef={previewTriggerRef}
           onClose={() => setPreviewItem(null)}
@@ -366,6 +370,7 @@ export function DocumentsLibraryGrid({
           const selected = selection.selectedIds.includes(item.id)
           return (
             <DocumentsLibraryCard
+              organizationId={organizationId}
               key={item.id}
               item={item}
               actions={

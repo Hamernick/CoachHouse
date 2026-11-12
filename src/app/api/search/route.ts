@@ -73,19 +73,19 @@ export async function GET(request: Request) {
 
       if (!rankedError) {
         for (const row of rankedResults ?? []) {
-          if (shouldOmitSearchRow(row)) continue
+          if (shouldOmitSearchRow(row) || ["My organization", "Roadmap", "Documents"].includes(row.group_name)) continue
           pushResult(formatSearchRow(row))
         }
-        if (orgId !== user.id) {
-          await addActiveOrganizationResults({
-            supabase,
-            orgId,
-            tokens,
-            pushResult,
-          })
-        }
+        await addActiveOrganizationResults({
+          actorId: user.id,
+          supabase,
+          orgId,
+          tokens,
+          pushResult,
+        })
       } else {
         await addFallbackResults({
+          actorId: user.id,
           supabase,
           orgId,
           isAdmin,

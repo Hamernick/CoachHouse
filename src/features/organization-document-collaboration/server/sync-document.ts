@@ -18,7 +18,7 @@ export async function syncOrganizationDocument(input: DocumentSyncInput): Promis
   try {
     if (JSON.stringify(input).length > 1_000_000) throw new DocumentOperationError("invalid", "Document request is too large.")
     const writing = Boolean(input.steps?.length || input.initialDocument || input.budget)
-    const { user, admin, capabilities } = await trace.measure("authorize", () => documentContext(input, writing, trace))
+    const { user, admin, capabilities, supportAccess } = await trace.measure("authorize", () => documentContext(input, writing, trace))
     if (!input.clientId.startsWith(`${user.id}:`) || input.clientId.length > 100) throw new DocumentOperationError("invalid", "Invalid editing session.")
     if (!Number.isInteger(input.version) || input.version < 0) throw new DocumentOperationError("invalid", "Invalid document revision.")
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -83,8 +83,9 @@ export async function syncOrganizationDocument(input: DocumentSyncInput): Promis
           p_org: input.organizationId, p_section: input.sectionId,
           p_expected_updated_at: organization.data.updated_at,
           p_expected_generation: session?.generation ?? null, p_expected_version: session?.version ?? null,
-          p_state: next, p_profile: nextProfile,
+          p_state: next, p_profile: nextProfile, p_support: supportAccess === true,
         }))
+        if (error?.code === "42501") throw new DocumentOperationError("denied", "You no longer have access to edit this document. Your local copy is retained.", error.code)
         if (error) throw new DocumentOperationError("unavailable", "Unable to save. Your edits remain in this editor; retry shortly.", error.code)
         if (!committed) continue
         trace.committed()

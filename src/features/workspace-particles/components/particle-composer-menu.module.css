@@ -1,0 +1,18 @@
+.option[data-color][data-size] {
+  height: 32px;
+  min-height: 32px;
+  gap: 6px;
+  padding-inline: 8px;
+  font-weight: 400;
+  transition: none;
+}
+.option[data-color][data-size]::before { content: none; }
+.option[data-color][data-size]::after,
+.option[data-color][data-size] > span {
+  transition: none;
+  transform: none;
+}
+.option[aria-selected="true"] { background: var(--accent); }
+@media (pointer: coarse) {
+  .option[data-color][data-size] { height: 44px; min-height: 44px; }
+}

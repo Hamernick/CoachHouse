@@ -28,7 +28,7 @@ export function ResearchHistoryMenu({ target, disabled, onResume }: {
     finally { if (version.current === request) setLoading(false) }
   }
   return <Menu onOpen={() => void load()} onClose={() => { version.current++ }}>
-    <Menu.Trigger><Button color="secondary" type="button" variant="ghost" size="2xl" disabled={disabled}>Previous research</Button></Menu.Trigger>
+    <Menu.Trigger><Button color="secondary" type="button" variant="ghost" size="md" disabled={disabled}>Previous research</Button></Menu.Trigger>
     <Menu.Content align="start" minWidth={224} maxHeight={256}><div className="particle-ui particle-ui-menu">
       {loading && <Menu.Item disabled>Loading research…</Menu.Item>}
       {error && <Menu.Item onSelect={event => { event.preventDefault(); void load() }}>Could not load. Try again</Menu.Item>}

@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase/types"
 
 vi.mock("server-only", () => ({}))
-const mocks = vi.hoisted(() => ({ client: vi.fn(), activeOrg: vi.fn(), drive: vi.fn() }))
+const mocks = vi.hoisted(() => ({ client: vi.fn(), activeOrg: vi.fn(), drive: vi.fn(), rpc: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: (name: string, args: unknown) => name === "read_workspace_ai_document_copy_sources" ? Promise.resolve({ data: { blockedSectionIds: [], complete: false }, error: null }) : mocks.rpc(name, args) }) }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.client }))
 vi.mock("@/lib/organization/active-org", () => ({ resolveActiveOrganization: mocks.activeOrg, canEditOrganization: () => true }))
 vi.mock("@/features/google-drive", () => ({ getSelectedGoogleDriveFile: mocks.drive }))
@@ -38,6 +39,7 @@ function setup(subscription: unknown = null, error: unknown = null) {
 describe("free document access", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.rpc.mockResolvedValue({ data: true, error: null })
     mocks.activeOrg.mockResolvedValue({ orgId: "org-1", role: "owner" })
   })
   it.each([
@@ -69,6 +71,7 @@ describe("free document access", () => {
     expect(await saveRoadmapSectionAction({ sectionId: "budget", driveFileId: "drive-fixture-000001", content: "Overwrite" })).toHaveProperty("error")
     expect(update).not.toHaveBeenCalled()
     expect(mocks.drive).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
   it("permits a verified Drive link and preserves the saved native body", async () => {
     const { update } = setup()
@@ -76,8 +79,9 @@ describe("free document access", () => {
     const result = await saveRoadmapSectionAction({ sectionId: "budget", driveFileId: "drive-fixture-000001", expectedOrganizationId: "org-1", expectedUserId: "viewer-1", expectedLastUpdated: null })
     expect(result).toMatchObject({ section: { id: "budget" } })
     expect(mocks.drive).toHaveBeenCalledWith("viewer-1", "drive-fixture-000001")
-    expect(update).toHaveBeenCalledOnce()
-    const sections = update.mock.calls[0][0].profile.roadmap.sections
+    expect(update).not.toHaveBeenCalled()
+    expect(mocks.rpc).toHaveBeenCalledWith("commit_roadmap_profile", expect.objectContaining({ p_require_storage: false, p_support: false }))
+    const sections = mocks.rpc.mock.calls[0][1].p_profile.roadmap.sections
     expect(sections.find((s: { id: string }) => s.id === "budget")).toMatchObject({ content: "Saved body", driveSource: { fileId: "drive-fixture-000001" } })
   })
 })

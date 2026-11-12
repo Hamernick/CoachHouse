@@ -1,6 +1,41 @@
+import type { OrganizationWorkspaceObjectivesTable } from "./tables/organization_workspace_objectives"
 import type { Json } from "./json"
+import type { OrganizationWorkspaceObjectiveGroupsTable } from "./tables/organization_workspace_objective_groups"
 
 export type WorkspaceFunctions = {
+  project_folder_access_review: { Args: { p_project_id: string; p_folder_id: string; p_actor_id: string; p_expected_revision?: number; p_members?: Json; p_workspace_changes?: Json }; Returns: Json }
+  project_folder_access_control: { Args: { p_project_id: string; p_folder_id: string; p_actor_id: string; p_expected_revision?: number; p_members?: Json }; Returns: Json }
+  list_retained_workspace_access: { Args: { p_org_id: string; p_actor_id: string; p_after?: string | null }; Returns: Json }
+  workspace_access_control: { Args: { p_org_id: string; p_canvas_id: string; p_actor_id: string; p_expected_revision?: number; p_members?: Json }; Returns: Json }
+  read_public_document_audiences: {
+    Args: { p_org_ids: string[]; p_section_ids: string[]; p_audience?: string }
+    Returns: Json
+  }
+  read_public_document_audience: { Args: { p_org_id: string; p_section_ids: string[]; p_audience?: string }; Returns: Json }
+  read_organization_profile_for_projection: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
+  read_workspace_ai_document_sources: { Args: { p_org_id: string; p_actor_id: string; p_run_id: string }; Returns: Json }
+  filter_workspace_ai_sources: { Args: { p_org_id: string; p_canvas_id: string; p_actor_id: string; p_file_ids: string[]; p_section_ids: string[] }; Returns: Json }
+  read_workspace_ai_document_copy_sources: { Args: { p_org_id: string; p_actor_id: string; p_section_ids: string[] }; Returns: Json }
+  commit_roadmap_profile: { Args: { p_org: string; p_expected_updated_at: string | null; p_profile: Json; p_support: boolean; p_require_storage: boolean }; Returns: boolean }
+  commit_roadmap_publication: { Args: { p_org: string; p_expected_updated_at: string; p_public: boolean; p_support: boolean }; Returns: boolean }
+  write_workspace_objective_island: { Args: { p_org_id: string; p_objective_id: string; p_step_id: string | null; p_expected_updated_at: string; p_title: string | null; p_description: string | null; p_status: string }; Returns: boolean }
+  write_workspace_objective: { Args: { p_mode: string; p_org_id: string; p_objective_id: string | null; p_expected_updated_at: string | null; p_title: string | null; p_description: string | null; p_priority: string | null; p_due_at: string | null; p_group_id: string | null; p_status: string | null; p_user_ids: string[] | null }; Returns: OrganizationWorkspaceObjectivesTable["Row"] }
+  write_workspace_objective_group: { Args: { p_org_id: string; p_group_id: string | null; p_expected_updated_at: string | null; p_title: string | null; p_archived: boolean | null }; Returns: OrganizationWorkspaceObjectiveGroupsTable["Row"] }
+  replace_workspace_objective_assignees: { Args: { p_org_id: string; p_objective_id: string; p_expected_updated_at: string; p_user_ids: string[] }; Returns: string[] }
+  commit_workspace_board: { Args: { p_org_id: string; p_actor_id: string; p_expected_revision: string | null; p_expected_state: Json; p_state: Json }; Returns: boolean }
+  commit_workspace_catalog: { Args: { p_org_id: string; p_actor_id: string; p_expected_state: Json; p_state: Json }; Returns: boolean }
+  filter_workspace_page_management_canvases: { Args: { p_org_id: string; p_actor_id: string; p_canvas_ids: string[] }; Returns: string[] }
+  read_workspace_canvas_projection: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
+  read_workspace_particle_board_for_projection: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
+  read_workspace_particle_ai_files: { Args: { p_org_id: string; p_actor_id: string; p_record_ids: string[] }; Returns: Json }
+  read_workspace_particle_ai_documents: { Args: { p_org_id: string; p_actor_id: string; p_record_ids: string[] }; Returns: Json }
+  filter_document_activity_audience: { Args: { p_event_ids: string[]; p_actor_id: string }; Returns: string[] }
+  filter_document_file_audience: { Args: { p_file_ids: string[]; p_actor_id: string }; Returns: string[] }
+  read_project_asset_folders_for_actor: { Args: { p_project_id: string; p_actor_id: string }; Returns: Json }
+  set_workspace_source_audience: { Args: { p_org_id: string; p_canvas_id: string; p_actor_id: string; p_expected_revision: number; p_members: Json }; Returns: number }
+  set_project_folder_workspace_grants: { Args: { p_project_id: string; p_folder_id: string; p_actor_id: string; p_expected_revision: number; p_grants: Json }; Returns: number }
+  read_project_asset_folders: { Args: { p_project_id: string }; Returns: Json }
+  mutate_project_asset_folder: { Args: { p_project_id: string; p_org_id: string; p_actor_id: string; p_expected_updated_at: string; p_change: Json; p_new_id: string }; Returns: Json }
   list_accessible_organization_forms: { Args: { p_actor_id: string; p_version_id: string; p_after?: string | null }; Returns: Json }
   list_organization_form_response_versions: { Args: { p_actor_id: string; p_version_id: string; p_before?: string | null }; Returns: Json }
   list_organization_form_versions: { Args: { p_actor_id: string; p_page_id: string; p_before?: string | null }; Returns: Json }

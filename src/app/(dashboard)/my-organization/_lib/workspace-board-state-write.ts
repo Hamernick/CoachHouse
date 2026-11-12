@@ -1,4 +1,6 @@
+import { assertWorkspaceCanvasAccess, WORKSPACE_CANVAS_ACCESS_ERROR } from "@/lib/organization/workspace-canvas-access"
 import { selectWorkspaceState, mergeWorkspaceState } from "@/features/workspace-management"
+import { projectStoredParticleGraphAudience } from "@/features/workspace-particles/server"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
@@ -76,15 +78,11 @@ export async function commitWorkspaceBoardState({
   return { error: WORKSPACE_BOARD_WRITE_CONFLICT_ERROR }
 }
 
-function isForeignKeyViolation(error: { code?: string } | null) {
-  return error?.code === "23503"
-}
-
-function isUniqueViolation(error: { code?: string } | null) {
-  return error?.code === "23505"
-}
-
 export function workspaceBoardWriteError(error: { code?: string; message?: string }) {
+  if (error.code === "42501" && ["Board source access required.", "Workspace audience access required."].includes(error.message ?? ""))
+    return "This content is unavailable. Refresh and try again."
+  if (error.code === "40001" && (error.message?.startsWith("Board source permission") || error.message?.startsWith("Workspace permission")))
+    return "Workspace permissions changed. Refresh and try again."
   if (error.code === "42501" && error.message === "Form source manager required")
     return "You need form Edit access to change it, or primary manager access to remove it. Your changes were not saved."
   if (error.code === "22023" && error.message === "Conflicting form identity")
@@ -109,10 +107,14 @@ export async function persistWorkspaceBoardState({
   supabase: SupabaseClient<Database>
   userId: string
 }) {
-  return commitWorkspaceBoardState({
+  const result = await commitWorkspaceBoardState({
     buildState,
     updateParticleGraph,
     readSnapshot: async () => {
+      // Check before compiling canonical content, including CAS retries/replays.
+      try {
+        await assertWorkspaceCanvasAccess({ supabase, orgId, userId, workspaceCanvasId, allowAbsent: true })
+      } catch { return { error: WORKSPACE_CANVAS_ACCESS_ERROR } }
       const { data, error } = await supabase
         .from("organization_workspace_boards")
         .select("state, updated_at")
@@ -138,48 +140,29 @@ export async function persistWorkspaceBoardState({
     writeSnapshot: async (snapshot, nextState) => {
       const state = mergeWorkspaceState(snapshot.stored, nextState, workspaceCanvasId)
 
-      if (!snapshot.exists) {
-        const insertWithActor = (updatedBy: string | null) =>
-          supabase
-            .from("organization_workspace_boards")
-            .insert({ org_id: orgId, state, updated_by: updatedBy })
-            .select("updated_at")
-            .maybeSingle<{ updated_at: string }>()
-
-        let { data, error } = await insertWithActor(userId)
-        if (isForeignKeyViolation(error)) {
-          const fallbackResult = await insertWithActor(null)
-          data = fallbackResult.data
-          error = fallbackResult.error
-        }
-        if (isUniqueViolation(error)) return { status: "conflict" }
-        if (error) {
-          return { status: "error", error: workspaceBoardWriteError(error) }
-        }
-        return data ? { status: "written" } : { status: "conflict" }
-      }
-
-      const revision = snapshot.revision
-      if (!revision) return { status: "conflict" }
-      const updateWithActor = (updatedBy: string | null) =>
-        supabase
-          .from("organization_workspace_boards")
-          .update({ state, updated_by: updatedBy })
-          .eq("org_id", orgId)
-          .eq("updated_at", revision)
-          .select("updated_at")
-          .maybeSingle<{ updated_at: string }>()
-
-      let { data, error } = await updateWithActor(userId)
-      if (isForeignKeyViolation(error)) {
-        const fallbackResult = await updateWithActor(null)
-        data = fallbackResult.data
-        error = fallbackResult.error
-      }
-      if (error) {
-        return { status: "error", error: workspaceBoardWriteError(error) }
-      }
-      return data ? { status: "written" } : { status: "conflict" }
+      // The database rechecks editor/closure authority under locks, then compares
+      // the complete snapshot and exact row revision. Never save a projection.
+      const { data, error } = await supabase.rpc("commit_workspace_board", {
+        p_org_id: orgId,
+        p_actor_id: userId,
+        p_expected_revision: snapshot.revision,
+        p_expected_state: snapshot.exists ? snapshot.stored ?? null : null,
+        p_state: state,
+      })
+      if (error) return { status: "error", error: workspaceBoardWriteError(error) }
+      if (data === true) return { status: "written" }
+      if (data === false) return { status: "conflict" }
+      return { status: "error", error: "Unable to confirm workspace save. Refresh and try again." }
     },
   })
+  if ("error" in result) return result
+  try {
+    const boardState = result.boardState.particleGraph === undefined ? result.boardState : {
+      ...result.boardState,
+      particleGraph: await projectStoredParticleGraphAudience(result.boardState.particleGraph, orgId, userId),
+    }
+    // Even layout-only/no-op responses require current access after persistence.
+    await assertWorkspaceCanvasAccess({ supabase, orgId, userId, workspaceCanvasId })
+    return { ...result, boardState }
+  } catch { return { error: "Unable to load saved workspace. Refresh and try again." } }
 }

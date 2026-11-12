@@ -1,4 +1,6 @@
 import "server-only"
+import { assertPrivateOrganizationReadWindow } from "@/lib/organization/private-storage-link"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 import { z } from "zod"
 import { readParticleGraph } from "@/features/workspace-particles"
@@ -79,7 +81,8 @@ export async function resolvePageDocumentSources(actor: PageActor, input: {
   // Bounded sequential reads; repeated file placements reuse the exact text copy.
   for (const [id, source] of sources) {
     deadline.throwIfAborted()
-    const { data, error } = await actor.supabase.storage.from("org-documents")
+    await assertPrivateOrganizationReadWindow(actor.orgId)
+    const { data, error } = await createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from("org-documents")
       .download(source.storage_path, undefined, { signal: AbortSignal.any([deadline, AbortSignal.timeout(10_000)]) })
     if (error || !data || data.size !== source.size_bytes || data.size > PUBLIC_DOCUMENT_LIMIT)
       throw new WorkspaceSharingError("unavailable", "A selected document could not be read. Try again.")
@@ -89,6 +92,7 @@ export async function resolvePageDocumentSources(actor: PageActor, input: {
       throw new WorkspaceSharingError("unsupported", "These documents are too large to share together. Select fewer documents.")
     prepared.set(id, representation)
   }
+  await assertPrivateOrganizationReadWindow(actor.orgId)
   const current = await loadSources(actor, ids, deadline)
   await assertCurrentActor(actor)
   for (const [id, source] of sources) {

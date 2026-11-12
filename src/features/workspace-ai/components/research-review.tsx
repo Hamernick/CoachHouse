@@ -6,7 +6,7 @@ import { ResearchPlanPresentation } from "./research-presentation"
 
 export type ResearchPlanContext = { title: string; members: { id: string; title: string }[] }
 
-export function ResearchReview({ result, plan }: { result: ResearchResult; plan?: ResearchPlanContext }) {
+export function ResearchReview({ result, plan, compact = false }: { result: ResearchResult; plan?: ResearchPlanContext; compact?: boolean }) {
   if (!researchPresentationEnabled && result.items.some(item => item.kind === "form" || item.kind === "data_view"))
     return <p role="alert" className="text-sm text-muted-foreground">Working-output composition is unavailable. Your saved draft is retained.</p>
   const removed = result.removeReferences ?? []
@@ -17,7 +17,7 @@ export function ResearchReview({ result, plan }: { result: ResearchResult; plan?
     return item?.kind === "reference" && item.referenceId ? title(item.referenceId) : item?.title ?? key
   }
   return <div className="space-y-2">
-    <ResearchOutputCoverage result={result} />
+    {(!compact || result.unfulfilled?.length || result.items.some(item => item.kind === "form" || item.kind === "data_view")) && <ResearchOutputCoverage result={result} />}
     <p className="text-sm">{result.summary}</p>
     {plan && <p className="text-xs text-muted-foreground">Existing content and completion stay unchanged. Items not mentioned stay in {plan.title}.</p>}
     {result.questions.length > 0 && <ul className="list-disc space-y-1 pl-4 text-sm">{result.questions.map(question => <li key={question}>{question}</li>)}</ul>}
@@ -29,6 +29,6 @@ export function ResearchReview({ result, plan }: { result: ResearchResult; plan?
       {result.decisions?.find(decision => decision.itemKey === item.key)?.outcomes.map(outcome => <p key={outcome.key} className="text-xs text-muted-foreground"><span className="font-medium">{outcome.label}</span>: {outcome.next.length ? outcome.next.map(key => itemTitle(key)).join(", ") : "No further action proposed"}</p>)}
     </li>)}</ul>}
     {removed.length > 0 && <div className="space-y-1 text-xs text-muted-foreground"><p>Remove from plan; keep in workspace:</p><ul aria-label="Research membership removals">{removed.map(reference => <li key={reference}>{title(reference)}</li>)}</ul></div>}
-    <ResearchSources sources={result.sources} />
+    {(!compact || result.sources.length > 0) && <ResearchSources sources={result.sources} />}
   </div>
 }

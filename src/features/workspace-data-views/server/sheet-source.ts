@@ -6,7 +6,7 @@ import { readGoogleSheetRange, GoogleDriveError } from "@/features/google-drive"
 import { googleSheetRangeSchema } from "@/features/google-drive/client"
 import { dataViewConfigSchema, type DataViewCommand, type DataViewPage, type DataViewResult } from "../lib/schema"
 
-const metadataSchema=z.object({source:googleSheetRangeSchema, headerHash:z.string().nullable(),canEdit:z.boolean(),view:z.object({id:z.uuid(),name:z.string(),revision:z.number().int(),source:z.literal("sheets"),tableId:z.null(),config:dataViewConfigSchema}).nullable()})
+export const metadataSchema=z.object({source:googleSheetRangeSchema, headerHash:z.string().nullable(),canEdit:z.boolean(),view:z.object({id:z.uuid(),name:z.string(),revision:z.number().int(),source:z.literal("sheets"),tableId:z.null(),config:dataViewConfigSchema}).nullable()})
 type RpcResult={data:unknown;error:{code:string}|null}
 function denied():DataViewResult{return {ok:false,code:"denied",error:"This linked Sheet is unavailable to your current Google account. Reconnect your own Google account or open the source."}}
 function invalid():DataViewResult{return {ok:false,code:"invalid",error:"The linked range or its header changed. Create a new view for the current source."}}

@@ -280,7 +280,7 @@ export async function updateWorkspaceFinanceOpportunityStatus(input: {
 
   let admin: ReturnType<typeof createSupabaseAdminClient>
   try {
-    admin = createSupabaseAdminClient()
+    admin = createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 })
   } catch {
     return { error: "Finance opportunities are not configured." }
   }

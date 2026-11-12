@@ -16,6 +16,7 @@ import styles from "./workspace-dock.module.css"
 
 export type WorkspaceContentWindowState = {
   geometry: WorkspaceContentWindowGeometry | null
+  topInset?: number
   resolvePreferredGeometry?: (width: number) => WorkspaceContentWindowGeometry | null
   presentation?: "window" | "sidebar"
   maximized: boolean
@@ -35,6 +36,7 @@ function WorkspaceContentWindowSurface({
   headerSlots = false,
   maxWidth,
   organizationTriggerRef,
+  backToPlanning = false,
 }: {
   children?: ReactNode | ((present: boolean) => ReactNode)
   windowState?: WorkspaceContentWindowState
@@ -44,6 +46,7 @@ function WorkspaceContentWindowSurface({
   headerActions?: ReactNode
   maxWidth?: number
   organizationTriggerRef?: RefObject<HTMLButtonElement | null>
+  backToPlanning?: boolean
 }) {
   const titleId = useId()
   const [actionsTarget, setActionsTarget] = useState<HTMLDivElement | null>(
@@ -90,11 +93,11 @@ function WorkspaceContentWindowSurface({
   useLayoutEffect(() => {
     if (!sidebar || collapsed) return
     const frame = requestAnimationFrame(() => {
-      if (document.activeElement === organizationTriggerRef?.current)
+      if (backToPlanning || document.activeElement === organizationTriggerRef?.current)
         surfaceRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
     })
     return () => cancelAnimationFrame(frame)
-  }, [sidebar, collapsed, organizationTriggerRef, surfaceRef])
+  }, [sidebar, collapsed, organizationTriggerRef, surfaceRef, backToPlanning])
   const sidebarContentStyle = sidebar ? {
     width: geometry ? geometry.width - 2 : undefined,
     visibility: collapsed ? "hidden" as const : undefined,
@@ -137,9 +140,10 @@ function WorkspaceContentWindowSurface({
           paintedGeometry
             ? {
                 willChange,
+                top: !windowState?.maximized && !sidebar ? windowState?.topInset : undefined,
                 width: sidebar && collapsed ? triggerSize.width : paintedGeometry.width,
                 height: sidebar && collapsed ? triggerSize.height : paintedGeometry.height,
-                borderRadius: sidebar && collapsed ? triggerSize.height / 2 : windowState?.maximized ? 0 : 20,
+                borderRadius: sidebar && collapsed ? triggerSize.unified ? 18 : triggerSize.height / 2 : windowState?.maximized ? 0 : 20,
                 pointerEvents: collapsed ? "none" : "auto",
               }
             : undefined
@@ -155,7 +159,7 @@ function WorkspaceContentWindowSurface({
             !desktop && !headerActions && !headerSlots && "hidden"
           )}
         >
-          {desktop && <WorkspaceWindowControls windowState={windowState} />}
+          {desktop && <WorkspaceWindowControls windowState={windowState} backToPlanning={backToPlanning} />}
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
             <div id={titleId} className={styles.windowTitleCopy}>
               <h2 className="min-w-0 truncate text-sm font-medium">{title}</h2>

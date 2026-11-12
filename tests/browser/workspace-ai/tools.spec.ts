@@ -1,0 +1,62 @@
+import { expect, test } from "@playwright/test"
+
+async function setup(page: import("@playwright/test").Page) {
+  await page.route("**/api/integrations/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ connection: { connected: false, configured: false } }) }))
+  await page.goto("/?tools")
+}
+
+test("Tools keeps one library, preserves the editor through navigation, and creates once", async ({ page }) => {
+  await setup(page)
+  await expect(page.getByRole("tab", { name: "Particles", exact: true })).toHaveCount(0)
+  const plugins = page.getByRole("heading", { name: "Plugins", exact: true })
+  const particles = page.getByRole("heading", { name: "Particles", exact: true })
+  await expect(plugins).toBeVisible()
+  await expect(particles).toBeAttached()
+  expect((await plugins.boundingBox())!.y).toBeLessThan((await particles.boundingBox())!.y)
+  await page.getByRole("button", { name: "Browse Particles" }).click()
+  const search = page.getByRole("textbox", { name: "Search Particles" })
+  await expect(search).toBeFocused()
+  await search.fill("decision")
+  const configure = page.getByRole("button", { name: "Configure Decision", exact: true })
+  await configure.click()
+  await expect(plugins).toBeHidden()
+  const title = page.getByRole("textbox", { name: "Title", exact: true })
+  await title.fill("Choose delivery schedule")
+  await page.getByRole("button", { name: "Toggle panel" }).click()
+  await expect(title).toBeHidden()
+  await page.getByRole("button", { name: "Toggle panel" }).click()
+  await expect(title).toHaveValue("Choose delivery schedule")
+  await page.getByRole("tab", { name: "Documents", exact: true }).click()
+  await expect(title).toBeHidden()
+  await page.getByRole("tab", { name: "Tools", exact: true }).click()
+  await expect(title).toHaveValue("Choose delivery schedule")
+  await page.getByRole("button", { name: "Back to Tools" }).click()
+  await page.getByRole("button", { name: "Keep editing" }).click()
+  await expect(title).toHaveValue("Choose delivery schedule")
+  await page.getByRole("button", { name: "Add to canvas", exact: true }).click()
+  await expect(search).toHaveValue("decision")
+  await expect(configure).toBeFocused()
+  await expect(page.getByRole("region", { name: "Plugins", exact: true })).toHaveCount(1)
+  await expect(page.getByTestId("created-particles")).toContainText("Choose delivery schedule")
+  expect(JSON.parse(await page.getByTestId("created-particles").innerText())).toHaveLength(1)
+})
+
+test("Tools search and preset Back fit narrow light and dark views without losing scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await setup(page)
+  for (const dark of [false, true]) {
+    await page.evaluate(value => document.documentElement.classList.toggle("dark", value), dark)
+    await page.getByRole("button", { name: "Browse Particles" }).click()
+    const search = page.getByRole("textbox", { name: "Search Particles" })
+    await search.fill("metric")
+    const configure = page.getByRole("button", { name: "Configure Metric", exact: true })
+    await configure.scrollIntoViewIfNeeded()
+    const y = (await configure.boundingBox())!.y
+    await configure.click()
+    await page.getByRole("button", { name: "Back to Tools" }).click()
+    await expect(configure).toBeFocused()
+    expect(Math.abs((await configure.boundingBox())!.y - y)).toBeLessThan(2)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: `test-results/tools-${dark ? "dark" : "light"}.png` })
+  }
+})

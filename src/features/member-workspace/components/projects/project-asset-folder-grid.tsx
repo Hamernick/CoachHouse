@@ -3,9 +3,11 @@
 import { useState, type DragEvent } from "react"
 import { DotsThree, DotsSixVertical, File, Folder, ArrowLeft } from "@phosphor-icons/react/dist/ssr"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { getFolderDropFile, type FolderFile, type ProjectAssetFolder, type ProjectAssetFolderState } from "../../lib/project-asset-folders"
+
+import { ProjectFolderMenu } from "./project-folder-menu"
 
 const FILE_DRAG_TYPE = "application/x-coach-house-document"
 const sourceLabels = { organization: "Organization file", project: "Project file", core: "Core document", policy: "Policy", upload: "Organization document", drive: "Google Drive", fiscal: "Signed document · Read-only" }
@@ -17,6 +19,7 @@ type Props = {
   query: string
   canEdit: boolean
   busy: boolean
+  onAccess?: (folder: ProjectAssetFolder, trigger: HTMLButtonElement) => void
   onOpenFolder: (id: string | null) => void
   onRename: (folder: ProjectAssetFolder) => void
   onRemove: (folder: ProjectAssetFolder) => void
@@ -25,7 +28,7 @@ type Props = {
   onOpenFile: (file: FolderFile) => void
 }
 
-export function ProjectAssetFolderGrid({ state, files, folderId, query, canEdit, busy, onOpenFolder, onRename, onRemove, onMove, onUpload, onOpenFile }: Props) {
+export function ProjectAssetFolderGrid({ state, files, folderId, query, canEdit, busy, onAccess, onOpenFolder, onRename, onRemove, onMove, onUpload, onOpenFile }: Props) {
   const [draggingKey, setDraggingKey] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const location = new Map(state.placements.map((item) => [item.fileKey, item.folderId]))
@@ -78,10 +81,7 @@ export function ProjectAssetFolderGrid({ state, files, folderId, query, canEdit,
             <div key={folder.id} {...dropProps(folder.id)} data-drop-folder={folder.id} className={cn("flex min-w-0 flex-col gap-1 rounded-xl border border-border bg-muted p-1 transition-colors", folderId === folder.id && "border-primary", dropTarget === folder.id && "bg-accent ring-2 ring-primary")}>
               <div className="flex items-center justify-between gap-2 p-1">
                 <Folder className="size-5 text-muted-foreground" />
-                {canEdit ? <DropdownMenu>{menuTrigger(folder.name)}<DropdownMenuContent align="end"><DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => onRename(folder)}>Rename</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onRemove(folder)}>Delete folder</DropdownMenuItem>
-                </DropdownMenuGroup></DropdownMenuContent></DropdownMenu> : null}
+                <ProjectFolderMenu folder={folder} canEdit={canEdit} busy={busy} onAccess={onAccess} onRename={onRename} onRemove={onRemove} />
               </div>
               <Button variant="ghost" disabled={busy} className="h-auto w-full min-w-0 flex-col items-start gap-1 rounded-lg bg-background px-3 py-3 text-left" onClick={() => onOpenFolder(folder.id)} aria-label={`Open folder ${folder.name}`}>
                 <span className="w-full truncate">{folder.name}</span>

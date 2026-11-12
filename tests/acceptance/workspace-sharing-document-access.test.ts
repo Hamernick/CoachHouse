@@ -5,9 +5,9 @@ import { handlePageDocumentPreview } from "@/features/workspace-sharing/server/p
 import { handlePageImageCleanup } from "@/features/workspace-sharing/server/page-image-cleanup"
 import { ID, WORKSPACE } from "./fixtures/particle-fixtures"
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), storage: vi.fn(), download: vi.fn(), remove: vi.fn(),
+const mocks = vi.hoisted(() => ({ canvas: vi.fn(), rpc: vi.fn(), storage: vi.fn(), download: vi.fn(), remove: vi.fn(),
   user: vi.fn(), actor: vi.fn(), sources: vi.fn(), documents: vi.fn(), flags: { publicSharingEnabled: true } }))
-vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc, storage: { from: mocks.storage } }) }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: (name: string, args: unknown) => name === "filter_workspace_page_management_canvases" ? mocks.canvas(name, args) : mocks.rpc(name, args), storage: { from: mocks.storage } }) }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.user } }) }))
 vi.mock("@/lib/feature-flags", () => mocks.flags)
 vi.mock("@/features/workspace-sharing/server/page-context", () => ({ loadPageActor: mocks.actor, loadSavedPageSources: mocks.sources }))
@@ -20,6 +20,7 @@ const preview = () => new Request(`https://fixture.test/api/account/workspace-pa
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mocks.canvas.mockReset().mockImplementation(async (_name: string, args: { p_canvas_ids: string[] }) => ({ data: args.p_canvas_ids, error: null }))
   mocks.flags.publicSharingEnabled = true
   mocks.rpc.mockResolvedValue({ data: grant, error: null })
   mocks.storage.mockReturnValue({ download: mocks.download, remove: mocks.remove })
@@ -122,3 +123,15 @@ describe("review and orphan recovery", () => {
     } finally { vi.unstubAllEnvs() }
   })
 })
+
+ describe("preview canvas revocation", () => {
+  it("discards bytes prepared before canvas management was revoked", async () => {
+    mocks.documents.mockImplementation(async () => {
+      mocks.canvas.mockResolvedValue({ data: [], error: null })
+      return new Map([[ID(1), { representation: { bytes, sha256 } }]])
+    })
+    const result = await handlePageDocumentPreview(preview())
+    expect(result.status).toBe(404)
+    expect(await result.text()).not.toContain("approved representation")
+  })
+ })

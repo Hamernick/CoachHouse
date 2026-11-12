@@ -22,6 +22,9 @@ export async function handleNotesGet(request: NextRequest, accessResolvers: { re
   } = await supabase.auth.getUser()
   if (error || !user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const expectedUserId = request.nextUrl.searchParams.get("expectedUserId")
+  if (expectedUserId !== null && expectedUserId !== user.id)
+    return NextResponse.json({ error: "Your account changed. Reload Documents." }, { status: 403 })
   try {
     const active = await accessResolvers.resolveActiveOrganization(supabase, user.id)
     const requested = request.nextUrl.searchParams.get("organizationId")
@@ -36,6 +39,7 @@ export async function handleNotesGet(request: NextRequest, accessResolvers: { re
       const detail = await readWorkspaceNoteDocuments(
         access.supabase,
         access.orgId,
+        user.id,
         id
       )
       return detail
@@ -46,7 +50,7 @@ export async function handleNotesGet(request: NextRequest, accessResolvers: { re
     }
     const query = request.nextUrl.searchParams.get("q")?.trim().slice(0, 240) ?? ""
     const [workspace, modules] = await Promise.all([
-      query ? readWorkspaceNoteDocuments(access.supabase, access.orgId, undefined, query) : readWorkspaceNoteDocuments(access.supabase, access.orgId),
+      readWorkspaceNoteDocuments(access.supabase, access.orgId, user.id, undefined, query),
       listUserModuleNotesIndex({ supabase, userId: user.id, limit: null }),
     ])
     const personal: NoteDocument[] = modules.filter((note) => !query || note.content.toLocaleLowerCase().includes(query.toLocaleLowerCase())).map((note) => ({
@@ -95,7 +99,7 @@ export async function handleNotesPost(request: NextRequest, write: (batch: Parti
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const active = await resolveActive(supabase, user.id)
-    const note = await readWorkspaceNoteDocuments(supabase, active.orgId, (operation.kind === "put_particle" ? operation.particle.id : operation.id))
+    const note = await readWorkspaceNoteDocuments(supabase, active.orgId, user.id, (operation.kind === "put_particle" ? operation.particle.id : operation.id))
     if (!note || Array.isArray(note) || getParticleNotes(note.particle)?.kind !== "workspace") return NextResponse.json({ error: "Note not found." }, { status: 404 })
     if (input.data.workspaceId !== active.orgId) return NextResponse.json({ error: "Organization changed. Reload before saving." }, { status: 403 })
     if (operation.kind === "put_particle" && operation.particle.type === "activity") {

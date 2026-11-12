@@ -1,4 +1,6 @@
 "use client"
+import { usePlanningComposer } from "@/components/workspace/planning-composer-context"
+import MoreHorizontal from "lucide-react/dist/esm/icons/ellipsis"
 
 import { ArrowLeft, Plus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -42,6 +44,7 @@ export function WorkspaceOpportunitiesFeed({ sidebar = false, addTarget, onCreat
   onOpenSource?: (id: string) => boolean
   onAddToWorkspace?: (item: WorkspaceFinanceOpportunityInput, position?: OpportunityCanvasDrop) => Promise<boolean>
 }) {
+  const planningComposer = usePlanningComposer()
   const router = useRouter()
   const [retrying, retry] = useTransition()
   const panelId = useId()
@@ -227,18 +230,23 @@ export function WorkspaceOpportunitiesFeed({ sidebar = false, addTarget, onCreat
       }} />
   </OpportunityView> : null
   const addControl = canEdit && organizationId && <Button ref={addButton} variant="outline" className="rounded-full shadow-none" onClick={() => enterView()}>Add opportunity</Button>
-  const composer = sidebar && footerTarget && canEdit && organizationId ? createPortal(<OpportunityViewControls><OpportunityComposer value={draftTitle} onChange={setDraftTitle} onSubmit={() => enterView()} /></OpportunityViewControls>, footerTarget) : null
+  const composer = !planningComposer && sidebar && footerTarget && canEdit && organizationId ? createPortal(<OpportunityViewControls><OpportunityComposer value={draftTitle} onChange={setDraftTitle} onSubmit={() => enterView()} /></OpportunityViewControls>, footerTarget) : null
   const matching = organizationId && selectedResource ? <ResourceOpportunityMatches target={{organizationId,resourceId:selectedResource.id,resourceRevision:selectedResource.revision}} title={selectedResource.title} canEdit={canEdit} onSaved={saved}/> : null
   const summary = <div className="pb-2">{filter === "archived" ? <Button variant="ghost" size="sm" className="h-8 gap-1 rounded-md px-2 text-xs" onClick={() => setFilter("all")}><ArrowLeft className="size-3.5" aria-hidden />Back to opportunities</Button> : <OpportunityFeedStats items={activeItems} state={retrying ? "loading" : state} />}</div>
   const feedUnavailable = filter !== "archived" && (state === "error" || state === "loading")
   const archiveUnavailable = filter === "archived" && archiveState !== "ready" && Boolean(organizationId)
+  const startComposer = () => planningComposer?.choose({ kind: "opportunity", maxLength: 200, submit: async title => {
+    if (!canEdit || !organizationId) return false
+    setDraftTitle(title); enterView(); return true
+  } })
   const addMenuContent = organizationId ? <DropdownMenu><DropdownMenuTrigger asChild>
-    <Button variant="ghost" size="icon" aria-label="Opportunity actions" disabled={view.kind !== "list"} className="size-[30px] rounded-[10px] text-muted-foreground [@media(pointer:coarse)]:size-11"><Plus aria-hidden /></Button>
+    <Button variant="ghost" size="icon" aria-label="Opportunity actions" disabled={view.kind !== "list"} className="size-[30px] rounded-[10px] text-muted-foreground [@media(pointer:coarse)]:size-11">{planningComposer ? <MoreHorizontal aria-hidden /> : <Plus aria-hidden />}</Button>
   </DropdownMenuTrigger><DropdownMenuContent align="end" className="rounded-2xl p-2">
-    {canEdit && <DropdownMenuItem onSelect={() => enterView()}>Add opportunity</DropdownMenuItem>}
+    {canEdit && !planningComposer && <DropdownMenuItem onSelect={() => enterView()}>Add opportunity</DropdownMenuItem>}
     <DropdownMenuItem onSelect={() => { setFilter("archived"); void loadArchive(); onCreateStart?.() }}>View archive</DropdownMenuItem>
   </DropdownMenuContent></DropdownMenu> : null
-  const addMenu = addTarget ? createPortal(addMenuContent, addTarget) : addMenuContent
+  const addActions = planningComposer ? <div className="flex items-center gap-0.5">{canEdit && organizationId && <Button variant="ghost" size="icon" aria-label="Add opportunity" disabled={view.kind !== "list" || planningComposer.pending} className="size-[30px] rounded-[10px] text-muted-foreground [@media(pointer:coarse)]:size-11" onClick={startComposer}><Plus aria-hidden /></Button>}{addMenuContent}</div> : addMenuContent
+  const addMenu = addTarget ? createPortal(addActions, addTarget) : addActions
   return <>{addMenu}<OpportunityFeedDrag items={visible} disabled={!canEdit || feedUnavailable || reordering || pending.size > 0} onReorder={(id, target) => void reorder(id, target)} onStage={moveTo} onCanvas={onAddToWorkspace ? (item, point) => void addToWorkspace(item, point) : undefined}><AnimatePresence initial={false} mode="wait">{editor ?? detail ?? <OpportunityView key="list" kind="list" rootRef={viewRoot} onEntered={restoreView}>
     {headerTarget ? createPortal(<OpportunityViewControls>{summary}</OpportunityViewControls>, headerTarget) : summary}{composer}
     {filter !== "archived" && state === "error" && <div role="alert" className="px-2 py-4 text-center text-sm text-muted-foreground">Opportunities couldn’t be loaded.<Button type="button" variant="link" disabled={retrying} onClick={() => retry(() => router.refresh())}>{retrying ? "Retrying…" : "Retry"}</Button></div>}

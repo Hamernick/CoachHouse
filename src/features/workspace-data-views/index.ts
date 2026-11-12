@@ -6,3 +6,5 @@ export { PROJECT_DATA_VIEW_COLUMNS, projectDataViewSourceSchema, createProjectDa
 export { ResponseSavedViews } from "./components/response-saved-views"
 
 export { existingDataViewSourceSchema, composableDataViewSchema, createExistingDataViewCommandSchema, type ComposableDataView } from "./lib/existing-source"
+
+export { calculateTableBudget, calculateCsvBudget, parseBudgetCsv, tableAnalysisSnapshotSchema } from "./lib/table-analysis"

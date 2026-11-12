@@ -314,3 +314,15 @@ describe("search route", () => {
     await responsePromise
   })
 })
+
+
+it("discards stale ranked profile results instead of leaking document titles or hidden-content matches", async () => {
+  const { supabaseStub } = buildSupabaseStub({ rpcData: [
+    { id: "roadmap:user-1:vision", label: "Private title", subtitle: "Private summary", href: "/roadmap#vision", group_name: "Roadmap", rank: 1 },
+    { id: "org:user-1", label: "Private match", subtitle: null, href: "/workspace", group_name: "My organization", rank: 1 },
+    { id: "doc:user-1:bylaws", label: "Private file", subtitle: null, href: "/organization/documents", group_name: "Documents", rank: 1 },
+  ] })
+  createSupabaseServerClientMock.mockResolvedValue(supabaseStub)
+  const response = await GET(new Request("http://localhost/api/search?q=secretneedle"))
+  expect(await response.json()).toEqual({ results: [] })
+})

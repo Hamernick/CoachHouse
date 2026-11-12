@@ -8,6 +8,11 @@
   container: workspace-dock / inline-size;
 }
 
+/* Organization editing covers retained planning feeds, including source-drop UI. */
+.dockHost:has([data-workspace-presentation="sidebar"][aria-hidden="false"]) {
+  z-index: 40;
+}
+
 .panel {
   display: contents;
   --workspace-dock-padding-top: 8px;
@@ -36,10 +41,11 @@
 }
 
 .topNavigation {
-  z-index: 2;
+  /* Navigation stays above the composer and its attached planning surfaces. */
+  z-index: 4;
   position: absolute;
-  /* Composer already includes 8px of top padding; leave a 6px visible gap. */
-  bottom: var(--workspace-navigation-bottom);
+  top: 8px;
+  bottom: auto;
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 24px);
@@ -49,6 +55,9 @@
   border-radius: 999px;
   padding: 4px;
 }
+/* Canvas navigation is irrelevant while an editor owns the full surface. */
+.dockHost:has([data-workspace-window-maximized="true"]) .topNavigation { display: none; }
+
 .topTabList {
   display: flex;
   width: 100%;
@@ -95,7 +104,8 @@
 
 .contentWindow {
   position: absolute;
-  z-index: 1;
+  /* Open workspace windows cover chat and its attached surfaces. */
+  z-index: 3;
   top: 8px;
   left: 0;
   right: 0;
@@ -109,6 +119,7 @@
 }
 
 .organizationSidebar {
+  z-index: 3;
   top: 8px;
   bottom: auto;
   left: 8px;
@@ -121,15 +132,20 @@
   z-index: 0;
 }
 
-/* Keep the full-canvas surface behind navigation, with its scrollable content
-   ending above the measured composer and tabs so every control stays reachable. */
+/* Fullscreen editors use the entire canvas without canvas-control reservations. */
 .contentWindow[data-workspace-window-maximized="true"] {
   top: 0;
   left: 0;
   right: 0;
   margin-inline: 0;
   border: 0;
-  padding-bottom: calc(var(--workspace-navigation-bottom) + var(--workspace-navigation-height) + 8px);
+  padding: 0;
+}
+
+/* Keep the top controls on separate rows when the organization button and
+   centered tabs cannot fit side by side. */
+@container workspace-dock (max-width: 980px) {
+  .topNavigation { top: 64px; }
 }
 
 @container workspace-dock (max-width: 700px) {
@@ -298,4 +314,43 @@
 
 .contentSurface:not([data-workspace-content-window]) {
   opacity: 1 !important;
+}
+
+/* One left-hand entry surface for the organization and its planning feeds. */
+.planningSidebarHome {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  left: 8px;
+  bottom: var(--workspace-planning-bottom, 136px);
+  width: 288px;
+  max-width: calc(100% - 16px);
+  pointer-events: none;
+}
+.planningSidebarHome[aria-hidden="true"] { opacity: 0; pointer-events: none; }
+.planningSidebarHome > [data-planning-sidebar]:not(:has(section)) {
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  overflow: visible;
+}
+.planningSidebarHome > [data-planning-sidebar]:not(:has(section)) > div { padding: 0; }
+.organizationTrigger.organizationTriggerEmbedded {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 999px;
+}
+.planningSidebarHome:has(section) .organizationTriggerEmbedded { border: 0; background: transparent; box-shadow: none; }
+.dockHost:has([data-workspace-sidebar-home]:not([aria-hidden="true"]) [data-opportunity-sources-drop]) { z-index: 30; }
+
+
+
+/* Canvas-anchored chat is the default workspace composer. */
+.dockHost:has([data-workspace-canvas-chat]) {
+  --workspace-navigation-bottom: 8px;
+}
+.composerShell:has([data-workspace-canvas-chat]) {
+  display: contents;
 }
