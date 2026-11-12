@@ -15,6 +15,19 @@ const defaultBudget = {
 }
 
 const budgets = [
+  // Approved November 12: retain the canonical MVP plan and existing October
+  // evidence in place. These exact-path allowances remain capped; other plans
+  // and monthly logs keep their normal budgets.
+  {
+    label: "canonical MVP plan with retained history",
+    maxBytes: 1700 * KB,
+    test: (file) => file === "docs/plans/2026-10-27-particle-system-execution-spec.md",
+  },
+  {
+    label: "preserved October 2026 run log",
+    maxBytes: 1400 * KB,
+    test: (file) => file === "docs/runlog/2026-10.md",
+  },
   {
     label: "run log index",
     maxBytes: 64 * KB,
