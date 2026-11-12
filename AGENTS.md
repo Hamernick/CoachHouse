@@ -2,6 +2,11 @@
 
 Canonical agent contract for this repo. Keep this file short; details live in `/docs/agent/**`.
 
+
+## MVP parallel-work exception — November12
+
+For explicitly assigned P01–P10 MVP work, the [current PRD ownership contract](/Users/calebhamernick/Development/coach-house-platform-particle-system-20261009/docs/plans/2026-10-27-particle-system-execution-spec.md#parallel-ownership-and-execution--november12) governs execution. For assigned MVP work, that current section and the assigned original requirements/checkpoint/receipts replace the full-packet reading requirement below. Retain normal startup branch/status and release-claim checks, once per chat; do not reread full historical packets or the whole PRD without a relevant unresolved question. The original requests remain preserved and authoritative for scope. Use a separate worktree from the designated integrated MVP baseline, not the dirty preservation checkout or an automatic fresh-main branch. P10 assigns areas and exclusive whole-file reservations, coordinates shared contracts and integrates local commits; it alone updates the canonical PRD/mirrors and shared logs/indexes. Sustained ownership replaces one slice per chat. No scheduler, new task-plan/handoff document or autonomous claim is required. This MVP boundary authorizes local commits/integration only; remote Git, hosted/provider changes, paid calls, merge-to-main and deployment retain their existing separate gates. Preserve the historical SHIP claim.
+
 ## Non-Negotiables
 
 - Source of truth: this file + linked `docs/agent/**` documents.
