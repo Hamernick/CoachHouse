@@ -1,0 +1,19 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.cache/check.tsbuildinfo"
+  },
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "../../../src/types/**/*.d.ts",
+    "../../../types/**/*.d.ts",
+    "../../../next-env.d.ts"
+  ],
+  "exclude": [
+    ".cache",
+    "results"
+  ]
+}
