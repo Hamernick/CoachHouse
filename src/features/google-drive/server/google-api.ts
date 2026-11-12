@@ -112,7 +112,7 @@ export async function revokeGoogleDriveToken(token: string) {
 
 export async function getGoogleDriveFile(accessToken: string, fileId: string) {
   const fields =
-    "id,name,mimeType,modifiedTime,webViewLink,thumbnailLink,driveId,trashed"
+    "id,name,mimeType,modifiedTime,webViewLink,thumbnailLink,driveId,trashed,version"
   const response = await googleRequest(
     `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?supportsAllDrives=true&fields=${fields}`,
     { headers: { authorization: `Bearer ${accessToken}` } },
@@ -150,6 +150,7 @@ export async function getGoogleDriveFile(accessToken: string, fileId: string) {
     webViewLink,
     thumbnailLink,
     driveId: typeof file.driveId === "string" ? file.driveId : null,
+    version: typeof file.version === "string" && /^\d+$/.test(file.version) ? file.version : null,
     modifiedAt: typeof file.modifiedTime === "string" ? file.modifiedTime : null,
     status: file.trashed === true ? "trashed" : "available",
   } as const

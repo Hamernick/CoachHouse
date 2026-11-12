@@ -6,7 +6,7 @@ import {
   siX,
   siYoutube,
   type SimpleIcon,
-} from "simple-icons"
+} from "@/lib/brand-icons"
 
 import { cn } from "@/lib/utils"
 import type { PersonSocialPlatform } from "@/lib/people/social-links"

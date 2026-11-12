@@ -8,9 +8,10 @@ export function researchFormOutputsEnabled() {
 export function researchDataViewOutputsEnabled() {
   return process.env.WORKSPACE_AI_DATA_VIEW_OUTPUTS === "1" && process.env.NEXT_PUBLIC_WORKSPACE_AI_PRESENTATION === "1"
 }
-export function researchProviderOutputSchema() {
-  return researchDataViewOutputsEnabled() ? researchFormOutputsEnabled() ? providerWorkingResearchSchema : providerDataViewResearchSchema
+export function researchProviderOutputSchema(conversation = false) {
+  const schema = researchDataViewOutputsEnabled() ? researchFormOutputsEnabled() ? providerWorkingResearchSchema : providerDataViewResearchSchema
     : researchFormOutputsEnabled() ? providerFormResearchSchema : providerResearchSchema
+  return conversation ? schema.required({ responseKind: true, answerEvidenceIds: true }) : schema.omit({ responseKind: true, answerEvidenceIds: true })
 }
 
 export function assertResearchOutputAvailability(items: readonly { kind: string }[]) {

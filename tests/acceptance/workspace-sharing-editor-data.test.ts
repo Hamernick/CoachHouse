@@ -3,15 +3,19 @@ import { loadWorkspacePageEditorAction } from "@/features/workspace-sharing/serv
 import { WorkspaceSharingError } from "@/features/workspace-sharing/server/page-projection"
 import { graph, ID, NOW, WORKSPACE } from "./fixtures/particle-fixtures"
 
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), sources: vi.fn(), page: vi.fn(), from: vi.fn(), read: vi.fn() }))
+const mocks = vi.hoisted(() => ({ canvas: vi.fn(), actor: vi.fn(), sources: vi.fn(), page: vi.fn(), from: vi.fn(), read: vi.fn(), project: vi.fn() }))
 vi.mock("@/features/workspace-sharing/server/page-context", async (original) => ({
   ...await original<typeof import("@/features/workspace-sharing/server/page-context")>(),
   loadPageActor: mocks.actor, loadSavedPageSources: mocks.sources, loadSavedPage: mocks.page,
 }))
+vi.mock("@/features/workspace-particles/server", () => ({ projectStoredParticleGraphAudience: mocks.project }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.canvas }) }))
 const query = { gt: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), abortSignal: mocks.read }
 const request = { workspaceId: WORKSPACE, particleId: ID(1) }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.canvas.mockReset().mockImplementation(async (_name: string, args: { p_canvas_ids: string[] }) => ({ data: args.p_canvas_ids, error: null }))
+  mocks.project.mockImplementation(async value => value)
   mocks.actor.mockResolvedValue({ actorId: WORKSPACE, orgId: WORKSPACE, supabase: { from: mocks.from } })
   mocks.from.mockReturnValue(query)
   mocks.sources.mockResolvedValue({ graph: graph(), profile: { name: "Table", privateEmail: "private@example.com" }, public_slug: "table", updated_at: NOW })
@@ -112,7 +116,7 @@ describe("source-independent shared-page recovery", () => {
     mocks.sources.mockRejectedValue(new Error("Canvas deleted"))
     mocks.read.mockResolvedValue({ data: [{ id: ID(12), title: "Saved page", visibility: "public" }], error: null })
     expect(await directory()).toMatchObject({ ok: true, value: { workspaceId: WORKSPACE, pages: [{ id: ID(12) }], next: null } })
-    expect(query.select).toHaveBeenCalledWith("id,title,visibility")
+    expect(query.select).toHaveBeenCalledWith("id,title,visibility,canvas_id")
     expect(query.eq).toHaveBeenCalledWith("org_id", WORKSPACE)
     expect(query.eq).not.toHaveBeenCalledWith("canvas_id", expect.anything())
     expect(query.is).not.toHaveBeenCalled()
@@ -154,3 +158,35 @@ describe("source-independent shared-page recovery", () => {
     expect(JSON.stringify(result)).not.toContain("private database details")
   })
 })
+
+ describe("page canvas response authority", () => {
+  it("withholds private titles and pagination IDs if authority changes after the RLS read", async () => {
+    const { loadWorkspacePageDirectoryAction } = await import("@/features/workspace-sharing/directory-actions")
+    mocks.read.mockResolvedValue({ data: Array.from({ length: 26 }, (_, i) => ({ id: ID(i + 30), title: i ? "Shared" : "Secret", visibility: "private", canvas_id: i ? ID(71) : ID(70) })), error: null })
+    mocks.canvas.mockResolvedValue({ data: [ID(71)], error: null })
+    const result = await loadWorkspacePageDirectoryAction({})
+    expect(result).toMatchObject({ ok: false })
+    expect(JSON.stringify(result)).not.toContain("Secret")
+    expect(JSON.stringify(result)).not.toContain(ID(54))
+    expect(mocks.canvas).toHaveBeenCalledTimes(1)
+  })
+  it("withholds assembled source choices after revocation", async () => {
+    mocks.sources.mockImplementation(async () => {
+      mocks.canvas.mockResolvedValue({ data: [], error: null })
+      return { graph: graph() }
+    })
+    expect(await loadWorkspacePageEditorAction(request)).toMatchObject({ ok: false, code: "scope" })
+  })
+  it.each([null, ["forged"], ["default", "default"], { data: "unexpected" }])("fails closed on malformed authority %j", async data => {
+    mocks.canvas.mockResolvedValue({ data, error: null })
+    expect(await loadWorkspacePageEditorAction(request)).toMatchObject({ ok: false })
+  })
+  it("withholds saved management content without requiring a surviving canvas", async () => {
+    const { loadWorkspacePageManagementAction } = await import("@/features/workspace-sharing/directory-actions")
+    mocks.page.mockResolvedValue({ canvas_id: ID(70), title: "Secret" })
+    mocks.canvas.mockResolvedValue({ data: [], error: null })
+    const result = await loadWorkspacePageManagementAction({ pageId: ID(12) })
+    expect(result).toMatchObject({ ok: false })
+    expect(JSON.stringify(result)).not.toContain("Secret")
+  })
+ })

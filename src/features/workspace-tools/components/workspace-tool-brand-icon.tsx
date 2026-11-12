@@ -1,4 +1,4 @@
-import { siGooglecalendar, siGoogledrive, siStripe } from "simple-icons"
+import { siGooglecalendar, siGoogledrive, siStripe } from "@/lib/brand-icons"
 
 import { cn } from "@/lib/utils"
 

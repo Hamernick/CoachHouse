@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { fetchPublicPreviewHtml, type LinkedInImageRefreshDependencies } from "@/lib/people/linkedin-image-refresh"
 import { parsePublicPageMetadata } from "@/lib/editor/public-page-metadata"
 import { opportunityProfileSources } from "@/features/workspace-finance/server/opportunity-profile-sources"
-const actions = vi.hoisted(() => ({ context: vi.fn(), options: vi.fn() }))
+const actions = vi.hoisted(() => ({ context: vi.fn(), options: vi.fn(), copies: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: actions.copies }) }))
+beforeEach(() => actions.copies.mockReset().mockResolvedValue({ data: { blockedSectionIds: [], complete: false }, error: null }))
 vi.mock("@/lib/auth/request-context", () => ({ resolveAuthenticatedAppContext: actions.context }))
 vi.mock("@/features/workspace-finance/server", () => ({ loadOpportunitySourceOptions: actions.options }))
 import { getWorkspaceOpportunitySources, previewOpportunityLink } from "@/actions/workspace-opportunity-sources"
@@ -42,8 +44,8 @@ describe("opportunity source previews", () => {
     await expect(fetchPublicPreviewHtml("https://example.org", dependencies("x".repeat(256 * 1024 + 1)))).rejects.toThrow("byte limit")
     expect(await fetchPublicPreviewHtml("https://example.org", dependencies("<title>Example</title>"))).toContain("Example")
   })
-  it("builds person and document references without persisting contents or signing downloads", () => {
-    const sources = opportunityProfileSources({ org_people: [{ id: "00000000-0000-4000-8000-000000000001", name: "Person", title: "Director" }], documents: { bylaws: { path: "organization/bylaws/file.pdf" } } })
+  it("builds person and document references without persisting contents or signing downloads", async () => {
+    const sources = await opportunityProfileSources({ org_people: [{ id: "00000000-0000-4000-8000-000000000001", name: "Person", title: "Director" }], documents: { bylaws: { path: "organization/bylaws/file.pdf" } } }, WORKSPACE, ID(6))
     expect(sources.find(item => item.category === "Person")).toMatchObject({ title: "Person", source: { kind: "person", id: "00000000-0000-4000-8000-000000000001" } })
     expect(sources.find(item => item.title === "Bylaws")?.source).toEqual({ kind: "document", id: "upload:bylaws" })
   })
@@ -77,4 +79,40 @@ describe("opportunity document attachments", () => {
     expect(opportunityDocumentDrop(item, WORKSPACE, [option])).toEqual(option.source)
     expect(opportunityDocumentDrop({ kind: "existing", drag: { kind: "particle", workspaceId: WORKSPACE, id: ID(7) } }, WORKSPACE, [])).toEqual({ kind: "particle", id: ID(7) })
   })
+})
+
+const driveSource = { provider: "google_drive", fileId: "drive-document-123", name: "Drive source", webViewLink: "https://docs.google.com/document/d/drive-document-123/edit" }
+it.each([
+  ["legacy editor", {}, true, "Editor body"],
+  ["explicit editor with retained Drive", { documentSource: "editor", driveSource }, true, "Editor body"],
+  ["legacy Drive", { driveSource }, true, undefined],
+  ["explicit Drive", { documentSource: "google_drive", driveSource }, true, undefined],
+  ["missing Drive", { documentSource: "google_drive" }, false, undefined],
+  ["invalid Drive", { documentSource: "google_drive", driveSource: { ...driveSource, webViewLink: "https://example.com/private" } }, false, undefined],
+] as const)("funding context respects %s without disclosing an inactive body", async (_name, source, available, description) => {
+  const profile = { roadmap: { sections: [{ id: "vision", title: "Vision", content: "Editor body", ...source }] } }
+  const before = JSON.stringify(profile)
+  const option = (await opportunityProfileSources(profile, WORKSPACE, ID(6))).find(item => item.source.kind === "document" && item.source.id === "roadmap:vision")
+  expect(Boolean(option)).toBe(available)
+  expect(option?.description).toBe(description)
+  expect(JSON.stringify(profile)).toBe(before)
+})
+
+
+it("checks only active editor funding sources and withholds blocked names and snippets on every read", async () => {
+  const profile = { roadmap: { sections: [
+    { id: "vision", title: "Secret title", content: "Secret body", documentSource: "editor" },
+    { id: "mission", title: "Drive title", content: "Inactive body", documentSource: "google_drive", driveSource },
+  ] } }
+  const original = structuredClone(profile)
+  actions.copies.mockResolvedValue({ data: { blockedSectionIds: ["vision"], complete: false }, error: null })
+  const sources = await opportunityProfileSources(profile, WORKSPACE, ID(6))
+  expect(sources.map(item => item.source)).toContainEqual({ kind: "document", id: "roadmap:mission" })
+  expect(JSON.stringify(sources)).not.toMatch(/Secret|Inactive body/)
+  expect(actions.copies).toHaveBeenLastCalledWith("read_workspace_ai_document_copy_sources", { p_org_id: WORKSPACE, p_actor_id: ID(6), p_section_ids: ["vision"] })
+  expect(profile).toEqual(original)
+  actions.copies.mockResolvedValue({ data: { blockedSectionIds: [], complete: false }, error: null })
+  expect((await opportunityProfileSources(profile, WORKSPACE, ID(6))).find(item => item.title === "Secret title")?.description).toBe("Secret body")
+  actions.copies.mockResolvedValue({ data: null, error: { message: "Private detail" } })
+  await expect(opportunityProfileSources(profile, WORKSPACE, ID(6))).rejects.toThrow("sources could not be verified")
 })

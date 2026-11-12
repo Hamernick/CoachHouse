@@ -46,7 +46,7 @@ async function persistOpportunity(input: OpportunityWrite, editing: boolean): Pr
       if (parsed.data.report?.blocks.some(block => block.kind === "image" && block.fileId && !options.some(option => option.source.kind === "file" && option.source.id === block.fileId && /^image\/(jpeg|png|webp|gif)$/.test(option.mimeType ?? "")))) return { error: "Choose an available image from Documents." }
       if (sources.some(item => item.kind !== "link" && item.kind !== "text" && !available.has(sourceKey(item)))) return { error: "A source is no longer available. Remove it or choose another." }
     }
-    const admin = createSupabaseAdminClient()
+    const admin = createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 })
     const { id, title, source, deadline } = parsed.data
     if (editing) {
       const updated = await admin.from("organization_finance_opportunities").update({ title, source_label: source || null, due_at: deadline ? `${deadline}T12:00:00.000Z` : null, sources: parsed.data.sources ?? [], report: readOpportunityReport(parsed.data.report) })
@@ -64,7 +64,7 @@ async function persistOpportunity(input: OpportunityWrite, editing: boolean): Pr
     })
     // Retrying the same submission must not create a second card or overwrite it.
     if (error && error.code !== "23505") return { error: "Unable to add this opportunity. Your entries are still here." }
-    const { data, error: readError } = await admin.from("organization_finance_opportunities")
+    const { data, error: readError } = await supabase.from("organization_finance_opportunities")
       .select("*").eq("id", id).eq("org_id", activeOrg.orgId).eq("external_provider", "manual").maybeSingle()
     if (readError || !data || !["new", "saved", "applied", "awarded", "not_awarded"].includes(data.status)) return { error: "Unable to confirm this opportunity. Try again." }
     const opportunity: WorkspaceFinanceOpportunityInput = {

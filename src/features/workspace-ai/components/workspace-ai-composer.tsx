@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import FileTextIcon from "lucide-react/dist/esm/icons/file-text"
 import { Button } from "@/components/ui/button"
 import { AiCreditsPanel } from "@/features/ai-credits/client"
 import { useRegisterAppShellAccountMenuAction } from "@/components/app-shell/account-menu-actions-context"
@@ -11,7 +12,7 @@ import { DocumentContextPicker } from "./document-context-picker"
 import type { AiDocumentProposal, AiStreamPart } from "../types"
 
 export type ComposerAssistance = {
-  active: boolean; pending: boolean; controls: ReactNode; revising?:boolean
+  active: boolean; pending: boolean; controls: ReactNode; panel?: ReactNode; revising?:boolean
   submit: (prompt: string) => Promise<boolean>
 }
 type Props = { sourceScope:AiDocumentScope; organizationName?:string; children:(assistant:ComposerAssistance)=>ReactNode }
@@ -186,10 +187,11 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
   const hasApplied = applied || Boolean(application)
   const appliedSaved = Boolean(application && bridge && !bridge.dirty && !bridge.saving && bridge.target.revision === application.saved_revision)
   if (process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED !== "true") return children({ active: false, pending: false, controls: null, submit })
-  const controls = <Button type="button" variant="ghost" size="sm" className="h-9 touch-manipulation rounded-full px-2 text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-    aria-pressed={active} aria-label="AI document assistance" disabled={pending} onClick={() => setActive(!active)}>AI</Button>
-  return <>
-    {(active || error || usage) && <section aria-label={usage ? "Usage" : "AI document assistance"} className="nodrag nopan nowheel mx-2.5 flex max-h-[65dvh] min-w-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-none backdrop-blur-xl [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
+  const controls = editors.length || active ? <Button type="button" variant="ghost" disabled={pending}
+    className="h-8 min-h-8 w-full justify-start gap-1.5 rounded-lg px-2 has-[>svg]:px-2 text-sm font-normal shadow-none transition-none [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-h-11"
+    onClick={() => setActive(!active)}><FileTextIcon aria-hidden />{active ? "Return to planning" : "Work on a document…"}</Button> : null
+  const panel = <>
+    {(active || error || usage) && <section aria-label={usage ? "Usage" : "AI document assistance"} className="nodrag nopan nowheel flex min-w-0 flex-col gap-2 p-3 text-sm [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11">
       {active ? <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <DocumentContextPicker editors={editors} selected={bridge} organizationName={organizationName} disabled={pending} onSelect={setSelectedId} />
         <Button variant="ghost" size="sm" className="h-7 rounded-full text-xs" onClick={() => setUsage(!usage)}>{quote ? `${quote.maximumCredits} credits maximum · Usage` : "Usage"}</Button>
@@ -229,6 +231,6 @@ function WorkspaceAiComposerContent({children,sourceScope,organizationName}:Prop
       </div> : null}
       {showOriginal && proposal ? <div className="max-h-48 overflow-auto rounded-xl border border-border/60 p-3 text-muted-foreground"><p className="whitespace-pre-wrap">{proposal.original.replace(/<[^>]*>/g,"") || "Empty document"}</p></div> : null}
     </section>}
-    {children({ active,pending,controls,submit,revising:Boolean(revision) })}
   </>
+  return children({ active, pending, controls, panel: active || error || usage ? panel : null, submit, revising: Boolean(revision) })
 }

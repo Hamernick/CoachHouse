@@ -5,6 +5,7 @@ import { sanitizeHtml } from "@/lib/markdown/sanitize"
 import { stripHtml } from "@/lib/markdown/convert"
 import { aiDocumentRequestSchema, aiRunProposal } from "../lib"
 import { loadAiDocument, requireAiActor } from "./document-context"
+import { assertAiDocumentSources } from "./document-source-access"
 import { workspaceAiConfig } from "./config"
 import { documentInstructions, streamDocumentDraft } from "./provider"
 import type { AiStreamPart } from "../types"
@@ -38,11 +39,15 @@ export async function handleWorkspaceAiDocument(request: Request) {
     const reserved = await reserveAiRun({ id: input.id, organizationId: actor.organizationId,
       actorId: actor.userId, hash, target, prompt: input.prompt, tariff: config.tariff,
       maxCredits: config.maxCredits, maxCost: config.maxCost })
-    if (!reserved.created) return Response.json({ proposal: aiRunProposal(reserved.run) })
+    if (!reserved.created) {
+      await assertAiDocumentSources(input.id, input.target, Boolean(selection), actor)
+      return Response.json({ proposal: aiRunProposal(reserved.run) })
+    }
     reservedId = input.id
     if (!(await claimAiRun(input.id,actor.userId))) {
       const settled = await settleAiRun({ id: input.id, status: "failed", usage: { input: 0,cachedInput: 0,output: 0 },
         tariff: config.tariff, maxCredits: config.maxCredits, proposal: null,responseId: null })
+      await assertAiDocumentSources(input.id, input.target, Boolean(selection), actor)
       return Response.json({ proposal: aiRunProposal(settled) })
     }
     const encoder = new TextEncoder()
@@ -64,7 +69,10 @@ export async function handleWorkspaceAiDocument(request: Request) {
               // Each private preview rechecks the durable run. Withhold on
               // cancellation/revocation or read failure; still collect usage.
               try {
-                const current = await readAiRun(input.id,actor.organizationId,actor.userId) as { status?: string; cancel_requested_at?: string | null } | null
+                const [current] = await Promise.all([
+                  readAiRun(input.id,actor.organizationId,actor.userId) as Promise<{ status?: string; cancel_requested_at?: string | null } | null>,
+                  assertAiDocumentSources(input.id, input.target, Boolean(selection), actor),
+                ])
                 if (!current || current.cancel_requested_at || current.status !== "running") { previewWithheld = true; return }
                 send({ type: "text", text })
               } catch { previewWithheld = true }
@@ -78,6 +86,7 @@ export async function handleWorkspaceAiDocument(request: Request) {
           // Revoked members cannot receive the final private document.
           const readable = await readAiRun(input.id,actor.organizationId,actor.userId)
           if (!readable) throw new Error("Your document access changed.")
+          await assertAiDocumentSources(input.id, input.target, Boolean(selection), actor)
           send({ type: "proposal", proposal: aiRunProposal(saved) })
         } catch {
           // A disconnected stream is not proof of zero provider cost. Durable

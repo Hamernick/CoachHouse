@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { readAiAccount, readAiRun, cancelAiRun } from "@/features/ai-credits"
 import { loadAiDocument, requireAiActor, resolveAiSelectionActor } from "./document-context"
+import { assertAiDocumentSources } from "./document-source-access"
 import { workspaceAiConfig } from "./config"
 import { aiRunProposal } from "../lib"
 import type { AiDocumentTarget } from "../types"
@@ -22,6 +23,8 @@ export async function readWorkspaceAiProposal(id: string,target: AiDocumentTarge
   const proposal=aiRunProposal(run)
   if (proposal.target.sectionId !== target.sectionId || proposal.target.userId !== actor.userId ||
     proposal.target.organizationId !== actor.organizationId) throw new Error("This AI request belongs to another document.")
+  // Use the stored target, never a client claim that this was selected text.
+  await assertAiDocumentSources(id, proposal.target, Boolean(proposal.selection), actor)
   return proposal
 }
 export async function cancelWorkspaceAi(id: string,target: AiDocumentTarget) {

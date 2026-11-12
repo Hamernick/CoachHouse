@@ -27,7 +27,7 @@ export async function deleteWorkspaceOpportunity(input: { organizationId: string
     const { activeOrg, supabase, user } = await resolveAuthenticatedAppContext()
     if (activeOrg.orgId !== input.organizationId) return { error: "Your organization changed. Reopen this opportunity." }
     if (!(await canManageWorkspaceFinance({ activeOrg, supabase, userId: user.id }))) return { error: "Only organization owners and Finance managers can delete opportunities." }
-    const { data, error } = await createSupabaseAdminClient().from("organization_finance_opportunities").delete().eq("id", input.id).eq("org_id", activeOrg.orgId).eq("external_provider", "manual").eq("updated_at", input.updatedAt).select("id").maybeSingle()
+    const { data, error } = await createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 }).from("organization_finance_opportunities").delete().eq("id", input.id).eq("org_id", activeOrg.orgId).eq("external_provider", "manual").eq("updated_at", input.updatedAt).select("id").maybeSingle()
     if (error || !data) return { error: "This opportunity changed or is unavailable. Reload before deleting it." }
     for (const path of ["/workspace", "/my-organization", "/organization/workspace"]) revalidatePath(path)
     return { ok: true } as const

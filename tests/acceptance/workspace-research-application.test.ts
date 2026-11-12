@@ -1,3 +1,7 @@
+import { researchVisiblePlacement } from "@/features/workspace-particles/lib/research-visible-placement"
+import { researchPlanOperations } from "@/features/workspace-particles/lib/research-plan"
+import { particlePlacementBounds } from "@/features/workspace-particles/lib/particle-creation-placement"
+import { overlaps } from "@/lib/workspace-canvas/canvas-chat-geometry"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -39,7 +43,7 @@ function run(value = result(), current = before) {
 }
 beforeEach(() => {
   vi.resetAllMocks()
-  mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: before, objective: before.particles[0], canvasId: null })
+  mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: before, objective: before.particles[0], canvasId: null })
   mocks.read.mockResolvedValue(run())
   mocks.load.mockResolvedValue([])
 })
@@ -73,7 +77,7 @@ describe("server-owned research application", () => {
     expect(operation.kind === "put_particle" && operation.particle.type === "objective" && operation.particle.data.planning?.proposals[0]).toMatchObject({ title: "My plan", summary: "My summary", status: "pending", researchRunId: ID(8), authorId: ID(90) })
     const saved = await applyParticleBatch(before, prepared.batch!, NOW)
     if (!saved.ok) throw Error(saved.error)
-    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: saved.value.graph, objective: saved.value.graph.particles.find(p => p.id === ID(1)), canvasId: null })
+    mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: saved.value.graph, objective: saved.value.graph.particles.find(p => p.id === ID(1)), canvasId: null })
     expect((await prepareResearchApplication({ ...input, draft })).batch).toBeNull()
   })
   it.each(["sources", "dependencies", "target", "dependsOn", "kind", "blank", "oversized", "duplicate", "missing", "unknown"])("rejects %s edits without a canonical write", async invalid => {
@@ -167,7 +171,7 @@ describe("server-owned research application", () => {
     }] })
     expect(applyResearchDraft(value, draft).items[0]).toMatchObject({ kind: "note", referenceId: null, evidenceIds: [] })
     expect(JSON.parse(original.proposal).items).toEqual(value.items)
-    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: saved.value.graph, objective, canvasId: null })
+    mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: saved.value.graph, objective, canvasId: null })
     expect((await prepareResearchApplication({ ...input, draft })).batch).toBeNull()
   })
   it.each(["collision", "duplicate", "source", "reference", "kind", "canonical-id", "cycle", "oversized", "empty", "unknown-removal", "duplicate-removal", "dangling"])("rejects %s structural edits before writing", async invalid => {
@@ -310,7 +314,7 @@ describe("server-owned research application", () => {
   })
   it("refuses stale objectives without overwriting their edits", async () => {
     const changed = structuredClone(before); changed.particles[0].revision++
-    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: changed, objective: changed.particles[0], canvasId: null })
+    mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: changed, objective: changed.particles[0], canvasId: null })
     await expect(prepareResearchApplication(input)).rejects.toThrow(/Objective changed/)
   })
   it("rechecks private evidence access and revision", async () => {
@@ -343,7 +347,7 @@ describe("server-owned research application", () => {
     const saved = await applyParticleBatch(before, prepared.batch!, NOW)
     if (!saved.ok) throw Error(saved.error)
     const current = { ...saved.value.graph, receipts: [] }
-    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: current, objective: current.particles.find(item => item.id === ID(1)), canvasId: null })
+    mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: current, objective: current.particles.find(item => item.id === ID(1)), canvasId: null })
     expect((await prepareResearchApplication(input)).batch).toBeNull()
     expect(mocks.load).not.toHaveBeenCalled()
   })
@@ -410,7 +414,7 @@ describe("server-owned revision application", () => {
     objective.data.planning = { plans: [{ id: ID(50), revision: 2, title: "Accepted", particleIds: [member.id] }], proposals: [] }
     const current = { ...graph([objective, member]), revision: 2 }
     const value: ResearchResult = { ...result(), target: { ...target, plan: { id: ID(50), revision: 2 } }, items: [], removeReferences: [`particle:${member.id}`], sources: [{ id: `particle:${member.id}`, title: member.title, href: "/workspace", revision: "0", checkedAt: NOW, kind: "workspace" }] }
-    mocks.context.mockResolvedValue({ user: { id: ID(90) }, graph: current, objective, canvasId: null })
+    mocks.context.mockResolvedValue({ target, user: { id: ID(90) }, graph: current, objective, canvasId: null })
     mocks.read.mockResolvedValue(run(value,current))
     mocks.load.mockResolvedValue([sourceRecord(`particle:${member.id}`,"0")])
     return { current, objective, value }
@@ -468,6 +472,42 @@ describe("atomic new objective application", () => {
     const retry = await prepareResearchApplication(newInput)
     expect(retry.batch).toBeNull(); expect(retry.objectiveId).toBe(prepared.objectiveId)
   })
+  it("places a complete pending plan at the drop point and replays without moving it", async () => {
+    const context = setup()
+    const record = await mocks.read(), value = JSON.parse(record.proposal)
+    value.items.push({ ...value.items[0], key: "second", title: "Invite volunteers", dependsOn: ["first"] })
+    mocks.read.mockResolvedValue({ ...record, proposal: JSON.stringify(value) })
+    const prepared = await prepareResearchApplication({ ...newInput, placement: { x: -600, y: 450 } })
+    const mutation = await prepareAuthorizedParticleMutation({ input: prepared.batch, workspaceId: WORKSPACE, canEdit: true, now: NOW,
+      planningActor: { userId: ID(90), isOrganizationOwner: false }, authorizedResearch: { runId: ID(8), objectiveId: prepared.objectiveId } })
+    if (!mutation.ok) throw Error(mutation.error)
+    const saved = mutation.value(context.graph)
+    const objective = saved.graph.particles.find(p => p.id === prepared.objectiveId)
+    expect(objective).toMatchObject({ position: { x: -600, y: 450 }, positionMode: "manual" })
+    if (objective?.type !== "objective") throw Error("Missing objective")
+    expect(objective.data.planning?.proposals[0]).toMatchObject({ status: "pending", links: [{ source: expect.any(String), target: expect.any(String) }] })
+    expect(saved.graph.particles).toHaveLength(3)
+    mocks.context.mockResolvedValue({ ...context, graph: { ...saved.graph, receipts: [] } })
+    const retry = await prepareResearchApplication({ ...newInput, placement: { x: 1000, y: 1000 } })
+    expect(retry.batch).toBeNull()
+    expect(retry.context.graph).toEqual({ ...saved.graph, receipts: [] })
+  })
+  it("moves the dropped plan around existing locked cards, never moving those cards", async () => {
+    const existing = { ...particle(11, "activity"), locked: true, position: { x: 100, y: 100 } }
+    const context = setup(graph([existing])), before = structuredClone(context.graph)
+    const prepared = await prepareResearchApplication({ ...newInput, placement: { x: 100, y: 100 } })
+    const writes = prepared.batch!.operations.filter(op => op.kind === "put_particle")
+    expect(writes.some(op => op.particle.id === existing.id)).toBe(false)
+    expect(writes.find(op => op.particle.type === "objective")!.particle.position.y).toBeGreaterThan(100)
+    expect(context.graph).toEqual(before)
+  })
+  it("rejects invalid drop coordinates and placement for an existing objective", async () => {
+    setup()
+    for (const placement of [{ x: Infinity, y: 0 }, { x: 0, y: 1_000_001 }, { x: 0, y: 0, graph: {} }])
+      await expect(prepareResearchApplication({ ...newInput, placement })).rejects.toThrow()
+    await expect(prepareResearchApplication({ ...input, placement: { x: 0, y: 0 } })).rejects.toThrow()
+    expect(mocks.write).not.toHaveBeenCalled()
+  })
   it("rejects board changes and client content without a partial write", async () => {
     setup({ ...graph(), revision: 1 })
     await expect(prepareResearchApplication(newInput)).rejects.toThrow(/Workspace changed/)
@@ -499,4 +539,38 @@ describe("atomic new objective application", () => {
     expect(await applyWorkspaceResearchAction(newInput, ID(50))).toMatchObject({ ok: false, code: "scope" })
     expect(mocks.write).not.toHaveBeenCalled()
   })
+})
+
+
+describe("generated plan placement beside the chat", () => {
+  it.each([0.5, 1, 2])("keeps the whole saved branch clear at zoom %s without moving existing particles", zoom => {
+    const existing = particle(101); existing.position = { x: 900, y: 100 }
+    const current = graph([existing]), snapshot = structuredClone(current)
+    const chat = { x: 100, y: 100, width: 700 / zoom, height: 400 / zoom }
+    const value: ResearchResult = { ...result(), target: { mode: "new_objective", organizationId: WORKSPACE, canvasId: null, revision: current.revision } }
+    value.items.push({ ...value.items[0], key: "second", title: "Follow up", dependsOn: ["first"] })
+    const measured = [{ ...existing.position, width: 900, height: 700 }]
+    const position = researchVisiblePlacement(current, value, ID(90), chat, measured)
+    let id = 200
+    const operations = researchPlanOperations(current, value, ID(90), NOW, () => ID(id++), position)
+    const added = operations.flatMap(op => op.kind === "put_particle" ? [op.particle] : [])
+    expect(added).toHaveLength(3)
+    for (const item of added) {
+      const box = particlePlacementBounds(item, true)
+      expect(overlaps(box, chat, 80)).toBe(false)
+      expect(overlaps(box, measured[0], 80)).toBe(false)
+    }
+    expect(current).toEqual(snapshot)
+    expect(added.find(item => item.type === "objective")?.position).toEqual(position)
+  })
+})
+
+it.each(["answer", "clarify"] as const)("refuses to materialize a %s as a board artifact", async responseKind => {
+  const reply = { ...result(), responseKind, items: [] }
+  mocks.read.mockResolvedValue(run(reply))
+  await expect(prepareResearchApplication(input)).rejects.toThrow("Chat replies cannot")
+  const uuid = vi.fn()
+  expect(() => researchPlanOperations(before, reply, ID(90), NOW, uuid)).toThrow("Chat replies cannot")
+  expect(uuid).not.toHaveBeenCalled()
+  expect(mocks.write).not.toHaveBeenCalled()
 })

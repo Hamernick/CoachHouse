@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import {
+  GoogleDriveError,
   getGoogleDriveDocumentThumbnail,
   requireGoogleDriveContext,
 } from "@/features/google-drive"
@@ -14,14 +15,17 @@ export async function GET(
 ) {
   const requestId = googleDriveRequestId()
   try {
-    const { organization, recheck } = await requireGoogleDriveContext(
+    const { user, organization, recheck } = await requireGoogleDriveContext(
       request,
       new NextResponse()
     )
+    const expectedOrg = request.nextUrl.searchParams.get("organizationId")
+    if (expectedOrg && expectedOrg !== organization.orgId) throw new GoogleDriveError("forbidden", 403)
     const { documentId } = await params
     const { bytes, contentType } = await getGoogleDriveDocumentThumbnail({
       documentId,
       orgId: organization.orgId,
+      actorId: user.id,
     })
     await recheck()
     return new NextResponse(new Uint8Array(bytes), {

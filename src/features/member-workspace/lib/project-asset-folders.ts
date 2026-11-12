@@ -5,10 +5,16 @@ import type { DocumentsPolicyEntry, OrgDocument } from "@/lib/organization/docum
 
 const folderName = z.string().trim().min(1, "Enter a folder name.").max(80)
 const fileKey = z.string().regex(/^(project|organization|core|policy|upload|drive|fiscal):[^:\s]{1,160}$/)
-const folder = z.object({ id: z.string().uuid(), name: folderName })
+const folder = z.object({ id: z.string().uuid(), name: folderName }).strict()
 const stateSchema = z.object({
   folders: z.array(folder).max(100),
-  placements: z.array(z.object({ fileKey, folderId: z.string().uuid() })).max(5000),
+  placements: z.array(z.object({ fileKey, folderId: z.string().uuid() }).strict()).max(5000),
+}).strict().refine((state) => {
+  const ids = new Set(state.folders.map((item) => item.id))
+  return ids.size === state.folders.length &&
+    new Set(state.folders.map((item) => item.name.toLowerCase())).size === state.folders.length &&
+    new Set(state.placements.map((item) => item.fileKey)).size === state.placements.length &&
+    state.placements.every((item) => ids.has(item.folderId))
 })
 export type ProjectAssetFolderState = z.infer<typeof stateSchema>
 export type ProjectAssetFolder = z.infer<typeof folder>
@@ -56,6 +62,10 @@ export function readProjectAssetFolders(options: Json | undefined): ProjectAsset
   const value = options && typeof options === "object" && !Array.isArray(options)
     ? options.assetFolders : undefined
   if (value === undefined) return { folders: [], placements: [] }
+  return parseProjectAssetFolderState(value)
+}
+
+export function parseProjectAssetFolderState(value: unknown): ProjectAssetFolderState {
   const result = stateSchema.safeParse(value)
   if (!result.success) throw new Error("Saved folders could not be read. No changes were made.")
   return result.data

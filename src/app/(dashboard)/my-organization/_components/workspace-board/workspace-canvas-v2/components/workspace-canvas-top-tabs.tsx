@@ -13,7 +13,7 @@ const items = [
 
 export function WorkspaceCanvasTopTabs({ tab, drawerCollapsed, handleTabOpen, handleTabChange, tabsListRef }: Pick<WorkspaceDrawerTabsProps, "tab" | "drawerCollapsed" | "handleTabOpen" | "handleTabChange" | "tabsListRef">) {
   return (
-    <div className={`canvas-glass ${styles.topNavigation}`} data-workspace-top-navigation>
+    <div className={`canvas-glass canvas-planning-material ${styles.topNavigation}`} data-workspace-top-navigation>
       <TabsList ref={tabsListRef} aria-label="Workspace panels" className={styles.topTabList}>
         {items.map(({ value, label }) => (
           <TabsTrigger

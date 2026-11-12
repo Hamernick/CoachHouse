@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import type { ReactNode } from "react"
 import { WorkspaceAiComposer, WorkspaceNewPlan } from "@/features/workspace-ai/client"
 
 import {
@@ -12,6 +13,7 @@ import {
   ParticleCreateActions,
   ParticleInspector,
   ParticleFocusedPreview,
+  useResearchPlacement,
   type useParticleFlow,
   type ParticleLibraryTool,
 } from "@/features/workspace-particles/client"
@@ -57,19 +59,23 @@ export function WorkspaceParticleInspectorSlot({ session, workspaceCanvasId }: P
 
 export function WorkspaceParticleComposerSlot({ session,sourceScope,organizationName,workspaceCanvasId }: Props & {workspaceCanvasId?:string;sourceScope:{userId:string;organizationId:string};organizationName?:string}) {
   const request = useWorkspaceCanvasOverlayDrawerRequest()
+  const planPlacement = useResearchPlacement()
   return (
     <>
     <WorkspaceNewPlan
+      onOpenPlan={id => { session.focusCanvas(id) }}
       enabled={process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED === "true" && Boolean(session.graph) && session.canEdit}
       {...sourceScope} canvasId={workspaceCanvasId ?? null} revision={session.graph?.revision ?? 0}
-      disabled={!session.editable || session.pending || Boolean(session.error)} onProposal={async (result, draft) => {
-        if (result.target.mode !== "new_objective") return false
+      disabled={!session.editable || session.pending || Boolean(session.error)} onProposal={async (result, draft, placement) => {
+        if (result.target.mode !== "new_objective") return Boolean(await session.applyResearch(result.runId, result.target.objectiveId, draft))
         const graph = session.getCurrentGraph()
         if (!graph) return false
         const previous = new Set(graph.particles.map(item => item.id))
-        const saved = await session.applyResearch(result.runId, result.target, draft)
+        const position = placement ?? planPlacement.prepare(graph, result, sourceScope.userId, draft)
+        const saved = await session.applyResearch(result.runId, result.target, draft, position)
         const added = saved?.graph.particles.filter(item => !previous.has(item.id)).map(item => item.id) ?? []
-        if (saved && added.length) await session.layout.queueAfterSave(saved.graph, added)
+        if (saved && added.length && !position) await session.layout.queueAfterSave(saved.graph, added)
+        if (saved && added.length && position && !placement) await planPlacement.reveal(saved.graph, added)
         return Boolean(saved)
       }}>{planner => <WorkspaceAiComposer sourceScope={sourceScope} organizationName={organizationName}>{assistant => <ParticleComposer
       assistant={assistant}
@@ -81,7 +87,7 @@ export function WorkspaceParticleComposerSlot({ session,sourceScope,organization
       onCreate={session.create}
       onBrowse={(query, open = true) => {
         session.setLibraryQuery(query)
-        if (open) request?.({ tab: "particles" })
+        if (open) request?.({ tab: "tools", focusKey: "particles" })
       }}
       onRetry={() => void session.retry()}
     />}</WorkspaceAiComposer>}</WorkspaceNewPlan>
@@ -112,12 +118,20 @@ export function WorkspaceParticleLibrarySlot({
   session,
   canEdit,
   tools,
+  beforeLibrary,
+  focusRequestId,
 }: Props & {
+  beforeLibrary?: ReactNode
+  focusRequestId?: number
   canEdit: boolean
   tools?: ParticleLibraryTool[]
 }) {
   return (
     <ParticleLibrary
+      beforeLibrary={beforeLibrary}
+      focusRequestId={focusRequestId}
+      backLabel="Back to Tools"
+      includeSavedParticles={false}
       images={session.images}
       workspaceId={session.graph?.workspaceId}
       externalQuery={session.libraryQuery}

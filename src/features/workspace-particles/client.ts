@@ -72,6 +72,7 @@ export { PARTICLE_PRESETS, DEFAULT_PRESET_FIELDS, buildParticlePreset } from "./
 export type { ParticlePreset } from "./lib/particle-presets"
 
 export { researchPlanOperations } from "./lib/research-plan"
+export { useResearchPlacement } from "./hooks/use-research-placement"
 
 export { planFromProposal } from "./lib/particle-plan-schema"
 
@@ -94,3 +95,5 @@ export { summarizeObjectiveProgress, summarizePlanWork, isParticleWork } from ".
 export { useParticleProgressClock } from "./hooks/use-particle-progress-clock"
 
 export { NotesRichEditor } from "./components/notes-rich-editor"
+
+export { ParticleTeamProvider } from "./components/particle-team-provider"

@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ID, WORKSPACE, graph, particle } from "./fixtures/particle-fixtures"
 import { now, notice, need } from "./fixtures/opportunity-match-fixtures"
 import { matchOpportunity } from "@/features/workspace-finance/lib/opportunity-matching"
-const mock=vi.hoisted(()=>({actor:vi.fn(),view:vi.fn(),manage:vi.fn(),board:vi.fn(),canvases:vi.fn(),rpc:vi.fn(),discover:vi.fn(),detail:vi.fn(),document:vi.fn(),saveDocument:vi.fn(),storage:vi.fn(),instructions:vi.fn()}))
+const mock=vi.hoisted(()=>({project:vi.fn(),admin:vi.fn(),actor:vi.fn(),view:vi.fn(),manage:vi.fn(),board:vi.fn(),canvases:vi.fn(),rpc:vi.fn(),discover:vi.fn(),detail:vi.fn(),document:vi.fn(),saveDocument:vi.fn(),storage:vi.fn(),instructions:vi.fn()}))
 vi.mock("@/lib/auth/request-context",()=>({resolveAuthenticatedAppContext:mock.actor}))
-vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:()=>({rpc:mock.rpc})}))
+vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:mock.admin}))
+vi.mock("@/features/workspace-particles/server",()=>({projectParticleGraphAudience:mock.project}))
 vi.mock("@/lib/workspace/workspace-finance-access",()=>({canManageWorkspaceFinance:mock.manage,canViewWorkspaceFinance:mock.view}))
 vi.mock("@/features/workspace-management",()=>({allWorkspaceStates:mock.canvases}))
 vi.mock("@/features/workspace-finance/server/opportunity-discovery",()=>({discoverOfficialOpportunities:mock.discover,fetchOfficialOpportunity:mock.detail}))
@@ -26,6 +27,7 @@ beforeEach(()=>{
  vi.resetAllMocks();vi.useFakeTimers();vi.setSystemTime(new Date(now))
  const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),abortSignal:vi.fn().mockReturnThis(),maybeSingle:mock.board}
  mock.actor.mockResolvedValue({user:{id:WORKSPACE},activeOrg:{orgId:WORKSPACE,role:"owner"},supabase:{from:(table:string)=>table==="organizations"?{...query,maybeSingle:mock.document}:query}})
+ mock.admin.mockReturnValue({rpc:mock.rpc});mock.project.mockImplementation(async graph=>graph)
  mock.view.mockResolvedValue(true);mock.manage.mockResolvedValue(true)
  mock.board.mockResolvedValue({data:{state:{}},error:null})
  mock.canvases.mockReturnValue([{id:null,state:{particleGraph:graph([particle(1,"activity")])}}])
@@ -37,6 +39,38 @@ beforeEach(()=>{
  mock.saveDocument.mockResolvedValue({section:{id:applicationSectionId(ID(10)),title:"Application",slug:"application"}})
 })
 describe("resource match server boundary",()=>{
+ it("withholds restricted resources before provider calls and never returns canonical siblings",async()=>{
+  mock.project.mockResolvedValue(graph([]))
+  await expect(searchResourceMatches({target,keyword:"community",need:row().need})).rejects.toThrow(/unavailable/)
+  expect(mock.discover).not.toHaveBeenCalled();expect(mock.rpc).not.toHaveBeenCalled()
+ })
+ it("uses the narrow canonical fallback, projects the selected named canvas and binds the RPC actor",async()=>{
+  mock.board.mockResolvedValue({data:null,error:{code:"42501",message:"Board source access required."}})
+  mock.rpc.mockResolvedValueOnce({data:{state:{canonical:true}},error:null})
+  mock.canvases.mockReturnValue([{id:ID(20),state:{particleGraph:graph([particle(1,"activity"),particle(2,"activity")])}}])
+  mock.project.mockResolvedValue(graph([particle(1,"activity")]))
+  const result=await loadResourceMatches(target)
+  expect(result.matches).toHaveLength(1)
+  expect(mock.canvases).toHaveBeenCalledWith({canonical:true})
+  expect(mock.project).toHaveBeenCalledWith(expect.objectContaining({particles:expect.arrayContaining([expect.objectContaining({id:ID(2)})])}),WORKSPACE)
+  expect(mock.admin).toHaveBeenCalledWith({actorId:WORKSPACE,requestTimeoutMs:10000})
+  expect(mock.rpc).toHaveBeenLastCalledWith("manage_resource_opportunity_matches",expect.objectContaining({p_actor_id:WORKSPACE,p_canvas_id:ID(20)}))
+ })
+ it("withholds malformed boards and permission transport failures",async()=>{
+  mock.board.mockResolvedValueOnce({data:null,error:{code:"500",message:"offline"}})
+  await expect(loadResourceMatches(target)).rejects.toThrow(/Workspace unavailable/)
+  expect(mock.rpc).not.toHaveBeenCalled()
+  mock.canvases.mockReturnValueOnce([{id:null,state:{particleGraph:{version:-1}}}])
+  await expect(loadResourceMatches(target)).rejects.toThrow(/Workspace unavailable/)
+  mock.project.mockRejectedValueOnce(new Error("Source access unavailable"))
+  await expect(loadResourceMatches(target)).rejects.toThrow(/Source access unavailable/)
+  expect(mock.rpc).not.toHaveBeenCalled()
+ })
+ it("does not save after authority is revoked during provider refresh",async()=>{
+  mock.rpc.mockResolvedValueOnce({data:{matches:[row()],opportunity:null},error:null}).mockResolvedValueOnce({data:null,error:{code:"42501"}})
+  await expect(changeResourceMatch({target,id:ID(10),updatedAt:timestamp,action:"save"})).rejects.toThrow(/could not be saved/)
+  expect(mock.rpc.mock.calls.some(([,args])=>args.p_action==="save")).toBe(false)
+ })
  it("binds a user review to the authenticated actor and exact official notice",async()=>{
   const input={target,id:ID(10),updatedAt:timestamp,need:row().need}
   await reviewResourceMatch(input)

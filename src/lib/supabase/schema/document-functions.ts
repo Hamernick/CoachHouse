@@ -1,6 +1,12 @@
 import type { Json } from "./json"
 
 export type DocumentFunctions = {
+  reserve_legacy_document_upload: { Args: { p_org: string; p_kind: string; p_path: string; p_size: number; p_actor: string; p_support?: boolean }; Returns: Json }
+  abandon_legacy_document_upload: { Args: { p_org: string; p_path: string; p_actor: string; p_support?: boolean }; Returns: string }
+  reserve_legacy_document_stage_cleanup: { Args: { p_org: string; p_actor: string; p_support?: boolean; p_path?: string | null }; Returns: Json }
+  finish_legacy_document_stage_cleanup: { Args: { p_org: string; p_path: string; p_actor: string; p_support?: boolean }; Returns: boolean }
+  reserve_legacy_document_cleanup: { Args: { p_org: string; p_kind: string | null; p_actor: string; p_support?: boolean }; Returns: Json }
+  finish_legacy_document_cleanup: { Args: { p_org: string; p_path: string; p_actor: string; p_support?: boolean }; Returns: boolean }
   can_edit_uploaded_document: { Args: { p_file_id: string }; Returns: boolean }
   commit_uploaded_document_version: {
     Args: { p_file_id: string; p_actor_id: string; p_request_id: string; p_generation: string;

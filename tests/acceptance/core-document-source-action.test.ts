@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ client: vi.fn(), organization: vi.fn(), file: vi.fn(), update: vi.fn(), from: vi.fn() }))
+const mocks = vi.hoisted(() => ({ client: vi.fn(), organization: vi.fn(), file: vi.fn(), update: vi.fn(), from: vi.fn(), rpc: vi.fn() }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: (name: string, args: unknown) => name === "read_workspace_ai_document_copy_sources" ? Promise.resolve({ data: { blockedSectionIds: [], complete: false }, error: null }) : mocks.rpc(name, args) }) }))
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: mocks.client }))
 vi.mock("@/lib/organization/active-org", () => ({ resolveActiveOrganization: mocks.organization, canEditOrganization: (role: string) => role === "owner" }))
 vi.mock("@/features/google-drive", () => ({ getSelectedGoogleDriveFile: mocks.file }))
@@ -8,6 +9,7 @@ import { saveRoadmapSectionAction } from "@/actions/roadmap"
 const input = { sectionId: "vision", expectedUserId: "user-a", expectedOrganizationId: "org-a", expectedLastUpdated: "2026-09-20", driveFileId: "selected_file_123" }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.rpc.mockResolvedValue({ data: true, error: null })
   const row = { profile: { roadmap: { sections: [{ id: "vision", title: "Vision", content: "<p>Draft</p>", lastUpdated: "2026-09-20" }] } }, public_slug: null, updated_at: "2026-09-20" }
   const read = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: row, error: null }) }
   const write = { eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: { user_id: "org-a" }, error: null }) }
@@ -28,7 +30,8 @@ describe("Core Document source authorization", () => {
     const result = await saveRoadmapSectionAction({ ...input, title: "Wrong replacement title" })
     expect(mocks.file).toHaveBeenCalledWith("user-a", input.driveFileId)
     expect(result).toMatchObject({ section: { title: "Vision", content: "<p>Draft</p>", documentSource: "google_drive" } })
-    expect(mocks.update).toHaveBeenCalledOnce()
+    expect(mocks.rpc).toHaveBeenCalledWith("commit_roadmap_profile", expect.objectContaining({ p_org: "org-a", p_expected_updated_at: "2026-09-20", p_require_storage: true }))
+    expect(mocks.update).not.toHaveBeenCalled()
   })
   it.each([
     { expectedOrganizationId: "org-b" },
@@ -39,6 +42,7 @@ describe("Core Document source authorization", () => {
     expect(await saveRoadmapSectionAction({ ...input, ...override })).toHaveProperty("error")
     expect(mocks.file).not.toHaveBeenCalled()
     expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
   it("rejects read-only organization membership", async () => {
     mocks.organization.mockResolvedValue({ orgId: "org-a", role: "board" })
@@ -49,6 +53,7 @@ describe("Core Document source authorization", () => {
     mocks.file.mockRejectedValue(new Error("file_not_authorized"))
     expect(await saveRoadmapSectionAction(input)).toHaveProperty("error")
     expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
   it("clears the slot without any Google API call", async () => {
     expect(await saveRoadmapSectionAction({ ...input, driveFileId: null, content: "", status: "not_started" })).toMatchObject({ section: { title: "Vision", driveSource: null, content: "", status: "not_started" } })
@@ -63,11 +68,13 @@ describe("Create-only core document writes", () => {
       title: "Replacement", content: "<p>Replacement</p>", isPublic: false, status: "in_progress" })
     expect(result).toMatchObject({ section: { id: "vision", title: "Vision", content: "<p>Draft</p>" } })
     expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
   it.each([{ sectionId: undefined }, { expectedOrganizationId: undefined }, { expectedUserId: undefined },
     { expectedLastUpdated: undefined }, { driveFileId: "selected_file_123" }, { aiRunId: "fake" }])("rejects unsafe create-only scope: %j", async override => {
     expect(await saveRoadmapSectionAction({ sectionId: "application-123", createOnly: true,
       expectedUserId: "user-a", expectedOrganizationId: "org-a", expectedLastUpdated: null, ...override })).toHaveProperty("error")
     expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })

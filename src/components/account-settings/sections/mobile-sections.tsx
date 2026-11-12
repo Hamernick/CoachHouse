@@ -1,3 +1,4 @@
+import { AiUsageSettings } from "@/features/ai-credits/client"
 import { CommunicationsPreferencesFields } from "@/components/account-settings/sections/communications-preferences-fields"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,8 @@ export const TAB_LABELS: Record<AccountSettingsTabKey, string> = {
   profile: "Profile",
   "public-profile": "Public profile",
   communications: "Communications",
+  usage: "Usage & billing",
+  memory: "Memory",
   security: "Security",
   danger: "Danger zone",
 }
@@ -22,6 +25,8 @@ export const MOBILE_LINKS: Array<{
   { key: "profile", description: "Personal details, photo" },
   { key: "public-profile", description: "Username, visibility, collections" },
   { key: "communications", description: "Emails & notifications" },
+  { key: "usage", description: "AI allowance, credits, history" },
+  { key: "memory", description: "Personal guidance for your chats" },
   { key: "security", description: "Sign-in methods, password" },
   { key: "danger", description: "Delete account" },
 ]
@@ -182,6 +187,8 @@ export function MobileSubpage({
           idPrefix="mobile-public-profile"
         />
       )}
+
+      {tab === "usage" && mobilePage === "usage" && <AiUsageSettings mobile />}
 
       {tab === "communications" && (
         <div className="space-y-6">

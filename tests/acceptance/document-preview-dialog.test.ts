@@ -18,7 +18,7 @@ import { DocumentPreviewDialog } from "@/components/organization/org-profile-car
 
 function renderPreview(item: LibraryItem) {
   return renderToStaticMarkup(createElement(DocumentPreviewDialog, {
-    item, onClose: () => {}, returnFocusRef: { current: null },
+    item, organizationId: "current-org", onClose: () => {}, returnFocusRef: { current: null },
   }))
 }
 const base: LibraryItem = {
@@ -30,8 +30,8 @@ const base: LibraryItem = {
 describe("document preview modal contracts", () => {
   beforeEach(() => {
     preview.resolve.mockReset()
-    preview.resolve.mockImplementation((_path, _version, enabled) => ({
-      url: enabled ? "https://storage.example.test/signed-file" : null,
+    preview.resolve.mockImplementation((_path, _version, enabled, options) => ({
+      url: enabled ? options?.imageResponse ? "blob:fixture-drive" : "https://storage.example.test/signed-file" : null,
       error: null, retry: vi.fn(),
     }))
   })
@@ -44,9 +44,9 @@ describe("document preview modal contracts", () => {
       driveDocument: { id: "document", name: "Plan", mimeType: fileType === "pdf" ? "application/pdf" : "image/png", modifiedAt: null, status: "available", webViewLink: href },
     })
     expect(preview.resolve).toHaveBeenCalledWith(
-      "/api/integrations/google-drive/documents/document/preview", "v1", false
+      "/api/integrations/google-drive/documents/document/preview", "v1", true, { organizationId: "current-org", imageResponse: true, revalidate: true }
     )
-    expect(html).toContain('<img src="/api/integrations/google-drive/documents/document/preview"')
+    expect(html).toContain('<img src="blob:fixture-drive"')
     expect(html).toContain(`href="${href}"`)
     expect(html).toContain("Google Drive thumbnail preview")
     expect(html).not.toContain("data-pdf-url")
@@ -55,7 +55,7 @@ describe("document preview modal contracts", () => {
 
   it("keeps signed uploaded PDFs in the full PDF viewer", () => {
     const html = renderPreview(base)
-    expect(preview.resolve).toHaveBeenCalledWith("/api/preview", "v1", true)
+    expect(preview.resolve).toHaveBeenCalledWith("/api/preview", "v1", true, { organizationId: "current-org", imageResponse: false, revalidate: true })
     expect(html).toContain('data-pdf-url="https://storage.example.test/signed-file"')
     expect(html).toContain('href="https://storage.example.test/signed-file"')
     expect(html).not.toContain("<img")
@@ -63,7 +63,7 @@ describe("document preview modal contracts", () => {
 
   it("keeps signed uploaded images in the image viewer", () => {
     const html = renderPreview({ ...base, fileType: "image" })
-    expect(preview.resolve).toHaveBeenCalledWith("/api/preview", "v1", true)
+    expect(preview.resolve).toHaveBeenCalledWith("/api/preview", "v1", true, { organizationId: "current-org", imageResponse: false, revalidate: true })
     expect(html).toContain('<img src="https://storage.example.test/signed-file"')
     expect(html).not.toContain("data-pdf-url")
   })

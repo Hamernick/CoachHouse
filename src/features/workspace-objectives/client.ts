@@ -7,3 +7,5 @@ export { ObjectivePlanViewport } from "./components/objective-plan-viewport"
 export { guardObjectivePlanInteractions } from "./lib/plan-flow-guards"
 
 export { useObjectivePlanningAccess } from "./hooks/use-objective-planning-access"
+
+export { PlanningSidebarSurface } from "./components/planning-sidebar-surface"

@@ -30,8 +30,36 @@ describe("version-aware document physical cleanup",()=>{
   mocks.rpc.mockImplementation(async(name:string)=>name==="reserve_document_file_purge"?{data:{fileId:file,paths,complete:false},error:null}:{data:null,error:{code:"PT409"}})
   expect(await permanentlyPurgeDocument(org,file,actor)).toMatchObject({ok:false,status:409})
  })
+ it("does not finalize after Storage rejects a revoked actor",async()=>{
+  mocks.remove.mockResolvedValue({error:{code:"42501"}})
+  expect(await permanentlyPurgeDocument(org,file,actor)).toMatchObject({ok:false,status:403})
+  expect(mocks.rpc.mock.calls.map(call=>call[0])).toEqual(["reserve_document_file_purge"])
+ })
+ it("retains the receipt when access is revoked after physical deletion",async()=>{
+  mocks.rpc.mockImplementation(async(name:string)=>name==="reserve_document_file_purge"?{data:{fileId:file,paths,complete:false},error:null}:{data:null,error:{code:"42501"}})
+  expect(await permanentlyPurgeDocument(org,file,actor)).toMatchObject({ok:false,status:403})
+  expect(mocks.remove).toHaveBeenCalledWith(paths)
+  expect(mocks.rpc).toHaveBeenLastCalledWith("finish_document_file_purge",{p_org:org,p_file:file,p_actor:org,p_support:false})
+ })
  it("bounds abandoned work, retains failed operations, and does not invent staged cancellation",async()=>{
-  const stages=[3,4].map(n=>({fileId:file,requestId:`10000000-0000-4000-8000-${String(n).padStart(12,"0")}`,actorId:org,paths}));mocks.rpc.mockResolvedValueOnce({data:stages,error:null});mocks.remove.mockResolvedValueOnce({error:{message:"partial"}})
+  const stages=[3,4].map(n=>({fileId:file,requestId:`10000000-0000-4000-8000-${String(n).padStart(12,"0")}`,actorId:org,paths:[`${org}/library/versions/${file}/10000000-0000-4000-8000-${String(n).padStart(12,"0")}.md`,`${org}/library/versions/${file}/10000000-0000-4000-8000-${String(n).padStart(12,"0")}-previous.md`]}));mocks.rpc.mockResolvedValueOnce({data:stages,error:null});mocks.remove.mockResolvedValueOnce({error:{message:"partial"}})
   await reconcileAbandonedDocumentStages(org,actor);expect(mocks.remove).toHaveBeenCalledTimes(2);expect(mocks.rpc.mock.calls.map(call=>call[0])).toEqual(["read_abandoned_document_stages","finish_abandoned_document_version"]);expect(mocks.rpc.mock.calls[1][1].p_request_id).toBe(stages[1].requestId)
+ })
+ it("rejects canonical, foreign-operation and duplicate paths in stage cleanup receipts",async()=>{
+  const requestId="10000000-0000-4000-8000-000000000003"
+  for(const bad of [paths,[`${org}/library/versions/${file}/${requestId}.md`,`${org}/library/versions/${file}/${requestId}.md`]]){
+   mocks.rpc.mockResolvedValueOnce({data:[{fileId:file,requestId,actorId:org,paths:bad}],error:null})
+   await reconcileAbandonedDocumentStages(org,actor)
+  }
+  expect(mocks.remove).not.toHaveBeenCalled()
+ })
+ it("keeps the verified cleanup caller separate from the original stage actor",async()=>{
+  const requestId="10000000-0000-4000-8000-000000000003",original="10000000-0000-4000-8000-000000000004"
+  const exact=[`${org}/library/versions/${file}/${requestId}.md`,`${org}/library/versions/${file}/${requestId}-previous.md`]
+  mocks.rpc.mockResolvedValueOnce({data:[{fileId:file,requestId,actorId:original,paths:exact}],error:null})
+  await reconcileAbandonedDocumentStages(org,actor)
+  expect(mocks.admin).toHaveBeenCalledWith({actorId:org,requestTimeoutMs:15000})
+  expect(mocks.remove).toHaveBeenCalledWith(exact)
+  expect(mocks.rpc).toHaveBeenLastCalledWith("finish_abandoned_document_version",{p_file_id:file,p_request_id:requestId,p_actor_id:original})
  })
 })

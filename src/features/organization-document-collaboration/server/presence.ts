@@ -32,6 +32,7 @@ export async function syncDocumentPresence(input: DocumentSyncInput) {
     const cleanup = await admin.from("organization_core_document_presence").delete()
       .eq("org_id", input.organizationId).lt("seen_at", new Date(Date.now() - 60_000).toISOString())
     if (cleanup.error) trace.failure(cleanup.error)
+    await documentContext(input)
     trace.success()
     return { participants: data ?? [] }
   } catch (error) { return trace.failure(error) }

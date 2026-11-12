@@ -74,7 +74,8 @@ export function WorkspaceDockHost({
       >
         {children}
       </section>,
-      container
+      // Escape the flow frame's z-0 stacking context; stay canvas-local.
+      container.closest<HTMLElement>(".workspace-layout-surface") ?? container
     )
   return (
     <Drawer

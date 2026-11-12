@@ -29,6 +29,28 @@ import {
 } from "./fixtures/particle-fixtures"
 
 describe("Particle library placement", () => {
+  it("keeps the Tools catalog limited to reusable sources even when saved items are hidden", () => {
+    const particles = [
+      { ...particle(101, "activity"), title: "Saved meeting notes", canvasHidden: true },
+      { ...particle(102, "workflow"), title: "Saved intake form", canvasHidden: true },
+      { ...particle(103, "activity"), title: "Placed checklist", canvasHidden: false },
+    ]
+    const original = JSON.stringify(particles)
+    const props = {
+      workspaceId: WORKSPACE, particles, includeSavedParticles: false,
+      editable: true, canEdit: true, pending: false, error: null,
+      onCreate: async () => true, onAddPreset: async () => true, onRetry: () => {}, onPlace: () => {},
+    }
+    const html = renderToStaticMarkup(createElement(ParticleLibrary, props))
+    expect(html).toContain('aria-label="Add Form to canvas"')
+    expect(html).toContain('aria-label="Add Notes to canvas"')
+    for (const record of particles) expect(html).not.toContain(record.title)
+    const searched = renderToStaticMarkup(createElement(ParticleLibrary, { ...props, externalQuery: "Saved meeting notes" }))
+    expect(searched).toContain("No matches")
+    expect(searched).not.toContain('aria-label="Add Saved meeting notes to canvas"')
+    expect(JSON.stringify(particles)).toBe(original)
+  })
+
   it("omits a redundant empty Activity only when its preset is available", () => {
     const blank = { ...particle(1), canvasHidden: true }
     const props = {

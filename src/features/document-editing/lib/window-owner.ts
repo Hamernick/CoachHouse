@@ -84,6 +84,26 @@ export function createDocumentWindowOwner({ source, client, load }: {
     getSnapshot: () => state,
     get cleanupError() { return cleanupError },
     open: () => reader.open(),
+    lock: () => reader.lock(),
+    async revalidate(signal: AbortSignal, requireEditing = false) {
+      const viewerId = loaded?.viewerId
+      if (closed || reader.getSnapshot().status === "locked") throw new Error("Document unavailable.")
+      if (!viewerId) {
+        await reader.open()
+        if (signal.aborted) return
+        if (closed || reader.getSnapshot().status !== "ready" || !loaded ||
+            (requireEditing && !loaded.editable)) throw new Error("Document unavailable.")
+        return { editable: loaded.editable === true }
+      }
+      // Reuse the complete, source-bound server read. Never replace the retained
+      // snapshot/replica with a background response or create another room.
+      const current = documentWindowSchema.parse(await load(source))
+      if (signal.aborted) return
+      if (closed || reader.getSnapshot().status === "locked" || current.viewerId !== viewerId ||
+          JSON.stringify(current.snapshot.source) !== JSON.stringify(source) ||
+          (requireEditing && !current.editable)) throw new Error("Document unavailable.")
+      return { editable: current.editable === true }
+    },
     retry() {
       if (session?.getSnapshot().locked) {
         releaseSession(); sharedReady = false; fallback = false; loaded = null

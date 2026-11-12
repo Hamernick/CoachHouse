@@ -35,17 +35,21 @@ export async function createIslandObjective(scope: ObjectiveScope, title: string
     return result.ok ? { ok: true } : result
   } catch (error) { return failure(error) }
 }
+function assertSaved(data: unknown, error: { code?: string } | null) {
+  if (error?.code === "40001") throw new Error("This objective or step changed. Refresh before editing again.")
+  if (error?.code === "42501") throw new Error("Access changed or this item is managed by its source. Reopen Objectives.")
+  if (error || data !== true) throw new Error("Unable to confirm the save. Reopen Objectives before trying again.")
+}
 export async function editIslandObjective(scope: ObjectiveScope, input: ObjectiveEdit): Promise<ObjectiveMutationResult> {
   try {
-    const { client, orgId, userId } = await objectiveActor(scope, true)
+    const { client, orgId } = await objectiveActor(scope, true)
     const value = editSchema.parse(input)
-    const { data, error } = await client.from("organization_workspace_objectives").update({
-      title: value.title, description: value.description.trim() || null, status: value.status,
-      completed_at: value.status === "done" ? new Date().toISOString() : null, updated_by: userId,
-    }).eq("org_id", orgId).eq("id", value.id).eq("kind", "custom")
-      .eq("updated_at", value.expectedUpdatedAt).select("id").maybeSingle()
-    if (error) throw new Error("Unable to save the objective.")
-    if (!data) throw new Error("This objective changed or is managed by its source. Refresh before editing again.")
+    const { data, error } = await client.rpc("write_workspace_objective_island", {
+      p_org_id: orgId, p_objective_id: value.id, p_step_id: null,
+      p_expected_updated_at: value.expectedUpdatedAt, p_title: value.title,
+      p_description: value.description, p_status: value.status,
+    })
+    assertSaved(data, error)
     return { ok: true }
   } catch (error) { return failure(error) }
 }
@@ -53,15 +57,12 @@ export async function setIslandStep(scope: ObjectiveScope, input: { id: string; 
   try {
     const { client, orgId } = await objectiveActor(scope, true)
     const value = z.object({ id: z.uuid(), objectiveId: z.uuid(), expectedUpdatedAt: z.string().min(1), done: z.boolean() }).parse(input)
-    const parent = await client.from("organization_workspace_objectives").select("kind")
-      .eq("org_id", orgId).eq("id", value.objectiveId).maybeSingle()
-    if (parent.error || parent.data?.kind !== "custom") throw new Error("Update this step from its source lesson or document.")
-    const { data, error } = await client.from("organization_workspace_objective_steps")
-      .update({ status: value.done ? "done" : "todo", completed_at: value.done ? new Date().toISOString() : null })
-      .eq("org_id", orgId).eq("objective_id", value.objectiveId).eq("id", value.id)
-      .eq("step_type", "custom").eq("updated_at", value.expectedUpdatedAt).select("id").maybeSingle()
-    if (error) throw new Error("Unable to save the step.")
-    if (!data) throw new Error("This step changed or is managed by its source. Refresh before editing again.")
+    const { data, error } = await client.rpc("write_workspace_objective_island", {
+      p_org_id: orgId, p_objective_id: value.objectiveId, p_step_id: value.id,
+      p_expected_updated_at: value.expectedUpdatedAt, p_title: null,
+      p_description: null, p_status: value.done ? "done" : "todo",
+    })
+    assertSaved(data, error)
     return { ok: true }
   } catch (error) { return failure(error) }
 }

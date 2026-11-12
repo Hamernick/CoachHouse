@@ -10,10 +10,10 @@ vi.mock("react-dom", async (importOriginal) => ({
 
 describe("floating workspace dock host", () => {
   it("renders retained content without a drawer, overlay, trigger or autofocus", () => {
-    const html = renderToStaticMarkup(WorkspaceDockHost({
+    const html = renderToStaticMarkup(createElement(WorkspaceDockHost, {
       floating: true,
       // The portal is mocked; no browser container is needed for this render.
-      container: { nodeType: 1 } as HTMLElement,
+      container: { nodeType: 1, closest: () => null } as unknown as HTMLElement,
       onMinimize: vi.fn(),
       request: null,
       legacyRootProps: { open: true },

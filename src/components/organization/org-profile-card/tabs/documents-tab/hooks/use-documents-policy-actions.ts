@@ -16,7 +16,6 @@ import type { DocumentsPolicyEntry, PolicyDraft } from "../types"
 import {
   buildSavePolicyPayload,
   toDraftDocumentPolicyEntry,
-  upsertPolicyEntry,
 } from "./policy-draft-helpers"
 
 type UseDocumentsPolicyActionsArgs = {
@@ -76,19 +75,16 @@ export function useDocumentsPolicyActions({
 
     setPolicySavePending(true)
     try {
-      let policy = await savePolicy(payload)
-      setPoliciesState((current) => upsertPolicyEntry(current, policy))
+      const policyId = await savePolicy(payload)
 
-      if (policyDocumentRemoveRequested && policy.document?.path) {
+      if (policyDocumentRemoveRequested) {
         setPolicyDocumentBusy(true)
-        policy = await removePolicyDocument(policy.id)
-        setPoliciesState((current) => upsertPolicyEntry(current, policy))
+        await removePolicyDocument(policyId)
       }
 
       if (policyDocumentPending) {
         setPolicyDocumentBusy(true)
-        policy = await uploadPolicyDocument(policy.id, policyDocumentPending)
-        setPoliciesState((current) => upsertPolicyEntry(current, policy))
+        await uploadPolicyDocument(policyId, policyDocumentPending)
       }
 
       setPolicyDialogOpen(false)
@@ -156,8 +152,7 @@ export function useDocumentsPolicyActions({
     }
     setDeletingPolicyId(policy.id)
     try {
-      const updated = await removePolicyDocument(policy.id)
-      setPoliciesState((current) => upsertPolicyEntry(current, updated))
+      await removePolicyDocument(policy.id)
       toast.success("Policy document removed")
     } catch (error: unknown) {
       toast.error(

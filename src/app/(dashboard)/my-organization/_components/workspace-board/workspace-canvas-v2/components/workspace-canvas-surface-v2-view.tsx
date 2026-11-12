@@ -1,5 +1,7 @@
 "use client"
 
+import { ResearchBoardDropProvider } from "@/features/workspace-ai/client"
+
 import { useSearchParams } from "next/navigation"
 import { useCallback, useMemo, useState, type DragEvent } from "react"
 import RotateCcwIcon from "lucide-react/dist/esm/icons/rotate-ccw"
@@ -35,7 +37,8 @@ import { WorkspaceCanvasEdgeContextMenu } from "./workspace-canvas-edge-context-
 import { WorkspaceCanvasSurfaceV2ViewportControls } from "./workspace-canvas-surface-v2-viewport-controls-panel"
 import { useWorkspaceCanvasSurfaceGestureGuards } from "./workspace-canvas-surface-v2-gesture-effect"
 import { useWorkspaceParticleFlow, WorkspaceParticleCanvasProviders } from "./workspace-particle-canvas-providers"
-import { ObjectivesIsland, ObjectivePlanNode, ObjectivePlanViewport, useObjectiveCanvas, guardObjectivePlanInteractions } from "@/features/workspace-objectives/client"
+import { ObjectivePlanNode, ObjectivePlanViewport, useObjectiveCanvas, guardObjectivePlanInteractions } from "@/features/workspace-objectives/client"
+import { WorkspaceCanvasChatContext } from "./workspace-canvas-chat"
 import { WorkspaceParticleDock } from "./workspace-particle-dock"
 import { WorkspaceCanvasSurfaceV2MobileShortcutOverlay } from "./workspace-canvas-surface-v2-mobile-shortcut-overlay"
 import {
@@ -308,13 +311,15 @@ export function WorkspaceCanvasSurfaceV2View({
     <WorkspaceCanvasErrorBoundary>
       <div
         ref={setSurfaceContainer}
-        className="workspace-layout-surface group/workspace-canvas-surface relative min-h-[min(820px,calc(100svh-9.5rem))] w-full max-w-full min-w-0 flex-1 overflow-hidden bg-zinc-50 dark:bg-zinc-800"
+        className="workspace-layout-surface group/workspace-canvas-surface relative min-h-[min(820px,calc(100svh-9.5rem))] w-full max-w-full min-w-0 flex-1 overflow-hidden bg-[#F0F0F0] dark:bg-zinc-800"
         data-layout-animating={layoutAnimating ? "true" : undefined}
         data-canvas-ready={canvasReady}
         aria-busy={!canvasReady}
       >
+        <ReactFlowProvider>
+        <ResearchBoardDropProvider key={`${workspaceDataDrawerViewerId}:${uiPreferencesScope.orgId}:${guideParams.get("workspace") ?? "default"}`} canvas={flowFrameContainer} enabled={allowEditing && !tutorialActive && particles.editable}>
+        <WorkspaceCanvasChatContext.Provider value={!tutorialActive && !presentationMode}>
         <WorkspaceParticleCanvasProviders
-          people={workspaceDataDrawerPeople}
           workspaceId={uiPreferencesScope.orgId}
           canPlaceParticles={
             allowEditing && !tutorialActive && particles.editable
@@ -330,6 +335,7 @@ export function WorkspaceCanvasSurfaceV2View({
                 particles={particles.controls}
                 tools={library.tools}
                 tutorialActive={tutorialActive}
+                showPlanning={!presentationMode}
                 people={workspaceDataDrawerPeople}
                 placedPersonIds={placedWorkspacePersonIds}
                 viewerId={workspaceDataDrawerViewerId}
@@ -349,11 +355,6 @@ export function WorkspaceCanvasSurfaceV2View({
               />
             }
           />
-          {!tutorialActive && !presentationMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-2 bottom-[var(--workspace-planning-bottom,136px)] z-10 has-[[data-opportunity-sources-drop]]:z-30">
-              <ObjectivesIsland particles={particles.controls} finance={workspaceDataDrawerFinance} scope={{ userId: workspaceDataDrawerViewerId, organizationId: uiPreferencesScope.orgId }} />
-            </div>
-          )}
           <WorkspaceCanvasSurfaceV2ViewportControls
             tutorialCalendarButtonCallout={
               tutorialCalendarButtonCallout ?? null
@@ -371,7 +372,6 @@ export function WorkspaceCanvasSurfaceV2View({
             data-workspace-canvas-flow-frame="true"
             className="absolute inset-0 z-0 max-w-full min-w-0 overflow-hidden"
           >
-            <ReactFlowProvider>
               <WorkspaceReactFlowErrorBootstrap onError={onError}>
                 {(handleReactFlowError) => (
                   <ReactFlow<Node>
@@ -431,7 +431,6 @@ export function WorkspaceCanvasSurfaceV2View({
                   </ReactFlow>
                 )}
               </WorkspaceReactFlowErrorBootstrap>
-            </ReactFlowProvider>
           </div>
           {!canvasReady && <WorkspaceLoadingIndicator />}
           <WorkspaceCanvasEmptyState
@@ -455,6 +454,9 @@ export function WorkspaceCanvasSurfaceV2View({
             />
           ) : null}
         </WorkspaceParticleCanvasProviders>
+        </WorkspaceCanvasChatContext.Provider>
+        </ResearchBoardDropProvider>
+        </ReactFlowProvider>
       </div>
     </WorkspaceCanvasErrorBoundary>
   )

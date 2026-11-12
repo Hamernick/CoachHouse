@@ -112,7 +112,7 @@ describe("Particle size families", () => {
       ])
     )
     expect(changes[0]).toMatchObject({
-      dimensions: { width: 650, height: 402.5 },
+      dimensions: { width: 650, height: 402.5 + 52 },
       setAttributes: true,
     })
     expect(changes[1]).toMatchObject({ dimensions })
@@ -356,7 +356,7 @@ describe("Size adapter", () => {
       data: { particle, editable: true, onOpen: vi.fn(), onEdit: vi.fn() },
     })
     const fixed = adapt(make())
-    expect([fixed.initialWidth, fixed.initialHeight]).toEqual([400, 192])
+    expect([fixed.initialWidth, fixed.initialHeight]).toEqual([400, 192 + 52])
     expect(fixed.handles).toEqual([
       { id: "in", type: "target", position: "left", x: 0, y: 96, width: 0, height: 0 },
       { id: "out", type: "source", position: "right", x: 400, y: 96, width: 0, height: 0 },
@@ -384,7 +384,7 @@ describe("Size adapter", () => {
       keepPosition: false,
       data: { particle, editable: true, onOpen: vi.fn(), onEdit: vi.fn() },
     })
-    expect(node.style).toEqual({ width: 400, height: 192 })
+    expect(node.style).toEqual({ width: 400, height: 192 + 52 })
     expect(node.position).toEqual({ x: 155, y: 287 })
     const during = reconcileParticleNode({
       old: { ...node, width: 430, height: 305 },
@@ -420,13 +420,13 @@ describe("Personal in-place inspection", () => {
     const snapshot = JSON.stringify(original)
     const options = { particle: original, selectedId: null, movable: true, resizing: false, keepPosition: false, data: { particle: original, editable: false, expanded: true, onOpen: vi.fn(), onEdit: vi.fn() } }
     const expanded = reconcileParticleNode(options)
-    expect(expanded.style).toEqual({ width: 560, height: 400 })
+    expect(expanded.style).toEqual({ width: 560, height: 400 + 52 })
     expect(expanded.position).toEqual(original.position)
     expect(JSON.stringify(original)).toBe(snapshot)
     const updated = { ...original, position: { x: 900, y: 500 }, revision: original.revision + 1 }
     const collapsed = reconcileParticleNode({ ...options, old: expanded, particle: updated, data: { ...options.data, particle: updated, expanded: false } })
     expect(collapsed.position).toEqual(updated.position)
-    expect(collapsed.style).toEqual({ width: 400, height: 192 })
+    expect(collapsed.style).toEqual({ width: 400, height: 192 + 52 })
   })
 })
 

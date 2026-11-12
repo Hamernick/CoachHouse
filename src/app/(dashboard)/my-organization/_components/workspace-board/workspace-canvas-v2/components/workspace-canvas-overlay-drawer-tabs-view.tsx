@@ -2,6 +2,7 @@
 import { useRef, useState } from "react"
 import { Tabs } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { WorkspacePlanningSidebar } from "./workspace-planning-sidebar"
 import { WorkspaceCanvasOrganizationButton } from "./workspace-canvas-organization-button"
 import { WorkspaceCanvasTopTabs } from "./workspace-canvas-top-tabs"
 import { WorkspaceDrawerNavigation } from "./workspace-drawer-navigation-view"
@@ -51,7 +52,12 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
           : "overflow-hidden"
       )}
     >
-      {props.composerMode ? <WorkspaceCanvasOrganizationButton {...props} triggerRef={organizationTriggerRef} /> : null}
+      {props.composerMode ? props.planningSidebar ? (
+        <WorkspacePlanningSidebar restoreFocus={drawerCollapsed} hidden={tab === "organization" && !props.bodyOverride && !drawerCollapsed}
+          header={<WorkspaceCanvasOrganizationButton {...props} embedded triggerRef={organizationTriggerRef} />}>
+          {null}
+        </WorkspacePlanningSidebar>
+      ) : <WorkspaceCanvasOrganizationButton {...props} triggerRef={organizationTriggerRef} /> : null}
       {props.composerMode ? <WorkspaceCanvasTopTabs {...props} /> : <WorkspaceDrawerNavigation
         {...props}
         tabIndicator={{
@@ -64,9 +70,10 @@ export function WorkspaceDrawerTabs(props: WorkspaceDrawerTabsProps) {
       />}
       <WorkspaceContentWindow
         organizationTriggerRef={organizationTriggerRef}
+        backToPlanning={Boolean(props.planningSidebar) && tab === "organization" && !props.bodyOverride}
         headerSlots={
           Boolean(visibleBody) ||
-          ["organization", "people", "documents", "accelerator", "particles"].includes(tab)
+          ["organization", "people", "documents", "accelerator", "tools"].includes(tab)
         }
         windowState={props.windowState}
         collapsed={drawerCollapsed}

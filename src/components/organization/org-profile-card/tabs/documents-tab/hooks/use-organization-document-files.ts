@@ -1,6 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
+
+import { z } from "zod"
+import { documentLibraryUrl, useDocumentLibraryRead, type DocumentLibraryScope } from "./use-document-library-read"
 
 import { toast } from "@/lib/toast"
 import { downloadFile as saveDownload } from "@/lib/download-file"
@@ -21,14 +24,18 @@ export type OrganizationDocumentFile = {
   updatedAt: string
 }
 
-type FilesResponse = {
-  hasStorageAccess?: boolean
-  files?: OrganizationDocumentFile[]
-  quota?: {
-    usedBytes: number
-    limitBytes: number
-  }
-  error?: string
+const filesResponseSchema = z.object({
+  hasStorageAccess: z.boolean(),
+  files: z.array(z.object({
+    id: z.string(), coreSectionId: z.string().optional(), name: z.string(), mimeType: z.string(),
+    sizeBytes: z.number().nonnegative(), deletedAt: z.string().nullable(), createdAt: z.string(), updatedAt: z.string(),
+  })),
+  quota: z.object({ usedBytes: z.number().nonnegative(), limitBytes: z.number().nonnegative() }),
+})
+async function readFiles(signal: AbortSignal, scope: DocumentLibraryScope) {
+  const response = await fetch(documentLibraryUrl("/api/account/organization-document-files", scope), { cache: "no-store", signal })
+  if (!response.ok) throw new Error("Documents unavailable.")
+  return filesResponseSchema.parse(await response.json())
 }
 
 async function readResponseError(response: Response) {
@@ -38,56 +45,24 @@ async function readResponseError(response: Response) {
   return payload?.error ?? "Unable to upload file."
 }
 
-export function useOrganizationDocumentFiles(refreshKey = "") {
-  const [hasStorageAccess, setHasStorageAccess] = useState(false)
-  const [files, setFiles] = useState<OrganizationDocumentFile[]>([])
-  const [usedBytes, setUsedBytes] = useState(0)
-  const [limitBytes, setLimitBytes] = useState(
-    ORGANIZATION_DOCUMENT_QUOTA_BYTES
-  )
-  const [loading, setLoading] = useState(true)
+export function useOrganizationDocumentFiles(scope: DocumentLibraryScope, refreshKey = "") {
+  const library = useDocumentLibraryRead(scope, readFiles, refreshKey)
+  const { captureUpdate } = library
+  const hasStorageAccess = library.data?.hasStorageAccess ?? false
+  const files = library.data?.files ?? []
+  const usedBytes = library.data?.quota.usedBytes ?? 0
+  const limitBytes = library.data?.quota.limitBytes ?? ORGANIZATION_DOCUMENT_QUOTA_BYTES
+  const endpoint = documentLibraryUrl("/api/account/organization-document-files", scope)
   const [uploading, setUploading] = useState(false)
   const [uploadingCoreSectionId, setUploadingCoreSectionId] = useState<
     string | null
   >(null)
   const [pendingFileIds, setPendingFileIds] = useState<string[]>([])
 
-  const load = useCallback(async () => {
-    try {
-      const response = await fetch("/api/account/organization-document-files", {
-        cache: "no-store",
-      })
-      const payload = (await response
-        .json()
-        .catch(() => null)) as FilesResponse | null
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Unable to load uploaded files.")
-      }
-      setHasStorageAccess(payload?.hasStorageAccess === true)
-      setFiles(payload?.files ?? [])
-      setUsedBytes(payload?.quota?.usedBytes ?? 0)
-      setLimitBytes(
-        payload?.quota?.limitBytes ?? ORGANIZATION_DOCUMENT_QUOTA_BYTES
-      )
-    } catch (error: unknown) {
-      setHasStorageAccess(false)
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Unable to load uploaded files."
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load, refreshKey])
-
   const uploadFiles = useCallback(
     async (selectedFiles: File[], coreSectionId?: string) => {
-      if (selectedFiles.length === 0 || uploading) return
+      if (selectedFiles.length === 0 || uploading || !hasStorageAccess) return
+      const update = captureUpdate()
       if (coreSectionId && selectedFiles.length !== 1) {
         toast.error("Drop one file into this document slot.")
         return
@@ -131,7 +106,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
           form.set("file", file)
           if (coreSectionId) form.set("coreSectionId", coreSectionId)
           const response = await fetch(
-            "/api/account/organization-document-files",
+            endpoint,
             { method: "POST", body: form }
           )
           if (!response.ok) {
@@ -140,8 +115,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
           const payload = (await response.json()) as {
             file: OrganizationDocumentFile
           }
-          setFiles((current) => [payload.file, ...current])
-          setUsedBytes((current) => current + payload.file.sizeBytes)
+          update(current => ({ ...current, files: [payload.file, ...current.files], quota: { ...current.quota, usedBytes: current.quota.usedBytes + payload.file.sizeBytes } }))
           uploadedCount += 1
         }
 
@@ -160,13 +134,13 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
         setUploadingCoreSectionId(null)
       }
     },
-    [limitBytes, uploading, usedBytes]
+    [limitBytes, uploading, usedBytes, hasStorageAccess, captureUpdate, endpoint]
   )
 
   const openFile = useCallback(async (file: OrganizationDocumentFile) => {
     try {
       const response = await fetch(
-        `/api/account/organization-document-files?id=${encodeURIComponent(file.id)}`,
+        `${endpoint}&id=${encodeURIComponent(file.id)}`,
         { cache: "no-store" }
       )
       const payload = (await response.json().catch(() => null)) as {
@@ -182,7 +156,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
         error instanceof Error ? error.message : "Unable to open file."
       )
     }
-  }, [])
+  }, [endpoint])
 
   const downloadFile = useCallback(
     async (
@@ -191,7 +165,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
     ) => {
       try {
         const response = await fetch(
-          `/api/account/organization-document-files?id=${encodeURIComponent(file.id)}&download=true`,
+          `${endpoint}&id=${encodeURIComponent(file.id)}&download=true`,
           { cache: "no-store" }
         )
         const payload = (await response.json().catch(() => null)) as {
@@ -209,15 +183,16 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
         if (options.throwOnError) throw error
       }
     },
-    []
+    [endpoint]
   )
 
   const updateFileLifecycle = useCallback(
     async (file: OrganizationDocumentFile, action: "trash" | "restore") => {
+      const update = captureUpdate()
       setPendingFileIds((current) => [...current, file.id])
       try {
         const response = await fetch(
-          "/api/account/organization-document-files",
+          endpoint,
           {
             method: "PATCH",
             headers: { "content-type": "application/json" },
@@ -228,17 +203,13 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
         const payload = (await response.json()) as {
           file: OrganizationDocumentFile
         }
-        setFiles((current) =>
-          current.map((item) =>
-            item.id === payload.file.id ? payload.file : item
-          )
-        )
+        update(current => ({ ...current, files: current.files.map(item => item.id === payload.file.id ? payload.file : item) }))
         return payload.file
       } finally {
         setPendingFileIds((current) => current.filter((id) => id !== file.id))
       }
     },
-    []
+    [captureUpdate, endpoint]
   )
 
   const restoreFile = useCallback(
@@ -285,10 +256,11 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
       file: OrganizationDocumentFile,
       options: DocumentActionOptions = {}
     ) => {
+      const update = captureUpdate()
       setPendingFileIds((current) => [...current, file.id])
       try {
         const response = await fetch(
-          "/api/account/organization-document-files",
+          endpoint,
           {
             method: "DELETE",
             headers: { "content-type": "application/json" },
@@ -296,8 +268,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
           }
         )
         if (!response.ok) throw new Error(await readResponseError(response))
-        setFiles((current) => current.filter((item) => item.id !== file.id))
-        setUsedBytes((current) => Math.max(0, current - file.sizeBytes))
+        update(current => ({ ...current, files: current.files.filter(item => item.id !== file.id), quota: { ...current.quota, usedBytes: Math.max(0, current.quota.usedBytes - file.sizeBytes) } }))
         toast.success("File permanently deleted")
       } catch (error: unknown) {
         toast.error(
@@ -310,7 +281,7 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
         setPendingFileIds((current) => current.filter((id) => id !== file.id))
       }
     },
-    []
+    [captureUpdate, endpoint]
   )
 
   return {
@@ -318,7 +289,9 @@ export function useOrganizationDocumentFiles(refreshKey = "") {
     downloadFile,
     files,
     limitBytes,
-    loading,
+    loading: library.loading,
+    error: library.error,
+    reload: library.refresh,
     openFile,
     pendingFileIds,
     permanentlyDeleteFile,

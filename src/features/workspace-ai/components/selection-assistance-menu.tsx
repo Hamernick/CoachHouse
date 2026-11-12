@@ -42,7 +42,7 @@ export function SelectionAssistanceMenu({ editor, active = true, label = "Docume
   return <>
     <Popover open={Boolean(ai.selection) && active} onOpenChange={open => { if (!open) ai.discard() }}>
       <PopoverAnchor virtualRef={{ current: { getBoundingClientRect: () => ai.selection?.anchor ?? new DOMRect() } }} />
-      <PopoverContent ref={review} side="top" sideOffset={8} className="w-auto max-w-[calc(100vw-1rem)] rounded-2xl p-1 shadow-sm"
+      <PopoverContent ref={review} align="start" side="top" sideOffset={8} className="w-auto max-w-[calc(100vw-1rem)] rounded-2xl p-1 shadow-none"
         onInteractOutside={event => event.preventDefault()} onOpenAutoFocus={event => { event.preventDefault(); input.current?.focus() }}
         onCloseAutoFocus={event => {
           event.preventDefault()
@@ -82,7 +82,7 @@ export function SelectionAssistanceMenu({ editor, active = true, label = "Docume
     options={{ placement: "top", offset: 8, flip: true, shift: { padding: 8 } }}
     shouldShow={({ state: current, element }) => active && !ai.selection && editor.isEditable && (link !== null ||
       ((editor.isFocused || element.contains(document.activeElement)) && current.selection instanceof TextSelection && !current.selection.empty && Boolean(current.doc.textBetween(current.selection.from, current.selection.to).trim())))}
-    data-editor-focus-ignore className="nodrag nopan nowheel z-50 max-w-[calc(100vw-1rem)] rounded-2xl border border-border/60 bg-popover p-1 text-popover-foreground shadow-sm">
+    data-editor-focus-ignore className="nodrag nopan nowheel z-50 max-w-[calc(100vw-1rem)] rounded-2xl border border-border/60 bg-popover p-1 text-popover-foreground shadow-none">
     {link !== null ? <form className="flex max-w-full items-center gap-1 p-1" onSubmit={event => {
       event.preventDefault()
       if (link && !/^(https?:\/\/|mailto:|tel:)/i.test(link)) { setLinkError("Use an https, http, email or telephone link."); return }

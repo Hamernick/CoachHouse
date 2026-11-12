@@ -1,8 +1,13 @@
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
+import { projectReadableDocumentProfile } from "@/lib/organization/document-ai-copies"
+import { filterPublicOrganizationProfiles } from "@/lib/organization/public-document-audience"
+import { stripHtml } from "@/lib/markdown/convert"
 import { fetchSidebarTree } from "@/lib/academy"
 import { parseAssignmentFields } from "@/lib/modules"
 import {
   resolveOrganizationNarrativePlainText,
-  resolveRoadmapSections,
+  resolvePublicOrganizationProfileNarratives,
 } from "@/lib/roadmap"
 import type { SearchResult } from "@/lib/search/types"
 import { getWorkspaceEditorPath } from "@/lib/workspace/routes"
@@ -17,6 +22,7 @@ import {
 import type { SupabaseClient } from "../types"
 
 type AddFallbackResultsParams = {
+  actorId: string
   supabase: SupabaseClient
   orgId: string
   isAdmin: boolean
@@ -189,33 +195,29 @@ async function addProgramResults({
 async function addMyOrganizationResults({
   supabase,
   orgId,
+  actorId,
   tokens,
   pushResult,
 }: {
   supabase: SupabaseClient
   orgId: string
+  actorId: string
   tokens: string[]
   pushResult: (result: SearchResult) => void
 }): Promise<void> {
-  const { data: userOrg } = await supabase
-    .from("organizations")
-    .select("user_id, public_slug, is_public, profile")
-    .eq("user_id", orgId)
-    .maybeSingle<{
-      user_id: string
-      public_slug: string | null
-      is_public: boolean | null
-      profile: Record<string, unknown> | null
-    }>()
+  const { data: userOrg, error: organizationError } = await readOrganizationProfileForProjection(supabase, orgId, actorId)
+  if (organizationError) throw new Error("Organization data is unavailable.")
 
   if (!userOrg?.profile) {
     return
   }
 
-  const profile = userOrg.profile ?? {}
+  const { profile, roadmapSections } = await projectReadableDocumentProfile(userOrg.profile, orgId, actorId)
   const name = extractProfileValue(profile, "name")
   const tagline = extractProfileValue(profile, "tagline")
-  const mission = resolveOrganizationNarrativePlainText(profile, "mission")
+  const missionSection = roadmapSections.find(section => section.id === "mission_vision_values")
+  const mission = missionSection && resolveCoreDocumentSource(missionSection) !== "editor"
+    ? "" : resolveOrganizationNarrativePlainText(profile, "mission")
   const description = extractProfileValue(profile, "description")
   if (matchesQuery([name, tagline, mission, description], tokens)) {
     const logoUrl = extractProfileValue(profile, "logoUrl")
@@ -230,10 +232,9 @@ async function addMyOrganizationResults({
     })
   }
 
-  const roadmapSections = resolveRoadmapSections(profile)
   for (const section of roadmapSections) {
     if (
-      matchesQuery([section.title, section.subtitle, section.content], tokens)
+      matchesQuery([section.title, section.subtitle, resolveCoreDocumentSource(section) === "editor" ? section.content : null], tokens)
     ) {
       const sectionKey = section.slug || section.id
       pushResult({
@@ -242,7 +243,7 @@ async function addMyOrganizationResults({
         subtitle: section.subtitle,
         href: `/roadmap#${sectionKey}`,
         group: "Roadmap",
-        keywords: [section.content].filter(Boolean),
+        keywords: resolveCoreDocumentSource(section) === "editor" ? [section.content].filter(Boolean) : [],
       })
     }
   }
@@ -290,11 +291,12 @@ async function addCommunityResults({
       }>
     >()
 
-  for (const org of publicOrgs ?? []) {
+  const admitted = await filterPublicOrganizationProfiles(publicOrgs ?? [])
+  for (const org of admitted) {
     const profile = org.profile ?? {}
     const name = extractProfileValue(profile, "name")
     const tagline = extractProfileValue(profile, "tagline")
-    const mission = resolveOrganizationNarrativePlainText(profile, "mission")
+    const mission = stripHtml(resolvePublicOrganizationProfileNarratives(profile).mission)
     const description = extractProfileValue(profile, "description")
     const city = extractProfileValue(profile, "address_city")
     const state = extractProfileValue(profile, "address_state")
@@ -328,6 +330,7 @@ async function addCommunityResults({
 }
 
 export async function addFallbackResults({
+  actorId,
   supabase,
   orgId,
   isAdmin,
@@ -367,6 +370,7 @@ export async function addFallbackResults({
     ),
     collect((collectResult) =>
       addMyOrganizationResults({
+        actorId,
         supabase,
         orgId,
         tokens,

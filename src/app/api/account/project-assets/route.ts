@@ -1,4 +1,5 @@
-import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { privateStorageResponse } from "@/lib/organization/private-storage-response"
 import { NextResponse, type NextRequest } from "next/server"
 import { resolveWorkspaceProjectScope } from "@/lib/workspace/ordinary-project-access"
 import { projectAssetReadClient, uploadFiscalReviewerAssets } from "./fiscal-upload"
@@ -24,7 +25,6 @@ import {
   PROJECT_ASSET_BUCKET as BUCKET,
 } from "./route-support"
 
-const SIGNED_URL_TTL_SECONDS = 60 * 15
 const MAX_BYTES = 50 * 1024 * 1024
 
 export async function GET(request: NextRequest) {
@@ -81,32 +81,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(asset.external_url)
     }
 
-    if (!asset.storage_path) {
+    if (!asset.storage_path || !asset.storage_path.startsWith(`${asset.org_id}/${projectId}/`) ||
+      asset.storage_path.split("/").some(part => !part || part === "." || part === "..") || /[\\%?#\u0000-\u001f\u007f]/.test(asset.storage_path)) {
       return NextResponse.json(
         { error: "Asset file unavailable." },
         { status: 404 }
       )
     }
 
-    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
-      orgId: asset.org_id, ttl: SIGNED_URL_TTL_SECONDS,
-      sign: seconds => readClient.storage.from(BUCKET).createSignedUrl(asset.storage_path!, seconds,
-        downloadRequested ? { download: asset.name || true } : undefined),
+    return privateStorageResponse({
+      request, orgId: asset.org_id, name: asset.name, mime: asset.mime || "application/octet-stream", maxBytes: MAX_BYTES,
+      download: downloadRequested,
+      sign: seconds => createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from(BUCKET).createSignedUrl(asset.storage_path!, seconds),
       revalidate: async () => {
         if (!await canAccessProjectOrg({ projectId, orgId: asset.org_id, requireEdit: false, supabase, userId: user.id })) return false
         const current = await loadAsset({ assetId, projectId, supabase: readClient })
-        return Boolean(current && current.org_id === asset.org_id && current.storage_path === asset.storage_path)
+        return Boolean(current && current.org_id === asset.org_id && current.storage_path === asset.storage_path &&
+          current.name === asset.name && current.mime === asset.mime && current.size_bytes === asset.size_bytes)
       },
     })
-
-    if (signedError || !signed?.signedUrl) {
-      return NextResponse.json(
-        { error: signedError?.message ?? "Unable to open asset." },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.redirect(signed.signedUrl)
   } catch (routeError: unknown) {
     return NextResponse.json(
       {

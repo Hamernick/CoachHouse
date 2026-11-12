@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import type { Json } from "@/lib/supabase"
 import type { RoadmapSection } from "@/lib/roadmap"
 import { aiApplicationSchema, aiRunProposal } from "../lib"
+import { assertAiDocumentSources } from "./document-source-access"
 
 // Invoked only by the roadmap save action after session, organization and
 // document-storage authorization. These are not client-callable actions.
@@ -20,6 +21,8 @@ export async function readAiDocumentApplication({ id,organizationId,userId,secti
   if (proposal.status !== "succeeded" || proposal.target.sectionId !== sectionId ||
     proposal.target.organizationId !== organizationId || proposal.target.userId !== userId)
     throw new Error("This AI proposal belongs to another document.")
+  if (proposal.selection || sectionId.startsWith("selection:")) throw new Error("Reopen this core document before saving an AI draft.")
+  await assertAiDocumentSources(id, proposal.target, false)
   return { application:proposal.application, stale:!proposal.application && proposal.target.revision !== revision && reviewedRevision !== revision }
 }
 

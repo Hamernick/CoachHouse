@@ -1,6 +1,7 @@
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
 import { loadOrganizationBrandIdentity } from "@/lib/organization/brand-identity-persistence"
 import { cleanupOrgProfileHtml } from "@/lib/organization/profile-cleanup"
-import { resolveRoadmapSections } from "@/lib/roadmap"
+import { projectReadableDocumentProfile } from "@/lib/organization/document-ai-copies"
 import { resolveOptionalAuthenticatedAppContext } from "@/lib/auth/request-context"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
 
@@ -12,26 +13,19 @@ type MyOrganizationSupabase = NonNullable<
 
 export async function loadMyOrganizationProfileContext({
   orgId,
+  actorId,
   supabase,
 }: {
   orgId: string
+  actorId: string
   supabase: MyOrganizationSupabase
 }) {
-  const { data: orgRow, error } = await supabase
-    .from("organizations")
-    .select("ein, profile, public_slug, is_public, location_lat, location_lng")
-    .eq("user_id", orgId)
-    .maybeSingle<{
-      ein: string | null
-      profile: Record<string, unknown> | null
-      public_slug: string | null
-      is_public: boolean | null
-      location_lat: number | null
-      location_lng: number | null
-    }>()
+  const { data: orgRow, error } = await readOrganizationProfileForProjection(supabase, orgId, actorId)
 
   if (error) throw supabaseErrorToError(error, "Unable to load organization setup.")
-  const profile = cleanupOrgProfileHtml(orgRow?.profile ?? {}).nextProfile
+  const { profile, roadmapSections } = await projectReadableDocumentProfile(
+    cleanupOrgProfileHtml(orgRow?.profile ?? {}).nextProfile, orgId, actorId,
+  )
 
   const initialProfile = buildInitialOrganizationProfile({
     organizationId: orgId,
@@ -39,11 +33,10 @@ export async function loadMyOrganizationProfileContext({
     profile,
     organization: orgRow ?? null,
   })
-  const roadmapSections = resolveRoadmapSections(profile)
 
   return {
     initialProfile,
-    orgRow,
+    orgRow: orgRow ? { ...orgRow, profile } : null,
     profile,
     roadmapSections,
   }

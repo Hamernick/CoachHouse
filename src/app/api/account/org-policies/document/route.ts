@@ -1,4 +1,9 @@
-import { createPrivateOrganizationLink } from "@/lib/organization/private-storage-link"
+import { randomUUID } from "node:crypto"
+import { reconcileLegacyDocumentCleanup } from "@/lib/organization/legacy-document-cleanup"
+import { reconcileLegacyDocumentUploadStages, uploadLegacyDocumentStage, type LegacyDocumentUploadStage } from "@/lib/organization/legacy-document-upload-stage"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { isLegacyDocumentPath, readableLegacyDocumentBindings } from "@/lib/organization/legacy-document-bindings"
+import { PRIVATE_FILE_HEADERS, privateFileContentUrl, privateStorageResponse } from "@/lib/organization/private-storage-response"
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
 import { resolveOrganizationDocumentAccess } from "@/lib/organization/document-access"
 import { NextResponse, type NextRequest } from "next/server"
@@ -102,7 +107,7 @@ function sanitizeFilename(name: string) {
 }
 
 function isPolicyDocumentPath(path: string, orgId: string, policyId: string) {
-  return path.startsWith(`${orgId}/policies/${policyId}/`)
+  return isLegacyDocumentPath(path, orgId, `policy:${policyId}`)
 }
 
 async function loadProfile(supabase: ReturnType<typeof createSupabaseRouteHandlerClient>, orgId: string) {
@@ -141,7 +146,7 @@ async function requireOrgEditor(request: NextRequest) {
 
 async function requireOrgMember(request: NextRequest): Promise<
   | { error: NextResponse }
-  | { supabase: ReturnType<typeof createSupabaseRouteHandlerClient>; orgId: string }
+  | { supabase: ReturnType<typeof createSupabaseRouteHandlerClient>; orgId: string; userId: string }
 > {
   const response = NextResponse.next()
   const supabase = createSupabaseRouteHandlerClient(request, response)
@@ -168,10 +173,10 @@ async function requireOrgMember(request: NextRequest): Promise<
       return {
         error: NextResponse.json({ error: access.error }, { status: 403 }),
       }
-    return { supabase: access.supabase, orgId: access.orgId }
+    return { supabase: access.supabase, orgId: access.orgId, userId: user.id }
   }
   const { orgId } = await resolveActiveOrganization(supabase, user.id)
-  return { supabase, orgId }
+  return { supabase, orgId, userId: user.id }
 }
 
 function validatePdf(file: File) {
@@ -203,20 +208,29 @@ export async function GET(request: NextRequest) {
     if (!isPolicyDocumentPath(policy.document.path, auth.orgId, policy.id)) {
       return NextResponse.json({ error: "Policy document not found." }, { status: 404 })
     }
+    const kind = `policy:${policy.id}`
+    const binding = (await readableLegacyDocumentBindings([{ kind, path: policy.document.path }], auth.orgId, auth.userId)).get(kind)
+    if (!binding) return NextResponse.json({ error: "Policy document not found." }, { status: 404, headers: PRIVATE_FILE_HEADERS })
 
-    const { data: signed, error: signedError } = await createPrivateOrganizationLink({
-      orgId: auth.orgId, ttl: 60 * 15,
-      sign: seconds => auth.supabase.storage.from(BUCKET).createSignedUrl(policy.document!.path, seconds,
-        downloadRequested ? { download: policy.document!.name || true } : undefined),
+    if (searchParams.get("content") !== "1") {
+      const url = privateFileContentUrl("/api/account/org-policies/document", {
+        organizationId: auth.orgId, id: policyId, ...(downloadRequested ? { download: "1" } : {}),
+      })
+      return NextResponse.json({ url, document: policy.document }, { headers: PRIVATE_FILE_HEADERS })
+    }
+    return privateStorageResponse({
+      request, orgId: auth.orgId, name: policy.document.name || "policy.pdf", mime: policy.document.mime,
+      maxBytes: MAX_BYTES, download: downloadRequested,
+      sign: seconds => createSupabaseAdminClient({ requestTimeoutMs: 10000 }).storage.from(BUCKET).createSignedUrl(policy.document!.path, seconds),
       revalidate: async () => {
-        const current = readPolicies(await loadProfile(auth.supabase, auth.orgId)).find(entry => entry.id === policyId)
-        return current?.document?.path === policy.document?.path
+        const currentAuth = await requireOrgMember(request)
+        if ("error" in currentAuth || currentAuth.orgId !== auth.orgId || currentAuth.userId !== auth.userId) return false
+        const current = readPolicies(await loadProfile(currentAuth.supabase, auth.orgId)).find(entry => entry.id === policyId)
+        if (current?.document?.path !== policy.document?.path || current?.document?.updatedAt !== policy.document?.updatedAt) return false
+        const currentBinding = (await readableLegacyDocumentBindings([{ kind, path: policy.document!.path }], auth.orgId, auth.userId)).get(kind)
+        return currentBinding?.id === binding.id
       },
     })
-    if (signedError || !signed?.signedUrl) {
-      return NextResponse.json({ error: signedError?.message ?? "Unable to access policy document." }, { status: 500 })
-    }
-    return NextResponse.json({ url: signed.signedUrl, document: policy.document }, { status: 200 })
   } catch (error: unknown) {
     return NextResponse.json(
       {
@@ -228,6 +242,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
+  let stage: LegacyDocumentUploadStage | undefined
   const auth = await requireOrgEditor(request)
   if ("error" in auth) return auth.error
   const policyId = getPolicyId(request)
@@ -242,14 +258,11 @@ export async function POST(request: NextRequest) {
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
   try {
-    const objectName = `${auth.orgId}/policies/${policyId}/${Date.now()}-${sanitizeFilename(file.name)}`
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: null, actorId: auth.userId, attemptedPaths })
+    const objectName = `${auth.orgId}/policies/${policyId}/${randomUUID()}-${sanitizeFilename(file.name)}`
     const buf = Buffer.from(await file.arrayBuffer())
-    const { error: uploadError } = await auth.supabase.storage.from(BUCKET).upload(objectName, buf, {
-      contentType: file.type,
-    })
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
+    stage = { orgId: auth.orgId, documentKind: `policy:${policyId}`, actorId: auth.userId, path: objectName }
+    await uploadLegacyDocumentStage(stage, buf, file.type)
 
     const now = new Date().toISOString()
     const nextDocument: OrgPolicyDocument = {
@@ -281,33 +294,33 @@ export async function POST(request: NextRequest) {
       },
     })
     if ("error" in mutation) {
-      await auth.supabase.storage.from(BUCKET).remove([objectName])
       return NextResponse.json({ error: mutation.error }, { status: mutation.status })
     }
 
-    const { nextPolicy, previousPath } = mutation.value
-    if (previousPath && previousPath !== objectName && isPolicyDocumentPath(previousPath, auth.orgId, policyId)) {
-      const { error: cleanupError } = await auth.supabase.storage.from(BUCKET).remove([previousPath])
-      if (cleanupError) console.warn("Failed to remove replaced policy document")
-    }
-    return NextResponse.json({ policy: nextPolicy }, { status: 200 })
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: `policy:${policyId}`, actorId: auth.userId, attemptedPaths })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (error: unknown) {
+    const quotaExceeded = error instanceof Error && error.message.includes("Organization document storage quota exceeded")
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to upload policy document.",
+        error: quotaExceeded ? "This upload exceeds the organization’s 5 GB document storage limit." : error instanceof Error ? error.message : "Unable to upload policy document.",
       },
-      { status: 500 }
+      { status: quotaExceeded ? 413 : 500 }
     )
+  } finally {
+    if (stage) await reconcileLegacyDocumentUploadStages({ ...stage, attemptedPaths })
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
   const auth = await requireOrgEditor(request)
   if ("error" in auth) return auth.error
   const policyId = getPolicyId(request)
   if (!policyId) return NextResponse.json({ error: "Policy id is required." }, { status: 400 })
 
   try {
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: null, actorId: auth.userId, attemptedPaths })
     const mutation = await mutateOrganizationProfile({
       supabase: auth.supabase,
       orgId: auth.orgId,
@@ -336,10 +349,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: mutation.error }, { status: mutation.status })
     }
 
-    const { nextPolicy, path } = mutation.value
-    const { error: cleanupError } = await auth.supabase.storage.from(BUCKET).remove([path])
-    if (cleanupError) console.warn("Failed to remove deleted policy document")
-    return NextResponse.json({ policy: nextPolicy }, { status: 200 })
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: `policy:${policyId}`, actorId: auth.userId, attemptedPaths })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (error: unknown) {
     return NextResponse.json(
       {

@@ -1,6 +1,16 @@
 .frame {
   container-type: inline-size;
 }
+
+/* Keep the inset body independent; only the dark outer frame matches planning. */
+:global(.dark) .frame {
+  background-color: color-mix(in srgb, var(--muted) 95%, var(--foreground));
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light):not(.dark)) .frame {
+    background-color: color-mix(in srgb, var(--muted) 95%, var(--foreground));
+  }
+}
 :global([data-particle-size]) > .frame {
   height: 100%;
   min-height: 0;

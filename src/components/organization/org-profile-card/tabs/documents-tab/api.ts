@@ -1,4 +1,3 @@
-import type { OrgDocument } from "../../types"
 import type { DocumentsPolicyEntry } from "./types"
 
 type SavePolicyPayload = {
@@ -28,10 +27,9 @@ export async function uploadOrgDocument(kind: string, file: File) {
     throw new Error(await getErrorMessage(res, "Upload failed"))
   }
 
+  // The authorized library refresh owns metadata after a successful write.
   const payload = await res.json()
-  const document = payload?.document as OrgDocument | undefined
-  if (!document?.path) throw new Error("Upload failed")
-  return document
+  if (payload?.ok !== true) throw new Error("Upload confirmation unavailable")
 }
 
 export async function getOrgDocumentUrl(kind: string, options?: { download?: boolean }) {
@@ -72,9 +70,9 @@ export async function savePolicy(payload: SavePolicyPayload) {
   }
 
   const response = await res.json()
-  const policy = response?.policy as DocumentsPolicyEntry | undefined
-  if (!policy?.id) throw new Error("Unable to save policy")
-  return policy
+  if (response?.ok !== true || typeof response.policyId !== "string" || !response.policyId)
+    throw new Error("Policy confirmation unavailable")
+  return response.policyId as string
 }
 
 export async function deletePolicy(policyId: string) {
@@ -104,9 +102,7 @@ export async function uploadPolicyDocument(policyId: string, file: File) {
   }
 
   const payload = await res.json()
-  const policy = payload?.policy as DocumentsPolicyEntry | undefined
-  if (!policy?.id) throw new Error("Unable to upload policy file")
-  return policy
+  if (payload?.ok !== true) throw new Error("Policy file confirmation unavailable")
 }
 
 export async function removePolicyDocument(policyId: string) {
@@ -122,9 +118,7 @@ export async function removePolicyDocument(policyId: string) {
   }
 
   const payload = await res.json()
-  const policy = payload?.policy as DocumentsPolicyEntry | undefined
-  if (!policy?.id) throw new Error("Unable to remove policy file")
-  return policy
+  if (payload?.ok !== true) throw new Error("Policy file confirmation unavailable")
 }
 
 export async function getPolicyDocumentUrl(policyId: string, options?: { download?: boolean }) {

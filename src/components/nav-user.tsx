@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef, useState, useTransition, type ReactNode } from "react"
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react"
+import { useAiUsage } from "@/features/ai-credits/client"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import MoreVerticalIcon from "lucide-react/dist/esm/icons/more-vertical"
@@ -35,6 +36,7 @@ const AccountSettingsDialog = dynamic(
 )
 
 type NavUserProps = {
+  usageSettingsRequest?: number
   accountMenuContent?: ReactNode
   showUpgrade?: boolean
   planLabel?: string
@@ -53,6 +55,7 @@ type NavUserProps = {
 }
 
 export function NavUser({
+  usageSettingsRequest = 0,
   accountMenuContent,
   showUpgrade = false,
   planLabel,
@@ -63,6 +66,7 @@ export function NavUser({
   showDivider = true,
   hasActiveSubscription = false,
 }: NavUserProps) {
+  const usage = useAiUsage()
   const router = useRouter()
   const [signOutPending, startSignOutTransition] = useTransition()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -79,6 +83,12 @@ export function NavUser({
     menuRef,
     menuStyle,
   } = useNavUserMenu()
+
+  useEffect(() => {
+    if (!usageSettingsRequest && !usage?.manageRequest) return
+    setSettingsInitialTab("usage")
+    setSettingsOpen(true)
+  }, [usageSettingsRequest, usage?.manageRequest])
 
   function handleSignOut() {
     setMenuOpen(false)
@@ -194,7 +204,13 @@ export function NavUser({
       ) : null}
       <AccountSettingsDialog
         open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        onOpenChange={next => {
+          setSettingsOpen(next)
+          if (!next) {
+            usage?.refresh()
+            if (settingsInitialTab === "usage") requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-ai-usage-sidebar] button")?.focus())
+          }
+        }}
         initialTab={settingsInitialTab}
         defaultName={displayName}
         defaultEmail={displayEmail}

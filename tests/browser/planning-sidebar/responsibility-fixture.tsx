@@ -1,3 +1,4 @@
+import { createLibraryDocumentParticle } from "@/features/workspace-particles/lib/particle-library-document"
 import { useMemo } from "react"
 import { prepareAuthorizedParticleMutation } from "@/features/workspace-particles/lib/authorized-mutation"
 import type { ParticleGraph } from "@/features/workspace-particles/types"
@@ -14,11 +15,14 @@ import { useParticleSession, type ParticleTransport } from "@/features/workspace
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
 const nodeTypes = { "workspace-particle": ParticleNode }
-const people = [{ id: id(701), name: "Alex Rivera" }, { id: id(702), name: "Sam Chen" }]
+const people = [{ id: id(701), name: "Alex Rivera", avatarUrl: "https://planning.test/alex-avatar.png" }, { id: id(702), name: "Sam Chen" }]
 export function ResponsibilityFixture() {
   const [stored] = useState(() => {
     const saved = localStorage.getItem("responsibility-graph")
     if (saved) return JSON.parse(saved)
+    if (localStorage.getItem("assignment-documents-fixture")) {
+      return { ...emptyParticleGraph(id(900)), particles: [10, 11].map((n, index) => ({ ...createLibraryDocumentParticle(id(900), { name: `Document ${index + 1}`, mimeType: "text/plain", source: { kind: "drive", id: id(600 + n), webViewLink: `https://docs.google.com/document/d/${id(n)}/edit` } }, id(n), "2026-10-30T12:00:00Z"), position: { x: index * 400, y: 0 } })) }
+    }
     if (localStorage.getItem("progress-fixture")) {
       const objective = createParticle("objective", { id: id(1), workspaceId: id(900), title: "Workshop", now: "2026-10-30T12:00:00Z" })
       if (objective.type !== "objective") throw new Error("Expected objective")

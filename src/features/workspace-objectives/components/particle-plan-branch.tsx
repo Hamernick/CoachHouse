@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 import { summarizePlanWork, isParticleWork, particlePlanBranchStates, particlePlanBranchLabel, PARTICLE_DRAG_MIME, readParticleDrag, type ParticlePlan, type ParticlePlanProposal, type Particle } from "@/features/workspace-particles/client"
 import { PlanParticlePicker } from "./plan-particle-picker"
-import { PlanMemberResponsibility } from "./plan-member-responsibility"
 import { PlanParticleRow } from "./plan-particle-row"
 import { PlanParticleList } from "./plan-particle-list"
 import { PlanSubmenuRail } from "./plan-submenu-rail"
@@ -20,7 +19,7 @@ import { PlanWalkthroughControls } from "./plan-walkthrough-controls"
 import styles from "./particle-objectives.module.css"
 
 type Actions = ReturnType<typeof useParticlePlans>
-export function ParticlePlanBranch({ objective, plan, proposal, controls, actions, userId, onRevise }: {
+export function ParticlePlanBranch({ objective, plan, proposal, controls, actions, userId }: {
   objective: ObjectiveParticle; plan: ParticlePlan; proposal?: ParticlePlanProposal; controls: PlanningControls; actions: Actions; userId: string; onRevise?: () => void
 }) {
   const [rename, setRename] = useState(false)
@@ -93,17 +92,22 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
   const stale = proposal && (planning.plans.find(item => item.id === proposal.planId)?.revision ?? null) !== proposal.baseRevision
   const focusedId = controls.canvasSelectedId ?? controls.selectedId
   const selected = plan.particleIds.includes(focusedId ?? "")
+  const options = editable ? <ParticleMenu><ParticleMenu.Trigger><ParticleButton ref={optionsRef} color="secondary" size="sm" uniform pill={false} variant="ghost" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" disabled={controls.pending} aria-label={`Options for ${plan.title}`}><MoreHorizontal aria-hidden /></ParticleButton></ParticleMenu.Trigger><ParticleMenu.Content align="end" minWidth={220}>
+        <ParticleMenu.Item className="particle-ui-menu" onSelect={() => setRename(true)}>Rename</ParticleMenu.Item>
+      </ParticleMenu.Content></ParticleMenu> : null
   return <Collapsible data-selected={selected} data-proposal={Boolean(proposal)} open={open} onOpenChange={setOpen} className={`${styles.plan} ${proposal ? styles.proposal : ""}`}>
     <div className={`${styles.planHeader} flex min-h-8 min-w-0 items-center gap-1 [@media(pointer:coarse)]:min-h-11`}>
-      {rename ? <ObjectiveInlineTitle initial={plan.title} pending={controls.pending} onCancel={() => { setRename(false); requestAnimationFrame(() => optionsRef.current?.focus({ preventScroll: true })) }} onSave={title => save({ ...plan, title })} /> : <CollapsibleTrigger asChild><Button color="secondary" size="lg" variant="ghost" className="h-auto min-h-8 min-w-0 flex-1 justify-start whitespace-normal rounded-md px-2 py-1 has-[>svg]:px-2 text-left [@media(pointer:coarse)]:min-h-11"><ChevronRight aria-hidden className={`size-[18px] shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /><span className="min-w-0 break-words">{plan.title}{proposal && <span className={styles.reviewLabel}>Proposed</span>}</span></Button></CollapsibleTrigger>}
-      {proposal && actions.owner && <><Button color="secondary" uniform size="lg" variant="ghost" className="size-9 rounded-full text-emerald-600 [@media(pointer:coarse)]:size-11" aria-label={`Accept ${plan.title}`} disabled={controls.pending || Boolean(stale) || Boolean(unchanged)} onClick={() => review("accepted")}><Check aria-hidden /></Button><Button color="secondary" uniform size="lg" variant="ghost" className="size-9 rounded-full [@media(pointer:coarse)]:size-11" aria-label={`Reject ${plan.title}`} disabled={controls.pending} onClick={() => review("rejected")}><X aria-hidden /></Button></>}
-      {!controls.error && <ParticleMenu><ParticleMenu.Trigger><ParticleButton ref={optionsRef} color="secondary" size="2xl" uniform pill={false} variant="ghost" className="particle-ui shrink-0" disabled={controls.pending} aria-label={`Options for ${plan.title}`}><MoreHorizontal aria-hidden /></ParticleButton></ParticleMenu.Trigger><ParticleMenu.Content align="end" minWidth={220}>
-        <ParticleMenu.Item className="particle-ui-menu" disabled={!walkthrough || !plan.particleIds.length} onSelect={() => walkthrough.start({ workspaceId: objective.workspaceId, objectiveId: objective.id, planId: plan.id, ...(proposal ? { proposalId: proposal.id } : {}) }, optionsRef.current)}>Walk through</ParticleMenu.Item>
-        {editable && <ParticleMenu.Item className="particle-ui-menu" onSelect={() => setRename(true)}>Rename</ParticleMenu.Item>}
-        {controls.canEdit && !proposal && <ParticleMenu.Item className="particle-ui-menu" onSelect={() => void actions.propose(objective, plan)}>Propose changes</ParticleMenu.Item>}
-        {controls.canEdit && !proposal && onRevise && <ParticleMenu.Item className="particle-ui-menu" onSelect={onRevise}>Revise with AI</ParticleMenu.Item>}
-      </ParticleMenu.Content></ParticleMenu>}
+      {rename ? <ObjectiveInlineTitle initial={plan.title} pending={controls.pending} onCancel={() => { setRename(false); requestAnimationFrame(() => optionsRef.current?.focus({ preventScroll: true })) }} onSave={title => save({ ...plan, title })} /> : <CollapsibleTrigger asChild><Button color="secondary" size="md" variant="ghost" className="h-auto min-h-8 min-w-0 flex-1 justify-start whitespace-normal rounded-md px-2 py-1 has-[>svg]:px-2 text-left [@media(pointer:coarse)]:min-h-11"><ChevronRight aria-hidden className={`size-[18px] shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`} /><span className="min-w-0 break-words">{plan.title}</span></Button></CollapsibleTrigger>}
+
+      {!proposal && options}
     </div>
+    {proposal && <div className={styles.proposalActions}>
+      <span className={styles.reviewLabel}>Proposed</span>
+      <div className="flex shrink-0 items-center gap-0.5">
+        {proposal && actions.owner && <><Button color="secondary" uniform size="sm" variant="ghost" className="size-7 shrink-0 rounded-md text-emerald-600 [@media(pointer:coarse)]:size-11" aria-label={`Accept ${plan.title}`} disabled={controls.pending || Boolean(stale) || Boolean(unchanged)} onClick={() => review("accepted")}><Check aria-hidden data-no-autosize className="size-3.5" /></Button><Button color="secondary" uniform size="sm" variant="ghost" className="size-7 shrink-0 rounded-md [@media(pointer:coarse)]:size-11" aria-label={`Reject ${plan.title}`} disabled={controls.pending} onClick={() => review("rejected")}><X aria-hidden data-no-autosize className="size-3.5" /></Button></>}
+        {options}
+      </div>
+    </div>}
     {!proposal && <p className="px-2 pb-1 text-xs tabular-nums text-muted-foreground">{progress.percent === null ? "No required work" : `${progress.completed} of ${progress.total} required work complete${objective.data.progress?.mode === "ongoing" ? "" : ` · ${progress.percent}%`}${progress.visibleScope ? " · Visible scope" : ""}`}</p>}
     {walking && <PlanWalkthroughControls walkthrough={walkthrough} />}
     <PlanningDisclosure open={open}>
@@ -118,9 +122,9 @@ export function ParticlePlanBranch({ objective, plan, proposal, controls, action
         {plan.particleIds.map((id, index) => {
           const particle = controls.graph?.particles.find(item => item.id === id)
           return particle && <PlanParticleRow branchState={branchStates.get(id)} branchLabel={particlePlanBranchLabel(plan,id,controls.graph?.particles ?? [])} key={id} optional={Boolean(plan.optionalParticleIds?.includes(id))} onOptional={isParticleWork(particle) ? optional => void save({ ...plan, optionalParticleIds: optional ? [...(plan.optionalParticleIds ?? []).filter(value => value !== id), id] : (plan.optionalParticleIds ?? []).filter(value => value !== id) }) : undefined} particle={particle} controls={controls} canOrganize={editable} first={index === 0} last={index === plan.particleIds.length - 1}
-            responsibility={particle.canvasHidden || !controls.assignmentOnCanvas ? <PlanMemberResponsibility title={particle.title} planTitle={plan.title} revision={objective.revision}
-              value={plan.assignments?.find(item => item.particleId === id)?.responsibility} disabled={controls.pending || Boolean(controls.error)} editable={editable}
-              onSave={responsibility => save({ ...plan, assignments: [...(plan.assignments ?? []).filter(item => item.particleId !== id), { particleId: id, responsibility }] })} /> : undefined}
+            responsibility={{ title: particle.title, planTitle: plan.title, revision: objective.revision,
+              value: plan.assignments?.find(item => item.particleId === id)?.responsibility, disabled: controls.pending || Boolean(controls.error), editable,
+              onSave: responsibility => save({ ...plan, assignments: [...(plan.assignments ?? []).filter(item => item.particleId !== id), { particleId: id, responsibility }] }) }}
             conditions={plan.particleIds.filter(source=>source!==id).flatMap(source=>{
               const decision=controls.graph?.particles.find(item=>item.id===source)
               return decision?.type === "decision" ? decision.data.outcomes.map(outcome=>({source,outcome:outcome.id,label:`${decision.title}: ${outcome.label}`,selected:Boolean(plan.links?.some(link=>link.source===source&&link.target===id&&link.outcome===outcome.id))})) : []

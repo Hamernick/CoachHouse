@@ -1,4 +1,5 @@
 import "server-only"
+import { assertPageCanvasManagement } from "./page-canvas-access"
 
 import { z } from "zod"
 import { loadPageActor, loadSavedPageSources } from "./page-context"
@@ -26,6 +27,7 @@ export async function handlePageImagePreview(request: Request) {
     })
     const image = images.get(input.data.particleId ?? PAGE_LOGO_IMAGE_KEY)?.representation
     if (!image || image.sha256 !== input.data.digest) return imageUnavailable()
+    await assertPageCanvasManagement(actor, input.data.canvasId ?? null)
     return imageResponse(image.bytes)
   } catch { return imageUnavailable() }
 }

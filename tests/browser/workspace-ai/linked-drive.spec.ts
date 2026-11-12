@@ -1,0 +1,97 @@
+import { expect, test, type Page, type Route } from "@playwright/test"
+const endpoint = "**/api/integrations/google-drive/roadmap-content?**"
+const body = "Private linked content"
+const invalidate = (page: Page, orgId = "current-org") => page.evaluate(orgId => window.dispatchEvent(new CustomEvent("coach-house:workspace-access-changed", { detail: { orgId } })), orgId)
+async function ready(page: Page) {
+  await page.route(endpoint, route => route.fulfill({ json: { content: `<p>${body}</p>` } }))
+  await page.goto("/linked-drive.html")
+  await expect(page.getByText(body, { exact: true })).toBeVisible()
+}
+test("authorized background focus preserves the real editor; reopening reads again", async ({ page }) => {
+  await ready(page)
+  await page.getByText(body, { exact: true }).evaluate(node => node.setAttribute("data-preserved", "yes"))
+  let pending: Route | undefined
+  await page.route(endpoint, route => { pending = route })
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+  await expect.poll(() => pending).toBeTruthy()
+  await expect(page.locator('[data-preserved="yes"]')).toHaveText(body)
+  await pending!.fulfill({ json: { content: `<p>${body}</p>` } })
+  await expect(page.locator('[data-preserved="yes"]')).toHaveText(body)
+  pending = undefined
+  await page.getByRole("button", { name: "Close editor" }).click()
+  await page.getByRole("button", { name: "Open editor" }).click()
+  await expect.poll(() => pending).toBeTruthy()
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+  await pending!.fulfill({ json: { content: "<p>Reopened content</p>" } })
+  await expect(page.getByText("Reopened content", { exact: true })).toBeVisible()
+})
+test("matching access invalidation clears content immediately and denial requires explicit retry", async ({ page }) => {
+  await ready(page)
+  let pending: Route | undefined
+  await page.route(endpoint, route => { pending = route })
+  await invalidate(page, "other-org")
+  expect(pending).toBeUndefined()
+  await expect(page.getByText(body, { exact: true })).toBeVisible()
+  await invalidate(page)
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+  await expect.poll(() => pending).toBeTruthy()
+  await pending!.fulfill({ status: 403, json: { code: "forbidden" } })
+  await expect(page.getByRole("alert")).toBeVisible()
+  await expect(page.getByRole("link", { name: /Google Drive/ })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Replace Google Drive document" })).toBeVisible()
+  pending = undefined
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+  expect(pending).toBeUndefined()
+  await page.getByRole("button", { name: "Try again" }).click()
+  await expect.poll(() => pending).toBeTruthy()
+  await pending!.fulfill({ json: { content: "<p>Fresh authorized read</p>" } })
+  await expect(page.getByText("Fresh authorized read", { exact: true })).toBeVisible()
+})
+test("late reads cannot replace a switched source or revive a denied reader", async ({ page }) => {
+  await ready(page)
+  const pending: Route[] = []
+  await page.route(endpoint, route => { pending.push(route) })
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+  await expect.poll(() => pending.length).toBe(1)
+  await page.getByRole("button", { name: "Switch source" }).click()
+  await expect.poll(() => pending.length).toBe(2)
+  expect(new URL(pending[1].request().url()).searchParams.get("fileId")).toBe("replacement-file")
+  await pending[1].fulfill({ json: { content: "<p>Replacement body</p>" } })
+  await pending[0].fulfill({ json: { content: "<p>Stale body</p>" } }).catch(() => {})
+  await expect(page.getByText("Replacement body", { exact: true })).toBeVisible()
+  await expect(page.getByText("Stale body", { exact: true })).toHaveCount(0)
+  await invalidate(page)
+  await expect.poll(() => pending.length).toBe(3)
+  await pending[2].abort()
+  await expect(page.getByRole("alert")).toBeVisible()
+  await expect(page.getByText("Replacement body", { exact: true })).toHaveCount(0)
+})
+test("a stalled background read expires without retaining old content", async ({ page }) => {
+  await ready(page)
+  await page.clock.install()
+  let pending: Route | undefined
+  await page.route(endpoint, route => { pending = route })
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+  await expect.poll(() => pending).toBeTruthy()
+  await expect(page.getByText(body, { exact: true })).toBeVisible()
+  await page.clock.fastForward(15001)
+  await expect(page.getByRole("alert")).toBeVisible()
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+  await pending!.fulfill({ json: { content: `<p>${body}</p>` } }).catch(() => {})
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+})
+
+test("retained hidden windows discard content and revalidate when shown", async ({ page }) => {
+  await ready(page)
+  let pending: Route | undefined
+  await page.route(endpoint, route => { pending = route })
+  await page.getByRole("button", { name: "Hide window" }).click()
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+  await invalidate(page)
+  expect(pending).toBeUndefined()
+  await page.getByRole("button", { name: "Show window" }).click()
+  await expect.poll(() => pending).toBeTruthy()
+  await expect(page.getByText(body, { exact: true })).toHaveCount(0)
+  await pending!.fulfill({ status: 403, json: { code: "forbidden" } })
+  await expect(page.getByRole("alert")).toBeVisible()
+})

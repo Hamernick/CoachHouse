@@ -14,7 +14,8 @@ export function WorkspaceCanvasOrganizationButton({
   bodyOverride,
   handleTabChange,
   triggerRef,
-}: { triggerRef?: RefObject<HTMLButtonElement | null> } & Pick<WorkspaceDrawerTabsProps, "organizationEditorData" | "tab" | "drawerCollapsed" | "bodyOverride" | "handleTabChange">) {
+  embedded = false,
+}: { triggerRef?: RefObject<HTMLButtonElement | null>; embedded?: boolean } & Pick<WorkspaceDrawerTabsProps, "organizationEditorData" | "tab" | "drawerCollapsed" | "bodyOverride" | "handleTabChange">) {
   const profile = organizationEditorData.initialProfile
   const name = profile.name?.trim() || "Organization"
   const initials = name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()
@@ -37,7 +38,7 @@ export function WorkspaceCanvasOrganizationButton({
       data-morph-open={expanded}
       title={name}
       onClick={() => handleTabChange("organization")}
-      className={`${styles.organizationTrigger} nodrag nopan pointer-events-auto absolute top-2 left-2 h-[42px] w-fit justify-start gap-2 rounded-full canvas-glass border py-1 pr-3 pl-1 text-left transition-[background-color,box-shadow] hover:bg-muted focus-visible:ring-2 after:absolute after:-inset-1.5 md:after:hidden motion-reduce:transition-none`}
+      className={`${styles.organizationTrigger} nodrag nopan pointer-events-auto h-[42px] justify-start gap-2 py-1 pr-3 pl-1 text-left hover:bg-muted focus-visible:ring-2 motion-reduce:transition-none ${embedded ? `${styles.organizationTriggerEmbedded} canvas-glass canvas-planning-material border transition-[background-color] duration-180 ease-out after:absolute after:inset-x-0 after:-inset-y-1.5 md:after:hidden` : "absolute top-2 left-2 w-fit rounded-full canvas-glass border transition-[background-color,box-shadow] after:absolute after:-inset-1.5 md:after:hidden"}`}
     >
       <Avatar className="size-8 rounded-full">
         <AvatarImage src={profile.logoUrl ?? undefined} alt="" className="object-cover" />

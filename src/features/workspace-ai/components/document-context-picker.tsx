@@ -15,7 +15,7 @@ export function DocumentContextPicker({editors,selected,organizationName,disable
       <SelectTrigger aria-label="AI document context" className="h-8 w-fit max-w-full rounded-full border-border/60 bg-transparent text-xs shadow-none">
         <SelectValue placeholder="Choose a document" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="rounded-xl shadow-none">
         <SelectItem value="none">Choose a document</SelectItem>
         {editors.map(editor=><SelectItem key={editor.id} value={editor.id}>{editor.target.title}</SelectItem>)}
       </SelectContent>

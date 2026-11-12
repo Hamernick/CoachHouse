@@ -1,5 +1,6 @@
-import { assertParticleSourceReferenceAccess } from "@/features/workspace-particles/server"
+import { assertParticleSourceReferenceAccess, assertParticleAudienceMutation } from "@/features/workspace-particles/server"
 import "server-only"
+import { assertWorkspaceCanvasAccess } from "@/lib/organization/workspace-canvas-access"
 
 import { workspaceIdSchema } from "@/features/workspace-management"
 
@@ -7,6 +8,7 @@ import { revalidatePath } from "next/cache"
 import {
   readParticleGraph,
   particleCalendarChanged,
+  type ParticleGraph,
   type ParticleCommit,
   type ParticleResult,
 } from "@/features/workspace-particles"
@@ -47,12 +49,13 @@ export async function writeWorkspaceParticleBatch(
   if (!mutation.ok) return mutation
   let supabase = actor.supabase
   try {
-    supabase = createSupabaseAdminClient()
+    supabase = createSupabaseAdminClient({ actorId: actor.user.id, requestTimeoutMs: 10000 })
   } catch {
     /* Local environments can omit service-role credentials. */
   }
   try {
     let commit: ParticleCommit | undefined
+    let previousGraph: ParticleGraph | undefined
     let calendarAccess: ReturnType<typeof resolveCalendarAccess> | undefined
     const result = await persistWorkspaceBoardState({
       supabase,
@@ -64,8 +67,11 @@ export async function writeWorkspaceParticleBatch(
         commit = mutation.value(stored)
         const previous = readParticleGraph(stored, actor.activeOrg.orgId)
         if (!previous.ok) throw new ParticleMutationError(previous.code, previous.error)
+        previousGraph = previous.value
+        await assertParticleAudienceMutation(previous.value, commit.graph, actor.user.id)
         if (!commit.replayed) await assertParticleSourceReferenceAccess({
           supabase: actor.supabase,
+          assigneeClient: supabase,
           previous: previous.value,
           next: commit.graph,
         })
@@ -80,7 +86,7 @@ export async function writeWorkspaceParticleBatch(
     })
     if ("error" in result)
       return { ok: false, code: "unavailable", error: result.error }
-    if (!commit)
+    if (!commit || !previousGraph)
       return {
         ok: false,
         code: "unavailable",
@@ -89,7 +95,13 @@ export async function writeWorkspaceParticleBatch(
     revalidatePath("/workspace")
     revalidatePath("/my-organization")
     revalidatePath("/organization/workspace")
-    return { ok: true, value: commit }
+    // Recheck disclosure after persistence, including old values in undo.
+    // A lost response remains recoverable through the existing batch receipt.
+    const graph = await assertParticleAudienceMutation(previousGraph, commit.graph, actor.user.id)
+    // Source/undo checks above may await other services. Recheck the canvas at
+    // the final disclosure boundary too, even for an idempotent batch replay.
+    await assertWorkspaceCanvasAccess({ supabase, orgId: actor.activeOrg.orgId, userId: actor.user.id, workspaceCanvasId })
+    return { ok: true, value: { ...commit, graph } }
   } catch (error) {
     if (error instanceof ParticleMutationError)
       return { ok: false, code: error.code, error: error.message }

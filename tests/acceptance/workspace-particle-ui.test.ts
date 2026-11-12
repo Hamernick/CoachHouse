@@ -551,6 +551,47 @@ describe("responsive content window geometry", () => {
     }
   })
 
+  it("reserves top navigation separately from the bottom composer", () => {
+    for (const topInset of [58, 70, 114, 126]) {
+      for (const tab of ["people", "documents", "tools", "accelerator", "organization"] as const) {
+        const input = { canvasWidth: 390, canvasHeight: 700, dockHeight: 60, topInset, tab, maximized: false }
+        const geometry = resolveWorkspaceContentWindowGeometry(input)!
+        expect(geometry.height + (tab === "organization" ? 8 : topInset) + (tab === "organization" ? 76 : 68)).toBe(700)
+        expect(resolveWorkspaceContentWindowGeometry({ ...input, maximized: true })).toEqual({ width: 390, height: 700 })
+      }
+    }
+    for (const topInset of [-1, NaN, Infinity]) {
+      expect(resolveWorkspaceContentWindowGeometry({ canvasWidth: 390, canvasHeight: 700, dockHeight: 60, topInset, maximized: false })).toBeNull()
+    }
+    expect(resolveWorkspaceContentWindowGeometry({ canvasWidth: 390, canvasHeight: 160, dockHeight: 60, topInset: 114, maximized: false })).toBeNull()
+  })
+
+  it("places restored windows below navigation without reserving fullscreen padding", () => {
+    for (const maximized of [false, true]) {
+      const markup = renderToStaticMarkup(createElement(WorkspaceContentWindow, {
+        title: "People", collapsed: false,
+        windowState: { geometry: { width: 374, height: 500 }, topInset: 114, maximized, onClose() {}, onMinimize() {}, onToggleMaximize() {} },
+      }))
+      if (maximized) {
+        expect(markup).not.toContain("padding-top:")
+        expect(markup).not.toContain("top:114px")
+      } else expect(markup).toContain("top:114px")
+    }
+  })
+
+  it("keeps the open organization sidebar at its trigger's top inset", () => {
+    for (const topInset of [58, 114, 126]) {
+      const geometry = resolveWorkspaceContentWindowGeometry({ canvasWidth: 390, canvasHeight: 700, dockHeight: 60, topInset, maximized: false, tab: "organization" })!
+      expect(geometry).toEqual({ width: 374, height: 616 })
+      const markup = renderToStaticMarkup(createElement(WorkspaceContentWindow, {
+        title: "Organization", collapsed: false,
+        windowState: { geometry, topInset, presentation: "sidebar", maximized: false, onClose() {}, onMinimize() {}, onToggleMaximize() {} },
+      }))
+      expect(markup).toContain('data-workspace-presentation="sidebar"')
+      expect(markup).not.toContain('top:' + topInset + 'px')
+    }
+  })
+
   it("keeps narrow and short canvases in the same window presentation", () => {
     for (const canvasWidth of [320, 390, 899, 1200]) {
       for (const canvasHeight of [360, 483, 900]) {

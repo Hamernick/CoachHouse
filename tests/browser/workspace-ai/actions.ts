@@ -29,10 +29,16 @@ export const uploadOrgMedia = async () => { throw new Error("Uploads are unavail
 export const quoteSelectionAssistance = () => request("quote-selection")
 
 // Deterministic revision fixture; other routes keep research unavailable.
-export const quoteWorkspaceResearch = async () => new URLSearchParams(location.search).has("revisions") ? {maximumCredits:10,tariffVersion:"fixture-v1"} : { error: "Research is unavailable in this fixture." }
+export const quoteWorkspaceResearch = async () => (new URLSearchParams(location.search).has("revisions") || new URLSearchParams(location.search).has("context")) ? {maximumCredits:10,tariffVersion:"fixture-v1"} : { error: "Research is unavailable in this fixture." }
 export const getWorkspaceResearch = async (id: string, target: unknown) => request("revision-read", {id,target})
 export const listWorkspaceResearch = async (target: unknown) => request("revision-history", {target})
 export const stopWorkspaceResearch = async () => ({error:"Stopping is unavailable in this deterministic fixture."})
 export const objectivePlanningAccessAction = async () => ({isOrganizationOwner:true})
 
 export const accessWorkspaceResearchDraft = (id: string, target: unknown, input?: unknown) => request("research-draft", {id,target,input})
+
+export const getWorkspaceConversation = (target: unknown, rootId: string | null, beforeTurn?: number) => request("conversation", {target,rootId,beforeTurn})
+
+export const updateWorkspaceConversation = (target: unknown, change: unknown) => request("conversation-update", {target,change})
+
+export const prepareWorkspaceConversationTurn = (target: unknown, parentRunId: string) => request("conversation-prepare", {target,parentRunId})

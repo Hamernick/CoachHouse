@@ -146,3 +146,17 @@ describe("public snapshot read boundary", () => {
     await expect(loadPublicWorkspacePage("community-table", ID(10))).rejects.toThrow("temporarily unavailable")
   })
 })
+
+
+it("does not turn a core editor document into a public page body or grant it a Drive link", async () => {
+  const { projectWorkspacePage } = await import("@/features/workspace-sharing/server/page-projection")
+  const document = createLibraryDocumentParticle(WORKSPACE, {
+    name: "Core document", mimeType: "text/plain", source: { kind: "roadmap", sectionId: "vision" },
+  }, ID(1), NOW)
+  const input = { graph: graph([document]), profile: { name: "Organization", roadmap: { sections: [
+    { id: "vision", title: "Vision", content: "Private editor body", documentSource: "editor" },
+  ] } }, draft: { title: "Shared page", description: "", particleIds: [ID(1)] } }
+  expect((await resolvePageDriveSources(actor, input)).links.size).toBe(0)
+  expect(() => projectWorkspacePage({ ...input, orgId: WORKSPACE, publicSlug: "organization" })).toThrow("authorized public source preview")
+  expect(mocks.from).not.toHaveBeenCalled()
+})

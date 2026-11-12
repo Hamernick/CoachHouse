@@ -1,3 +1,4 @@
+import { filterDocumentActivityAudience } from "@/lib/organization/document-activity-audience"
 import { formatDistanceStrict } from "date-fns"
 
 import type { Database } from "@/lib/supabase"
@@ -35,8 +36,10 @@ export async function loadOrganizationProjectActivity({
   projectId,
   supabase,
   projectOnly = false,
+  actorId,
 }: {
   orgId: string
+  actorId: string
   projectId: string
   projectOnly?: boolean
   supabase: Awaited<
@@ -70,8 +73,9 @@ export async function loadOrganizationProjectActivity({
     throw new Error("Unable to load organization activity.")
   }
 
+  const readable = await filterDocumentActivityAudience(data ?? [], actorId)
   const previousByEntity = new Map<string, ActivityRow>()
-  const items = [...(data ?? [])].reverse().map((row) => {
+  const items = [...readable].reverse().map((row) => {
     const entityKey = `${row.entity_type}:${row.entity_id}`
     const previous = previousByEntity.get(entityKey)
     if (row.to_status) previousByEntity.set(entityKey, row)

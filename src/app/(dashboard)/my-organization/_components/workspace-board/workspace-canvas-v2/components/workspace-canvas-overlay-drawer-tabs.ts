@@ -177,7 +177,11 @@ export function resolveWorkspaceDataDrawerRequest(
   const tab = normalizeWorkspaceDrawerTab(
     destination.searchParams.get("drawer")
   )
-  if (tab === "people" || tab === "finance" || tab === "tools") return { tab }
+  if (tab === "tools") {
+    const focusKey = destination.searchParams.get("drawer")?.trim() === "particles" ? "particles" : destination.searchParams.get("focus")
+    return focusKey ? { tab, focusKey } : { tab }
+  }
+  if (tab === "people" || tab === "finance") return { tab }
   if (tab === "documents") {
     return {
       tab,

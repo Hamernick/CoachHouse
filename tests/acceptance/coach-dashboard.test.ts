@@ -1,4 +1,6 @@
 import "./test-utils"
+const audience=vi.hoisted(()=>vi.fn(async (rows:unknown[])=>rows))
+vi.mock("@/lib/organization/document-activity-audience",()=>({filterDocumentActivityAudience:audience}))
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -240,4 +242,17 @@ describe("coach dashboard", () => {
     expect(result.organizationCount).toBeNull()
     expect(result.issues).toContain("Organizations could not be loaded.")
   })
+  it("filters private titles and contribution dates, and withholds failed audience reads", async () => {
+    activity=[{id:"private",title:"Private file",org_id:"assigned-org",project_id:null,entity_type:"file",occurred_at:"2026-11-06T12:00:00Z"}]
+    audience.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+    const hidden=await loadCoachDashboard()
+    expect(hidden.activity).toEqual([]);expect(hidden.personalActivity).toEqual([])
+    expect(audience).toHaveBeenCalledWith(activity,"coach")
+    audience.mockRejectedValueOnce(new Error("private failure")).mockRejectedValueOnce(new Error("private failure"))
+    const denied=await loadCoachDashboard()
+    expect(denied.activity).toEqual([]);expect(denied.personalActivity).toEqual([])
+    expect(denied.issues).toContain("Activity history is unavailable.")
+    expect(JSON.stringify(denied)).not.toContain("Private file")
+  })
+
 })

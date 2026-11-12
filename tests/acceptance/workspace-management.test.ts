@@ -1,21 +1,24 @@
-import { hasWorkspaceUnsavedChanges, isCurrentWorkspace } from "@/features/workspace-management/lib/navigation"
+import { hasWorkspaceUnsavedChanges, isCurrentWorkspace, preserveCanvasChatNavigation } from "@/features/workspace-management/lib/navigation"
 import { createElement, type ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database, Json } from "@/lib/supabase"
 import { changeWorkspaceCatalog, mergeWorkspaceState, readWorkspaceCatalog, allWorkspaceStates, selectWorkspaceState, summarizeWorkspaces, workspaceCommandSchema } from "@/features/workspace-management"
+import { emptyParticleGraph } from "@/features/workspace-particles"
 import { applyWorkspaceTutorialActivationToSeed } from "@/app/(dashboard)/my-organization/_lib/my-organization-page-content-helpers"
 import { resolveVisibleWorkspaceCanvasCardIds } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-visible-cards"
 import { reduceWorkspaceBoardVisibility } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-visibility-reducer"
 import { normalizeWorkspaceBoardState } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-layout"
 import { persistWorkspaceBoardState } from "@/app/(dashboard)/my-organization/_lib/workspace-board-state-write"
 import { buildWorkspaceBoardUiPreferencesStorageKey } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-ui-preferences"
-const mocks = vi.hoisted(() => ({ context: vi.fn(), revalidate: vi.fn() }))
+const mocks = vi.hoisted(() => ({ context: vi.fn(), revalidate: vi.fn(), admin: vi.fn() }))
 vi.mock("@/lib/auth/request-context", () => ({ resolveOptionalAuthenticatedAppContext: mocks.context }))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }))
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }))
 import { saveWorkspaceCommand } from "@/features/workspace-management/server/actions"
-vi.mock("@/app/(dashboard)/my-organization/_components/workspace-board/workspace-board-canvas", () => ({ WorkspaceBoardCanvas: () => createElement("div", { "data-live-canvas": "true" }) }))
+// The canvas is now a client-only dynamic boundary; test its mount branch without SSR loading behavior.
+vi.mock("next/dynamic", () => ({ default: () => () => createElement("div", { "data-live-canvas": "true" }) }))
 import { MyOrganizationWorkspaceView } from "@/app/(dashboard)/my-organization/_components/workspace-board/my-organization-workspace-view"
 const ORG = "10000000-0000-4000-8000-000000000001"
 const A = "10000000-0000-4000-8000-000000000002"
@@ -27,7 +30,14 @@ function database(initial: Json = {}) {
   let revision = 1
   let conflict: (() => void) | undefined
   const writes: Array<Record<string, unknown>> = []
-  const client = { rpc: vi.fn(async () => ({ data: 1, error: null })), from: vi.fn((table: string) => {
+  const client = { rpc: vi.fn(async (name: string, args?: { p_expected_revision: string; p_expected_state: Json; p_state: Json }) => {
+    if (name === "read_workspace_canvas_projection") return { data: { state }, error: null }
+    if (name !== "commit_workspace_board") return { data: 1, error: null }
+    if (conflict) { const run = conflict; conflict = undefined; run(); revision++ }
+    if (args?.p_expected_revision !== String(revision) || JSON.stringify(args.p_expected_state) !== JSON.stringify(state)) return { data: false, error: null }
+    writes.push({ updated_at: String(revision) }); state = args.p_state; revision++
+    return { data: true, error: null }
+  }), from: vi.fn((table: string) => {
     expect(table).toBe("organization_workspace_boards")
     let update: { state: Json } | undefined
     const filters: Record<string, string> = {}
@@ -125,11 +135,11 @@ describe("named organization workspaces", () => {
     db.race(() => { root = changeWorkspaceCatalog(db.read(), create(B, "Concurrent"), NOW); db.change(root) })
     const result = await persistWorkspaceBoardState({ orgId: ORG, workspaceCanvasId: A, userId: B, supabase: db.client,
       buildState: (stored) => ({ ...normalizeWorkspaceBoardState(stored), preset: "calendar-focused" }),
-      updateParticleGraph: () => ({ saved: "A" }),
+      updateParticleGraph: () => emptyParticleGraph(ORG),
     })
     expect(result).toHaveProperty("ok", true)
     expect(selectWorkspaceState(db.read()).particleGraph).toEqual({ main: true })
-    expect(selectWorkspaceState(db.read(), A).particleGraph).toEqual({ saved: "A" })
+    expect(selectWorkspaceState(db.read(), A).particleGraph).toEqual(emptyParticleGraph(ORG))
     expect(summarizeWorkspaces(db.read())).toHaveLength(3)
     expect(db.writes).toHaveLength(1)
   })
@@ -177,7 +187,12 @@ describe("starting workspace lifecycle", () => {
   it("persists all four starters when a preset is the first canvas edited", async () => {
     const boardId = summarizeWorkspaces(undefined)[1].id!
     let inserted: { org_id: string; state: Json; updated_by: string | null } | undefined
-    const client = { from: vi.fn(() => {
+    const client = { rpc: vi.fn(async (_name: string, args: { p_org_id: string; p_actor_id: string; p_expected_state: Json; p_expected_revision: string | null; p_state: Json }) => {
+      if (_name === "read_workspace_canvas_projection") return { data: inserted ? { state: inserted.state } : null, error: null }
+      expect(args.p_expected_revision).toBeNull(); expect(args.p_expected_state).toBeNull()
+      inserted = { org_id: args.p_org_id, updated_by: args.p_actor_id, state: args.p_state }
+      return { data: true, error: null }
+    }), from: vi.fn(() => {
       const query = {
         select: () => query,
         eq: () => query,
@@ -188,12 +203,12 @@ describe("starting workspace lifecycle", () => {
     }) } as unknown as SupabaseClient<Database>
     const result = await persistWorkspaceBoardState({ orgId: ORG, workspaceCanvasId: boardId, userId: B, supabase: client,
       buildState: (stored) => normalizeWorkspaceBoardState(stored),
-      updateParticleGraph: () => ({ sentinel: "First preset edit" }),
+      updateParticleGraph: () => emptyParticleGraph(ORG),
     })
     expect(result).toHaveProperty("ok", true)
     expect(inserted).toMatchObject({ org_id: ORG, updated_by: B })
     expect(summarizeWorkspaces(inserted?.state).map(({ name }) => name)).toEqual(["Build", "Board", "Communications", "Finance"])
-    expect(selectWorkspaceState(inserted?.state, boardId).particleGraph).toEqual({ sentinel: "First preset edit" })
+    expect(selectWorkspaceState(inserted?.state, boardId).particleGraph).toEqual(emptyParticleGraph(ORG))
   })
   it("preserves existing legacy, Build-only, and customized catalogs without adding presets", () => {
     for (const stored of [{}, { nodes: [{ id: "legacy" }] }, { workspaceCatalog: { version: 1, defaultName: "Build", entries: [] } }]) {
@@ -276,6 +291,15 @@ it("does not mount an editable canvas when the last workspace is deleted", () =>
 
 
 describe("workspace client navigation", () => {
+  it("keeps canvas chat enabled when switching workspaces without changing unrelated destinations", () => {
+    const current = `http://localhost/workspace?workspace=${A}&canvasChat=1&drawer=documents`
+    expect(preserveCanvasChatNavigation(`/workspace?workspace=${B}`, current)).toBe(`/workspace?workspace=${B}&canvasChat=1`)
+    expect(preserveCanvasChatNavigation("/workspace#plan", current)).toBe("/workspace?canvasChat=1#plan")
+    expect(preserveCanvasChatNavigation("/workspace?canvasChat=0", current)).toBe("/workspace?canvasChat=0")
+    expect(preserveCanvasChatNavigation("/documentation", current)).toBe("/documentation")
+    expect(preserveCanvasChatNavigation("https://example.test/workspace", current)).toBe("https://example.test/workspace")
+    expect(preserveCanvasChatNavigation(`/workspace?workspace=${B}`, "http://localhost/workspace")).toBe(`/workspace?workspace=${B}`)
+  })
   it("allows clean navigation and reuses every mounted editor's draft guard", () => {
     const target = new EventTarget()
     expect(hasWorkspaceUnsavedChanges(target)).toBe(false)
@@ -295,5 +319,100 @@ describe("workspace client navigation", () => {
     expect(isCurrentWorkspace(`/workspace?workspace=${B}`, `http://localhost/workspace?workspace=${A}`)).toBe(false)
     expect(isCurrentWorkspace("/workspace", `http://localhost/workspace?workspace=${A}`)).toBe(false)
     expect(isCurrentWorkspace("/workspace", "http://localhost/people")).toBe(false)
+  })
+})
+
+describe("catalog changes on mixed-audience boards", () => {
+  function restricted(initial: Json, error = { code: "42501", message: "Board source access required." }) {
+    let state = initial
+    const read = vi.fn(async () => ({ data: null, error }))
+    const query = { select: () => query, eq: () => query, maybeSingle: read }
+    const supabase = { rpc: vi.fn(async () => ({ data: 2, error: null })), from: vi.fn(() => query) }
+    const commits: Json[] = []
+    const rpc = vi.fn(async (name: string, args: Record<string, unknown>): Promise<{ data: Json; error: { code: string; message: string } | null }> => {
+      expect(args).toMatchObject({ p_org_id: ORG, p_actor_id: B })
+      if (name === "read_workspace_particle_board_for_projection" || name === "read_workspace_canvas_projection") return { data: { state }, error: null }
+      expect(name).toBe("commit_workspace_catalog")
+      expect(args.p_expected_state).toEqual(state)
+      state = args.p_state as Json
+      commits.push(state)
+      return { data: true, error: null }
+    })
+    mocks.admin.mockReturnValue({ rpc })
+    mocks.context.mockResolvedValue({ supabase, activeOrg: { orgId: ORG, role: "staff" }, profileAudience: { isAdmin: false }, user: { id: B } })
+    return { rpc, commits, read: () => state, change: (value: Json) => { state = value } }
+  }
+  const hidden = { particleGraph: { private: "secret body", receipts: [{ preserved: true }] }, legacy: "unchanged" }
+  it("saves against canonical state but returns only visible workspace names", async () => {
+    const initial = changeWorkspaceCatalog(hidden, create(B, "Private finance"), NOW)
+    const db = restricted(initial, { code: "42501", message: "Workspace audience access required." })
+    const transport = db.rpc.getMockImplementation()!
+    db.rpc.mockImplementation(async (name, args) => name === "read_workspace_canvas_projection"
+      ? { data: { state: { workspaceCatalog: { version: 1, defaultName: "Workspace", defaultDeleted: true, entries: readWorkspaceCatalog(db.read()).entries.filter(entry => entry.id === A) as Json } } }, error: null }
+      : transport(name, args))
+    const result = await saveWorkspaceCommand(create())
+    expect(result).toEqual({ ok: true, id: A, workspaces: [{ id: A, name: "Planning" }] })
+    expect(JSON.stringify(result)).not.toContain("Private")
+    expect(summarizeWorkspaces(db.read())).toContainEqual({ id: B, name: "Private finance" })
+    expect(selectWorkspaceState(db.read())).toMatchObject(hidden)
+  })
+  it("withholds the catalog when post-save access verification fails", async () => {
+    const db = restricted(hidden)
+    const transport = db.rpc.getMockImplementation()!
+    db.rpc.mockImplementation(async (name, args) => name === "read_workspace_canvas_projection"
+      ? { data: null, error: { code: "42501", message: "Revoked" } } : transport(name, args))
+    expect(await saveWorkspaceCommand(create())).toHaveProperty("error")
+    expect(db.commits).toHaveLength(1)
+    expect(summarizeWorkspaces(db.read())).toContainEqual({ id: A, name: "Planning" })
+  })
+  it("creates, renames and deletes an empty workspace without disclosing or dropping restricted siblings", async () => {
+    const db = restricted(hidden)
+    expect(await saveWorkspaceCommand(create())).toEqual({ ok: true, id: A, workspaces: [{ id: null, name: "Main workspace" }, { id: A, name: "Planning" }] })
+    expect(await saveWorkspaceCommand({ kind: "rename", orgId: ORG, id: A, name: "Renamed", previousName: "Planning" })).toMatchObject({ ok: true })
+    expect(await saveWorkspaceCommand({ kind: "delete", orgId: ORG, id: A, previousName: "Renamed" })).toMatchObject({ ok: true })
+    for (const state of db.commits) expect(selectWorkspaceState(state)).toMatchObject(hidden)
+    expect(mocks.admin).toHaveBeenCalledWith({ actorId: B, requestTimeoutMs: 10000 })
+  })
+  it("rebuilds the catalog change from fresh canonical content after a collaborator wins CAS", async () => {
+    const db = restricted(hidden)
+    const transport = db.rpc.getMockImplementation()!
+    db.rpc.mockImplementationOnce(transport).mockImplementationOnce(async () => {
+      db.change(changeWorkspaceCatalog({ ...hidden, collaborator: "keep this" }, create(B, "Concurrent"), NOW))
+      return { data: false, error: null }
+    })
+    const result = await saveWorkspaceCommand(create())
+    expect(result).toMatchObject({ ok: true, workspaces: [{ name: "Main workspace" }, { name: "Concurrent" }, { name: "Planning" }] })
+    expect(selectWorkspaceState(db.read())).toMatchObject({ ...hidden, collaborator: "keep this" })
+    expect(db.commits).toHaveLength(1)
+  })
+  it.each(["source deletion", "parent revocation"])("preserves the board when the atomic commit rejects %s", async () => {
+    const db = restricted(hidden)
+    const transport = db.rpc.getMockImplementation()!
+    db.rpc.mockImplementationOnce(transport).mockImplementationOnce(async () => ({ data: null, error: { code: "42501", message: "Access revoked" } }))
+    expect(await saveWorkspaceCommand({ kind: "delete", orgId: ORG, id: null, previousName: "Main workspace" })).toHaveProperty("error")
+    expect(db.read()).toEqual(hidden)
+    expect(db.commits).toHaveLength(0)
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
+  it.each([{ code: "42501", message: "Other denial" }, { code: "57014", message: "Timeout" }])("never elevates other read errors: %s", async (error) => {
+    restricted(hidden, error)
+    expect(await saveWorkspaceCommand(create())).toHaveProperty("error")
+    expect(mocks.admin).not.toHaveBeenCalled()
+  })
+  it.each([null, {}, { state: null }, { state: [] }])("never seeds a missing or malformed fallback: %s", async (data) => {
+    const db = restricted(hidden)
+    db.rpc.mockResolvedValueOnce({ data, error: null })
+    expect(await saveWorkspaceCommand(create())).toHaveProperty("error")
+    expect(db.commits).toHaveLength(0)
+  })
+  it("stops bounded conflict retries and rejects malformed commit acknowledgements", async () => {
+    const db = restricted(hidden)
+    const transport = db.rpc.getMockImplementation()!
+    db.rpc.mockImplementation(async (name, args) => name === "commit_workspace_catalog" ? { data: false, error: null } : transport(name, args))
+    expect(await saveWorkspaceCommand(create())).toMatchObject({ error: expect.stringContaining("changed while saving") })
+    expect(db.rpc).toHaveBeenCalledTimes(8)
+    db.rpc.mockImplementation(async (name, args) => name === "commit_workspace_catalog" ? { data: { ok: true }, error: null } : transport(name, args))
+    expect(await saveWorkspaceCommand(create())).toHaveProperty("error")
+    expect(db.commits).toHaveLength(0)
   })
 })

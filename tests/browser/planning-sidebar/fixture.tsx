@@ -1,3 +1,6 @@
+import { PlanningComposerProvider } from "@/components/workspace/planning-composer-context"
+import { ParticleComposer } from "@/features/workspace-particles/components/particle-composer"
+import { PlanningSidebarSurface } from "@/features/workspace-objectives/components/planning-sidebar-surface"
 import { ParticleResponsibilityPeople } from "@/features/workspace-particles/client"
 import { ResponsibilityFixture } from "./responsibility-fixture"
 import { useParticleSelection } from "@/features/workspace-particles/hooks/use-particle-selection"
@@ -103,6 +106,11 @@ function Fixture() {
   const opportunityOrder: string[] = JSON.parse(localStorage.getItem("fixture-opportunity-order") ?? "[]")
   const finance = { opportunitiesState: localStorage.getItem("opportunities-error") ? "error" : "ready", opportunities: [{ id: "00000000-0000-4000-8000-000000000050", title: "Community partnership", origin: "manual", status: "new", source: "Local foundation", report: { version: 1, blocks: [] } }, ...extraOpportunities] } as WorkspaceFinanceInput
   finance.opportunities = finance.opportunities?.map((item, index) => ({ ...item, feedPosition: opportunityOrder.includes(item.id) ? opportunityOrder.indexOf(item.id) + 1 : index + 100, status: statuses[item.id] ?? item.status })).filter(item => item.status !== "dismissed")
+  if (localStorage.getItem("fixture-planning-command")) return <PlanningComposerProvider><main className="mx-auto max-w-[700px] pt-16">
+    <ParticleComposer disabled={false} pending={false} error={null} saved={false} onCreate={async()=>false} onRetry={()=>{}} />
+    <PlanningSidebarSurface columns><ParticleObjectivesIsland embedded columns scope={{userId:org,organizationId:org}} controls={controls} finance={finance} /></PlanningSidebarSurface>
+    <output data-testid="graph" hidden>{JSON.stringify(current)}</output><Toaster />
+  </main></PlanningComposerProvider>
   if (responsibility) return <ResponsibilityFixture />
   if (expansion) return <ExpansionFixture />
   if (camera) return <CameraFixture />

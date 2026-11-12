@@ -1,5 +1,7 @@
+import { z } from "zod"
+import { knowledgeSearchSchema, knowledgeProviderSearchSchema } from "@/features/workspace-ai/research-types"
 import { describe, expect, it } from "vitest"
-import { knowledgeDisclosure } from "@/features/workspace-ai/server/knowledge-evidence"
+import { knowledgeDisclosure, retainKnowledgeEvidence } from "@/features/workspace-ai/server/knowledge-evidence"
 import { knowledgeReadFailure, KnowledgeChangedError } from "@/features/workspace-ai/server/knowledge-failure"
 import { knowledgeDisclosedRecordSchema, validateKnowledgeToolResult } from "@/features/workspace-ai/lib/knowledge-tool-contract"
 import type { KnowledgeRecord } from "@/features/workspace-ai/research-types"
@@ -63,4 +65,93 @@ describe("deterministic knowledge tool output boundary", () => {
     expect(knowledgeReadFailure("person:requested", new KnowledgeChangedError())).toMatchObject({ status: "changed", recovery: "restart_research" })
     expect(() => validateKnowledgeToolResult("read_workspace", { ...envelope, results: [{ ...outputs[0], error: "secret database text" }] }, scope)).toThrow()
   })
+})
+
+it("keeps keyword selection explicit and supplies a strict nullable provider mode", () => {
+  expect(knowledgeSearchSchema.parse({ query: "budget", kinds: ["document"] }).documentMode).toBeUndefined()
+  expect(knowledgeSearchSchema.parse({ query: "budget", kinds: ["document"], documentMode: "keyword" }).documentMode).toBe("keyword")
+  expect(() => knowledgeSearchSchema.parse({ query: "budget", kinds: ["document"], documentMode: "arbitrary" })).toThrow()
+  const schema = z.toJSONSchema(knowledgeProviderSearchSchema)
+  expect(schema.required).toContain("documentMode")
+  expect(schema.required).toContain("uploadCursor")
+  expect(schema.required).toContain("pdfWindow")
+  expect(knowledgeProviderSearchSchema.parse({ query: "budget", kinds: ["document"], documentMode: null, uploadCursor: null, pdfWindow: null }).documentMode).toBeNull()
+})
+
+
+it("validates native range inputs and binds returned locations to their requested scope", async () => {
+ const { knowledgeReadSchema, knowledgeProviderReadSchema } = await import("@/features/workspace-ai/research-types")
+ const id=record().id
+ expect(z.toJSONSchema(knowledgeProviderReadSchema).required).toContain("documentRanges")
+ expect(knowledgeReadSchema.parse({ids:[id]}).documentRanges).toBeUndefined()
+ for(const range of [{id,start:-1,end:10},{id,start:10,end:10},{id,start:0,end:6001},{id,start:199999,end:200001},{id:"person:any",start:0,end:10}])
+  expect(()=>knowledgeReadSchema.parse({ids:[id],documentRanges:[range]})).toThrow()
+ const args={ids:[id],documentRanges:[{id,start:100,end:200}]}
+ const value={...envelope,results:[knowledgeDisclosure(record("x".repeat(500)),"read",6000,{start:100,end:200})]}
+ expect(validateKnowledgeToolResult("read_workspace",value,scope,args)).toEqual(value)
+ expect(()=>validateKnowledgeToolResult("read_workspace",value,scope,{...args,documentRanges:[{id,start:0,end:100}]})).toThrow(/range/)
+ expect(()=>validateKnowledgeToolResult("read_workspace",value,scope,{...args,documentRanges:[...args.documentRanges,...args.documentRanges]})).toThrow(/range/)
+ expect(()=>validateKnowledgeToolResult("read_workspace",value,scope,{...args,documentRanges:[{id:"document:other",start:100,end:200}]})).toThrow(/range/)
+ const forged=structuredClone(value);forged.results[0].evidence.textCoverage!.complete=true
+ expect(()=>validateKnowledgeToolResult("read_workspace",forged,scope,args)).toThrow()
+})
+
+it("retains exact search passage coverage alongside range reads without double counting or losing read time",()=>{
+ const whole=record("a".repeat(1000))
+ const passage=(start:number,end:number)=>knowledgeDisclosure({...whole,content:whole.content.slice(start,end),excerptSourceLength:1000,
+  excerptLocation:{kind:"reader_text",start,end},contentTruncated:true},"search",480)
+ const first=passage(100,300),second=passage(200,400)
+ expect(validateKnowledgeToolResult("search_workspace",{...search(),results:[first,second]},scope)).toHaveProperty("results")
+ const combined=retainKnowledgeEvidence(first.evidence,second.evidence)
+ expect(combined).toMatchObject({characters:300,readAt:null,textCoverage:{complete:false,ranges:[{start:100,end:400}]}})
+ const read=knowledgeDisclosure(whole,"read",6000)
+ const retained=retainKnowledgeEvidence(read.evidence,combined)
+ expect(retained).toMatchObject({coverage:"complete",characters:1000,readAt:read.evidence.readAt,textCoverage:{complete:true}})
+ const forged=structuredClone(first);forged.evidence.textCoverage!.ranges=[{start:101,end:301}]
+ expect(()=>validateKnowledgeToolResult("search_workspace",{...search(),results:[forged]},scope)).toThrow()
+})
+
+it("bounds continuation coverage and rejects forged source scope and impossible counts",()=>{
+ const uploads={scope:"library",candidates:20,attempted:5,read:5,unread:15,pending:15,unreadPriorPages:0,continuation:ID(91),nextPage:ID(92)}
+ const value={...search(),uploads},args={query:"budget",kinds:["document"],uploadCursor:null}
+ expect(validateKnowledgeToolResult("search_workspace",value,scope,args)).toEqual(value)
+ for(const patch of [{candidates:21},{attempted:6},{read:6},{unread:21},{pending:16},{unreadPriorPages:161},{continuation:null},{nextPage:"raw-filter"}])
+  expect(()=>validateKnowledgeToolResult("search_workspace",{...value,uploads:{...uploads,...patch}},scope,args)).toThrow()
+ expect(()=>validateKnowledgeToolResult("search_workspace",{...value,results:[]},scope,{query:"budget",kinds:["person"]})).toThrow(/coverage scope/)
+ expect(()=>validateKnowledgeToolResult("search_workspace",{...value,unavailableKinds:["document"]},scope,args)).toThrow(/coverage scope/)
+ expect(()=>knowledgeSearchSchema.parse({...args,uploadCursor:"raw-filter"})).toThrow()
+})
+
+
+it("binds PDF windows to their requested origin and rejects fabricated window coverage", async()=>{
+ const {knowledgeReadSchema,knowledgeProviderReadSchema}=await import("@/features/workspace-ai/research-types")
+ const id="file:packet"
+ const detail={...record("Governance"),id,kind:"document" as const,contentScope:"text" as const,
+   fileText:{byteHash:"a".repeat(64),byteLength:100,textHash:"b".repeat(64),totalCharacters:10},pdfText:{startPage:41,totalPages:100,pages:[{page:41,start:0,end:10}]}}
+ const args={ids:[id],documentRanges:[{id,start:0,end:10,pdfStartPage:41}]}
+ const value={...envelope,results:[knowledgeDisclosure(detail,"read",6000)]}
+ expect(validateKnowledgeToolResult("read_workspace",value,scope,args)).toEqual(value)
+ expect(()=>validateKnowledgeToolResult("read_workspace",value,scope,{...args,documentRanges:[{id,start:0,end:10,pdfStartPage:1}]})).toThrow(/window/)
+ for(const pdfStartPage of [0,-1,1.5,2147483648]) expect(knowledgeReadSchema.safeParse({ids:[id],documentRanges:[{id,start:0,end:10,pdfStartPage}]}).success).toBe(false)
+ expect(knowledgeReadSchema.safeParse({ids:["document:core"],documentRanges:[{id:"document:core",start:0,end:10,pdfStartPage:41}]}).success).toBe(false)
+ expect(JSON.stringify(z.toJSONSchema(knowledgeProviderReadSchema))).toContain('"pdfStartPage"')
+ for(const patch of [{startPage:1},{pages:[1]},{processedPages:41},{unreadPages:[41]},{priorWindows:[{...value.results[0].evidence.pdf,textCoverage:value.results[0].evidence.textCoverage}]}]) {
+  const forged=structuredClone(value);Object.assign(forged.results[0].evidence.pdf!,patch)
+  expect(()=>validateKnowledgeToolResult("read_workspace",forged,scope,args)).toThrow()
+ }
+})
+
+it("binds selected PDF search results and no-match coverage to the exact file and window",()=>{
+ const id=`file:${ID(10)}`
+ const detail:KnowledgeRecord={...record("Governance"),id,fileText:{byteHash:"a".repeat(64),byteLength:100,textHash:"b".repeat(64),totalCharacters:10},pdfText:{startPage:41,totalPages:100,pages:[{page:41,start:0,end:10}]},contentScope:"text",excerptSourceLength:10,excerptLocation:{kind:"reader_text",start:0,end:10}}
+ const hit=knowledgeDisclosure(detail,"search",480),evidence={...hit.evidence,coverage:"metadata_only",characters:0,location:undefined,pdf:{...hit.evidence.pdf!,pages:[]},textCoverage:{...hit.evidence.textCoverage!,ranges:[]}}
+ const value={...envelope,results:[hit],limit:8,unavailableKinds:[],note:"Selected window",pdfWindow:{id,evidence}}
+ const args={query:"governance",kinds:["document"],pdfWindow:{id,startPage:41}}
+ expect(()=>validateKnowledgeToolResult("search_workspace",value,scope,args)).not.toThrow()
+ for(const patch of [{pdfWindow:{id,startPage:1}},{pdfWindow:{id:`file:${ID(11)}`,startPage:41}},{pdfWindow:null},{kinds:["document","person"]},{documentMode:"hybrid"},{uploadCursor:ID(77)}])
+  expect(()=>validateKnowledgeToolResult("search_workspace",value,scope,{...args,...patch})).toThrow(/scope/)
+ expect(()=>validateKnowledgeToolResult("search_workspace",{...value,pdfWindow:undefined},scope,args)).toThrow(/scope/)
+ expect(()=>validateKnowledgeToolResult("search_workspace",{...value,results:[]},scope,args)).not.toThrow()
+ for(const startPage of [0,-1,1.5,2147483648])expect(knowledgeSearchSchema.safeParse({...args,pdfWindow:{id,startPage}}).success).toBe(false)
+ expect(knowledgeSearchSchema.safeParse({...args,pdfWindow:{id:"document:core",startPage:41}}).success).toBe(false)
 })

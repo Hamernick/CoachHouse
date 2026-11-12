@@ -28,13 +28,13 @@ export function particlePlanMemberships(graph: ParticleGraph) {
 }
 
 /** Creation chooses one free slot. Existing cards are obstacles, never a layout target. */
-export function particleCreationPosition(graph: ParticleGraph, particle: Particle, context?: ParticleCreationContext, measurements: readonly ParticlePlacementMeasurement[] = []): ParticlePosition {
+export function particleCreationPosition(graph: ParticleGraph, particle: Particle, context?: ParticleCreationContext, measurements: readonly ParticlePlacementMeasurement[] = [], preferred?: ParticlePosition): ParticlePosition {
   const bounds = (item: Particle) => {
     const measured = measurements.find(box => box.id === item.id)
     return { ...particlePlacementBounds(item, hasParticleMembership(graph, item.id)), ...(measured ? { width: measured.width, height: measured.height } : {}) }
   }
   const visible = graph.particles.filter(item => item.id !== particle.id && !item.canvasHidden)
-  let origin = particle.type === "objective" ? { x: 100, y: 100 } : { ...UNASSIGNED_ORIGIN }
+  let origin = preferred ?? (particle.type === "objective" ? { x: 100, y: 100 } : { ...UNASSIGNED_ORIGIN })
   if (context) {
     const { objective, plan } = context
     const anchor = bounds(objective)

@@ -23,12 +23,15 @@ export function useRoadmapSave({sourceScope,canEdit,isPending,savingId,sectionsR
   const scope=useMemo(()=>({userId:sourceScope?.userId,organizationId:sourceScope?.organizationId}),[sourceScope?.userId,sourceScope?.organizationId])
   const currentScope=useRef(scope)
   currentScope.current=scope
+  // Cleanup from a previous editable render must not flush after access pauses.
+  const currentCanEdit=useRef(canEdit)
+  currentCanEdit.current=canEdit
   const busy=useRef<object | null>(null)
   const [conflicts,setConflicts]=useState<Record<string,RoadmapSaveConflict>>({})
   const conflictsRef=useRef(conflicts)
   useEffect(()=>{conflictsRef.current={};setConflicts({});setAiApplication(null);setSavingId(null)},[scope,setAiApplication,setSavingId])
   const saveSectionById=useCallback(({sectionId,showToast,status}:{sectionId:string;showToast:boolean;status?:RoadmapSectionStatus})=>{
-    if (!canEdit || !sectionId || savingId || isPending || busy.current || conflictsRef.current[sectionId] || currentScope.current !== scope) return
+    if (!currentCanEdit.current || !canEdit || !sectionId || savingId || isPending || busy.current || conflictsRef.current[sectionId] || currentScope.current !== scope) return
     const section=sectionsRef.current.find(entry=>entry.id===sectionId)
     if (!section) return
     const draft=draftsRef.current[sectionId] ?? createDraft(section)
@@ -71,7 +74,7 @@ export function useRoadmapSave({sourceScope,canEdit,isPending,savingId,sectionsR
     })
   },[canEdit,isPending,savingId,scope,sectionsRef,draftsRef,setSections,setDrafts,setSavingId,setAiApplication,startTransition])
   const resolveConflict=useCallback((sectionId:string,choice:"saved" | "reviewed" | "retry")=>{
-    if (!canEdit || busy.current || currentScope.current !== scope) return
+    if (!currentCanEdit.current || !canEdit || busy.current || currentScope.current !== scope) return
     const conflict=conflictsRef.current[sectionId]
     if (!conflict) return
     const latest=conflict.section

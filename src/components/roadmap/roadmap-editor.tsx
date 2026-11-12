@@ -1,5 +1,8 @@
 "use client"
 
+import { useCoreDocumentAccess } from "@/features/document-editing/client"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
+
 import { RoadmapConflictReview } from "./roadmap-editor/components/roadmap-conflict-review"
 import { useWorkspaceWindowHeaderActive } from "@/components/workspace/workspace-window-header-slots"
 import { useEffect, useState } from "react"
@@ -15,6 +18,12 @@ import type { RoadmapEditorProps } from "@/components/roadmap/roadmap-editor/typ
 export type { RoadmapEditorLayout } from "@/components/roadmap/roadmap-editor/types"
 
 export function RoadmapEditor(props: RoadmapEditorProps) {
+  return <RoadmapEditorSession key={`${props.sourceScope?.userId}:${props.sourceScope?.organizationId}:${props.publicSlug}`} {...props} />
+}
+
+function RoadmapEditorSession(props: RoadmapEditorProps) {
+  const access = useCoreDocumentAccess(props.sourceScope, props.sections.filter(section => section.id !== "calendar" && resolveCoreDocumentSource(section) === "editor").map(section => section.id))
+  const canEdit = access.state === "ready" && access.canEdit && props.canEdit !== false
   const { onDirtyChange } = props
   const [legacyPending, setLegacyPending] = useState(false)
   const [collaborationPending, setCollaborationPending] = useState(false)
@@ -48,15 +57,17 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
     saveConflict,
     resolveSaveConflict,
     handleSavedSection,
-  } = useRoadmapEditorState({ ...props, onDirtyChange: setLegacyPending })
+  } = useRoadmapEditorState({ ...props, canEdit, onDirtyChange: setLegacyPending })
 
   const contextActive=useWorkspaceWindowHeaderActive()
   const aiTarget = useMemo(() => props.sourceScope && activeSection ? {
     ...props.sourceScope, sectionId: activeSection.id, title: activeSection.title, revision: activeSection.lastUpdated,
   } : null,[props.sourceScope,activeSection])
-  useAiDocumentBridge(contextActive && aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && props.canEdit !== false ? {
+  useAiDocumentBridge(access.state === "ready" && contextActive && aiTarget && activeDraft && !isCalendarSection && !isBudgetSection && !activeSection?.driveSource && canEdit ? {
     target: aiTarget, content: activeDraft.content, dirty: isDirty, saving: Boolean(savingId), apply: applyAiProposal,application:aiApplication,
   } : null)
+
+  if (access.state !== "ready") return <p role="status" className="text-muted-foreground p-3 text-sm">{access.state === "checking" ? "Checking access…" : "Document unavailable. Close and reopen to check access."}</p>
 
   if (!activeSection || !activeDraft) {
     return null
@@ -82,7 +93,7 @@ export function RoadmapEditor(props: RoadmapEditorProps) {
       headerIconSize={headerIconSize}
       headerTextRef={headerTextRef}
       status={status}
-      canEdit={props.canEdit ?? true}
+      canEdit={canEdit}
       onStatusChange={handleStatusChange}
       onSavedSection={handleSavedSection}
       onCollaborationPending={setCollaborationPending}

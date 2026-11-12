@@ -94,6 +94,14 @@ try {
   runSql("supabase/migrations/20261030190000_workspace_new_objective_research.sql")
   runSql("supabase/migrations/20261031190000_workspace_ai_provider_exposure.sql")
   runSql("supabase/migrations/20261031200000_workspace_research_drafts.sql")
+  // The closure reader is covered by its own harness; this lane supplies its existing authority.
+  run("psql", ["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"],
+    { input: "create function public.can_read_workspace_ai(uuid,uuid) returns boolean language sql as 'select public.can_use_workspace_ai($1,$2)';" })
+  runSql("supabase/migrations/20261105150000_workspace_research_conversations.sql")
+  runSql("supabase/migrations/20261105180000_workspace_chat_controls.sql")
+  runSql("supabase/migrations/20261105200000_workspace_chat_plan_revisions.sql")
+  runSql("supabase/migrations/20261105210000_workspace_chat_messages.sql")
+  runSql("supabase/migrations/20261105220000_workspace_chat_replies.sql")
   // Synthetic test-only ceiling. Production requires explicit operator configuration.
   run("psql", ["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"],
     { input: "update public.ai_credit_policy set org_daily_provider_microdollars=10000000;" })
@@ -102,6 +110,9 @@ try {
   runSql("supabase/tests/workspace-research-history.assertions.sql")
   runSql("supabase/tests/workspace-research-drafts.assertions.sql")
   runSql("supabase/tests/workspace-new-objective-research.assertions.sql")
+  runSql("supabase/tests/workspace-research-conversations.assertions.sql")
+  runSql("supabase/tests/workspace-chat-messages.assertions.sql")
+  runSql("supabase/tests/workspace-chat-replies.assertions.sql")
   const args=["-h",socketDirectory,"-p",port,"-U","postgres","-d","postgres","-v","ON_ERROR_STOP=1","-q"]
   run("psql",args,{input:`
     update public.ai_credit_policy set daily_provider_microdollars=10000000;

@@ -38,6 +38,7 @@ export async function refreshOrganizationProjectActivity(input: {
     if (error) return { state: "error", items: [] }
     if (!data) return { state: "forbidden", items: [] }
     return loadOrganizationProjectActivityResult({
+      actorId: actor.userId,
       ...parsed.data,
       supabase: actor.supabase,
       projectOnly: scope === "fiscal",

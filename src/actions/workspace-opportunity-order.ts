@@ -16,7 +16,7 @@ export async function reorderWorkspaceOpportunities(input: { organizationId: str
   try {
     const { activeOrg, supabase, user } = await resolveAuthenticatedAppContext()
     if (activeOrg.orgId !== input.organizationId || !(await canManageWorkspaceFinance({ activeOrg, supabase, userId: user.id }))) return { error: "You can’t reorder opportunities in this organization." } as const
-    const { data, error } = await createSupabaseAdminClient().rpc("reorder_opportunity_feed", { p_org_id: activeOrg.orgId, p_previous: input.previous, p_ordered: input.ordered })
+    const { data, error } = await createSupabaseAdminClient({ actorId: user.id, requestTimeoutMs: 10000 }).rpc("reorder_opportunity_feed", { p_org_id: activeOrg.orgId, p_previous: input.previous, p_ordered: input.ordered })
     const parsed = receipt.safeParse(data)
     if (error || !parsed.success) return { error: "The opportunity order changed or couldn’t be saved. Reload and try again." } as const
     revalidatePath("/workspace"); revalidatePath("/my-organization")

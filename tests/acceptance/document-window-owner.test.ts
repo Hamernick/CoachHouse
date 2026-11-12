@@ -149,6 +149,50 @@ describe("read-only retained shared file window", () => {
     expect(f.owner.getSnapshot().snapshot).toBeNull(); expect(mocks.transport).not.toHaveBeenCalled()
   })
 
+  it("uses one authorized read when first shown after an initially hidden mount", async () => {
+    const f = fixture(false)
+    await f.owner.revalidate(new AbortController().signal)
+    expect(f.load).toHaveBeenCalledOnce()
+    expect(f.owner.getSnapshot()).toMatchObject({ status: "ready", snapshot })
+  })
+
+  it("revalidates without replacing a retained snapshot or shared replica", async () => {
+    const f = fixture(); await f.owner.open(); await settle()
+    const before = f.owner.getSnapshot()
+    f.load.mockResolvedValue({ ...f.view, snapshot: { ...snapshot, content: "New saved revision" } })
+    await f.owner.revalidate(new AbortController().signal)
+    expect(f.owner.getSnapshot()).toBe(before)
+    expect(f.owner.getSnapshot().session?.getSnapshot().replica).toBe(before.session?.getSnapshot().replica)
+    expect(mocks.transport).toHaveBeenCalledOnce()
+  })
+
+  it("rejects changed viewers, sources, read errors and removed write permission", async () => {
+    const f = fixture(false); await f.owner.open()
+    for (const value of [
+      { ...f.view, viewerId: id(9) },
+      { ...f.view, snapshot: { ...snapshot, source: { ...source, fileId: id(9) } } },
+    ]) {
+      f.load.mockResolvedValue(value)
+      await expect(f.owner.revalidate(new AbortController().signal)).rejects.toThrow()
+    }
+    f.load.mockResolvedValue({ ...f.view, editable: false })
+    await expect(f.owner.revalidate(new AbortController().signal, true)).rejects.toThrow()
+    f.load.mockRejectedValue(new Error("Revoked"))
+    await expect(f.owner.revalidate(new AbortController().signal)).rejects.toThrow("Revoked")
+    f.owner.lock()
+    expect(f.owner.getSnapshot()).toMatchObject({ status: "locked", snapshot: null, session: null })
+  })
+
+  it("does not install a late revalidation result after cancellation or locking", async () => {
+    const f = fixture(false); await f.owner.open()
+    let finish!: (value: DocumentWindowView) => void
+    f.load.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    const controller = new AbortController()
+    const checking = f.owner.revalidate(controller.signal)
+    controller.abort(); f.owner.lock(); finish(f.view); await checking
+    expect(f.owner.getSnapshot()).toMatchObject({ status: "locked", snapshot: null, session: null })
+  })
+
   it("rejects cross-file and stale-source shared envelopes instead of binding the wrong replica", () => {
     const f = fixture()
     expect(documentWindowSchema.safeParse(f.view).success).toBe(true)

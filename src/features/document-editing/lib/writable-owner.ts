@@ -28,6 +28,7 @@ export function createWritableDocumentOwner(source: DocumentSource, client: Supa
   let choices: RecoveryChoice[] = []
   let olderChoices: RecoveryChoice[] = []
   let stopped = false
+  let active = true
   let owners = 0
   let releaseVersion = 0
   let stopAuth: (() => void) | null = null
@@ -63,7 +64,8 @@ export function createWritableDocumentOwner(source: DocumentSource, client: Supa
     emit({ status: "editing", session, writer, choices: [], message: undefined })
     // Keep the old recovery record until the new owner's durability barrier
     // succeeds; a failed replay never destroys the only retained draft.
-    session.start()
+    session.setActive(active)
+    if (active) session.start()
     if (recovery) {
       const detach = session.subscribe(() => {
         if (session.getSnapshot().editable) {
@@ -107,6 +109,7 @@ export function createWritableDocumentOwner(source: DocumentSource, client: Supa
   }
   async function close() {
     stopped = true
+    state.session?.setActive(false)
     stopAuth?.(); stopAuth = null
     await flight
     await reset()
@@ -123,7 +126,7 @@ export function createWritableDocumentOwner(source: DocumentSource, client: Supa
       if (!choice) throw new Error("This recovery draft is unavailable.")
       return documentRecoveryExport(choice.recovery)
     },
-    setActive(active: boolean) { state.session?.setActive(active) },
+    setActive(value: boolean) { active = value; state.session?.setActive(value) },
     retain() {
       owners++; releaseVersion++
       let released = false

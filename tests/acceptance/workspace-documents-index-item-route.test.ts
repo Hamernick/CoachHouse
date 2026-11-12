@@ -7,13 +7,20 @@ const {
   resolveRoadmapSectionsMock,
   listUserModuleNotesIndexMock,
   resolveOrganizationDocumentAccessMock,
+  copySourcesMock,
+  adminClientMock,
 } = vi.hoisted(() => ({
   createSupabaseRouteHandlerClientMock: vi.fn(),
   resolveActiveOrganizationMock: vi.fn(),
   resolveRoadmapSectionsMock: vi.fn(),
   listUserModuleNotesIndexMock: vi.fn(),
   resolveOrganizationDocumentAccessMock: vi.fn(),
+  copySourcesMock: vi.fn(),
+  adminClientMock: vi.fn(),
 }))
+
+vi.mock("server-only", () => ({}))
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: adminClientMock }))
 
 vi.mock("@/lib/supabase/route", () => ({
   createSupabaseRouteHandlerClient: createSupabaseRouteHandlerClientMock,
@@ -78,6 +85,8 @@ function buildRequest(id: string) {
 describe("workspace documents item route", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    copySourcesMock.mockResolvedValue({ data: { blockedSectionIds: [], complete: false }, error: null })
+    adminClientMock.mockReturnValue({ rpc: copySourcesMock })
     resolveActiveOrganizationMock.mockResolvedValue({ orgId: "org-1" })
     resolveRoadmapSectionsMock.mockReturnValue([])
     listUserModuleNotesIndexMock.mockResolvedValue([])
@@ -102,6 +111,10 @@ describe("workspace documents item route", () => {
       )
     )
     expect(response.status).toBe(200)
+    expect(adminClientMock).toHaveBeenCalledWith({ actorId: "user-1", requestTimeoutMs: 10000 })
+    expect(copySourcesMock).toHaveBeenCalledWith("read_workspace_ai_document_copy_sources", {
+      p_org_id: "other-org", p_actor_id: "user-1", p_section_ids: ["vision"],
+    })
     expect(resolveOrganizationDocumentAccessMock).toHaveBeenCalledWith(
       session.supabase,
       "user-1",
@@ -130,9 +143,16 @@ describe("workspace documents item route", () => {
     )
     expect(response.status).toBe(403)
     expect(calls.from).not.toHaveBeenCalled()
+    expect(copySourcesMock).not.toHaveBeenCalled()
   })
 
   it("loads policy file references through the checked organization scope", async () => {
+    const fileId = "00000000-0000-4000-8000-000000000001"
+    const bindingQuery = {
+      select() { return this }, eq() { return this }, in() { return this },
+      abortSignal: async () => ({ error: null, data: [{ id: fileId, org_id: "other-org", document_kind: "policy:policy-1", storage_path: "other-org/policies/policy-1/report.pdf", deleted_at: null }] }),
+    }
+    adminClientMock.mockReturnValue({ from: () => bindingQuery, rpc: async () => ({ data: [fileId], error: null }) })
     const session = buildRouteSupabaseStub()
     const scoped = buildRouteSupabaseStub({
       profile: {
@@ -175,11 +195,8 @@ describe("workspace documents item route", () => {
     )
     expect(response.status).toBe(200)
     expect(scoped.calls.eq).toHaveBeenCalledWith("user_id", "other-org")
-    expect(createSignedUrl).toHaveBeenCalledWith(
-      "other-org/policies/policy-1/report.pdf",
-      expect.any(Number),
-      undefined
-    )
+    expect(createSignedUrl).not.toHaveBeenCalled()
+    expect(await response.json()).toMatchObject({ url: "/api/account/org-policies/document?organizationId=other-org&id=policy-1&content=1" })
     expect(session.calls.from).not.toHaveBeenCalled()
   })
 
@@ -294,4 +311,81 @@ describe("workspace documents item route", () => {
       error: "Unsupported item type.",
     })
   })
+
+  it("withholds a blocked document by slug and restores it only after a fresh source check", async () => {
+    const profile = { preserved: "canonical" }
+    const { supabase } = buildRouteSupabaseStub({ profile })
+    createSupabaseRouteHandlerClientMock.mockReturnValue(supabase)
+    resolveRoadmapSectionsMock.mockReturnValue([
+      { id: "vision", slug: "private-vision", title: "Private title", content: "Private body" },
+    ])
+    copySourcesMock.mockResolvedValueOnce({ data: { blockedSectionIds: ["vision"], complete: false }, error: null })
+    const { GET } = await import("@/app/api/account/workspace-documents-index/item/route")
+    const denied = await GET(buildRequest("roadmap:private-vision"))
+    expect(denied.status).toBe(404)
+    expect(await denied.json()).toEqual({ error: "Roadmap item not found." })
+    const restored = await GET(buildRequest("roadmap:private-vision"))
+    expect(restored.status).toBe(200)
+    expect((await restored.json()).detail.contentHtml).toBe("Private body")
+    expect(copySourcesMock).toHaveBeenCalledTimes(2)
+    expect(copySourcesMock).toHaveBeenLastCalledWith("read_workspace_ai_document_copy_sources", {
+      p_org_id: "org-1", p_actor_id: "user-1", p_section_ids: ["vision"],
+    })
+    expect(profile).toEqual({ preserved: "canonical" })
+  })
+
+  it("fails closed when saved source verification fails", async () => {
+    createSupabaseRouteHandlerClientMock.mockReturnValue(buildRouteSupabaseStub().supabase)
+    resolveRoadmapSectionsMock.mockReturnValue([{ id: "vision", title: "Private title", content: "Private body" }])
+    copySourcesMock.mockResolvedValue({ data: null, error: { message: "private database details" } })
+    const { GET } = await import("@/app/api/account/workspace-documents-index/item/route")
+    const response = await GET(buildRequest("roadmap:vision"))
+    expect(response.status).toBe(500)
+    expect(await response.json()).toEqual({ error: "Document sources could not be verified. Try again." })
+  })
+
+  it.each([null, { fileId: "retained-drive" }])("never returns the inactive editor body of a selected Drive source", async (driveSource) => {
+    createSupabaseRouteHandlerClientMock.mockReturnValue(buildRouteSupabaseStub().supabase)
+    resolveRoadmapSectionsMock.mockReturnValue([
+      { id: "vision", content: "Inactive secret", documentSource: "google_drive", driveSource },
+    ])
+    const { GET } = await import("@/app/api/account/workspace-documents-index/item/route")
+    const response = await GET(buildRequest("roadmap:vision"))
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: "Roadmap item not found." })
+    expect(copySourcesMock).not.toHaveBeenCalled()
+  })
+
+  it("filters the index before searching, counting or returning summaries", async () => {
+    const profile = { preserved: "canonical" }
+    createSupabaseRouteHandlerClientMock.mockReturnValue(buildRouteSupabaseStub({ profile }).supabase)
+    resolveRoadmapSectionsMock.mockReturnValue([
+      { id: "vision", title: "Private title", content: "Private body" },
+      { id: "values", title: "Readable", content: "Readable body" },
+      { id: "drive", title: "Drive", content: "Inactive secret", documentSource: "google_drive" },
+    ])
+    copySourcesMock.mockResolvedValue({ data: { blockedSectionIds: ["vision"], complete: false }, error: null })
+    const { GET } = await import("@/app/api/account/workspace-documents-index/route")
+    const response = await GET(new NextRequest("http://localhost/api/account/workspace-documents-index"))
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.total).toBe(2)
+    expect(payload.items.map((item: { id: string }) => item.id)).toEqual(["roadmap:values", "roadmap:drive"])
+    expect(payload.items[1].summary).toBeNull()
+    expect(JSON.stringify(payload)).not.toMatch(/Private|Inactive/)
+    const search = await GET(new NextRequest("http://localhost/api/account/workspace-documents-index?q=Private"))
+    expect((await search.json()).items).toEqual([])
+    expect(profile).toEqual({ preserved: "canonical" })
+  })
+
+  it("does not return a partial index on source-check failure", async () => {
+    createSupabaseRouteHandlerClientMock.mockReturnValue(buildRouteSupabaseStub().supabase)
+    resolveRoadmapSectionsMock.mockReturnValue([{ id: "vision", content: "Private body" }])
+    copySourcesMock.mockResolvedValue({ data: null, error: { message: "private database details" } })
+    const { GET } = await import("@/app/api/account/workspace-documents-index/route")
+    const response = await GET(new NextRequest("http://localhost/api/account/workspace-documents-index"))
+    expect(response.status).toBe(500)
+    expect(await response.json()).toEqual({ error: "Document sources could not be verified. Try again." })
+  })
+
 })

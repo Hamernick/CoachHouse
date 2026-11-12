@@ -1,3 +1,4 @@
+import { knowledgeLoader } from "@/features/workspace-ai/server/knowledge-records"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -498,8 +499,6 @@ describe("authenticated contact history actions", () => {
     ])
   })
   it("gives AI field sources without actor identifiers and excludes archived contacts", async () => {
-    const { knowledgeLoader } =
-      await import("@/features/workspace-ai/server/knowledge-records")
     const active = stampContactChange(
       null,
       { ...person, id: batchId, details: { organization: "Community Org" } },
@@ -515,7 +514,7 @@ describe("authenticated contact history actions", () => {
       select: vi.fn(),
       eq: vi.fn(),
       abortSignal: vi.fn(),
-      single: vi
+      maybeSingle: vi
         .fn()
         .mockResolvedValue({
           data: {
@@ -531,6 +530,7 @@ describe("authenticated contact history actions", () => {
     const context = {
       supabase: { from: () => query },
       target: { organizationId: "org-1" },
+      user: { id: "actor-1" },
       graph: { particles: [] },
     } as unknown as Parameters<typeof knowledgeLoader>[0]
     const results = await knowledgeLoader(context)("person", "Jo")

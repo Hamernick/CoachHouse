@@ -1,4 +1,5 @@
 import "server-only"
+import { assertPageCanvasManagement } from "./page-canvas-access"
 
 import { z } from "zod"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
@@ -33,6 +34,13 @@ async function buildReview(actor: PageActor, input: z.infer<typeof workspacePage
     orgId: actor.orgId, graph: sources.graph, profile: sources.profile,
     publicSlug: sources.public_slug, draft: input.draft, driveLinks: drive.links, imageIds: imageReview.ids, documentIds: documentReview.ids,
   })
+  // Asset preparation may take time. Recheck the audience before disclosing a
+  // preview or uploading copies; commit independently checks locked authority.
+  const current = await loadSavedPageSources(actor, input.canvasId ?? null)
+  assertSavedPageSelection(current.graph, actor.orgId, input.draft)
+  if (publicationHash(current) !== publicationHash(sources))
+    throw new WorkspaceSharingError("conflict", "Saved content changed. Review it again before sharing.")
+  await assertPageCanvasManagement(actor, input.canvasId ?? null)
   const formVersions = bindPageForms(snapshot, input.pageId, input.expectedRevision)
   const reviewToken = publicationHash({ orgId: actor.orgId, pageId: input.pageId,
     expectedRevision: input.expectedRevision, canvasId: input.canvasId ?? null, draft: input.draft, snapshot })
@@ -76,6 +84,7 @@ async function commit(actor: PageActor, command: WorkspacePageCommand, extra: Pa
     throw new WorkspaceSharingError("unavailable", "Unable to confirm this save. Retry the same request before making another change.", true)
   }
   const result = z.object({ page: committedPageRowSchema, replayed: z.boolean() }).parse(data)
+  await assertPageCanvasManagement(actor, result.page.canvas_id ?? null)
   return { page: decodeWorkspacePage(result.page), replayed: result.replayed }
 }
 
@@ -84,6 +93,7 @@ export async function writeWorkspacePage(input: unknown) {
   if (!parsed.success) throw new WorkspaceSharingError("invalid", "Review your page details and try again.")
   const command = parsed.data
   const actor = await loadPageActor()
+  await assertPageCanvasManagement(actor, command.canvasId ?? null)
   const page = await loadSavedPage(actor, command.pageId)
   if (page && (page.canvas_id ?? null) !== (command.canvasId ?? null))
     throw new WorkspaceSharingError("scope", "Open this page from its original workspace.")
@@ -104,7 +114,7 @@ export async function writeWorkspacePage(input: unknown) {
     return commit(actor, command, {
       p_image_assets: imageAssets, p_document_assets: documentAssets,
       p_form_versions: JSON.parse(JSON.stringify(review.formVersions)),
-      p_snapshot: review.snapshot, p_expected_graph: review.sources.graph,
+      p_snapshot: review.snapshot, p_expected_graph: review.sources.canonicalGraph,
       p_expected_org_updated_at: review.sources.updated_at,
       p_expected_drive_sources: review.drive.checks,
       p_expected_profile: review.drive.expectedProfile,
@@ -112,5 +122,5 @@ export async function writeWorkspacePage(input: unknown) {
   }
   const sources = await loadSavedPageSources(actor, command.canvasId ?? null)
   assertSavedPageSelection(sources.graph, actor.orgId, command.draft)
-  return commit(actor, command, { p_expected_graph: sources.graph })
+  return commit(actor, command, { p_expected_graph: sources.canonicalGraph })
 }

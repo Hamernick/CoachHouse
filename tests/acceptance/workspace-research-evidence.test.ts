@@ -52,7 +52,10 @@ describe("research evidence envelopes", () => {
       {id:record.id,title:record.title,href:record.href,revision:record.revision,checkedAt:evidence.checkedAt,kind:"workspace" as const,evidence},
       {id:contact.id,title:contact.title,href:contact.href,revision:contact.revision,checkedAt:retained.checkedAt,kind:"workspace" as const,evidence:retained},
       {id:"https://example.org/legacy",title:"Legacy citation",href:"https://example.org/legacy",revision:null,checkedAt:evidence.checkedAt,kind:"web" as const},
+      {id:`file:${ID(17)}`,title:"Board packet",href:"/workspace",revision:"1",checkedAt:evidence.checkedAt,kind:"workspace" as const,evidence:knowledgeDisclosure({id:`file:${ID(17)}`,kind:"document",title:"Board packet",href:"/workspace",revision:"1",content:"Opening.\n\nGovernance.",contentAvailable:true,contentScope:"text",fileText:{byteHash:"a".repeat(64),byteLength:100,textHash:"b".repeat(64),totalCharacters:21},pdfText:{totalPages:3,pages:[{page:1,start:0,end:8},{page:2,start:10,end:21},{page:3,start:21,end:21}]}},"read",11,{start:10,end:21}).evidence},
     ]
+    const pdfEvidence = sources[3].evidence!
+    pdfEvidence.pdf = {...pdfEvidence.pdf!,totalPages:90,startPage:41,pages:[42],unreadPages:[43],priorWindows:[{totalPages:90,startPage:1,processedPages:40,pages:[2],unreadPages:[3],textCoverage:{availableCharacters:100,totalCharacters:null,complete:false,ranges:[{start:10,end:21}]}}]}
     const draft={title:"Plan",summary:"Proposed",questions:[],decisions:[],removeReferences:[],items:[{key:"next",title:"Next step",kind:"note",description:"Proposed",referenceId:null,evidenceIds:sources.map(source=>source.id),dependsOn:[]}]}
     const result=bindResearch(JSON.stringify(draft),sources,{organizationId:WORKSPACE,objectiveId:ID(1),revision:0},ID(9))
     const before=graph(),now=evidence.checkedAt;let next=20

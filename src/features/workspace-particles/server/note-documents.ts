@@ -1,3 +1,5 @@
+import { readWorkspaceBoardForProjection } from "@/lib/organization/particle-board-read"
+import { projectParticleGraphAudience } from "./particle-audience"
 import { allWorkspaceStates } from "@/features/workspace-management"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/lib/supabase"
@@ -8,20 +10,18 @@ import { getParticleNotes, workspaceNoteDocuments } from "../lib/particle-notes"
 export async function readWorkspaceNoteDocuments(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
+  actorId: string,
   id?: string,
   query = ""
 ) {
-  const { data, error } = await supabase
-    .from("organization_workspace_boards")
-    .select("state")
-    .eq("org_id", workspaceId)
-    .maybeSingle()
+  const { data, error } = await readWorkspaceBoardForProjection(supabase, workspaceId, actorId)
   if (error) throw new Error("Unable to load workspace notes.")
-  const graphs = allWorkspaceStates(data?.state).map(({ id: canvasId, state }) => {
+  const graphs = []
+  for (const { id: canvasId, state } of allWorkspaceStates(data?.state)) {
     const graph = readParticleGraph("particleGraph" in state ? state.particleGraph : undefined, workspaceId)
     if (!graph.ok) throw new Error(graph.error)
-    return { canvasId, graph: graph.value }
-  })
+    graphs.push({ canvasId, graph: await projectParticleGraphAudience(graph.value, actorId) })
+  }
   if (id) {
     for (const { canvasId, graph } of graphs) {
       const particle = graph.particles.find((item) => item.id === id)

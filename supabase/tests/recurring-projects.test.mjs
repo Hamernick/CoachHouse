@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { verifyRetainedWorkspaceAccessDirectory } from "./retained-workspace-access-directory.mjs"
+import { verifyFolderWorkspaceAccessControls } from "./folder-workspace-access-controls.mjs"
+import { verifyProjectFolderAccessControls } from "./project-folder-access-controls.mjs"
+import { verifyWorkspaceAccessControls } from "./workspace-access-controls.mjs"
 
 import { execFileSync, spawnSync } from "node:child_process"
 import {
@@ -10,6 +14,16 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { verifyDocumentFolderWriteConcurrency } from "./document-folder-writes-races.mjs"
+import { verifyFolderGrantConcurrency } from "./project-folder-grants-races.mjs"
+import { verifyFolderStorageConcurrency } from "./project-folder-storage-races.mjs"
+import { verifyWorkspaceSourceAudiences } from "./workspace-source-audiences.mjs"
+import { verifyWorkspaceAiDispatchCanvas } from "./workspace-ai-dispatch-canvas.mjs"
+import { verifyWorkspaceResearchDraftCanvas } from "./workspace-research-draft-canvas.mjs"
+import { verifyWorkspaceGuestNoteCanvas } from "./workspace-guest-note-canvas.mjs"
+import { verifyWorkspaceChatCanvasAuthority } from "./workspace-chat-canvas-authority.mjs"
+import { verifyWorkspacePageCanvasAuthority } from "./workspace-page-canvas-authority.mjs"
+import { verifyWorkspaceCanvasIsolation } from "./workspace-canvas-isolation.mjs"
 
 import { verifyTaskPlanningConcurrency } from "./task-planning-concurrency.mjs"
 
@@ -137,6 +151,43 @@ try {
   runSql("supabase/tests/workspace-preview-seeds.bootstrap.sql")
   runSql("supabase/migrations/20261021020000_disable_workspace_preview_seeds.sql")
   runSql("supabase/tests/workspace-preview-seeds.assertions.sql")
+  runSql("supabase/migrations/20261106010000_project_folder_storage.sql")
+  runSql("supabase/tests/project-folder-storage.assertions.sql")
+  await verifyFolderStorageConcurrency({ postgresDirectory, port, socketDirectory })
+  runSql("supabase/tests/project-folder-grants.bootstrap.sql")
+  runSql("supabase/migrations/20261106030000_project_folder_grants.sql")
+  runSql("supabase/tests/project-folder-grants.assertions.sql")
+  await verifyFolderGrantConcurrency({ postgresDirectory, port, socketDirectory })
+  runSql("supabase/tests/document-folder-reads.bootstrap.sql")
+  runSql("supabase/migrations/20260904113000_add_organization_document_library.sql")
+  runSql("supabase/migrations/20261014213000_add_document_collaboration_rooms.sql")
+  runSql("supabase/migrations/20261014223000_version_uploaded_document_saves.sql")
+  runSql("supabase/migrations/20261106040000_document_file_folder_reads.sql")
+  runSql("supabase/tests/document-folder-reads.assertions.sql")
+  runSql("supabase/migrations/20260921002000_preserve_document_activity_actor.sql")
+  runSql("supabase/migrations/20261106050000_document_file_folder_writes.sql")
+  runSql("supabase/tests/document-folder-writes.assertions.sql")
+  await verifyDocumentFolderWriteConcurrency({ postgresDirectory, port, socketDirectory })
+  runSql("supabase/tests/document-folder-storage.assertions.sql")
+  await verifyDocumentFolderWriteConcurrency({ postgresDirectory, port, socketDirectory, storage: true })
+  runSql("supabase/tests/workspace-source-audiences.bootstrap.sql")
+  runSql("supabase/migrations/20261107120000_workspace_source_audiences.sql")
+  await verifyWorkspaceSourceAudiences({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceCanvasIsolation({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspacePageCanvasAuthority({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceChatCanvasAuthority({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceGuestNoteCanvas({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceResearchDraftCanvas({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceAiDispatchCanvas({ postgresDirectory, port, socketDirectory })
+  await verifyWorkspaceAccessControls({ postgresDirectory, port, socketDirectory })
+  verifyRetainedWorkspaceAccessDirectory({ postgresDirectory, port, socketDirectory })
+  await verifyProjectFolderAccessControls({ postgresDirectory, port, socketDirectory })
+  await verifyFolderWorkspaceAccessControls({ postgresDirectory, port, socketDirectory })
+  console.log("[document-folder-storage] Exact stage, owner, revocation, spoofing, immutable bytes, path identity and fail-closed deletion passed.")
+  console.log("[document-folder-writes] View/Edit, actor spoofing, collaboration, save/revoke, metadata and owner guards passed.")
+  console.log("[document-folder-reads] Canonical, alias, owner, viewer, revocation, room/history, search and elevated source reads passed.")
+  console.log("[project-folder-grants] Owner, creator, grants, revocation, scoped reads, mutation guards and recurrence passed.")
+  console.log("[project-folder-storage] Legacy migration, RLS, commands, stale writes, rollback, recurrence and deletion passed.")
   console.log("[recurring-projects] Month-end recurrence, idempotency, rollback, task copies, optional fields, assignment notifications, and RLS passed.")
 } finally {
   if (started) {

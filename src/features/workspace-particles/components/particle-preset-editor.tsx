@@ -41,7 +41,9 @@ export function ParticlePresetEditor({
   onRetry,
   onBack,
   onAdd,
+  backLabel,
 }: {
+  backLabel?: string
   preset: ParticlePreset
   workspaceId: string
   disabled: boolean
@@ -265,7 +267,7 @@ export function ParticlePresetEditor({
 
     >
       <ParticleEditorHeader title={preset.label} leading={
-        <ParticleDraftBackButton dirty={dirty} pending={busy} onBack={onBack} />
+        <ParticleDraftBackButton label={backLabel} dirty={dirty} pending={busy} onBack={onBack} />
       } actions={
         <Button color="primary" uniform
           type="submit"

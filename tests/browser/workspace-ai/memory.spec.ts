@@ -1,0 +1,153 @@
+import { expect, test, type Page } from "@playwright/test"
+
+async function fixture(page: Page, scope = "personal", canManage = true) {
+  const state = { scope, canManage, actorId: "00000000-0000-4000-8000-000000000002", version: 1, organizationId: "00000000-0000-4000-8000-000000000001", userId: "00000000-0000-4000-8000-000000000002", enabled: false, revision: 0, updatedAt: null as string | null, basis: "user_authored", retention: "until_deleted", entries: [] as { id: string; value: string; revision: number; createdAt: string; updatedAt: string }[] }
+  // UI transport simulator only; the actual RPC is qualified in disposable PG.
+  await page.route(`**/__fixture/${scope}-memory`, async route => {
+    const input = route.request().postDataJSON()
+    if (input.action === "read") return route.fulfill({ json: { memory: state, organizationName: "Fixture organization" } })
+    if (input.revision !== state.revision) return route.fulfill({ status: 409, json: { error: "Memory changed. Reload before saving; your draft is still here." } })
+    state.revision++; state.updatedAt = new Date().toISOString()
+    if (input.action === "enable") state.enabled = input.enabled
+    if (input.action === "clear") { state.enabled = false; state.entries = [] }
+    if (input.action === "delete") state.entries = state.entries.filter(entry => entry.id !== input.id)
+    if (input.action === "save") {
+      const existing = state.entries.find(entry => entry.id === input.id)
+      state.entries = state.entries.filter(entry => entry.id !== input.id)
+      state.entries.push({ id: input.id, value: input.value, revision: (existing?.revision ?? 0) + 1, createdAt: existing?.createdAt ?? state.updatedAt, updatedAt: state.updatedAt })
+    }
+    return route.fulfill({ json: state })
+  })
+  return state
+}
+
+test("personal settings save, reload, correct, turn off, delete and clear through the actual controls", async ({ page }) => {
+  const state = await fixture(page)
+  await page.goto("/memory.html")
+  await expect(page.getByText("Only you · Fixture organization", { exact: true })).toBeVisible()
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).toBeChecked()
+  await page.getByRole("button", { name: "Add guidance" }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("Keep answers short")
+  await page.getByLabel("Guidance", { exact: true }).press("Control+Enter")
+  await expect(page.getByText("Keep answers short", { exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByText("Keep answers short", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("Use plain language")
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByText("Keep answers short", { exact: true })).toHaveCount(0)
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).not.toBeChecked()
+  await expect(page.getByRole("button", { name: "Add guidance" })).toBeDisabled()
+  await expect(page.getByText("Use plain language", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Delete", exact: true }).click()
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByText("Use plain language", { exact: true })).toHaveCount(0)
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).toBeChecked()
+  await page.getByRole("button", { name: "Add guidance" }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("Private preference")
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await page.getByRole("button", { name: "Memory options" }).click()
+  await page.getByRole("menuitem", { name: "Delete and turn off memory" }).click()
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).not.toBeChecked()
+  expect(state.entries).toEqual([])
+  await page.reload()
+  await expect(page.getByText("Private preference", { exact: true })).toHaveCount(0)
+})
+
+test("narrow settings keep a conflicting draft, require reload, and confirm discard", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const state = await fixture(page)
+  await page.goto("/memory.html")
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).toBeChecked()
+  await page.getByRole("button", { name: "Add guidance" }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("My unsaved preference")
+  state.revision++
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByRole("alert")).toContainText("Memory changed")
+  await expect(page.getByLabel("Guidance", { exact: true })).toHaveValue("My unsaved preference")
+  await page.getByRole("button", { name: "Reload memory" }).click()
+  await expect(page.getByRole("button", { name: "Save guidance" })).toBeEnabled()
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByText("My unsaved preference", { exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("Do not silently lose this")
+  expect(await page.evaluate(() => !window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true)
+  await page.getByRole("button", { name: "Cancel", exact: true }).click()
+  await expect(page.getByRole("alertdialog")).toBeVisible()
+  await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click()
+  await expect(page.getByLabel("Guidance", { exact: true })).toHaveValue("Do not silently lose this")
+  await page.getByRole("button", { name: "Cancel", exact: true }).click()
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByText("My unsaved preference", { exact: true })).toBeVisible()
+})
+
+async function selectScope(page: Page, label: string) {
+  await page.getByRole("combobox", { name: "Guidance scope" }).click()
+  await page.getByRole("option", { name: label, exact: true }).click()
+}
+
+test("organization scope saves explicit guidance and preserves personal scope across conflicts, off and clear", async ({ page }) => {
+  const personal = await fixture(page)
+  const shared = await fixture(page, "organization")
+  personal.enabled = true
+  personal.entries = [{ id: crypto.randomUUID(), value: "Private preference", revision: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
+  await page.goto("/memory.html")
+  await expect(page.getByText("Private preference", { exact: true })).toBeVisible()
+  await selectScope(page, "Organization")
+  await expect(page.getByText("Organization · Fixture organization", { exact: true })).toBeVisible()
+  await expect(page.getByText("Private preference", { exact: true })).toHaveCount(0)
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await page.getByRole("button", { name: "Add guidance" }).click()
+  await expect(page.getByRole("dialog")).toContainText("Organization · Fixture organization")
+  await page.getByLabel("Guidance", { exact: true }).fill("Shared terminology")
+  shared.revision++
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByRole("alert")).toContainText("Memory changed")
+  await expect(page.getByLabel("Guidance", { exact: true })).toHaveValue("Shared terminology")
+  await page.getByRole("button", { name: "Reload memory" }).click()
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByText("Shared terminology", { exact: true })).toBeVisible()
+  await page.reload()
+  await selectScope(page, "Organization")
+  await expect(page.getByText("Shared terminology", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Edit", exact: true }).click()
+  await page.getByLabel("Guidance", { exact: true }).fill("Corrected terminology")
+  await page.getByRole("button", { name: "Save guidance" }).click()
+  await expect(page.getByText("Corrected terminology", { exact: true })).toBeVisible()
+  await page.getByRole("switch", { name: "Enable memory" }).click()
+  await expect(page.getByRole("button", { name: "Add guidance" })).toBeDisabled()
+  await expect(page.getByText("Corrected terminology", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Memory options" }).click()
+  await page.getByRole("menuitem", { name: "Delete and turn off memory" }).click()
+  await expect(page.getByRole("alertdialog")).toContainText("shared guidance")
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByText("Corrected terminology", { exact: true })).toHaveCount(0)
+  await selectScope(page, "Only you")
+  await expect(page.getByText("Private preference", { exact: true })).toBeVisible()
+  expect(personal.entries[0].value).toBe("Private preference")
+  expect(shared.entries).toEqual([])
+})
+
+test("members can read shared guidance without management controls", async ({ page }) => {
+  await fixture(page)
+  const shared = await fixture(page, "organization", false)
+  shared.enabled = true
+  shared.entries = [{ id: crypto.randomUUID(), value: "Owner-authored guidance", revision: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/memory.html")
+  await selectScope(page, "Organization")
+  await expect(page.getByText("Owner-authored guidance", { exact: true })).toBeVisible()
+  await expect(page.getByText("Only the organization owner can change shared guidance.")).toBeVisible()
+  await expect(page.getByRole("switch", { name: "Enable memory" })).toBeDisabled()
+  for (const name of ["Add guidance", "Edit", "Delete"]) await expect(page.getByRole("button", { name, exact: true })).toBeDisabled()
+  await page.getByRole("button", { name: "Memory options" }).click()
+  await expect(page.getByRole("menuitem", { name: "Delete and turn off memory" })).toBeDisabled()
+  await page.keyboard.press("Escape")
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})

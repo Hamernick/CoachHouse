@@ -1,3 +1,5 @@
+import { AiUsageSettings } from "@/features/ai-credits/client"
+import { PersonalMemorySettings } from "@/features/workspace-ai/client"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -160,15 +162,15 @@ export function AccountSettingsDialogShell({
                   size="sm"
                   className="h-auto px-1 text-sm text-primary disabled:opacity-50"
                   onClick={
-                    mobilePage === "public-profile" ? requestClose : onSave
+                    (mobilePage === "public-profile" || mobilePage === "usage" || mobilePage === "memory") ? requestClose : onSave
                   }
                   disabled={
-                    mobilePage === "public-profile"
+                    (mobilePage === "public-profile" || mobilePage === "usage" || mobilePage === "memory")
                       ? false
                       : !isDirty || isSaving
                   }
                 >
-                  {mobilePage === "public-profile"
+                  {(mobilePage === "public-profile" || mobilePage === "usage" || mobilePage === "memory")
                     ? "Done"
                     : isSaving
                       ? "Saving…"
@@ -178,8 +180,8 @@ export function AccountSettingsDialogShell({
             )}
           </div>
 
-          <div className="hidden grow min-h-0 md:flex">
-            <aside className="w-[240px] shrink-0 border-r p-4 md:p-6">
+          <div className={cn("grow min-h-0 md:flex", tab === "memory" && mobilePage === "memory" ? "flex" : "hidden")}>
+            <aside className="hidden w-[240px] shrink-0 border-r p-4 md:block md:p-6">
               <nav className="grid gap-1">
                 <SideLink
                   label="Profile"
@@ -196,6 +198,8 @@ export function AccountSettingsDialogShell({
                   active={tab === "communications"}
                   onClick={() => onTabChange("communications")}
                 />
+                <SideLink label="Usage & billing" active={tab === "usage"} onClick={() => onTabChange("usage")} />
+                <SideLink label="Memory" active={tab === "memory"} onClick={() => onTabChange("memory")} />
                 <SideLink
                   label="Security"
                   active={tab === "security"}
@@ -254,6 +258,9 @@ export function AccountSettingsDialogShell({
                   />
                 )}
 
+                {tab === "usage" && <AiUsageSettings />}
+                {tab === "memory" && <PersonalMemorySettings />}
+
                 {tab === "security" && (
                   <SecuritySection
                     newPassword={newPassword}
@@ -278,7 +285,7 @@ export function AccountSettingsDialogShell({
 
           <DesktopFooter
             justSaved={justSaved}
-            selfManaged={tab === "public-profile"}
+            selfManaged={tab === "public-profile" || tab === "usage" || tab === "memory"}
             isDirty={isDirty}
             isSaving={isSaving}
             onSave={onSave}
@@ -292,7 +299,7 @@ export function AccountSettingsDialogShell({
         onTabChange={onTabChange}
       />
 
-          <MobileSubpage
+          {tab !== "memory" && <MobileSubpage
             tab={tab}
             mobilePage={mobilePage}
             avatarUrl={avatarUrl}
@@ -324,7 +331,7 @@ export function AccountSettingsDialogShell({
             onNewPasswordChange={onNewPasswordChange}
             onConfirmPasswordChange={onConfirmPasswordChange}
             onDeleteAccount={onDeleteAccount}
-          />
+          />}
         </div>
       </DialogContent>
     </Dialog>

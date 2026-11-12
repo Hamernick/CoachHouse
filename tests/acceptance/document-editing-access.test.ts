@@ -28,7 +28,7 @@ describe("read-only shared window discovery", () => {
     mocks.read.mockResolvedValue(snapshot); mocks.room.mockResolvedValue(room)
     mocks.access.mockResolvedValue({ orgId: ORG, supabase: coachClient, role: "admin" })
     expect(await loadDocumentWindowView({ source })).toEqual({ viewerId: ORG, editable: false, snapshot, shared: { state: "ready", room } })
-    expect(mocks.read).toHaveBeenCalledWith(coachClient, source)
+    expect(mocks.read).toHaveBeenCalledWith(coachClient, source, ORG)
     expect(mocks.room).toHaveBeenCalledWith(client, source)
     expect(client.auth.getUser).toHaveBeenCalledOnce()
   })
@@ -68,7 +68,7 @@ describe("explicit document open authorization", () => {
     await expect(loadDocumentEditing({ source })).resolves.toEqual({ content: "Full source" })
     expect(client.auth.getUser).toHaveBeenCalledOnce()
     expect(mocks.access).toHaveBeenCalledOnce()
-    expect(mocks.read).toHaveBeenCalledWith(client, source)
+    expect(mocks.read).toHaveBeenCalledWith(client, source, ORG)
     expect(mocks.read).toHaveBeenCalledOnce()
   })
   it("rejects malformed identity before requesting a session or file", async () => {
@@ -96,5 +96,63 @@ describe("explicit document open authorization", () => {
   it("does not substitute a local writer or download for an unimplemented Drive adapter", async () => {
     await expect(loadDocumentEditing({ source: { provider: "google_drive", organizationId: ORG, attachmentId: FILE } })).rejects.toThrow("provider collaboration adapter")
     expect(mocks.read).not.toHaveBeenCalled()
+  })
+})
+
+
+const core = vi.hoisted(() => ({ capabilities: vi.fn(), profile: vi.fn(), copies: vi.fn() }))
+vi.mock("@/lib/organization/document-capabilities", () => ({ resolveDocumentCapabilities: core.capabilities }))
+vi.mock("@/lib/organization/profile-read", () => ({ readOrganizationProfileForProjection: core.profile }))
+vi.mock("@/lib/organization/document-ai-copies", () => ({ filterAiDocumentCopies: core.copies }))
+import { revalidateCoreDocuments } from "@/features/document-editing/core-access-actions"
+
+describe("standalone native core document admission", () => {
+  const input = { organizationId: ORG, userId: ORG, sectionIds: ["vision"] }
+  beforeEach(() => {
+    core.capabilities.mockResolvedValue({ access: { orgId: ORG, supabase: client }, capabilities: { canEdit: true } })
+    core.profile.mockResolvedValue({ data: { profile: { roadmap: { sections: [{ id: "vision", content: "Never return this body" }] } } }, error: null })
+    core.copies.mockImplementation(async entries => entries)
+  })
+  it("returns only actor-bound capabilities after parent, profile and source checks", async () => {
+    expect(await revalidateCoreDocuments(input)).toEqual({ userId: ORG, organizationId: ORG, canEdit: true })
+    expect(core.profile).toHaveBeenCalledWith(client, ORG, ORG, expect.any(AbortSignal))
+    expect(core.copies).toHaveBeenCalledWith([{ id: "vision" }], ORG, ORG)
+  })
+  it("rejects malformed or excessive source lists before authentication", async () => {
+    for (const sectionIds of [["../secret"], Array(101).fill("vision")]) await expect(revalidateCoreDocuments({ ...input, sectionIds })).rejects.toThrow()
+    expect(mocks.client).not.toHaveBeenCalled()
+  })
+  it("rejects a changed or missing session before elevated source checks", async () => {
+    client.auth.getUser.mockResolvedValue({ data: { user: { id: FILE } }, error: null })
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    expect(core.capabilities).not.toHaveBeenCalled(); expect(core.profile).not.toHaveBeenCalled()
+  })
+  it("denies lost organization access and wrong organization scope before profile reads", async () => {
+    core.capabilities.mockResolvedValueOnce({ error: "Forbidden" }).mockResolvedValueOnce({ access: { orgId: FILE }, capabilities: { canEdit: true } })
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    expect(core.profile).not.toHaveBeenCalled()
+  })
+  it("fails closed on profile outage or missing organization", async () => {
+    core.profile.mockResolvedValueOnce({ error: { code: "42501" }, data: null }).mockResolvedValueOnce({ data: null, error: null })
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    expect(core.copies).not.toHaveBeenCalled()
+  })
+  it("rejects a deleted or replaced native source", async () => {
+    await expect(revalidateCoreDocuments({ ...input, sectionIds: ["deleted-custom-section"] })).rejects.toThrow()
+    core.profile.mockResolvedValue({ data: { profile: { roadmap: { sections: [{ id: "vision", documentSource: "google_drive", driveSource: { provider: "google_drive", fileId: "file", name: "File", webViewLink: "https://docs.google.com/document/d/file/edit" } }] } } }, error: null })
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    expect(core.copies).not.toHaveBeenCalled()
+  })
+  it("rejects revoked retained-copy access and source-check outages", async () => {
+    core.copies.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("Unavailable"))
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+    await expect(revalidateCoreDocuments(input)).rejects.toThrow()
+  })
+  it("deduplicates sources and returns current view-only capability", async () => {
+    core.capabilities.mockResolvedValue({ access: { orgId: ORG, supabase: client }, capabilities: { canEdit: false } })
+    expect((await revalidateCoreDocuments({ ...input, sectionIds: ["vision", "vision"] })).canEdit).toBe(false)
+    expect(core.copies).toHaveBeenCalledWith([{ id: "vision" }], ORG, ORG)
   })
 })

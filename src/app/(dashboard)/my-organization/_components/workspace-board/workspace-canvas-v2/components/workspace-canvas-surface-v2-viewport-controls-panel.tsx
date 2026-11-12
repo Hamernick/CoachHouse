@@ -34,9 +34,9 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
   return (
     <div
       data-workspace-canvas-viewport-controls="true"
-      className="pointer-events-none absolute right-2 bottom-[84px] z-10 flex items-start justify-end group-has-[[data-workspace-canvas-drawer-fullscreen=true]]/workspace-canvas-surface:hidden md:top-2 md:bottom-auto"
+      className="pointer-events-none absolute right-2 bottom-[84px] z-50 flex items-start justify-end group-has-[[data-workspace-canvas-drawer-fullscreen=true]]/workspace-canvas-surface:hidden group-has-[[data-workspace-window-maximized=true]]/workspace-canvas-surface:hidden md:top-2 md:bottom-auto"
     >
-      <div className="canvas-glass pointer-events-auto flex items-center gap-1 rounded-full border p-1 transition-[background-color] duration-180 ease-out">
+      <div className="canvas-glass canvas-planning-material pointer-events-auto flex items-center gap-1 rounded-full border p-1 transition-[background-color] duration-180 ease-out">
         {layoutActions ? (
           <Popover>
             <PopoverTrigger asChild>
@@ -46,7 +46,7 @@ export function WorkspaceCanvasSurfaceV2ViewportControls({
                 <LayoutGridIcon className="h-4 w-4" aria-hidden />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-0" aria-label="Canvas layout">
+            <PopoverContent align="end" className="w-52 max-w-[calc(100vw-1rem)] rounded-2xl p-1 text-left shadow-none" aria-label="Canvas layout">
               {layoutActions}
             </PopoverContent>
           </Popover>

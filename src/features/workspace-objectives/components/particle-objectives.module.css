@@ -4,6 +4,12 @@
   min-width: 0;
 }
 .objectiveHeader, .planHeader { position: relative; }
+.objectiveTrigger > :global(span:first-child) {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 14px;
+  column-gap: 6px;
+  align-items: center;
+}
 .objectiveHeader > :global(button), .planHeader > :global(button) {
   font-size: 13px; font-weight: 400; line-height: 20px;
   color: var(--planning-panel-text, var(--foreground));
@@ -51,11 +57,15 @@
 .submenuTrack { stroke: var(--tree-line); }
 .submenuActive { stroke: var(--planning-active); }
 .memberList { margin: 0; padding: 0 0 0 28px; }
-.memberRow { display: flex; align-items: center; gap: 2px; min-width: 0; min-height: 32px; }
+.memberRow { display: flex; align-items: flex-start; gap: 4px; min-width: 0; min-height: 32px; }
 .memberRow .memberButton, .addButton {
   min-height: 32px; padding: 4px 0; gap: 6px; font-size: 13px; line-height: 20px; border-radius: 6px;
   font-weight: 400; color: var(--planning-panel-text, var(--muted-foreground));
 }
+.memberButton > :global(span:first-child) {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 6px; align-items: start;
+}
+.memberButton > :global(span:first-child) > :first-child { margin-top: 1px; }
 .memberRow .memberButton:hover, .memberRow .memberButton:focus-visible, .addButton:hover, .addButton:focus-visible {
   background: color-mix(in srgb, var(--foreground) 7%, transparent);
   color: var(--foreground);
@@ -63,7 +73,8 @@
 .member[data-selected="true"] .memberButton { color: var(--foreground); font-weight: 400; }
 @media (pointer: coarse) { .memberRow .memberButton, .addButton { min-height: 44px; } }
 .proposal > .planHeader::before { border-color: var(--planning-review); border-left-style: dashed; }
-.reviewLabel { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--planning-review); }
+.proposalActions { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px 4px 32px; }
+.reviewLabel { white-space: nowrap; font-size: 12px; font-weight: 400; color: var(--planning-review); }
 @media (forced-colors: active) {
   .member[data-selected="true"] > div, .objective[data-selected="true"] > .objectiveHeader { outline: 1px solid Highlight; }
 }

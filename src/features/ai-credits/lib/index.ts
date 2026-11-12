@@ -15,7 +15,10 @@ export function priceAiUsage(usage: AiUsage, tariff: AiRateCard) {
   const searchCalls = natural(usage.webSearchCalls ?? 0)
   if (searchCalls && !tariff.webSearchMicrodollarsPerCall) throw new Error("Missing web search tariff")
   const searchCost = natural(searchCalls * natural(tariff.webSearchMicrodollarsPerCall ?? 0))
-  const microdollars = natural(Math.ceil(numerator / 1_000_000) + searchCost)
+  const embeddingInput = natural(usage.embeddingInput ?? 0)
+  if (embeddingInput && !tariff.embeddingMicrodollarsPerMillion) throw new Error("Missing embedding tariff")
+  const embeddingCost = Math.ceil(natural(embeddingInput * natural(tariff.embeddingMicrodollarsPerMillion ?? 0)) / 1_000_000)
+  const microdollars = natural(Math.ceil(numerator / 1_000_000) + searchCost + embeddingCost)
   return { microdollars, credits: Math.ceil(microdollars / tariff.microdollarsPerCredit) }
 }
 export function aiCreditBalance(account: AiCreditAccount) {

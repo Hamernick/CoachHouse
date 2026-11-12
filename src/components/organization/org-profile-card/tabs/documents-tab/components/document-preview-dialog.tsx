@@ -1,5 +1,7 @@
 "use client"
 
+import { useCanvasDocumentSource } from "@/components/workspace/workspace-canvas-source-context"
+
 import { useCallback, useState, type RefObject } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,20 +17,16 @@ import { useDocumentPreviewUrl } from "../hooks/use-document-preview-url"
 import type { LibraryItem } from "./documents-library-items"
 import { DocumentPdfViewer } from "./document-pdf-viewer"
 
-function DocumentPreviewContent({ item }: { item: LibraryItem }) {
+function DocumentPreviewContent({ item, organizationId }: { item: LibraryItem; organizationId?: string }) {
+  useCanvasDocumentSource("file", item.uploadedFile?.id)
   const driveThumbnail = Boolean(item.driveDocument)
-  const signedPreview = useDocumentPreviewUrl(
+  const preview = useDocumentPreviewUrl(
     item.previewPath,
     item.previewVersion,
-    !driveThumbnail
+    true,
+    { organizationId, imageResponse: driveThumbnail, revalidate: true },
   )
-  // Drive's endpoint serves thumbnail image bytes, including for PDF covers.
-  const preview = {
-    ...signedPreview,
-    url: driveThumbnail ? (item.previewPath ?? null) : signedPreview.url,
-    error: driveThumbnail ? null : signedPreview.error,
-  }
-  const originalUrl = item.driveDocument?.webViewLink ?? preview.url
+  const originalUrl = preview.url ? (item.driveDocument?.webViewLink ?? preview.url) : null
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const onPreviewError = useCallback(
     () => setFailedUrl(preview.url),
@@ -42,7 +40,7 @@ function DocumentPreviewContent({ item }: { item: LibraryItem }) {
   return (
     <>
       <DialogHeader className="pr-10">
-        <DialogTitle className="break-words">{item.name}</DialogTitle>
+        <DialogTitle className="break-words">{preview.error ? "Document preview" : item.name}</DialogTitle>
         <DialogDescription>
           {driveThumbnail ? "Google Drive thumbnail preview" : "Document preview"}
         </DialogDescription>
@@ -103,10 +101,12 @@ function DocumentPreviewContent({ item }: { item: LibraryItem }) {
 
 export function DocumentPreviewDialog({
   item,
+  organizationId,
   onClose,
   returnFocusRef,
 }: {
   item: LibraryItem | null
+  organizationId?: string
   onClose: () => void
   returnFocusRef: RefObject<HTMLButtonElement | null>
 }) {
@@ -129,6 +129,7 @@ export function DocumentPreviewDialog({
           <DocumentPreviewContent
             key={`${item.id}:${item.previewVersion}`}
             item={item}
+            organizationId={organizationId}
           />
         ) : null}
       </DialogContent>

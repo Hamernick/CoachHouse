@@ -1,4 +1,4 @@
-import type { CoreDocumentDriveSource } from "./types"
+import type { CoreDocumentDriveSource, RoadmapSection } from "./types"
 
 export function normalizeCoreDocumentDriveSource(
   value: unknown
@@ -32,4 +32,12 @@ export function normalizeCoreDocumentDriveSource(
   } catch {
     return null
   }
+}
+
+// An explicit selection wins over a retained inactive source. In particular,
+// missing Drive metadata must never fall back to the old editor body.
+export function resolveCoreDocumentSource(
+  section: Pick<RoadmapSection, "documentSource" | "driveSource">
+): "editor" | "google_drive" {
+  return section.documentSource ?? (section.driveSource ? "google_drive" : "editor")
 }

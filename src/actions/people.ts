@@ -1,6 +1,8 @@
 "use server"
 
 import { randomUUID } from "node:crypto"
+import { storePersonPhoto } from "@/lib/people/profile-photo-storage"
+import { MAX_PERSON_PHOTO_DATA_URL_LENGTH } from "@/lib/people/profile-photo"
 
 import { revalidatePath } from "next/cache"
 
@@ -94,6 +96,10 @@ export async function upsertPersonAction(
     return {
       error: fields.error.issues[0]?.message ?? "Review the contact fields.",
     }
+  if (person.image !== undefined && person.image !== null && typeof person.image !== "string")
+    return { error: "Choose a valid profile photo." }
+  if (person.image?.startsWith("data:") && person.image.length > MAX_PERSON_PHOTO_DATA_URL_LENGTH)
+    return { error: "Choose a smaller profile photo." }
   const socialLinkError = findPersonSocialLinkError(person)
   if (socialLinkError) return { error: socialLinkError }
 
@@ -110,6 +116,11 @@ export async function upsertPersonAction(
       ? person.id
       : globalThis.crypto?.randomUUID?.() || `${Date.now()}`
   let image = person.image?.trim() || null
+
+  if (image?.startsWith("data:")) {
+    try { image = await storePersonPhoto(image, orgId, userId) }
+    catch { return { error: "The profile photo could not be saved. Choose a valid PNG, JPEG, or WebP photo and try again." } }
+  }
 
   // If we have an external image URL, mirror it into storage for reliability
   if (image && /^https?:/i.test(image)) {

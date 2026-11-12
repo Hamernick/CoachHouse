@@ -1,23 +1,27 @@
 "use server"
+import { assertResearchCanvasAccess } from "./server/research-canvas-access"
 import { z } from "zod"
 import { researchPublicBriefSchema, type ResearchPublicBrief } from "./lib/research-public-brief"
 import { aiCreditBalance, cancelAiRun, readAiAccount, listAiResearchRuns } from "@/features/ai-credits"
 import { loadResearchContext } from "./server/research-context"
 import { assertInitialResearchRequestFits } from "./server/research-provider-request"
+import { configuredDocumentEmbedding, resolveDocumentEmbeddingConfig } from "./server/document-embedding-config"
 import { researchConfig } from "./server/research-config"
 import { readResearchRun } from "./server/research-run"
 import { createKnowledgeTools } from "./server/knowledge-tools"
 import { knowledgeSearchSchema, researchHistorySchema, type ResearchTarget } from "./research-types"
+import { savedResearchProcessing } from "./lib/research-processing"
 import { researchRecoveryResponse } from "./server/research-recovery"
 
 export async function quoteWorkspaceResearch(target:ResearchTarget, publicBrief?: ResearchPublicBrief) {
   try {
     const approved = publicBrief === undefined ? undefined : researchPublicBriefSchema.parse(publicBrief)
-    const context=await loadResearchContext(target),config=researchConfig(approved)
+    const context=await loadResearchContext(target),{config}=resolveDocumentEmbeddingConfig(researchConfig(approved),configuredDocumentEmbedding())
     assertInitialResearchRequestFits(context,{target,prompt:"",skill:"planning"},config)
     const account=await readAiAccount(target.organizationId,context.user.id)
     if(!account.enabled || account.paymentReview) throw new Error("Research is not enabled for this organization.")
-    return {maximumCredits:config.maxCredits,tariffVersion:config.tariff.version,provider:"OpenAI" as const,model:config.tariff.model,availableCredits:aiCreditBalance(account).available,...(config.publicResearchAvailable ? {publicResearchAvailable:true} : {})}
+    const processing=savedResearchProcessing(config.tariff,config.maxCredits)
+    return {...(processing?.embedding ? {embedding:processing.embedding} : {}),maximumCredits:config.maxCredits,tariffVersion:config.tariff.version,provider:"OpenAI" as const,model:config.tariff.model,availableCredits:aiCreditBalance(account).available,...(config.publicResearchAvailable ? {publicResearchAvailable:true} : {})}
   } catch(error) {return researchRecoveryResponse(error,"admission_unavailable")}
 }
 export async function getWorkspaceResearch(id:string,target:ResearchTarget) {
@@ -30,6 +34,7 @@ export async function listWorkspaceResearch(target: ResearchTarget) {
       organizationId: context.activeOrg.orgId, actorId: context.user.id,
       objectiveId: context.objective?.id ?? null, canvasId: context.canvasId, planId: target.plan?.id ?? null,
     }))
+    await assertResearchCanvasAccess(context)
     return { runs }
   } catch { return { error: "Previous research could not be loaded. Try again." } }
 }

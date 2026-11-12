@@ -31,6 +31,7 @@ describe("Google Drive roadmap authorization", () => {
   afterEach(() => {
     vi.doUnmock("@/features/google-drive/server/context")
     vi.doUnmock("@/features/google-drive/server/service")
+    vi.doUnmock("@/lib/organization/document-ai-copies")
   })
 
   async function setup(options: { actor?: string; organization?: string; file?: string; unauthorized?: boolean } = {}) {
@@ -38,16 +39,19 @@ describe("Google Drive roadmap authorization", () => {
     const { GoogleDriveError } = await import("@/features/google-drive/types")
     const content = vi.fn().mockResolvedValue({ name: "Plan", content: "<p>Current Drive content</p>" })
     const readProfile = vi.fn().mockResolvedValue({ data: { profile: { roadmap: { sections: [{ id: "vision", content: "<p>Keep saved draft</p>", driveSource: { provider: "google_drive", fileId: "selected-file", name: "Plan", webViewLink: "https://docs.google.com/document/d/selected-file/edit" } }] } } }, error: null })
-    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: readProfile }
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), abortSignal: vi.fn().mockReturnThis(), maybeSingle: readProfile }
+    const recheck = vi.fn().mockResolvedValue(undefined)
+    const copies = vi.fn(async (sections: unknown[]) => sections)
     const context = vi.fn(async () => {
       if (options.unauthorized) throw new GoogleDriveError("unauthorized", 401)
-      return { user: { id: "current-user" }, organization: { orgId: "current-org" }, supabase: { from: vi.fn().mockReturnValue(query) }, recheck: vi.fn().mockResolvedValue(undefined) }
+      return { user: { id: "current-user" }, organization: { orgId: "current-org" }, supabase: { from: vi.fn().mockReturnValue(query) }, recheck }
     })
+    vi.doMock("@/lib/organization/document-ai-copies", () => ({ filterAiDocumentCopies: copies }))
     vi.doMock("@/features/google-drive/server/context", () => ({ requireGoogleDriveContext: context }))
     vi.doMock("@/features/google-drive/server/service", () => ({ getGoogleDriveFileContent: content }))
     const { readRoadmapGoogleDriveContent } = await import("@/features/google-drive/server/roadmap-content")
     const params = new URLSearchParams({ userId: options.actor ?? "current-user", organizationId: options.organization ?? "current-org", sectionId: "vision", fileId: options.file ?? "selected-file" })
-    return { run: () => readRoadmapGoogleDriveContent(new NextRequest(`https://example.test/api/integrations/google-drive/roadmap-content?${params}`), new NextResponse()), content, readProfile }
+    return { run: () => readRoadmapGoogleDriveContent(new NextRequest(`https://example.test/api/integrations/google-drive/roadmap-content?${params}`), new NextResponse()), content, readProfile, copies, recheck }
   }
 
   it("requires authentication before any profile or provider read", async () => {
@@ -75,6 +79,31 @@ describe("Google Drive roadmap authorization", () => {
     await expect(fixture.run()).resolves.toEqual({ name: "Plan", content: "<p>Current Drive content</p>" })
     expect(fixture.content).toHaveBeenCalledExactlyOnceWith({ userId: "current-user", fileId: "selected-file" })
   })
+  it.each(["editor", "replaced", "revision", "removed", "profile-error", "copy-revoked", "parent-revoked"])("discards bytes when %s changes during a provider read", async kind => {
+    const fixture = await setup()
+    fixture.content.mockImplementationOnce(async () => {
+      if (kind === "copy-revoked") fixture.copies.mockResolvedValue([])
+      else if (kind === "parent-revoked") fixture.recheck.mockRejectedValue(Error("Access denied"))
+      else fixture.readProfile.mockResolvedValue({ data: { profile: { roadmap: { sections: kind === "removed" ? [] : [{
+        id: "vision", documentSource: kind === "editor" ? "editor" : "google_drive",
+        lastUpdated: kind === "revision" ? "2026-11-08T00:00:00Z" : null,
+        driveSource: { provider: "google_drive", fileId: kind === "replaced" ? "replacement-file" : "selected-file", name: "Plan", webViewLink: "https://docs.google.com/document/d/selected-file/edit" },
+      }] } } }, error: kind === "profile-error" ? Error("Unavailable") : null })
+      return { name: "Plan", content: "Must not escape" }
+    })
+    await expect(fixture.run()).rejects.toBeDefined()
+    expect(fixture.content).toHaveBeenCalledTimes(1)
+  })
+  it("rejects retained inactive Drive metadata and blocked copies before downloading", async () => {
+    const fixture = await setup()
+    fixture.copies.mockResolvedValue([])
+    await expect(fixture.run()).rejects.toMatchObject({ code: "file_not_authorized" })
+    expect(fixture.content).not.toHaveBeenCalled()
+    fixture.readProfile.mockResolvedValue({ data: { profile: { roadmap: { sections: [{ id: "vision", documentSource: "editor", driveSource: { provider: "google_drive", fileId: "selected-file", name: "Plan", webViewLink: "https://docs.google.com/document/d/selected-file/edit" } }] } } }, error: null })
+    await expect(fixture.run()).rejects.toMatchObject({ code: "file_not_authorized" })
+    expect(fixture.content).not.toHaveBeenCalled()
+  })
+
 })
 
 describe("Google Drive roadmap content", () => {
@@ -758,17 +787,45 @@ describe("Drive library connection origin", () => {
     vi.stubGlobal("fetch", fetchMock)
     let connect: (() => Promise<void>) | undefined
     function Harness() {
-      connect = useGoogleDriveLibrary({ enabled: true, inWorkspace }).connectOrPick
+      connect = useGoogleDriveLibrary({ enabled: true, inWorkspace, scope: { organizationId: "current-org", userId: "current-user" } }).connectOrPick
       return null
     }
     renderToStaticMarkup(createElement(Harness))
     if (!connect) throw new Error("Missing connection action")
     await connect()
     expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock).toHaveBeenCalledWith("/api/integrations/google-drive/connect", expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith("/api/integrations/google-drive/connect?organizationId=current-org&expectedUserId=current-user", expect.objectContaining({
       method: "POST", body: JSON.stringify({ returnPath }),
     }))
     expect(normalizeGoogleDriveReturnPath(returnPath)).toBe(returnPath)
     expect(assign).toHaveBeenCalledWith("https://accounts.google.com/oauth")
+  })
+})
+
+
+describe("Drive retained library scope", () => {
+  afterEach(() => {
+    vi.doUnmock("@/lib/supabase/route")
+    vi.doUnmock("@/lib/supabase/admin")
+    vi.doUnmock("@/lib/organization/active-org")
+  })
+  it.each([
+    ["expectedUserId=other-user&organizationId=current-org", 401, 0],
+    ["expectedUserId=current-user&organizationId=other-org", 403, 1],
+    ["expectedUserId=&organizationId=current-org", 401, 0],
+    ["expectedUserId=current-user&organizationId=current-org", 200, 1],
+  ])("checks %s before elevated admission", async (params, status, orgCalls) => {
+    const { NextRequest, NextResponse } = await import("next/server")
+    const organization = vi.fn().mockResolvedValue({ orgId: "current-org", role: "owner" })
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+    vi.doMock("@/lib/supabase/route", () => ({ createSupabaseRouteHandlerClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: "current-user" } }, error: null }) } }) }))
+    vi.doMock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+    vi.doMock("@/lib/organization/active-org", () => ({ resolveActiveOrganization: organization, canEditOrganization: () => true }))
+    const { requireGoogleDriveContext } = await import("@/features/google-drive/server/context")
+    const result = requireGoogleDriveContext(new NextRequest(`https://example.test/api/integrations/google-drive/documents?${params}`), new NextResponse())
+    if (status === 200) await expect(result).resolves.toMatchObject({ user: { id: "current-user" }, organization: { orgId: "current-org" } })
+    else await expect(result).rejects.toMatchObject({ status })
+    expect(organization).toHaveBeenCalledTimes(orgCalls)
+    expect(rpc).toHaveBeenCalledTimes(status === 200 ? 1 : 0)
   })
 })

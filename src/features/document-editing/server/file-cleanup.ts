@@ -49,7 +49,10 @@ export async function reconcileAbandonedDocumentStages(orgId: string, actor: Doc
   if (read.error) return
   const stages = z.array(stageSchema).max(4).parse(read.data)
   for (const stage of stages) {
-   const removed = await admin.storage.from("org-documents").remove(scopedPaths(orgId, stage.paths))
+   const prefix = `${orgId}/library/versions/${stage.fileId}/${stage.requestId}`
+   const expected = [`${prefix}.md`, `${prefix}-previous.md`]
+   if (stage.paths.length !== new Set(stage.paths).size || stage.paths.some(path => !expected.includes(path))) continue
+   const removed = await admin.storage.from("org-documents").remove(expected)
    if (removed.error) continue
    await rpc("finish_abandoned_document_version", { p_file_id: stage.fileId, p_request_id: stage.requestId, p_actor_id: stage.actorId })
   }

@@ -8,7 +8,7 @@ import { FeatureUpgradeNotice } from "@/components/paywall/feature-upgrade-notic
 import { useMemo, useRef, useState } from "react"
 
 import { useCoreDocumentSource } from "@/components/roadmap/core-document-source/use-core-document-source"
-import type { DocumentsRoadmapSection } from "./documents-tab/types"
+import { useProfileDocumentLibrary } from "./documents-tab/hooks/use-profile-document-library"
 import { useNoteDocuments } from "@/features/workspace-particles/client"
 import { useOrganizationDeepLinkFocus } from "../organization-deep-link-focus"
 import {
@@ -50,40 +50,29 @@ function ScopedDocumentsTab({
   userId,
   documents,
   policyEntries,
-  policyProgramOptions,
-  policyPeopleOptions,
   roadmapSections,
-  publicSlug,
   editMode,
   canEdit,
   initialFocusKey,
   focusRequestId,
 }: DocumentsTabProps) {
-  const noteDocuments = useNoteDocuments(organizationId)
-  const [coreOverrides, setCoreOverrides] = useState<
-    Record<string, DocumentsRoadmapSection>
-  >({})
+  const noteDocuments = useNoteDocuments({ organizationId, userId })
+  const refreshKey = useMemo(() => JSON.stringify([documents, policyEntries, roadmapSections]), [documents, policyEntries, roadmapSections])
+  const profileLibrary = useProfileDocumentLibrary({ organizationId, userId }, refreshKey)
+  const current = profileLibrary.data
+  const profileCanEdit = canEdit && Boolean(current?.canEdit)
   const coreSource = useCoreDocumentSource(
     { userId, organizationId },
-    (section) => {
-      setCoreOverrides((current) => ({ ...current, [section.id]: section }))
-    }
-  )
-  const currentSections = roadmapSections.map((section) =>
-    coreOverrides[section.id] &&
-    (coreOverrides[section.id].lastUpdated ?? "") >= (section.lastUpdated ?? "")
-      ? coreOverrides[section.id]
-      : section
+    () => profileLibrary.refresh()
   )
   const inWindowHeader = useWorkspaceWindowHeader()
   const documentsRootRef = useRef<HTMLElement>(null)
   const controller = useDocumentsTabController({
     userId,
-    documents,
-    policyEntries,
-    policyProgramOptions,
-    policyPeopleOptions,
-    roadmapSections: currentSections,
+    library: profileLibrary,
+    policyProgramOptions: current?.policyProgramOptions ?? [],
+    policyPeopleOptions: current?.policyPeopleOptions ?? [],
+    roadmapSections: current?.roadmapSections ?? [],
   })
   const [libraryTab, setLibraryTab] = useState<DocumentsLibraryTab>("all")
   const [viewMode, setViewMode] = useState<DocumentsViewMode>("grid")
@@ -92,12 +81,12 @@ function ScopedDocumentsTab({
   const [libraryFileType, setLibraryFileType] =
     useState<DocumentsLibraryFileType>("all")
   const [showDeleted, setShowDeleted] = useState(false)
-  const googleDrive = useGoogleDriveLibrary({ enabled: canEdit && editMode, inWorkspace: inWindowHeader })
+  const googleDrive = useGoogleDriveLibrary({ scope: { organizationId, userId }, enabled: canEdit && editMode, inWorkspace: inWindowHeader })
   const storageRefreshKey = JSON.stringify([
     controller.documentsState,
     controller.policiesState.map((policy) => policy.document),
   ])
-  const documentFiles = useOrganizationDocumentFiles(storageRefreshKey)
+  const documentFiles = useOrganizationDocumentFiles({ organizationId, userId }, storageRefreshKey)
   const visibleDriveDocuments = useMemo(() => {
     const query = controller.searchQuery.trim().toLocaleLowerCase()
     if (!query) return googleDrive.documents
@@ -127,7 +116,7 @@ function ScopedDocumentsTab({
       aria-labelledby={inWindowHeader ? undefined : "documents-title"}
       aria-label={inWindowHeader ? "Documents" : undefined}
     >
-      <DocumentsBanner canEdit={canEdit} uploading={documentFiles.uploading}>
+      <DocumentsBanner canEdit={profileCanEdit} uploading={documentFiles.uploading}>
         <DocumentsToolbar
           searchQuery={controller.searchQuery}
           tab={libraryTab}
@@ -135,7 +124,7 @@ function ScopedDocumentsTab({
           source={librarySource}
           fileType={libraryFileType}
           showDeleted={showDeleted}
-          canEdit={canEdit}
+          canEdit={profileCanEdit}
           editMode={editMode}
           canUpload={documentFiles.hasStorageAccess}
           driveConnected={googleDrive.connected}
@@ -157,7 +146,7 @@ function ScopedDocumentsTab({
             limitBytes={documentFiles.limitBytes}
             loading={documentFiles.loading}
           />
-        ) : !documentFiles.loading ? (
+        ) : !documentFiles.loading && !documentFiles.error ? (
           <FeatureUpgradeNotice title="Your files, connected">
             Use Google Drive for free. Upgrade to create and edit documents.
           </FeatureUpgradeNotice>
@@ -173,9 +162,9 @@ function ScopedDocumentsTab({
             renderRowActions={(row) => (
               <DocumentRowActions
                 row={row}
-                canEdit={canEdit && documentFiles.hasStorageAccess}
+                canEdit={profileCanEdit && documentFiles.hasStorageAccess}
                 editMode={editMode}
-                publicSlug={publicSlug}
+                publicSlug={current?.publicSlug}
                 uploadingKind={controller.uploadingKind}
                 deletingKind={controller.deletingKind}
                 viewingKind={controller.viewingKind}
@@ -195,7 +184,7 @@ function ScopedDocumentsTab({
                 onDownloadPolicyDocument={controller.downloadPolicyDocument}
               />
             )}
-            rows={controller.filteredRows}
+            rows={current ? controller.filteredRows : []}
             driveDocuments={visibleDriveDocuments}
             uploadedFiles={documentFiles.files}
             searchQuery={controller.searchQuery}
@@ -208,7 +197,7 @@ function ScopedDocumentsTab({
             source={librarySource}
             fileType={libraryFileType}
             showDeleted={showDeleted}
-            canEdit={canEdit}
+            canEdit={profileCanEdit}
             editMode={editMode}
             onEditPolicy={controller.openEditPolicyDialog}
             onViewPolicyDocument={controller.viewPolicyDocument}
@@ -232,6 +221,13 @@ function ScopedDocumentsTab({
           />
         </div>
 
+        {(documentFiles.error || googleDrive.error || profileLibrary.error) && (
+          <p role="status" className="mt-2 text-sm">
+            Documents unavailable.{" "}
+            <Button variant="ghost" size="sm" onClick={() => { documentFiles.reload(); googleDrive.refresh(); profileLibrary.refresh() }}>Retry</Button>
+          </p>
+        )}
+
         {noteDocuments.error && (
           <p role="status" className="mt-2 text-sm">
             {noteDocuments.error}{" "}
@@ -242,14 +238,14 @@ function ScopedDocumentsTab({
         )}
       </DocumentsBanner>
 
-      <PolicyEditorDialog
-        readOnly={!canEdit || !documentFiles.hasStorageAccess}
+      {current && (!controller.policyDraft.id || current.policyEntries.some(policy => policy.id === controller.policyDraft.id)) && <PolicyEditorDialog
+        readOnly={!profileCanEdit || !documentFiles.hasStorageAccess}
         open={controller.policyDialogOpen}
         onOpenChange={controller.handlePolicyDialogOpenChange}
         draft={controller.policyDraft}
         categoryOptions={controller.categoryOptions}
-        peopleOptions={policyPeopleOptions}
-        programOptions={policyProgramOptions}
+        peopleOptions={current?.policyPeopleOptions ?? []}
+        programOptions={current?.policyProgramOptions ?? []}
         pending={controller.policySavePending}
         pendingDocumentName={controller.policyDocumentPending?.name ?? null}
         pendingDocumentUpload={controller.policyDocumentBusy}
@@ -265,7 +261,7 @@ function ScopedDocumentsTab({
         onRemoveExistingDocument={controller.markPolicyDocumentForRemoval}
         onViewDocument={controller.viewPolicyDraftDocument}
         onSave={controller.handleSavePolicy}
-      />
+      />}
     </section>
   )
 }

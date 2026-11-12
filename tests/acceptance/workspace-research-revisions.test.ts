@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { applyResearchDraft, createResearchDraft } from "@/features/workspace-ai/lib/research-draft"
 import { bindResearch } from "@/features/workspace-ai/lib/research-contract"
 import type { ResearchResult } from "@/features/workspace-ai/research-types"
 import { researchPlanOperations } from "@/features/workspace-particles/lib/research-plan"
@@ -41,6 +42,25 @@ function review(before: ParticleGraph, status: "accepted" | "rejected" = "accept
 }
 
 describe("partial research plan revisions", () => {
+  it("renames an existing plan without requiring repeated members or changing their work", async () => {
+    const before = fixture(), raw = result({ sources: [] })
+    const research = applyResearchDraft(raw, createResearchDraft(raw))
+    const original = proposalOf(before).objective.data.planning!.plans[0]
+    original.assignments = [{ particleId: ID(2), responsibility: { version: 1, ownerId: ID(701), contributorIds: [] } }]
+    original.optionalParticleIds = [ID(3)]
+    const saved = await write(before, operations(before, research), true, research.runId)
+    expect(proposalOf(saved).objective.data.planning!.plans[0]).toEqual(original)
+    const accepted = await write(saved, review(saved))
+    const plan = proposalOf(accepted).objective.data.planning!.plans[0]
+    expect(plan).toMatchObject({ id: original.id, title: research.title, particleIds: original.particleIds,
+      links: original.links, assignments: original.assignments, optionalParticleIds: original.optionalParticleIds })
+    expect(accepted.particles.slice(1)).toEqual(before.particles.slice(1))
+    expect(operations(accepted, research)).toEqual([])
+    const newPlan = result({ sources: [] }); delete newPlan.target.plan
+    expect(() => operations(before, newPlan)).toThrow("Answer the research questions")
+    expect(() => applyResearchDraft(newPlan, createResearchDraft(newPlan))).toThrow("Keep at least one item")
+  })
+
   it("preserves accepted particles, status and untouched links; acceptance changes plan provenance atomically", async () => {
     const before = fixture(), research = result({ items: [reference(2), { key: "added", title: "New work", kind: "note", description: "Proposed", referenceId: null, evidenceIds: [], dependsOn: ["item2"] }] })
     const saved = await write(before, operations(before, research), false, research.runId)

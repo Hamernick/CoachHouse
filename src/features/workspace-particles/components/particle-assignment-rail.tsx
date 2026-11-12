@@ -1,11 +1,8 @@
 "use client"
 
-import { ParticleButton as Button } from "@/components/ui/particle-ui"
-
-import { useContext, useEffect, useState } from "react"
-import UsersIcon from "lucide-react/dist/esm/icons/users"
-
-import { ParticleAvatar } from "@/components/ui/particle-ui"
+import { useContext, useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { ParticleAssigneeAvatars } from "./particle-assignee-avatars"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ParticleSelect } from "@/components/ui/particle-ui"
 import { EMPTY_RESPONSIBILITY, supportsParticleResponsibility } from "../lib/particle-responsibility"
@@ -14,69 +11,69 @@ import { ParticleResponsibilityPeople, ParticleResponsibilitySelector } from "./
 import type { ParticleNodeData } from "./particle-node"
 
 type Scope = { key: string; label: string; revision: number; value: typeof EMPTY_RESPONSIBILITY; editable: boolean; membership?: MembershipResponsibility }
-/** One entry per placement; shared work always names its exact plan context. */
+type PendingAssignment = { scope: Scope; value: typeof EMPTY_RESPONSIBILITY; failed: boolean }
+/** One entry per placement; every selection uses the existing revision-checked writer. */
 export function ParticleAssignmentRail({ data }: { data: ParticleNodeData }) {
   const { particle, assignment } = data
   const people = useContext(ParticleResponsibilityPeople)
-  const scopes: Scope[] = supportsParticleResponsibility(particle) && particle.type === "objective"
-    ? [{ key: particle.id, label: particle.title, revision: particle.revision, value: particle.responsibility ?? EMPTY_RESPONSIBILITY, editable: true }]
-    : (data.memberships ?? []).map(item => ({ ...item, membership: item }))
+  const memberships = (data.memberships ?? []).map(item => ({ ...item, membership: item }))
+  const scopes: Scope[] = [
+    ...(supportsParticleResponsibility(particle) ? [{ key: particle.id, label: "This particle", revision: particle.revision, value: particle.responsibility ?? EMPTY_RESPONSIBILITY, editable: !particle.locked }] : []),
+    ...memberships,
+  ]
   const [choice, setChoice] = useState<{ key: string; walkthrough?: string }>()
   const [open, setOpen] = useState(false)
-  const [snapshot, setSnapshot] = useState<Scope | undefined>()
-  const [draft, setDraft] = useState(EMPTY_RESPONSIBILITY)
-  const [saving, setSaving] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const selectedKey = open ? snapshot?.key : scopes.find(item => item.key === choice?.key && choice.walkthrough === data.assignmentContext)?.key ?? scopes.find(item => item.key === data.assignmentContext)?.key ?? (scopes.length === 1 ? scopes[0].key : undefined)
+  const [pending, setPending] = useState<PendingAssignment>()
+  const inFlight = useRef(false)
+  const selectedKey = pending?.scope.key ?? scopes.find(item => item.key === choice?.key && choice.walkthrough === data.assignmentContext)?.key ?? scopes.find(item => item.key === data.assignmentContext)?.key ?? (memberships.length === 1 ? memberships[0].key : memberships.length === 0 ? particle.id : undefined)
   const current = scopes.find(item => item.key === selectedKey)
-  const value = current?.value ?? EMPTY_RESPONSIBILITY
-  const dirty = open && Boolean(snapshot) && JSON.stringify(draft) !== JSON.stringify(snapshot?.value)
-  const stale = open && Boolean(snapshot) && (!current || snapshot?.revision !== current.revision)
+  const value = pending?.value ?? current?.value ?? EMPTY_RESPONSIBILITY
+  const stale = Boolean(pending && (!current || pending.scope.revision !== current.revision))
+  const saving = Boolean(pending && !pending.failed)
   const changed = assignment?.onDirtyChange
   useEffect(() => {
-    changed?.(particle.id, dirty || saving)
+    changed?.(particle.id, Boolean(pending))
     return () => changed?.(particle.id, false)
-  }, [changed, particle.id, dirty, saving])
-  const name = (id: string) => people?.find(person => person.id === id)?.name ?? "Unavailable person"
-  const owner = current ? (value.ownerId ? name(value.ownerId) : "Assign owner") : "Choose plan"
-  const load = (scope?: Scope) => { setSnapshot(scope); setDraft(scope?.value ?? EMPTY_RESPONSIBILITY); setFailed(false) }
-  if (!scopes.length && !open) return null
+  }, [changed, particle.id, pending])
+  // The workspace save notice can also retry the same captured command.
+  useEffect(() => {
+    if (pending?.failed && current && current.revision !== pending.scope.revision && JSON.stringify(current.value) === JSON.stringify(pending.value)) setPending(undefined)
+  }, [pending, current])
+  const save = async (next: typeof EMPTY_RESPONSIBILITY, retry = false) => {
+    if (inFlight.current || !assignment || (!retry && !data.editable) || !current?.editable || (pending && !retry)) return
+    const scope = retry && pending ? pending.scope : current
+    inFlight.current = true
+    setPending({ scope, value: next, failed: false })
+    try {
+      const saved = retry ? await assignment.retry?.(particle.id, scope.membership, next) : scope.membership
+        ? await assignment.saveMembership?.(particle.id, scope.membership, next)
+        : await assignment.save({ ...particle, responsibility: next })
+      setPending(saved ? undefined : { scope, value: next, failed: true })
+    } catch { setPending({ scope, value: next, failed: true }) }
+    finally { inFlight.current = false }
+  }
+  const savedValue = current?.value ?? EMPTY_RESPONSIBILITY
+  const selectedIds = [...(savedValue.ownerId ? [savedValue.ownerId] : []), ...savedValue.contributorIds]
+  const label = selectedIds.length ? "Assigned" : "Assign"
+  if (!scopes.length && !pending && !open) return null
   return <div className="nodrag nopan nowheel flex h-[52px] min-w-0 items-start pt-2" data-particle-assignment-rail onDoubleClick={event => event.stopPropagation()}>
-    <Popover open={open} onOpenChange={next => {
-      if (saving || (!next && dirty)) return
-      if (next) load(current)
-      setOpen(next)
-    }}>
-      <PopoverTrigger asChild><Button color="secondary" size="lg" type="button" variant="ghost" className="h-7 min-w-0 max-w-full justify-start gap-2 rounded-md px-2 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11" aria-label={`Responsibility for ${particle.title}`} title={current?.label}>
-        <UsersIcon className="size-3.5 shrink-0" aria-hidden />
-        <span className="min-w-0 truncate">{owner}{data.memberships && current && <span className="opacity-75"> · {current.label}</span>}</span>
-        <span className="flex shrink-0 items-center gap-1">
-          {value.contributorIds.slice(0, 2).map(id => <span key={id} title={name(id)} role="img" aria-label={`Contributor: ${name(id)}`}><ParticleAvatar className="particle-ui" size={20} name={name(id) === "Unavailable person" ? "?" : name(id)} /></span>)}
-          {value.contributorIds.length > 2 && <span aria-label={`${value.contributorIds.length - 2} more contributors`}>+{value.contributorIds.length - 2}</span>}
-        </span>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild><Button type="button" variant="ghost" size="sm" className="border-border/65 bg-card hover:bg-muted/20 h-9 min-w-9 max-w-full gap-1.5 rounded-full border py-1 pl-1 pr-3 text-left font-normal transition-colors [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11" aria-label={`${label} people for ${particle.title}`} title={current?.membership ? current.label : label} aria-busy={saving}>
+        <ParticleAssigneeAvatars ids={selectedIds} people={people} />
+        <span className="min-w-0 truncate">{label}</span>
       </Button></PopoverTrigger>
-      <PopoverContent align="start" className="nodrag nopan nowheel w-72 space-y-3" onInteractOutside={event => { if (dirty || saving) event.preventDefault() }} onEscapeKeyDown={event => { if (dirty || saving) event.preventDefault() }}>
-        <p className="text-sm font-medium">Responsibility</p>
-        {data.memberships && scopes.length > 1 ? <ParticleSelect value={snapshot?.key ?? ""} disabled={dirty || saving} onChange={event => { const key = event.target.value;  setChoice({ key, walkthrough: data.assignmentContext }); load(scopes.find(item => item.key === key))  }} aria-label="Plan context" className="w-full min-w-0">
-<option value="" disabled>Choose plan</option>{scopes.map(scope => <option key={scope.key} value={scope.key}>{scope.label}</option>)}</ParticleSelect> : <p className="text-xs text-muted-foreground">{snapshot?.label ?? current?.label ?? "Plan no longer available."}</p>}
-        {snapshot && <>
-          <ParticleResponsibilitySelector value={draft} disabled={!data.editable || !assignment || !current?.editable || saving || stale} onChange={setDraft} />
-          {stale && <p role="status" className="text-xs">{current ? "Plan changed." : "Plan no longer available."} Your draft is kept.</p>}
-          {failed && !stale && <p role="alert" className="text-xs">Not saved. Your draft is kept. Retry or reload from the workspace save notice.</p>}
-        </>}
-        <div className="flex justify-end gap-2">
-          <Button color="secondary" variant="ghost" size="md" disabled={saving} onClick={() => setOpen(false)}>{dirty ? "Discard" : "Close"}</Button>
-          {stale ? current && <Button color="primary" size="md" onClick={() => load(current)}>Load latest</Button> : assignment && snapshot && <Button color="primary" size="md" disabled={!data.editable || !current?.editable || saving || !dirty} onClick={async () => {
-            setSaving(true); setFailed(false)
-            try {
-              const saved = snapshot.membership
-                ? await assignment.saveMembership?.(particle.id, snapshot.membership, draft)
-                : particle.type === "objective" && await assignment.save({ ...particle, responsibility: draft })
-              if (saved) setOpen(false); else setFailed(true)
-            } catch { setFailed(true) }
-            finally { setSaving(false) }
-          }}>{saving ? "Saving…" : "Save"}</Button>}
-        </div>
+      <PopoverContent align="start" className="nodrag nopan nowheel w-64 max-w-[calc(100vw-24px)] space-y-3 rounded-2xl p-3 text-left shadow-none">
+        <p className="text-sm font-normal">Assign</p>
+        {data.memberships && scopes.length > 1 && <ParticleSelect value={selectedKey ?? ""} disabled={Boolean(pending)} onChange={event => setChoice({ key: event.target.value, walkthrough: data.assignmentContext })} aria-label="Plan context" className="w-full min-w-0">
+          <option value="" disabled>Choose plan</option>{scopes.map(scope => <option key={scope.key} value={scope.key}>{scope.label}</option>)}
+        </ParticleSelect>}
+        {(current || pending) && <ParticleResponsibilitySelector value={value} disabled={!data.editable || !assignment || !current?.editable || Boolean(pending)} onChange={next => void save(next)} />}
+        {saving && <span role="status" className="sr-only">Saving assignment</span>}
+        {pending?.failed && <div role="alert" className="flex items-center justify-between gap-2 text-xs">
+          <span>{stale ? current ? "Assignment changed. Your selection is kept." : "Plan unavailable. Your selection is kept." : "Not saved. Your selection is kept."}</span>
+          {stale ? <Button type="button" variant="ghost" size="sm" onClick={() => setPending(undefined)}>Load latest</Button>
+            : assignment?.retry && <Button type="button" variant="ghost" size="sm" disabled={!current?.editable} onClick={() => void save(pending.value, true)}>Retry</Button>}
+        </div>}
       </PopoverContent>
     </Popover>
   </div>

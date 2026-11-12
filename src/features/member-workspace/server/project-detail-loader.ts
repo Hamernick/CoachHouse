@@ -410,6 +410,7 @@ async function buildReadyProjectDetailResult({
       supabase: actor.supabase,
     }),
     loadOrganizationProjectActivityResult({
+      actorId: actor.userId,
       orgId: project.org_id,
       projectId: project.id,
       supabase: actor.supabase,

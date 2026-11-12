@@ -5,14 +5,16 @@ import EllipsisIcon from "lucide-react/dist/esm/icons/ellipsis"
 import PencilIcon from "lucide-react/dist/esm/icons/pencil"
 import Trash2Icon from "lucide-react/dist/esm/icons/trash-2"
 import UserPlusIcon from "lucide-react/dist/esm/icons/user-plus"
+import LockKeyholeIcon from "lucide-react/dist/esm/icons/lock-keyhole"
 import { SidebarMenuAction } from "@/components/ui/sidebar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { WorkspaceSummary } from "../types"
 
-export type WorkspaceMenuAction = "edit" | "delete" | "access"
+export type WorkspaceMenuAction = "edit" | "delete" | "access" | "permissions" | "deleted-access"
 
-export function WorkspaceActionsMenu({ workspace, onAction }: {
+export function WorkspaceActionsMenu({ workspace, onAction, canEdit = true }: {
   workspace: WorkspaceSummary
+  canEdit?: boolean
   onAction: (action: WorkspaceMenuAction, trigger: HTMLButtonElement) => void
 }) {
   const trigger = useRef<HTMLButtonElement>(null)
@@ -35,10 +37,14 @@ export function WorkspaceActionsMenu({ workspace, onAction }: {
         </SidebarMenuAction>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-52 rounded-xl border-border/70 p-1.5 shadow-none" onCloseAutoFocus={(event) => { if (openingDialog.current) event.preventDefault() }}>
-        <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("edit")}><PencilIcon aria-hidden />Edit workspace</DropdownMenuItem>
-        <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("access")}><UserPlusIcon aria-hidden />Invite people</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" className="min-h-9 rounded-lg" onSelect={() => select("delete")}><Trash2Icon aria-hidden />Delete workspace</DropdownMenuItem>
+        {canEdit && <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("edit")}><PencilIcon aria-hidden />Edit workspace</DropdownMenuItem>}
+        <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("permissions")}><LockKeyholeIcon aria-hidden />Access</DropdownMenuItem>
+        <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("deleted-access")}><Trash2Icon aria-hidden />Deleted workspaces</DropdownMenuItem>
+        {canEdit && <>
+          <DropdownMenuItem className="min-h-9 rounded-lg" onSelect={() => select("access")}><UserPlusIcon aria-hidden />Invite people</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" className="min-h-9 rounded-lg" onSelect={() => select("delete")}><Trash2Icon aria-hidden />Delete workspace</DropdownMenuItem>
+        </>}
       </DropdownMenuContent>
     </DropdownMenu>
   )

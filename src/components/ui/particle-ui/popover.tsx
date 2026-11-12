@@ -8,6 +8,6 @@ export const ParticlePopover = Object.assign(
   (props: ComponentProps<typeof Popover>) => <Popover {...props} />,
   {
     Trigger: Popover.Trigger,
-    Content: ({ className, ...props }: ComponentProps<typeof Popover.Content>) => <Popover.Content {...props} className={cn("particle-ui particle-ui-popover z-50", className)} />,
+    Content: ({ className, ...props }: ComponentProps<typeof Popover.Content>) => <Popover.Content align="start" {...props} className={cn("particle-ui particle-ui-popover z-50", className)} />,
   },
 )

@@ -10,10 +10,10 @@ export const ParticleMenu = Object.assign(
   {
     ...Menu,
     Content: ({ children, ...props }: ComponentProps<typeof Menu.Content>) => (
-      <Menu.Content {...props}><div className="particle-ui-menu contents">{children}</div></Menu.Content>
+      <Menu.Content align="start" minWidth={208} {...props}><div className="particle-ui-menu contents">{children}</div></Menu.Content>
     ),
     SubContent: ({ children, ...props }: ComponentProps<typeof Menu.SubContent>) => (
-      <Menu.SubContent {...props}><div className="particle-ui-menu contents">{children}</div></Menu.SubContent>
+      <Menu.SubContent minWidth={208} {...props}><div className="particle-ui-menu contents">{children}</div></Menu.SubContent>
     ),
   },
 )

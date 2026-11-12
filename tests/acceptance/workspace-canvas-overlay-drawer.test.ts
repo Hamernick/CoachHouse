@@ -43,6 +43,12 @@ function readSource(relativePath: string) {
 }
 
 describe("workspace canvas overlay drawer", () => {
+  it("opens legacy and current particle links in Tools at the library", () => {
+    for (const href of ["/workspace?drawer=particles", "/workspace?drawer=tools&focus=particles"]) {
+      expect(resolveWorkspaceDataDrawerRequest(href)).toEqual({ tab: "tools", focusKey: "particles" })
+    }
+  })
+
   it("keeps the floating dock 16px above the canvas at every detent", () => {
     const canvasHeight = 800
     const composerHeight = 58
@@ -253,7 +259,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(source.replace(/\s+/g, " ")).toContain(
       "() => guideState?.snapPoint ?? resolveWorkspaceDataDrawerRequestSnapPoint(request)"
     )
-    expect(source).toContain('guideState?.tab ?? request?.tab ?? "organization"')
+    expect(source).toContain('guideState?.tab ?? normalizeWorkspaceDrawerTab(request?.tab) ?? "organization"')
     expect(source).toContain("if (request || guideState) return")
     expect(source).toContain("if (restoredPreferencesScopeRef.current === scopeKey) return")
     expect(source.replace(/\s+/g, " ")).toContain("state: guideState, setOpen, setTab, setSnap: setActiveSnapPoint")
@@ -564,10 +570,10 @@ describe("workspace canvas overlay drawer", () => {
       resolveWorkspaceAcceleratorDrawerRequest("/workspace/roadmap")
     ).toBeNull()
 
-    expect(drawerSource).toContain('request?.tab ?? "organization"')
+    expect(drawerSource).toContain('normalizeWorkspaceDrawerTab(request?.tab) ?? "organization"')
     expect(drawerSource).toContain("pendingAcceleratorRequest")
     expect(drawerSource).toContain("handledAcceleratorRequestIdRef")
-    expect(drawerSource).toContain("dataDrawerTab: request.tab")
+    expect(drawerSource).toContain("dataDrawerTab: nextTab")
     expect(panelSource).toContain("WorkspaceBoardLazyAcceleratorCardPanel")
     expect(panelSource).toContain("WorkspaceAcceleratorBanner")
     expect(panelSource).toContain(
@@ -872,7 +878,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(drawerHookSource).toContain('initialDrawerTab === "finance"')
     expect(drawerHookSource).toContain('return { tab: "finance" }')
     expect(drawerHookSource).toContain('initialDrawerTab === "tools"')
-    expect(drawerHookSource).toContain('return { tab: "tools" }')
+    expect(drawerHookSource).toContain('return { tab: "tools", focusKey: organizationEditorData.initialFocus }')
     expect(
       resolveWorkspaceDataDrawerRequest("/workspace?drawer=unknown")
     ).toBeNull()
@@ -905,7 +911,7 @@ describe("workspace canvas overlay drawer", () => {
     expect(tabsViewSource).toContain("{...documentsTab}")
     expect(tabsViewSource).toContain("editMode={canEdit}")
     expect(source).toContain("request?: WorkspaceDataDrawerRequest | null")
-    expect(source).toContain("setTab(request.tab)")
+    expect(source).toContain("setTab(nextTab)")
     expect(source).toContain(
       "resolveWorkspaceDataDrawerRequestSnapPoint(request)"
     )

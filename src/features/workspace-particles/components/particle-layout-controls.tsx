@@ -55,16 +55,16 @@ export function ParticleLayoutActions({
   ]
   return (
     <div
-      className="nodrag nopan flex flex-col gap-1 border-t px-2 py-2"
+      className="nodrag nopan flex flex-col gap-0.5"
       role="group"
       aria-label="Arrange Particles"
     >
       {actions.map((action) => (
-        <Button color="secondary" size="lg"
+        <Button color="secondary" size="md"
           key={action.id}
           type="button"
           variant="ghost"
-          className="h-11 justify-start rounded-xl px-3"
+          className="h-8 w-full justify-start rounded-lg px-2 text-sm font-normal [@media(pointer:coarse)]:min-h-11"
           disabled={action.disabled}
           onClick={action.onClick}
 
@@ -78,7 +78,7 @@ export function ParticleLayoutActions({
           {action.label}
         </Button>
       ))}
-      <p role="status" className="text-muted-foreground max-w-64 px-3 text-xs">
+      <p role="status" className="text-muted-foreground px-2 text-xs empty:hidden">
         {layout.busy
           ? {
               measuring: "Measuring cards…",

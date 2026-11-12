@@ -20,8 +20,10 @@ export function ObjectiveStatusMenu({ value, disabled, onChange, completionLabel
   const current = statuses.find(status => status.value === value)
   return <ParticleMenu.Sub>
     <ParticleMenu.SubTrigger disabled={disabled} className="gap-2">
-      <span aria-hidden className="flex size-4 shrink-0 items-center justify-center"><span className="size-2 rounded-full" style={{ backgroundColor: current?.tone ?? "var(--muted-foreground)" }} /></span>
-      Status
+      <span className="flex min-w-0 items-center gap-1.5">
+        <span aria-hidden className="flex size-4 shrink-0 items-center justify-center"><span className="size-2 rounded-full" style={{ backgroundColor: current?.tone ?? "var(--muted-foreground)" }} /></span>
+        <span>Status</span>
+      </span>
     </ParticleMenu.SubTrigger>
     <><ParticleMenu.SubContent minWidth={0} width={224}>
       <ParticleMenu.RadioGroup value={value} onChange={next => {
@@ -29,8 +31,10 @@ export function ObjectiveStatusMenu({ value, disabled, onChange, completionLabel
         if (status && !disabled && status.value !== value) onChange(status.value)
       }}>
         {statuses.map(status => <ParticleMenu.RadioItem key={status.value} value={status.value} disabled={disabled}>
-          <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: status.tone }} />
-          {status.value === "done" ? completionLabel : status.label}
+          <span className="flex min-w-0 items-center gap-2">
+            <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: status.tone }} />
+            <span>{status.value === "done" ? completionLabel : status.label}</span>
+          </span>
 
         </ParticleMenu.RadioItem>)}
       </ParticleMenu.RadioGroup>

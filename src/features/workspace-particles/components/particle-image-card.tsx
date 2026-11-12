@@ -1,5 +1,6 @@
 "use client"
 
+import { privateFileUrlSchema } from "@/lib/organization/private-file-url"
 import { ParticleButton as Button } from "@/components/ui/particle-ui"
 
 import Image from "next/image"
@@ -93,7 +94,7 @@ function ParticleImageSurface({
       .then(readImageResponse)
       .then((body) => {
         const parsed = z
-          .object({ url: z.url({ protocol: /^https?$/ }) })
+          .object({ url: privateFileUrlSchema })
           .parse(body)
         if (active) setUrl(parsed.url)
       })

@@ -1,6 +1,7 @@
 import { validateResearchRelationships } from "./research-relationships"
 import { validateResearchForms } from "./research-form"
 import { validateResearchDataViews } from "./research-data-view"
+import { validateResearchResponse } from "./research-response"
 import { generatedResearchSchema, researchResultSchema, type KnowledgeRecord, type ResearchResult, type ResearchSource, type ResearchTarget } from "../research-types"
 
 export function searchKnowledge(records: KnowledgeRecord[], query: string, limit = 8) {
@@ -14,9 +15,11 @@ export function searchKnowledge(records: KnowledgeRecord[], query: string, limit
 }
 export function bindResearch(text: string, sources: ResearchSource[], target: ResearchTarget, runId: string, referenceDecisions: ReadonlyMap<string, ReadonlyArray<{ id: string; label: string }>> = new Map()): ResearchResult {
   const result = generatedResearchSchema.parse(JSON.parse(text))
+  validateResearchResponse(result)
   validateResearchForms(result.items)
   validateResearchDataViews(result.items)
   const keys = new Set(result.items.map(item => item.key)), evidence = new Set(sources.map(source => source.id))
+  if (result.answerEvidenceIds?.some(id => !evidence.has(id))) throw new Error("Reply cites an unavailable source.")
   if (keys.size !== result.items.length) throw new Error("Research contains duplicate items.")
   const references=result.items.flatMap(item=>item.referenceId?[item.referenceId]:[])
   if(new Set(references).size!==references.length)throw new Error("Research repeats a workspace reference.")
@@ -44,6 +47,6 @@ export function bindResearch(text: string, sources: ResearchSource[], target: Re
     if (new Set(decision.outcomes.map(outcome => outcome.key)).size !== decision.outcomes.length || new Set(decision.outcomes.map(outcome => outcome.label.toLocaleLowerCase())).size !== decision.outcomes.length) throw new Error("Decision outcomes must be distinct.")
   }
   validateResearchRelationships(result)
-  const used = new Set([...result.removeReferences, ...result.items.flatMap(item => [...item.evidenceIds, ...(item.referenceId ? [item.referenceId] : [])])])
+  const used = new Set([...(result.answerEvidenceIds ?? []), ...result.removeReferences, ...result.items.flatMap(item => [...item.evidenceIds, ...(item.referenceId ? [item.referenceId] : [])])])
   return researchResultSchema.parse({ ...result, target, runId, sources: sources.filter(source => used.has(source.id)) })
 }

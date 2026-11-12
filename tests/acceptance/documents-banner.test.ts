@@ -115,7 +115,7 @@ describe("documents banner", () => {
 
     expect(pageSource).toContain("notes={moduleNotes}")
     expect(pageSource).not.toContain("DocumentsNotesRightRail")
-    expect(tabSource).toContain("useNoteDocuments(organizationId)")
+    expect(tabSource).toContain("useNoteDocuments({ organizationId, userId })")
     expect(tabSource).toContain("notes={noteDocuments.notes}")
     expect(tabSource).not.toContain("<DocumentsNotesPanel")
     expect(notesSource).not.toContain("RightRailSlot")

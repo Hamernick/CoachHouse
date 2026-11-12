@@ -45,6 +45,18 @@ describe("explicit uploaded-file writable owner", () => {
     expect(mocks.save).not.toHaveBeenCalled()
     releaseAgain()
   })
+  it("keeps an in-flight editor opening paused when its retained window hides", async () => {
+    const f = fixture()
+    let finish!: (value: Awaited<ReturnType<typeof import("@/features/document-editing/actions")["openWritableDocument"]>>) => void
+    const result = await mocks.open()
+    mocks.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    const opening = f.owner.open(); await settle()
+    f.owner.setActive(false); finish(result); await opening; await settle()
+    expect(f.owner.getSnapshot().session?.getSnapshot().editable).toBe(false)
+    expect(mocks.transport.mock.results.at(-1)?.value.read).not.toHaveBeenCalled()
+    f.owner.setActive(true); await settle()
+    expect(f.owner.getSnapshot().session?.getSnapshot().editable).toBe(true)
+  })
   it("requires a recovery choice and keeps the old encrypted record until replay is durable", async () => {
     const f = fixture()
     const draft = new Y.Doc(); draft.getText("recovered").insert(0, "Local draft")

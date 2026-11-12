@@ -1,4 +1,5 @@
 import "server-only"
+import { isResearchReply } from "../lib/research-response"
 import { createHash } from "node:crypto"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { researchDraftCheckpointSchema, sameResearchDraft } from "../lib/research-draft-checkpoint"
@@ -6,6 +7,7 @@ import { createResearchDraft, validateResearchRecoveryDraft, type ResearchDraft 
 import type { ResearchResult } from "../research-types"
 
 export async function readResearchOutputDraft(result: ResearchResult, actorId: string) {
+  if (isResearchReply(result)) throw new Error("Chat replies have no editable plan draft.")
   const { data, error } = await createSupabaseAdminClient({ actorId, requestTimeoutMs: 10000 }).rpc("access_workspace_research_draft", {
     p_run_id: result.runId, p_org_id: result.target.organizationId, p_actor_id: actorId,
     p_base: createHash("sha256").update(JSON.stringify(result)).digest("hex"),

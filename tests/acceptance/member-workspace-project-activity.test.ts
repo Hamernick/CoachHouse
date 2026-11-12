@@ -1,4 +1,6 @@
 import "./test-utils"
+const audience=vi.hoisted(()=>vi.fn(async (rows:unknown[])=>rows))
+vi.mock("@/lib/organization/document-activity-audience",()=>({filterDocumentActivityAudience:audience}))
 
 import { describe, expect, it, vi } from "vitest"
 
@@ -37,7 +39,7 @@ describe("organization project activity", () => {
       order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
       returns: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
-    expect(await loadOrganizationProjectActivityResult({ orgId: "host", projectId: "fiscal-project", projectOnly: true, supabase: { from: () => query } as never })).toEqual({ state: "ready", items: [] })
+    expect(await loadOrganizationProjectActivityResult({ actorId: "actor-1", orgId: "host", projectId: "fiscal-project", projectOnly: true, supabase: { from: () => query } as never })).toEqual({ state: "ready", items: [] })
     expect(query.eq).toHaveBeenCalledWith("org_id", "host")
     expect(query.eq).toHaveBeenCalledWith("project_id", "fiscal-project")
     expect(query.or).not.toHaveBeenCalled()
@@ -64,7 +66,7 @@ describe("organization project activity", () => {
         returns: vi.fn().mockResolvedValue({ data: [], error }),
       }
       const result = await loadOrganizationProjectActivityResult({
-        orgId: "org-1",
+        actorId: "actor-1", orgId: "org-1",
         projectId: "project-1",
         supabase: { from: () => query } as never,
       })
@@ -106,7 +108,7 @@ describe("organization project activity", () => {
     }
 
     const activity = await loadOrganizationProjectActivity({
-      orgId: "org-1",
+      actorId: "actor-1", orgId: "org-1",
       projectId: "project-1",
       supabase: supabase as never,
     })
@@ -126,4 +128,16 @@ describe("organization project activity", () => {
       null,
     ])
   })
+})
+
+it("filters private source titles before deriving activity or durations",async()=>{
+ const rows=[createActivityRow({id:"hidden",occurredAt:"2026-07-17T15:00:00Z"}),createActivityRow({id:"visible",occurredAt:"2026-07-18T15:00:00Z"})]
+ const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),or:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),limit:vi.fn().mockReturnThis(),returns:vi.fn().mockResolvedValue({data:rows,error:null})}
+ audience.mockResolvedValueOnce([rows[1]])
+ const result=await loadOrganizationProjectActivityResult({orgId:"org",projectId:"project",actorId:"verified",supabase:{from:()=>query} as never})
+ expect(audience).toHaveBeenLastCalledWith(rows,"verified")
+ expect(result.items.map(row=>row.id)).toEqual(["visible"])
+ expect(result.items[0].durationLabel).toBeNull()
+ audience.mockRejectedValueOnce(new Error("private failure"))
+ expect(await loadOrganizationProjectActivityResult({orgId:"org",projectId:"project",actorId:"verified",supabase:{from:()=>query} as never})).toEqual({state:"error",items:[]})
 })

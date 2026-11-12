@@ -13,9 +13,11 @@ import {
 } from "./documents-library-items"
 
 export function DocumentThumbnail({
+  organizationId,
   item,
   compact,
 }: {
+  organizationId?: string
   item: LibraryItem
   compact: boolean
 }) {
@@ -28,10 +30,10 @@ export function DocumentThumbnail({
   const preview = useDocumentPreviewUrl(
     item.previewPath,
     item.previewVersion,
-    visible && supported && !drivePreview
+    visible && supported,
+    { organizationId, revalidate: true, imageResponse: drivePreview },
   )
-  const previewUrl =
-    drivePreview && visible ? (item.previewPath ?? null) : preview.url
+  const previewUrl = preview.url
   const onError = useCallback(() => setFailedUrl(previewUrl), [previewUrl])
 
   useEffect(() => {

@@ -1,5 +1,7 @@
 "use client"
 
+import { WorkspaceChatNavigationProvider } from "@/features/workspace-ai/client"
+import { AiUsageProvider } from "@/features/ai-credits/client"
 import { useEffect, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
@@ -258,6 +260,8 @@ export function AppShellInner({
   )
 
   return (
+    <AiUsageProvider key={user?.email ?? "anonymous"} enabled={hasUser && !onboardingLocked && process.env.NEXT_PUBLIC_WORKSPACE_AI_ENABLED === "true"} scope={`${pathname}:${searchParams?.get("workspace") ?? ""}`}>
+    <WorkspaceChatNavigationProvider>
     <AppShellAccountMenuActionsProvider>
       <AppShellRightRailControlsProvider value={rightRailControls}>
         <SidebarProvider
@@ -439,5 +443,7 @@ export function AppShellInner({
         </SidebarProvider>
       </AppShellRightRailControlsProvider>
     </AppShellAccountMenuActionsProvider>
+    </WorkspaceChatNavigationProvider>
+    </AiUsageProvider>
   )
 }

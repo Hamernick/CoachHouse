@@ -1,5 +1,8 @@
 "use client"
 
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
+import { useCanvasDocumentSource } from "@/components/workspace/workspace-canvas-source-context"
+
 import { organizationDocumentCollaborationEnabled } from "@/lib/feature-flags"
 import { OrganizationDocumentCollaborationPanel } from "@/features/organization-document-collaboration/client"
 import { useState, type ComponentType, type RefObject } from "react"
@@ -100,6 +103,7 @@ export function RoadmapEditorShell({
     (sourceOverride.lastUpdated ?? "") >= (activeSection.lastUpdated ?? "")
       ? sourceOverride
       : activeSection
+  useCanvasDocumentSource("editor", sourceScope && !isCalendarSection && resolveCoreDocumentSource(sourceSection) === "editor" ? sourceSection.id : null)
   const linked = sourceSection.driveSource
   function chooseDrive() {
     if (

@@ -1,4 +1,5 @@
 import "server-only"
+import { assertPageCanvasManagement } from "./page-canvas-access"
 
 import { randomUUID } from "node:crypto"
 import { readParticleGraph } from "@/features/workspace-particles"
@@ -32,6 +33,7 @@ export async function loadPageEditorData(input: unknown) {
   const pageId = parsed.data.pageId ?? (initialParticleIds.length === 1 ? summaries.find((page) => page.particleIds.includes(parsed.data.particleId))?.id : undefined)
   const page = pageId ? await loadSavedPage(actor, pageId) : null
   if (pageId && (!page || (page.canvas_id ?? null) !== canvasId)) throw new WorkspaceSharingError("conflict", "This page is no longer available. Reopen Share.")
+  await assertPageCanvasManagement(actor, canvasId)
   return pageEditorDataSchema.parse({
     workspaceId: actor.orgId, canvasId, publishingEnabled: publicSharingEnabled,
     suggestedPageId: randomUUID(), page: page ? decodeWorkspacePage(page) : null,

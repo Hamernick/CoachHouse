@@ -1,3 +1,14 @@
+import { WorkspaceChatPlanning } from "../../../src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-chat-planning"
+import { WorkspaceCanvasChat, WorkspaceCanvasChatContext } from "../../../src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-chat"
+import { PlanningFeedSection } from "../../../src/features/workspace-objectives/components/planning-sidebar-surface"
+import { ReactFlow, ReactFlowProvider, applyNodeChanges, type Node } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
+import { useWorkspaceCanvasSurfaceGestureGuards } from "../../../src/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-canvas-surface-v2-gesture-effect"
+import { AiUsageProvider, useAiUsage } from "../../../src/features/ai-credits/client"
+import { FolderLibraryFixture } from "./folder-library-fixture"
+import { FolderAccessFixture } from "./folder-access-fixture"
+import { WorkspaceAccessFixture } from "./workspace-access-fixture"
+import { ToolsFixture } from "./tools-fixture"
 import { OrganizationFormSourceEntry } from "@/features/organization-forms/client"
 import { FormSourceFixture } from "./form-source-fixture"
 import { FormIntakeFixture } from "./form-intake-fixture"
@@ -90,11 +101,43 @@ function Fixture() {
       {ready ? <DocumentEditor key={generation} section={section} sourceScope={sourceScope} /> : null}
     </div></WorkspaceWindowHeaderScope>
     {showAdditional ? <DocumentEditor section={additionalSection} sourceScope={sourceScope} /> : null}
-    <div className="min-w-0">
+    <div className="fixed inset-x-0 bottom-4 z-20 mx-auto max-w-xl">
       <WorkspaceNewPlan {...sourceScope} canvasId={null} revision={0} disabled={false} enabled={new URLSearchParams(window.location.search).has("planner")} onProposal={async()=>false}>{planner => <WorkspaceAiComposer sourceScope={sourceScope} organizationName="Fictional Garden Collective">{assistant => <ParticleComposer disabled={false} pending={false} error={null}
         saved={false} assistant={assistant} planner={planner} onCreate={async () => false} onRetry={() => undefined} />}</WorkspaceAiComposer>}</WorkspaceNewPlan>
     </div>
     <Toaster />
+  </main>
+}
+function ChatPlanningPreview() {
+  const [objectives, setObjectives] = useState(false), [opportunities, setOpportunities] = useState(false)
+  return <main className="workspace-layout-surface relative h-screen w-screen overflow-hidden"><ReactFlowProvider><ReactFlow nodes={[]} />
+    <WorkspaceCanvasChatContext.Provider value><WorkspaceCanvasChat><WorkspaceChatPlanning planning={<>
+      <PlanningFeedSection label="Objectives" count={2} open={objectives} onOpenChange={setObjectives}><input aria-label="Objective draft" />{Array.from({length: 16}, (_, i) => <p key={i}>Objective {i + 1}</p>)}</PlanningFeedSection>
+      <PlanningFeedSection label="Opportunities" count={3} open={opportunities} onOpenChange={setOpportunities}><input aria-label="Opportunity draft" />{Array.from({length: 16}, (_, i) => <p key={i}>Opportunity {i + 1}</p>)}</PlanningFeedSection>
+    </>}><ParticleComposer disabled={false} pending={false} error={null} saved={false} onCreate={async () => false} onRetry={() => {}} /></WorkspaceChatPlanning></WorkspaceCanvasChat></WorkspaceCanvasChatContext.Provider>
+  </ReactFlowProvider></main>
+}
+function CanvasSelectionFixture() {
+  const [surface, setSurface] = useState<HTMLDivElement | null>(null)
+  const [nodes, setNodes] = useState<Node[]>([
+    { id: "alpha", position: { x: 60, y: 60 }, data: { label: "First card" } },
+    { id: "beta", position: { x: 320, y: 60 }, data: { label: "Second card" } },
+  ])
+  useWorkspaceCanvasSurfaceGestureGuards({ surfaceContainer: surface })
+  return <><p data-testid="outside-text">Outside canvas text should stay unselected.</p><div ref={setSurface} className="h-[500px] w-[800px]">
+    <ReactFlowProvider><ReactFlow nodes={nodes} onNodesChange={changes => setNodes(items => applyNodeChanges(changes, items))} multiSelectionKeyCode="Shift">
+      <div className="nodrag nopan absolute bottom-2 left-2 z-10"><input aria-label="Canvas text field" defaultValue="Editable text" /></div>
+    </ReactFlow></ReactFlowProvider>
+  </div></>
+}
+function UsageDock() {
+  return <AiUsageProvider enabled scope="fixture"><UsageDockContent /></AiUsageProvider>
+}
+function UsageDockContent() {
+  const usage = useAiUsage()
+  return <main className="mx-auto mt-48 w-[600px] bg-background">
+    <ParticleComposer disabled={false} pending={false} error={null} saved={false} onRetry={() => {}} onCreate={async () => false} />
+    <output data-testid="usage-manage-request">{usage?.manageRequest}</output>
   </main>
 }
 function UsageNavigation() {
@@ -127,4 +170,4 @@ if (new URLSearchParams(location.search).has("unpublished-form")) {
 } else if (new URLSearchParams(location.search).has("public-page")) {
   root.innerHTML = renderToString(<PublicSharingFixture />)
   hydrateRoot(root, <PublicSharingFixture />)
-} else createRoot(root).render(<StrictMode>{window.location.pathname === "/workspace/shared-pages" ? <WorkspacePageDirectory pageId={new URLSearchParams(location.search).get("page") ?? undefined} after={new URLSearchParams(location.search).get("after") ?? undefined} /> : new URLSearchParams(window.location.search).has("guest") ? <GuestFixture /> : new URLSearchParams(window.location.search).has("sharing") ? <SharingFixture /> : new URLSearchParams(window.location.search).has("matching") ? <MatchingFixture/> : new URLSearchParams(window.location.search).has("revisions") ? <RevisionFixture /> : new URLSearchParams(window.location.search).has("usage-navigation") ? <AppShellAccountMenuActionsProvider><UsageNavigation /></AppShellAccountMenuActionsProvider> : new URLSearchParams(window.location.search).has("credits") ? <main className="mx-auto w-full max-w-sm bg-background p-3 text-foreground"><AiCreditsPanel account={creditAccount} organizationId={creditOrg} /></main> : new URLSearchParams(window.location.search).has("fixture-checkout") ? <p>Simulated checkout · no payment</p> : new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : <Fixture />}</StrictMode>)
+} else createRoot(root).render(<StrictMode>{new URLSearchParams(location.search).has("chat-planning") ? <ChatPlanningPreview /> : new URLSearchParams(location.search).has("canvas-selection") ? <CanvasSelectionFixture /> : new URLSearchParams(location.search).has("usage-dock") ? <UsageDock /> : new URLSearchParams(location.search).has("folder-library") ? <FolderLibraryFixture /> : new URLSearchParams(location.search).has("folder-access") ? <FolderAccessFixture /> : new URLSearchParams(location.search).has("workspace-access") ? <WorkspaceAccessFixture /> : window.location.pathname === "/workspace/shared-pages" ? <WorkspacePageDirectory pageId={new URLSearchParams(location.search).get("page") ?? undefined} after={new URLSearchParams(location.search).get("after") ?? undefined} /> : new URLSearchParams(window.location.search).has("guest") ? <GuestFixture /> : new URLSearchParams(window.location.search).has("sharing") ? <SharingFixture /> : new URLSearchParams(window.location.search).has("matching") ? <MatchingFixture/> : new URLSearchParams(window.location.search).has("revisions") ? <RevisionFixture /> : new URLSearchParams(window.location.search).has("usage-navigation") ? <AppShellAccountMenuActionsProvider><UsageNavigation /></AppShellAccountMenuActionsProvider> : new URLSearchParams(window.location.search).has("credits") ? <main className="mx-auto w-full max-w-sm bg-background p-3 text-foreground"><AiCreditsPanel account={creditAccount} organizationId={creditOrg} /></main> : new URLSearchParams(window.location.search).has("fixture-checkout") ? <p>Simulated checkout · no payment</p> : new URLSearchParams(window.location.search).has("selection-session") ? <SelectionSessionFixture /> : new URLSearchParams(window.location.search).has("objectives") ? <ObjectivesFixture /> : new URLSearchParams(window.location.search).has("tools") ? <ToolsFixture /> : <Fixture />}</StrictMode>)

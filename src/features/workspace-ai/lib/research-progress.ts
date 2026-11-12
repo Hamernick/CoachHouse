@@ -52,7 +52,7 @@ export function researchProgressWire(event: ResearchProgress): BaseEvent {
 
 /** Progress is local presentation only. A gap ends this subscription; the caller
  * reads one authorized durable snapshot instead of replaying or generating again. */
-export function createResearchProgressReceiver(expected: Pick<ResearchProgressIdentity, "runId" | "target"> & { userId: string }) {
+export function createResearchProgressReceiver(expected: Pick<ResearchProgressIdentity, "runId" | "target"> & { userId: string }, format: "ag-ui" | "chat" = "ag-ui") {
   let streamId: string | undefined, canvasId: string | null | undefined, sequence = 0, terminal = false, previewed = false, ready = false
   let savedStatus: string | undefined
   const partialKeys = new Set<string>()
@@ -60,14 +60,16 @@ export function createResearchProgressReceiver(expected: Pick<ResearchProgressId
   // are duplicates; reused sequences cannot conceal a restarted producer.
   const accepted = new Map<number, string>()
   return (raw: unknown): ResearchProgress | null => {
-    const wire = EventSchema.parse(raw)
-    const envelope = wire.type === EventType.CUSTOM && wire.name === name ? wire.value : wire.metadata?.coachHouse
+    const wire = format === "ag-ui" ? EventSchema.parse(raw) : null
+    const envelope = wire ? wire.type === EventType.CUSTOM && wire.name === name ? wire.value : wire.metadata?.coachHouse : raw
     const event = researchProgressSchema.parse(envelope)
     if (event.runId !== expected.runId || event.requestId !== expected.runId || event.scope.userId !== expected.userId ||
       event.scope.organizationId !== expected.target.organizationId ||
       (expected.target.mode === "new_objective" && event.scope.canvasId !== expected.target.canvasId) || JSON.stringify(event.target) !== JSON.stringify(researchTargetSchema.parse(expected.target))) throw new Error("Research stream scope changed.")
-    const wanted = researchProgressWire(event)
-    if (wire.type !== wanted.type || ("runId" in wire && wire.runId !== event.runId) || ("threadId" in wire && wire.threadId !== event.streamId)) throw new Error("Invalid research event.")
+    if (wire) {
+      const wanted = researchProgressWire(event)
+      if (wire.type !== wanted.type || ("runId" in wire && wire.runId !== event.runId) || ("threadId" in wire && wire.threadId !== event.streamId)) throw new Error("Invalid research event.")
+    }
     if (!streamId) {
       if (event.kind !== "run.started" || event.sequence !== 1) throw new Error("Research snapshot required.")
       streamId = event.streamId; canvasId = event.scope.canvasId
@@ -92,7 +94,6 @@ export function createResearchProgressReceiver(expected: Pick<ResearchProgressId
       const { run, watermark } = event.payload
       if (watermark !== event.sequence || run.id !== expected.runId || !["succeeded", "failed", "canceled"].includes(run.status) ||
         (ready && run.applicability !== "review_required") ||
-        (run.appliedObjectiveId && expected.target.mode !== "new_objective") ||
         (run.result && JSON.stringify(run.result.target) !== JSON.stringify(event.target))) throw new Error("Invalid research snapshot.")
       if (run.result) {
         const { dependencies: _dependencies, outputBindings: _outputBindings, ...preview } = run.result

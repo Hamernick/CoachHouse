@@ -1,3 +1,4 @@
+import { readWorkspaceBoardForProjection } from "@/lib/organization/particle-board-read"
 import "server-only"
 import type { ComposableDataView } from "@/features/workspace-data-views"
 import { withResearchDataViewSources } from "./research-data-view-sources"
@@ -6,18 +7,20 @@ import { canEditOrganization } from "@/lib/organization/active-org"
 import { allWorkspaceStates } from "@/features/workspace-management"
 import { readParticleGraph } from "@/features/workspace-particles"
 import { researchTargetSchema, type ExistingResearchTarget, type ResearchTarget } from "../research-types"
+import { authorizeResearchFileContext } from "./knowledge-particle-files"
 
 type Actor = Awaited<ReturnType<typeof resolveAuthenticatedAppContext>>
 type Graph = Extract<ReturnType<typeof readParticleGraph>, { ok: true }>['value']
 type Objective = Extract<Graph['particles'][number], { type: "objective" }>
-export type ResearchContext = Actor & { graph: Graph; objective?: Objective; canvasId: string | null; target: ResearchTarget; dataViewSources?:ComposableDataView[] }
-export function loadResearchContext(target: ExistingResearchTarget, requireRevision?: boolean): Promise<ResearchContext & { objective: Objective }>
-export function loadResearchContext(target: ResearchTarget, requireRevision?: boolean): Promise<ResearchContext>
-export async function loadResearchContext(target: ResearchTarget, requireRevision = true): Promise<ResearchContext> {
+export type ResearchContext = Actor & { graph: Graph; objective?: Objective; canvasId: string | null; target: ResearchTarget; dataViewSources?:ComposableDataView[]; inaccessibleParticleIds?: Set<string>; retainedParticleFiles?: Map<string, Set<string>> }
+type ContextOptions = { includeDataViewSources?: boolean }
+export function loadResearchContext(target: ExistingResearchTarget, requireRevision?: boolean, options?: ContextOptions): Promise<ResearchContext & { objective: Objective }>
+export function loadResearchContext(target: ResearchTarget, requireRevision?: boolean, options?: ContextOptions): Promise<ResearchContext>
+export async function loadResearchContext(target: ResearchTarget, requireRevision = true, options: ContextOptions = {}): Promise<ResearchContext> {
   researchTargetSchema.parse(target)
   const actor = await resolveAuthenticatedAppContext()
   if (actor.activeOrg.orgId !== target.organizationId || !canEditOrganization(actor.activeOrg.role)) throw new Error("Open an editable workspace in your current organization.")
-  const { data, error } = await actor.supabase.from("organization_workspace_boards").select("state").eq("org_id", target.organizationId).abortSignal(AbortSignal.timeout(10000)).maybeSingle()
+  const { data, error } = await readWorkspaceBoardForProjection(actor.supabase, target.organizationId, actor.user.id, AbortSignal.timeout(10000))
   if (error) throw new Error("Workspace could not be loaded.")
   const canvases = allWorkspaceStates(data?.state)
   if (target.mode === "new_objective") {
@@ -26,7 +29,8 @@ export async function loadResearchContext(target: ResearchTarget, requireRevisio
     const graph = readParticleGraph(matches[0].state.particleGraph, target.organizationId)
     if (!graph.ok || (requireRevision && graph.value.revision !== target.revision))
       throw new Error("Workspace changed. Reopen planning from the current workspace.")
-    return withResearchDataViewSources({ ...actor, graph: graph.value, canvasId: matches[0].id, target })
+    const context = await authorizeResearchFileContext({ ...actor, graph: graph.value, canvasId: matches[0].id, target })
+    return options.includeDataViewSources === false ? context : withResearchDataViewSources(context)
   }
   const matches = canvases.flatMap(canvas => {
     const parsed = readParticleGraph(canvas.state.particleGraph, target.organizationId)
@@ -38,5 +42,6 @@ export async function loadResearchContext(target: ResearchTarget, requireRevisio
   const selectedPlan = target.plan ? matches[0].objective.data.planning?.plans.find(plan => plan.id === target.plan!.id) : undefined
   if (requireRevision && target.plan && (!selectedPlan || selectedPlan.revision !== target.plan.revision))
     throw new Error("This plan changed. Reopen research from the current plan.")
-  return withResearchDataViewSources({ ...actor, ...matches[0], target })
+  const context = await authorizeResearchFileContext({ ...actor, ...matches[0], target })
+  return options.includeDataViewSources === false ? context : withResearchDataViewSources(context)
 }

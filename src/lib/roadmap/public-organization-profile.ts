@@ -1,3 +1,4 @@
+import { resolveCoreDocumentSource } from "./core-document-source"
 import {
   normalizeOrganizationNarrativeHtml,
   resolveLegacyOrganizationNarratives,
@@ -45,6 +46,7 @@ export function resolvePublicOrganizationProfileNarratives(
 
   const resolveSection = (sectionId: string, legacyValue: string) => {
     const section = sectionById.get(sectionId)
+    if (section && resolveCoreDocumentSource(section) !== "editor") return ""
     if (section?.publicProfileStatusControlled) {
       return normalizeOrganizationNarrativeHtml(
         section.status === "complete" ? section.content : ""

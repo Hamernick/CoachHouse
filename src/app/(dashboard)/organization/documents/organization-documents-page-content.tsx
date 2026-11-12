@@ -1,3 +1,4 @@
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
 import { redirect } from "next/navigation"
 
 import { DocumentsTab } from "@/components/organization/org-profile-card/tabs/documents-tab"
@@ -8,7 +9,7 @@ import {
 } from "@/lib/organization/active-org"
 import { fetchLearningEntitlements } from "@/lib/accelerator/entitlements"
 import { listUserModuleNotesIndex } from "@/lib/modules/notes-index"
-import { resolveRoadmapSections } from "@/lib/roadmap"
+import { projectReadableDocumentProfile } from "@/lib/organization/document-ai-copies"
 import { createSupabaseServerClient } from "@/lib/supabase"
 import { isSupabaseAuthSessionMissingError } from "@/lib/supabase/auth-errors"
 import { supabaseErrorToError } from "@/lib/supabase/errors"
@@ -64,16 +65,12 @@ export default async function MyOrganizationDocumentsPage({
       })
     : []
 
-  const { data: orgRow } = await supabase
-    .from("organizations")
-    .select("profile, public_slug")
-    .eq("user_id", orgId)
-    .maybeSingle<{
-      profile: Record<string, unknown> | null
-      public_slug: string | null
-    }>()
+  const { data: orgRow, error: organizationError } = await readOrganizationProfileForProjection(supabase, orgId, user.id)
 
-  const profile = (orgRow?.profile ?? {}) as Record<string, unknown>
+  if (organizationError) throw supabaseErrorToError(organizationError, "Unable to load organization documents.")
+  const { profile, roadmapSections } = await projectReadableDocumentProfile(
+    orgRow?.profile ?? {}, orgId, user.id,
+  )
 
   const policyPrograms =
     (
@@ -89,7 +86,7 @@ export default async function MyOrganizationDocumentsPage({
     profile,
     programs: policyPrograms,
     publicSlug: orgRow?.public_slug ?? null,
-    roadmapSections: resolveRoadmapSections(profile),
+    roadmapSections,
   })
 
   return (

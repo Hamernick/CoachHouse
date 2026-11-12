@@ -15,6 +15,11 @@ const supabaseImageHosts = Array.from(
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Keep native require.resolve paths usable by the bounded PDF worker.
+  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
+  outputFileTracingIncludes: Object.fromEntries(["/api/workspace-ai/research", "/workspace{,/**}", "/organization/workspace{,/**}"].map(route => [route, [
+    "./node_modules/pdfjs-dist/package.json", "./node_modules/pdfjs-dist/legacy/build/pdf.mjs", "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+  ]])),
   experimental: {
     agentUpgrade: "security",
   },

@@ -20,6 +20,7 @@ function database(insertError: { code: string } | null = null, found = true) {
   query.eq.mockReturnValue(query)
   const from = vi.fn().mockReturnValue(query)
   mocks.admin.mockReturnValue({ from })
+  mocks.context.mockResolvedValue({ activeOrg: { orgId: org, role: "owner" }, supabase: { from }, user: { id: org } })
   return { from, query }
 }
 beforeEach(() => {
@@ -72,6 +73,16 @@ describe("manual workspace opportunity creation", () => {
     expect(await createWorkspaceOpportunity(input)).toHaveProperty("error")
     expect(mocks.revalidate).not.toHaveBeenCalled()
   })
+  it("does not disclose an existing restricted report after duplicate submission", async () => {
+    database({ code: "23505" })
+    const read = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }
+    read.select.mockReturnValue(read); read.eq.mockReturnValue(read)
+    mocks.context.mockResolvedValue({ activeOrg: { orgId: org, role: "owner" }, supabase: { from: vi.fn().mockReturnValue(read) }, user: { id: org } })
+    expect(await createWorkspaceOpportunity(input)).toHaveProperty("error")
+    expect(mocks.admin).toHaveBeenCalledWith({ actorId: org, requestTimeoutMs: 10000 })
+    expect(read.maybeSingle).toHaveBeenCalledOnce()
+    expect(mocks.revalidate).not.toHaveBeenCalled()
+  })
   it("returns a recoverable error when storage fails", async () => {
     database({ code: "23514" })
     expect(await createWorkspaceOpportunity(input)).toHaveProperty("error")
@@ -80,7 +91,7 @@ describe("manual workspace opportunity creation", () => {
   it("rejects unavailable or foreign internal sources before storage", async () => {
     database()
     for (const kind of ["person", "file"] as const) expect(await createWorkspaceOpportunity({ ...input, sources: [{ kind, id }] })).toHaveProperty("error")
-    expect(mocks.sources).toHaveBeenCalledWith({}, org, org)
+    expect(mocks.sources).toHaveBeenCalledWith(expect.objectContaining({ from: expect.any(Function) }), org, org)
     expect(mocks.admin).not.toHaveBeenCalled()
   })
   it("persists authorized references without copying private previews", async () => {

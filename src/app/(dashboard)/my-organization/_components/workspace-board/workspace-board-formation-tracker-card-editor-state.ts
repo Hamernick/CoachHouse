@@ -5,7 +5,6 @@ import { useEffect, useState } from "react"
 import { toast } from "@/lib/toast"
 
 import {
-  setWorkspaceObjectiveAssigneesAction,
   setWorkspaceObjectiveDetailsAction,
 } from "../../_lib/workspace-objectives-actions"
 import {
@@ -46,6 +45,7 @@ export function useWorkspaceObjectiveEditorState({
   startObjectivesSync: (action: () => Promise<void>) => void
 }) {
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null)
+  const [editRevision, setEditRevision] = useState("")
   const [editTitle, setEditTitle] = useState("")
   const [editDescription, setEditDescription] = useState("")
   const [editPriority, setEditPriority] =
@@ -58,6 +58,7 @@ export function useWorkspaceObjectiveEditorState({
     const ticket = tracker.tickets.find((entry) => entry.id === ticketId)
     if (!ticket) return
     setEditingTicketId(ticket.id)
+    setEditRevision(ticket.updatedAt)
     setEditTitle(ticket.title)
     setEditDescription(ticket.description ?? "")
     setEditPriority(ticket.priority)
@@ -68,6 +69,7 @@ export function useWorkspaceObjectiveEditorState({
 
   const closeTicketEditor = () => {
     setEditingTicketId(null)
+    setEditRevision("")
     setEditTitle("")
     setEditDescription("")
     setEditPriority("normal")
@@ -121,23 +123,16 @@ export function useWorkspaceObjectiveEditorState({
     startObjectivesSync(async () => {
       const detailsResult = await setWorkspaceObjectiveDetailsAction({
         objectiveId: editingTicketId,
+        expectedUpdatedAt: editRevision,
+        userIds: editAssigneeIds,
         title: normalizedTitle,
         description: normalizedDescription,
         priority: editPriority,
         dueAt: normalizedDueAt,
-        groupId: normalizedCategoryId,
+        groupId: normalizedCategoryId === "general" ? null : normalizedCategoryId,
       })
       if (!detailsResult.ok) {
         toast.error(detailsResult.error)
-        return
-      }
-
-      const assigneesResult = await setWorkspaceObjectiveAssigneesAction({
-        objectiveId: editingTicketId,
-        userIds: editAssigneeIds,
-      })
-      if (!assigneesResult.ok) {
-        toast.error(assigneesResult.error)
         return
       }
 

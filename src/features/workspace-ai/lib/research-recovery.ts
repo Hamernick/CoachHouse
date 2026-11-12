@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const researchRecoveryCodeSchema = z.enum([
-  "verification_unavailable", "sources_changed", "legacy_result", "invalid_result", "scope_mismatch",
+  "conversation_changed", "verification_unavailable", "sources_changed", "legacy_result", "invalid_result", "scope_mismatch",
   "credits_unavailable", "usage_limit", "capacity_busy", "ai_disabled",
   "invalid_request", "context_too_large", "pricing_changed", "admission_unavailable", "reservation_uncertain", "run_interrupted",
 ])
@@ -9,6 +9,7 @@ export type ResearchRecoveryCode = z.infer<typeof researchRecoveryCodeSchema>
 
 // Fixed, source-free messages. Neither provider prose nor exception text controls recovery.
 export const researchRecovery: Record<ResearchRecoveryCode, { message: string; action: "check_status" | "discard" | "edit_request" | "reopen" }> = {
+  conversation_changed: { message: "This chat advanced or its draft changed. Reopen the latest chat before continuing.", action: "reopen" },
   credits_unavailable: { message: "Not enough available AI credits. Ask the organization owner to review usage, then reopen research.", action: "reopen" },
   usage_limit: { message: "An AI usage limit was reached. Review usage or wait for the limit to reset, then reopen research.", action: "reopen" },
   capacity_busy: { message: "Another AI request is running or recovering. Wait for it to finish, then reopen research.", action: "reopen" },
@@ -24,4 +25,15 @@ export const researchRecovery: Record<ResearchRecoveryCode, { message: string; a
   legacy_result: { message: "This saved research predates complete access tracking. Discard this result and research again.", action: "discard" },
   invalid_result: { message: "Saved research could not be validated. Discard this result and research again.", action: "discard" },
   scope_mismatch: { message: "This research belongs to a different workspace or plan. Discard it and reopen research from the current plan.", action: "discard" },
+}
+
+/** Temporarily omit these internal recovery notices from user-facing UI. */
+export function visibleResearchNotice(message: string | null): string | null {
+  if (!message || [
+    "Saved source effects could not be verified.",
+    "Source effects could not be confirmed.",
+    "This research belongs to a different workspace or plan.",
+    "This research belongs to a different plan.",
+  ].some(prefix => message.startsWith(prefix))) return null
+  return message
 }

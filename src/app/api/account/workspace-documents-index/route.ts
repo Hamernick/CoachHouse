@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from "next/server"
 import { DOCUMENTS } from "@/components/organization/org-profile-card/tabs/documents-tab/constants"
 import { listUserModuleNotesIndex } from "@/lib/modules/notes-index"
 import { resolveActiveOrganization } from "@/lib/organization/active-org"
+import { filterAiDocumentCopies } from "@/lib/organization/document-ai-copies"
+import { projectLegacyDocumentBindings } from "@/lib/organization/legacy-document-bindings"
+import { PRIVATE_FILE_HEADERS } from "@/lib/organization/private-storage-response"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
 import { resolveRoadmapSections } from "@/lib/roadmap"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 
@@ -204,17 +208,19 @@ function loadPolicyItems(
   })
 }
 
-function loadRoadmapItems(
-  profile: Record<string, unknown>,
-): WorkspaceDocumentIndexItem[] {
-  return resolveRoadmapSections(profile).map((section) => {
+async function loadRoadmapItems(
+  profile: Record<string, unknown>, orgId: string, actorId: string,
+): Promise<WorkspaceDocumentIndexItem[]> {
+  const sections = await filterAiDocumentCopies(resolveRoadmapSections(profile), orgId, actorId)
+  return sections.map((section) => {
     const sectionKey = section.slug?.trim() || section.id
     return {
       id: `roadmap:${sectionKey}`,
       source: "roadmap",
       title: section.title,
       subtitle: section.subtitle,
-      summary: normalizeSummary(section.content || section.subtitle),
+      summary: resolveCoreDocumentSource(section) === "editor"
+        ? normalizeSummary(section.content || section.subtitle) : null,
       updatedAt: section.lastUpdated,
       href: `/roadmap#${sectionKey}`,
       documentKind: null,
@@ -281,10 +287,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: orgError.message }, { status: 500 })
     }
 
-    const profile = (orgRow?.profile ?? {}) as Record<string, unknown>
+    const profile = await projectLegacyDocumentBindings((orgRow?.profile ?? {}) as Record<string, unknown>, orgId, user.id)
     const uploadItems = loadUploadItems(profile, orgId)
     const policyItems = loadPolicyItems(profile, orgId)
-    const roadmapItems = loadRoadmapItems(profile)
+    const roadmapItems = await loadRoadmapItems(profile, orgId, user.id)
 
     let noteItems: WorkspaceDocumentIndexItem[] = []
     try {
@@ -323,7 +329,7 @@ export async function GET(request: NextRequest) {
         items,
         total: allItems.length,
       },
-      { status: 200 },
+      { status: 200, headers: PRIVATE_FILE_HEADERS },
     )
   } catch (loadError: unknown) {
     return NextResponse.json(

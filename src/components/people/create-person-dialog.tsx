@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { MAX_PERSON_SAVE_BYTES } from "@/lib/people/profile-photo"
 import { useRouter } from "next/navigation"
 import PlusIcon from "lucide-react/dist/esm/icons/plus"
 
@@ -54,6 +55,8 @@ export function CreatePersonDialog({
   const formId = React.useId()
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
+  const [imagePending, setImagePending] = React.useState(false)
+  const [saveError, setSaveError] = React.useState<string | null>(null)
   const open = controlledOpen ?? uncontrolledOpen
   const [name, setName] = React.useState(initial?.name ?? "")
   const [title, setTitle] = React.useState(initial?.title ?? "")
@@ -88,7 +91,7 @@ export function CreatePersonDialog({
     Boolean(category) &&
     !socialLinkError &&
     detailsValidation.success &&
-    !pending
+    !pending && !imagePending
 
   const setOpen = React.useCallback(
     (nextOpen: boolean) => {
@@ -99,6 +102,7 @@ export function CreatePersonDialog({
   )
 
   const resetForm = React.useCallback(() => {
+    setSaveError(null); setImagePending(false)
     setName(initial?.name ?? "")
     setTitle(initial?.title ?? "")
     setEmail(initial?.email ?? "")
@@ -127,43 +131,56 @@ export function CreatePersonDialog({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (readOnly || !name.trim() || socialLinkError || pending) return
+    if (!canSubmit) return
 
     startTransition(async () => {
       const toastId = toast.loading(
         initial?.id ? "Saving changes…" : "Adding person…"
       )
-      const result = await upsertPersonAction({
-        id: initial?.id,
-        expectedRevision: initial?.id
-          ? (initial.contactMetadata?.revision ?? 0)
-          : undefined,
-        name: name.trim(),
-        title: title.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        details,
-        ...(extendedSocialLinksEnabled
-          ? socialLinks
-          : { linkedin: socialLinks.linkedin }),
-        category,
-        customRole,
-        image,
-        reportsToId: reportsToId || null,
-      })
+      setSaveError(null)
+      try {
+        const payload = {
+          id: initial?.id,
+          expectedRevision: initial?.id
+            ? (initial.contactMetadata?.revision ?? 0)
+            : undefined,
+          name: name.trim(),
+          title: title.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          details,
+          ...(extendedSocialLinksEnabled
+            ? socialLinks
+            : { linkedin: socialLinks.linkedin }),
+          category,
+          customRole,
+          image,
+          reportsToId: reportsToId || null,
+        }
+        if (new TextEncoder().encode(JSON.stringify(payload)).byteLength > MAX_PERSON_SAVE_BYTES) {
+          const message = "This profile is too large to save. Choose a smaller photo and try again."
+          setSaveError(message); toast.error(message, { id: toastId }); return
+        }
+        const result = await upsertPersonAction(payload)
 
-      if (!("error" in result)) {
-        setOpen(false)
-        resetForm()
-        onSaved?.(result.id)
-        toast.success(initial?.id ? "Person updated" : "Person added", {
-          id: toastId,
-        })
-        router.refresh()
-        return
+        if (!("error" in result)) {
+          setOpen(false)
+          resetForm()
+          onSaved?.(result.id)
+          toast.success(initial?.id ? "Person updated" : "Person added", {
+            id: toastId,
+          })
+          router.refresh()
+          return
+        }
+
+        const message = result.error || "The person could not be saved. Please try again."
+        setSaveError(message)
+        toast.error(message, { id: toastId })
+      } catch {
+        const message = "The save could not be confirmed. Your changes are still here. Check People before trying again."
+        setSaveError(message); toast.error(message, { id: toastId })
       }
-
-      toast.error(result.error, { id: toastId })
     })
   }
 
@@ -230,6 +247,7 @@ export function CreatePersonDialog({
               }
               onCategoryChange={setCategory}
               onImageChange={setImage}
+              onImagePendingChange={setImagePending}
               onReportsToChange={setReportsToId}
               readOnly={readOnly}
             />
@@ -248,6 +266,7 @@ export function CreatePersonDialog({
             )}
           </div>
 
+          {saveError && <p role="alert" className="text-destructive px-6 pb-3 text-sm">{saveError}</p>}
           <SheetFooter className="border-border/60 bg-background/95 shrink-0 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             {readOnly ? (
               <Button type="button" variant="outline" onClick={handleCancel}>

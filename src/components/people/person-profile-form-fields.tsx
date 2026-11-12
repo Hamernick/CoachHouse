@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { preparePersonPhoto } from "@/lib/people/profile-photo"
 
 import { PersonSocialBrandIcon } from "@/components/people/person-social-brand-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -53,6 +54,7 @@ type PersonProfileFormFieldsProps = {
   onSocialLinkChange: (platform: PersonSocialPlatform, value: string) => void
   onCategoryChange: (value: OrgPerson["category"]) => void
   onImageChange: (value: string | null) => void
+  onImagePendingChange?: (pending: boolean) => void
   onReportsToChange: (value: string | null) => void
   readOnly?: boolean
 }
@@ -91,16 +93,26 @@ export function PersonProfileFormFields({
   onSocialLinkChange,
   onCategoryChange,
   onImageChange,
+  onImagePendingChange,
   onReportsToChange,
   readOnly = false,
 }: PersonProfileFormFieldsProps) {
   const categoryMeta = PERSON_CATEGORY_META[category]
-  function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
+  const photoVersion = React.useRef(0)
+  const [photoError, setPhotoError] = React.useState<string | null>(null)
+  React.useEffect(() => () => { photoVersion.current += 1; onImagePendingChange?.(false) }, [onImagePendingChange])
+  async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    event.target.value = ""
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => onImageChange(String(reader.result))
-    reader.readAsDataURL(file)
+    const version = ++photoVersion.current
+    setPhotoError(null); onImagePendingChange?.(true)
+    try {
+      const photo = await preparePersonPhoto(file)
+      if (version === photoVersion.current) onImageChange(photo)
+    } catch (error) {
+      if (version === photoVersion.current) setPhotoError(error instanceof Error ? error.message : "This photo could not be read. Try another photo.")
+    } finally { if (version === photoVersion.current) onImagePendingChange?.(false) }
   }
 
   return (
@@ -128,9 +140,12 @@ export function PersonProfileFormFields({
                   id={`${formId}-image`}
                   name="image"
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp"
                   onChange={handleFile}
+                  aria-invalid={Boolean(photoError)}
+                  aria-describedby={photoError ? `${formId}-photo-error` : undefined}
                 />
+                {photoError && <p id={`${formId}-photo-error`} role="alert" className="text-destructive text-sm">{photoError}</p>}
                 <p className="text-muted-foreground text-xs">
                   Square images work best.
                 </p>

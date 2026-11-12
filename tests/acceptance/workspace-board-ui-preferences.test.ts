@@ -145,7 +145,7 @@ describe("workspace board UI preferences", () => {
     )
   })
 
-  it("restores the Particles destination only within the saved organization/viewer scope", () => {
+  it("migrates saved Particles to Tools only within the saved organization/viewer scope", () => {
     stubLocalStorage()
     const scope = { orgId: "org-1", viewerId: "viewer-1" }
     patchWorkspaceBoardUiPreferences(scope, {
@@ -153,7 +153,7 @@ describe("workspace board UI preferences", () => {
       dataDrawerSnapPoint: 0.48,
     })
     expect(readWorkspaceBoardUiPreferences(scope).dataDrawerTab).toBe(
-      "particles"
+      "tools"
     )
     expect(
       readWorkspaceBoardUiPreferences({ ...scope, orgId: "org-2" })

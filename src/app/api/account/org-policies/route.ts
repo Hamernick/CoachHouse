@@ -1,4 +1,7 @@
+import { reconcileLegacyDocumentCleanup } from "@/lib/organization/legacy-document-cleanup"
 import { requireOrganizationDocumentStorage } from "@/lib/organization/document-storage-access"
+import { projectLegacyDocumentBindings } from "@/lib/organization/legacy-document-bindings"
+import { PRIVATE_FILE_HEADERS } from "@/lib/organization/private-storage-response"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { canEditOrganization, resolveActiveOrganization } from "@/lib/organization/active-org"
@@ -6,7 +9,6 @@ import { mutateOrganizationProfile } from "@/lib/organization/profile-mutation"
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route"
 
 type OrgPolicyStatus = "not_started" | "in_progress" | "complete"
-const BUCKET = "org-documents"
 
 type OrgPolicyDocument = {
   name: string
@@ -106,10 +108,6 @@ function readPolicies(profile: Record<string, unknown>): OrgPolicy[] {
   return raw.map((entry) => normalizePolicy(entry)).filter((entry): entry is OrgPolicy => Boolean(entry))
 }
 
-function isPolicyDocumentPath(path: string, orgId: string, policyId: string) {
-  return path.startsWith(`${orgId}/policies/${policyId}/`)
-}
-
 async function requireOrgEditor(request: NextRequest) {
   const response = NextResponse.next()
   const supabase = createSupabaseRouteHandlerClient(request, response)
@@ -131,7 +129,7 @@ async function requireOrgEditor(request: NextRequest) {
     return { error: NextResponse.json({ error: storageAccess.error }, { status: 403 }) }
   }
 
-  return { supabase, orgId }
+  return { supabase, orgId, userId: user.id }
 }
 
 export async function GET(request: NextRequest) {
@@ -147,8 +145,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const { orgId } = await resolveActiveOrganization(supabase, user.id)
-    const profile = await loadProfile(supabase, orgId)
-    return NextResponse.json({ policies: readPolicies(profile) }, { status: 200 })
+    const profile = await projectLegacyDocumentBindings(await loadProfile(supabase, orgId), orgId, user.id)
+    return NextResponse.json({ policies: readPolicies(profile) }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to load policies" }, { status: 500 })
   }
@@ -207,7 +205,7 @@ export async function POST(request: NextRequest) {
     if ("error" in mutation) {
       return NextResponse.json({ error: mutation.error }, { status: mutation.status })
     }
-    return NextResponse.json({ policy: nextPolicy, policies: mutation.value }, { status: 200 })
+    return NextResponse.json({ ok: true, policyId: nextPolicy.id }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to create policy" }, { status: 500 })
   }
@@ -269,19 +267,14 @@ export async function PATCH(request: NextRequest) {
     if ("error" in mutation) {
       return NextResponse.json({ error: mutation.error }, { status: mutation.status })
     }
-    return NextResponse.json(
-      {
-        policy: mutation.value.nextPolicy,
-        policies: mutation.value.nextPolicies,
-      },
-      { status: 200 }
-    )
+    return NextResponse.json({ ok: true, policyId: id }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to update policy" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const attemptedPaths = new Set<string>()
   const auth = await requireOrgEditor(request)
   if ("error" in auth) return auth.error
 
@@ -290,6 +283,7 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: "Policy id is required." }, { status: 400 })
 
   try {
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: null, actorId: auth.userId, attemptedPaths })
     const mutation = await mutateOrganizationProfile({
       supabase: auth.supabase,
       orgId: auth.orgId,
@@ -308,12 +302,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: mutation.error }, { status: mutation.status })
     }
 
-    const { path, nextPolicies } = mutation.value
-    if (path && isPolicyDocumentPath(path, auth.orgId, id)) {
-      const { error: cleanupError } = await auth.supabase.storage.from(BUCKET).remove([path])
-      if (cleanupError) console.warn("Failed to remove deleted policy document")
-    }
-    return NextResponse.json({ ok: true, policies: nextPolicies }, { status: 200 })
+    await reconcileLegacyDocumentCleanup({ orgId: auth.orgId, documentKind: `policy:${id}`, actorId: auth.userId, attemptedPaths })
+    return NextResponse.json({ ok: true }, { status: 200, headers: PRIVATE_FILE_HEADERS })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unable to delete policy" }, { status: 500 })
   }

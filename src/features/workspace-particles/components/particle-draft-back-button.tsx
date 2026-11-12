@@ -12,7 +12,9 @@ export function ParticleDraftBackButton({
   dirty,
   pending,
   onBack,
+  label = "Back to Particles",
 }: {
+  label?: string
   dirty: boolean
   pending: boolean
   onBack: () => void
@@ -25,7 +27,7 @@ export function ParticleDraftBackButton({
           variant="ghost"
           size="lg"
           className={PARTICLE_EDITOR_HEADER_ACTION}
-          aria-label="Back to Particles"
+          aria-label={label}
           disabled={pending}
           onClick={(event) => {
             if (pending || !dirty) {

@@ -1,6 +1,8 @@
+import { readOrganizationProfileForProjection } from "@/lib/organization/profile-read"
+import { resolveCoreDocumentSource } from "@/lib/roadmap/core-document-source"
+import { projectReadableDocumentProfile } from "@/lib/organization/document-ai-copies"
 import {
   resolveOrganizationNarrativePlainText,
-  resolveRoadmapSections,
 } from "@/lib/roadmap"
 import type { SearchResult } from "@/lib/search/types"
 import { getWorkspaceEditorPath } from "@/lib/workspace/routes"
@@ -100,15 +102,17 @@ export async function attachOrganizationImages({
 export async function addActiveOrganizationResults({
   supabase,
   orgId,
+  actorId,
   tokens,
   pushResult,
 }: {
   supabase: SupabaseClient
   orgId: string
+  actorId: string
   tokens: string[]
   pushResult: (result: SearchResult) => void
 }) {
-  const [{ data: programs }, { data: userOrg }] = await Promise.all([
+  const [{ data: programs }, { data: userOrg, error: organizationError }] = await Promise.all([
     supabase
       .from("programs")
       .select("id, title, subtitle, status_label")
@@ -121,12 +125,10 @@ export async function addActiveOrganizationResults({
           status_label: string | null
         }>
       >(),
-    supabase
-      .from("organizations")
-      .select("profile")
-      .eq("user_id", orgId)
-      .maybeSingle<{ profile: Record<string, unknown> | null }>(),
+    readOrganizationProfileForProjection(supabase, orgId, actorId),
   ])
+
+  if (organizationError) throw new Error("Organization data is unavailable.")
 
   for (const program of programs ?? []) {
     if (
@@ -154,10 +156,12 @@ export async function addActiveOrganizationResults({
 
   if (!userOrg?.profile) return
 
-  const profile = userOrg.profile ?? {}
+  const { profile, roadmapSections } = await projectReadableDocumentProfile(userOrg.profile, orgId, actorId)
   const name = extractProfileValue(profile, "name")
   const tagline = extractProfileValue(profile, "tagline")
-  const mission = resolveOrganizationNarrativePlainText(profile, "mission")
+  const missionSection = roadmapSections.find(section => section.id === "mission_vision_values")
+  const mission = missionSection && resolveCoreDocumentSource(missionSection) !== "editor"
+    ? "" : resolveOrganizationNarrativePlainText(profile, "mission")
   const description = extractProfileValue(profile, "description")
 
   if (matchesQuery([name, tagline, mission, description], tokens)) {
@@ -170,10 +174,9 @@ export async function addActiveOrganizationResults({
     })
   }
 
-  const roadmapSections = resolveRoadmapSections(profile)
   for (const section of roadmapSections) {
     if (
-      matchesQuery([section.title, section.subtitle, section.content], tokens)
+      matchesQuery([section.title, section.subtitle, resolveCoreDocumentSource(section) === "editor" ? section.content : null], tokens)
     ) {
       const sectionKey = section.slug || section.id
       pushResult({

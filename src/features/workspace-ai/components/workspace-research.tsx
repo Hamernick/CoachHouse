@@ -1,16 +1,23 @@
 "use client"
-import { useEffect, useEffectEvent, useRef, useState } from "react"
-import { ResearchPublicOptions, ResearchScopeHelp } from "./research-public-brief"
+import { isResearchReply } from "../lib/research-response"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { ResearchSources } from "./research-sources"
+import { useResearchChatStream } from "./use-research-chat-stream"
+import { ResearchBoardAddButton } from "./research-board-drop"
+import type { ResearchPlacement } from "../lib/research-placement"
+import { useAiUsageRequest } from "@/features/ai-credits/client"
+import type { ComposerContextReference } from "@/lib/workspace/composer-context"
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react"
+import { ResearchPublicOptions } from "./research-public-brief"
 import { useResearchPublicBrief, type ResearchQuote } from "./use-research-public-brief"
 import { ParticleButton as Button, ParticleTextarea as Textarea, ParticleSelect } from "@/components/ui/particle-ui"
 import { quoteWorkspaceResearch, getWorkspaceResearch, stopWorkspaceResearch } from "../research-actions"
 import { type ResearchTarget, type ResearchResult, type ResearchRequest } from "../research-types"
 import { researchSnapshotSchema } from "../lib/research-snapshot"
 import { ResearchReview, type ResearchPlanContext } from "./research-review"
-import { researchRecovery, researchRecoveryCodeSchema, type ResearchRecoveryCode } from "../lib/research-recovery"
+import { visibleResearchNotice, researchRecovery, researchRecoveryCodeSchema, type ResearchRecoveryCode } from "../lib/research-recovery"
 import { researchPhaseLabels } from "../lib/research-phase"
 import type { ResearchItemPreview } from "../lib/research-item-preview"
-import { ResearchHistoryMenu } from "./research-history-menu"
 
 type Quote = ResearchQuote
 import { applyResearchDraft, createResearchDraft, researchDraftError, validateResearchRecoveryDraft, type ResearchDraft } from "../lib/research-draft"
@@ -25,7 +32,14 @@ import { ResearchSourceEffects } from "./research-source-effects"
 import { prepareReviewedResearchSources } from "../lib/research-source-application"
 import { ResearchRunReceipt, type ResearchRunReceiptValue } from "./research-run-receipt"
 
-type Props = { target: ResearchTarget; userId: string; planContext?: ResearchPlanContext; stale?: boolean; initialPrompt?: string; onPromptChange?: (prompt: string) => void; onProposal: (result: ResearchResult, draft?: ResearchDraft) => Promise<boolean>; onClose: () => void }
+export type ResearchComposer = {
+  panel: ReactNode; prompt: string; onChange: (prompt: string) => void
+  hasRun?: boolean
+  navigationBlocked?: boolean
+  followup?: { id: string; prepare: () => Promise<boolean> }
+  pending: boolean; inputDisabled: boolean; submitDisabled: boolean; submit: () => Promise<void>
+}
+type Props = { parentRunId?: string; restoreRunId?: string; autoStart?: boolean; onRunChange?: (id: string, status: string) => void; context?: ComposerContextReference[]; children?: (composer: ResearchComposer) => ReactNode; target: ResearchTarget; userId: string; planContext?: ResearchPlanContext; stale?: boolean; initialPrompt?: string; onPromptChange?: (prompt: string) => void; onProposal: (result: ResearchResult, draft?: ResearchDraft, placement?: ResearchPlacement) => Promise<boolean>; onClose: () => void }
 type RunResponse = { run?: unknown; error?: string; failure?: { code?: unknown } }
 const scopeIdentity = (target: ResearchTarget) => target.mode === "new_objective" ? `${target.organizationId}:new_objective:${target.canvasId ?? "default"}` : `${target.organizationId}:${target.objectiveId}:${target.plan?.id ?? "new"}`
 const identity = (target: ResearchTarget) => `${scopeIdentity(target)}:${target.revision}:${target.plan?.revision ?? ""}`
@@ -34,14 +48,17 @@ export function WorkspaceResearch(props: Props) {
   // A target change owns a new session; late responses cannot reach its state or storage.
   return <ResearchSession key={`${props.userId}:${identity(props.target)}`} {...props} />
 }
-function ResearchSession({ target, userId, planContext, stale: targetStale, initialPrompt = "", onPromptChange, onProposal, onClose }: Props) {
+function ResearchSession({ parentRunId, restoreRunId, autoStart, onRunChange, context, children, target, userId, planContext, stale: targetStale, initialPrompt = "", onPromptChange, onProposal, onClose }: Props) {
+  const sendChat = useResearchChatStream(userId)
   const [prompt, setPrompt] = useState(initialPrompt), [skill, setSkill] = useState<ResearchRequest["skill"]>(target.plan || target.mode === "new_objective" ? "planning" : "research")
   const [quote, setQuote] = useState<Quote | null>(null), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false)
   const alive=useRef(true)
   const {publicResearch,publicAvailable,setPublicAvailable,updatePublicResearch}=useResearchPublicBrief(target,alive,setQuote,setError)
   const [runId, setRunId] = useState<string | null>(null), [result, setResult] = useState<ResearchResult | null>(null), [message, setMessage] = useState("")
+  const [applied, setApplied] = useState(false)
   const [receipt, setReceipt] = useState<ResearchRunReceiptValue | null>(null)
   const sourceEffects = useResearchSourceEffects(runId, target, result)
+  const sidebarUsage = useAiUsageRequest(quote && !runId ? { ...quote, organizationId: target.organizationId } : null, receipt ? `${receipt.id}:${receipt.status}` : undefined)
   const [unsavedPreview, setUnsavedPreview] = useState<ResearchResult | null>(null)
   const [partialItems, setPartialItems] = useState<ResearchItemPreview[]>([])
   const clearPreviews = () => { setUnsavedPreview(null); setPartialItems([]) }
@@ -52,7 +69,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
   const leaveTrigger = useRef<HTMLElement | null>(null), keepEditing = useRef<HTMLButtonElement>(null)
   const leaveIntent = useRef(leaving); leaveIntent.current = leaving
   useEffect(() => { if (leaving) keepEditing.current?.focus() }, [leaving])
-  const recovery = useResearchDraftCheckpoint(result, target, (value, frozen) => {
+  const recovery = useResearchDraftCheckpoint(researchArtifact(result), target, (value, frozen) => {
     if (!result || draft) return
     setDraft({ runId: result.runId, base: JSON.stringify(result), value }); setAttempted(frozen); setEditing(!frozen)
   })
@@ -87,15 +104,17 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     clearPreviews()
     if (value.error) { fail(value); return }
     const snapshot = researchSnapshotSchema.safeParse(value.run)
-    if (!snapshot.success || snapshot.data.id !== expectedRun || (snapshot.data.appliedObjectiveId && target.mode !== "new_objective")) {
+    if (!snapshot.success || snapshot.data.id !== expectedRun) {
       fail({ failure: { code: "invalid_result" } }); return
     }
     const run = snapshot.data
+    onRunChange?.(run.id, run.status)
     setReceipt({ id: run.id, status: run.status, credits: run.credits, processing: run.processing })
     setFailure(null)
+    setApplied(Boolean(run.appliedObjectiveId))
     if (run.appliedObjectiveId) {
       setDraft(null); setEditing(false); setAttempted(false); setLeaving(null)
-      setResult(null); setError(null); setMessage("Proposal already added. Reload the workspace to see it."); retain(null)
+      setResult(null); setError(null); setMessage("Added to board."); retain(null)
       return
     }
     if (run.result) {
@@ -109,7 +128,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
       if (draft && (draft.runId !== expectedRun || draft.base !== JSON.stringify(saved))) {
         fail({ error: "Saved research changed. Discard this preview and reopen it." }); return
       }
-      setResult(saved); setError(null); setMessage("Research ready. Review the proposed changes.")
+      setResult(saved); setError(null); setMessage(isResearchReply(saved) ? "" : "Research ready. Review the proposed changes.")
     } else {
       setResult(null)
       if (["failed", "canceled"].includes(run.status)) {
@@ -117,14 +136,31 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
       } else setMessage("Research is still running or recovering. Check status shortly.")
     }
   }
+  const [approvedEmbeddingTariff, setApprovedEmbeddingTariff] = useState<string | null>(null)
+  const embeddingApproved = !quote?.embedding || approvedEmbeddingTariff === quote.tariffVersion
   const start = async () => {
-    if (!quote || working.current || runId) return
+    if (!quote || researchSubmitDisabled({ quote, embeddingApproved, busy: working.current, checking: false, runId, result, stale: Boolean(targetStale), prompt, failure })) return
     working.current = true; setBusy(true); setError(null); setFailure(null); setResult(null); setReceipt(null); clearPreviews(); setMessage("Researching workspace context and relevant sources…")
     const id = crypto.randomUUID(); retain(id)
     const generationVersion = readVersion.current
     const controller = new AbortController(); streamAbort.current = controller
+    const payload: ResearchRequest = { id, target, prompt, skill, ...(parentRunId ? { parentRunId } : {}), ...(context?.length ? { context } : {}), maximumCredits: quote.maximumCredits, tariffVersion: quote.tariffVersion, ...(quote.embedding ? {embeddingApproval:approvedEmbeddingTariff!} : {}), ...(publicResearch ? { publicResearch } : {}) }
     try {
-      const response = await fetch("/api/workspace-ai/research", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Accept: "text/event-stream, application/json" }, body: JSON.stringify({ id, target, prompt, skill, maximumCredits:quote.maximumCredits,tariffVersion:quote.tariffVersion,...(publicResearch ? {publicResearch} : {}) }) })
+      if (children) {
+        const reply = await sendChat(payload, controller.signal, event => {
+          if (!alive.current || activeRun.current !== id || readVersion.current !== generationVersion || controller.signal.aborted) return
+          if (event.kind === "phase.changed") setMessage(researchPhaseLabels[event.payload.phase])
+          if (document.visibilityState !== "visible") return
+          if (event.kind === "preview.updated") { setPartialItems([]); setUnsavedPreview(event.payload.result) }
+          if (event.kind === "preview.item") setPartialItems(items => [...items, event.payload.item])
+          if (event.kind === "preview.cleared") setPartialItems([])
+        })
+        if (!alive.current || activeRun.current !== id || readVersion.current !== generationVersion) return
+        if (reply) { consume(reply, id); if (reply.error && !reply.reserved) retain(null) }
+        else { clearPreviews(); const snapshot = await getWorkspaceResearch(id, target); if (readVersion.current === generationVersion) consume(snapshot, id) }
+        return
+      }
+      const response = await fetch("/api/workspace-ai/research", { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Accept: "text/event-stream, application/json" }, body: JSON.stringify(payload) })
       if (!alive.current || activeRun.current !== id || readVersion.current !== generationVersion) { await response.body?.cancel(); return }
       if (response.headers.get("content-type")?.startsWith("text/event-stream")) {
         const { readResearchProgress } = await import("../lib/research-progress-client")
@@ -169,7 +205,7 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
       working.current = false; setBusy(false)
     }
     checkingRun.current = expectedRun; setChecking(true)
-    setResult(null); setReceipt(null); setError(null); setFailure(null); setMessage(stop ? "Stopping research…" : "Checking research sources…")
+    setResult(current => children && !stop ? current : null); setReceipt(current => children && !stop ? current : null); setError(null); setFailure(null); setMessage(stop ? "Stopping research…" : "Checking research sources…")
     try {
       const value = await (stop ? stopWorkspaceResearch(expectedRun, target) : getWorkspaceResearch(expectedRun, target))
       if (!alive.current || activeRun.current !== expectedRun || readVersion.current !== version) return
@@ -193,18 +229,25 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     alive.current = true
     let current = true
     try {
-      const stored = sessionStorage.getItem(key)
+      const stored = restoreRunId ?? (parentRunId || autoStart !== undefined ? null : sessionStorage.getItem(key))
       const parsed = researchSnapshotSchema.shape.id.safeParse(stored)
       if (parsed.success) { activeRun.current = parsed.data; setRunId(parsed.data); restoreSavedRun(parsed.data) }
       else if (stored) sessionStorage.removeItem(key)
     } catch { /* Browser storage is optional. */ }
-    void quoteWorkspaceResearch(mode === "new_objective" ? {mode, organizationId, revision, canvasId} : {organizationId, objectiveId:objectiveId!, revision, ...(planId !== undefined && planRevision !== undefined ? {plan:{id:planId,revision:planRevision}} : {})}).then(value => {
+    if (!restoreRunId) void quoteWorkspaceResearch(mode === "new_objective" ? {mode, organizationId, revision, canvasId} : {organizationId, objectiveId:objectiveId!, revision, ...(planId !== undefined && planRevision !== undefined ? {plan:{id:planId,revision:planRevision}} : {})}).then(value => {
       if (!current) return
       if ("error" in value) setError(value.error ?? "Research unavailable.")
       else {setQuote(value);setPublicAvailable(Boolean(value.publicResearchAvailable))}
     }).catch(() => { if (current) setError("Research pricing could not be loaded. Reopen research to retry.") })
     return () => { current = false; alive.current = false; activeRun.current = null; streamAbort.current?.abort() }
-  }, [key, organizationId, objectiveId, revision, planId, planRevision, mode, canvasId, setPublicAvailable])
+  }, [key, organizationId, objectiveId, revision, planId, planRevision, mode, canvasId, setPublicAvailable, restoreRunId, parentRunId, autoStart])
+  const autoStarted = useRef(false)
+  const submitInitialTurn = useEffectEvent(() => { void start() })
+  useEffect(() => {
+    if (autoStart && quote && embeddingApproved && !restoreRunId && !autoStarted.current) {
+      autoStarted.current = true; submitInitialTurn()
+    }
+  }, [autoStart, quote, restoreRunId, embeddingApproved])
   const recheckVisibleResult = useEffectEvent((reconnect: boolean) => {
     const resumable = reconnect && runId && (!failure || researchRecovery[failure].action === "check_status")
     if (document.visibilityState === "visible" && (result || resumable) && !targetStale) void recover(false, runId, reconnect)
@@ -224,22 +267,22 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     }
   }, [])
   const stale = Boolean(targetStale || (result && identity(result.target) !== identity(target)))
-  const add = async () => {
-    if (!result || working.current || checkingRun.current || stale || !recovery.ready || recovery.busy || recovery.uncertain) return
+  const add = async (placement?: ResearchPlacement) => {
+    if (!result || isResearchReply(result) || working.current || checkingRun.current || stale || !recovery.ready || recovery.busy || recovery.uncertain) return
     working.current = true; setBusy(true); setError(null)
     try {
       setAttempted(true)
       // Freeze the exact retry payload durably before any canonical save attempt.
-      const prepared = await prepareReviewedResearchSources({ result, draft: draft?.value, saveDraft: recovery.save,
+      const prepared = await prepareReviewedResearchSources({ result, preserveDraft: Boolean(children) || target.mode === "new_objective", draft: draft?.value, saveDraft: recovery.save,
         applySources: sourceEffects.apply, isCurrent: () => alive.current && activeRun.current === result.runId })
       if (!prepared.ready) return
       if (!alive.current || activeRun.current !== result.runId) return
-      const saved = await onProposal(result, prepared.draft)
+      const saved = await onProposal(result, prepared.draft, placement)
       sourceEffects.markPlan(saved)
       if (!alive.current) return
       if (saved) { retain(null); onClose() }
-      else { setResult(null); setMessage(""); setError("Proposal could not be added. Check status before retrying.") }
-    } catch (error) { if (alive.current) { setResult(null); setMessage(""); setError(error instanceof Error ? error.message : "Proposal could not be added.") } }
+      else { setMessage(""); setError("Plan was not confirmed. Retry adding it to check the saved result.") }
+    } catch (error) { if (alive.current) { setMessage(""); setError(error instanceof Error ? error.message : "Plan was not confirmed. Retry adding it.") } }
     finally { working.current = false; if (alive.current) setBusy(false) }
   }
   const discard = () => { setDraft(null); setEditing(false); setAttempted(false); setLeaving(null); setResult(null); setReceipt(null); clearPreviews(); retain(null); setMessage(""); setError(null); setFailure(null) }
@@ -271,27 +314,26 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     if (action === "close") onClose()
     else navigate(action.href)
   }
+  const addDisabled = busy || checking || stale || !validDraft || !recovery.ready || recovery.busy || recovery.uncertain || !hasResearchPlanPayload(preview)
   const canCheck = !failure || researchRecovery[failure].action === "check_status"
-  return <form aria-label={target.mode === "new_objective" ? "Plan a new objective" : target.plan ? "Revise plan with AI" : "Research objective"} className="particle-ui min-w-0 space-y-3 px-2 py-3" onSubmit={event => { event.preventDefault(); void start() }}>
-    {planContext && <p className="text-sm font-medium">Revise {planContext.title}</p>}
-    {!result && <><ResearchScopeHelp publicAvailable={publicAvailable} /><Textarea aria-label="Research request" placeholder={target.mode === "new_objective" ? "What do you want to accomplish?" : target.plan ? "What should change in this plan?" : "What should we find or develop?"} value={prompt} onChange={event => { setPrompt(event.target.value); onPromptChange?.(event.target.value) }} maxLength={2000} required rows={3} disabled={busy || Boolean(runId)} className="rounded-xl px-3 py-2" />
-      {target.mode !== "new_objective" && <ParticleSelect aria-label="Research approach" value={skill} onChange={event => setSkill(event.target.value as ResearchRequest["skill"])} disabled={busy || Boolean(runId)}><option value="research">Research</option><option value="partnerships">Find partners &amp; resources</option><option value="planning">Develop the plan</option></ParticleSelect>}
-      <ResearchPublicOptions available={publicAvailable} disabled={busy || Boolean(runId)} quote={quote} publicResearch={publicResearch} hasRun={Boolean(runId)} onChange={(value,awaitingReview)=>void updatePublicResearch(value,awaitingReview)} /></>}
-    {preview && !stale && !checking && <>
+  const panel = <form aria-label={target.mode === "new_objective" ? "Plan a new objective" : target.plan ? "Revise plan with AI" : "Research objective"} inert={Boolean(children) ? checking : undefined} className="particle-ui min-w-0 space-y-3 p-1 text-left [&_button]:touch-manipulation [@media(pointer:coarse)]:[&_button]:min-h-11" onSubmit={event => { event.preventDefault(); void start() }}>
+    {!result && <>{!children && <Textarea aria-label="Research request" placeholder={target.mode === "new_objective" ? "What do you want to accomplish?" : target.plan ? "What should change in this plan?" : "What should we find or develop?"} value={prompt} onChange={event => { setPrompt(event.target.value); onPromptChange?.(event.target.value) }} maxLength={2000} required rows={3} disabled={busy || Boolean(runId)} className="rounded-xl px-3 py-2" />}
+      {!children && target.mode !== "new_objective" && <ParticleSelect aria-label="Research approach" value={skill} onChange={event => setSkill(event.target.value as ResearchRequest["skill"])} disabled={busy || Boolean(runId)}><option value="research">Research</option><option value="partnerships">Find partners &amp; resources</option><option value="planning">Develop the plan</option></ParticleSelect>}
+      <ResearchPublicOptions available={publicAvailable} disabled={busy || Boolean(runId)} quote={quote} embeddingApproved={embeddingApproved} onApproveEmbedding={()=>setApprovedEmbeddingTariff(quote?.tariffVersion ?? null)} publicResearch={publicResearch} hasRun={Boolean(runId)} onChange={(value,awaitingReview)=>void updatePublicResearch(value,awaitingReview)} /></>}
+    {showVerifiedPreview(Boolean(preview), stale, checking, Boolean(children)) && <>
       {editing && draft ? <ResearchDraftEditor result={result!} draft={draft.value} disabled={busy || attempted || (recovery.busy && !autosaving) || recovery.uncertain || !recovery.ready} onChange={value => setDraft({ ...draft, value })} />
-        : <><p className="text-sm font-medium">{preview.title}</p><ResearchReview result={preview} plan={planContext} /></>}
-      {editing && !attempted && <p className="text-xs text-muted-foreground">Edits save privately. Add proposal when ready.</p>}
-      {dirty && <p role="status" className="text-xs text-muted-foreground">{autosaving ? "Saving private draft…" : "Unsaved edits."}</p>}
-      {!dirty && recovery.checkpoint.draft && <p role="status" className="text-xs text-muted-foreground">Private draft saved. Not added to the plan.</p>}
-      {draft && !attempted && <Button color="secondary" type="button" variant="ghost" size="2xl" disabled={!dirty || !recoverableDraft || busy || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => void recovery.save(draft.value)}>Save draft</Button>}
-      {!validDraft && <p role="alert" className="text-xs text-destructive">{draftError}</p>}
-      {!attempted && <Button color="secondary" type="button" variant="ghost" size="2xl" disabled={busy || !validDraft || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => {
-        if (!draft && result) setDraft({ runId: result.runId, base: JSON.stringify(result), value: createResearchDraft(result) })
-        setEditing(!editing)
-      }}>{editing ? "Review changes" : "Edit preview"}</Button>}
-      {attempted && <p className="text-xs text-muted-foreground">Saving was attempted. Retry uses these same edits.</p>}
+        : <><p className="text-sm font-medium">{preview!.title}</p><ResearchReview result={preview!} plan={planContext} compact={Boolean(children)} /></>}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <ResearchDraftStatus dirty={dirty} autosaving={autosaving} saved={Boolean(recovery.checkpoint.draft)} attempted={attempted} busy={busy} />
+        {draft && dirty && !attempted && <Button color="secondary" type="button" variant="ghost" size="md" disabled={!dirty || !recoverableDraft || busy || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => void recovery.save(draft.value)}>Save draft</Button>}
+        {!validDraft && <p role="alert" className="text-xs text-destructive">{draftError}</p>}
+        {!attempted && <Button color="secondary" type="button" variant="ghost" size="md" disabled={busy || !validDraft || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => {
+          if (!draft && result) setDraft({ runId: result.runId, base: JSON.stringify(result), value: createResearchDraft(result) })
+          setEditing(!editing)
+        }}>{editing ? "Review changes" : "Edit preview"}</Button>}
+      </div>
     </>}
-    <ResearchSourceEffects key={`${runId}:${scopeIdentity(target)}`} available={sourceEffects.available} organizationId={target.organizationId} effects={sourceEffects.effects}
+    <ResearchSourceEffects key={`${runId}:${scopeIdentity(target)}`} available={showSourceEffects(sourceEffects.available, Boolean(children))} organizationId={target.organizationId} effects={sourceEffects.effects}
       error={sourceEffects.error} pending={sourceEffects.pending} plan={sourceEffects.plan} onCheck={() => { void sourceEffects.check() }} />
     {partialItems.length > 0 && !unsavedPreview && !result && !targetStale && !checking && <section aria-label="Plan taking shape" className="space-y-2">
       <p className="text-xs text-muted-foreground">Unconfirmed items. Connections pending.</p>
@@ -300,19 +342,19 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
     {unsavedPreview && !result && !targetStale && !checking && <section aria-label="Unsaved plan preview" className="space-y-2">
       <p className="text-xs text-muted-foreground">Unsaved preview. Waiting for confirmation.</p>
       <p className="text-sm font-medium">{unsavedPreview.title}</p>
-      <ResearchReview result={unsavedPreview} plan={planContext} />
+      <ResearchReview result={unsavedPreview} plan={planContext} compact={Boolean(children)} />
     </section>}
-    {stale && <p role="status" className="text-xs text-muted-foreground">This plan or objective changed. Discard this research and research the current plan.</p>}
-    {message && !stale && <p role="status" className="text-xs text-muted-foreground">{message}</p>}
-    <ResearchRunReceipt run={receipt} hidden={stale || checking} />
-    {recovery.error && <div role="alert" className="text-xs text-destructive">{recovery.error} {!recovery.conflict && <Button color="secondary" type="button" variant="ghost" size="2xl" disabled={busy || recovery.busy} onClick={recovery.retry}>Retry draft</Button>}</div>}
-    {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+    {stale && !applied && <p role="status" className="text-xs text-muted-foreground">This plan or objective changed. Discard this research and research the current plan.</p>}
+    {showResearchMessage(message, Boolean(children)) && !preview && !stale && <p role="status" className="text-xs text-muted-foreground">{message}</p>}
+    {!children && <ResearchRunReceipt run={receipt} hidden={stale || checking} />}
+    {visibleResearchNotice(recovery.error) && <div role="alert" className="text-xs text-destructive">{visibleResearchNotice(recovery.error)} {!recovery.conflict && <Button color="secondary" type="button" variant="ghost" size="md" disabled={busy || recovery.busy} onClick={recovery.retry}>Retry draft</Button>}</div>}
+    {visibleResearchNotice(error) && <p role="alert" className="text-xs text-destructive">{visibleResearchNotice(error)}</p>}
     {leaving && <div role="group" aria-label="Unsaved preview edits" className="space-y-2 rounded-xl border border-border p-3">
       <p className="text-sm">{leaving === "discard" ? "Discard this draft? Saved AI research stays available." : dirty ? "Save your edits before leaving?" : "Edits saved. Ready to leave."}</p>
       <div className="flex flex-wrap gap-2">
-        {leaving !== "discard" && draft && <Button color="secondary" type="button" size="2xl" disabled={!recoverableDraft || attempted || busy || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => void saveAndLeave()}>{dirty ? leaving === "close" ? "Save and close" : "Save and leave" : leaving === "close" ? "Close saved draft" : "Leave with saved draft"}</Button>}
-        <Button color="secondary" type="button" size="2xl" variant="outline" ref={keepEditing} onClick={() => { setLeaving(null); leaveTrigger.current?.focus() }}>Keep editing</Button>
-        <Button color="secondary" type="button" size="2xl" variant="ghost" disabled={(busy && attempted) || recovery.busy} onClick={async () => {
+        {leaving !== "discard" && draft && <Button color="secondary" type="button" size="md" disabled={!recoverableDraft || attempted || busy || recovery.busy || recovery.uncertain || !recovery.ready} onClick={() => void saveAndLeave()}>{dirty ? leaving === "close" ? "Save and close" : "Save and leave" : leaving === "close" ? "Close saved draft" : "Leave with saved draft"}</Button>}
+        <Button color="secondary" type="button" size="md" variant="outline" ref={keepEditing} onClick={() => { setLeaving(null); leaveTrigger.current?.focus() }}>Keep editing</Button>
+        <Button color="secondary" type="button" size="md" variant="ghost" disabled={(busy && attempted) || recovery.busy} onClick={async () => {
           const action = leaving
           if (typeof action === "object" && action) { navigate(action.href); return }
           if (action === "close") { onClose(); return }
@@ -320,16 +362,82 @@ function ResearchSession({ target, userId, planContext, stale: targetStale, init
         }}>Discard edits</Button>
       </div>
     </div>}
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <Button color="secondary" type="button" variant="ghost" size="2xl" disabled={(busy && attempted) || recovery.busy} onClick={() => leave("close")}>Close</Button>
-      {!runId && !result && <ResearchHistoryMenu target={target} disabled={busy || checking || stale} onResume={id => {
-        if (working.current || activeRun.current) return
-        retain(id); void recover(false, id)
-      }} />}
-      {runId && !result && canCheck && <><Button color="secondary" type="button" variant="ghost" size="2xl" disabled={checking} onClick={() => void recover(true)}>Stop</Button><Button color="secondary" type="button" variant="outline" size="2xl" disabled={busy || checking || stale} onClick={() => void recover()}>Check status</Button></>}
-      {runId && <Button color="secondary" type="button" variant="ghost" size="2xl" disabled={busy || recovery.busy || recovery.uncertain} onClick={() => leave("discard")}>Discard</Button>}
-      {result && <Button color="primary" type="button" size="2xl" disabled={busy || checking || stale || !validDraft || !recovery.ready || recovery.busy || recovery.uncertain || (!preview?.items.length && !preview?.removeReferences?.length)} onClick={() => void add()}>Add proposal</Button>}
-      {!runId && !result && <Button color="primary" type="submit" size="2xl" disabled={busy || !quote || !prompt.trim() || Boolean(failure && researchRecovery[failure].action === "reopen")}>{target.mode === "new_objective" ? "Generate plan" : "Research"}</Button>}
+    <div className="flex flex-wrap items-center justify-end gap-2 empty:hidden">
+      {showRunActions(runId, message) && !result && canCheck && <><Button color="secondary" type="button" variant="ghost" size="md" disabled={checking} onClick={() => void recover(true)}>Stop</Button><Button color="secondary" type="button" variant="outline" size="md" disabled={busy || checking || stale} onClick={() => void recover()}>Check status</Button></>}
+      {!children && showRunActions(runId, message) && <Button color="secondary" type="button" variant="ghost" size="md" disabled={busy || recovery.busy || recovery.uncertain} onClick={() => leave("discard")}>Discard</Button>}
+      {result && <ResearchBoardAddButton disabled={addDisabled} newObjective={target.mode === "new_objective"} onAdd={add} />}
+      {!children && !runId && !result && <Button color="primary" type="submit" size="md" disabled={busy || !quote || !embeddingApproved || !prompt.trim() || Boolean(failure && researchRecovery[failure].action === "reopen")}>{target.mode === "new_objective" ? "Generate plan" : "Research"}</Button>}
     </div>
   </form>
+  const quietReview = Boolean(children && sidebarUsage && target.mode === "new_objective" && ![publicAvailable, quote?.embedding, runId, result, error, message, receipt, leaving, checking].some(Boolean))
+  const followup = researchFollowupReady({ target, applied, receipt, busy, checking, stale, error, attempted, result, recovery, validDraft })
+    ? { id: receipt!.id, prepare: async () => {
+      if (working.current || checkingRun.current) return false
+      if (dirty && draft && !await recovery.save(draft.value)) return false
+      return alive.current && (!result || activeRun.current === result.runId)
+    } } : undefined
+  return renderResearchSession({ children, navigationBlocked: [busy, dirty, recovery.uncertain].some(Boolean), followup, panel: hideResearchPanel(quietReview, Boolean(children), checking, Boolean(result)) ? null : replyOrProposal(result, error, panel), prompt, setPrompt, onPromptChange, busy, checking, runId, result, stale, quote, embeddingApproved, failure, start })
+}
+
+type ComposerState = { embeddingApproved?: boolean; prompt: string; busy: boolean; checking: boolean; runId: string | null; result: ResearchResult | null; stale: boolean; quote: Quote | null; failure: ResearchRecoveryCode | null }
+function researchSubmitDisabled(state: ComposerState) {
+  return Boolean(state.quote?.embedding && !state.embeddingApproved) || state.busy || state.checking || Boolean(state.runId) || Boolean(state.result) || state.stale || !state.quote || !state.prompt.trim() || state.prompt.length > 2000 || Boolean(state.failure && researchRecovery[state.failure].action === "reopen")
+}
+function renderResearchSession({ children, navigationBlocked, followup, panel, setPrompt, onPromptChange, start, ...state }: ComposerState & {
+  children: Props["children"]; navigationBlocked?: boolean; followup?: ResearchComposer["followup"]; panel: ReactNode; setPrompt: (value: string) => void; onPromptChange: Props["onPromptChange"]; start: () => Promise<void>
+}) {
+  return children ? children({ panel, navigationBlocked, followup, hasRun: Boolean(state.runId || state.result), prompt: state.prompt, onChange: value => { setPrompt(value); onPromptChange?.(value) },
+    pending: state.busy || state.checking,
+    inputDisabled: state.busy,
+    submitDisabled: researchSubmitDisabled(state), submit: start,
+  }) : panel
+}
+
+function ResearchDraftStatus({ dirty, autosaving, saved, attempted, busy }: {
+  dirty: boolean; autosaving: boolean; saved: boolean; attempted: boolean; busy: boolean
+}) {
+  const status = attempted ? (busy ? "Saving plan…" : "Retry will use these edits.")
+    : dirty ? (autosaving ? "Saving private draft…" : "Unsaved edits.")
+      : saved ? "Draft saved · not added to plan" : null
+  return status && <p role="status" className="text-xs text-muted-foreground">{status}</p>
+}
+
+function researchFollowupReady(state: {
+  target: ResearchTarget; applied: boolean; receipt: ResearchRunReceiptValue | null; busy: boolean; checking: boolean;
+  stale: boolean; error: string | null; attempted: boolean; result: ResearchResult | null;
+  recovery: ReturnType<typeof useResearchDraftCheckpoint>; validDraft: boolean
+}) {
+  const { applied, receipt, busy, stale, error, attempted, result, recovery, validDraft } = state
+  if (applied && receipt && !busy && !error) return true
+  if (!receipt || [busy, stale, error, attempted].some(Boolean)) return false
+  if (["failed", "canceled"].includes(receipt.status)) return true
+  if (isResearchReply(result)) return receipt.status === "succeeded"
+  return Boolean(result && recovery.ready && !recovery.busy && !recovery.uncertain && !recovery.conflict && validDraft)
+}
+
+function showRunActions(runId: string | null, message: string) { return Boolean(runId && !message.startsWith("Added to board")) }
+
+function showSourceEffects(available: boolean, embedded: boolean) {
+  return available && !embedded
+}
+
+function showResearchMessage(message: string, chat: boolean) { return Boolean(message && !(chat && message === "Added to board.")) }
+
+function hideResearchPanel(quiet: boolean, embedded: boolean, checking: boolean, hasResult: boolean) { return quiet || (embedded && checking && !hasResult) }
+
+function showVerifiedPreview(hasPreview: boolean, stale: boolean, checking: boolean, embedded: boolean) { return hasPreview && !stale && (!checking || embedded) }
+
+function replyOrProposal(result: ResearchResult | null, error: string | null, proposal: ReactNode) {
+  if (!result || !isResearchReply(result)) return proposal
+  return <div className="space-y-2">
+    <Bubble variant="ghost"><BubbleContent className="whitespace-pre-wrap">{result.summary}</BubbleContent></Bubble>
+    {result.sources.length > 0 && <ResearchSources sources={result.sources} />}
+    {visibleResearchNotice(error) && <p role="alert" className="text-xs text-destructive">{visibleResearchNotice(error)}</p>}
+  </div>
+}
+
+function researchArtifact(result: ResearchResult | null) { return isResearchReply(result) ? null : result }
+
+function hasResearchPlanPayload(result: ResearchResult | null) {
+  return Boolean(result && (result.items.length || result.removeReferences?.length || result.target.plan))
 }

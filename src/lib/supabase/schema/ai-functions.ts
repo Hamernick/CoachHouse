@@ -1,6 +1,9 @@
 import type { Json } from "./json"
 
 export type AiCreditFunctions = {
+  workspace_document_retrieval: { Args: { p_org_id: string; p_actor_id: string; p_canvas_id: string | null; p_operation: string; p_payload: Json }; Returns: Json }
+  manage_personal_workspace_memory: { Args: { p_org_id: string; p_action?: string; p_revision?: number | null; p_entry_id?: string | null; p_value?: string | null; p_enabled?: boolean | null }; Returns: Json }
+  manage_organization_workspace_memory: { Args: { p_org_id: string; p_action?: string; p_revision?: number | null; p_entry_id?: string | null; p_value?: string | null; p_enabled?: boolean | null }; Returns: Json }
   reserve_workspace_ai_research_run: { Args: { p_id:string; p_org_id:string; p_actor_id:string; p_hash:string; p_target:Json; p_prompt:string; p_tariff:Json; p_max_credits:number; p_max_cost:number }; Returns:Json }
   correlate_workspace_ai_research_response: { Args:{p_id:string;p_response_id:string}; Returns:undefined }
   read_ai_credit_allowance_setup: { Args: { p_org_id: string; p_actor_id: string; p_mode: string }; Returns: Json }
@@ -40,6 +43,12 @@ export type AiCreditFunctions = {
   settle_recorded_workspace_ai_run: { Args: { p_id: string }; Returns: Json }
   recover_workspace_ai_runs: { Args: { p_org_id?: string }; Returns: number }
   read_workspace_ai_account: { Args: { p_org_id: string; p_actor_id: string }; Returns: Json }
+  manage_workspace_research_conversation: { Args: { p_org_id: string; p_actor_id: string; p_canvas_id: string | null; p_root_id: string; p_operation: string; p_revision?: number; p_title?: string | null; p_pinned?: boolean | null }; Returns: { title: string | null; pinned: boolean; revision: number; deleted: boolean } }
+  page_workspace_research_conversation: {
+    Args: { p_org_id: string; p_actor_id: string; p_canvas_id: string | null; p_root_id: string; p_before_turn?: number | null; p_for_context?: boolean }
+    Returns: Json
+  }
+  list_workspace_research_conversation: { Args: { p_org_id: string; p_actor_id: string; p_canvas_id: string | null; p_root_id: string | null }; Returns: Json }
   read_workspace_ai_run: { Args: { p_id: string; p_org_id: string; p_actor_id: string }; Returns: Json }
   access_workspace_research_draft: { Args: { p_run_id: string; p_org_id: string; p_actor_id: string; p_base: string; p_edit_id: string | null; p_revision: number | null; p_draft: Json; p_attempted: boolean }; Returns: Json }
   list_workspace_research_runs: { Args: { p_org_id: string; p_actor_id: string; p_objective_id: string | null; p_canvas_id: string | null; p_plan_id: string | null }; Returns: Json }

@@ -1,5 +1,6 @@
 "use client"
 
+import { WorkspaceCanvasChat } from "./workspace-canvas-chat"
 import styles from "./workspace-dock.module.css"
 
 import { useRef, type ReactNode, type Ref, type SetStateAction } from "react"
@@ -48,7 +49,7 @@ export function WorkspaceDrawerComposer({
         )
       }}
     >
-      {children}
+      <WorkspaceCanvasChat>{children}</WorkspaceCanvasChat>
     </div>
   )
 }
