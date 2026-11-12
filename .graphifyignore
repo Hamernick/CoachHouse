@@ -31,3 +31,6 @@ docs/agent/HANDOFF.md
 *.png
 *.svg
 *.webp
+
+# Local MCP connection configuration has no code symbols; do not index it.
+/mcp.json
