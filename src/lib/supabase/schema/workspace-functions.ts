@@ -3,6 +3,7 @@ import type { Json } from "./json"
 import type { OrganizationWorkspaceObjectiveGroupsTable } from "./tables/organization_workspace_objective_groups"
 
 export type WorkspaceFunctions = {
+  reorder_opportunity_feed: { Args: { p_org_id: string; p_previous: string[]; p_ordered: string[] }; Returns: Json }
   project_folder_access_review: { Args: { p_project_id: string; p_folder_id: string; p_actor_id: string; p_expected_revision?: number; p_members?: Json; p_workspace_changes?: Json }; Returns: Json }
   project_folder_access_control: { Args: { p_project_id: string; p_folder_id: string; p_actor_id: string; p_expected_revision?: number; p_members?: Json }; Returns: Json }
   list_retained_workspace_access: { Args: { p_org_id: string; p_actor_id: string; p_after?: string | null }; Returns: Json }

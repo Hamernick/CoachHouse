@@ -43,6 +43,7 @@ type Props = { parentRunId?: string; restoreRunId?: string; autoStart?: boolean;
 type RunResponse = { run?: unknown; error?: string; failure?: { code?: unknown } }
 const scopeIdentity = (target: ResearchTarget) => target.mode === "new_objective" ? `${target.organizationId}:new_objective:${target.canvasId ?? "default"}` : `${target.organizationId}:${target.objectiveId}:${target.plan?.id ?? "new"}`
 const identity = (target: ResearchTarget) => `${scopeIdentity(target)}:${target.revision}:${target.plan?.revision ?? ""}`
+const initialResearchSkill = (target: ResearchTarget): ResearchRequest["skill"] => target.plan || target.mode === "new_objective" ? "planning" : "research"
 
 export function WorkspaceResearch(props: Props) {
   // A target change owns a new session; late responses cannot reach its state or storage.
@@ -50,7 +51,7 @@ export function WorkspaceResearch(props: Props) {
 }
 function ResearchSession({ parentRunId, restoreRunId, autoStart, onRunChange, context, children, target, userId, planContext, stale: targetStale, initialPrompt = "", onPromptChange, onProposal, onClose }: Props) {
   const sendChat = useResearchChatStream(userId)
-  const [prompt, setPrompt] = useState(initialPrompt), [skill, setSkill] = useState<ResearchRequest["skill"]>(target.plan || target.mode === "new_objective" ? "planning" : "research")
+  const [prompt, setPrompt] = useState(initialPrompt), [skill, setSkill] = useState<ResearchRequest["skill"]>(initialResearchSkill(target))
   const [quote, setQuote] = useState<Quote | null>(null), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false)
   const alive=useRef(true)
   const {publicResearch,publicAvailable,setPublicAvailable,updatePublicResearch}=useResearchPublicBrief(target,alive,setQuote,setError)
