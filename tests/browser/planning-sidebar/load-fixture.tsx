@@ -1,4 +1,4 @@
-import { Profiler, useCallback, useState } from "react"
+import { Profiler, useCallback, useRef, useState } from "react"
 import { ReactFlow, type Node, type NodeChange } from "@xyflow/react"
 import { ParticleNode } from "@/features/workspace-particles/components/particle-node"
 import { ParticleEdge } from "@/features/workspace-particles/components/particle-edge"
@@ -32,20 +32,21 @@ export function LoadFixture({ controls, finance }: { controls: PlanningControls;
     graph.connections.push({ id: "00000000-0000-4000-8003-000000000999", source: cards[0].id, target: cards[5].id, sourceHandle: "out", targetHandle: "in", relationship: "related_resource", revision: 0 })
     return graph
   })
-  const [server] = useState(() => ({ graph: stored }))
+  const server = useRef({ graph: stored })
   const transport = useCallback<ParticleTransport>(async batch => {
-    const result = await applyParticleBatch(server.graph, batch, new Date().toISOString())
+    const result = await applyParticleBatch(server.current.graph, batch, new Date().toISOString())
     if (result.ok) {
-      server.graph = result.value.graph
+      server.current.graph = result.value.graph
       metrics.saves++
-      const card = server.graph.particles.find(particle => particle.id === "00000000-0000-4000-8001-000000000000")!
+      const card = server.current.graph.particles.find(particle => particle.id === "00000000-0000-4000-8001-000000000000")!
       localStorage.setItem("drag-load-position", JSON.stringify({ id: card.id, position: card.position }))
     }
     return result
   }, [server])
-  const load = useCallback(async () => ({ ok: true as const, value: server.graph }), [server])
+  const load = useCallback(async () => ({ ok: true as const, value: server.current.graph }), [server])
   const session = useParticleSession({ workspaceId: stored.workspaceId, stored, canEdit: true, transport, load })
   const particles = useParticleFlow({ workspaceId: stored.workspaceId, session, canEdit: true, visibleToolIds: toolIds })
+  const { flow: flowRef } = particles
   const onNodesChange = (changes: NodeChange[]) => {
     metrics.nodeUpdates++
     particles.onNodesChange(changes)
@@ -57,7 +58,7 @@ export function LoadFixture({ controls, finance }: { controls: PlanningControls;
         <WorkspaceObjectivesIsland scope={{ userId: stored.workspaceId, organizationId: stored.workspaceId }} particles={particles.controls} finance={finance} />
       </Profiler>
     </div>
-    <ReactFlow<Node> nodes={particles.nodes} edges={particles.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} className="workspace-flow" onlyRenderVisibleElements={!particles.layout.measureAll} onInit={instance => { particles.flow.current = instance }} onNodesChange={onNodesChange} onNodeDragStop={(_, node) => void particles.move([node])}>
+    <ReactFlow<Node> nodes={particles.nodes} edges={particles.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} className="workspace-flow" onlyRenderVisibleElements={!particles.layout.measureAll} onInit={instance => { flowRef.current = instance }} onNodesChange={onNodesChange} onNodeDragStop={(_, node) => void particles.move([node])}>
       <ParticleGeometryObserver onChange={particles.layout.geometryChanged} />
     </ReactFlow>
   </div>

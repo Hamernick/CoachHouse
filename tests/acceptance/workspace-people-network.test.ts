@@ -1,4 +1,4 @@
-import { createElement } from "react"
+import { createElement, type ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import {
@@ -178,10 +178,11 @@ describe("People network", () => {
   })
   it("renders a labeled keyboard-focusable horizontal divider between network and table", () => {
     const markup = renderToStaticMarkup(
-      createElement(WorkspacePeopleNetworkSplit, {
-        ...props,
-        children: createElement("div", null, "People table contents"),
-      })
+      createElement(
+        WorkspacePeopleNetworkSplit,
+        props as ComponentProps<typeof WorkspacePeopleNetworkSplit>,
+        createElement("div", null, "People table contents"),
+      )
     )
     expect(markup).toContain('role="separator"')
     expect(markup).toContain('aria-orientation="horizontal"')

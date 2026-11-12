@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react"
+import { createElement, type ComponentProps, type ReactNode } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import { WorkspaceDockHost } from "@/app/(dashboard)/my-organization/_components/workspace-board/workspace-canvas-v2/components/workspace-dock-host"
@@ -10,7 +10,7 @@ vi.mock("react-dom", async (importOriginal) => ({
 
 describe("floating workspace dock host", () => {
   it("renders retained content without a drawer, overlay, trigger or autofocus", () => {
-    const html = renderToStaticMarkup(createElement(WorkspaceDockHost, {
+    const props: Omit<ComponentProps<typeof WorkspaceDockHost>, "children"> = {
       floating: true,
       // The portal is mocked; no browser container is needed for this render.
       container: { nodeType: 1, closest: () => null } as unknown as HTMLElement,
@@ -19,8 +19,12 @@ describe("floating workspace dock host", () => {
       legacyRootProps: { open: true },
       legacyContentProps: { style: { height: 800 } },
       legacyTrigger: createElement("button", null, "Legacy trigger"),
-      children: createElement("input", { "aria-label": "Retained draft", defaultValue: "Draft" }),
-    }))
+    }
+    const html = renderToStaticMarkup(createElement(
+      WorkspaceDockHost,
+      props as ComponentProps<typeof WorkspaceDockHost>,
+      createElement("input", { "aria-label": "Retained draft", defaultValue: "Draft" }),
+    ))
     expect(html).toContain('aria-label="Workspace dock"')
     expect(html).toContain('value="Draft"')
     expect(html).not.toMatch(/drawer-content|drawer-overlay|role="dialog"|autofocus|tabindex|height:800/)
