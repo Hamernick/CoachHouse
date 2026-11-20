@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
 
 import ArrowRightIcon from "lucide-react/dist/esm/icons/arrow-right"
 import CheckIcon from "lucide-react/dist/esm/icons/check"
@@ -72,7 +71,6 @@ export function OrganizationAccessRequestsPanel({
   emptyHref?: string
   emptyLabel?: string
 }) {
-  const router = useRouter()
   const [requests, setRequests] = useState(initialRequests)
   const [isPending, startTransition] = useTransition()
 
@@ -118,7 +116,9 @@ export function OrganizationAccessRequestsPanel({
       )
 
       if (result.status === "accepted") {
-        router.push(successHref)
+        // The old workspace scopes client fetches, including router navigation.
+        // Start a new document so the accepted organization cookie takes effect.
+        window.location.assign(successHref)
       }
     })
   }

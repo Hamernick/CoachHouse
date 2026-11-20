@@ -109,3 +109,6 @@ Before a new lane: inspect branch/upstream/dirt/listeners and refresh its releva
 ## Launch Route Hygiene — Active Sequential Lane
 
 `fix/launch-route-hygiene-20261024` in `coach-house-platform-launch-route-hygiene-20261024`; [checkpoint](../plans/2026-10-24-launch-route-hygiene.md). O123/O173/O176/O133/O127 and the overlapping O126 requirement are development-complete in draft [PR359](https://github.com/Hamernick/CoachHouse/pull/359); Scoped O145-02/O145-03 keyboard authoring and O128/O129 public image-delivery fixes are verified; those broader requirements remain In progress. The linked checkpoint owns final verification and maintenance receipts. Stacked on documentation PR358. User owns hosted checks, review, merge/deploy and live acceptance.
+
+
+- November20 invitation recovery: isolated `fix/invitation-workspace-recovery-20261120`; [checkpoint](../plans/2026-11-20-invitation-workspace-recovery.md). Local patch and focused proof complete; review and hosted release gates remain; isolated full-project types now pass. Existing-account acceptance must open the invited organization automatically.
