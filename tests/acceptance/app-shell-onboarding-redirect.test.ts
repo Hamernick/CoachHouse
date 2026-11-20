@@ -14,6 +14,23 @@ describe("app shell onboarding redirect", () => {
     ).toBe("/onboarding?source=onboarding")
   })
 
+  it("lets an unfinished account review its invitation before creating a workspace", () => {
+    expect(resolveAppShellOnboardingRedirectTarget({
+      onboardingLocked: true,
+      onboardingIntentFocus: "build",
+      isAdminContext: false,
+      pathname: "/access-requests",
+    })).toBeNull()
+  })
+
+  it("does not exempt unrelated routes with an access-requests prefix", () => {
+    expect(resolveAppShellOnboardingRedirectTarget({
+      onboardingLocked: true,
+      isAdminContext: false,
+      pathname: "/access-requests-unrelated",
+    })).toBe("/onboarding?source=onboarding")
+  })
+
   it("does not redirect once the user is already on onboarding", () => {
     expect(
       resolveAppShellOnboardingRedirectTarget({

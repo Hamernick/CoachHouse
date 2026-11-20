@@ -10,5 +10,7 @@ export function resolveAppShellOnboardingRedirectTarget({
 }) {
   if (!onboardingLocked || isAdminContext) return null
   if (pathname?.startsWith("/onboarding")) return null
+  // Invitees must be able to join an existing workspace before owner setup.
+  if (pathname === "/access-requests") return null
   return "/onboarding?source=onboarding"
 }

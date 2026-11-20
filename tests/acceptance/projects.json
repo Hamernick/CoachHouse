@@ -426,6 +426,7 @@
       "tests/acceptance/org-documents-upload-limit.test.ts",
       "tests/acceptance/org-profile-story-contract.test.ts",
       "tests/acceptance/org-switching.test.ts",
+      "tests/acceptance/organization-access-requests-panel.test.ts",
       "tests/acceptance/organization-coach-assignments.test.ts",
       "tests/acceptance/organization-document-access.test.ts",
       "tests/acceptance/organization-document-collaboration-access.test.ts",
