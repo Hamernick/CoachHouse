@@ -1,6 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import type { ModuleNotesPayload } from "@/app/actions/module-notes"
+import { ModuleNotesActionsContext } from "@/hooks/module-notes-actions-context"
 import { Button } from "@/components/ui/button"
 import {
   WorkspaceAcceleratorCardPanelComponent,
@@ -25,7 +27,28 @@ const registration: WorkspaceAcceleratorCardStep = {
   moduleContext: { classTitle: "Formation", lessonNotesContent: null, moduleResources: [], assignmentFields: [], assignmentSubmission: null, completeOnSubmit: false },
 }
 
+function createPreviewNotesActions() {
+  const notes = new Map<string, ModuleNotesPayload>()
+  const read = (moduleId: string) => {
+    const entry = notes.get(moduleId) ?? null
+    return { ok: true as const, notes: entry, revision: entry }
+  }
+  const write = (moduleId: string, content: string) => {
+    if (content.trim()) notes.set(moduleId, { content: content.trim(), format: "markdown" })
+    else notes.delete(moduleId)
+  }
+  return {
+    load: async (moduleId: string) => read(moduleId),
+    save: async (moduleId: string, content: string) => {
+      write(moduleId, content)
+      return read(moduleId)
+    },
+    flush: write,
+  }
+}
+
 export function AcceleratorInteractionPreview() {
+  const [notesActions] = useState(createPreviewNotesActions)
   const [drawerContainer, setDrawerContainer] = useState<HTMLDivElement | null>(null)
   const [completed, setCompleted] = useState(false)
   const [failSave, setFailSave] = useState(false)
@@ -37,6 +60,7 @@ export function AcceleratorInteractionPreview() {
     steps: [{ ...baseStep, id: "naming:intro-video", stepKind: "video" as const, stepTitle: "Introduction video", stepSequenceIndex: 1 }, { ...baseStep, status: completed ? "completed" as const : "not_started" as const }, registration],
     size: "lg" as const,
     initialCurrentStepId: baseStep.id,
+    onStepComplete: async () => ({ ok: true as const }),
     onModuleComplete: async () => {
       setPending(true)
       await new Promise((resolve) => setTimeout(resolve, 200))
@@ -47,7 +71,7 @@ export function AcceleratorInteractionPreview() {
     },
   }), [completed, failSave])
 
-  return <main className="space-y-8 p-4">
+  return <ModuleNotesActionsContext.Provider value={notesActions}><main className="space-y-8 p-4">
     <div className="flex flex-wrap items-center gap-3">
       <Button onClick={() => { setOpen(true); setRevision((value) => value + 1) }}>Reopen lesson</Button>
       <Button onClick={() => setFailSave((value) => !value)}>{failSave ? "Allow saves" : "Fail saves"}</Button>
@@ -75,5 +99,5 @@ export function AcceleratorInteractionPreview() {
         onNext={() => {}} onPrevious={() => {}} onComplete={() => {}} onClose={() => {}}
         onWorkspaceOnboardingSubmit={async (form) => { setSavedName(String(form.get("orgName"))); }} />
     </section>
-  </main>
+  </main></ModuleNotesActionsContext.Provider>
 }

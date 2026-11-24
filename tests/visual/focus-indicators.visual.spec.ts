@@ -19,7 +19,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(button).toHaveCSS("outline-width", "2px")
     await expect(button).toHaveCSS("outline-style", "solid")
 
-    const notes = page.getByTestId("lesson-preview").locator("textarea")
+    const notes = page.getByTestId("lesson-preview").getByRole("textbox", { name: "Lesson notes", exact: true })
+    await expect(notes).toBeEditable()
     for (const control of [input, notes]) {
       await control.click()
       await expect(control).not.toHaveCSS("outline-style", "solid")

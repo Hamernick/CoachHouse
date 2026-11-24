@@ -29,6 +29,7 @@ for (const [width, colorScheme] of [[1440, "light"], [390, "dark"]] as const) {
     await expect(next).toBeEnabled()
     await expect(lesson.getByRole("heading", { name: "Introduction video", exact: true })).toBeVisible()
     await next.click()
+    await expect(navigation.getByRole("heading", { name: "Class video", exact: true })).toBeVisible()
     await expect(lesson.locator("video")).toBeVisible()
 
     await page.getByRole("button", { name: "Fail saves", exact: true }).click()
@@ -53,6 +54,8 @@ for (const [width, colorScheme] of [[1440, "light"], [390, "dark"]] as const) {
     await expect(setup.locator("#orgSlug")).toHaveValue("stable-url")
     await setup.getByRole("button", { name: "Continue", exact: true }).click()
     await expect(setup.locator("#firstName")).toHaveValue("Test")
+    // The Next.js development badge covers Back on narrow screens.
+    await page.addStyleTag({ content: "nextjs-portal { visibility: hidden !important; }" })
     await setup.getByRole("button", { name: "Back", exact: true }).click()
     await expect(setup.locator("#orgName")).toHaveValue("Updated organization")
   })
