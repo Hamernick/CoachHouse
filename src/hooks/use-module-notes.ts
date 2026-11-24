@@ -1,8 +1,8 @@
 "use client"
 
 import { useWorkspaceDataScope } from "@/features/organization-workspace-support/client"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { getModuleNotesAction, saveModuleNotesAction } from "@/app/actions/module-notes"
+import { useCallback, useContext, useEffect, useRef, useState } from "react"
+import { ModuleNotesActionsContext } from "./module-notes-actions-context"
 import type { Json } from "@/lib/supabase/schema/json"
 import { moduleNotesDraftKey, readModuleNotesDraft, writeModuleNotesDraft, discardReviewedModuleNotesDraft, type ModuleNotesDraft } from "./module-notes-draft"
 
@@ -13,6 +13,7 @@ type Session = {
 }
 
 export function useModuleNotes(moduleId: string) {
+  const actions = useContext(ModuleNotesActionsContext)
   const { organizationId, storageKey: learningScope } = useWorkspaceDataScope()
   const key = moduleNotesDraftKey(learningScope, moduleId)
   const [value, setDisplayedValue] = useState("")
@@ -43,7 +44,7 @@ export function useModuleNotes(moduleId: string) {
     setError(null)
     setDisplayedValue(current.value)
     try {
-      const result = await getModuleNotesAction(moduleId, organizationId)
+      const result = await actions.load(moduleId, organizationId)
       if (!current.active || id !== request.current) return
       if ("error" in result) throw new Error(result.error)
       current.base = (result.notes?.content ?? "").trim()
@@ -64,7 +65,7 @@ export function useModuleNotes(moduleId: string) {
         setError("Notes could not be loaded. Retry before editing.")
       }
     }
-  }, [key, moduleId, organizationId, persist])
+  }, [actions, key, moduleId, organizationId, persist])
 
   useEffect(() => {
     void load()
@@ -94,7 +95,7 @@ export function useModuleNotes(moduleId: string) {
         // Serialize changes; a successful older response never clears a newer draft.
         while (current.active && current.loaded && current.value.trim() !== current.base) {
           const content = current.value
-          const result = await saveModuleNotesAction(moduleId, content, organizationId, current.revision)
+          const result = await actions.save(moduleId, content, organizationId, current.revision)
           if (!current.active) return
           if ("error" in result) {
             setError(result.error)
@@ -118,7 +119,7 @@ export function useModuleNotes(moduleId: string) {
     }
     current.pending = save()
     return current.pending
-  }, [key, load, moduleId, organizationId, persist])
+  }, [actions, key, load, moduleId, organizationId, persist])
 
   useEffect(() => {
     if (loadState !== "ready") return
@@ -130,10 +131,7 @@ export function useModuleNotes(moduleId: string) {
     const flush = () => {
       const current = session.current
       if (!current?.active || !current.loaded || current.key !== key || current.value.trim() === current.base) return
-      void fetch(`/api/modules/${moduleId}/notes`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
-        body: JSON.stringify({ content: current.value, organizationId, revision: current.revision }),
-      }).catch(() => { /* The scoped draft remains until an acknowledged save or read. */ })
+      actions.flush(moduleId, current.value, organizationId, current.revision)
     }
     const warn = (event: BeforeUnloadEvent) => {
       const current = session.current
@@ -142,7 +140,7 @@ export function useModuleNotes(moduleId: string) {
     window.addEventListener("pagehide", flush)
     window.addEventListener("beforeunload", warn)
     return () => { window.removeEventListener("pagehide", flush); window.removeEventListener("beforeunload", warn) }
-  }, [key, moduleId, organizationId])
+  }, [actions, key, moduleId, organizationId])
 
   const resolveConflict = useCallback((useDraft: boolean) => {
     const current = session.current
